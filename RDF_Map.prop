@@ -1,0 +1,169 @@
+This section is for properties
+
+BROWSER_TYPE	Mozilla
+
+ENGINES	Security
+
+Security prerna.rdf.engine.impl.BigDataEngine
+Security_PROP db/SecurityBigDataProp.properties
+Security_ONTOLOGY load_maps/Security_Custom_Map.prop
+Security_DREAMER questions/Security_Questions.properties
+
+LISTENERS	ProcessQueryListener;PerspectiveSelectionListener;QuestionListener;SparqlShowListener;SparqlAreaListener;GraphGridRawRadioBtnListener;FilterRefreshListener;AppendPlaySheetListener;ExtendPlaySheetListener;UndoListener;RemoveQueryListener;FileBrowseListener;OWLRefreshListener;ColorShapeRefreshListener;ColorShapeClearRefreshListener;DBBrowseListener;ImportDataListener;CustomUpdateButtonListener;ImportTypeSelectionListener;StartTrainingListener;MapBrowseListener;AdvancedImportOptionsListener
+
+#Listener Classes
+ProcessQueryListener	prerna.ui.main.listener.impl.ProcessQueryListener
+PerspectiveSelectionListener	prerna.ui.main.listener.impl.PerspectiveSelectionListener
+QuestionListener	prerna.ui.main.listener.impl.QuestionListener
+SparqlShowListener	prerna.ui.main.listener.impl.SparqlShowListener
+SparqlAreaListener	prerna.ui.main.listener.impl.SparqlAreaListener
+FilterRefreshListener	prerna.ui.main.listener.impl.FilterRefreshListener
+AppendPlaySheetListener	prerna.ui.main.listener.impl.AppendPlaySheetListener
+ExtendPlaySheetListener	prerna.ui.main.listener.impl.ExtendPlaySheetListener
+UndoListener	prerna.ui.main.listener.impl.UndoListener
+RemoveQueryListener	prerna.ui.main.listener.impl.RemoveQueryListener
+FileBrowseListener	prerna.ui.main.listener.impl.FileBrowseListener
+OWLRefreshListener	prerna.ui.main.listener.impl.OWLRefreshListener
+DBBrowseListener	prerna.ui.main.listener.impl.DBBrowseListener
+ImportDataListener	prerna.ui.main.listener.impl.ImportDataListener
+ColorShapeRefreshListener	prerna.ui.main.listener.impl.ColorShapeRefreshListener
+ColorShapeClearRefreshListener	prerna.ui.main.listener.impl.ColorShapeClearRefreshListener
+GraphGridRawRadioBtnListener prerna.ui.main.listener.impl.GraphGridRawRadioBtnListener
+CustomUpdateButtonListener	prerna.ui.main.listener.impl.CustomUpdateButtonListener
+ImportTypeSelectionListener	prerna.ui.main.listener.impl.ImportTypeSelectionListener
+StartTrainingListener	prerna.ui.main.listener.impl.StartTrainingListener
+MapBrowseListener	prerna.ui.main.listener.impl.MapBrowseListener
+AdvancedImportOptionsListener	prerna.ui.main.listener.impl.AdvancedImportOptionsListener
+
+#Listener View
+PerspectiveSelectionListener_VIEW	questionSelector
+SparqlAreaListener_VIEW	sparqlArea
+ProcessQueryListener_VIEW	sparqlArea
+RemoveQueryListener_VIEW	sparqlArea
+AppendPlaySheetListener_VIEW	playsheetList
+FileBrowseListener_VIEW	importFileNameField
+
+# Controllers block
+importFileNameField_CONTROLLER
+exportFileNameField_CONTROLLER
+filterPanel_CONTROLLER
+controlPanel_CONTROLLER
+propPanel_CONTROLLER
+sparqlArea_CONTROLLER
+inputPanel_CONTROLLER
+perspectiveSelector_CONTROLLER	PerspectiveSelectionListener
+questionSelector_CONTROLLER	QuestionListener
+paramPanel_CONTROLLER
+fillButton_CONTROLLER	RemoveQueryListener
+submitButton_CONTROLLER	ProcessQueryListener
+showSparql_CONTROLLER	SparqlShowListener
+exportButton_CONTROLLER
+rightView_CONTROLLER
+graphPanel_CONTROLLER
+imExPanel_CONTROLLER
+imExFileSelector_CONTROLLER
+importButton_CONTROLLER
+importPanel_CONTROLLER
+exportPanel_CONTROLLER
+settingsPanel_CONTROLLER
+refreshButton_CONTROLLER	FilterRefreshListener
+appendButton_CONTROLLER	AppendPlaySheetListener
+#extendButton_CONTROLLER	ExtendPlaySheetListener
+undoBtn_CONTROLLER UndoListener
+fileBrowseBtn_CONTROLLER	FileBrowseListener
+dbBrowseBtn_CONTROLLER	DBBrowseListener
+btnRepaintGraph_CONTROLLER	OWLRefreshListener
+btnColorShape_CONTROLLER	ColorShapeRefreshListener
+btnResetDefaults_CONTROLLER	ColorShapeClearRefreshListener
+importButton_CONTROLLER	ImportDataListener
+rdbtnGraph_CONTROLLER	GraphGridRawRadioBtnListener
+rdbtnGrid_CONTROLLER	GraphGridRawRadioBtnListener
+rdbtnRaw_CONTROLLER	GraphGridRawRadioBtnListener
+btnCustomUpdate_CONTROLLER	CustomUpdateButtonListener
+dbImportTypeComboBox_CONTROLLER	ImportTypeSelectionListener
+pptTrainingBtn_CONTROLLER	StartTrainingListener
+htmlTrainingBtn_CONTROLLER	StartTrainingListener
+mapBrowseBtn_CONTROLLER	MapBrowseListener
+dbPropBrowseButton_CONTROLLER	MapBrowseListener
+questionBrowseButton_CONTROLLER	MapBrowseListener
+btnShowAdvancedImportFeatures_CONTROLLER	AdvancedImportOptionsListener
+
+# Right Views
+RIGHT_VIEW	prerna.ui.components.RightView
+
+#parents
+importFileNameField
+exportFileNameField
+filterPanel
+controlPanel
+propPanel
+sparqlArea
+inputPanel
+perspectiveSelector
+questionSelector
+paramPanel
+fillButton
+submitButton
+clearButton
+showSparql
+exportButton
+rightView
+graphPanel
+imExPanel
+imExFileSelector
+importButton
+importPanel
+exportPanel
+settingsPanel
+
+#Shape maps
+InterfaceControlDocument_SHAPE	CIRCLE
+System_SHAPE	SQUARE
+Requirement_SHAPE	HEXAGON
+BusinessProcess_SHAPE	CIRCLE
+Activity_SHAPE	PENTAGON
+BusinessLogicUnit_SHAPE	TRIANGLE
+DataObject_SHAPE	TRIANGLE
+Capability_SHAPE DIAMOND
+SystemDCSite_SHAPE	CIRCLE
+DCSite_SHAPE	TRIANGLE
+FError_SHAPE	CIRCLE
+Service_SHAPE	DIAMOND
+SoftwareModule_SHAPE	CIRCLE
+SoftwareVersion_SHAPE	CIRCLE
+Site_SHAPE	SQUARE
+IPAddress_SHAPE	TRIANGLE
+UserName_SHAPE	HEXAGON
+AssetID_SHAPE	DIAMOND
+Employee_SHAPE	CIRCLE
+HardwareVersion_SHAPE	CIRCLE
+HardwareModule_SHAPE	CIRCLE
+LifeCycle_SHAPE	HEXAGON
+SystemCategory_SHAPE	TRIANGLE
+
+
+#Shape Colors
+InterfaceControlDocument_COLOR	GREEN
+System_COLOR	BLUE
+Requirement_COLOR	BROWN
+BusinessProcess_COLOR	YELLOW
+Activity_COLOR	RED
+BusinessLogicUnit_COLOR	PURPLE
+DataObject_COLOR	ORANGE
+Capability_COLOR  AQUA
+SystemDCSite_COLOR	ORANGE
+DCSite_COLOR	GREEN
+FError_COLOR	BROWN
+Service_COLOR	RED
+SoftwareModule_COLOR	BROWN
+SoftwareVersion_COLOR	PURPLE
+Site_COLOR	BLUE
+IPAddress_COLOR	ORANGE
+UserName_COLOR	RED
+AssetID_COLOR	BROWN
+Employee_COLOR	GREEN
+HardwareModule_COLOR	BLACK
+HardwareVersion_COLOR	ORANGE
+LifeCycle_COLOR	YELLOW
+SystemCategory_COLOR	GREEN
+Documents_COLOR	GREEN

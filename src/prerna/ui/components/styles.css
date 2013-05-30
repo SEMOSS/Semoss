@@ -1,0 +1,50 @@
+.label {
+	-swing-foreground: #EEE;
+}
+
+.undoBtn {
+	-swing-foreground: #333;
+	-swing-background: #fff;
+	-arui-foreground-mouseover: #444;
+	-arui-foreground-mousedown: #222;
+	-arui-stroke: #999;
+	-arui-stroke-mouseover: #aaa;
+	-arui-stroke-mousedown: #888;
+	-arui-fill: lineargradient(0, 0, 0, 1, 0.49, #eee, .9, #ccc);
+	-arui-fill-mouseover: lineargradient(0, 0, 0, 1, 0.49, #eee, 0.9, #e0e0e0);
+	-arui-fill-mousedown: lineargradient(0, 0, 0, 1, 0.49, #ddd, 0.9, #d0d0d0);
+	-arui-cornerradius: 6;
+}
+
+.fillButton {
+	-swing-foreground: #333;
+	-swing-background: #fff;
+	-arui-foreground-mouseover: #444;
+	-arui-foreground-mousedown: #222;
+	-arui-stroke: #999;
+	-arui-stroke-mouseover: #aaa;
+	-arui-stroke-mousedown: #888;
+	-arui-fill: lineargradient(0, 0, 0, 1, 0.49, #eee, .9, #ccc);
+	-arui-fill-mouseover: lineargradient(0, 0, 0, 1, 0.49, #eee, 0.9, #e0e0e0);
+	-arui-fill-mousedown: lineargradient(0, 0, 0, 1, 0.49, #ddd, 0.9, #d0d0d0);
+	-arui-cornerradius: 6;
+}
+
+.createBtn {
+	-swing-foreground: #fff;
+	-arui-foreground-mouseover: #fff;
+	-arui-foreground-mousedown: #fff;
+	-arui-stroke: #387038;
+	-arui-stroke-mouseover: #387038;
+	-arui-stroke-mousedown: #387038;
+	-arui-fill: lineargradient(0, 0, 0, 1, 0.49, #62c462, 1, #51a351);
+	-arui-fill-mouseover: lineargradient(0, 0, 0, 1, 0.49, #6fd26f, 0.9, #62c462);
+	-arui-fill-mousedown: lineargradient(0, 0, 0, 1, 0.49, #51a351, 0.9, #51a351);
+	-arui-cornerradius: 6;
+}
+
+.paramPane {
+	-swing-background: #f0f0f0;
+
+}
+
