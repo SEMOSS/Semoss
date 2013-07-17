@@ -8,11 +8,15 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import prerna.util.Constants;
 
 public class POIWriter {
 
@@ -47,7 +51,7 @@ public class POIWriter {
 		//readFileName is the file that this function will add to
 		//if readFileName is null, it will create a new workbook
 		String workingDir = System.getProperty("user.dir");
-		String writeFileName = "LoadingSheets1.xlsx";
+		String writeFileName = Constants.GLITEM_LOADING_SHEET;
 		String readFileName = "BaseGILoadingSheets.xlsx";
 		String folder = "/export/";
 		String fileLoc = workingDir + folder + writeFileName;
@@ -63,6 +67,25 @@ public class POIWriter {
 		if(wb == null) return;
 		Hashtable<String, Vector<String[]>> preparedHash = prepareLoadingSheetExport(hash);
 		
+		XSSFSheet sheet = wb.createSheet("Loader");
+		Vector<String[]> data = new Vector<String[]>();
+		data.add(new String[]{"Sheet Name", "Type"});
+		for(String key : preparedHash.keySet()) {
+			data.add(new String[]{key, "Usual"});
+		}
+		int count=0;
+		for (int row=0; row<data.size();row++){
+			XSSFRow row1 = sheet.createRow(count);
+			count++;
+			
+			for (int col=0; col<data.get(row).length;col++) {
+				XSSFCell cell = row1.createCell(col);
+				if(data.get(row)[col] != null) {
+					cell.setCellValue(data.get(row)[col].replace("\"", ""));
+				}
+			}
+		}
+		
 		Set<String> keySet = preparedHash.keySet();
 		for(String key: keySet){
 			Vector<String[]> sheetVector = preparedHash.get(key);
@@ -75,6 +98,7 @@ public class POIWriter {
 	public void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook){
 		XSSFSheet worksheet = workbook.createSheet(key);
 		int count=0;//keeps track of rows; one below the row int because of header row
+		final Pattern NUMERIC = Pattern.compile("^\\d+.?\\d*$");
 		//for each row, create the row in excel
 		for (int row=0; row<sheetVector.size();row++){
 			XSSFRow row1 = worksheet.createRow( count);
@@ -82,6 +106,12 @@ public class POIWriter {
 			//for each col, write it to that row.
 			for (int col=0; col<sheetVector.get(0).length;col++){
 				XSSFCell cell = row1.createCell(col);
+				String val = sheetVector.get(row)[col];
+				if(val != null && !val.isEmpty() && NUMERIC.matcher(val).find()) {
+					cell.setCellType(Cell.CELL_TYPE_NUMERIC);
+					cell.setCellValue(Double.parseDouble(val));
+					continue;
+				}
 				cell.setCellValue(sheetVector.get(row)[col]);
 			}
 		}
@@ -134,6 +164,16 @@ public class POIWriter {
 		while(keyIt.hasNext()){
 			String key = keyIt.next();
 			Vector<String[]> sheetV = (Vector<String[]>) oldHash.get(key);
+			
+			//This sheet is always empty, don't try to modify or add it to the new hash
+			if(key.equals("Sys-DeployGLItem")) {
+				continue;
+			} //Relationships exports, already formatted correctly
+			else if(key.equals("Sys-Data") || key.equals("Sys-BLU") || key.equals("Ser-Data") || key.equals("Ser-BLU")) {
+				newHash.put(key, sheetV);
+				continue;
+			}
+			
 			Vector<String[]> newSheetV = new Vector<String[]>();
 			String[] oldTopRow = sheetV.get(0);//this should be {Relation, *the relation, "", "" ...}
 			String[] oldHeaderRow = sheetV.get(1);//this should be {*header1, *header2....}

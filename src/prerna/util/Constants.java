@@ -37,7 +37,6 @@ public class Constants {
 	public static String VERTEX_TYPE = "VERTEX_TYPE_PROPERTY";
 	public static String GENERIC_IMAGE = "GENERIC";
 	public static String PERSPECTIVE = "PERSPECTIVE";
-	public static String EXTEND_PERSPECTIVE = "EXTEND_PERSPECTIVE";
 	public static final String INEDGE_COUNT = "Inputs";
 	public static final String OUTEDGE_COUNT = "Outputs";
 	public static String PROCESS_CURRENT_DATE = "PROCESS_CURRENT_DATE";
@@ -54,7 +53,7 @@ public class Constants {
 	
 	// layouts
 	public static String FR="Fruchterman-Reingold";
-	public static String KK = "Kamada-Kawaii";
+	public static String KK = "Kamada-Kawai";
 	public static String SPRING = "Spring-Layout";
 	public static String SPRING2 = "Spring-Layout2";
 	public static String CIRCLE_LAYOUT = "Circle-Layout";
@@ -115,12 +114,13 @@ public class Constants {
 	public static String FILTER_PANEL = "filterPanel";
 	public static String PLAYSHEETS = "playsheetList";
 	public static String APPEND = "appendButton";
-	public static String EXTEND = "extendButton";
 	public static String PROP_URI = "PROP_URI";
 	public static String PREDICATE_URI = "PREDICATE_URI";
 	public static String EDGE_NAME = "EDGE_NAME";
 	public static String EDGE_TYPE = "EDGE_TYPE";
 	public static String OPTION = "OPTION"; // used by entity filler
+	public static String NODELIST = "nodeToExtendList";
+	public static String EXTENDLIST = "extList";
 	public static String FILTER = "FILTER_NAME";
 	public static String WEIGHT = "weight";
 	public static String EDGE_ADJUSTER_TABLE = "edgeAdjusterTable";
@@ -140,8 +140,6 @@ public class Constants {
 	public static String CALC_NAMES_LIST = "_Names";
 	public static String GRID_VIEW = "prerna.ui.components.GridPlaySheet";
 	public static String PROP_HASH = "_PropHash";
-	public static String TRAVERSE_LEVEL = "traverseLevel";
-	public static String TRAVERSE_VECTOR = "traverseVector";
 	public static String TRAVERSE_JENA_MODEL = "traverseJenaModel";
 	public static String UNDO_BOOLEAN = "undoBoolean";
 	public static String UNDOBTN = "undoBtn";
@@ -163,6 +161,15 @@ public class Constants {
 	public static String SIZE_TABLE = "sizeTable";
 	public static String EXTEND_TABLE = "extendTable";
 	public static String SUBMIT_BUTTON = "submitButton";
+	public static String TRANS_ALL_FRAME = "transAllFrame";
+	public static String TRANS_ALL_SYSTEM_LABEL = "sysNoLabel";
+	public static String TRANS_ALL_DATA_LABEL = "dataNoLabel";
+	public static String TRANS_ALL_ICD_LABEL = "icdNoLabel";
+	public static String TRANS_ALL_SYSTEM_AREA = "transAllSysArea";
+	public static String TRANS_ALL_DATA_AREA = "transAllDataArea";
+	public static String TRANS_ALL_ICD_AREA = "transAllICDArea";
+	public static String TRANS_ALL_WSPRO_AREA = "transAllWSPArea";
+	public static String TRANS_ALL_WSCON_AREA = "transAllWSCArea";
 	public static String RADIO_GRAPH = "rdbtnGraph";
 	public static String RADIO_GRID = "rdbtnGrid";
 	public static String RADIO_RAW = "rdbtnRaw";
@@ -197,8 +204,63 @@ public class Constants {
 
 	public static String PREDICATE = "PREDICATE";
 	public static String IGNORE_URI = "IGNORE_URI";
+	
+	public static String TRANSITION_COST_INSERT_WITH_OVERHEAD="TRANSITION_COST_INSERT_WITH_OVERHEAD";
+	public static String TRANSITION_COST_INSERT_WITHOUT_OVERHEAD="TRANSITION_COST_INSERT_WITHOUT_OVERHEAD";
+	public static String TRANSITION_COST_DELETE="TRANSITION_COST_DELETE";
+	public static String TRANSITION_COST_INSERT_SITEGLITEM="TRANSITION_COST_INSERT_SITEGLITEM";
+	public static String TRANSITION_QUERY_SEPARATOR="&";
+	public static String TRANSITION_COST_INSERT_SUSTAINMENT="TRANSITION_COST_INSERT_SUSTAINMENT";
+	public static String TRANSITION_COST_INSERT_TRAINING="TRANSITION_COST_INSERT_TRAINING";
+	public static String TRANSITION_COST_INSERT_SEMANTICS="TRANSITION_COST_INSERT_SEMANTICS";
+	public static String TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT="TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT";
+	public static String TRANSITION_REPORT_COMBO_BOX="transCostReportSystemcomboBox";
+	public static String TRANSITION_REPORT_TYPE_COMBO_BOX="TransReportTypecomboBox";
+	public static String TRANSITION_REPORT_FORMAT_COMBO_BOX="TransReportFormatcomboBox";
+	public static String TRANSITION_APPLY_OVERHEAD_RADIO ="rdbtnApplyTapOverhead";
+	public static String TRANSITION_NOT_APPLY_OVERHEAD_RADIO = "rdbtnDoNotApplyOverhead";
+	public static String TRANSITION_SERVICE_PANEL = "transitionServicePanel";	
+	public static String TRANSITION_CHECK_BOX_DATA_FED="chckbxDataFederationTransReport";
+	public static String TRANSITION_CHECK_BOX_DATA_CONSUMER="chckbxDataConsumer";
+	public static String TRANSITION_ITEM_GEN_BUTTON = "loadGenBtn";
+	public static String TRANSITION_CHECK_BOX_BLU_PROVIDER="chckbxBLUprovider";
+	public static String TRANSITION_CHECK_BOX_DATA_GENERIC="chckbxDataEsbImplementation";
+	public static String TRANSITION_CHECK_BOX_BLU_GENERIC = "chckbxBluEsbImplementation";
+	public static String TRANSITION_SYSTEM_DROP_DOWN_PANEL = "TransReportSysDropDownPanel";
+	public static String TRANSITION_GENERIC_BLU = "TRANSITION_GENERIC_BLU";
+	public static String TRANSITION_GENERIC_DATA = "TRANSITION_GENERIC_DATA";
+	public static String TRANSITION_SPECIFIC_DATA_CONSUMER = "TRANSITION_SPECIFIC_DATA_CONSUMER";
+	public static String TRANSITION_DATA_FEDERATION = "TRANSITION_DATA_FEDERATION";
+	public static String TRANSITION_BLU_PROVIDER = "TRANSITION_BLU_PROVIDER";
+	public static String TRANSITION_SPECIFIC_SITE_CONSUMER = "TRANSITION_SPECIFIC_SITE_CONSUMER";
+	public static String ADVANCED_TRANSITION_FUNCTIONS_PANEL = "advancedFunctionsPanel";
+	public static String SERVICE_SELECTION_BUTTON = "serviceSelectionBtn";
+	public static String SERVICE_SELECTION_PANE = "serviceSelectScrollPane";
+	public static String TIER1_CHECKBOX = "tierCheck1";
+	public static String TIER2_CHECKBOX = "tierCheck2";
+	public static String TIER3_CHECKBOX = "tierCheck3";
+	
+	//Used by optimization organizer
+	public static String TRANSITION_GENERIC_COSTS = "TRANSITION_GENERIC_COSTS";
+	public static String TRANSITION_CONSUMER_COSTS = "TRANSITION_CONSUMER_COSTS";
+	public static String TRANSITION_PROVIDER_COSTS = "TRANSITION_PROVIDER_COSTS";
+	
 	public static String UPDATE_SPARQL_AREA="customUpdateTextPane";
+	public static String INSERT_SYS_SUSTAINMENT_BUDGET_BUTTON = "btnInsertBudgetProperty";
+	public static String SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY = "SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY";
+	
+	//Distance Downstream
+	public static String INSERT_DOWNSTREAM_BUTTON = "btnInsertDownstream";
 	public static String DISTANCE_DOWNSTREAM_QUERY = "DISTANCE_DOWNSTREAM_QUERY";
+	public static String SOA_ALPHA_VALUE_TEXT_BOX = "soaAlphaValueTextField";
+	public static String APPRECIATION_TEXT_BOX = "appreciationValueTextField";
+	public static String DEPRECIATION_TEXT_BOX = "depreciationValueTextField";
+		
+	//SOA Transition All
+	public static String SOA_TRANSITION_ALL_DATA_QUERY="SOA_TRANSITION_ALL_DATA_QUERY";
+	public static String SOA_TRANSITION_ALL_GENERIC_DATA_QUERY="SOA_TRANSITION_ALL_GENERIC_DATA_QUERY";
+	public static String SOA_TRANSITION_ALL_GENERIC_BLU_QUERY="SOA_TRANSITION_ALL_GENERIC_BLU_QUERY";
+	public static String SOA_TRANSITION_ALL_BLU_QUERY ="SOA_TRANSITION_ALL_BLU_QUERY";
 	
 	public static String DREAMER = "DREAMER";
 	public static String ONTOLOGY = "ONTOLOGY";
@@ -215,5 +277,21 @@ public class Constants {
 	public static String DATA_LATENCY_HOURS_TEXT = "dataLatencyHoursTextField";
 	
 	public static final String HTML = "HTML";
+	public static final String PROPERTY = "PROPERTY";
+	
+	//Load Sheet Export Panel
+	public static final String EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX = "subjectNodeTypeComboBox";
+	public static final String EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX = "objectNodeTypeComboBox";
+	public static final String EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX = "nodeRelationshipComboBox";
+	public static final String EXPORT_LOAD_SHEET_MAX_LIMIT_MESSAGE = "lblMaxExportLimit";
+	public static final String EXPORT_LOAD_SHEET_CLEAR_ALL_BUTTON = "btnClearAll";
+	public static final String EXPORT_LOAD_SHEET_ADD_EXPORT_BUTTON = "btnAddExport";
+	public static final int MAX_EXPORTS = 9;
+	
+	//Update Cost DB Panel
+	public static final String CHANGED_DB_COMBOBOX = "changedDBComboBox";
+	public static final String COST_DB_COMBOBOX = "costDBComboBox";
+	public static final String COST_DB_BASE_URI_FIELD = "costDBBaseURIField";
+	public static final String GLITEM_LOADING_SHEET = "LoadingSheets1.xlsx";
 
 }

@@ -29,7 +29,7 @@ import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 
-public class BigDataEngine implements IEngine {
+public class BigDataEngine extends AbstractEngine implements IEngine {
 
 	public BigdataSail bdSail = null;
 	public Properties bdProp = null;
@@ -38,6 +38,7 @@ public class BigDataEngine implements IEngine {
 	public SailConnection sc = null;
 	public ValueFactory vf = null;
 	boolean connected = false;
+	private String engineName;
 
 	
 	@Override
@@ -196,15 +197,18 @@ public class BigDataEngine implements IEngine {
 	public Vector<String> getEntityOfType(String sparqlQuery)
 	{
 		try {
-			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-			System.out.println("\nSPARQL: " + sparqlQuery);
-			tq.setIncludeInferred(true /* includeInferred */);
-			TupleQueryResult sparqlResults = tq.evaluate();
-			Vector<String> strVector = new Vector();
-			while(sparqlResults.hasNext())
-				strVector.add(Utility.getInstanceName(sparqlResults.next().getValue(Constants.ENTITY)+ ""));
-
-			return strVector;
+			if(sparqlQuery != null)
+				{
+					TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
+					System.out.println("\nSPARQL: " + sparqlQuery);
+					tq.setIncludeInferred(true /* includeInferred */);
+					TupleQueryResult sparqlResults = tq.evaluate();
+					Vector<String> strVector = new Vector();
+					while(sparqlResults.hasNext())
+						strVector.add(Utility.getInstanceName(sparqlResults.next().getValue(Constants.ENTITY)+ ""));
+		
+					return strVector;
+				}
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

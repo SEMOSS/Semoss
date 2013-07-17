@@ -28,6 +28,7 @@ public class SparqlShowListener implements IChakraListener {
 		JRadioButton rdBtnGraph = (JRadioButton)DIHelper.getInstance().getLocalProp(Constants.RADIO_GRAPH);
 		JRadioButton rdBtnGrid = (JRadioButton)DIHelper.getInstance().getLocalProp(Constants.RADIO_GRID);
 		JRadioButton rdBtnRaw = (JRadioButton)DIHelper.getInstance().getLocalProp(Constants.RADIO_RAW);
+		
 		if (spql.isSelected())
 		{
 			rdBtnGraph.setEnabled(true);

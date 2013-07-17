@@ -1,7 +1,9 @@
 package prerna.util;
 
+import java.text.NumberFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -13,6 +15,8 @@ import javax.swing.JOptionPane;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+
+import com.ibm.icu.text.DecimalFormat;
 
 public class Utility {
 	
@@ -129,10 +133,19 @@ public class Utility {
 		
 		String instanceName = getInstanceName(uri);
 		
+		String className = getClassName(uri);
+		String qualUri ="";
 		if(uri.indexOf("/") >= 0)
 			instanceName = "/" + instanceName;
 		// remove this in the end
-		String qualUri = uri.replace(instanceName, "");
+		if(className==null)
+		{
+			qualUri = uri.replace(instanceName, "");
+		}
+		else
+		{
+			qualUri = uri.replace(className+instanceName, className);
+		}
 		
 		return qualUri;
 
@@ -196,4 +209,56 @@ public class Utility {
 		JOptionPane.showMessageDialog(playPane, text);
 		
 	}
+	public static double round(double valueToRound, int numberOfDecimalPlaces)
+	{
+	    double multipicationFactor = Math.pow(10, numberOfDecimalPlaces);
+	    double interestedInZeroDPs = valueToRound * multipicationFactor;
+	    return Math.round(interestedInZeroDPs) / multipicationFactor;
+	}
+	
+	public static String sciToDollar(double valueToRound)
+	{
+		double roundedValue = Math.round(valueToRound);
+		DecimalFormat df = new DecimalFormat("#0");
+		NumberFormat formatter = NumberFormat.getCurrencyInstance();
+		df.format(roundedValue);
+		String retString = formatter.format(roundedValue);
+		return retString;
+	}
+	
+	
+	public static IEngine loadEngine(String fileName, Properties prop)
+	{
+		IEngine engine = null;
+		
+		try {
+			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+
+			//Properties prop = new Properties();
+			//prop.load(new FileInputStream(fileName));
+			String engineName = prop.getProperty(Constants.ENGINE);
+			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
+			engine = (IEngine)Class.forName(engineClass).newInstance();
+			engine.openDB(fileName);
+			engine.setEngineName(engineName);
+			// set the core prop
+			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
+			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+			// set the engine finally
+			engines = engines + ";" + engineName;
+			DIHelper.getInstance().setLocalProperty(engineName, engine);
+			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+		}  catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return engine;
+
+	}
+	
+	
+
 }

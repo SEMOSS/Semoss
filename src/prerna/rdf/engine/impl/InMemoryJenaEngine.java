@@ -10,7 +10,7 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 
-public class InMemoryJenaEngine implements IEngine {
+public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 
 	// for now this class just
 	Model jenaModel = null;
@@ -44,6 +44,7 @@ public class InMemoryJenaEngine implements IEngine {
 	public Object execSelectQuery(String query) {
 		ResultSet rs = null;
 		try{
+			//QueryExecutionFactory.
 			com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
 			QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 			rs = qex.execSelect();
@@ -67,7 +68,7 @@ public class InMemoryJenaEngine implements IEngine {
 	@Override
 	public ENGINE_TYPE getEngineType() {
 		// TODO Auto-generated method stub
-		return null;
+		return ENGINE_TYPE.JENA;
 	}
 
 	@Override

@@ -2,135 +2,375 @@ package prerna.ui.components;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 
-import prerna.util.DIHelper;
-
+import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 
 // Core class for showing which classes are data properties vs. which are object properties
 
 public class PropertySpecData {
 
-	
 	// for every predicate
 	// get the predicate class name upto the URI
 	// show only those
-	// additionally, allow the user to update and add if there are others the user wants to add
-	
-	Hashtable <String, String> predHash = new Hashtable<String, String>();
-	public String [] columnNames = {"Select", "Property"};
+	// additionally, allow the user to update and add if there are others the
+	// user wants to add
 
-	public String [] columnNames2 = {"Select", "Relation"};
+	public String[] columnNames = { "Supertype", "Subtype", "Concept", "Predicate", "Property" };
 
-	public Object[][] dataList = null;
-	public Object[][] dataList2 = null;
-	
-	Hashtable <String, String> objectHash = new Hashtable<String,String>();
-	Hashtable <String, String> propHash = new Hashtable<String,String>();
-	
+	public String[] columnNames2 = { "Predicate", "Relation", "Property" };
 
-	
+	public Object[][] dataList = null; // concept hierarchy list
+	public Object[][] dataList2 = null; // predicate list
+
+	public Hashtable<String, SesameJenaConstructStatement> subjectAddHash = new Hashtable<String, SesameJenaConstructStatement>();
+	public Hashtable<String, SesameJenaConstructStatement> subjectRemoveHash = new Hashtable<String, SesameJenaConstructStatement>();
+
+	public String subject2bRemoved = "";
+	public String subject2bAdded = "";
+	public String pred2bRemoved = "";
+	public String pred2bAdded = "";
+	public String prop2bRemoved = "";
+	public String prop2bAdded = "";
+
+	int conceptSize = 0;
+	int predSize = 0;
+	int propertySize = 0;
+
+	Hashtable<String, String> objectHash = new Hashtable<String, String>();
+	Hashtable<String, String> conceptAvailableHash = new Hashtable<String, String>();
+	Hashtable<String, String> predicateAvailableHash = new Hashtable<String, String>();
+	Hashtable<String, String> propertyAvailableHash = new Hashtable<String, String>();
+
+	Hashtable<String, String> conceptHash = new Hashtable<String, String>();
+	Hashtable<String, String> predicateHash = new Hashtable<String, String>();
+	Hashtable<String, String> propertyHash = new Hashtable<String, String>();
+
 	Logger logger = Logger.getLogger(getClass());
-	
-	public void addPredicate(String predicate)
-	{
-		//String className = Utility.getQualifiedClassName(predicate);
+
+	public void addPredicate(String predicate) {
+		// String className = Utility.getQualifiedClassName(predicate);
 		logger.debug("Adding predicate " + predicate);
-		if(!predHash.containsKey(predicate))
-			predHash.put(predicate, predicate);
+		if (!predicateAvailableHash.containsKey(predicate))
+			predicateAvailableHash.put(predicate, predicate);
 	}
-	
-	public void genPredList()
-	{
-		// this will read through all the predicate hash and generate the list
-		Enumeration <String> keys = predHash.keys();
-		// shows the boolean and predicate 
-		dataList = new Object[predHash.size()][2];
-		dataList2 = new Object[predHash.size()][2];
-		for(int predIndex = 0;keys.hasMoreElements();predIndex++)
-		{
-			String key = keys.nextElement();
-			dataList[predIndex][0] = new Boolean(false);
-			if(propHash.containsKey(key))
-			{
-				logger.debug("Found the key " + key);
-				dataList[predIndex][0] = new Boolean(true);
-			}
-			dataList[predIndex][1] = key;
-			dataList2[predIndex][0] = new Boolean(false);
-			if(objectHash.containsKey(key))
-			{
-				logger.debug("Found the key " + key);
-				dataList2[predIndex][0] = new Boolean(true);
-			}
-			dataList2[predIndex][1] = key;
+
+	public void addConcept(String parent, String child) {
+		String childVector = "";
+		if (conceptHash.containsKey(parent)) {
+			childVector = conceptHash.get(parent);
+		}
+		if (!childVector.contains(child)) {
+			childVector = childVector + "@@" + child;
+			conceptHash.put(parent, childVector);
+			conceptSize++;
 		}
 	}
-	
-	public Object getValueAt(int row, int column)
-	{
+
+	public void addConceptAvailable(String concept) {
+		conceptAvailableHash.put(concept, concept);
+	}
+
+	public void addPredicateAvailable(String predicate) {
+		predicateAvailableHash.put(predicate, predicate);
+	}
+
+	public void addPropertyAvailable(String predicate) {
+		propertyAvailableHash.put(predicate, predicate);
+	}
+
+	public void addPredicate2(String parent, String predicateName) {
+		String childVector = "";
+		if (predicateHash.containsKey(parent)) {
+			childVector = predicateHash.get(parent);
+		}
+		if (!childVector.contains(predicateName)) {
+			childVector = childVector + "@@" + predicateName;
+			predicateHash.put(parent, childVector);
+			predSize++;
+		}
+	}
+
+	public void addProperty(String parent, String predicateName) {
+		String childVector = "";
+		if (propertyHash.containsKey(parent)) {
+			childVector = propertyHash.get(parent);
+		}
+		if (!childVector.contains(predicateName)) {
+			childVector = childVector + "@@" + predicateName;
+			propertyHash.put(parent, childVector);
+			propertySize++;
+		}
+	}
+
+	public void genPredList() {
+		// this will read through all the predicate hash and generate the list
+		Enumeration<String> keys = conceptHash.keys();
+		// shows the boolean and predicate
+		// shows the boolean, the concept hierarchy, concept, concept bool,
+		// predicate bool, property bool, parent
+		dataList = new Object[conceptHash.size() + conceptSize + predicateHash.size() + predSize + propertyHash.size() + propertySize][6];
+		// shows the predicate, relation boolean, property boolean
+		dataList2 = new Object[predicateHash.size() + propertyHash.size()][3];
+
+		// generate the concept list first
+		int conceptIndex = 0;
+		for (; keys.hasMoreElements(); conceptIndex++) {
+			String key = keys.nextElement();
+			dataList[conceptIndex][2] = new Boolean(false);
+			dataList[conceptIndex][3] = new Boolean(false); // not a predicate
+			dataList[conceptIndex][4] = new Boolean(false); // not a property
+			if (conceptAvailableHash.containsKey(key)) {
+				logger.debug("Found the key " + key);
+				dataList[conceptIndex][2] = new Boolean(true);
+			}
+			dataList[conceptIndex][0] = key;
+			dataList[conceptIndex][1] = "Select All";
+			String childString = conceptHash.get(key);
+			StringTokenizer tokens = new StringTokenizer(childString, "@@");
+			while (tokens.hasMoreTokens()) {
+				String child = tokens.nextToken();
+				conceptIndex++;
+				dataList[conceptIndex][2] = new Boolean(
+						conceptAvailableHash.containsKey(child));
+				dataList[conceptIndex][1] = child;
+				dataList[conceptIndex][5] = key;
+				dataList[conceptIndex][3] = new Boolean(false); // not a
+																// predicate
+				dataList[conceptIndex][4] = new Boolean(false); // not a
+																// property
+			}
+		}
+
+		// generate the predicate list next
+		keys = predicateHash.keys();
+		for (; keys.hasMoreElements(); conceptIndex++) {
+			String key = keys.nextElement();
+			dataList[conceptIndex][2] = new Boolean(false);
+			dataList[conceptIndex][3] = new Boolean(false); // not a predicate
+			dataList[conceptIndex][4] = new Boolean(false); // not a property
+			if (predicateAvailableHash.containsKey(key)) {
+				logger.debug("Found the key " + key);
+				dataList[conceptIndex][3] = new Boolean(true); // predicate
+																// block
+			}
+			dataList[conceptIndex][0] = key;
+			dataList[conceptIndex][1] = "Select All";
+			String childString = predicateHash.get(key);
+			StringTokenizer tokens = new StringTokenizer(childString, "@@");
+			while (tokens.hasMoreTokens()) {
+				String child = tokens.nextToken();
+				conceptIndex++;
+				dataList[conceptIndex][3] = new Boolean(
+						predicateAvailableHash.containsKey(child));
+				dataList[conceptIndex][1] = child;
+				dataList[conceptIndex][5] = key;
+				dataList[conceptIndex][2] = new Boolean(false); // not a
+																// predicate
+				dataList[conceptIndex][4] = new Boolean(false); // not a
+																// property
+			}
+		}
+
+		// and the properties
+		// generate the predicate list next
+		keys = propertyHash.keys();
+		for (; keys.hasMoreElements(); conceptIndex++) {
+			String key = keys.nextElement();
+			dataList[conceptIndex][2] = new Boolean(false);
+			dataList[conceptIndex][3] = new Boolean(false); // not a predicate
+			dataList[conceptIndex][4] = new Boolean(false); // not a property
+			if (propertyAvailableHash.containsKey(key)) {
+				logger.debug("Found the key " + key);
+				dataList[conceptIndex][4] = new Boolean(true); // predicate
+																// block
+			}
+			dataList[conceptIndex][0] = key;
+			dataList[conceptIndex][1] = "Select All";
+			String childString = propertyHash.get(key);
+			StringTokenizer tokens = new StringTokenizer(childString, "@@");
+			while (tokens.hasMoreTokens()) {
+				String child = tokens.nextToken();
+				conceptIndex++;
+				dataList[conceptIndex][4] = new Boolean(
+						propertyAvailableHash.containsKey(child));
+				dataList[conceptIndex][1] = child;
+				dataList[conceptIndex][5] = key;
+				dataList[conceptIndex][2] = new Boolean(false); // not a
+																// predicate
+				dataList[conceptIndex][3] = new Boolean(false); // not a
+																// property
+			}
+		}
+	}
+
+	public Object getValueAt(int row, int column) {
 		return dataList[row][column];
 	}
 
-	public Object getValueAt2(int row, int column)
-	{
-		return dataList2[row][column];
-	}
-
-	public int getNumRows()
-	{
+	public int getNumRows() {
 		// use this call to convert the thing to array
 		return dataList.length;
 	}
-	
-	public void setValueAt(String uriVal, Object value, int row, int column)
-	{
-		// this will not only set the value here but also adjust the string accordingly
-		dataList[row][column] = value;
-		if((Boolean)value)
-		{
-			String soFar = DIHelper.getInstance().getProperty(uriVal);
-			soFar = soFar +";"+dataList[row][1];
-			DIHelper.getInstance().putProperty(uriVal, soFar);
-			logger.debug(" URL " + uriVal + " VALUE >>> " + soFar);
-			propHash.put(dataList[row][1]+"", dataList[row][1]+"");
-		}
-		else	
-		{
-			String soFar = DIHelper.getInstance().getProperty(uriVal);
-			String replacement = "";
-			String takeOut = (String)dataList[row][1];
-			soFar = soFar.replace(takeOut,replacement);
-			//soFar = soFar +";"+dataList[row][1];
-			DIHelper.getInstance().putProperty(uriVal, soFar);			
-			logger.debug(" URL " + uriVal + " VALUE >>> " + soFar);
-			propHash.remove(dataList[row][1]+"");
-		}
-	}
 
-	public void setValueAt2(String uriVal, Object value, int row, int column)
+	public void setValueAt(String uriVal, Object value, int row, int column) {
+		// this will not only set the value here but also adjust the string
+		// accordingly
+
+		// if column is 1 then all the column 2 should be added
+		String conceptParent = null;
+		if (dataList[row][0] != null)
+			conceptParent = dataList[row][0] + "";
+		
+		String knownConceptParent = dataList[row][5]+"";
+		
+		boolean concept = true;
+		boolean predicate = false;
+		boolean property = false;
+
+		String childString = conceptHash.get(knownConceptParent);
+		// if it is null then may be it is in predicateHash
+		if(childString == null)
+		{
+			concept = false;
+			childString = predicateHash.get(knownConceptParent);
+			predicate = true;
+		}
+		if(childString == null)
+		{
+			concept = false;
+			predicate = false;
+			property = true;
+			childString = propertyHash.get(knownConceptParent);
+		}
+		
+		// change of logic for concept vs. predicate etc.
+		concept = (column == 2);
+		predicate = (column == 3);
+		property = (column == 4);
+		
+		
+		if (conceptParent != null && conceptParent.length() >= 0) {
+			// addToPropHash((Boolean)value, conceptParent);
+			// add all of it
+			if(childString != null)
+			{
+				int conceptIndex = 1;
+				StringTokenizer tokens = new StringTokenizer(childString, "@@");
+				while (tokens.hasMoreTokens()) {
+					String child = tokens.nextToken();
+					selectRow(uriVal, value, row + conceptIndex, column);
+					addToString(conceptParent, child, (Boolean)value, concept, predicate, property, column);
+					conceptIndex++;
+					// addToPropHash((Boolean)value, child);
+				}
+			}
+			selectRow(conceptParent, value, row, column);
+			//addToString(conceptParent, (Boolean)value, concept, predicate, property, column);
+		} else
+			selectRow(uriVal, value, row, column);
+			addToString(dataList[row][5]+"",dataList[row][1]+"", (Boolean)value, concept, predicate, property, column);
+	}
+	
+	public void selectRow(String uriVal, Object value, int row, int column) {
+		// this is of the form item, predicate boolean, property boolean
+		// this is where the alternating piece kicks in
+
+		if (column == 2)
+		{
+			dataList[row][3] = new Boolean(false);
+			dataList[row][4] = new Boolean(false);
+		}
+		if (column == 3)
+		{
+			dataList[row][2] = new Boolean(false);
+			dataList[row][4] = new Boolean(false);
+		}
+		if (column == 4)
+		{
+			dataList[row][2] = new Boolean(false);
+			dataList[row][3] = new Boolean(false);
+		}
+		dataList[row][column] = (Boolean)value;
+	}	
+	
+	public void addToString(String parentEntity, String entity, boolean add, boolean concept, boolean predicate, boolean property, int column)
 	{
-		// this will not only set the value here but also adjust the string accordingly
-		dataList2[row][column] = value;
-		if((Boolean)value)
+		if(add)
 		{
-			String soFar = DIHelper.getInstance().getProperty(uriVal);
-			soFar = soFar +";"+dataList2[row][1];
-			DIHelper.getInstance().putProperty(uriVal, soFar);
-			logger.debug(" URL " + uriVal + " VALUE >>> " + soFar);
-			objectHash.put(dataList2[row][1]+"", dataList2[row][1]+"");
+			if(concept)
+			{
+				this.subject2bRemoved = this.subject2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				this.pred2bAdded = this.pred2bAdded.replace(";"+ parentEntity + "@@" + entity, "");
+				this.prop2bAdded = this.prop2bAdded.replace(";"+ parentEntity + "@@" + entity, "");
+				//if(!conceptAvailableHash.containsKey(entity))
+				this.subject2bAdded = this.subject2bAdded + ";" + parentEntity + "@@" + entity;
+				
+				// removals
+				this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
+				this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
+			
+			}
+			if(predicate)
+			{
+				this.pred2bRemoved = this.pred2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				this.prop2bAdded = this.prop2bAdded.replace(";"+parentEntity + "@@" + entity, "");
+				this.subject2bAdded = this.subject2bAdded.replace(";" + parentEntity + "@@" + entity,"");
+				//if(!predicateAvailableHash.containsKey(entity))
+				this.pred2bAdded = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
+				
+				// add it to removes
+				this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
+				this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
+
+			}
+			if(property)
+			{
+				this.prop2bRemoved = this.prop2bRemoved.replace(";"+ parentEntity + "@@" + entity, "");
+				this.pred2bAdded = this.pred2bAdded.replace(";"+ parentEntity + "@@" + entity, "");
+				this.subject2bAdded = this.subject2bAdded.replace(";" + parentEntity + "@@" + entity,"");
+				//if(!propertyAvailableHash.containsKey(entity))
+				this.prop2bAdded = this.prop2bAdded + ";" + parentEntity + "@@" + entity;
+				
+				// removals
+				this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
+				this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
+				
+			}
 		}
-		else	
+		if(!add)
 		{
-			String soFar = DIHelper.getInstance().getProperty(uriVal);
-			String replacement = "";
-			String takeOut = (String)dataList2[row][1];
-			soFar = soFar.replace(takeOut,replacement);
-			//soFar = soFar +";"+dataList[row][1];
-			DIHelper.getInstance().putProperty(uriVal, soFar);			
-			logger.debug(" URL " + uriVal + " VALUE >>> " + soFar);
-			objectHash.remove(dataList2[row][1]+"");
+			if(concept)
+			{
+				this.subject2bAdded = this.subject2bAdded.replace(";"+parentEntity + "@@" + entity, "");
+				this.pred2bRemoved = this.pred2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				this.prop2bRemoved = this.prop2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				//if(conceptAvailableHash.containsKey(entity))
+					this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
+			}
+			if(predicate)
+			{
+				this.pred2bAdded = this.pred2bAdded.replace(";"+parentEntity + "@@" + entity, "");
+				this.prop2bRemoved = this.prop2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				this.subject2bRemoved = this.subject2bRemoved.replace(";" + parentEntity + "@@" + entity,"");
+				//if(predicateAvailableHash.containsKey(entity))
+					this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
+			}
+			if(property)
+			{
+				this.prop2bAdded = this.prop2bAdded.replace(";"+parentEntity + "@@" + entity, "");
+				this.pred2bRemoved = this.pred2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
+				this.subject2bRemoved = this.subject2bRemoved.replace(";" + parentEntity + "@@" + entity,"");
+				//if(propertyAvailableHash.containsKey(entity))
+					this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
+			}
 		}
+		
+		// printing what I have so far
+		logger.warn("Additions " + subject2bAdded + "<>" + pred2bAdded + "<>" + prop2bAdded);
+		logger.warn("Deletions " + subject2bRemoved + "<>" + pred2bRemoved + "<>" + prop2bRemoved);
+		
 	}
 }

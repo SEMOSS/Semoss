@@ -15,6 +15,7 @@ import java.util.Vector;
 import javax.swing.JList;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -47,7 +48,7 @@ public class POIReader {
 	Properties bdProp = new Properties();// properties for big data
 	public static String RELATION = "BaseData";
 	public static String CONTAINS = "Contains";
-	SailConnection sc = null;
+	public SailConnection sc = null;
 	Sail bdSail = null;
 	ValueFactory vf = null;
 	Logger logger = Logger.getLogger(getClass());
@@ -60,6 +61,7 @@ public class POIReader {
 	public Hashtable createdRelURIsHash = new Hashtable();//new relationship uris
 	public String dbPropURI="";
 	public String dbPredicateURI="";
+	public POIReader importReader;
 
 	
 	/*
@@ -138,8 +140,8 @@ public class POIReader {
 		}
 			
 		if(runCustomLoadSheets){
-			propFile = workingDir + "/load_maps/Security_Custom_Map.prop";
-			bdPropFile = workingDir + "/db/SecurityBigDataProp.Properties";
+			propFile = workingDir + "/RDF_Map.prop";
+			bdPropFile = workingDir + "/db/financial/CostData.Properties";
 
 			String fileName1 = workingDir + "/CustomSheet.xlsx";
 			files.add(fileName1);
@@ -173,30 +175,22 @@ public class POIReader {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		BigDataEngine bigEngine= (BigDataEngine) engine;
 		// String db = workingDir+"/dummyTemp.db";
-		POIReader reader = new POIReader();
-		if(!customBase.equals("")) reader.customBaseURI = customBase;
-		reader.bdSail = bigEngine.bdSail;
-		reader.sc = bigEngine.sc;
-		reader.vf = bigEngine.vf;
+		importReader = new POIReader();
+		if(!customBase.equals("")) importReader.customBaseURI = customBase;
+		importReader.bdSail = bigEngine.bdSail;
+		importReader.sc = bigEngine.sc;
+		importReader.vf = bigEngine.vf;
 	
 		//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 		if(!propFile.equals(""))
-			reader.loadProperties(propFile);
+			importReader.loadProperties(propFile);
 		
 		for(String fileName : files){
-			reader.importFile(fileName);
+			importReader.importFile(fileName);
 		}
 		
-		reader.createBaseRelations();		
-		reader.sc.commit();
-		
-		//this should not be necessary, but because we have a reader inside a reader, we need it
-		this.baseObjRelations=reader.baseObjRelations;
-		this.createdURIsHash=reader.createdURIsHash;
-		this.baseRelRelations=reader.baseRelRelations;
-		this.createdRelURIsHash=reader.createdRelURIsHash;
-		this.dbPredicateURI=reader.dbPredicateURI;
-		this.dbPropURI=reader.dbPropURI;
+		importReader.createBaseRelations();		
+		importReader.sc.commit();
 	}
 	
 	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String customMap) throws Exception {
@@ -207,28 +201,21 @@ public class POIReader {
 		if(!customMap.equals("")) propFile = customMap;
 		String bdPropFile = dbName;
 
-		POIReader reader = new POIReader();
-		if(!customBase.equals("")) reader.customBaseURI = customBase;
-		reader.loadBDProperties(bdPropFile);
-		reader.openDB();
+		importReader = new POIReader();
+		if(!customBase.equals("")) importReader.customBaseURI = customBase;
+		importReader.loadBDProperties(bdPropFile);
+		importReader.openDB();
 
 		//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 		if(!propFile.equals(""))
-			reader.loadProperties(propFile);
+			importReader.loadProperties(propFile);
 		
 		for(String fileName : files){
-			reader.importFile(fileName);
+			importReader.importFile(fileName);
 		}
 		
-		reader.createBaseRelations();
-		reader.closeDB();
-		//this should not be necessary, but because we have a reader inside a reader, we need it
-		this.baseObjRelations=reader.baseObjRelations;
-		this.createdURIsHash=reader.createdURIsHash;
-		this.baseRelRelations=reader.baseRelRelations;
-		this.createdRelURIsHash=reader.createdRelURIsHash;
-		this.dbPredicateURI=reader.dbPredicateURI;
-		this.dbPropURI=reader.dbPropURI;
+		importReader.createBaseRelations();
+		importReader.closeDB();
 	}
 
 	public void createBaseRelations() throws Exception{
@@ -268,6 +255,8 @@ public class POIReader {
 			obj = Constants.DEFAULT_PROPERTY_URI;
 			createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
 			baseRelRelations = baseRelRelations+sub+"+"+pred+"+"+obj+";";
+			if(!dbPropURI.equals(""))
+				baseRelRelations = baseRelRelations+dbPropURI+"+"+Constants.SUBPROPERTY_URI+"+"+dbPropURI+";";
 			
 			//now add all of the base relations tha have been stored in the hash.
 			while(baseHashIt.hasNext()){
@@ -425,6 +414,7 @@ public class POIReader {
 				String thisNode = null;
 				if (nextRow.getCell(1) != null
 						&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK)
+					nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
 					thisNode = nextRow.getCell(1).getStringCellValue();
 				// get the second element - this is the name
 				String otherNode = null;
@@ -432,6 +422,7 @@ public class POIReader {
 				int startCol = 2;
 				int offset = 2;
 				if (nodeType.equalsIgnoreCase("Relation")) {
+					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
 					otherNode = nextRow.getCell(2).getStringCellValue();
 					startCol++;
 					offset++;
@@ -441,9 +432,15 @@ public class POIReader {
 				for (int colIndex = startCol; colIndex < nextRow
 						.getLastCellNum(); colIndex++) {
 					// System.out.println(colIndex + "<<>>" + nextRow.getLastCellNum());
+					if(propNames.size() <= (colIndex-offset)) {
+						continue;
+					}
 					String propName = (String) propNames.elementAt(colIndex
 							- offset);
 					String propValue = null;
+					if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK || nextRow.getCell(colIndex).toString().isEmpty()) {
+						continue;
+					}
 					if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
 						if(DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))){
 							Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
@@ -480,30 +477,30 @@ public class POIReader {
 			//tx.finish();
 		}
 	}
+	
+	private String cleanString(String original, boolean replaceForwardSlash){
+		String retString = original;
+		retString = retString.trim();
+		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
+		retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+		if(replaceForwardSlash)retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
+		
+		boolean doubleSpace = true;
+		while (doubleSpace == true)//remove all double spaces
+		{
+			doubleSpace = retString.contains("  ");
+			retString = retString.replace("  ", " ");
+		}
+		
+		return retString;
+	}
 
 	// need to write routine to add relationship
 	public void addRelation(String idxName, String otherIdx, String nodeName,
 			String nodeName2, String relName, Hashtable propHash) throws Exception{
-		if(nodeName.contains("/")) nodeName = nodeName.replace("/", "-");
-		if(nodeName2.contains("/")) nodeName2=nodeName2.replace("/", "-");
-
-		//clean node name
-		boolean doubleSpace = true;
-		while (doubleSpace == true)
-		{
-			doubleSpace = nodeName.contains("  ");
-			nodeName = nodeName.replace("  ", " ");
-		}
-		nodeName = nodeName.trim().replaceAll(" ", "_").replaceAll("\"", "'");
-		
-		//clean nodeName2
-		doubleSpace = true;
-		while (doubleSpace == true)
-		{
-			doubleSpace = nodeName2.contains("  ");
-			nodeName2 = nodeName2.replace("  ", " ");
-		}
-		nodeName2 = nodeName2.trim().replaceAll(" ", "_").replaceAll("\"", "'");
+		nodeName = cleanString(nodeName, true);
+		nodeName2 = cleanString(nodeName2, true);
 		
 		// 1. find the URI name for the index name
 		// 2. find the URI for the other index
@@ -558,7 +555,7 @@ public class POIReader {
 		createStatement(vf.createURI(node2URI), RDF.TYPE, vf.createURI(idx2URI));
 		createStatement(vf.createURI(node2URI), RDFS.LABEL, vf.createLiteral(label2Name));
 
-		relName = relName.trim().replaceAll(" ", "_").replaceAll("\"", "'");
+		relName = cleanString(relName, true);
 		// 5. Get the relationship based on the predicate for relName - Rel Predicate
 		String relURI = "";
 		if(rdfMap.containsKey(idxName + "_"+ relName + "_" + otherIdx)) {
@@ -601,6 +598,16 @@ public class POIReader {
 				createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(dbPropURI));				
 				createStatement(vf.createURI(thisRelURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
 			}
+			else if(propHash.get(key).getClass() == new Date(1).getClass())
+			{
+				Date value = (Date)propHash.get(key);
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String date = df.format(value);
+				//createStatement(vf.createURI(propURI), RDFS.SUBPROPERTYOF, vf.createURI(containsURI));
+				createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(dbPropURI));	
+				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+				createStatement(vf.createURI(thisRelURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
+			}
 			else
 			{
 				String value = (String)propHash.get(key);
@@ -615,10 +622,11 @@ public class POIReader {
 			}				
 		}
 	}
-	
+
 	private void createStatement(URI subject, URI predicate, Value object) throws Exception
 	{
 		//System.out.println("TRIPLE --  " + subject + "<>" + predicate + "<>" + object);
+		
 		URI newSub = null;
 		URI newPred = null;
 		Value newObj = null;
@@ -628,20 +636,16 @@ public class POIReader {
 		String sub = subject.stringValue().trim();
 		String pred = predicate.stringValue().trim();
 				
-		if (subject.stringValue().contains(" ")) 
-			subString = sub.replaceAll(" ", "_").replaceAll("\"", "'");
-		else subString = sub;
+		subString = cleanString(sub, false);
 		newSub = vf.createURI(subString);
-		if (predicate.stringValue().contains(" ")) 
-			predString = pred.replaceAll(" ", "_").replaceAll("\"", "'");
-		else predString = pred;
+		
+		predString = cleanString(pred, false);
 		newPred = vf.createURI(predString);
+		
 		if(object instanceof Literal) 
 			newObj = object;
-		else { 
-			if (object.stringValue().contains(" ")) 
-				objString = object.stringValue().replaceAll(" ", "_").replaceAll("\"", "'").trim();
-			else objString = object.stringValue().trim();
+		else {
+			objString = cleanString(object.stringValue(), false);
 			newObj = vf.createURI(objString);
 		}
 		
@@ -652,20 +656,7 @@ public class POIReader {
 
 	// need to write routine to add node
 	public void addNode(String indexName, String nodeName, Hashtable propHash) throws Exception{
-		if(nodeName.contains("/")) nodeName = nodeName.replace("/", "-");
-		
-		
-		
-
-		boolean doubleSpace = true;
-		while (doubleSpace == true)
-		{
-			doubleSpace = nodeName.contains("  ");
-			nodeName = nodeName.replace("  ", " ");
-		}
-
-		nodeName = nodeName.trim().replaceAll(" ", "_").replaceAll("\"", "'");
-		//nodeName = tapDS.processName(nodeName, indexName);
+		nodeName = cleanString(nodeName, true);
 		String labelName = nodeName;
 		
 		// same as relationship
@@ -738,7 +729,7 @@ public class POIReader {
 				}
 				else{
 					// try to see if it already has properties then add to it
-					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");
+					String cleanValue = cleanString(value, true);
 					//createStatement(vf.createURI(propURI), RDFS.SUBPROPERTYOF, vf.createURI(containsURI));
 					createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(dbPropURI));				
 					createStatement(vf.createURI(nodeURI), vf.createURI(propInstanceURI), vf.createLiteral(cleanValue));

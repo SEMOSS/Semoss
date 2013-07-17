@@ -146,6 +146,10 @@ public class SesameJenaSelectWrapper {
 						retSt.setVar(var[colIndex], weightVal);
 					else if (dateStr != null)
 						retSt.setVar(var[colIndex], dateStr);
+					else if(val == null) {
+						retSt.setVar(var[colIndex], "");
+						continue;
+					}
 					retSt.setRawVar(var[colIndex], val);
 					logger.debug("Binding Name " + var[colIndex]);
 					logger.debug("Binding Value " + value);

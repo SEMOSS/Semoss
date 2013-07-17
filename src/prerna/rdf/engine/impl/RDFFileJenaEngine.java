@@ -21,7 +21,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
-public class RDFFileJenaEngine implements IEngine {
+public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	
 	Model jenaModel = null;
 	Logger logger = Logger.getLogger(getClass());

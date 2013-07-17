@@ -103,4 +103,20 @@ public interface IEngine {
 	 * if it does not.
 	 */
 	public Boolean execAskQuery(String query);
+
+	/**
+	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
+	 * @param engineName - Name of the engine that this is being set to
+	 * 
+	 */
+	public void setEngineName(String engineName);
+	
+	/**
+	 * Gets the engine name for this engine
+	 * @return Name of the engine it is being set to
+	 */
+	public String getEngineName();
+
 }
+
+

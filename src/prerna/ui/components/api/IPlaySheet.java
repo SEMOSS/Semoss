@@ -1,5 +1,6 @@
 package prerna.ui.components.api;
 
+import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
 import prerna.rdf.engine.api.IEngine;
@@ -67,7 +68,7 @@ public interface IPlaySheet extends Runnable{
 	 * function.
 	 * @param pane the desktop pane that the play sheet is to be displayed on
 	 */
-	public void setJDesktopPane(JDesktopPane pane);
+	public void setJDesktopPane(JComponent pane);
 	
 	// sets a unique question number
 	/**

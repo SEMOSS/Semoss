@@ -108,7 +108,7 @@ public class DBCMEdge {
 			}
 		}catch(Exception ex)
 		{
-			logger.warn(ex);
+			logger.debug(ex);
 		}
 		try
 		{
@@ -129,7 +129,7 @@ public class DBCMEdge {
 			}
 		}catch(Exception ex)
 		{
-			logger.warn(ex);
+			logger.debug(ex);
 		}
 		if(!converted)
 			propHash.put(instanceName, propValue);

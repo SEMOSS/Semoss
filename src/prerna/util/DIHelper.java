@@ -12,7 +12,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Properties;
-import java.util.Vector;
 
 import org.apache.commons.collections15.Transformer;
 import org.apache.log4j.Logger;
@@ -161,47 +160,8 @@ public class DIHelper {
 	public void setRdfEngine(IEngine rdfEngine) {
 		this.rdfEngine = rdfEngine;
 	}
-/*
-	public Transformer getVertexLabelTransformer() {
-		return vertexLabelTransformer;
-	}
-
-	public void setVertexLabelTransformer(Transformer vertexLabelTransformer) {
-		this.vertexLabelTransformer = vertexLabelTransformer;
-	}
-
-	public Transformer getVertexIconTransformer() {
-		return vertexIconTransformer;
-	}
-
-	public void setVertexIconTransformer(Transformer vertexIconTransformer) {
-		this.vertexIconTransformer = vertexIconTransformer;
-	}
-
-	public Transformer getVertexShapeTransformer() {
-		return vertexShapeTransformer;
-	}
-
-	public void setVertexShapeTransformer(Transformer vertexShapeTransformer) {
-		this.vertexShapeTransformer = vertexShapeTransformer;
-	}
-
-	public Transformer getEdgeLabelTransformer() {
-		return edgeLabelTransformer;
-	}
-
-	public void setEdgeLabelTransformer(Transformer edgeLabelTransformer) {
-		this.edgeLabelTransformer = edgeLabelTransformer;
-	}
-
-	public Transformer getVertexToolTipTransformer() {
-		return vertexToolTipTransformer;
-	}
-
-	public void setVertexToolTipTransformer(Transformer vertexToolTipTransformer) {
-		this.vertexToolTipTransformer = vertexToolTipTransformer;
-	}
-*/
+	
+	
 	public Properties getCoreProp() {
 		return coreProp;
 	}

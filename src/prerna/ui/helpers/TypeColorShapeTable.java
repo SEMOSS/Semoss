@@ -39,6 +39,8 @@ public class TypeColorShapeTable {
 		if(instance == null)
 		{
 			instance = new TypeColorShapeTable();
+			instance.getAllShapes();
+			instance.getAllColors();
 		}
 		return instance;
 	}

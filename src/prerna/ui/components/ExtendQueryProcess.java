@@ -14,6 +14,7 @@ public class ExtendQueryProcess {
 	{
 		String query = null;
 		String processString = null;
+		JComboBox extendBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.EXTENDLIST);
 		
 		
 		Hashtable extendHash = (Hashtable)DIHelper.getInstance().getLocalProp(Constants.EXTEND_TABLE);

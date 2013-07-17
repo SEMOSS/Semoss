@@ -1,0 +1,28 @@
+Data Perspective
+-	What is the provenance of data, who is modifying the data, who is a pass through
+-	What are the key data objects that are being transacted across the enterprise
+-	What systems are relatively close to each other / select 2 systems and show how close they are / Clustering
+-	How much of the functional gaps are because of data and due to which data
+-	What is the latency of data from system A to System B
+
+Business Architecture Perspective
+-	What are the key business processes
+-	What are the functional gaps given a business process and activity
+-	What are the systems supporting an activity – Data
+-	What are the systems supporting an activity – Business Logic
+-	What are the key capabilities that are useful for the enterprise
+-	What is the organizational Capability Map looking like
+
+Portfolio Perspective
+-	What is the ROI of a given investment based on the business process etc. 
+-	What projects are there for a given system
+-	What projects are there for a given business process
+-	What projects are currently supporting functional gaps
+-	Given the investments which ones should we invest in based on the constraints
+-	What systems should be global vs. local
+
+Infrastructure Perspective
+-	What are the ICDs between any 2 systems
+-	What is the bandwidth consumed between any 2 regions
+-	What is the data latency
+-	What is the best way to regionalize / plan data centers

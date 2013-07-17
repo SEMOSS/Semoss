@@ -29,7 +29,7 @@ import prerna.util.Utility;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 
-public class RemoteSparqlEngine implements IEngine {
+public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 
 	BigdataSail bdSail = null;
 	public Properties bdProp = null;

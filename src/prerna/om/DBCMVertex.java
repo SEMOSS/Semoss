@@ -166,7 +166,7 @@ public class DBCMVertex{
 			}
 		}catch(Exception ex)
 		{
-			logger.warn(ex);
+			logger.debug(ex);
 		}
 		try
 		{
@@ -219,7 +219,7 @@ public class DBCMVertex{
 			}
 		}catch(Exception ex)
 		{
-			logger.warn(ex);
+			logger.debug(ex);
 		}
 		if(!converted)
 		{

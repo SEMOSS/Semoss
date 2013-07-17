@@ -6,12 +6,15 @@ import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 
-import javax.swing.JDesktopPane;
+import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.Painter;
+import javax.swing.UIDefaults;
+import javax.swing.UIManager;
 
 import org.apache.log4j.Logger;
 
@@ -32,16 +35,16 @@ public class GridPlaySheet extends JInternalFrame implements IPlaySheet{
 	String questionID = null;
 	boolean extend = false;
 	boolean append = false;
-	JDesktopPane pane = null;
+	protected JComponent pane = null;
 	ParamPanel panel = null;
 	IEngine engine = null;
 	ResultSet rs = null;
 	Model jenaModel = ModelFactory.createDefaultModel();
-	GridFilterData gfd = new GridFilterData();
+	protected GridFilterData gfd = new GridFilterData();
 	public JTable table = null;
 	public JProgressBar jBar = new JProgressBar();
 	
-	Logger logger = Logger.getLogger(getClass());
+	protected Logger logger = Logger.getLogger(getClass());
 	
 	public GridPlaySheet() {
 		super("_", true, true, true, true);
@@ -65,7 +68,7 @@ public class GridPlaySheet extends JInternalFrame implements IPlaySheet{
 	}
 
 	@Override
-	public void setJDesktopPane(JDesktopPane pane) {
+	public void setJDesktopPane(JComponent pane) {
 		this.pane = pane;
 	}
 
@@ -172,6 +175,13 @@ public class GridPlaySheet extends JInternalFrame implements IPlaySheet{
 			jBar.setStringPainted(true);
 			jBar.setString("0%...Preprocessing");
 			jBar.setValue(0);
+			UIDefaults nimbusOverrides = new UIDefaults();
+			UIDefaults defaults = UIManager.getLookAndFeelDefaults();
+			defaults.put("nimbusOrange",defaults.get("nimbusInfoBlue"));
+			Painter blue = (Painter) defaults.get("Button[Default+Focused+Pressed].backgroundPainter");
+	        nimbusOverrides.put("ProgressBar[Enabled].foregroundPainter",blue);
+	        jBar.putClientProperty("Nimbus.Overrides", nimbusOverrides);
+	        jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
 			JPanel barPanel = new JPanel();
 			
 			GridBagConstraints gbc_barPanel = new GridBagConstraints();

@@ -25,7 +25,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class RDFFileSesameEngine implements IEngine {
+public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 
 	Properties bdProp = null;
 	Properties rdfMap = null;

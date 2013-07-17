@@ -8,6 +8,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Hashtable;
 
+import org.apache.commons.io.FileUtils;
+
 import prerna.util.Constants;
 
 public class PropFileWriter {
@@ -17,52 +19,80 @@ public class PropFileWriter {
 	public String engineName;
 	String questionFileName;
 	public String ontologyFileName;
-	public Hashtable newProp= new Hashtable();;
+	public File engineDirectory;
+	String engineDirectoryName;
+	public Hashtable newProp= new Hashtable();
 	
 	
+	/*This function takes in the name of a new database engine to create, the name of the ontology map file to use (can be ""), 
+	 * the name of the prop file that specifies engine properties (can be "") and the name of the question file to associate with
+	 * the new engine (also can be "")
+	 * 
+	 * For any of those that are "", the default will be copied and used.  For those that are not "", the files will not be 
+	 * modified but the names will be used for updating the RDF_Map.prop
+	 * 
+	 * In total, this function adds the new engine to the map, and creates any files that are needed for an engine but not 
+	 * specified on the intake.
+	 * 
+	 * This function creates the ontology map from the default for the new engine to use, but does not populate it.
+	 * 
+	 */
 	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile){
 		String workingDir = System.getProperty("user.dir");
-		String defaultDBPropName = "db/DefaultBigDataProp.properties";
-		String defaultQuestionProp = "questions/Default_Questions.properties";
-		String defaultOntologyProp = "load_maps/Default_Custom_Map.prop";
+		String defaultDBPropName = "db/Default/Default.properties";
+		String defaultQuestionProp = "db/Default/Default_Questions.properties";
+		String defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
+		this.engineName = dbName;
+		engineDirectoryName = "db/" +dbName;
+		engineDirectory = new File(workingDir +"/"+ engineDirectoryName);
 		try {
-			if(dbPropFile.equals(""))
-				writeCustomDBProp(defaultDBPropName, dbName);
-			else {
-				propFileName = dbPropFile.substring(workingDir.length()+1);
-				if(propFileName.contains("\\"))
-					propFileName = propFileName.replaceAll("\\\\", "/");
-			}
-
+			//make the new folder to store everything in
+			engineDirectory.mkdir();
 			//if question sheet was not specified, we need to make a copy of the default questions
 			if(questionFile.equals("")){
-				questionFileName = defaultQuestionProp.replace("Default", dbName);
+				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
 				copyFileWithDefaultReplaced(questionFileName, defaultQuestionProp);
 			}
+			//if it was specified, get it in the format for the map file and move the file to the new directory
 			else {
-				questionFileName = questionFile.substring(workingDir.length()+1);
-				if(questionFileName.contains("\\"))
-						questionFileName = questionFileName.replaceAll("\\\\", "/");
+				FileUtils.copyFileToDirectory(new File(questionFile), engineDirectory, true);
+				questionFileName = engineDirectoryName + questionFile.substring(questionFile.lastIndexOf("\\"));
+				if(questionFileName.contains("\\")) questionFileName = questionFileName.replaceAll("\\\\", "/");
 			}
 
-			//map may already be specified.  If it is specified, don't copy default---will augment after running reader
+			//if the map was not specified, copy default map.  All augmentation of the map must be done after poi reader though
 			if(ontologyName.equals("")) {
 				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
 				copyFileWithDefaultReplaced(ontologyFileName, defaultOntologyProp);
 			}
+			//If it was specified, don't copy default---will augment after running reader
 			else {
+				//if a default file was selected, just copy and replace default
 				if(ontologyName.contains("Default")){
-					ontologyFileName = ontologyName.replace("Default", dbName).substring(workingDir.length()+1).replaceAll("\\\\", "/");
+					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
+					String newOntologyFile =ontologyName.replace("Default", dbName);
+					ontologyFileName = engineDirectoryName + newOntologyFile.substring(ontologyName.lastIndexOf("\\"));
+					if(ontologyFileName.contains("\\")) ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");	
 					copyFileWithDefaultReplaced(ontologyFileName, ontologyName);
 				}
+				//if a truly custom map file was selected, just get in the format for rdf map
 				else{
-					ontologyFileName = ontologyName.substring(workingDir.length()+1);
+					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
+					ontologyFileName = engineDirectoryName + ontologyName.substring(ontologyName.lastIndexOf("\\"));
 					if(ontologyFileName.contains("\\"))
-						ontologyFileName.replaceAll("\\\\", "/");					
+						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");					
 				}
 			}
-
-			updateDBCMmap(dbName);
+			
+			//Now we have all of the different file required for an engine taken care of, update the map file
+			if(dbPropFile.equals(""))
+				writeCustomDBProp(defaultDBPropName, dbName);
+			else {
+				FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
+				propFileName = engineDirectoryName + dbPropFile.substring(dbPropFile.lastIndexOf("\\"));
+				if(propFileName.contains("\\")) propFileName = propFileName.replaceAll("\\\\", "/");
+			}
+			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -73,59 +103,8 @@ public class PropFileWriter {
 		
 	}
 	
-	private void updateDBCMmap(String name) throws IOException{
-		String DBCMmapString = "RDF_Map.prop";
-		File mapFile = new File(DBCMmapString);
-		engineName = name;
-		String engineClass = "prerna.rdf.engine.impl.BigDataEngine";
-
-		File newFile = new File("Temp_" + DBCMmapString);
-		FileWriter pw = new FileWriter(newFile);
-		
-		BufferedReader read = new BufferedReader(new FileReader(mapFile));
-		String currentLine;
-		boolean insertEngine= false;
-		while((currentLine = read.readLine()) != null){
-			if(currentLine.length()>7){
-				if(currentLine.substring(0, 7).equals("ENGINES")){
-					if(currentLine.endsWith(";")) {
-						currentLine = currentLine + engineName;
-						String split[] = currentLine.split("	");
-						newProp.put(split[0], split[split.length-1]);
-					}
-					else  {
-						currentLine = currentLine + ";" + engineName;
-						String split[] = currentLine.split("	");
-						newProp.put(split[0], split[split.length-1]);
-					}
-					insertEngine = true;
-				}
-			}
-			System.out.println(currentLine);
-			pw.write(currentLine + "\n");
-			
-			if(insertEngine){
-				pw.write("\n");
-				pw.write(engineName+" " + engineClass +"\n");
-				pw.write(engineName+"_PROP " + propFileName +"\n");
-				pw.write(engineName+"_"+Constants.ONTOLOGY + " " + ontologyFileName +"\n");
-				pw.write(engineName+"_"+Constants.DREAMER + " " + questionFileName+"\n");
-				
-				newProp.put(engineName, engineClass);
-				newProp.put(engineName+"_PROP", propFileName);
-				newProp.put(engineName+"_"+Constants.ONTOLOGY, ontologyFileName);
-				newProp.put(engineName+"_"+Constants.DREAMER, questionFileName);
-				insertEngine = false;
-			}
-		}
-		read.close();
-		pw.close();
-		mapFile.delete();
-		newFile.renameTo(mapFile);
-		
-	}
-	
-	private void copyFileWithDefaultReplaced(String fileName, String defaultName) throws IOException{
+	//this merely makes a copy of a file and changes the file name without changing anything in the file
+	private File copyFileWithDefaultReplaced(String fileName, String defaultName) throws IOException{
 
 		File newFile = new File(fileName);
 		FileWriter pw = new FileWriter(newFile);
@@ -137,18 +116,37 @@ public class PropFileWriter {
 		}
 		read.close();
 		pw.close();
+		return newFile;
 	}
 	
+	//this makes a copy of a file with changing the name of the file
+	//also replaces "FileName" with engine name so that a the prop file is pointing at a unique jnl file
 	private File writeCustomDBProp(String defaultName, String name) throws IOException{
 		
-		String jnlName = name+".jnl";
-		propFileName = defaultName.replace("Default", name);
+		String jnlName = engineDirectoryName +"/"+ name+".jnl";
+		//move it outside the default directory
+		propFileName = defaultName.replace("Default/", "") + "1";
+		//change the name of the file from default to engine name
+		propFileName = propFileName.replace("Default", name);
+		propFileName = propFileName.replace("properties1", "temp");
 		
 		File newFile = new File(propFileName);
 		FileWriter pw = new FileWriter(newFile);
 		
 		BufferedReader read = new BufferedReader(new FileReader(defaultName));
 		String currentLine;
+		
+		// also write the base properties
+		// ie ONTOLOGY, DREAMER, ENGINE, ENGINE CLASS
+		
+		pw.write("Base Properties \n");
+		//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
+		pw.write(Constants.ENGINE + "\t" + name + "\n");
+		pw.write(Constants.ENGINE_TYPE + "\t" + "prerna.rdf.engine.impl.BigDataEngine" + "\n");
+		pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
+		pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
+
+		
 		while((currentLine = read.readLine()) != null){
 			if(currentLine.contains("@FileName@")){
 				currentLine = currentLine.replace("@FileName@", jnlName);

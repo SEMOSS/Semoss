@@ -1,6 +1,7 @@
 package prerna.ui.components;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -12,6 +13,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Hashtable;
 
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
@@ -26,6 +28,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.RAMDirectory;
 
 import prerna.search.SubjectIndexer;
+import prerna.ui.main.listener.impl.VertexTextSizeListener;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.SearchArrowFillPaintTransformer;
@@ -68,6 +71,7 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 	boolean typed = false;
 	boolean searchContinue = true;
 	Logger logger = Logger.getLogger(getClass());
+	VertexTextSizeListener sizeListener;
 	
 	
 	/**
@@ -75,9 +79,9 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 	 */
 	public SearchPanel() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] {410, 20};
+		gridBagLayout.columnWidths = new int[] {410, 20, 10, 0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, 0.0};
+		gridBagLayout.columnWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0};
 		gridBagLayout.rowWeights = new double[]{0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
@@ -98,10 +102,34 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 		btnHighlight = new JToggleButton("Q");
 		btnHighlight.setToolTipText("Depress to see your results on the graph, keep it depressed to see results as you type (slow)");
 		GridBagConstraints gbc_btnHighlight = new GridBagConstraints();
+		gbc_btnHighlight.fill = GridBagConstraints.VERTICAL;
+		gbc_btnHighlight.insets = new Insets(0, 0, 0, 5);
 		gbc_btnHighlight.gridx = 1;
 		gbc_btnHighlight.gridy = 0;
 		add(btnHighlight, gbc_btnHighlight);
 		btnHighlight.addActionListener(this);
+		
+		JButton btnDecreaseFontSize = new JButton("A");
+		btnDecreaseFontSize.setName("Decrease");
+		btnDecreaseFontSize.setFont(new Font("Tahoma", Font.PLAIN, 8));
+		GridBagConstraints gbc_btnA_1 = new GridBagConstraints();
+		gbc_btnA_1.fill = GridBagConstraints.VERTICAL;
+		gbc_btnA_1.insets = new Insets(0, 0, 0, 5);
+		gbc_btnA_1.gridx = 3;
+		gbc_btnA_1.gridy = 0;
+		add(btnDecreaseFontSize, gbc_btnA_1);
+		sizeListener = new VertexTextSizeListener();
+		btnDecreaseFontSize.addActionListener(sizeListener);
+		
+		JButton btnIncreaseFontSize = new JButton("A");
+		btnIncreaseFontSize.setName("Increase");
+		btnIncreaseFontSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		GridBagConstraints gbc_btnA = new GridBagConstraints();
+		gbc_btnA.fill = GridBagConstraints.VERTICAL;
+		gbc_btnA.gridx = 4;
+		gbc_btnA.gridy = 0;
+		add(btnIncreaseFontSize, gbc_btnA);
+		btnIncreaseFontSize.addActionListener(sizeListener);
 	}
 	
 	public void indexStatement(Statement st)
@@ -215,6 +243,8 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 	public void setViewer(VisualizationViewer view)
 	{
 		this.target = view;
+		sizeListener.setTransformer((VertexLabelFontTransformer) target.getRenderContext().getVertexFontTransformer());
+		sizeListener.setViewer(view);
 	}
 
 	// key listener
