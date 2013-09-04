@@ -16,6 +16,7 @@ import java.util.Hashtable;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
@@ -28,7 +29,11 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.RAMDirectory;
 
 import prerna.search.SubjectIndexer;
+import prerna.ui.main.listener.impl.RingsButtonListener;
+import prerna.ui.main.listener.impl.TreeConverterListener;
 import prerna.ui.main.listener.impl.VertexTextSizeListener;
+import prerna.ui.swing.custom.CustomAruiStyle;
+import prerna.ui.swing.custom.ToggleButton;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.SearchArrowFillPaintTransformer;
@@ -37,7 +42,11 @@ import prerna.ui.transformer.SearchVertexLabelFontTransformer;
 import prerna.ui.transformer.SearchVertexPaintTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
+import prerna.util.CSSApplication;
 import prerna.util.Constants;
+
+import aurelienribon.ui.components.Button;
+import aurelienribon.ui.css.Style;
 
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
@@ -47,6 +56,9 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Statement;
 
+import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 
 public class SearchPanel extends JPanel implements KeyListener, FocusListener, ActionListener, Runnable {
@@ -72,16 +84,21 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 	boolean searchContinue = true;
 	Logger logger = Logger.getLogger(getClass());
 	VertexTextSizeListener sizeListener;
-	
+	boolean showRingsButton = false;
+	JToggleButton btnRingsButton;
+	public JToggleButton treeButton;
+	RingsButtonListener rings;
+	TreeConverterListener treeListener;
+	GraphPlaySheet gps;
 	
 	/**
 	 * Create the panel.
 	 */
 	public SearchPanel() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] {410, 20, 10, 0, 0};
+		gridBagLayout.columnWidths = new int[] {410, 20, 5, 0, 10, 5, 0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0};
+		gridBagLayout.columnWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		gridBagLayout.rowWeights = new double[]{0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
@@ -103,33 +120,62 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 		btnHighlight.setToolTipText("Depress to see your results on the graph, keep it depressed to see results as you type (slow)");
 		GridBagConstraints gbc_btnHighlight = new GridBagConstraints();
 		gbc_btnHighlight.fill = GridBagConstraints.VERTICAL;
-		gbc_btnHighlight.insets = new Insets(0, 0, 0, 5);
+		gbc_btnHighlight.insets = new Insets(0, 5, 0, 5);
 		gbc_btnHighlight.gridx = 1;
 		gbc_btnHighlight.gridy = 0;
 		add(btnHighlight, gbc_btnHighlight);
 		btnHighlight.addActionListener(this);
+
+		treeListener = new TreeConverterListener();
+		treeButton = new JToggleButton("T");
+		treeButton.setToolTipText("Convert current graph to tree by duplicating nodes with multiple in-edges");
+		treeButton.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_treeButton = new GridBagConstraints();
+		gbc_treeButton.fill = GridBagConstraints.VERTICAL;
+		gbc_treeButton.insets = new Insets(0, 0, 0, 5);
+		gbc_treeButton.gridx = 3;
+		gbc_treeButton.gridy = 0;
+		add(treeButton, gbc_treeButton);
+		treeButton.addActionListener(treeListener);
 		
-		JButton btnDecreaseFontSize = new JButton("A");
+		rings = new RingsButtonListener();
+		btnRingsButton = new JToggleButton("O");
+		btnRingsButton.setToolTipText("Only availble with Balloon and Radial Tree layouts. Show/hide layout rings");
+		btnRingsButton.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
+		gbc_btnNewButton.fill = GridBagConstraints.VERTICAL;
+		gbc_btnNewButton.insets = new Insets(0, 0, 0, 5);
+		gbc_btnNewButton.gridx = 4;
+		gbc_btnNewButton.gridy = 0;
+		add(btnRingsButton, gbc_btnNewButton);
+		btnRingsButton.addActionListener(rings);
+		
+		JButton btnDecreaseFontSize = new JButton();
+		btnDecreaseFontSize.setText("A");
+		btnDecreaseFontSize.setToolTipText("Decrease the label font size of selected item or all items");
 		btnDecreaseFontSize.setName("Decrease");
 		btnDecreaseFontSize.setFont(new Font("Tahoma", Font.PLAIN, 8));
 		GridBagConstraints gbc_btnA_1 = new GridBagConstraints();
 		gbc_btnA_1.fill = GridBagConstraints.VERTICAL;
 		gbc_btnA_1.insets = new Insets(0, 0, 0, 5);
-		gbc_btnA_1.gridx = 3;
+		gbc_btnA_1.gridx = 6;
 		gbc_btnA_1.gridy = 0;
 		add(btnDecreaseFontSize, gbc_btnA_1);
 		sizeListener = new VertexTextSizeListener();
 		btnDecreaseFontSize.addActionListener(sizeListener);
 		
-		JButton btnIncreaseFontSize = new JButton("A");
+		JButton btnIncreaseFontSize = new JButton();
+		btnIncreaseFontSize.setText("A");
+		btnIncreaseFontSize.setToolTipText("Increase the label font size of selected item or all items");
 		btnIncreaseFontSize.setName("Increase");
 		btnIncreaseFontSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GridBagConstraints gbc_btnA = new GridBagConstraints();
 		gbc_btnA.fill = GridBagConstraints.VERTICAL;
-		gbc_btnA.gridx = 4;
+		gbc_btnA.gridx = 7;
 		gbc_btnA.gridy = 0;
 		add(btnIncreaseFontSize, gbc_btnA);
 		btnIncreaseFontSize.addActionListener(sizeListener);
+
 	}
 	
 	public void indexStatement(Statement st)
@@ -245,6 +291,30 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 		this.target = view;
 		sizeListener.setTransformer((VertexLabelFontTransformer) target.getRenderContext().getVertexFontTransformer());
 		sizeListener.setViewer(view);
+		rings.setViewer(view);
+	}
+	
+	public void setGraphLayout(Layout lay){
+		if(lay instanceof BalloonLayout || lay instanceof RadialTreeLayout){
+			rings.setGraph(gps.forest);
+			showRingsButton = true;
+			btnRingsButton.setEnabled(true);
+			//btnRingsButton.doClick();
+			//btnRingsButton.doClick();
+		}
+		else{
+			showRingsButton = false;
+			btnRingsButton.setEnabled(false);
+			btnRingsButton.setSelected(false);
+		}
+		rings.setLayout(lay);
+		
+	}
+	
+	public void setPlaySheet(GraphPlaySheet gps){
+
+		this.gps = gps;
+		treeListener.setPlaySheet(gps);
 	}
 
 	// key listener
@@ -359,6 +429,7 @@ public class SearchPanel extends JPanel implements KeyListener, FocusListener, A
 			oldafpTx = (ArrowFillPaintTransformer)target.getRenderContext().getArrowFillPaintTransformer();
 			target.getRenderContext().setArrowFillPaintTransformer(afp);
 			oldVLF = (VertexLabelFontTransformer)target.getRenderContext().getVertexFontTransformer();
+			vlf.setFontSize(oldVLF.getCurrentFontSize());
 			target.getRenderContext().setVertexFontTransformer(vlf);
 			target.repaint();
 		}

@@ -1,8 +1,10 @@
 package prerna.rdf.main;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.util.List;
+import java.util.Properties;
 
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
@@ -102,10 +104,20 @@ public class Printer {
 		System.out.println("Query");
 		System.out.println(q);
 		Printer printer = new Printer();
-		printer.tryRDF();
+		//printer.tryRDF();
 		printer.tryRDFSesame();
+		printer.tryPropTest();
 	}
 	
+	private void tryPropTest() throws Exception{
+		// TODO Auto-generated method stub
+		Properties prop = new Properties();
+		prop.load(new FileInputStream("Sample.prop"));
+		prop.put("Doh", "hello");
+		prop.store(new FileOutputStream("Sample.prop"), "Hello");
+		
+	}
+
 	public void tryRDF()
 	{
 		System.out.println("Jena Start" + System.currentTimeMillis());

@@ -17,6 +17,8 @@ public class PropertySpecData {
 	// show only those
 	// additionally, allow the user to update and add if there are others the
 	// user wants to add
+	
+	// Need to find a way to eliminate duplicates, if the super type etc is all set
 
 	public String[] columnNames = { "Supertype", "Subtype", "Concept", "Predicate", "Property" };
 
@@ -24,9 +26,6 @@ public class PropertySpecData {
 
 	public Object[][] dataList = null; // concept hierarchy list
 	public Object[][] dataList2 = null; // predicate list
-
-	public Hashtable<String, SesameJenaConstructStatement> subjectAddHash = new Hashtable<String, SesameJenaConstructStatement>();
-	public Hashtable<String, SesameJenaConstructStatement> subjectRemoveHash = new Hashtable<String, SesameJenaConstructStatement>();
 
 	public String subject2bRemoved = "";
 	public String subject2bAdded = "";
@@ -44,6 +43,9 @@ public class PropertySpecData {
 	Hashtable<String, String> predicateAvailableHash = new Hashtable<String, String>();
 	Hashtable<String, String> propertyAvailableHash = new Hashtable<String, String>();
 
+	// this is to check I am not re-adding nodes that have been already added
+	String stringofEverything = "";
+
 	Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 	Hashtable<String, String> predicateHash = new Hashtable<String, String>();
 	Hashtable<String, String> propertyHash = new Hashtable<String, String>();
@@ -59,50 +61,76 @@ public class PropertySpecData {
 
 	public void addConcept(String parent, String child) {
 		String childVector = "";
-		if (conceptHash.containsKey(parent)) {
-			childVector = conceptHash.get(parent);
-		}
-		if (!childVector.contains(child)) {
-			childVector = childVector + "@@" + child;
-			conceptHash.put(parent, childVector);
-			conceptSize++;
+		if(stringofEverything.indexOf(child) < 0 )
+		{
+			if (conceptHash.containsKey(parent)) {
+				childVector = conceptHash.get(parent);
+			}
+			if (!childVector.contains(child)) {
+				childVector = childVector + "@@" + child;
+				conceptHash.put(parent, childVector);
+				conceptSize++;
+			}
+			stringofEverything = stringofEverything + " " + parent + " " + child;
 		}
 	}
 
 	public void addConceptAvailable(String concept) {
+		//addConcept(concept, concept);
 		conceptAvailableHash.put(concept, concept);
+		subject2bAdded = subject2bAdded + ";" + concept + "@@" + concept;
 	}
 
 	public void addPredicateAvailable(String predicate) {
-		predicateAvailableHash.put(predicate, predicate);
+		logger.debug("Adding predicate " + predicate);
+		//addPredicate2(predicate, predicate);
+		if (!predicateAvailableHash.containsKey(predicate))
+			predicateAvailableHash.put(predicate, predicate);
+		pred2bAdded = pred2bAdded + ";" + predicate + "@@" + predicate;
 	}
 
 	public void addPropertyAvailable(String predicate) {
-		propertyAvailableHash.put(predicate, predicate);
+		logger.debug("Adding predicate " + predicate);
+		if (!propertyAvailableHash.containsKey(predicate))
+			propertyAvailableHash.put(predicate, predicate);
+
+		//propertyAvailableHash.put(predicate, predicate);
 	}
 
 	public void addPredicate2(String parent, String predicateName) {
-		String childVector = "";
-		if (predicateHash.containsKey(parent)) {
-			childVector = predicateHash.get(parent);
-		}
-		if (!childVector.contains(predicateName)) {
-			childVector = childVector + "@@" + predicateName;
-			predicateHash.put(parent, childVector);
-			predSize++;
-		}
+		addConcept(parent, predicateName);
+		/*
+		if(stringofEverything.indexOf(predicateName) < 0 )
+		{
+			String childVector = "";
+			if (predicateHash.containsKey(parent)) {
+				childVector = predicateHash.get(parent);
+			}
+			if (!childVector.contains(predicateName)) {
+				childVector = childVector + "@@" + predicateName;
+				predicateHash.put(parent, childVector);
+				predSize++;
+			}
+			stringofEverything = stringofEverything + " " + parent + " " + predicateName;
+		}*/
 	}
-
+	
 	public void addProperty(String parent, String predicateName) {
-		String childVector = "";
-		if (propertyHash.containsKey(parent)) {
-			childVector = propertyHash.get(parent);
-		}
-		if (!childVector.contains(predicateName)) {
-			childVector = childVector + "@@" + predicateName;
-			propertyHash.put(parent, childVector);
-			propertySize++;
-		}
+		addConcept(parent, predicateName);
+		/*if(stringofEverything.indexOf(predicateName) < 0 )
+		{
+			String childVector = "";
+			if (propertyHash.containsKey(parent)) {
+				childVector = propertyHash.get(parent);
+			}
+			if (!childVector.contains(predicateName)) {
+				childVector = childVector + "@@" + predicateName;
+				propertyHash.put(parent, childVector);
+				propertySize++;
+			}
+			stringofEverything = stringofEverything + " " + parent + " " + predicateName;
+		}*/
+		addPropertyAvailable(predicateName);
 	}
 
 	public void genPredList() {
@@ -128,24 +156,39 @@ public class PropertySpecData {
 			}
 			dataList[conceptIndex][0] = key;
 			dataList[conceptIndex][1] = "Select All";
+			dataList[conceptIndex][5] = key;
 			String childString = conceptHash.get(key);
 			StringTokenizer tokens = new StringTokenizer(childString, "@@");
+			int parentIndex = conceptIndex;
+			// because of the contains is type, I cannot see if they are property
+			boolean concept = true;
+			boolean predicate = true;
+			boolean property = true;
 			while (tokens.hasMoreTokens()) {
 				String child = tokens.nextToken();
 				conceptIndex++;
+
 				dataList[conceptIndex][2] = new Boolean(
 						conceptAvailableHash.containsKey(child));
 				dataList[conceptIndex][1] = child;
 				dataList[conceptIndex][5] = key;
-				dataList[conceptIndex][3] = new Boolean(false); // not a
+				dataList[conceptIndex][3] = new Boolean(
+						predicateAvailableHash.containsKey(child)); // not a
 																// predicate
-				dataList[conceptIndex][4] = new Boolean(false); // not a
+				dataList[conceptIndex][4] = new Boolean(
+						propertyAvailableHash.containsKey(child)); // not a
 																// property
+				concept = concept & conceptAvailableHash.containsKey(child);
+				predicate = predicate & predicateAvailableHash.containsKey(child);
+				property = property & propertyAvailableHash.containsKey(child);				
 			}
+			dataList[parentIndex][2] = new Boolean(concept);
+			dataList[parentIndex][3] = new Boolean(predicate);
+			dataList[parentIndex][4] = new Boolean(property);
 		}
 
 		// generate the predicate list next
-		keys = predicateHash.keys();
+		/*keys = predicateHash.keys();
 		for (; keys.hasMoreElements(); conceptIndex++) {
 			String key = keys.nextElement();
 			dataList[conceptIndex][2] = new Boolean(false);
@@ -158,6 +201,7 @@ public class PropertySpecData {
 			}
 			dataList[conceptIndex][0] = key;
 			dataList[conceptIndex][1] = "Select All";
+			dataList[conceptIndex][5] = key;
 			String childString = predicateHash.get(key);
 			StringTokenizer tokens = new StringTokenizer(childString, "@@");
 			while (tokens.hasMoreTokens()) {
@@ -189,6 +233,7 @@ public class PropertySpecData {
 			}
 			dataList[conceptIndex][0] = key;
 			dataList[conceptIndex][1] = "Select All";
+			dataList[conceptIndex][5] = key;
 			String childString = propertyHash.get(key);
 			StringTokenizer tokens = new StringTokenizer(childString, "@@");
 			while (tokens.hasMoreTokens()) {
@@ -203,7 +248,7 @@ public class PropertySpecData {
 				dataList[conceptIndex][3] = new Boolean(false); // not a
 																// property
 			}
-		}
+		}*/
 	}
 
 	public Object getValueAt(int row, int column) {
@@ -229,13 +274,15 @@ public class PropertySpecData {
 		boolean concept = true;
 		boolean predicate = false;
 		boolean property = false;
+		
 
 		String childString = conceptHash.get(knownConceptParent);
 		// if it is null then may be it is in predicateHash
 		if(childString == null)
 		{
 			concept = false;
-			childString = predicateHash.get(knownConceptParent);
+			//childString = predicateHash.get(knownConceptParent);
+			childString = conceptHash.get(knownConceptParent);
 			predicate = true;
 		}
 		if(childString == null)
@@ -243,7 +290,8 @@ public class PropertySpecData {
 			concept = false;
 			predicate = false;
 			property = true;
-			childString = propertyHash.get(knownConceptParent);
+			//childString = propertyHash.get(knownConceptParent);
+			childString = conceptHash.get(knownConceptParent);
 		}
 		
 		// change of logic for concept vs. predicate etc.
@@ -255,6 +303,7 @@ public class PropertySpecData {
 		if (conceptParent != null && conceptParent.length() >= 0) {
 			// addToPropHash((Boolean)value, conceptParent);
 			// add all of it
+			selectRow(uriVal, value, row , column);
 			if(childString != null)
 			{
 				int conceptIndex = 1;
@@ -267,11 +316,13 @@ public class PropertySpecData {
 					// addToPropHash((Boolean)value, child);
 				}
 			}
-			selectRow(conceptParent, value, row, column);
+			//selectRow(conceptParent, value, row, column);
 			//addToString(conceptParent, (Boolean)value, concept, predicate, property, column);
 		} else
+		{
 			selectRow(uriVal, value, row, column);
 			addToString(dataList[row][5]+"",dataList[row][1]+"", (Boolean)value, concept, predicate, property, column);
+		}
 	}
 	
 	public void selectRow(String uriVal, Object value, int row, int column) {
@@ -311,7 +362,10 @@ public class PropertySpecData {
 				// removals
 				this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
 				this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
-			
+
+				conceptAvailableHash.put(entity, entity);
+				predicateAvailableHash.remove(entity);
+				propertyAvailableHash.remove(entity);
 			}
 			if(predicate)
 			{
@@ -324,7 +378,9 @@ public class PropertySpecData {
 				// add it to removes
 				this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
 				this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
-
+				conceptAvailableHash.remove(entity);
+				propertyAvailableHash.remove(entity);
+				predicateAvailableHash.put(entity, entity);
 			}
 			if(property)
 			{
@@ -337,7 +393,10 @@ public class PropertySpecData {
 				// removals
 				this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
 				this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
-				
+				conceptAvailableHash.remove(entity);
+				predicateAvailableHash.remove(entity);
+				propertyAvailableHash.put(entity, entity);
+
 			}
 		}
 		if(!add)
@@ -349,6 +408,10 @@ public class PropertySpecData {
 				this.prop2bRemoved = this.prop2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
 				//if(conceptAvailableHash.containsKey(entity))
 					this.subject2bRemoved = this.subject2bRemoved + ";" + parentEntity + "@@" + entity;
+
+				conceptAvailableHash.remove(entity);
+				propertyAvailableHash.remove(entity);
+				predicateAvailableHash.remove(entity);
 			}
 			if(predicate)
 			{
@@ -357,6 +420,11 @@ public class PropertySpecData {
 				this.subject2bRemoved = this.subject2bRemoved.replace(";" + parentEntity + "@@" + entity,"");
 				//if(predicateAvailableHash.containsKey(entity))
 					this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
+
+				conceptAvailableHash.remove(entity);
+				propertyAvailableHash.remove(entity);
+				predicateAvailableHash.remove(entity);
+			
 			}
 			if(property)
 			{
@@ -365,6 +433,12 @@ public class PropertySpecData {
 				this.subject2bRemoved = this.subject2bRemoved.replace(";" + parentEntity + "@@" + entity,"");
 				//if(propertyAvailableHash.containsKey(entity))
 					this.prop2bRemoved = this.pred2bAdded + ";" + parentEntity + "@@" + entity;
+
+				conceptAvailableHash.remove(entity);
+				propertyAvailableHash.remove(entity);
+				predicateAvailableHash.remove(entity);
+
+			
 			}
 		}
 		

@@ -1,0 +1,66 @@
+<font style="font-size:12px;"> <b>About SOA Transition Optimization</b></font>
+
+The over-arching object of this optimization functionality to find the most effective way of transitioning point-to-point system interfaces to centrally hosted and shared common services.  Associated with the building of each service is a certain cost estimate as well as a savings estimate.
+
+The total cost estimate associated with the building of a service consists of three parts: Generic Costs, Provider Costs, and Consumer Costs.  Generic costs are specific only to the service and are required for the building of the service on the shared ESB.  Provider costs are required for all systems that are currently creating the data that the service will expose and are necessary for ensuring the service contains all enterprise data of that sort.  Consumer costs are required for all services that use the data that the service will expose and consist of linking the system with the service.
+
+The savings associated with the building of a service is a direct function of how many point-to-point interfaces that service can replace.  That number is then adjusted for the time horizon as well as the time value of money.
+
+There are also a number of dependencies among services that this optimization takes into account.  Some interfaces, for example, require multiple services in order to be transitioned.
+
+The ultimate output of this optimization is a complete transition plan outlining the optimal way to replace point-to-point interfaces with shared common services.
+
+<font style="font-size:12px;"> <b>Optimization Input Parameters</b></font>
+
+<b>Maximum Number of Years</b>
+Number of years through which the capital budgeting project will realize benefits
+
+<b>Annual Service Sustainment Percentage (%)</b>
+The percentage of a service's build cost that is required for maintaining that service
+
+<b>Annual Interface Sustainment Cost ($)</b>
+The annual cost of sustaining a point-to-point interface
+
+<b>Minimum Annual Budget ($M)</b>
+Minimum budget in millions of dollars that must be spent every year for service transition
+
+<b>Maximum Annual Budget ($M)</b>
+Maximum budget in millions of dollars that cannot be exceeded in any given year for service transition
+
+<b>Hourly Build Cost Rate ($)</b>
+The average hourly bill rate of the average worker performing the work
+
+<b>Savings Radio Button</b>
+Sets the optimization objective to maximize the total net savings across the whole designated time period
+
+<b>ROI Radio Button</b>
+Sets the optimization object to maximize the total return on investment across the whole designated time period
+
+<b>Breakeven Radio Button</b>
+Sets the optimization object to minimize the time required to recoup initial investment
+
+<font style="font-size:12px;"> <b>Advanced Input Parameters</b></font>
+
+<b>Attrition Rate (%)</b>
+The percentage of employees that quit working on this project every year
+
+<b>Hiring Rate (%)</b>
+The percentage of employees that begin working on this project every year
+
+<b>Inflation Rate (%)</b>
+Annual rise in price level. Inflation is a rise in the general level of prices of goods and services in an economy over a period of time.
+
+<b>Discount Rate (%)</b>
+The annual effective discount rate is the annual interest divided by the capital including that interest, which is the interest rate divided by 100% plus the interest rate. It is the annual discount factor to be applied to the future cash flow, to find the discount, subtracted from a future value to find the value one year earlier.
+The White House OMB (http://www.whitehouse.gov/omb/circulars_a094#8) suggests using a comparable-maturity Treasury rate as the discount rate when the capital project provides internal Federal government benefits. 
+Current treasury rates can be found here: http://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/TextView.aspx?data=yield
+
+<b>Experience Level at Year 0 (%)</b>
+Relative initial efficiency percentage of workers
+
+<b>Experience Level at Year X</b>
+Relative efficiency percentage of workers after X number of years
+
+<b>Number of Starting Points</b>
+Determines how many iterations the complete optimization is run.  A larger number of iterations prevents settling on a local optimum but takes longer to run
+

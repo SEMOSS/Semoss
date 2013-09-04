@@ -24,7 +24,7 @@ public class SesameJenaConstructWrapper {
 	// sets the statement iterator
 	StmtIterator si = null;
 	
-	IEngine engine = null;
+	public IEngine engine = null;
 	// sets the type
 	// defaulted to sesame
 	Enum engineType = IEngine.ENGINE_TYPE.SESAME;

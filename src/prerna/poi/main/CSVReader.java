@@ -60,9 +60,9 @@ public class CSVReader {
 	public static void main(String[] args)
 	{
 		CSVReader reader = new CSVReader();
-		reader.bdPropFile = "db/CSVTester.smss";
-		reader.propFile = "db/CSVTester/CSVLoad.prop";
-		reader.fileName = "db/CSVTester/Sample.csv";
+		reader.bdPropFile = "db/CBPclean.smss";
+		reader.propFile = "db/CBPclean/CBP.prop";
+		reader.fileName = "db/CBPclean/Cleansed_SEMOSS_v2.csv";
 		reader.importCSV();
 	}
 	
@@ -141,16 +141,20 @@ public class CSVReader {
 		// get all the relation
 		String relationNames = ontoProp.getProperty(relationName);
         Map<String, Object> jcrMap;
-    	System.out.println("Processing Row " + mapReader.getRowNumber());
+    	//System.out.println("Processing Row " + mapReader.getRowNumber());
+        int count = 0;
+        int maxRows = 50000;
 
-        while( (jcrMap = mapReader.read(header, processors)) != null )
+        while( (jcrMap = mapReader.read(header, processors)) != null && count<maxRows)
         {
+        	System.out.println(count);
+        	count++;
             StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
             for(int relIndex = 0;relationTokens.hasMoreElements();relIndex++)
             {
             	String relation = relationTokens.nextToken();
 
-            	System.out.println("Loading relation " + relation);
+            	//System.out.println("Loading relation " + relation);
 
             	String subject = relation.substring(0,relation.indexOf("@"));
             	String object = relation.substring(relation.indexOf("@")+1);
@@ -204,6 +208,7 @@ public class CSVReader {
 	
 	public void closeDB() throws Exception
 	{
+		System.out.println("Closing....");
 		//ng.stopTransaction(Conclusion.SUCCESS);
         InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
         ie.computeClosure(null);
@@ -218,7 +223,7 @@ public class CSVReader {
 	public void createProperty(String sInstance, Object oInstance,
 			String sURI, String relURI) throws Exception
 	{
-		System.out.println("Property >> " + sURI + "<>" + relURI + "<>"+oInstance);
+		//System.out.println("Property >> " + sURI + "<>" + relURI + "<>"+oInstance);
 		
 		String subjectURI = sURI;
 		String relationURI = relURI;
@@ -251,12 +256,12 @@ public class CSVReader {
 		// do the property magic here
 		if(oInstance.getClass() == new Double(1).getClass())
 		{
-			System.out.println("Found Double " + oInstance);
+			//System.out.println("Found Double " + oInstance);
 			createStatement(vf.createURI(sInstanceURI), vf.createURI(relURI), vf.createLiteral(((Double)oInstance).doubleValue()));
 		}
 		else if(oInstance.getClass() == new Date(1).getClass())
 		{
-			System.out.println("Found Date " + oInstance);
+			//System.out.println("Found Date " + oInstance);
 			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 			String date = df.format(oInstance);
 			URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -264,7 +269,7 @@ public class CSVReader {
 		}
 		else
 		{
-			System.out.println("Found String " + oInstance);
+			//System.out.println("Found String " + oInstance);
 			String value = oInstance + "";
 			// try to see if it already has properties then add to it
 			String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -291,7 +296,7 @@ public class CSVReader {
 	
 	protected void createStatement(URI subject, URI predicate, Value object) throws Exception
 	{
-		System.out.println("TRIPLE --  " + subject + "<>" + predicate + "<>" + object);
+		//System.out.println("TRIPLE --  " + subject + "<>" + predicate + "<>" + object);
 		
 		URI newSub = null;
 		URI newPred = null;
@@ -339,7 +344,7 @@ public class CSVReader {
 					retString = retString + "_" + value;
 			}
 		}
-		System.out.println(subject + "<>" + retString);
+		//System.out.println(subject + "<>" + retString);
 		return retString==null?null:retString;
 	}
 	
@@ -352,9 +357,9 @@ public class CSVReader {
 	public void createRelation(String subject, String object, String subjectURI, String objectURI, String relationURI) throws Exception
 	{
 		// do nothing for now
-		System.out.println("Subject " + subjectURI + "/" + subject);
-		System.out.println("Object " + objectURI + "/" + object);
-		System.out.println("Relation " + relationURI + "/" + subject + ":" + object);
+		//System.out.println("Subject " + subjectURI + "/" + subject);
+		//System.out.println("Object " + objectURI + "/" + object);
+		//System.out.println("Relation " + relationURI + "/" + subject + ":" + object);
 		
 		// create the subject first
 		String sInstanceURI = subjectURI + "/" + subject;

@@ -17,6 +17,8 @@ public interface IEngine {
 	/**
 	 * This specifies the type of the engine and determines what API should be used when processing the engine.
 	 */
+	
+	
 	public enum ENGINE_TYPE {JENA, SESAME};
 	
 	// open the data base
@@ -117,6 +119,31 @@ public interface IEngine {
 	 */
 	public String getEngineName();
 
+	/**
+	 * Creates a statement with the given subject, predicate and object
+	 * @param subject - Subject for the triple
+	 * @param predicate - Predicate for the triple
+	 * @param object - Object for the triple
+	 * @param concept - Specifies if it is a concept
+	 */
+	public void addStatement(String subject, String predicate, Object object, boolean concept);
+
+	/**
+	 * Commit the database
+	 */
+	public void commit();
+	
+
+	/**
+	 * Writes the database back 
+	 * With updated properties if necessary
+	 */
+	public void saveConfiguration();
+	
+	/**
+	 * Adds a new property to the engine
+	 */
+	public void addConfiguration(String name, String value);
 }
 
 

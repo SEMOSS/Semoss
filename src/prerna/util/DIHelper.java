@@ -20,6 +20,7 @@ import prerna.rdf.engine.api.IEngine;
 
 import com.ibm.icu.util.StringTokenizer;
 
+import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
 import edu.uci.ics.jung.algorithms.layout.CircleLayout;
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.ISOMLayout;
@@ -146,6 +147,7 @@ public class DIHelper {
 			helper.localProp.put(Constants.CIRCLE_LAYOUT, CircleLayout.class);
 			helper.localProp.put(Constants.RADIAL_TREE_LAYOUT, RadialTreeLayout.class);
 			helper.localProp.put(Constants.TREE_LAYOUT, TreeLayout.class);
+			helper.localProp.put(Constants.BALLOON_LAYOUT, BalloonLayout.class);
 
 		}
 		return helper; 

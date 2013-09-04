@@ -38,14 +38,6 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		// no meaning to this now
 	}
 	
-	private Properties loadProp(String fileName) throws Exception
-	{
-		Properties retProp = new Properties();
-		retProp.load(new FileInputStream(fileName));
-		System.out.println("Properties >>>>>>>>" + bdProp);
-		return retProp;
-	}
-
 	@Override
 	public void closeDB() {
 		// TODO Auto-generated method stub
@@ -150,4 +142,6 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	
 }

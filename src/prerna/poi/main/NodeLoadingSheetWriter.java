@@ -17,6 +17,8 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.util.Utility;
+
 public class NodeLoadingSheetWriter {
 	
 	public void ExportLoadingSheets(String fileLoc, Hashtable<String, Vector<String[]>> hash, String readFileLoc) {
@@ -52,6 +54,7 @@ public class NodeLoadingSheetWriter {
 		}
 
 		writeFile(wb, fileLoc);
+		Utility.showMessage("Export successful: " + fileLoc);
 	}
 	
 	public void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook) {

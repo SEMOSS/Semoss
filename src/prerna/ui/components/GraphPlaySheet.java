@@ -8,8 +8,11 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.util.Enumeration;
@@ -34,8 +37,10 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.SimpleGraph;
+import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.URIImpl;
+import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.Update;
@@ -45,14 +50,17 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
 import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.DBCMEdge;
 import prerna.om.DBCMVertex;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.InMemoryJenaEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
+import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
@@ -64,6 +72,7 @@ import prerna.ui.main.listener.impl.PlaySheetColorShapeListener;
 import prerna.ui.main.listener.impl.PlaySheetControlListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.PlaySheetOWLListener;
+import prerna.ui.swing.custom.ProgressPainter;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -80,8 +89,10 @@ import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.ui.transformer.VertexShapeTransformer;
 import prerna.ui.transformer.VertexStrokeTransformer;
 import prerna.ui.transformer.VertexTooltipTransformer;
+import prerna.ui.transformer.BalloonLayoutRings;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.JenaSesameUtils;
 import prerna.util.Utility;
 
 import com.hp.hpl.jena.ontology.OntModelSpec;
@@ -90,8 +101,11 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.reasoner.ReasonerRegistry;
+import com.sun.scenario.effect.impl.Renderer.RendererState;
 
+import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
@@ -110,13 +124,13 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	protected ParamPanel panel = null;
 	protected SesameJenaConstructWrapper sjw = null;
 	public DelegateForest forest = null;
-	Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
+	protected Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
 	VisualizationViewer <DBCMVertex, DBCMEdge> view = null;
 	String layoutName = Constants.FR;
 	Layout layout2Use = null;
 	JTabbedPane rightView = null;
 	protected String title = null;
-	protected IEngine engine = null;
+	public IEngine engine = null;
 	public LegendPanel2 legendPanel = null;
 	public JPanel cheaterPanel = new JPanel();
 	public JProgressBar jBar = new JProgressBar();
@@ -137,7 +151,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	protected String questionNum = null;
 	public JComponent pane = null;
 	
-	protected boolean append = false;
+	protected boolean overlay = false;
 	protected boolean extend = false;
 	
 	// references to main vertstore
@@ -158,6 +172,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	public JPanel graphPanel = new JPanel();
 	public RepositoryConnection rc = null;
 	protected RepositoryConnection curRC = null;
+	protected RDFFileSesameEngine baseRelEngine = null;
 	protected Model jenaModel = null;
 	protected Model curModel = null;
 	
@@ -216,7 +231,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	public void setAppend(boolean append) {
 		logger.debug("Append set to " + append);
 		//writeStatus("Append set to  : " + append);
-		this.append = append;
+		this.overlay = append;
 	}
 	
 	public void setExtend(boolean extend)
@@ -294,6 +309,19 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			sjw.setQuery(query);
 			progressBarUpdate("30%...Querying RDF Repository", 30);
 			sjw.execute();
+			if (!((BigDataEngine)sjw.engine).queryBoolean)
+			{
+				UIDefaults nimbusOverrides = new UIDefaults();
+				UIDefaults defaults = UIManager.getLookAndFeelDefaults();
+				defaults.put("nimbusOrange",defaults.get("nimbusInfoBlue"));
+				Painter red = new ProgressPainter(Color.WHITE, Color.RED);
+		        nimbusOverrides.put("ProgressBar[Enabled].foregroundPainter",red);
+		        jBar.putClientProperty("Nimbus.Overrides", nimbusOverrides);
+		        jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
+		        progressBarUpdate("Error. Please check the query", 100);
+		        ((BigDataEngine)sjw.engine).queryBoolean=true;
+		        return;
+			}
 			progressBarUpdate("60%...Processing RDF Statements	", 60);
 			
 			//writeStatus("\n" + "Painting Graph" + "\n");
@@ -387,7 +415,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		try {
 			extend = false;
 
-			append = false;
+			overlay = false;
 
 			curModel = null;
 			if(query.toUpperCase().contains("CONSTRUCT"))
@@ -410,7 +438,12 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			modelStore.addElement(curModel);
 			rcStore.addElement(curRC);
 			logger.debug("Overlay - Total Models added = " + modelStore.size());
-			createLayout();
+			boolean successfulLayout = createLayout();
+			if(!successfulLayout){
+				Utility.showMessage("Current layout cannot handle the overlay. Resetting to " + Constants.FR + " layout...");
+				layoutName = Constants.FR;
+				createLayout();
+			}
 			// identify the layout specified for this perspective
 			// now create the visualization viewer and we are done
 			createVisualizer();
@@ -438,9 +471,9 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	{
 		try
 		{
-			append = false;
+			overlay = false;
 			extend = true;
-
+			//getForest();
 			curModel = null;
 			if(query.toUpperCase().contains("CONSTRUCT"))
 				sjw = new SesameJenaConstructWrapper();
@@ -462,7 +495,12 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			rcStore.addElement(curRC);
 			logger.debug("Extend : Total Models added = " + modelStore.size());
 
-			createLayout();
+			boolean successfulLayout = createLayout();
+			if(!successfulLayout){
+				Utility.showMessage("Current layout cannot handle the extend. Resetting to " + Constants.FR + " layout...");
+				layoutName = Constants.FR;
+				createLayout();
+			}
 			// identify the layout specified for this perspective
 			// now create the visualization viewer and we are done
 			createVisualizer();
@@ -486,7 +524,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	{
 		try
 		{
-			append = false;
+			overlay = false;
 			extend = true;
 
 			curModel = null;
@@ -675,7 +713,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		//tq.setIncludeInferred(true /* includeInferred */);
 		//tq.evaluate();
 
-		genBaseGraph("","","");
+		genBaseGraph();
 		progressBarUpdate("80%...Creating Visualization", 80);
 		//writeStatus("Total Statements Dropped " + count);
 		// test call
@@ -753,22 +791,19 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	{
 		try {
 			getForest();
-			genBaseGraph("","","");
+			genBaseConcepts();
+			genBaseGraph();
 			//progressBarUpdate("80%...Creating Visualization", 80);
 			
 			String containsRelation = "<http://health.mil/ontologies/dbcm/Relation/Contains>";
-
-			if(containsRelation != null)
-			{
 			
-				// now that this is done, we can query for concepts
-				String propertyQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-				  "{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
-				  //"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
-				  		"{?Subject ?Predicate ?Object}}";					
+			// now that this is done, we can query for concepts
+			String propertyQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+			  "{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
+			  //"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
+			  		"{?Subject ?Predicate ?Object}}";					
 
-				genPropertiesLocal(propertyQuery);
-			}
+			RDFEngineHelper.genPropertiesLocal(rc, containsRelation, this);
 
 			genAllData();
 			logger.info("Refining Forest Complete >>>>>");
@@ -888,14 +923,8 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		jBar.setStringPainted(true);
 		jBar.setString("0%...Preprocessing");
 		jBar.setValue(0);
-		UIDefaults nimbusOverrides = new UIDefaults();
-		UIDefaults defaults = UIManager.getLookAndFeelDefaults();
-		defaults.put("nimbusOrange",defaults.get("nimbusInfoBlue"));
-		Painter blue = (Painter) defaults.get("Button[Default+Focused+Pressed].backgroundPainter");
-        nimbusOverrides.put("ProgressBar[Enabled].foregroundPainter",blue);
-        jBar.putClientProperty("Nimbus.Overrides", nimbusOverrides);
-        jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
-        
+		resetProgressBar();
+       
        // SwingUtilities.updateComponentTreeUI(jBar);
 		GridBagConstraints gbc_jBar = new GridBagConstraints();
 		gbc_jBar.anchor = GridBagConstraints.NORTH;
@@ -917,97 +946,65 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_jTab.gridy = 0;
 		this.getContentPane().add(jTab, gbc_jTab);
 		jTab.insertTab("Graph", null, graphPanel, null, 0);
+		searchPanel.setPlaySheet(this);
 
 	}
 	
 	protected void addPanel() {
 		
-		// add the model to search panel
-		//searchPanel.indexStatements(jenaModel);
-		
-		// create the listener and add the frame
-		// JInternalFrame frame = new JInternalFrame(title, true, true, true, true);
-		// frame.setPreferredSize(new Dimension(400,600));
-		// if there is a view remove it
-		// get
-		/*
-		Component[] comps = getContentPane().getComponents();
-		for (int compIndex = 0; compIndex < comps.length; compIndex++) {
-			logger.debug("Component is " + comps[compIndex]);
-			if (comps[compIndex] instanceof JScrollPane) {
-				logger.debug("Removing the component");
-				remove(comps[compIndex]);
-			}
-		}
-		*/
-		
-		graphPanel.removeAll();
-		//graphPanel.setLayout(new BorderLayout());
-		GraphZoomScrollPane gzPane = new GraphZoomScrollPane(view);
-		gzPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		gzPane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-		//view.setPreferredSize(new Dimension(800,600));
-		//view.setMaximumSize(new Dimension(800,600));
-		//JScrollPane myPane = new JScrollPane(view);
-		//myPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		//myPane.getHorizontalScrollBar().setUI(new NewScrollBarUI());
-		//myPane.setViewportView(view);
-		//myPane.setAutoscrolls(true);
-		
-		//graphPanel.add(searchPanel, BorderLayout.NORTH);
-		//graphPanel.add(gzPane, BorderLayout.CENTER);
-		//jTab.insertTab("Graph", null, graphPanel, null, 0);
-		GridBagLayout gbl_graphPanel = new GridBagLayout();
-		gbl_graphPanel.columnWidths = new int[]{0, 0};
-		gbl_graphPanel.rowHeights = new int[]{0, 0, 0};
-		gbl_graphPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_graphPanel.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-		graphPanel.setLayout(gbl_graphPanel);
-		
-		GridBagConstraints gbc_search = new GridBagConstraints();
-		gbc_search.insets = new Insets(0, 0, 5, 0);
-		gbc_search.fill = GridBagConstraints.BOTH;
-		gbc_search.gridx = 0;
-		gbc_search.gridy = 0;
-		graphPanel.add(searchPanel, gbc_search);
-		
-		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
-		gbc_panel_2.fill = GridBagConstraints.BOTH;
-		gbc_panel_2.gridx = 0;
-		gbc_panel_2.gridy = 1;
-		graphPanel.add(gzPane, gbc_panel_2);
-		//jTab.setSelectedIndex(0);
-		
-		//testPanel.add(jTab, BorderLayout.NORTH);
-		//testPanel.add(new JButton("Hula Hoop"), BorderLayout.PAGE_END);
-		//testPanel.add(new JTextArea("Hula Hoop"), BorderLayout.PAGE_END);
-		
-	
-		//testPanel.add(myPane);
-		//this.getContentPane().add(testPanel, BorderLayout.PAGE_START);
-		
-
-		//this.setAutoscrolls(true);
-		this.addInternalFrameListener(PlaySheetListener.getInstance());
-		this.addInternalFrameListener(PlaySheetControlListener.getInstance());
-		this.addInternalFrameListener(PlaySheetOWLListener.getInstance());
-		this.addInternalFrameListener(PlaySheetColorShapeListener.getInstance());
-		this.addComponentListener(
-				new ComponentAdapter(){
-					public void componentResized(ComponentEvent e){
-						System.out.println(((JInternalFrame)e.getComponent()).isMaximum());
-						GraphPlaySheet gps = (GraphPlaySheet) e.getSource();
-						Dimension s = new Dimension(gps.view.getWidth(), gps.view.getHeight()-gps.cheaterPanel.HEIGHT);
-						layout2Use.setSize(view.getSize());
-						System.out.println("Size: " + gps.view.getSize());
+		try
+		{
+			// add the model to search panel
+			searchPanel.indexStatements(jenaModel);
 						
-					}
-				});
-
-
-		legendPanel.data = filterData;
-		legendPanel.drawLegend();
-		logger.info("Add Panel Complete >>>>>");
+			graphPanel.removeAll();
+			//graphPanel.setLayout(new BorderLayout());
+			GraphZoomScrollPane gzPane = new GraphZoomScrollPane(view);
+			gzPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+			gzPane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
+			GridBagLayout gbl_graphPanel = new GridBagLayout();
+			gbl_graphPanel.columnWidths = new int[]{0, 0};
+			gbl_graphPanel.rowHeights = new int[]{0, 0, 0};
+			gbl_graphPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+			gbl_graphPanel.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+			graphPanel.setLayout(gbl_graphPanel);
+			
+			GridBagConstraints gbc_search = new GridBagConstraints();
+			gbc_search.insets = new Insets(0, 0, 5, 0);
+			gbc_search.fill = GridBagConstraints.BOTH;
+			gbc_search.gridx = 0;
+			gbc_search.gridy = 0;
+			graphPanel.add(searchPanel, gbc_search);
+			
+			GridBagConstraints gbc_panel_2 = new GridBagConstraints();
+			gbc_panel_2.fill = GridBagConstraints.BOTH;
+			gbc_panel_2.gridx = 0;
+			gbc_panel_2.gridy = 1;
+			graphPanel.add(gzPane, gbc_panel_2);
+			this.addInternalFrameListener(PlaySheetListener.getInstance());
+			this.addInternalFrameListener(PlaySheetControlListener.getInstance());
+			this.addInternalFrameListener(PlaySheetOWLListener.getInstance());
+			this.addInternalFrameListener(PlaySheetColorShapeListener.getInstance());
+			this.addComponentListener(
+					new ComponentAdapter(){
+						public void componentResized(ComponentEvent e){
+							System.out.println(((JInternalFrame)e.getComponent()).isMaximum());
+							GraphPlaySheet gps = (GraphPlaySheet) e.getSource();
+							Dimension s = new Dimension(gps.view.getWidth(), gps.view.getHeight()-gps.cheaterPanel.HEIGHT);
+							layout2Use.setSize(view.getSize());
+							System.out.println("Size: " + gps.view.getSize());
+							
+						}
+					});
+	
+	
+			legendPanel.data = filterData;
+			legendPanel.drawLegend();
+			logger.info("Add Panel Complete >>>>>");
+		}catch(Exception ex)
+		{
+			
+		}
 	}
 
 	protected void addToMainPane(JComponent pane) {
@@ -1031,8 +1028,6 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		view = new VisualizationViewer(this.layout2Use);
 		view.setPreferredSize(this.layout2Use.getSize());
 		view.setBounds(10000000, 10000000, 10000000, 100000000);
-		
-
 
 		Renderer r = new BasicRenderer();
 		
@@ -1080,6 +1075,8 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		view.getRenderContext().setEdgeArrowStrokeTransformer(east);
 		view.getRenderContext().setArrowFillPaintTransformer(aft);
 		view.getRenderContext().setVertexFontTransformer(vlft);
+		view.getRenderer().getVertexLabelRenderer().setPosition(Renderer.VertexLabel.Position.CNTR);
+		view.getRenderContext().setLabelOffset(0);
 		//view.getRenderContext().set;
 		// view.getRenderContext().setVertexIconTransformer(new DBCMVertexIconTransformer());
 		view.setVertexToolTipTransformer(vtt);
@@ -1113,9 +1110,12 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			fail++;
 			logger.info(e);
 		}
+		searchPanel.setGraphLayout(layout2Use);
 		//= (Layout) new FRLayout((forest));
 		logger.info("Create layout Complete >>>>>> ");
-		if(fail==2) return false;
+		if(fail==2) {
+			return false;
+		}
 		else return true;
 	}
 	
@@ -1142,11 +1142,8 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		logger.debug("creating the in memory jena model");
 		
 		String subjects = "";
-		String subjects2 = "";
 		String predicates = "";
-		String predicates2 = "";
 		String objects = "";
-		String objects2 = "";
 		
 		while(sjw.hasNext())
 		{
@@ -1158,31 +1155,38 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			Object obj = st.getObject();
 			logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
 			//predData.addPredicate2(st.getPredicate());
+			//predData.addConceptAvailable(st.getSubject());//, st.getSubject());
+			//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
+
 			if(!subjects.contains(st.getSubject()))
 			{
-				subjects = subjects + "(<" + st.getSubject() + ">)";
-				subjects2 = subjects2 + "<" + st.getSubject() + ">";
+				if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					subjects = subjects + "(<" + st.getSubject() + ">)";
+				else
+					subjects = subjects + "<" + st.getSubject() + ">";
 			}
 			if(!predicates.contains(st.getPredicate()))
 			{
-				predicates = predicates + "(<" + st.getPredicate() + ">) ";
-				predicates2 = predicates2 + "<" + st.getPredicate() + "> ";
+				if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					predicates = predicates + "(<" + st.getPredicate() +">)";
+				else
+					predicates = predicates + "<" + st.getPredicate() +">";
 			}
 			// need to find a way to do this for jena too
-			if(obj instanceof URI)
+			if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
 			{			
 				if(!objects.contains(obj+""))
 				{
-					objects = objects + "(<" + obj + ">)";
-					objects2 = objects2 + "<" + obj + ">";				
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+						objects = objects  + "(<" + obj +">)";
+					else
+						objects = objects  + "<" + obj +">";
 				}
 			}
 			//addToJenaModel(st);
-			addToJenaModel2(st, false);
-			//addToJenaModel3(st);
-
-		}
-		
+			addToSesame(st, false, false);
+			addToJenaModel3(st);
+		}			
 		logger.debug("Subjects >>> " + subjects);
 		logger.debug("Predicatss >>>> " + predicates);
 		
@@ -1192,30 +1196,31 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		// need to get the engine name and jam it - Done Baby
 		if(!loadedOWLS.containsKey(engine.getEngineName()))
 		{
-			createBaseRelations(DIHelper.getInstance().getEngineProp(), "BaseData");
+			createBaseRelationEngine(DIHelper.getInstance().getEngineProp());
 			loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
 		}
 
 		// load the concept linkages
 		// the concept linkages are a combination of the base relationships and what is on the file
-		if (subjects.equals("") && predicates.equals("") && objects.equals(""))
+		boolean loadHierarchy = !(subjects.equals("") && predicates.equals("") && objects.equals("")); 
+		if(loadHierarchy)
 		{
-			
-		}
-		else
-		{
-			subjects2 = loadConceptHierarchy(subjects, objects);
-			predicates2 = loadRelationHierarchy(predicates);
+			try
+			{
+				RDFEngineHelper.loadConceptHierarchy(engine, subjects, objects, this);
+				RDFEngineHelper.loadRelationHierarchy(engine, predicates, this);
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
 		}
 		// then query the database for concepts
 		// get all the concepts
 		//subjects2 = findAllConcepts(subjects2);
 		// then query this model for everything that is beginning with that
-		
-		
 		logger.warn("Creating the base Graph");
-
-		genBaseGraph(subjects2, predicates2, subjects2);
+		genBaseConcepts();
+		genBaseGraph();//subjects2, predicates2, subjects2);
 		
 		//find the contains property
 		// Need to do the properties piece shortly
@@ -1223,22 +1228,33 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		// get it a single shot
 		// find the name of the properties relation
 		String containsRelation = findContainsRelation();
+		if(containsRelation == null)
+			containsRelation = "<http://health.mil/ontologies/dbcm/Relation/Contains>";
 		logger.warn("Creating the properties");
 		if(containsRelation != null)
 		{
 			// load local property hierarchy
-			loadPropertyHierarchy(predicates, containsRelation);
-		
-			// now that this is done, we can query for concepts
-			String propertyQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-			  "{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
-			  //"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
-			  		"{?Subject ?Predicate ?Object}}";
-					
-
-			genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
-			genPropertiesLocal(propertyQuery);
+			try
+			{
+				//loadPropertyHierarchy(predicates, containsRelation);
+				RDFEngineHelper.loadPropertyHierarchy(engine,predicates, containsRelation, this);
+				// now that this is done, we can query for concepts						
+				//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
+				RDFEngineHelper.genPropertiesRemote(engine, subjects, objects, predicates, containsRelation, this);
+				//genPropertiesLocal(propertyQuery);
+				RDFEngineHelper.genPropertiesLocal(rc, containsRelation, this);
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
 			//genProperties(propertyQuery + predicates + " } ");
+		}
+		
+		try {
+			//RDFEngineHelper.loadLabels(engine, subjects+objects, this);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		logger.warn("Done with everything");
 		genAllData();
@@ -1256,40 +1272,15 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		logger.info("Creating Forest Complete >>>>>> ");										
 	}
 	
-	private String findAllConcepts(String subjects)
+	public void exportDB() 
 	{
-		String subjectString = "";
-		
-		String conceptSelector = "SELECT DISTINCT ?Subject WHERE " +
-		"{" +
-		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://health.mil/ontologies/dbcm/Concept>;}" +
-		"}";
-		
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		
-		IEngine jenaEngine = new InMemoryJenaEngine();
-		((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
-
-		
-		// = new SesameJenaSelectCheater();
-		sjsw.setEngine(jenaEngine);
-		sjsw.setQuery(conceptSelector);//conceptHierarchyForSubject);
-		sjsw.executeQuery();
-		sjsw.getVariables();
-		
-		// eventually - I will not need the count
-		int count = 0;
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement st = sjsw.next();
-			subjectString = subjectString + "<" + st.getRawVar("Subject") + ">";
+		try {
+			baseRelEngine.exportDB();
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
 		}
-		
-		
-		return subjectString.length()==0?null:subjectString;
-
-	}
-	
+	}	
     private void printAllRelationship()
     {
           String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
@@ -1310,22 +1301,6 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 
           // = new SesameJenaSelectCheater();
           sjsc.setEngine(jenaEngine);
-          /*sjsc.setQuery(query);//conceptHierarchyForSubject);
-          sjsc.execute();
-          
-          logger.warn("Printing All Relationship for based query based on JenaModel");
-          logger.warn(">>>>");
-          while(sjsc.hasNext())
-          {
-                // read the subject predicate object
-                // add it to the in memory jena model
-                // get the properties
-                // add it to the in memory jena model
-                SesameJenaConstructStatement st = sjsc.next();
-                logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-                //addToJenaModel(st);
-          }
-          */
           logger.warn("<<<<");
           String end = "";
           
@@ -1405,142 +1380,23 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		
 		
 		return containsString;
-	}
+	}	
 	
-	
-	private String loadConceptHierarchy(String subjects, String objects)
-	{
-		// Load all the various types of these subjects
-		// possibilities are these subjects have one parent or one of many parents
-		// Possibly one of these parents is linked with the ontology linker file
-		// which is why I load these
-		String retSubjects = "";
-		String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}" +
-		"{?Subject ?Predicate ?Object}" + 
-		"} BINDINGS ?Subject { " + subjects + objects + " } " +
-		"";
-		logger.warn(conceptHierarchyForSubject);
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(engine);
-		sjsc.setQuery(conceptHierarchyForSubject);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
-			SesameJenaConstructStatement st = sjsc.next();
-			logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-			predData.addConcept(st.getObject()+"", st.getSubject()+"");
-			if(!baseFilterHash.containsKey(st.getSubject()))
-				retSubjects = retSubjects + "<" + st.getSubject() + ">";
-
-			// I have to have some logic which will add the type name 
-			// basically the object is the main type
-			// subject is the subtype
-			//addToJenaModel(st);
-			addToJenaModel2(st, false);
-		}
-		
-		return retSubjects;
-
-	}
-	
-	private String loadRelationHierarchy(String predicates)
-	{
-		// same concept as the subject, but only for relations
-		String relationHierarchy = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject ?Predicate ?Object}" + 
-		"{?Subject <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?Object}" +
-		"} BINDINGS ?Subject { " + predicates + " } " +
-		"";// relation hierarchy
-		
-		String retRelations = "";
-
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(engine);
-		sjsc.setQuery(relationHierarchy);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
-			
-			SesameJenaConstructStatement st = sjsc.next();
-			logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-			predData.addPredicate2(st.getObject()+"", st.getSubject());
-			if(!baseFilterHash.containsKey(st.getSubject()))
-				retRelations = retRelations + "<" + st.getSubject() + ">";
-			// I have to have some logic which will add the type name 
-			// basically the object is the main type
-			// subject is the subtype
-			//addToJenaModel(st);
-			addToJenaModel2(st, false);
-		}
-		return retRelations;
-	}
-
-	private void loadPropertyHierarchy(String predicates, String containsRelation)
-	{
-		// same concept as the subject, but only for relations
-		String relationHierarchy = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-		"{" +
-		"{?Subject ?Predicate ?Object}" + 
-		"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " + containsRelation + " }" +
-		"} BINDINGS ?Subject { " + predicates + " } " +
-		"";// relation hierarchy
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(engine);
-		sjsc.setQuery(relationHierarchy);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
-			
-			SesameJenaConstructStatement st = sjsc.next();
-			logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-			predData.addPredicate2(st.getObject()+"", st.getSubject());
-			// I have to have some logic which will add the type name 
-			// basically the object is the main type
-			// subject is the subtype
-			
-			//addToJenaModel(st);
-			addToJenaModel2(st, false);
-		}
-	}
-
-	
-	// executes the first SPARQL query and generates the graphs
-	public void genBaseGraph(String subjects, String predicates, String objects)
+	public void genBaseConcepts()
 	{
 		// create all the relationships now
-		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+		String conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
 									  //"VALUES ?Subject {"  + subjects + "}"+
 									  //"VALUES ?Object {"  + subjects + "}"+
 									  //"VALUES ?Object {"  + objects + "}" +
 									  //"VALUES ?Predicate {"  + predicates + "}" +
-									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://health.mil/ontologies/dbcm/Relation>;}" +
+									  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://health.mil/ontologies/dbcm/Relation>;}" +
 									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
-									  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
+									  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
 									  "{?Subject ?Predicate ?Object}" +
 									  "}";
 		
-		System.err.println(" Predicate query " + predicateSelectQuery);
+		System.err.println(" conceptSelectQuery query " + conceptSelectQuery);
 		
 		//IEngine jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
@@ -1553,9 +1409,71 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 
 		Hashtable<String, String> filteredNodes = filterData.filterNodes;
 		logger.warn("Filtered Nodes " + filteredNodes);
+				
+		logger.debug(conceptSelectQuery);
 		
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		try {
+			sjsc.setQuery(conceptSelectQuery);
+			sjsc.execute();
+			logger.warn("Execute complte");
+
+			int count = 0;
+			while(sjsc.hasNext())
+			{
+				//logger.warn("Iterating " + count);
+				count++;
+
+				SesameJenaConstructStatement sct = sjsc.next();
+
+				if(!baseFilterHash.containsKey(sct.getSubject()))// && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
+				{
+						DBCMVertex vert1 = vertStore.get(sct.getSubject()+"");
+						if(vert1 == null)
+						{
+							vert1 = new DBCMVertex(sct.getSubject());
+							vertStore.put(sct.getSubject()+"", vert1);
+							genControlData(vert1);
+						}
+						// add my friend
+						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
+							this.forest.addVertex(vertStore.get(sct.getSubject()));
+						filterData.addVertex(vert1);
+				}
+			}
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	// executes the first SPARQL query and generates the graphs
+	public void genBaseGraph()
+	{
+		// create all the relationships now
+		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+									  //"VALUES ?Subject {"  + subjects + "}"+
+									  //"VALUES ?Object {"  + subjects + "}"+
+									  //"VALUES ?Object {"  + objects + "}" +
+									  //"VALUES ?Predicate {"  + predicates + "}" +
+									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://health.mil/ontologies/dbcm/Relation>;}" +
+									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
+									  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://health.mil/ontologies/dbcm/Concept>;}" +
+									  "{?Subject ?Predicate ?Object}" +
+									  "}";
 		
+		
+		//IEngine jenaEngine = new InMemoryJenaEngine();
+		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
+
+		IEngine jenaEngine = new InMemorySesameEngine();
+		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
+
+		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
+		sjsc.setEngine(jenaEngine);
+
+		Hashtable<String, String> filteredNodes = filterData.filterNodes;
+		logger.warn("Filtered Nodes " + filteredNodes);
+				
 		logger.debug(predicateSelectQuery);
 		
 		try {
@@ -1568,12 +1486,16 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			{
 				//logger.warn("Iterating " + count);
 				count++;
+
 				SesameJenaConstructStatement sct = sjsc.next();
+				String predicateName = sct.getPredicate();
+
 				if(!baseFilterHash.containsKey(sct.getSubject()) && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 				{
 						// get the subject, predicate and object
 						// look for the appropriate vertices etc and paint it
 						predData.addConceptAvailable(sct.getSubject());
+						predData.addConceptAvailable(sct.getObject()+"");
 						DBCMVertex vert1 = vertStore.get(sct.getSubject()+"");
 						if(vert1 == null)
 						{
@@ -1582,18 +1504,32 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 							genControlData(vert1);
 						}
 						DBCMVertex vert2 = vertStore.get(sct.getObject()+"");
-						if(vert2 == null)
+						if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
 						{
-							vert2 = new DBCMVertex(sct.getObject()+"");
+							if(sct.getObject() instanceof URI)
+								vert2 = new DBCMVertex(sct.getObject()+"");
+							else // ok this is a literal
+								vert2 = new DBCMVertex(sct.getPredicate(), sct.getObject());
 							vertStore.put(sct.getObject()+"", vert2);
 							genControlData(vert2);
 						}
 						// create the edge now
 						DBCMEdge edge = edgeStore.get(sct.getPredicate()+"");
+						// check to see if this is another type of edge
+						if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
+							predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+						if(edge == null)
+							edge = edgeStore.get(predicateName);
 						if(edge == null)
 						{
-							edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-							edgeStore.put(sct.getPredicate()+"", edge);
+							// need to create the predicate at runtime I think
+							/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
+							System.err.println("Predicate plugged is " + predicateName);
+							edgeStore.put(sct.getPredicate()+"", edge);*/
+
+							// the logic works only when the predicates dont have the vertices on it.. 
+							edge = new DBCMEdge(vert1, vert2, predicateName);
+							edgeStore.put(predicateName, edge);
 						}
 						filterData.addVertex(vert1);
 						filterData.addVertex(vert2);
@@ -1607,7 +1543,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 						{
 							if ((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")
 									&& !filteredNodes.containsKey(sct.getObject() +"") && !filterData.edgeFilterNodes.containsKey(sct.getPredicate() + ""))) 						{	
-								predData.addPredicate(sct.getPredicate());
+								predData.addPredicateAvailable(sct.getPredicate());
 								// try to see if the predicate here is a property
 								// if so then add it as a property
 							this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
@@ -1624,6 +1560,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 							}
 						}catch (Exception ex)
 						{
+							ex.printStackTrace();
 							logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
 							// ok.. I am going to ignore for now that this is a duplicate edge
 						}
@@ -1635,154 +1572,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		}
 		//}		
 	}
-	
-	public void genPropertiesRemote(String query2)
-	{
-		// this needs to be redone to accomodate external ontology
-		// this needs to be a method specific to TAP
-		// because there is no way for me to generically understand properties
-		// may be they can specify a property class or set of classes
-		// if so I can load that with the bindings ?
-		// not sure *Thinking*
-		// Since I have loaded all of the relationship hierarchy
-		// 
-		
-		// Ok.. I see what I need to get done
-		// I need to find all the relations that are subclass to contains
-		// but in order for me to do this.. i need to get EVERY relation and then jam it
-		// or alternately, I can just get this from the base graph
-		// now based on those things that I just aggregated i.e. the predicates
-		// I need to query the core database for those relations for any subject
-		// interestingly there is no dual bind i.e. a bind for relationship and a bind for subjects
-		// so I have to find a way to do this using a nested select
-		// for now - I am going to assume all of the properties is done using only ONE and ONLY ONE URI patter
-		// I will select it using SPARQL first
-		// and then use that relationship to get all the properties
-		// Later when BigData will support VALUES on SPARQL 1.1, I can do multi-bind and mystery solved
-		// oh yes, for now if you have more than one then I will assume only the first one
-
-
-		/*IEngine jenaEngine = new InMemoryJenaEngine();
-		((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
-		*/
-		logger.debug("Executing Query " + query2);
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(engine);
-		sjsc.setQuery(query2);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			SesameJenaConstructStatement sct = sjsc.next();
-	
-			String subject = sct.getSubject();
-			String predicate = sct.getPredicate();
-			Object obj = sct.getObject();
-			
-			// add the property
-			predData.addProperty(predicate, predicate);
-
-			// try to see if the predicate here has been designated to be a relation
-			// if so then add it as a relation
-			// if the object is a simple type
-			// then it would be Predicate/SimpleType
-			addProperty(subject, obj, predicate);
-		}
-
-	}
-	
-	public void genPropertiesLocal(String query2)
-	{
-
-		//IEngine jenaEngine = new InMemoryJenaEngine();
-		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
-
-		IEngine jenaEngine = new InMemorySesameEngine();
-		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
-
-		logger.debug("Executing Query " + query2);
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(jenaEngine);
-		sjsc.setQuery(query2);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			SesameJenaConstructStatement sct = sjsc.next();
-	
-			String subject = sct.getSubject();
-			String predicate = sct.getPredicate();
-			Object obj = sct.getObject();
-			
-			// add the property
-			predData.addProperty(predicate, predicate);
-
-			// try to see if the predicate here has been designated to be a relation
-			// if so then add it as a relation
-			// if the object is a simple type
-			// then it would be Predicate/SimpleType
-			addProperty(subject, obj, predicate);
-		}
-	}
-	
-	// removes existing concepts 
-	public void removeExistingConcepts(String subjectsRemoved)
-	{
-		// run the query to find
-		// I need to find the complete concept hierarchy and then wipe each one of it out
-		// interesting
-		String query2 = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-		//"VALUES ?Subject {" + subjectsRemoved+ " }" +
-		"{?Subject  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://health.mil/ontologies/dbcm/Concept/System>;}" +
-		//"{?Subject ?Predicate <http://health.mil/ontologies/dbcm/Concept>;}" +
-		"{?Subject ?Predicate ?Object.}" +
-		"}";
-		
-		IEngine jenaEngine = new InMemoryJenaEngine();
-		((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
-		
-		logger.warn("Executing Query " + query2);
-		
-		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
-		sjsc.setEngine(jenaEngine);
-		sjsc.setQuery(query2);
-		sjsc.execute();
-		
-		Vector <SesameJenaConstructStatement> stAggregator = new Vector<SesameJenaConstructStatement>();
-		while(sjsc.hasNext())
-			stAggregator.addElement(sjsc.next());
-
-		for(int stIdx = 0;stIdx < stAggregator.size();stIdx++)
-		{
-			removeFromJenaModel(stAggregator.elementAt(stIdx));
-		}
-	}
-	
-	// removes existing concepts 
-	public void addNewConcepts(Hashtable <String, SesameJenaConstructStatement> subjectAddHash)
-	{
-
-		Enumeration keys = subjectAddHash.keys();
-		while(keys.hasMoreElements())
-		{
-			addToJenaModel2(subjectAddHash.get(keys.nextElement()), false);
-		}
-	}
-	
-	// converts a predicate into 
-	public void convertPredicateToProperty(String predicate)
-	{
-		
-	}
-	
-	public void convertPropertyToPredicate(String predicate)
-	{
-		
-	}
-	
-
+				
 	// not sure if anyone uses this.. 
 	// this can be killed I think
 	private void extendForest() throws Exception {
@@ -1942,7 +1732,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	// I bet I will come back to this after the engines
 	
 	
-	private void addProperty(String subject, Object object, String predicate) {
+	void addProperty(String subject, Object object, String predicate) {
 		
 		
 		// need to see here again if the subject is also a type of predicate
@@ -1982,10 +1772,13 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		}
 	}
 	
-	protected void addToJenaModel2(SesameJenaConstructStatement st, boolean overrideURI) {
+	protected void addToSesame(SesameJenaConstructStatement st, boolean overrideURI, boolean add2Base) {
 		// if the jena model is not null
 		// then add to the new jenaModel and the old one
+		// TODO based on the base relations add to base
 		try {
+			
+			// initialization routine...
 			if(rc == null)
 			{
 				Repository myRepository = new SailRepository(
@@ -1996,7 +1789,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 				rc = myRepository.getConnection();				
 			}
 			// undo
-			if(curModel == null && (extend || append))
+			if(curModel == null && (extend || overlay))
 			{
 				logger.info("Creating the new model");
 				Repository myRepository2 = new SailRepository(
@@ -2008,6 +1801,10 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 				curModel = ModelFactory.createDefaultModel();
 			}
 
+			// done Initialization
+			
+			// Create the subject and predicate
+			
 			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
 			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
 			
@@ -2021,32 +1818,58 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 				else 
 					object = new URIImpl(st.getObject()+"");
 				rc.add(subject,predicate,object);
-				if(extend || append)
+				if(extend || overlay)
 				{
 					//logger.info("Adding to the new model");
 					curRC.add(subject,predicate,object);
 				}
+				if(add2Base)
+				{
+					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), true);
+				}
 			}
-			else if(obj instanceof com.bigdata.rdf.model.BigdataValueImpl){
+			// the else basically means a couple of things
+			// this is not a URI would the primary
+			else if(obj instanceof Literal) // all the sesame routine goes here
+			{
+				/*if(obj instanceof com.bigdata.rdf.model.BigdataValueImpl){
 				rc.add(subject, predicate, (com.bigdata.rdf.model.BigdataValueImpl) obj);
-				if(extend || append)
+				if(extend || overlay)
 				{
 					//logger.info("Adding to the new model");
 					curRC.add(subject,predicate,rc.getValueFactory().createLiteral(obj+""));
 				}
-			}
-			else{
-				rc.add(subject, predicate, rc.getValueFactory().createLiteral(obj+""));
-				if(extend || append)
+				if(add2Base)
+				{
+					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), obj, false);
+				}*/
+				rc.add(subject, predicate, (Literal)obj);
+				if(extend || overlay)
 				{
 					//logger.info("Adding to the new model");
-					curRC.add(subject,predicate,rc.getValueFactory().createLiteral(obj+""));
+					curRC.add(subject,predicate,(Literal)obj);
+				}
+				if(add2Base)
+				{
+					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
 				}
 			}
-			
-			
-
-			
+			else if(obj instanceof com.hp.hpl.jena.rdf.model.Literal)
+			{
+				// I need to figure out a way to convert this into sesame literal
+				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
+				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
+				rc.add(subject, predicate, (Literal)newObj);
+				if(extend || overlay)
+				{
+					//logger.info("Adding to the new model");
+					curRC.add(subject,predicate,(Literal)newObj);
+				}
+				if(add2Base)
+				{
+					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
+				}
+			}
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -2063,9 +1886,8 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		{
 			//jenaModel = ModelFactory.createDefaultModel(ReificationStyle.Standard);
 			//Model baseModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
-			Model baseModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_RULE_INF);
-			jenaModel = ModelFactory.createInfModel(ReasonerRegistry.getTransitiveReasoner(),baseModel);	
-			
+			//Model baseModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+			jenaModel = ModelFactory.createDefaultModel();
 		}
 		Resource subject = jenaModel.createResource(st.getSubject());
 		Property prop = jenaModel.createProperty(st.getPredicate());
@@ -2092,12 +1914,12 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 		*/
 		jenaModel.add(jenaSt);
 		// just so that we can remove it later
-		if(curModel == null && (extend || append))
+		if(curModel == null && (extend || overlay))
 		{
 			logger.info("Creating the new model");
 			curModel = ModelFactory.createDefaultModel();
 		}
-		if(extend || append)
+		if(extend || overlay)
 		{
 			//logger.info("Adding to the new model");
 			curModel.add(jenaSt);
@@ -2253,7 +2075,16 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 
 	}	
 
-	
+	public void resetProgressBar()
+	{
+		UIDefaults nimbusOverrides = new UIDefaults();
+		UIDefaults defaults = UIManager.getLookAndFeelDefaults();
+		defaults.put("nimbusOrange",defaults.get("nimbusInfoBlue"));
+		Painter blue = (Painter) defaults.get("Button[Default+Focused+Pressed].backgroundPainter");
+        nimbusOverrides.put("ProgressBar[Enabled].foregroundPainter",blue);
+        jBar.putClientProperty("Nimbus.Overrides", nimbusOverrides);
+        jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
+	}
 	public Model getJenaModel()
 	{
 		Model newModel = jenaModel;
@@ -2324,6 +2155,7 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 				
 				Update update = rc.prepareUpdate(QueryLanguage.SPARQL, remQuery);
 				update.execute();
+				this.baseRelEngine.execInsertQuery(remQuery);
 			
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -2333,10 +2165,12 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 	}
 	
 	// adds existing concepts 
-	public void addNewConcepts(String subjects, String baseObject, String predicate)
+	public String addNewConcepts(String subjects, String baseObject, String predicate)
 	{
 		
 		StringTokenizer tokenz = new StringTokenizer(subjects, ";");
+		
+		String listOfChilds = null;
 		
 		while(tokenz.hasMoreTokens())
 		{
@@ -2345,18 +2179,25 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 			String parent = adder.substring(0,adder.indexOf("@@"));
 			String child = adder.substring(adder.indexOf("@@") + 2);
 			
+			if(listOfChilds == null)
+				listOfChilds = child;
+			else
+			listOfChilds = listOfChilds + ";" + child;
+			
 			SesameJenaConstructStatement st = new SesameJenaConstructStatement();
 			st.setSubject(child);
 			st.setPredicate(predicate);
 			st.setObject(baseObject);
-			addToJenaModel2(st,true);
+			addToSesame(st,true, true);
 			
 			System.out.println(" Query....  " + parent + "<>" + child);	
 		}
+		return listOfChilds;
 	}
 
 	
-	public void createBaseRelations(Properties rdfMap, String relationName) throws Exception{
+	public void createBaseRelations(Properties rdfMap) throws Exception{
+		String relationName = "BaseData";
 		if(rdfMap.containsKey(relationName)){ //load using what is on the map
 			String value = rdfMap.getProperty(relationName);
 			System.out.println(" Relations are " + value);
@@ -2382,33 +2223,48 @@ public class GraphPlaySheet extends JInternalFrame implements IPlaySheet{
 					
 					// create the statement now
 					//addToJenaModel(stmt);
-					addToJenaModel2(stmt, true);
+					boolean base = false;
+					addToSesame(stmt, true, base);
+					
+					
 	
 				}// statement while
 			}// relationship while
 		}//if using map
 	}
-	/*public void queryPropAll() {
-		String query = "SELECT ?subject ?predicate ?object WHERE {?predicate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://health.mil/ontologies/dbcm/Relation/Contains>. ?subject ?predicate ?object. ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?name;} BINDINGS ?name {@FILTER_VALUES@}";
-		Hashtable<String, String> hash = new Hashtable<String, String>();
-		
-		//get nodes first
-		
-		Hashtable nodeHash = filterData.typeHash;
-	    Enumeration hashE = nodeHash.keys();
-		String fileName = "";
-		int count = 0;
-	    while (hashE.hasMoreElements()){
-	    	String key = (String) hashE.nextElement();
-	    	Vector <DBCMVertex> vertVector= (Vector<DBCMVertex>) nodeHash.get(key);
-			for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+	
+	protected void createBaseRelationEngine(Properties engineProp) throws Exception
+	{
+		// tries to see if the base relation sesame engine is available
+		// if not it will create it
+		if(baseRelEngine == null)
+		{
+			baseRelEngine = new RDFFileSesameEngine();
+			// try to see if the OWL file exists
+			// if not go the old way and create the base relation engine
+			String owlFileName = (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName() + "_" + Constants.OWL);
+			boolean loadOwl = true;
+			if(owlFileName == null)
 			{
-				if(count == 0)
-					fileName ="(\"" + Utility.getInstanceName(vertVector.elementAt(vertIndex).getURI()) + "\")";
-				else
-					fileName = fileName + "(\"" + Utility.getInstanceName(vertVector.elementAt(vertIndex).getURI()) + "\")";
-				count++;
+				owlFileName = "./db/" + engine.getEngineName() + "/" + engine.getEngineName() + ".OWL";
+				loadOwl = false;
 			}
-	    }
-	}*/
+			baseRelEngine.fileName = owlFileName;
+			baseRelEngine.openDB(null);
+			engine.addConfiguration(Constants.OWL, owlFileName);
+			if(loadOwl)
+			{
+				System.err.println("Loaded the file from OWL");
+				// add it to the main graph
+				File file = new File(owlFileName);
+				rc.add(file, null, RDFFormat.RDFXML);
+			}
+			else if(rdfMap.containsKey("BaseData"))
+			{
+				// need to find a way to write this into the prop file
+				createBaseRelations(engineProp);
+			}			
+			
+		}
+	}
 }

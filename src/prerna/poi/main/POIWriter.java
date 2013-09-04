@@ -40,10 +40,10 @@ public class POIWriter {
 		blankStr3[1] = "5";
 		blankVect.add(blankStr3);
 		blankHash.put("TEST SHEET", blankVect);
-		writer.runExport(blankHash);
+		writer.runExport(blankHash, null, null, true);
 	}
 	
-	public void runExport(Hashtable hash){
+	public void runExport(Hashtable hash, String writeFile, String readFile, boolean formatData) {
 		//this function will write a hashtable to an xlsx sheet
 		//keys from the hastable become sheet names
 		//objects must be in format Vector<String[]>
@@ -51,22 +51,29 @@ public class POIWriter {
 		//readFileName is the file that this function will add to
 		//if readFileName is null, it will create a new workbook
 		String workingDir = System.getProperty("user.dir");
-		String writeFileName = Constants.GLITEM_LOADING_SHEET;
-		String readFileName = "BaseGILoadingSheets.xlsx";
-		String folder = "/export/";
-		String fileLoc = workingDir + folder + writeFileName;
-		String readFileLoc = workingDir + folder + readFileName;
+		if(writeFile == null || writeFile.isEmpty()) {
+			writeFile = Constants.GLITEM_CORE_LOADING_SHEET;
+		}
+		if(readFile == null || readFile.isEmpty()) {
+			readFile = "BaseGILoadingSheets.xlsx";
+		}
+		String folder = "\\export\\";
+		String fileLoc = workingDir + folder + writeFile;
+		String readFileLoc = workingDir + folder + readFile;
 
-		ExportLoadingSheets(fileLoc, hash, readFileLoc);
+		ExportLoadingSheets(fileLoc, hash, readFileLoc, formatData);
 	}
 	
-	public void ExportLoadingSheets(String fileLoc, Hashtable<String, Vector<String[]>> hash, String readFileLoc){
+	public void ExportLoadingSheets(String fileLoc, Hashtable<String, Vector<String[]>> hash, String readFileLoc, boolean formatData){
 		//create file
-		//OPCPackage pack = new OPCPackage();
-		XSSFWorkbook wb = getWorkbook(fileLoc, readFileLoc);
+		XSSFWorkbook wb = getWorkbook(readFileLoc);
 		if(wb == null) return;
-		Hashtable<String, Vector<String[]>> preparedHash = prepareLoadingSheetExport(hash);
-		
+		Hashtable<String, Vector<String[]>> preparedHash;
+		if(formatData) {
+			preparedHash = prepareLoadingSheetExport(hash);
+		} else {
+			preparedHash = hash;
+		}
 		XSSFSheet sheet = wb.createSheet("Loader");
 		Vector<String[]> data = new Vector<String[]>();
 		data.add(new String[]{"Sheet Name", "Type"});
@@ -120,7 +127,6 @@ public class POIWriter {
 	public void writeFile(XSSFWorkbook wb, String fileLoc){
         
         try {
-        	
 	        //Create a fileStream to write into a file
 	        FileOutputStream newExcelFile = new FileOutputStream(fileLoc);
 	        
@@ -130,13 +136,12 @@ public class POIWriter {
 	        //Close New Excel File
 	        newExcelFile.close();  
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 	
-	public XSSFWorkbook getWorkbook(String fileLoc, String readFileLoc){
+	public XSSFWorkbook getWorkbook(String readFileLoc) {
 		XSSFWorkbook wb = null;
 		try {
 			File inFile = new File(readFileLoc);
@@ -169,7 +174,7 @@ public class POIWriter {
 			if(key.equals("Sys-DeployGLItem")) {
 				continue;
 			} //Relationships exports, already formatted correctly
-			else if(key.equals("Sys-Data") || key.equals("Sys-BLU") || key.equals("Ser-Data") || key.equals("Ser-BLU")) {
+			else if(key.equals("Sys-Data") || key.equals("Sys-BLU") || key.equals("Ser-Data") || key.equals("Ser-BLU") || key.equals("Sys-SysHWUpgradeGLItem")) {
 				newHash.put(key, sheetV);
 				continue;
 			}

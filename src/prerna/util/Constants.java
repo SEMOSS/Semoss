@@ -1,10 +1,8 @@
-	package prerna.util;
+package prerna.util;
 
 
 public class Constants {
 	
-	public static final String DEFAULT_SHAPE = "DEFAULT_SHAPE";
-	public static final String DEFAULT_COLOR = "DEFAULT_COLOR";
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
 	public static final String NEIGHBORHOOD_PREDICATE_TYPE_ALT2_PAINTER_QUERY = "NEIGHBORHOOD_PREDICATE_TYPE_ALT2_PAINTER_QUERY";
@@ -60,6 +58,7 @@ public class Constants {
 	public static String ISO = "ISO-Layout";
 	public static String TREE_LAYOUT = "Tree-Layout";
 	public static String RADIAL_TREE_LAYOUT = "Radial-Tree-Layout";
+	public static String BALLOON_LAYOUT = "Balloon Layout";
 		
 	public static String LEGEND = "_LEGEND";
 	
@@ -201,6 +200,7 @@ public class Constants {
 	public static String NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY = "NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY";
 
 	public static String TRAVERSE_FREELY_QUERY = "TRAVERSE_FREELY_QUERY";
+	public static String TRAVERSE_INSTANCE_FREELY_QUERY = "TRAVERSE_INSTANCE_FREELY_QUERY";
 
 	public static String PREDICATE = "PREDICATE";
 	public static String IGNORE_URI = "IGNORE_URI";
@@ -226,7 +226,7 @@ public class Constants {
 	public static String TRANSITION_CHECK_BOX_BLU_PROVIDER="chckbxBLUprovider";
 	public static String TRANSITION_CHECK_BOX_DATA_GENERIC="chckbxDataEsbImplementation";
 	public static String TRANSITION_CHECK_BOX_BLU_GENERIC = "chckbxBluEsbImplementation";
-	public static String TRANSITION_SYSTEM_DROP_DOWN_PANEL = "TransReportSysDropDownPanel";
+	public static String TRANSITION_SYSTEM_DROP_DOWN_PANEL = "transReportSysDropDownPanel";
 	public static String TRANSITION_GENERIC_BLU = "TRANSITION_GENERIC_BLU";
 	public static String TRANSITION_GENERIC_DATA = "TRANSITION_GENERIC_DATA";
 	public static String TRANSITION_SPECIFIC_DATA_CONSUMER = "TRANSITION_SPECIFIC_DATA_CONSUMER";
@@ -280,6 +280,7 @@ public class Constants {
 	public static final String PROPERTY = "PROPERTY";
 	
 	//Load Sheet Export Panel
+	public static final String EXPORT_LOAD_SHEET_SOURCE_COMBOBOX = "exportDataSourceComboBox";
 	public static final String EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX = "subjectNodeTypeComboBox";
 	public static final String EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX = "objectNodeTypeComboBox";
 	public static final String EXPORT_LOAD_SHEET_NODE_RELATIONSHIP_COMBOBOX = "nodeRelationshipComboBox";
@@ -293,5 +294,15 @@ public class Constants {
 	public static final String COST_DB_COMBOBOX = "costDBComboBox";
 	public static final String COST_DB_BASE_URI_FIELD = "costDBBaseURIField";
 	public static final String GLITEM_LOADING_SHEET = "LoadingSheets1.xlsx";
+	public static final String WATCHERS = "WATCHERS";
+	public static final String ENGINE_WATCHER = "ENGINE_WATCHER";
+	
+	public static final String GLITEM_CORE_LOADING_SHEET = "LoadingSheets1.xlsx";
+
+	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
+	public static final String OWL = "OWL";
+	public static final String URL_PARAM = "URL_PARAM";
+
+
 
 }

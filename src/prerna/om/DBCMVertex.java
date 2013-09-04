@@ -52,6 +52,38 @@ public class DBCMVertex{
 
 	}
 	
+	public DBCMVertex(String type, Object vert)
+	{
+		this.uri = type + "/" + vert;
+		putProperty(Constants.URI, this.uri);
+		
+		String value = vert +"";
+		if(vert instanceof Literal)
+		{
+			//logger.info("This is a literal impl >>>>>> "  + ((Literal)propValue).doubleValue());
+			try {
+				propHash.put(type, ((Literal)vert).doubleValue());				
+			}catch(Exception ex)
+			{}
+			try{
+				propHash.put(type, vert + "");
+			}catch (Exception ex)
+			{}
+		}
+
+		// parse out all the oth er properties
+		logger.debug("URI " + uri);
+		String className = Utility.getInstanceName(uri);
+				
+		putProperty(Constants.VERTEX_TYPE, className);
+		logger.debug("Type is " + className);
+		
+		putProperty(Constants.VERTEX_NAME, value);
+		logger.debug("Name is " + value);
+
+	}
+
+	
 	public Hashtable getProperty()
 	{
 		return this.propHash;
@@ -118,7 +150,8 @@ public class DBCMVertex{
 
 	public Set<String> getPropertyKeys() {
 		// TODO Auto-generated method stub
-		return null;
+	//	return null;
+		return propHash.keySet();
 	}
 
 	public Object removeProperty(String arg0) {

@@ -170,7 +170,6 @@ public class POIReader {
 		
 		String propFile = "";
 		if(!customMap.equals("")) propFile = customMap;
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		BigDataEngine bigEngine= (BigDataEngine) engine;
@@ -189,8 +188,7 @@ public class POIReader {
 			importReader.importFile(fileName);
 		}
 		
-		importReader.createBaseRelations();		
-		importReader.sc.commit();
+		bigEngine.infer();
 	}
 	
 	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String customMap) throws Exception {
@@ -344,15 +342,25 @@ public class POIReader {
 				// this is a relationship
 				if (cell2 != null
 						&& cell2.getStringCellValue().contains("Matrix")) {
-					if (cell2.getStringCellValue().contains("Dynamic"))
+					if (cell2.getStringCellValue().contains("Dynamic")) {
 						loadMatrixSheet(sheetToLoad, book, true);
-					else
+						createBaseRelations();
+						sc.commit();
+					} else {
 						loadMatrixSheet(sheetToLoad, book, false);
+						createBaseRelations();
+						sc.commit();
+					}
 				} else if (cell2 != null
-						&& cell2.getStringCellValue().contains("Dynamic"))
+						&& cell2.getStringCellValue().contains("Dynamic")) {
 					loadSheet(sheetToLoad, book, true);
-				else
+					createBaseRelations();
+					sc.commit();
+				} else {
 					loadSheet(sheetToLoad, book, false);
+					createBaseRelations();
+					sc.commit();
+				}
 			}
 		}
 	}

@@ -1,0 +1,1401 @@
+package prerna.ui.components;
+
+import java.awt.EventQueue;
+
+import javax.swing.JInternalFrame;
+import java.awt.GridBagLayout;
+import javax.swing.JSplitPane;
+import java.awt.GridBagConstraints;
+
+import javax.swing.DefaultListModel;
+import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.JColorChooser;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JSeparator;
+import javax.swing.SwingConstants;
+import javax.swing.JScrollPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
+import java.awt.Dimension;
+import javax.swing.JScrollBar;
+import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.JTextPane;
+import javax.swing.JComboBox;
+import javax.swing.JToggleButton;
+import javax.swing.JTextArea;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.JLabel;
+import java.awt.Font;
+import javax.swing.JTextField;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JPopupMenu;
+import java.awt.Component;
+
+import com.ibm.icu.text.ChineseDateFormat.Field;
+import com.ibm.icu.util.StringTokenizer;
+import java.awt.CardLayout;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Hashtable;
+import java.util.Vector;
+
+import javax.swing.JFileChooser;
+
+import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.api.IChakraListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
+
+import java.awt.GridLayout;
+import javax.swing.JDesktopPane;
+import javax.swing.JList;
+import java.awt.Insets;
+import javax.swing.AbstractListModel;
+import java.awt.ComponentOrientation;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+
+import java.awt.Color;
+import javax.swing.border.LineBorder;
+import javax.swing.border.MatteBorder;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.InternalFrameListener;
+
+import org.apache.log4j.Logger;
+import javax.swing.JSlider;
+import javax.swing.JRadioButton;
+import javax.swing.ButtonGroup;
+
+public class PlayPane extends JFrame {
+	// field that imports a file
+	public JTextField importFileNameField;
+	// field that exports a file
+	public JTextField exportFileNameField;
+	
+	// Panel for filtering data - to be created
+	public JPanel filterPanel;
+	
+	// panel that shows all the properties etc. Need to make provision to plug this all into the lower portion of control panel at some point
+	public JPanel outputPanel;
+	
+	public JPanel inputPanel;
+	public JComboBox perspectiveSelector;
+	public JComboBox questionSelector;
+	
+	// need to make this into a card layout so that I can add param panels into it
+	public JPanel paramPanel;
+	
+	public JButton fillButton;
+	public JButton submitButton;
+	public JButton clearButton;
+	public JToggleButton showSparql;
+	public JButton exportButton;
+	
+	// the core right view
+	public RightView rightView;
+	
+	
+	public JPanel graphPanel;
+	
+	public JPanel imExPanel;
+	public JButton importButton;
+	public JPanel importPanel;
+	public JPanel exportPanel;
+	public JPanel settingsPanel;
+	public JDesktopPane desktopPane;
+	public JScrollPane scrollPane_1;
+	public SparqlArea sparqlArea;
+	private JLabel lblRepository;
+	public JList repoList;
+	public JTable propertyTable2;
+	public JButton refreshButton;
+	private JScrollPane scrollPane_2;
+	public JTable filterTable;
+	public JToggleButton appendButton;
+	private JScrollPane scrollPane_3;
+	private JScrollPane scrollPane_4;
+	public JTable edgeTable;
+	public JToggleButton extendButton;
+	public JComboBox nodeToExtendList;
+	private JPanel debugPanel;
+	private JScrollPane scrollPane_5;
+	private JTextArea txtrAasdasdasd;
+	public JPanel calculationPanel;
+	public JButton fillBVHashButton;
+	public JButton calculateBVButton;
+	public JButton fillTMHashButton;
+	public JButton calculateTMButton;
+	Logger logger = Logger.getLogger(getClass());
+	
+	public JTable labelTable;
+	
+	private final ButtonGroup buttonGroup = new ButtonGroup();
+	
+	private JScrollPane filterSliders;
+	public JTable propertyTable;
+	private JScrollPane scrollPane_6;
+	public JTable tooltipTable;
+	private JLabel lblDisplayTooltip;
+	private JLabel lblLabelDisplay;
+	public JButton undoBtn;
+	public JComboBox extList;
+	public JButton btnBrowse;
+	public JTextField dbSelectorField;
+	public JButton btnDBBrowse;
+	private JPanel owlPanel;
+	private JLabel lblDataProperties;
+	private JLabel lblObjectProperties;
+	public JTable objectPropertiesTable;
+	public JTable dataPropertiesTable;
+	public JTextField dataPropertiesString;
+	public JTextField objectPropertiesString;
+	public JButton btnRepaintGraph;
+	private JScrollPane scrollPane_8;
+	private JScrollPane scrollPane_7;
+	private JPanel cosmeticPanel;
+	private JScrollPane scrollPane_9;
+	private JLabel lblColorAndShape;
+	private JScrollPane scrollPane_10;
+	private JLabel lblSize;
+	private JScrollPane scrollPane_11;
+	public JTable colorShapeTable;
+	public JTable sizeTable;
+	public JButton btnColorShape;
+<<<<<<< .mine
+	public JButton btnDisconnect;
+	public JButton btnConnect;
+
+=======
+	public JSlider extendSlider;
+	public JTextField extendSliderArea;
+	public JInternalFrame extendFrame;
+	public JButton extendBtn;
+	public JInternalFrame transAllFrame;
+	public JLabel sysNoLabel, dataNoLabel, icdNoLabel;
+	public JTextArea transAllSysArea, transAllDataArea, transAllICDArea, transAllWSPArea,transAllWSCArea;
+	
+	
+>>>>>>> .r2277
+	/**
+	 * Launch the application.
+	 */
+	public void start() throws Exception{
+		
+		// load all the listeners
+		// cast it to IChakraListener
+		// for each listener specify what is the view field - Listener_VIEW
+		// for each listener specify the right panel field - Listener_RIGHT_PANEL
+		// utilize reflection to get all the fields
+		// for each field go into the properties file and find any of the listeners
+		
+		// start with self reference
+		DIHelper.getInstance().setLocalProperty(Constants.MAIN_FRAME, this);
+		
+	
+		
+		java.lang.reflect.Field[] fields = PlayPane.class.getFields();
+
+		// run through the view components
+		for(int fieldIndex = 0; fieldIndex < fields.length;fieldIndex++)
+		{
+			//System.out.println(fields[fieldIndex].getName());
+			Object obj = fields[fieldIndex].get(this);
+			logger.debug("Object set to " + obj);
+			String fieldName = fields[fieldIndex].getName();
+			if(obj instanceof JComboBox || obj instanceof JButton || obj instanceof JToggleButton || obj instanceof JSlider || obj instanceof JInternalFrame)
+			{
+				// load the controllers
+				// find the view
+				// right view and listener
+					String ctrlNames = DIHelper.getInstance().getProperty(fieldName + "_" + Constants.CONTROL);
+					if(ctrlNames != null && ctrlNames.length()!=0)
+					{
+						logger.debug("Listeners >>>>  "+ ctrlNames + "   for field " + fieldName);
+						StringTokenizer listenerTokens = new StringTokenizer(ctrlNames, ";");
+						while(listenerTokens.hasMoreTokens())
+						{
+							String ctrlName = listenerTokens.nextToken();
+							logger.debug("Processing widget " + ctrlName);
+							String className = DIHelper.getInstance().getProperty(ctrlName);
+							IChakraListener listener = (IChakraListener)Class.forName(className).getConstructor(null).newInstance(null);
+							// in the future this could be a list
+							// add it to this object
+							logger.debug("Listener " + ctrlName + "<>" + listener);
+							// check to if this is a combobox or button
+							if(obj instanceof JComboBox)
+								((JComboBox)obj).addActionListener(listener);
+							else if(obj instanceof JButton)
+								((JButton)obj).addActionListener(listener);
+							else if(obj instanceof JToggleButton)
+								((JToggleButton)obj).addActionListener(listener);
+							else if(obj instanceof JSlider)
+								((JSlider)obj).addChangeListener((ChangeListener) listener);
+							else
+								((JInternalFrame)obj).addInternalFrameListener((InternalFrameListener) listener);
+							DIHelper.getInstance().setLocalProperty(ctrlName, listener);
+						}
+					}
+			}
+			logger.debug("Loading <" + fieldName + "> <> " + obj);
+			DIHelper.getInstance().setLocalProperty(fieldName, obj);
+		}
+		
+		// need to also add the listeners respective views
+		// Go through the listeners and add the model
+		String listeners = DIHelper.getInstance().getProperty(Constants.LISTENERS);
+		StringTokenizer lTokens = new StringTokenizer(listeners,";");
+		while(lTokens.hasMoreElements())
+		{
+			String lToken = lTokens.nextToken();
+		
+			// set the views
+			String viewName = DIHelper.getInstance().getProperty(lToken + "_" + Constants.VIEW);
+			Object listener = DIHelper.getInstance().getLocalProp(lToken);
+			if(viewName != null && listener != null)
+			{
+				// get the listener object and set it
+				Method method = listener.getClass().getMethod("setView", JComponent.class);
+				Object param = DIHelper.getInstance().getLocalProp(viewName);
+				logger.debug("Param is <"+viewName+"><" + param + ">");
+				method.invoke(listener, param);
+			}
+
+			// set the parent views
+			viewName = DIHelper.getInstance().getProperty(lToken + "_" + Constants.PARENT_VIEW);
+			if(viewName != null && listener != null)
+			{
+				// get the listener object and set it
+				Method method = listener.getClass().getMethod("setParentView", JComponent.class);
+				Object param = DIHelper.getInstance().getLocalProp(viewName);
+				logger.debug("Param is <"+viewName+"><" + param + ">");
+				method.invoke(listener, param);
+			}
+		
+
+			// set the parent views
+			viewName = DIHelper.getInstance().getProperty(lToken + "_" + Constants.RIGHT_VIEW);
+			if(viewName != null && listener != null)
+			{
+				// get the listener object and set it
+				Method method = listener.getClass().getMethod("setRightPanel", JComponent.class);
+				Object param = DIHelper.getInstance().getLocalProp(viewName);
+				logger.debug("Param is <"+viewName+"><" + param + ">");
+				method.invoke(listener, param);
+			}
+		}		
+		// set the repository
+				String engines = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+				
+				StringTokenizer tokens = new StringTokenizer(engines,";");
+				DefaultListModel listModel = new DefaultListModel();
+				while(tokens.hasMoreTokens())
+				{		
+					String engineName = tokens.nextToken();
+					IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+					if(engine.isConnected())
+						listModel.addElement(engineName);
+				}
+				repoList.setModel(listModel);
+				repoList.setSelectedIndex(0);
+				
+				// set the models now
+				// set the perspectives information
+				Hashtable perspectiveHash = (Hashtable) DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE);
+				Vector<String> perspectives = Utility.convertEnumToArray(perspectiveHash.keys(), perspectiveHash.size());
+				Collections.sort(perspectives);
+				System.out.println("Perspectives " + perspectiveHash);
+				for(int itemIndex = 0;itemIndex < perspectives.size();this.perspectiveSelector.addItem(perspectives.get(itemIndex)), itemIndex++);
+			}
+
+
+	/**
+	 * Create the frame.
+	 */
+	public PlayPane() {
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		setSize(new Dimension(1200, 600));
+		
+		JScrollPane scrollPane = new JScrollPane();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[]{1164, 0};
+		gridBagLayout.rowHeights = new int[]{540, 0};
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		getContentPane().setLayout(gridBagLayout);
+		//setBounds(100, 100, 450, 300);
+		
+		JSplitPane splitPane = new JSplitPane();
+		splitPane.setContinuousLayout(true);
+		splitPane.setOneTouchExpandable(true);
+		
+		rightView = new RightView(JTabbedPane.TOP);
+		splitPane.setRightComponent(rightView);
+		
+		graphPanel = new JPanel();
+		rightView.addTab("Display Pane", null, graphPanel, null);
+		graphPanel.setLayout(new GridLayout(1, 0, 0, 0));
+		
+		desktopPane = new JDesktopPane();
+		graphPanel.add(desktopPane);
+		
+		extendFrame = new JInternalFrame("Extend Controls");
+		extendFrame.setBounds(6, 6, 325, 183);
+		desktopPane.add(extendFrame);
+		GridBagLayout gridBagLayout_1 = new GridBagLayout();
+		gridBagLayout_1.columnWidths = new int[]{246, 62, 0};
+		gridBagLayout_1.rowHeights = new int[]{28, 25, 45, 28, 0};
+		gridBagLayout_1.columnWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout_1.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		extendFrame.getContentPane().setLayout(gridBagLayout_1);
+		extendFrame.setIconifiable(true);
+		extendFrame.setMaximizable(true);
+		
+		nodeToExtendList = new JComboBox();
+		GridBagConstraints gbc_nodeToExtendList = new GridBagConstraints();
+		gbc_nodeToExtendList.fill = GridBagConstraints.HORIZONTAL;
+		gbc_nodeToExtendList.insets = new Insets(0, 0, 5, 5);
+		gbc_nodeToExtendList.gridx = 0;
+		gbc_nodeToExtendList.gridy = 0;
+		extendFrame.getContentPane().add(nodeToExtendList, gbc_nodeToExtendList);
+		nodeToExtendList.setMinimumSize(new Dimension(150, 25));
+		nodeToExtendList.setPreferredSize(new Dimension(150, 25));
+		nodeToExtendList.setToolTipText("Select the specific type of node you are extending on the selected sheet");
+		
+		undoBtn = new JButton("Undo");
+		GridBagConstraints gbc_undoBtn = new GridBagConstraints();
+		gbc_undoBtn.insets = new Insets(0, 0, 5, 0);
+		gbc_undoBtn.gridx = 1;
+		gbc_undoBtn.gridy = 0;
+		extendFrame.getContentPane().add(undoBtn, gbc_undoBtn);
+		undoBtn.setToolTipText("Remove the last graph you overlayed");
+		
+		extList = new JComboBox();
+		GridBagConstraints gbc_extList = new GridBagConstraints();
+		gbc_extList.fill = GridBagConstraints.HORIZONTAL;
+		gbc_extList.insets = new Insets(0, 0, 5, 0);
+		gbc_extList.gridwidth = 2;
+		gbc_extList.gridx = 0;
+		gbc_extList.gridy = 1;
+		extendFrame.getContentPane().add(extList, gbc_extList);
+		extList.setMinimumSize(new Dimension(150, 25));
+		extList.setPreferredSize(new Dimension(150, 25));
+		extList.setToolTipText("Select the extend question you want to ask");
+		
+		extendSlider = new JSlider();
+		GridBagConstraints gbc_extendSlider = new GridBagConstraints();
+		gbc_extendSlider.fill = GridBagConstraints.BOTH;
+		gbc_extendSlider.insets = new Insets(0, 0, 5, 5);
+		gbc_extendSlider.gridx = 0;
+		gbc_extendSlider.gridy = 2;
+		extendFrame.getContentPane().add(extendSlider, gbc_extendSlider);
+		extendSlider.setPaintLabels(true);
+		extendSlider.setValue(0);
+		extendSlider.setBackground(Color.WHITE);
+		extendSlider.setMinorTickSpacing(1);
+		extendSlider.setMajorTickSpacing(10);
+		extendSlider.setPaintTicks(true);
+		
+		extendSliderArea = new JTextField();
+		GridBagConstraints gbc_extendSliderArea = new GridBagConstraints();
+		gbc_extendSliderArea.fill = GridBagConstraints.HORIZONTAL;
+		gbc_extendSliderArea.insets = new Insets(0, 0, 5, 0);
+		gbc_extendSliderArea.gridx = 1;
+		gbc_extendSliderArea.gridy = 2;
+		extendFrame.getContentPane().add(extendSliderArea, gbc_extendSliderArea);
+		extendSliderArea.setText("0.0");
+		extendSliderArea.setColumns(10);
+		
+		extendBtn = new JButton("Extend Graph");
+		GridBagConstraints gbc_extendBtn = new GridBagConstraints();
+		gbc_extendBtn.insets = new Insets(0, 0, 0, 5);
+		gbc_extendBtn.gridx = 0;
+		gbc_extendBtn.gridy = 3;
+		extendFrame.getContentPane().add(extendBtn, gbc_extendBtn);
+		
+		transAllFrame = new JInternalFrame("Service-Oriented Architecture Analysis");
+		transAllFrame.setBounds(6, 157, 684, 490);
+		desktopPane.add(transAllFrame);
+		GridBagLayout gridBagLayout_2 = new GridBagLayout();
+		gridBagLayout_2.columnWidths = new int[]{0, 0, 175, 0};
+		gridBagLayout_2.rowHeights = new int[]{0, 0, 0};
+		gridBagLayout_2.columnWeights = new double[]{1.0, 1.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout_2.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		transAllFrame.getContentPane().setLayout(gridBagLayout_2);
+		transAllFrame.setVisible(false);
+		
+		JPanel panel = new JPanel();
+		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.anchor = GridBagConstraints.WEST;
+		gbc_panel.insets = new Insets(0, 0, 5, 5);
+		gbc_panel.fill = GridBagConstraints.VERTICAL;
+		gbc_panel.gridx = 0;
+		gbc_panel.gridy = 0;
+		transAllFrame.getContentPane().add(panel, gbc_panel);
+		GridBagLayout gbl_panel = new GridBagLayout();
+		gbl_panel.columnWidths = new int[]{186, 0};
+		gbl_panel.rowHeights = new int[]{0, 0, 0, 0};
+		gbl_panel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel.rowWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
+		panel.setLayout(gbl_panel);
+		
+		JLabel lblSystemAnalysis = new JLabel("System Analysis");
+		GridBagConstraints gbc_lblSystemAnalysis = new GridBagConstraints();
+		gbc_lblSystemAnalysis.insets = new Insets(0, 0, 5, 0);
+		gbc_lblSystemAnalysis.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblSystemAnalysis.gridx = 0;
+		gbc_lblSystemAnalysis.gridy = 0;
+		panel.add(lblSystemAnalysis, gbc_lblSystemAnalysis);
+		
+		sysNoLabel = new JLabel("Number of Systems Affected:");
+		GridBagConstraints gbc_sysNoLabel = new GridBagConstraints();
+		gbc_sysNoLabel.insets = new Insets(0, 0, 5, 0);
+		gbc_sysNoLabel.anchor = GridBagConstraints.WEST;
+		gbc_sysNoLabel.gridx = 0;
+		gbc_sysNoLabel.gridy = 1;
+		panel.add(sysNoLabel, gbc_sysNoLabel);
+		
+		
+		transAllSysArea = new JTextArea();
+		transAllSysArea.setEditable(false);
+		JScrollPane transAllSysAreaScroll = new JScrollPane (transAllSysArea);
+		GridBagConstraints gbc_transAllSysAreaScroll = new GridBagConstraints();
+		gbc_transAllSysAreaScroll.fill = GridBagConstraints.BOTH;
+		gbc_transAllSysAreaScroll.gridx = 0;
+		gbc_transAllSysAreaScroll.gridy = 2;
+		panel.add(transAllSysAreaScroll, gbc_transAllSysAreaScroll);
+		
+		JPanel panel_1 = new JPanel();
+		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
+		gbc_panel_1.anchor = GridBagConstraints.WEST;
+		gbc_panel_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1.fill = GridBagConstraints.VERTICAL;
+		gbc_panel_1.gridx = 1;
+		gbc_panel_1.gridy = 0;
+		
+		transAllFrame.getContentPane().add(panel_1, gbc_panel_1);
+		GridBagLayout gbl_panel_1 = new GridBagLayout();
+		gbl_panel_1.columnWidths = new int[]{0, 0};
+		gbl_panel_1.rowHeights = new int[]{0, 0, 0, 0};
+		gbl_panel_1.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_1.rowWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
+		panel_1.setLayout(gbl_panel_1);
+		
+		JLabel lblDataAnalysis = new JLabel("Data Analysis");
+		GridBagConstraints gbc_lblDataAnalysis = new GridBagConstraints();
+		gbc_lblDataAnalysis.insets = new Insets(0, 0, 5, 0);
+		gbc_lblDataAnalysis.anchor = GridBagConstraints.WEST;
+		gbc_lblDataAnalysis.gridx = 0;
+		gbc_lblDataAnalysis.gridy = 0;
+		panel_1.add(lblDataAnalysis, gbc_lblDataAnalysis);
+		
+		dataNoLabel = new JLabel("Number of Data Objects Affected:");
+		GridBagConstraints gbc_dataNoLabel = new GridBagConstraints();
+		gbc_dataNoLabel.insets = new Insets(0, 0, 5, 0);
+		gbc_dataNoLabel.anchor = GridBagConstraints.WEST;
+		gbc_dataNoLabel.gridx = 0;
+		gbc_dataNoLabel.gridy = 1;
+		panel_1.add(dataNoLabel, gbc_dataNoLabel);
+		
+		transAllDataArea = new JTextArea();
+		transAllDataArea.setEditable(false);
+		JScrollPane transAllDataAreaScroll = new JScrollPane (transAllDataArea);
+		GridBagConstraints gbc_transAllDataAreaScroll = new GridBagConstraints();
+		gbc_transAllDataAreaScroll.fill = GridBagConstraints.BOTH;
+		gbc_transAllDataAreaScroll.gridx = 0;
+		gbc_transAllDataAreaScroll.gridy = 2;
+		panel_1.add(transAllDataAreaScroll, gbc_transAllDataAreaScroll);
+		
+		JPanel panel_2 = new JPanel();
+		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
+		gbc_panel_2.anchor = GridBagConstraints.WEST;
+		gbc_panel_2.insets = new Insets(0, 0, 5, 0);
+		gbc_panel_2.fill = GridBagConstraints.VERTICAL;
+		gbc_panel_2.gridx = 2;
+		gbc_panel_2.gridy = 0;
+		transAllFrame.getContentPane().add(panel_2, gbc_panel_2);
+		GridBagLayout gbl_panel_2 = new GridBagLayout();
+		gbl_panel_2.columnWidths = new int[]{188, 0};
+		gbl_panel_2.rowHeights = new int[]{0, 0, 0, 0};
+		gbl_panel_2.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_2.rowWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
+		panel_2.setLayout(gbl_panel_2);
+		
+		JLabel lblIcdAnalysis = new JLabel("ICD Analysis");
+		GridBagConstraints gbc_lblIcdAnalysis = new GridBagConstraints();
+		gbc_lblIcdAnalysis.insets = new Insets(0, 0, 5, 0);
+		gbc_lblIcdAnalysis.anchor = GridBagConstraints.WEST;
+		gbc_lblIcdAnalysis.gridx = 0;
+		gbc_lblIcdAnalysis.gridy = 0;
+		panel_2.add(lblIcdAnalysis, gbc_lblIcdAnalysis);
+		
+		icdNoLabel = new JLabel("Number of ICD Affected:");
+		GridBagConstraints gbc_icdNoLabel = new GridBagConstraints();
+		gbc_icdNoLabel.anchor = GridBagConstraints.WEST;
+		gbc_icdNoLabel.insets = new Insets(0, 0, 5, 0);
+		gbc_icdNoLabel.gridx = 0;
+		gbc_icdNoLabel.gridy = 1;
+		panel_2.add(icdNoLabel, gbc_icdNoLabel);
+		
+		transAllICDArea = new JTextArea();
+		transAllICDArea.setEditable(false);
+		JScrollPane transAllICDAreaScroll = new JScrollPane (transAllICDArea);
+
+		GridBagConstraints gbc_transAllICDAreaScroll = new GridBagConstraints();
+		gbc_transAllICDAreaScroll.fill = GridBagConstraints.BOTH;
+		gbc_transAllICDAreaScroll.gridx = 0;
+		gbc_transAllICDAreaScroll.gridy = 2;
+		panel_2.add(transAllICDAreaScroll, gbc_transAllICDAreaScroll);
+		
+		JPanel panel_3 = new JPanel();
+		GridBagConstraints gbc_panel_3 = new GridBagConstraints();
+		gbc_panel_3.anchor = GridBagConstraints.WEST;
+		gbc_panel_3.insets = new Insets(0, 0, 0, 5);
+		gbc_panel_3.fill = GridBagConstraints.VERTICAL;
+		gbc_panel_3.gridx = 0;
+		gbc_panel_3.gridy = 1;
+		transAllFrame.getContentPane().add(panel_3, gbc_panel_3);
+		GridBagLayout gbl_panel_3 = new GridBagLayout();
+		gbl_panel_3.columnWidths = new int[]{188, 0};
+		gbl_panel_3.rowHeights = new int[]{0, 0, 0};
+		gbl_panel_3.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_3.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		panel_3.setLayout(gbl_panel_3);
+		
+		JLabel lblWebServiceProvider = new JLabel("Web Service Provider Analysis");
+		GridBagConstraints gbc_lblWebServiceProvider = new GridBagConstraints();
+		gbc_lblWebServiceProvider.insets = new Insets(0, 0, 5, 0);
+		gbc_lblWebServiceProvider.anchor = GridBagConstraints.WEST;
+		gbc_lblWebServiceProvider.gridx = 0;
+		gbc_lblWebServiceProvider.gridy = 0;
+		panel_3.add(lblWebServiceProvider, gbc_lblWebServiceProvider);
+		
+		transAllWSPArea = new JTextArea();
+		transAllWSPArea.setEditable(false);
+		JScrollPane transAllWSPAreaScroll = new JScrollPane (transAllWSPArea);
+
+		GridBagConstraints gbc_transAllWSPAreaScroll = new GridBagConstraints();
+		gbc_transAllWSPAreaScroll.fill = GridBagConstraints.BOTH;
+		gbc_transAllWSPAreaScroll.gridx = 0;
+		gbc_transAllWSPAreaScroll.gridy = 1;
+		panel_3.add(transAllWSPAreaScroll, gbc_transAllWSPAreaScroll);
+		
+		JPanel panel_4 = new JPanel();
+		GridBagConstraints gbc_panel_4 = new GridBagConstraints();
+		gbc_panel_4.anchor = GridBagConstraints.WEST;
+		gbc_panel_4.insets = new Insets(0, 0, 0, 5);
+		gbc_panel_4.fill = GridBagConstraints.VERTICAL;
+		gbc_panel_4.gridx = 1;
+		gbc_panel_4.gridy = 1;
+		transAllFrame.getContentPane().add(panel_4, gbc_panel_4);
+		GridBagLayout gbl_panel_4 = new GridBagLayout();
+		gbl_panel_4.columnWidths = new int[]{0, 0};
+		gbl_panel_4.rowHeights = new int[]{0, 0, 0};
+		gbl_panel_4.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_4.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		panel_4.setLayout(gbl_panel_4);
+		
+		JLabel lblWebServiceConsumer = new JLabel("Web Service Consumer Analysis");
+		GridBagConstraints gbc_lblWebServiceConsumer = new GridBagConstraints();
+		gbc_lblWebServiceConsumer.insets = new Insets(0, 0, 5, 0);
+		gbc_lblWebServiceConsumer.anchor = GridBagConstraints.WEST;
+		gbc_lblWebServiceConsumer.gridx = 0;
+		gbc_lblWebServiceConsumer.gridy = 0;
+		panel_4.add(lblWebServiceConsumer, gbc_lblWebServiceConsumer);
+		
+		transAllWSCArea = new JTextArea();
+		transAllWSCArea.setEditable(false);
+		JScrollPane transAllWSCAreaScroll = new JScrollPane (transAllWSCArea);
+		GridBagConstraints gbc_transAllWSCAreaScroll = new GridBagConstraints();
+		gbc_transAllWSCAreaScroll.fill = GridBagConstraints.BOTH;
+		gbc_transAllWSCAreaScroll.gridx = 0;
+		gbc_transAllWSCAreaScroll.gridy = 1;
+		panel_4.add(transAllWSCAreaScroll, gbc_transAllWSCAreaScroll);
+		
+		JPanel panel_5 = new JPanel();
+		GridBagConstraints gbc_panel_5 = new GridBagConstraints();
+		gbc_panel_5.anchor = GridBagConstraints.WEST;
+		gbc_panel_5.fill = GridBagConstraints.VERTICAL;
+		gbc_panel_5.gridx = 2;
+		gbc_panel_5.gridy = 1;
+		transAllFrame.getContentPane().add(panel_5, gbc_panel_5);
+		GridBagLayout gbl_panel_5 = new GridBagLayout();
+		gbl_panel_5.columnWidths = new int[]{0, 0};
+		gbl_panel_5.rowHeights = new int[]{0, 0, 0};
+		gbl_panel_5.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_5.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		panel_5.setLayout(gbl_panel_5);
+		
+		JLabel lblTotalWebService = new JLabel("Total Web Service Analysis");
+		GridBagConstraints gbc_lblTotalWebService = new GridBagConstraints();
+		gbc_lblTotalWebService.insets = new Insets(0, 0, 5, 0);
+		gbc_lblTotalWebService.gridx = 0;
+		gbc_lblTotalWebService.gridy = 0;
+		panel_5.add(lblTotalWebService, gbc_lblTotalWebService);
+
+		
+		imExPanel = new JPanel();
+		rightView.addTab("Import Export", null, imExPanel, null);
+		
+		JSplitPane splitPane_1 = new JSplitPane();
+		splitPane_1.setDividerLocation(200);
+		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		GroupLayout gl_imExPanel = new GroupLayout(imExPanel);
+		gl_imExPanel.setHorizontalGroup(
+			gl_imExPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_imExPanel.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(splitPane_1, GroupLayout.DEFAULT_SIZE, 433, Short.MAX_VALUE)
+					.addContainerGap())
+		);
+		gl_imExPanel.setVerticalGroup(
+			gl_imExPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_imExPanel.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(splitPane_1, GroupLayout.DEFAULT_SIZE, 499, Short.MAX_VALUE))
+		);
+		
+		importPanel = new JPanel();
+		splitPane_1.setLeftComponent(importPanel);
+		
+		JLabel lblSelectFileTo = new JLabel("Select File to Import");
+		lblSelectFileTo.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		importFileNameField = new JTextField();
+		importFileNameField.setColumns(10);
+		
+		importButton = new JButton("Import");
+		
+		btnBrowse = new JButton("Browse");
+		
+		JLabel lblSelectDatabaseTo = new JLabel("Select Database");
+		lblSelectDatabaseTo.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		dbSelectorField = new JTextField();
+		dbSelectorField.setColumns(10);
+		
+		btnDBBrowse = new JButton("Browse");
+		GroupLayout gl_importPanel = new GroupLayout(importPanel);
+		gl_importPanel.setHorizontalGroup(
+			gl_importPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_importPanel.createSequentialGroup()
+					.addGap(43)
+					.addGroup(gl_importPanel.createParallelGroup(Alignment.TRAILING)
+						.addComponent(btnDBBrowse)
+						.addGroup(gl_importPanel.createParallelGroup(Alignment.LEADING, false)
+							.addGroup(gl_importPanel.createSequentialGroup()
+								.addComponent(lblSelectDatabaseTo, GroupLayout.PREFERRED_SIZE, 122, GroupLayout.PREFERRED_SIZE)
+								.addGap(18)
+								.addComponent(dbSelectorField))
+							.addGroup(gl_importPanel.createSequentialGroup()
+								.addGap(267)
+								.addComponent(btnBrowse)
+								.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(importButton))
+							.addGroup(gl_importPanel.createSequentialGroup()
+								.addComponent(lblSelectFileTo, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+								.addGap(18)
+								.addComponent(importFileNameField, GroupLayout.PREFERRED_SIZE, 290, GroupLayout.PREFERRED_SIZE))))
+					.addContainerGap())
+		);
+		gl_importPanel.setVerticalGroup(
+			gl_importPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_importPanel.createSequentialGroup()
+					.addGap(55)
+					.addGroup(gl_importPanel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblSelectDatabaseTo)
+						.addComponent(dbSelectorField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(4)
+					.addComponent(btnDBBrowse)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_importPanel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(importFileNameField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblSelectFileTo))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_importPanel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(btnBrowse)
+						.addComponent(importButton))
+					.addContainerGap(37, Short.MAX_VALUE))
+		);
+		importPanel.setLayout(gl_importPanel);
+		
+		exportPanel = new JPanel();
+		splitPane_1.setRightComponent(exportPanel);
+		
+		JLabel lblSelectGraphTo = new JLabel("Select Graph to Export");
+		lblSelectGraphTo.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		JComboBox comboBox_2 = new JComboBox();
+		
+		JLabel lblSelectFileTo_1 = new JLabel("Select File to Export To");
+		lblSelectFileTo_1.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		exportFileNameField = new JTextField();
+		exportFileNameField.setColumns(10);
+		
+		exportButton = new JButton("Export");
+		GroupLayout gl_exportPanel = new GroupLayout(exportPanel);
+		gl_exportPanel.setHorizontalGroup(
+			gl_exportPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_exportPanel.createSequentialGroup()
+					.addGap(22)
+					.addGroup(gl_exportPanel.createParallelGroup(Alignment.LEADING, false)
+						.addGroup(gl_exportPanel.createSequentialGroup()
+							.addComponent(lblSelectGraphTo)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(comboBox_2, GroupLayout.PREFERRED_SIZE, 165, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_exportPanel.createSequentialGroup()
+							.addComponent(lblSelectFileTo_1)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_exportPanel.createParallelGroup(Alignment.LEADING)
+								.addComponent(exportButton)
+								.addComponent(exportFileNameField))))
+					.addContainerGap(108, Short.MAX_VALUE))
+		);
+		gl_exportPanel.setVerticalGroup(
+			gl_exportPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_exportPanel.createSequentialGroup()
+					.addGap(26)
+					.addGroup(gl_exportPanel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblSelectGraphTo)
+						.addComponent(comboBox_2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(27)
+					.addGroup(gl_exportPanel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblSelectFileTo_1)
+						.addComponent(exportFileNameField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(31)
+					.addComponent(exportButton)
+					.addContainerGap(146, Short.MAX_VALUE))
+		);
+		exportPanel.setLayout(gl_exportPanel);
+		imExPanel.setLayout(gl_imExPanel);
+		
+		calculationPanel = new JPanel();
+		rightView.addTab("Calculations", null, calculationPanel, null);
+		rightView.setEnabledAt(2, true);
+		
+		fillBVHashButton = new JButton("Fill BV Hash");
+		calculationPanel.add(fillBVHashButton);
+		
+		calculateBVButton = new JButton("Calculate BV");
+		calculationPanel.add(calculateBVButton);
+		
+		fillTMHashButton = new JButton("Fill TM Hash");
+		calculationPanel.add(fillTMHashButton);
+		
+		calculateTMButton = new JButton("Calculate TM");
+		calculationPanel.add(calculateTMButton);
+		
+		settingsPanel = new JPanel();
+		rightView.addTab("Settings", null, settingsPanel, null);
+		
+		debugPanel = new JPanel();
+		rightView.addTab("Debug ", null, debugPanel, null);
+		GridBagLayout gbl_debugPanel = new GridBagLayout();
+		gbl_debugPanel.columnWidths = new int[]{0, 0};
+		gbl_debugPanel.rowHeights = new int[] {40, 0, 40, 40, 40, 40};
+		gbl_debugPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_debugPanel.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		debugPanel.setLayout(gbl_debugPanel);
+		
+		scrollPane_5 = new JScrollPane();
+		GridBagConstraints gbc_scrollPane_5 = new GridBagConstraints();
+		gbc_scrollPane_5.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane_5.gridx = 0;
+		gbc_scrollPane_5.gridy = 1;
+		debugPanel.add(scrollPane_5, gbc_scrollPane_5);
+		
+		txtrAasdasdasd = new JTextArea();
+		txtrAasdasdasd.setText("AasdasdASD\r\n");
+		txtrAasdasdasd.setPreferredSize(new Dimension(400, 22));
+		scrollPane_5.setViewportView(txtrAasdasdasd);
+		
+		JTabbedPane leftView = new JTabbedPane(JTabbedPane.TOP);
+		splitPane.setLeftComponent(leftView);
+		
+		inputPanel = new JPanel();
+		leftView.addTab("Input", null, inputPanel, null);
+		GridBagLayout gbl_inputPanel = new GridBagLayout();
+		gbl_inputPanel.columnWidths = new int[] {65, 40, 80};
+<<<<<<< .mine
+		gbl_inputPanel.rowHeights = new int[] {40, 40, 40, 0, 165, 0, 0, 30, 30, 45, 30};
+		gbl_inputPanel.columnWeights = new double[]{1.0, 0.0, 1.0};
+=======
+		gbl_inputPanel.rowHeights = new int[] {40, 40, 40, 165, 0, 30, 0, 30, 45, 30};
+		gbl_inputPanel.columnWeights = new double[]{0.0, 0.0, 1.0};
+>>>>>>> .r2277
+		gbl_inputPanel.rowWeights = new double[]{0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+		inputPanel.setLayout(gbl_inputPanel);
+		
+		JLabel lblPerspective = new JLabel("Perspective");
+		GridBagConstraints gbc_lblPerspective = new GridBagConstraints();
+		gbc_lblPerspective.anchor = GridBagConstraints.WEST;
+		gbc_lblPerspective.insets = new Insets(0, 0, 5, 5);
+		gbc_lblPerspective.gridx = 0;
+		gbc_lblPerspective.gridy = 0;
+		inputPanel.add(lblPerspective, gbc_lblPerspective);
+		
+		perspectiveSelector = new JComboBox();
+		perspectiveSelector.setPreferredSize(new Dimension(150, 25));
+		perspectiveSelector.setMinimumSize(new Dimension(150, 25));
+		perspectiveSelector.setMaximumSize(new Dimension(200, 32767));
+		GridBagConstraints gbc_perspectiveSelector = new GridBagConstraints();
+		gbc_perspectiveSelector.fill = GridBagConstraints.HORIZONTAL;
+		gbc_perspectiveSelector.gridwidth = 2;
+		gbc_perspectiveSelector.anchor = GridBagConstraints.NORTH;
+		gbc_perspectiveSelector.insets = new Insets(0, 0, 5, 0);
+		gbc_perspectiveSelector.gridx = 1;
+		gbc_perspectiveSelector.gridy = 0;
+		inputPanel.add(perspectiveSelector, gbc_perspectiveSelector);
+		
+		JLabel lblQuery = new JLabel("Query");
+		GridBagConstraints gbc_lblQuery = new GridBagConstraints();
+		gbc_lblQuery.anchor = GridBagConstraints.WEST;
+		gbc_lblQuery.insets = new Insets(0, 0, 5, 5);
+		gbc_lblQuery.gridx = 0;
+		gbc_lblQuery.gridy = 1;
+		inputPanel.add(lblQuery, gbc_lblQuery);
+		
+		questionSelector = new JComboBox();
+		questionSelector.setMinimumSize(new Dimension(60, 25));
+		questionSelector.setPreferredSize(new Dimension(150, 25));
+		questionSelector.setMaximumSize(new Dimension(200, 32767));
+		GridBagConstraints gbc_questionSelector = new GridBagConstraints();
+		gbc_questionSelector.anchor = GridBagConstraints.NORTH;
+		gbc_questionSelector.gridwidth = 2;
+		gbc_questionSelector.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionSelector.insets = new Insets(0, 0, 5, 0);
+		gbc_questionSelector.gridx = 1;
+		gbc_questionSelector.gridy = 1;
+		inputPanel.add(questionSelector, gbc_questionSelector);
+		
+		lblRepository = new JLabel("Repository");
+		GridBagConstraints gbc_lblRepository = new GridBagConstraints();
+		gbc_lblRepository.anchor = GridBagConstraints.WEST;
+		gbc_lblRepository.insets = new Insets(0, 0, 5, 5);
+		gbc_lblRepository.gridx = 0;
+		gbc_lblRepository.gridy = 2;
+		inputPanel.add(lblRepository, gbc_lblRepository);
+		
+		repoList = new JList();
+		repoList.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+		repoList.setLayoutOrientation(JList.VERTICAL_WRAP);
+		repoList.setVisibleRowCount(4);
+		GridBagConstraints gbc_repoList = new GridBagConstraints();
+		gbc_repoList.anchor = GridBagConstraints.WEST;
+		gbc_repoList.gridwidth = 2;
+		gbc_repoList.fill = GridBagConstraints.VERTICAL;
+		gbc_repoList.insets = new Insets(0, 0, 5, 0);
+		gbc_repoList.gridx = 1;
+		gbc_repoList.gridy = 2;
+		inputPanel.add(repoList, gbc_repoList);
+		
+		btnDisconnect = new JButton("Disconnect");
+		GridBagConstraints gbc_btnDisconnect = new GridBagConstraints();
+		gbc_btnDisconnect.insets = new Insets(0, 0, 5, 5);
+		gbc_btnDisconnect.gridx = 1;
+		gbc_btnDisconnect.gridy = 3;
+		inputPanel.add(btnDisconnect, gbc_btnDisconnect);
+		
+		btnConnect = new JButton("Connect");
+		GridBagConstraints gbc_btnConnect = new GridBagConstraints();
+		gbc_btnConnect.insets = new Insets(0, 0, 5, 0);
+		gbc_btnConnect.gridx = 2;
+		gbc_btnConnect.gridy = 3;
+		inputPanel.add(btnConnect, gbc_btnConnect);
+		
+		paramPanel = new JPanel();
+		GridBagConstraints gbc_paramPanel = new GridBagConstraints();
+		gbc_paramPanel.anchor = GridBagConstraints.NORTH;
+		gbc_paramPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_paramPanel.insets = new Insets(0, 0, 5, 0);
+		gbc_paramPanel.gridwidth = 3;
+		gbc_paramPanel.gridx = 0;
+		gbc_paramPanel.gridy = 4;
+		inputPanel.add(paramPanel, gbc_paramPanel);
+		paramPanel.setLayout(new CardLayout(0, 0));
+		
+		submitButton = new JButton("Create");
+		GridBagConstraints gbc_submitButton = new GridBagConstraints();
+		gbc_submitButton.anchor = GridBagConstraints.WEST;
+		gbc_submitButton.insets = new Insets(0, 0, 5, 5);
+		gbc_submitButton.gridx = 0;
+		gbc_submitButton.gridy = 5;
+		inputPanel.add(submitButton, gbc_submitButton);
+		
+		extendButton = new JToggleButton("Extend");
+		GridBagConstraints gbc_extendButton = new GridBagConstraints();
+		gbc_extendButton.anchor = GridBagConstraints.WEST;
+		gbc_extendButton.insets = new Insets(0, 0, 5, 5);
+		gbc_extendButton.gridx = 1;
+		gbc_extendButton.gridy = 5;
+		inputPanel.add(extendButton, gbc_extendButton);
+		extendButton.setEnabled(false);
+		
+		appendButton = new JToggleButton("Overlay");
+		GridBagConstraints gbc_appendButton = new GridBagConstraints();
+		gbc_appendButton.anchor = GridBagConstraints.WEST;
+		gbc_appendButton.insets = new Insets(0, 0, 5, 0);
+		gbc_appendButton.gridx = 2;
+		gbc_appendButton.gridy = 5;
+		inputPanel.add(appendButton, gbc_appendButton);
+		appendButton.setToolTipText("This will overlay the existing SPARQL query into the currently active graph. To overlay, just depress this button. Make sure you disable it when you want new graphs");
+		appendButton.setEnabled(false);
+		
+<<<<<<< .mine
+		nodeToExtendList = new JComboBox();
+		nodeToExtendList.setMinimumSize(new Dimension(150, 25));
+		nodeToExtendList.setPreferredSize(new Dimension(150, 25));
+		nodeToExtendList.setToolTipText("Select the specific type of node you are extending on the selected sheet");
+		GridBagConstraints gbc_nodeToExtendList = new GridBagConstraints();
+		gbc_nodeToExtendList.gridwidth = 2;
+		gbc_nodeToExtendList.insets = new Insets(0, 0, 5, 5);
+		gbc_nodeToExtendList.gridx = 0;
+		gbc_nodeToExtendList.gridy = 6;
+		inputPanel.add(nodeToExtendList, gbc_nodeToExtendList);
+		nodeToExtendList.setVisible(false);
+		
+		undoBtn = new JButton("Undo");
+		undoBtn.setToolTipText("Remove the last graph you overlayed");
+		GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
+		gbc_btnNewButton.insets = new Insets(0, 0, 5, 0);
+		gbc_btnNewButton.gridx = 2;
+		gbc_btnNewButton.gridy = 6;
+		inputPanel.add(undoBtn, gbc_btnNewButton);
+		undoBtn.setVisible(false);
+		
+=======
+>>>>>>> .r2277
+		fillButton = new JButton("Remove");
+		fillButton.setToolTipText("Click on this to arbitrarily remove certain nodes from the graph based on the query selected");
+		GridBagConstraints gbc_fillButton = new GridBagConstraints();
+		gbc_fillButton.anchor = GridBagConstraints.WEST;
+		gbc_fillButton.insets = new Insets(0, 0, 5, 5);
+		gbc_fillButton.gridx = 0;
+<<<<<<< .mine
+		gbc_fillButton.gridy = 7;
+=======
+		gbc_fillButton.gridy = 5;
+>>>>>>> .r2277
+		inputPanel.add(fillButton, gbc_fillButton);
+				
+				showSparql = new JToggleButton("SPARQL");
+				GridBagConstraints gbc_showSparql = new GridBagConstraints();
+				gbc_showSparql.anchor = GridBagConstraints.WEST;
+				gbc_showSparql.insets = new Insets(0, 0, 5, 5);
+				gbc_showSparql.gridx = 1;
+<<<<<<< .mine
+				gbc_showSparql.gridy = 7;
+=======
+				gbc_showSparql.gridy = 5;
+>>>>>>> .r2277
+				inputPanel.add(showSparql, gbc_showSparql);
+				
+				clearButton = new JButton("Clear ");
+				GridBagConstraints gbc_clearButton = new GridBagConstraints();
+				gbc_clearButton.anchor = GridBagConstraints.WEST;
+				gbc_clearButton.insets = new Insets(0, 0, 5, 0);
+				gbc_clearButton.gridx = 2;
+<<<<<<< .mine
+				gbc_clearButton.gridy = 7;
+=======
+				gbc_clearButton.gridy = 5;
+>>>>>>> .r2277
+				inputPanel.add(clearButton, gbc_clearButton);
+		
+				sparqlArea = new SparqlArea();
+				
+				scrollPane_1 = new JScrollPane(sparqlArea);
+				GridBagConstraints gbc_scrollPane_1 = new GridBagConstraints();
+				gbc_scrollPane_1.gridheight = 4;
+				gbc_scrollPane_1.fill = GridBagConstraints.BOTH;
+				gbc_scrollPane_1.gridwidth = 3;
+				gbc_scrollPane_1.gridx = 0;
+				gbc_scrollPane_1.gridy = 8;
+				inputPanel.add(scrollPane_1, gbc_scrollPane_1);
+				
+				sparqlArea.setColumns(12);
+				sparqlArea.setLineWrap(true);
+				sparqlArea.setWrapStyleWord(true);
+				scrollPane_1.setPreferredSize(new Dimension(80,40));
+				
+				owlPanel = new JPanel();
+				leftView.addTab("OWL", null, owlPanel, null);
+				GridBagLayout gbl_owlPanel = new GridBagLayout();
+				gbl_owlPanel.columnWidths = new int[]{228, 0};
+				gbl_owlPanel.rowHeights = new int[]{29, 0, 0, 0, 0, 0, 0, 0};
+				gbl_owlPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+				gbl_owlPanel.rowWeights = new double[]{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
+				owlPanel.setLayout(gbl_owlPanel);
+				
+				lblDataProperties = new JLabel("Data Properties");
+				lblDataProperties.setHorizontalAlignment(SwingConstants.CENTER);
+				GridBagConstraints gbc_lblDataProperties = new GridBagConstraints();
+				gbc_lblDataProperties.insets = new Insets(0, 0, 5, 0);
+				gbc_lblDataProperties.fill = GridBagConstraints.HORIZONTAL;
+				gbc_lblDataProperties.gridx = 0;
+				gbc_lblDataProperties.gridy = 0;
+				owlPanel.add(lblDataProperties, gbc_lblDataProperties);
+				
+				scrollPane_8 = new JScrollPane();
+				scrollPane_8.setPreferredSize(new Dimension(150, 350));
+				scrollPane_8.setMinimumSize(new Dimension(150, 350));
+				scrollPane_8.setMaximumSize(new Dimension(150, 350));
+				GridBagConstraints gbc_scrollPane_8 = new GridBagConstraints();
+				gbc_scrollPane_8.fill = GridBagConstraints.HORIZONTAL;
+				gbc_scrollPane_8.insets = new Insets(0, 0, 5, 0);
+				gbc_scrollPane_8.gridx = 0;
+				gbc_scrollPane_8.gridy = 1;
+				owlPanel.add(scrollPane_8, gbc_scrollPane_8);
+				
+				dataPropertiesTable = new JTable();
+				dataPropertiesTable.setPreferredSize(new Dimension(150, 150));
+				dataPropertiesTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+				scrollPane_8.setViewportView(dataPropertiesTable);
+				dataPropertiesTable.setFillsViewportHeight(true);
+				dataPropertiesTable.setShowGrid(true);
+				dataPropertiesTable.setShowHorizontalLines(true);
+				dataPropertiesTable.setShowVerticalLines(true);
+				
+				dataPropertiesString = new JTextField();
+				dataPropertiesString.setPreferredSize(new Dimension(150, 40));
+				dataPropertiesString.setMinimumSize(new Dimension(150, 40));
+				dataPropertiesString.setMaximumSize(new Dimension(150, 40));
+				dataPropertiesString.setText("TBD");
+				GridBagConstraints gbc_dataPropertiesString = new GridBagConstraints();
+				gbc_dataPropertiesString.insets = new Insets(0, 0, 5, 0);
+				gbc_dataPropertiesString.fill = GridBagConstraints.HORIZONTAL;
+				gbc_dataPropertiesString.gridx = 0;
+				gbc_dataPropertiesString.gridy = 2;
+				owlPanel.add(dataPropertiesString, gbc_dataPropertiesString);
+				dataPropertiesString.setColumns(10);
+				
+				lblObjectProperties = new JLabel("Object Properties");
+				GridBagConstraints gbc_lblObjectProperties = new GridBagConstraints();
+				gbc_lblObjectProperties.insets = new Insets(0, 0, 5, 0);
+				gbc_lblObjectProperties.gridx = 0;
+				gbc_lblObjectProperties.gridy = 3;
+				owlPanel.add(lblObjectProperties, gbc_lblObjectProperties);
+				
+				scrollPane_7 = new JScrollPane();
+				scrollPane_7.setPreferredSize(new Dimension(150, 350));
+				scrollPane_7.setMinimumSize(new Dimension(150, 350));
+				scrollPane_7.setMaximumSize(new Dimension(150, 350));
+				GridBagConstraints gbc_scrollPane_7 = new GridBagConstraints();
+				gbc_scrollPane_7.fill = GridBagConstraints.BOTH;
+				gbc_scrollPane_7.insets = new Insets(0, 0, 5, 0);
+				gbc_scrollPane_7.gridx = 0;
+				gbc_scrollPane_7.gridy = 4;
+				owlPanel.add(scrollPane_7, gbc_scrollPane_7);
+				
+				objectPropertiesTable = new JTable();
+				objectPropertiesTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+				scrollPane_7.setViewportView(objectPropertiesTable);
+				objectPropertiesTable.setShowGrid(true);
+				objectPropertiesTable.setShowHorizontalLines(true);
+				objectPropertiesTable.setShowVerticalLines(true);
+				
+				objectPropertiesString = new JTextField();
+				objectPropertiesString.setPreferredSize(new Dimension(150, 40));
+				objectPropertiesString.setMinimumSize(new Dimension(150, 40));
+				objectPropertiesString.setMaximumSize(new Dimension(150, 40));
+				GridBagConstraints gbc_objectPropertiesString = new GridBagConstraints();
+				gbc_objectPropertiesString.fill = GridBagConstraints.HORIZONTAL;
+				gbc_objectPropertiesString.anchor = GridBagConstraints.BELOW_BASELINE;
+				gbc_objectPropertiesString.insets = new Insets(0, 0, 5, 0);
+				gbc_objectPropertiesString.gridx = 0;
+				gbc_objectPropertiesString.gridy = 5;
+				owlPanel.add(objectPropertiesString, gbc_objectPropertiesString);
+				objectPropertiesString.setColumns(10);
+				
+				btnRepaintGraph = new JButton("Refresh");
+				GridBagConstraints gbc_btnRepaintGraph = new GridBagConstraints();
+				gbc_btnRepaintGraph.gridx = 0;
+				gbc_btnRepaintGraph.gridy = 6;
+				owlPanel.add(btnRepaintGraph, gbc_btnRepaintGraph);
+
+				GridBagConstraints gbc_table_2;
+				//scrollPane_1.setViewportView(sparqlArea);
+				
+				outputPanel = new JPanel();
+				leftView.addTab("Output", null, outputPanel, null);
+				GridBagLayout gbl_outputPanel = new GridBagLayout();
+				gbl_outputPanel.columnWidths = new int[] {231};
+				gbl_outputPanel.rowHeights = new int[] {0, 0, 350, 0, 350, 150};
+				gbl_outputPanel.columnWeights = new double[]{1.0};
+				gbl_outputPanel.rowWeights = new double[]{0.0, 0.0, 1.0, 0.0, 1.0, Double.MIN_VALUE};
+				outputPanel.setLayout(gbl_outputPanel);
+				
+				propertyTable2 = new JTable();
+				//propertyTable.setGridColor(Color.LIGHT_GRAY);
+				propertyTable2.setShowGrid(true);
+				propertyTable2.setShowHorizontalLines(true);
+				propertyTable2.setShowVerticalLines(true);
+				
+						//propertyTable.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+						//propertyTable.setBorder(new MatteBorder(2, 2, 2, 2, (Color) new Color(0, 0, 0)));
+						//propertyTable.setBackground(Color.WHITE);
+						//propertyTable.setForeground(new Color(0, 0, 0));
+						//propertyTable.setFillsViewportHeight(true);
+						//propertyTable.setCellSelectionEnabled(true);
+						//propertyTable.setColumnSelectionAllowed(true);
+						//propertyTable.setFillsViewportHeight(true);
+						GridBagConstraints gbc_table_21 = new GridBagConstraints();
+						gbc_table_21.insets = new Insets(0, 0, 5, 0);
+						gbc_table_21.fill = GridBagConstraints.BOTH;
+						gbc_table_21.gridx = 0;
+						gbc_table_21.gridy = 0;
+						JScrollPane pane = new JScrollPane(propertyTable2);
+						pane.setMinimumSize(new Dimension(0, 0));
+						pane.setMaximumSize(new Dimension(0, 0));
+						pane.setPreferredSize(new Dimension(150, 100));
+						//pane.setForeground(Color.GRAY);
+						outputPanel.add(pane, gbc_table_21);
+						
+						lblLabelDisplay = new JLabel("Label Display");
+						lblLabelDisplay.setFont(new Font("Tahoma", Font.BOLD, 12));
+						lblLabelDisplay.setForeground(Color.ORANGE);
+						lblLabelDisplay.setBackground(Color.BLACK);
+						GridBagConstraints gbc_lblLabelDisplay = new GridBagConstraints();
+						gbc_lblLabelDisplay.insets = new Insets(0, 0, 5, 0);
+						gbc_lblLabelDisplay.gridx = 0;
+						gbc_lblLabelDisplay.gridy = 1;
+						outputPanel.add(lblLabelDisplay, gbc_lblLabelDisplay);
+						
+						scrollPane_3 = new JScrollPane((Component) null);
+						scrollPane_3.setPreferredSize(new Dimension(150, 350));
+						scrollPane_3.setMinimumSize(new Dimension(150, 350));
+						scrollPane_3.setMaximumSize(new Dimension(150, 350));
+						scrollPane_3.setForeground(Color.GRAY);
+						scrollPane_3.setBorder(null);
+						scrollPane_3.setBackground(Color.WHITE);
+						GridBagConstraints gbc_scrollPane_3 = new GridBagConstraints();
+						gbc_scrollPane_3.fill = GridBagConstraints.BOTH;
+						gbc_scrollPane_3.insets = new Insets(0, 0, 5, 0);
+						gbc_scrollPane_3.gridx = 0;
+						gbc_scrollPane_3.gridy = 2;
+						outputPanel.add(scrollPane_3, gbc_scrollPane_3);
+						
+						labelTable = new JTable();
+						scrollPane_3.setViewportView(labelTable);
+						labelTable.setShowGrid(true);
+						labelTable.setShowHorizontalLines(true);
+						labelTable.setShowVerticalLines(true);
+						
+						lblDisplayTooltip = new JLabel("Tooltip Display");
+						lblDisplayTooltip.setFont(new Font("Tahoma", Font.BOLD, 12));
+						lblDisplayTooltip.setBackground(Color.BLACK);
+						lblDisplayTooltip.setForeground(Color.ORANGE);
+						GridBagConstraints gbc_lblDisplayTooltip = new GridBagConstraints();
+						gbc_lblDisplayTooltip.insets = new Insets(0, 0, 5, 0);
+						gbc_lblDisplayTooltip.gridx = 0;
+						gbc_lblDisplayTooltip.gridy = 3;
+						outputPanel.add(lblDisplayTooltip, gbc_lblDisplayTooltip);
+						
+						scrollPane_6 = new JScrollPane();
+						scrollPane_6.setMaximumSize(new Dimension(150, 350));
+						scrollPane_6.setPreferredSize(new Dimension(150, 350));
+						scrollPane_6.setMinimumSize(new Dimension(150, 350));
+						GridBagConstraints gbc_scrollPane_6 = new GridBagConstraints();
+						gbc_scrollPane_6.fill = GridBagConstraints.BOTH;
+						gbc_scrollPane_6.gridx = 0;
+						gbc_scrollPane_6.gridy = 4;
+						outputPanel.add(scrollPane_6, gbc_scrollPane_6);
+						
+						tooltipTable = new JTable();
+						scrollPane_6.setViewportView(tooltipTable);
+						
+						filterPanel = new JPanel();
+						leftView.addTab("Filter", null, filterPanel, null);
+						GridBagLayout gbl_filterPanel = new GridBagLayout();
+						gbl_filterPanel.columnWidths = new int[]{239, 0};
+						gbl_filterPanel.rowHeights = new int[]{44, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+						gbl_filterPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+						gbl_filterPanel.rowWeights = new double[]{1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+						filterPanel.setLayout(gbl_filterPanel);
+						
+								filterTable = new JTable();
+								filterTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+								filterTable.setMinimumSize(new Dimension(150, 350));
+								filterTable.setMaximumSize(new Dimension(150, 350));
+								filterTable.setShowGrid(true);
+								filterTable.setShowHorizontalLines(true);
+								filterTable.setShowVerticalLines(true);
+								
+										scrollPane_2 = new JScrollPane(filterTable);
+										scrollPane_2.setMaximumSize(new Dimension(150, 350));
+										scrollPane_2.setPreferredSize(new Dimension(150, 350));
+										GridBagConstraints gbc_scrollPane_2 = new GridBagConstraints();
+										gbc_scrollPane_2.gridheight = 2;
+										gbc_scrollPane_2.insets = new Insets(0, 0, 5, 0);
+										gbc_scrollPane_2.fill = GridBagConstraints.BOTH;
+										gbc_scrollPane_2.gridx = 0;
+										gbc_scrollPane_2.gridy = 0;
+										filterPanel.add(scrollPane_2, gbc_scrollPane_2);
+										
+										filterSliders = new JScrollPane();
+										GridBagConstraints gbc_filterSliders = new GridBagConstraints();
+										gbc_filterSliders.insets = new Insets(0, 0, 5, 0);
+										gbc_filterSliders.fill = GridBagConstraints.BOTH;
+										gbc_filterSliders.gridx = 0;
+										gbc_filterSliders.gridy = 2;
+										filterPanel.add(filterSliders, gbc_filterSliders);
+										
+										propertyTable = new JTable();
+										propertyTable.setMinimumSize(new Dimension(150, 350));
+										propertyTable.setMaximumSize(new Dimension(150, 350));
+										propertyTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+										filterSliders.setViewportView(propertyTable);
+										propertyTable.setShowGrid(true);
+										propertyTable.setShowHorizontalLines(true);
+										propertyTable.setShowVerticalLines(true);
+										
+										scrollPane_4 = new JScrollPane();
+										GridBagConstraints gbc_scrollPane_4 = new GridBagConstraints();
+										gbc_scrollPane_4.insets = new Insets(0, 0, 5, 0);
+										gbc_scrollPane_4.fill = GridBagConstraints.BOTH;
+										gbc_scrollPane_4.gridx = 0;
+										gbc_scrollPane_4.gridy = 3;
+										filterPanel.add(scrollPane_4, gbc_scrollPane_4);
+										
+										edgeTable = new JTable();
+										edgeTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+										edgeTable.setMinimumSize(new Dimension(150, 350));
+										edgeTable.setMaximumSize(new Dimension(150, 350));
+										scrollPane_4.setViewportView(edgeTable);
+										edgeTable.setShowGrid(true);
+										edgeTable.setShowHorizontalLines(true);
+										edgeTable.setShowVerticalLines(true);
+										
+										//scrollPane_2.setColumnHeaderView(filterTable);
+										
+										refreshButton = new JButton("Refresh Graph");
+										GridBagConstraints gbc_refreshGraph = new GridBagConstraints();
+										gbc_refreshGraph.insets = new Insets(0, 0, 5, 0);
+										gbc_refreshGraph.gridx = 0;
+										gbc_refreshGraph.gridy = 6;
+										filterPanel.add(refreshButton, gbc_refreshGraph);
+						
+						cosmeticPanel = new JPanel();
+						cosmeticPanel.setMinimumSize(new Dimension(10, 350));
+						cosmeticPanel.setMaximumSize(new Dimension(0, 350));
+						leftView.addTab("Cosmetic", null, cosmeticPanel, null);
+						GridBagLayout gbl_cosmeticPanel = new GridBagLayout();
+						gbl_cosmeticPanel.columnWidths = new int[] {231};
+						gbl_cosmeticPanel.rowHeights = new int[] {0, 0, 350, 0, 350, 0, 0, 150};
+						gbl_cosmeticPanel.columnWeights = new double[]{1.0};
+						gbl_cosmeticPanel.rowWeights = new double[]{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
+						cosmeticPanel.setLayout(gbl_cosmeticPanel);
+						
+						scrollPane_9 = new JScrollPane((Component) null);
+						scrollPane_9.setPreferredSize(new Dimension(150, 100));
+						scrollPane_9.setMinimumSize(new Dimension(0, 0));
+						scrollPane_9.setMaximumSize(new Dimension(0, 0));
+						GridBagConstraints gbc_scrollPane_9 = new GridBagConstraints();
+						gbc_scrollPane_9.fill = GridBagConstraints.BOTH;
+						gbc_scrollPane_9.insets = new Insets(0, 0, 5, 0);
+						gbc_scrollPane_9.gridx = 0;
+						gbc_scrollPane_9.gridy = 0;
+						cosmeticPanel.add(scrollPane_9, gbc_scrollPane_9);
+						
+						lblColorAndShape = new JLabel("Color and Shape");
+						lblColorAndShape.setForeground(Color.ORANGE);
+						lblColorAndShape.setFont(new Font("Tahoma", Font.BOLD, 12));
+						lblColorAndShape.setBackground(Color.BLACK);
+						GridBagConstraints gbc_lblColorAndShape = new GridBagConstraints();
+						gbc_lblColorAndShape.insets = new Insets(0, 0, 5, 0);
+						gbc_lblColorAndShape.gridx = 0;
+						gbc_lblColorAndShape.gridy = 1;
+						cosmeticPanel.add(lblColorAndShape, gbc_lblColorAndShape);
+						
+						scrollPane_10 = new JScrollPane((Component) null);
+						scrollPane_10.setPreferredSize(new Dimension(150, 350));
+						scrollPane_10.setMinimumSize(new Dimension(150, 350));
+						scrollPane_10.setMaximumSize(new Dimension(150, 350));
+						scrollPane_10.setForeground(Color.GRAY);
+						scrollPane_10.setBorder(null);
+						scrollPane_10.setBackground(Color.WHITE);
+						GridBagConstraints gbc_scrollPane_10 = new GridBagConstraints();
+						gbc_scrollPane_10.fill = GridBagConstraints.BOTH;
+						gbc_scrollPane_10.insets = new Insets(0, 0, 5, 0);
+						gbc_scrollPane_10.gridx = 0;
+						gbc_scrollPane_10.gridy = 2;
+						cosmeticPanel.add(scrollPane_10, gbc_scrollPane_10);
+						
+						colorShapeTable = new JTable();
+						colorShapeTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+						colorShapeTable.setMinimumSize(new Dimension(150, 350));
+						colorShapeTable.setMaximumSize(new Dimension(150, 350));
+						scrollPane_10.setViewportView(colorShapeTable);
+						
+						lblSize = new JLabel("Size");
+						lblSize.setForeground(Color.ORANGE);
+						lblSize.setFont(new Font("Tahoma", Font.BOLD, 12));
+						lblSize.setBackground(Color.BLACK);
+						GridBagConstraints gbc_lblSize = new GridBagConstraints();
+						gbc_lblSize.insets = new Insets(0, 0, 5, 0);
+						gbc_lblSize.gridx = 0;
+						gbc_lblSize.gridy = 3;
+						cosmeticPanel.add(lblSize, gbc_lblSize);
+						
+						scrollPane_11 = new JScrollPane();
+						scrollPane_11.setPreferredSize(new Dimension(150, 350));
+						scrollPane_11.setMinimumSize(new Dimension(150, 350));
+						scrollPane_11.setMaximumSize(new Dimension(150, 350));
+						GridBagConstraints gbc_scrollPane_11 = new GridBagConstraints();
+						gbc_scrollPane_11.insets = new Insets(0, 0, 5, 0);
+						gbc_scrollPane_11.fill = GridBagConstraints.BOTH;
+						gbc_scrollPane_11.gridx = 0;
+						gbc_scrollPane_11.gridy = 4;
+						cosmeticPanel.add(scrollPane_11, gbc_scrollPane_11);
+						
+						sizeTable = new JTable();
+						sizeTable.setMinimumSize(new Dimension(150, 350));
+						sizeTable.setMaximumSize(new Dimension(150, 350));
+						sizeTable.setPreferredScrollableViewportSize(new Dimension(150, 350));
+						scrollPane_11.setViewportView(sizeTable);
+						
+						btnColorShape = new JButton("Refresh Graph");
+						GridBagConstraints gbc_btnColorShape = new GridBagConstraints();
+						gbc_btnColorShape.gridx = 0;
+						gbc_btnColorShape.gridy = 6;
+						cosmeticPanel.add(btnColorShape, gbc_btnColorShape);
+										splitPane.setDividerLocation(250);
+										GridBagConstraints gbc_splitPane = new GridBagConstraints();
+										gbc_splitPane.fill = GridBagConstraints.BOTH;
+										gbc_splitPane.gridx = 0;
+										gbc_splitPane.gridy = 0;
+										getContentPane().add(splitPane, gbc_splitPane);
+
+	}
+	private static void addPopup(Component component, final JPopupMenu popup) {
+		component.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					showMenu(e);
+				}
+			}
+			public void mouseReleased(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					showMenu(e);
+				}
+			}
+			private void showMenu(MouseEvent e) {
+				popup.show(e.getComponent(), e.getX(), e.getY());
+			}
+		});
+	}
+}

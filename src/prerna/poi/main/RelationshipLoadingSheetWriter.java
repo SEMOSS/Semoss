@@ -17,13 +17,19 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.util.Utility;
+
 public class RelationshipLoadingSheetWriter {
 	
 	public void ExportLoadingSheets(String fileLoc, Hashtable<String, Vector<String[]>> hash, String readFileLoc) {
 		//create file
-		//OPCPackage pack = new OPCPackage();
-		XSSFWorkbook wb = getWorkbook(fileLoc, readFileLoc);
-		if(wb == null) return;
+		XSSFWorkbook wb;
+		if(readFileLoc != null) {
+			wb = getWorkbook(readFileLoc);
+		} else {
+			wb = new XSSFWorkbook();
+		}
+		
 		Hashtable<String, Vector<String[]>> preparedHash = prepareLoadingSheetExport(hash);
 		
 		XSSFSheet sheet = wb.createSheet("Loader");
@@ -52,6 +58,7 @@ public class RelationshipLoadingSheetWriter {
 		}
 
 		writeFile(wb, fileLoc);
+		Utility.showMessage("Export successful: " + fileLoc);
 	}
 	
 	public void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook) {
@@ -89,11 +96,11 @@ public class RelationshipLoadingSheetWriter {
 		}
 	}
 	
-	public XSSFWorkbook getWorkbook(String fileLoc, String readFileLoc) {
+	public XSSFWorkbook getWorkbook(String readFileLoc) {
 		XSSFWorkbook wb = null;
 		try {
 			File inFile = new File(readFileLoc);
-			if(readFileLoc!=null && inFile.exists()){
+			if(readFileLoc != null && inFile.exists()){
 				FileInputStream stream = new FileInputStream(inFile);
 				wb = new XSSFWorkbook(stream);
 	        	stream.close();

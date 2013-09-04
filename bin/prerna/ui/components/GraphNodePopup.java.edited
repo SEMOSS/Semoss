@@ -1,0 +1,141 @@
+package prerna.ui.components;
+
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+
+import org.apache.log4j.Logger;
+
+import prerna.om.DBCMVertex;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.main.listener.impl.AdjacentPopupMenuListener;
+import prerna.ui.main.listener.impl.GraphPlaySheetExportListener;
+import prerna.ui.main.listener.impl.HWDataPainter;
+import prerna.ui.main.listener.impl.ICDDataPainter;
+import prerna.ui.main.listener.impl.MSTPopupMenuListener;
+import prerna.ui.main.listener.impl.MousePickingPopupMenuListener;
+import prerna.ui.main.listener.impl.MouseTransformPopupMenuListener;
+import prerna.ui.main.listener.impl.NeighborhoodDataPainter;
+import prerna.ui.main.listener.impl.SOATransitionListener;
+import prerna.ui.main.listener.impl.SWDataPainter;
+import prerna.util.Utility;
+
+public class GraphNodePopup extends JPopupMenu {
+	
+	// sets the visualization viewer
+	IPlaySheet ps = null;
+	// sets the picked node list
+	DBCMVertex [] pickedVertex = null;
+	Logger logger = Logger.getLogger(getClass());
+	Component comp = null;
+	int x;
+	int y;
+	
+	// core class for neighbor hoods etc.
+	public GraphNodePopup(IPlaySheet ps, DBCMVertex [] pickedVertex, Component comp, int x, int y)
+	{
+		super();
+		// need to get this to read from popup menu
+		this.ps = ps;
+		this.pickedVertex = pickedVertex;
+		this.comp = comp;
+		this.x = x;
+		this.y = y;
+		JMenuItem item = null;
+		
+		NeighborhoodDataPainter dlistener = new NeighborhoodDataPainter();
+		dlistener.setPlaysheet(ps);
+		dlistener.setDBCMVertex(pickedVertex);
+		logger.info("Picked Vertex set to " + pickedVertex);
+		item = add("Append Data To System");
+		item.setEnabled(pickedVertex.length > 0);
+		item.addActionListener(dlistener);
+		
+		MSTPopupMenuListener mstListener = new MSTPopupMenuListener();
+		mstListener.setPlaysheet(ps);
+		item = add("Show Minimum Spanning Tree");
+		item.addActionListener(mstListener);
+		
+		AdjacentPopupMenuListener aListener = new AdjacentPopupMenuListener();
+		aListener.setPlaysheet(ps);
+		aListener.setDBCMVertex(pickedVertex);
+		item = add("Highlight Adjacent");
+		item.setEnabled(pickedVertex.length > 0);
+		item.addActionListener(aListener);
+
+		addSeparator();
+		
+		MouseTransformPopupMenuListener mtl = new MouseTransformPopupMenuListener();
+		mtl.setPlaysheet(ps);
+		item = add("Move Graph");
+		item.addActionListener(mtl);
+
+		MousePickingPopupMenuListener mpl = new MousePickingPopupMenuListener();
+		mpl.setPlaysheet(ps);
+		item = add("Pick Graph");
+		item.addActionListener(mpl);
+
+		addSeparator();
+		
+		GraphPlaySheetExportListener exp = new GraphPlaySheetExportListener();
+		exp.setPlaysheet(ps);
+		item = add("Export Graph");
+		item.addActionListener(exp);
+		
+<<<<<<< .mine
+		//JCheckBoxMenuItem relTypes = new JCheckBoxMenuItem("Relation Types");
+		RelationPopup popup = new RelationPopup(ps,this.pickedVertex);
+		item = add(popup);
+		item.setEnabled(pickedVertex.length > 0);
+	
+		//JCheckBoxMenuItem relTypes = new JCheckBoxMenuItem("Relation Types");
+		RelationInstancePopup popup2 = new RelationInstancePopup(ps,this.pickedVertex);
+		item = add(popup2);
+		item.setEnabled(pickedVertex.length > 0);
+
+		SubjectPopup popup3 = new SubjectPopup(ps,this.pickedVertex);
+		item = add(popup3);
+		item.setEnabled(pickedVertex.length > 0);
+
+		SubjectInstancePopup popup4 = new SubjectInstancePopup(ps,this.pickedVertex);
+		item = add(popup4);
+		item.setEnabled(pickedVertex.length > 0);
+
+		RelationPredictPopup popup5 = new RelationPredictPopup("Predict Relation", ps,this.pickedVertex);
+		item = add(popup5);
+		item.setEnabled(pickedVertex.length == 2);
+
+		String fromNode = "";
+		if(this.pickedVertex.length > 0)
+			fromNode = "From " + Utility.getClassName(pickedVertex[0].getURI()) + " to ";
+		TFRelationPopup popup6 = new TFRelationPopup("Traverse Freely " + fromNode, ps,this.pickedVertex);
+		item = add(popup6);
+		item.setEnabled(pickedVertex.length > 0);
+
+		//relTypes.add("A");
+		//relTypes.add("A");
+		//relTypes.add("A");		
+		//add(relTypes);
+		// add the relationship menu
+		//RelationPopup popup = new RelationPopup(ps,pickedVertex);
+		//item.add(popup);
+		//relTypes.addActionListener(rl);
+		
+=======
+		addSeparator();
+		
+		SOATransitionListener stl = new SOATransitionListener();
+		stl.setPlaysheet(ps);
+		item = add("Transition All to SOA");
+		item.addActionListener(stl);
+		
+>>>>>>> .r2277
+	}
+	
+}

@@ -3,6 +3,7 @@ package prerna.ui.helpers;
 import java.awt.Color;
 import java.awt.Shape;
 import java.util.Hashtable;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 
@@ -52,9 +53,6 @@ public class TypeColorShapeTable {
 		colorHash.clear();
 		shapeStringHash.clear();
 		colorStringHash.clear();
-		shapeHash.put(Constants.DEFAULT_SHAPE, (Shape)DIHelper.getInstance().getLocalProp(shapes[3]));
-		shapeHashL.put(Constants.DEFAULT_SHAPE + Constants.LEGEND, (Shape)DIHelper.getInstance().getLocalProp(shapes[3]+Constants.LEGEND));
-		colorHash.put(Constants.DEFAULT_COLOR, (Color)DIHelper.getInstance().getLocalProp(colors[2]));
 	}
 	
 	public String [] getAllShapes()
@@ -69,8 +67,6 @@ public class TypeColorShapeTable {
 			shapes[4] = Constants.STAR;
 			shapes[6] = Constants.HEXAGON;
 			shapes[5] = Constants.PENTAGON;
-			shapeHash.put(Constants.DEFAULT_SHAPE, (Shape)DIHelper.getInstance().getLocalProp(shapes[3]));
-			shapeHashL.put(Constants.DEFAULT_SHAPE + Constants.LEGEND, (Shape)DIHelper.getInstance().getLocalProp(shapes[3]+Constants.LEGEND));
 		}
 		return shapes;
 	}
@@ -91,7 +87,6 @@ public class TypeColorShapeTable {
 			colors[8] = Constants.PURPLE;
 			colors[9] = Constants.TRANSPARENT;
 			
-			colorHash.put(Constants.DEFAULT_COLOR, (Color)DIHelper.getInstance().getLocalProp(colors[2]));
 		}
 		return colors;
 	}
@@ -117,8 +112,8 @@ public class TypeColorShapeTable {
 		// get the shape from DIHelper
 		if(DIHelper.getInstance().getLocalProp(color) != null)
 		{
-			Color thisShape = (Color)DIHelper.getInstance().getLocalProp(color);
-			colorHash.put(type, thisShape);
+			Color thisColor = (Color)DIHelper.getInstance().getLocalProp(color);
+			colorHash.put(type, thisColor);
 		}
 		colorStringHash.put(type, color);
 	}
@@ -135,8 +130,25 @@ public class TypeColorShapeTable {
 		else if(DIHelper.getInstance().getProperty(type+"_SHAPE") != null)
 			// try to search the properties file for the first time
 			retShape = (Shape)DIHelper.getInstance().getLocalProp(DIHelper.getInstance().getProperty(type+"_SHAPE"));
-		if(retShape == null)
-			retShape = shapeHash.get(Constants.DEFAULT_SHAPE);
+		if(retShape == null){
+			//instead of returning default color, going to return random color that hasn't been used yet
+			for(String shape : shapes){
+				if(!shapeStringHash.containsValue(shape)){
+					//got a unique color, set node that color
+					retShape = (Shape) DIHelper.getInstance().getLocalProp(shape);
+					addShape(type, shape);
+					break;
+				}
+			}
+			if (retShape == null){
+				//if all of the colors have already been used, just grab a random color
+		        Object[] keys = shapeHash.keySet().toArray();
+		        Object key = keys[new Random().nextInt(keys.length)];
+		        retShape = shapeHash.get(key);
+		        String shapeString = shapeStringHash.get(key);
+				addShape(type, shapeString);
+			}
+		}
 		//logger.info("Shape for Type " + type + "[][]" + retShape);
 		//shapeHash.put(type, retShape);
 		return retShape;
@@ -154,8 +166,26 @@ public class TypeColorShapeTable {
 		else if(DIHelper.getInstance().getProperty(type+"_SHAPE") != null)
 			// try to search the properties file for the first time
 			retShape = (Shape)DIHelper.getInstance().getLocalProp(DIHelper.getInstance().getProperty(type+"_SHAPE") + Constants.LEGEND);
-		if(retShape == null)
-			retShape = shapeHashL.get(Constants.DEFAULT_SHAPE+Constants.LEGEND);
+		if(retShape == null){
+			//instead of returning default color, going to return random color that hasn't been used yet
+			for(String shape : shapes){
+				if(!shapeStringHash.containsValue(shape)){
+					//got a unique color, set node that color
+					retShape = (Shape) DIHelper.getInstance().getLocalProp(shape+Constants.LEGEND);
+					addShape(type, shape);
+					break;
+				}
+			}
+			if (retShape == null){
+				//if all of the colors have already been used, just grab a random color
+		        Object[] keys = shapeHashL.keySet().toArray();
+		        Object key = keys[new Random().nextInt(keys.length)];
+		        retShape = shapeHashL.get(key);
+		        String shapeString = shapeStringHash.get(key);
+				addShape(type, shapeString);
+			}
+		}
+
 		//logger.info("Shape for Type " + type + "[][]" + retShape);
 		//shapeHash.put(type, retShape);
 		return retShape;
@@ -173,8 +203,25 @@ public class TypeColorShapeTable {
 		else if(DIHelper.getInstance().getProperty(type+"_COLOR") != null)
 			// try to search the properties file for the first time
 			retColor = (Color)DIHelper.getInstance().getLocalProp(DIHelper.getInstance().getProperty(type+"_COLOR"));
-		if(retColor == null && !colorStringHash.containsKey(vertName))
-			retColor = colorHash.get(Constants.DEFAULT_COLOR);
+		if(retColor == null && !colorStringHash.containsKey(vertName)){
+			//instead of returning default color, going to return random color that hasn't been used yet
+			for(String color : colors){
+				if(!colorStringHash.containsValue(color)){
+					//got a unique color, set node that color
+					retColor = (Color) DIHelper.getInstance().getLocalProp(color);
+					addColor(type, color);
+					break;
+				}
+			}
+			if (retColor == null){
+				//if all of the colors have already been used, just grab a random color
+		        Object[] keys = colorHash.keySet().toArray();
+		        Object key = keys[new Random().nextInt(keys.length)];
+		        retColor = colorHash.get(key);
+		        String colorString = colorStringHash.get(key);
+				addShape(type, colorString);
+			}
+		}
 		if(colorStringHash.containsKey(vertName) && colorStringHash.get(vertName).equalsIgnoreCase(Constants.TRANSPARENT))
 			retColor = null;
 		//colorHash.put(type, retColor);

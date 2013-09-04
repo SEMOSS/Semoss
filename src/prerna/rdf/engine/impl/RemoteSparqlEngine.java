@@ -1,6 +1,7 @@
 package prerna.rdf.engine.impl;
 
 import java.io.FileInputStream;
+import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -19,6 +20,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sparql.SPARQLConnection;
 import org.openrdf.repository.sparql.SPARQLRepository;
+import org.openrdf.repository.sparql.config.SPARQLRepositoryConfig;
 import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
@@ -32,7 +34,6 @@ import com.bigdata.rdf.sail.BigdataSail;
 public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 
 	BigdataSail bdSail = null;
-	public Properties bdProp = null;
 	Properties rdfMap = null;
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
@@ -44,13 +45,16 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 	{
 		try
 		{
-			bdProp = loadProp(propFile);
-			String sparqlQEndpoint = bdProp.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
-			String sparqlUEndpoint = bdProp.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
+			super.openDB(propFile);
+			String sparqlQEndpoint = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
+			String sparqlUEndpoint = prop.getProperty(Constants.SPARQL_UPDATE_ENDPOINT);
 
 			
 			SPARQLRepository repo = new SPARQLRepository(sparqlQEndpoint);
-			rc = new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
+			Hashtable <String, String> myMap = new Hashtable<String,String>();
+			myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
+			repo.setAdditionalHttpHeaders(myMap);
+			rc = repo.getConnection();//new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
 			
 	
 			// new ForwardChainingRDFSInferencer(bdSail);
@@ -58,7 +62,7 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 	
 			// System.out.println("ie forward chaining " + ie);
 			// need to convert to constants
-			String dbcmFile = bdProp.getProperty(Constants.DBCM_Prop);
+			String dbcmFile = prop.getProperty(Constants.DBCM_Prop);
 			String workingDir = System.getProperty("user.dir");
 			
 			dbcmFile = workingDir + "/" + dbcmFile;
@@ -72,14 +76,6 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 		}
 	}
 	
-	private Properties loadProp(String fileName) throws Exception
-	{
-		Properties retProp = new Properties();
-		retProp.load(new FileInputStream(fileName));
-		System.out.println("Properties >>>>>>>>" + bdProp);
-		return retProp;
-	}
-
 	@Override
 	public void closeDB() {
 		// TODO Auto-generated method stub
@@ -122,7 +118,7 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 		try {
 			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, query);
 			System.out.println("\nSPARQL: " + query);
-			tq.setIncludeInferred(true /* includeInferred */);
+			//tq.setIncludeInferred(true /* includeInferred */);
 			sparqlResults = tq.evaluate();
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block

@@ -16,9 +16,6 @@ public class VertexTextSizeListener implements ActionListener{
 	VertexLabelFontTransformer transformer;
 	VisualizationViewer viewer;
 	
-	int maxFontSize = 50;
-	int minFontSize = 0;
-	
 	public VertexTextSizeListener(){
 		
 	}

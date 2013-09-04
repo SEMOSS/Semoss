@@ -244,6 +244,8 @@ public class Utility {
 			// set the core prop
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+			if(prop.containsKey(Constants.OWL))
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			// set the engine finally
 			engines = engines + ";" + engineName;
 			DIHelper.getInstance().setLocalProperty(engineName, engine);

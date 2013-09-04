@@ -1,0 +1,24 @@
+
+##Base Objects##
+
+##Base Predicates##
+
+IGNORE_URI	;
+
+BaseData=BaseMetaRelationships;BaseMetaProperties;BaseCoreRelations
+// all the relationships below are broken by ; and inside that the triples are broken by :
+// subject+predicate+object;subject2+predicate+object etc. 
+// all the tag based relationships
+BaseMetaRelationships=http://health.mil/ontologies/dbcm/Concept/TransitionGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/GLItem;http://health.mil/ontologies/dbcm/Concept/BudgetGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/GLItem;http://health.mil/ontologies/dbcm/Concept/EnterpriseBudgetGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/BudgetGLItem;http://health.mil/ontologies/dbcm/Concept/SystemBudgetGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/BudgetGLItem;http://health.mil/ontologies/dbcm/Concept/RequirementsGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/DesignGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/DevelopGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/TestGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/DeployGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/SystemDCSiteGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/UpgradeGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/SDLCPhase+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/Concept/SDLC;http://health.mil/ontologies/dbcm/Concept/SemanticsGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/SustainmentGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/TrainingGLItem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/TransitionGLItem;http://health.mil/ontologies/dbcm/Concept/SiteIncident+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/Incident;http://health.mil/ontologies/dbcm/Concept/SystemDCSiteIncident+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/Incident;http://health.mil/ontologies/dbcm/Concept/SystemIncident+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept/Incident;
+
+// base properties
+BaseMetaProperties=
+
+// base relationships
+// Concept has category
+// Concept has lifecycle - Need to validate this with Jay Stripe
+BaseCoreRelations=http://health.mil/ontologies/dbcm/Concept+http://health.mil/ontologies/dbcm/Relation/Has+http://health.mil/ontologies/dbcm/Concept/Category;http://health.mil/ontologies/dbcm/Concept+http://health.mil/ontologies/dbcm/Relation/Has+http://health.mil/ontologies/dbcm/Concept/Lifecycle	
+
+
+
+

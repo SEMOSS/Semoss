@@ -30,15 +30,15 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 
 public class GridPlaySheet extends JInternalFrame implements IPlaySheet{
 
-	String query = null;
+	protected String query = null;
 	String title = null;
 	String questionID = null;
 	boolean extend = false;
 	boolean append = false;
 	protected JComponent pane = null;
 	ParamPanel panel = null;
-	IEngine engine = null;
-	ResultSet rs = null;
+	protected IEngine engine = null;
+	protected ResultSet rs = null;
 	Model jenaModel = ModelFactory.createDefaultModel();
 	protected GridFilterData gfd = new GridFilterData();
 	public JTable table = null;
