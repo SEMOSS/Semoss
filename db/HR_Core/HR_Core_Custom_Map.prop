@@ -5,7 +5,6 @@ DataObject http://health.mil/ontologies/Concept/DataObject
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 Software http://health.mil/ontologies/Concept/Software
 BusinessStandard http://health.mil/ontologies/Concept/BusinessStandard
-SystemCategory http://health.mil/ontologies/Concept/SystemCategory
 Service http://health.mil/ontologies/Concept/Service
 DataElement http://health.mil/ontologies/Concept/DataElement
 Complexity http://health.mil/ontologies/Concept/Complexity
@@ -19,13 +18,13 @@ Element http://health.mil/ontologies/Concept/Element
 CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
 Database http://health.mil/ontologies/Concept/Database
 HL7 http://health.mil/ontologies/Concept/HL7
+SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
 Reference http://health.mil/ontologies/Concept/Reference
 System http://health.mil/ontologies/Concept/System
 FError http://health.mil/ontologies/Concept/FError
-User http://health.mil/ontologies/Concept/User
 TaskerLifecyclePhase http://health.mil/ontologies/Concept/TaskerLifecyclePhase
 TechSubCategory http://health.mil/ontologies/Concept/TechSubCategory
 Requirement http://health.mil/ontologies/Concept/Requirement
@@ -38,6 +37,7 @@ VISTAElement http://health.mil/ontologies/Concept/VISTAElement
 LifeCycle http://health.mil/ontologies/Concept/LifeCycle
 VISTAUnion http://health.mil/ontologies/Concept/VISTAUnion
 RDF http://health.mil/ontologies/Concept/RDF
+Personnel http://health.mil/ontologies/Concept/Personnel
 DProt http://health.mil/ontologies/Concept/DProt
 Task http://health.mil/ontologies/Concept/Task
 Activity http://health.mil/ontologies/Concept/Activity
@@ -48,6 +48,7 @@ VISTA http://health.mil/ontologies/Concept/VISTA
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 DFreq http://health.mil/ontologies/Concept/DFreq
+SystemUser http://health.mil/ontologies/Concept/SystemUser
 BusinessRule http://health.mil/ontologies/Concept/BusinessRule
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
 MissionElement http://health.mil/ontologies/Concept/MissionElement
@@ -89,6 +90,7 @@ Attribute_Has_Gap http://health.mil/ontologies/Relation/Has
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
+System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
 SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
@@ -102,15 +104,14 @@ Task_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 MissionOutcome_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
 System_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 Capability_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
-System_OwnedBy_Service http://health.mil/ontologies/Relation/OwnedBy
 Task_Requires_Participant http://health.mil/ontologies/Relation/Requires
 Task_Needs_BusinessProcess http://health.mil/ontologies/Relation/Needs
 Task_Supports_BusinessStandard http://health.mil/ontologies/Relation/Supports
 FError_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 CapabilityTag_TaggedBy_Capability http://health.mil/ontologies/Relation/TaggedBy
 InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
+System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 Task_Has_Attribute http://health.mil/ontologies/Relation/Has
-System_Has_SystemCategory http://health.mil/ontologies/Relation/Has
 System_Consists_SoftwareModule http://health.mil/ontologies/Relation/Consists
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
@@ -137,8 +138,8 @@ InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
+System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
-SystemTasker_BelongsTo_SystemCategory http://health.mil/ontologies/Relation/BelongsTo
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
 HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 BusinessRule_Requires_SLA http://health.mil/ontologies/Relation/Requires
@@ -149,9 +150,8 @@ DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
 Task_Requires_SLA http://health.mil/ontologies/Relation/Requires
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
+SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
-DataObject_Connected_VISTA http://health.mil/ontologies/Relation/Connected
-System_UsedBy_User http://health.mil/ontologies/Relation/UsedBy
 
 ##Base Objects Class##
 
@@ -167,11 +167,12 @@ Activity_CLASS http://semoss.org/ontologies/Concept/Activity
 HL7_CLASS http://semoss.org/ontologies/Concept/HL7
 MissionOutcome_CLASS http://semoss.org/ontologies/Concept/MissionOutcome
 Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
+SystemUser_CLASS http://semoss.org/ontologies/Concept/SystemUser
 VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
-User_CLASS http://semoss.org/ontologies/Concept/User
 Requirement_CLASS http://semoss.org/ontologies/Concept/Requirement
-TechSubCategory_CLASS http://semoss.org/ontologies/Concept/TechSubCategory
+Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
 SoftwareModule_CLASS http://semoss.org/ontologies/Concept/SoftwareModule
+TechSubCategory_CLASS http://semoss.org/ontologies/Concept/TechSubCategory
 DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 CapabilityTag_CLASS http://semoss.org/ontologies/Concept/CapabilityTag
 Participant_CLASS http://semoss.org/ontologies/Concept/Participant
@@ -203,12 +204,12 @@ Reference_CLASS http://semoss.org/ontologies/Concept/Reference
 Database_CLASS http://semoss.org/ontologies/Concept/Database
 LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
 RDF_CLASS http://semoss.org/ontologies/Concept/RDF
+SystemOwner_CLASS http://semoss.org/ontologies/Concept/SystemOwner
 ConformanceCriteria_CLASS http://semoss.org/ontologies/Concept/ConformanceCriteria
 SLA_CLASS http://semoss.org/ontologies/Concept/SLA
 SoftwareVersion_CLASS http://semoss.org/ontologies/Concept/SoftwareVersion
 UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 Attribute_CLASS http://semoss.org/ontologies/Concept/Attribute
-SystemCategory_CLASS http://semoss.org/ontologies/Concept/SystemCategory
 BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
 TechRequirement_CLASS http://semoss.org/ontologies/Concept/TechRequirement
 TechCategory_CLASS http://semoss.org/ontologies/Concept/TechCategory
@@ -219,6 +220,7 @@ Capability_CLASS http://semoss.org/ontologies/Concept/Capability
 ##Base Predicates Class##
 
 BusinessStandard_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
 Task_Supports_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Supports
 Capability_Consists_Task_CLASS http://semoss.org/ontologies/Relation/Consists
 TechRequirement_Satisfies_Attribute_CLASS http://semoss.org/ontologies/Relation/Satisfies
