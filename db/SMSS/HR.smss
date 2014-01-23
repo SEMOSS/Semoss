@@ -2,7 +2,8 @@ Base Properties
 ENGINE	HR
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/HR/HR_Custom_Map.prop
-DREAMER	db/HR/HSD_Questions.properties
+OWL	db/HR/HR_OWL.OWL
+DREAMER	db/HR/HR_Questions.properties
 
 
 # changing the axiom model to none essentially disables all inference
