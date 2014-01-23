@@ -1,0 +1,46 @@
+
+##Base Objects##
+
+SystemDCSite http://health.mil/ontologies/Concept/SystemDCSite
+DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
+DCSite http://health.mil/ontologies/Concept/DCSite
+System http://health.mil/ontologies/Concept/System
+NPI http://health.mil/ontologies/Concept/NPI
+City http://health.mil/ontologies/Concept/City
+MTF http://health.mil/ontologies/Concept/MTF
+InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+
+##Base Predicates##
+
+InterfaceControlDocument_Implemented_At_SystemDCSite http://health.mil/ontologies/Relation/Implemented_At
+MTF_Assigned_NPI http://health.mil/ontologies/Relation/Assigned
+DCSite_Located_City http://health.mil/ontologies/Relation/Located
+SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
+DCSite_Has_MTF http://health.mil/ontologies/Relation/Has
+System_DeployedAt_SystemDCSite http://health.mil/ontologies/Relation/DeployedAt
+DCSite_Has_DCSiteCmdCode http://health.mil/ontologies/Relation/Has
+
+##Base Objects Class##
+
+DCSiteCmdCode_CLASS http://semoss.org/ontologies/Concept/DCSiteCmdCode
+NPI_CLASS http://semoss.org/ontologies/Concept/NPI
+SystemDCSite_CLASS http://semoss.org/ontologies/Concept/SystemDCSite
+MTF_CLASS http://semoss.org/ontologies/Concept/MTF
+DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
+System_CLASS http://semoss.org/ontologies/Concept/System
+City_CLASS http://semoss.org/ontologies/Concept/City
+InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
+
+##Base Predicates Class##
+
+InterfaceControlDocument_Implemented_At_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Implemented_At
+MTF_Assigned_NPI_CLASS http://semoss.org/ontologies/Relation/Assigned
+DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
+System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
+DCSite_Has_MTF_CLASS http://semoss.org/ontologies/Relation/Has
+SystemDCSite_DeployedAt_DCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
+DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;

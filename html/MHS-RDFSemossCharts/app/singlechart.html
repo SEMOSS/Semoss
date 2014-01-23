@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html class="no-js" ng-app="rdfgraph">
+<head>
+    <title>Charts</title>    
+    <!-- CSS -->
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+    <link rel="stylesheet" href="css/bootstrap.css"/> 
+    <link rel="stylesheet" href="css/jquery-ui-1.8.23.custom.css"/>
+</head>
+
+<body ng-cloak class="ng-cloak">
+    <div id='gridcontroller' ng-controller="SingleChartCtrl">
+        <div class="formContainer"> 
+            <div style="clear: both"></div>
+            <div id='visualization' style="width:490px;height:390px"></div>
+        </div>   
+    </div>
+    
+    <!-- jQuery and Bootstrap Libraries -->
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+    <script src="lib/bootstrap.js"></script>
+    <script src="lib/underscore.js"></script>
+
+	
+	<!-- AngularJS -->
+	<script src="lib/angular/angular.js"></script>
+	<script src="lib/angular/angular-ui.js"></script>
+	<script src="lib/angular/angular-ui-bootstrap.js"></script>
+		
+	<!-- Angular Module -->
+	<script src="js/app.js"></script>
+	
+	<!-- Angular Controllers -->
+	<script src="js/controllers.js"></script>
+	<script src="js/directives.js"></script>
+	<script src="js/filters.js"></script>	
+	<script src="js/services.js"></script>
+	
+	<!-- Make Dem Charts -->
+    <script src="lib/highcharts.js"></script>
+    <script src="lib/highcharts-more.js"></script>
+    <script>
+        function start(data) {
+        	//alert('Yoo Hoo ');
+            //var jsonData = data;
+            
+         // Declaration instance of scope where is my function
+            var ctrlScope = angular.element(jQuery('#gridcontroller')).scope();
+            // calling that function
+            ctrlScope.setJSONData(data);
+        };
+    </script>
+	
+</body>
+</html>

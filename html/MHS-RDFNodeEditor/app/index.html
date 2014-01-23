@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html class="no-js" ng-app="rdfeditor">
+<head>
+    <title>RDF Editor</title>    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/bootstrap.css"/> 
+    <link rel="stylesheet" href="css/bootstrap-responsive.css"/> <!--For Responsive Web Design -->   
+    <link rel="stylesheet" href="css/jquery-ui-1.8.23.custom.css"/>
+    <link rel="stylesheet" href="css/angular-ui.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+    <link rel="stylesheet" href="css/bootstrap-editable.css"/> <!--For edit mode-->
+</head>
+
+<body ng-cloak>
+    <div id="IndexCtrlDiv" ng-controller="RdfEditCtrl">
+	   <!-- Test URI <http:^^health.mil^ontologies^dbcm^Concept^BusinessProcess^Anesthesia> -->
+	   <!-- Test URI <http:^^health.mil^ontologies^dbcm^Concept^System^ABTS> -->
+	   <div id="header">
+		  
+		  <img id="logo" src="img/logo.png" alt="RDF Node Editor" >
+		  <!-- <script type="text/javascript"
+src="https://getfirebug.com/firebug-lite.js">
+{
+overrideConsole: false,
+startInNewWindow: true,
+startOpened: true,
+enableTrace: true
+}
+</script>-->
+
+
+		  <div id="navigation" class="btn-group">
+			 <button ng-click="toSearch();" class="btn btn-small btn-primary"><i class="icon-search icon-white"></i> Search</button>
+			 <button ng-click="toSettings();" class="btn btn-small btn-primary"><i class="icon-cog icon-white"></i> Settings</button>
+		  </div>
+           
+	   </div>
+       <!--    
+       <div>
+           <alert type="alertType">{{alertMessage}}</alert>
+       </div>
+       
+       <div class="alert fade" bs-alert="alert" id="headerProgress"></div>
+       
+       <div class="progress" ng-class="active" ng-cloak octo-fade status={{stage.status}} octo-fade-duration=4000>
+            <div class="bar" style="width: 100%;"></div>
+       </div>
+       -->
+       
+	   <div><div class="formContainer"> 
+   <h3>{{nodeURI | shortenValueFilter}}</h3>
+    <p>URI: <i>&lt{{nodeURI}}&gt</i></p>
+    <p>Type: <i>{{nodeType | shortenValueFilter}}</i>
+   <hr><!--Separator-->
+      
+        <div>
+            <alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
+        </div>
+        <!--Property and Value Table-->
+        <table class="crazyTable table table-striped">
+            <tr class="blue"> <!--Table Header-->
+                <th> Property</th>
+                <th> Value</th>
+                <th> Type</th>
+                <th> </th>
+            </tr>  
+            <tr ng-repeat="property in nodeProperties | startFrom:currentPage1*pageSize1 | limitTo:pageSize1">
+               <td style="width: 34%"><div class="tableOverflow">{{property[1]  | shortenValueFilter}}</div></td>
+               <td style="width: 33%"><div class="tableOverflow" tooltip="{{property[2] | shortenValueFilter}}"><a class="val" xeditable>{{property[2]}}</a></div></td>
+               <td style="width: 20%">{{property[3]  | propertyTypeFilter}}</td>
+               <td style="width: 3%"><a ng-click="modalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+            </tr>
+            <!-- <tr ng-repeat="property in nodeProperties | startFrom:currentPage1*pageSize1 | limitTo:pageSize1">
+               <td style="width: 44%"><div class="tableOverflow">{{property.binding[1].uri[0].Text  | shortenValueFilter}}</div></td>
+               <td style="width: 42%"><div class="tableOverflow" tooltip="{{property.binding[2].literal[0].Text | shortenValueFilter}}"><a class="val" xeditable>{{property.binding[2].literal[0].Text | shortenValueFilter}}</a></div></td>
+            <td style="width: 2%"><a ng-click="modalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+            </tr> -->
+            <tr ng-hide="nodeProperties.length > 0">
+                <td colspan="4"><div class="empty">No Node Properties or Values Available for the Selected Node</div></td>
+            </tr>
+        </table>
+        
+            <div class="pagination">
+                <button class="btn btn-mini" ng-disabled="currentPage1 == 0" ng-click="currentPage1=currentPage1-1"><<</button>
+                        {{currentPage1+1}}/{{numberOfPagesNodeProperties()}}
+                <button class="btn btn-mini" ng-disabled="currentPage1 >= nodeProperties.length/pageSize1 - 1" ng-click="currentPage1=currentPage1+1">>></button>
+            </div>
+            
+		  <!--Create and Edit Mode Buttons-->
+		  <div class="buttons">
+			 <button class="btn btn-info" id="enable" xeditablebutton><i class="icon-edit icon-white"></i>  Edit Mode </button>
+			 <button class="btn btn-success" ng-click="modalCreateOpen()"><i class="icon-plus icon-white"></i> Create</button>
+		  </div>
+		  
+		  <!--Clear to remove float styling-->
+		  <div style="clear: both"></div>
+
+		  <hr> <!--Separator-->		  
+		  
+		  <!--Inbound Relations Table-->
+		  <h4 class="bound">Inbound Relations</h4>
+        
+            <div class="iconContainer">
+                <div ui-toggle="showHide1" class="hiddenSearch"><input class="input-medium" type="text" ng-model="searchText1" placeholder="Search"></div>
+                <a ng-click="showHide1=!showHide1"><img tooltip="Search Relationships" class="boundIcons" id="searchIcon" src="img/search.png"></a>
+                <a ng-click="inboundModalCreateOpen()"><img class="boundIcons" tooltip="Create Relationship" src="img/create.png" /></a>
+            </div>
+		   <table class="crazyTable table table-striped">
+			 <tr class="blue">
+				<th> Node Type</th>
+				<th> Node Instance</th>
+				<th> Verb</th>
+				<th> Node Type</th>
+				<th> Node Instance</th>
+                    <th> </th>
+                    <th> </th> 
+			 </tr>
+			 <!--  <tr ng-repeat="inboundRelationship in inboundRelationships | filter:searchText1 | startFrom:currentPage2*pageSize2 | limitTo:pageSize2">
+				<td style="width: 32.66%"><div tooltip="{{inboundRelationship.binding[0].uri[0].Text  | shortenValueFilter}}" class="tableOverflow"><a href="#/rdfnode/<{{inboundRelationship.binding[0].uri[0].Text | replaceForwardSlashWithCaretFilter}}>">{{inboundRelationship.binding[0].uri[0].Text  | shortenValueFilter}}</a></div></td>
+				<td style="width: 32.66%"><div class="tableOverflow">{{inboundRelationship.binding[1].uri[0].Text | shortenValueFilter}}</div></td>
+				<td style="width: 32.66%"><div tooltip="{{inboundRelationship.binding[2].uri[0].Text | shortenValueFilter}}" class="tableOverflow">{{inboundRelationship.binding[2].uri[0].Text | shortenValueFilter}}</div></td>
+                    <td style="width: 2%"><a ng-click="inboundModalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+			 </tr> -->
+			 <tr ng-repeat="inboundRelationship in inboundRelationships | filter:searchText1 | startFrom:currentPage2*pageSize2 | limitTo:pageSize2">
+				<td style="width: 10%"><div class="tableOverflow">{{inboundRelationship[0]  | shortenValueFilter}}</div></td>
+				<td style="width: 20%"><div tooltip="{{inboundRelationship[1]  | shortenValueFilter}}" class="tableOverflow"><a href="#/rdfnode/<{{inboundRelationship[1] | replaceForwardSlashWithCaretFilter}}>">{{inboundRelationship[1]  | shortenAndReplaceUnderscores}}</a></div></td>
+				<td style="width: 10%"><div class="tableOverflow">{{inboundRelationship[3]  | shortenValueFilter}}</div></td>
+				<td style="width: 10%"><div class="tableOverflow">{{inboundRelationship[4]  | shortenValueFilter}}</div></td>
+				<td style="width: 20%"><div tooltip="{{inboundRelationship[5] | shortenValueFilter}}" class="tableOverflow">{{inboundRelationship[5] | shortenAndReplaceUnderscores}}</div></td>
+                    <td style="width: 2%"><a ng-click="inboundModalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+                    <td style="width: 2%"><a ng-click="inboundModalEditOpen($index)"><i class="icon-edit icon-inverse"></i></a></td>
+			 </tr>
+                <tr ng-hide="inboundRelationships.length > 0">
+                    <td colspan="7"><div class="empty">No Inbound Relationships Available for the Selected Node</div></td>
+                </tr>
+            </table>
+            <div class="pagination">
+                <button class="btn btn-mini " ng-disabled="currentPage2 == 0" ng-click="currentPage2=currentPage2-1"><<</button>
+                        {{currentPage2+1}}/{{numberOfPagesInbound()}}
+                <button class="btn btn-mini" ng-disabled="currentPage2 >= inboundRelationships.length/pageSize2 - 1" ng-click="currentPage2=currentPage2+1">>></button>
+            </div>
+            <div style="clear: right;"></div>
+		 
+            <hr>
+                
+		  <!--Outbound Relations Table-->
+		   <h4 class="bound">Outbound Relations</h4>
+        
+            <div class="iconContainer">
+                <div ui-toggle="showHide2" class="hiddenSearch"><input class="input-medium" type="text" ng-model="searchText2" placeholder="Search"></div>
+                <a ng-click="showHide2=!showHide2"><img tooltip="Search Relationships"class="boundIcons" id="searchIcon" src="img/search.png"></a>
+                <a ng-click="outboundModalCreateOpen()"><img tooltip="Create Relationship" class="boundIcons" src="img/create.png" /></a>
+            </div>
+
+		  <table class="crazyTable table table-striped">
+			 <tr class="blue">
+				<th> Node Type</th>
+				<th> Node Instance</th>
+				<th> Verb</th>
+				<th> Node Type</th>
+				<th> Node Instance</th>
+                    <th> </th>
+                    <th> </th> 
+			 </tr>
+			 <!-- <tr ng-repeat="outboundRelationship in outboundRelationships | filter:searchText2 | startFrom:currentPage3*pageSize3 | limitTo:pageSize3">
+				<td style="width: 32.66%"><div tooltip="{{outboundRelationship.binding[0].uri[0].Text  | shortenValueFilter}}" class="tableOverflow">{{outboundRelationship.binding[0].uri[0].Text  | shortenValueFilter}}</div></td>
+				<td style="width: 32.66%"><div class="tableOverflow">{{outboundRelationship.binding[1].uri[0].Text  | shortenValueFilter}}</div></td>
+				<td style="width: 32.66%"><div tooltip="{{outboundRelationship.binding[2].uri[0].Text  | shortenValueFilter}}" class="tableOverflow"><a href="#/rdfnode/<{{outboundRelationship.binding[2].uri[0].Text | replaceForwardSlashWithCaretFilter}}>">{{outboundRelationship.binding[2].uri[0].Text  | shortenValueFilter}}</a></div></td>
+                    <td style="width: 2%"><a ng-click="outboundModalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+			 </tr> -->
+			 <tr ng-repeat="outboundRelationship in outboundRelationships | filter:searchText2 | startFrom:currentPage3*pageSize3 | limitTo:pageSize3">
+				<td style="width: 10%"><div tooltip="{{outboundRelationship[0]  | shortenValueFilter}}" class="tableOverflow">{{outboundRelationship[0]  | shortenValueFilter}}</div></td>
+				<td style="width: 20%"><div class="tableOverflow">{{outboundRelationship[1]  | shortenAndReplaceUnderscores}}</div></td>
+				<td style="width: 10%"><div class="tableOverflow">{{outboundRelationship[3]  | shortenValueFilter}}</div></td>
+				<td style="width: 10%"><div class="tableOverflow">{{outboundRelationship[4]  | shortenValueFilter}}</div></td>
+				<td style="width: 20%"><div tooltip="{{outboundRelationship[5]  | shortenValueFilter}}" class="tableOverflow"><a href="#/rdfnode/<{{outboundRelationship[5] | replaceForwardSlashWithCaretFilter}}>">{{outboundRelationship[5]  | shortenAndReplaceUnderscores}}</a></div></td>
+                    <td style="width: 2%"><a ng-click="outboundModalDeleteOpen($index)"><i class="icon-remove icon-inverse"></i></a></td>
+                    <td style="width: 2%"><a ng-click="outboundModalEditOpen($index)"><i class="icon-edit icon-inverse"></i></a></td>
+			 </tr>
+              <tr ng-hide="outboundRelationships.length > 0">
+                  <td colspan="7"><div class="empty">No Outbound Relationships Available for the Selected Node</div></td>
+              </tr>
+		  </table>
+            
+            <div class="pagination">
+                <button class="btn btn-mini" ng-disabled="currentPage3 == 0" ng-click="currentPage3=currentPage3-1"><<</button>
+                        {{currentPage3+1}}/{{numberOfPagesOutbound()}}
+                <button class="btn btn-mini" ng-disabled="currentPage3 >= outboundRelationships.length/pageSize3 - 1" ng-click="currentPage3=currentPage3+1">>></button>
+		  </div>
+            <div style="clear: right;"></div>
+            
+            <!-------------------------------------MODALS-------------------------------------->
+		  
+            <!--Create New Property/Value Modal-->
+		  <div modal="createModal" close="closeCreate()">
+                <div class="modal-header">
+                   <h4>Create New Property and Value</h4>
+                </div>
+                <div class="modal-body">
+                    <form name="form" novalidate>
+                        <!--<select ng-model="propertyName" ng-options="name for name in nodePropertyNames" required></select>-->
+                        <input ng-model="propertyName" class="inputBoxesMed" type="text" placeholder="Property" required>
+                        <input ng-model="propertyValue" class="inputBoxesMed" type="text" placeholder="Value" required>
+                        <select ng-model="propertyTypeSelected" class="inputBoxesSmall" ng-options="opt.name for opt in nodePropertyOptions" required></select>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                   <button type="button" class="btn" ng-click="closeModal()">Cancel</button>
+                   <button class="btn btn-success" ng-click="createProperty()" ng-disabled="isDisabled()">Create</button>
+                </div>
+            </div>
+            
+            <!--Delete Modal-->
+		  <div modal="deleteModal" close="closeDelete()">
+			 <div class="modal-header">
+				<h4>Delete Property and Value</h4>
+			 </div>
+			 <div class="modal-body">
+				Are you sure you want to delete? This action cannot be undone.
+			 </div>
+			 <div class="modal-footer">
+				<button type="button" class="btn" ng-click="closeModal()">No</button>
+				<button class="btn btn-danger" ng-click="deleteProp()">Yes</button>
+			 </div>
+		  </div>
+            
+            <!--Create Inbound Relationship-->
+		  <div modal="inboundCreateModal" close="closeModal()">
+                <div class="modal-header">
+                   <h4>Create Inbound Relationship</h4>
+                </div>
+                <div class="modal-body">
+                    <form name="form" novalidate>
+                        <div class="modal-body">
+						 	Out Node Type:
+						 	<select ng-model="inNodeTypeSelection" ng-options="opt for opt in inNodeTypeOptions" class="input-xxlarge" ng-change="getInNodeInstanceOptions();"></select>
+						 	<br />
+							Out Node Instance:
+							<select ng-model="inNodeInstanceSelection" ng-options="opt for opt in inNodeInstanceOptions" class="input-xxlarge" ng-change="getInNodeVerbOptions();"></select>
+							<br />
+							Verb:
+							<select ng-model="inNodeVerbSelection" ng-options="opt for opt in inNodeVerbOptions" class="input-xxlarge"></select>
+							<br />
+							In Node Type:
+							<input ng-disabled="true" value="{{nodeType | shortenValueFilter}}" class="input-xxlarge">
+							<br />
+							In Node Instance:
+							<input ng-disabled="true" value="{{nodeURI | shortenValueFilter}}" class="input-xxlarge">
+						 </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                   <button type="button" class="btn" ng-click="closeModal()">Close</button>
+                   <button class="btn btn-success" ng-click="inboundCreateRelationship()" ng-disabled="isDisabled()">Create</button>
+                </div>
+            </div>
+       
+            <!--Create outbound Relationship-->
+		  <div modal="outboundCreateModal" close="closeModal()">
+                <div class="modal-header">
+                   <h4>Create Outbound Relationship</h4>
+                </div>
+                <div class="modal-body">
+                    <form name="form" novalidate>
+                        <div class="modal-body">
+							Out Node Type:
+						 	<input ng-disabled="true" value="{{nodeType | shortenValueFilter}}" class="input-xxlarge">
+						 	<br />
+							Out Node Instance:
+							<input ng-disabled="true" value="{{nodeURI | shortenValueFilter}}" class="input-xxlarge">
+							<br />
+							In Node Type:
+							<select ng-model="outNodeTypeSelection" ng-options="opt for opt in outNodeTypeOptions" class="input-xxlarge" ng-change="getOutNodeInstanceOptions();"></select>
+							<br />
+							In Node Instance:
+							<select ng-model="outNodeInstanceSelection" ng-options="instOpt for instOpt in outNodeInstanceOptions" class="input-xxlarge" ng-change="getOutNodeVerbOptions();"></select>
+							<br />
+							Verb:
+							<select ng-model="outNodeVerbSelection" ng-options="opt for opt in outNodeVerbOptions" class="input-xxlarge"></select>
+						 </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                   <button type="button" class="btn" ng-click="closeModal()">Cancel</button>
+                   <button class="btn btn-success" ng-click="outboundCreateRelationship()" ng-disabled="isDisabled()">Create</button>
+                </div>
+            </div>
+            
+            <!--Delete Inbound Modal-->
+		  <div modal="inboundDeleteModal" close="closeModal()">
+			 <div class="modal-header">
+				<h4>Delete Inbound Relationship</h4>
+			 </div>
+			 <div class="modal-body">
+				Are you sure you want to delete? This action cannot be undone.
+			 </div>
+			 <div class="modal-footer">
+				<button type="button" class="btn" ng-click="closeModal()">No</button>
+				<button class="btn btn-danger" ng-click="inboundDeleteRelationship()">Yes</button>
+			 </div>
+		  </div>
+		  
+		   <!--Edit Inbound Modal-->
+		  <div modal="inboundEditModal" close="closeModal()">
+			 <div class="modal-header">
+				<h4>Edit Inbound Relationship</h4>
+			 </div>
+			 <div class="modal-body">
+			 	Out Node Type:
+			 	<input ng-disabled="true" value="{{editInRelationship[0] | shortenValueFilter}}" class="input-xxlarge">
+			 	<br />
+				Out Node Instance:
+				<select ng-model="newEditInInstance" ng-options="opt for opt in inEditNodeInstanceOptions" class="input-xxlarge"></select>
+				<br />
+				Verb:
+				<input ng-disabled="true" value="{{editInRelationship[3] | shortenValueFilter}}" class="input-xxlarge">
+				<br />
+				In Node Type:
+				<input ng-disabled="true" value="{{editInRelationship[4] | shortenValueFilter}}" class="input-xxlarge">
+				<br />
+				In Node Instance:
+				<input ng-disabled="true" value="{{editInRelationship[5] | shortenValueFilter}}" class="input-xxlarge">
+			 </div>
+			 <div class="modal-footer">
+				<button type="button" class="btn" ng-click="closeModal()">Cancel</button>
+				<button class="btn btn-danger" ng-click="inboundEditRelationship()">Apply Changes</button>
+			 </div>
+		  </div>
+            
+            <!--Delete Outbound Modal-->
+		  <div modal="outboundDeleteModal" close="closeModal()">
+			 <div class="modal-header">
+				<h4>Delete Property and Value</h4>
+			 </div>
+			 <div class="modal-body">
+				Are you sure you want to delete? This action cannot be undone.
+			 </div>
+			 <div class="modal-footer">
+				<button type="button" class="btn" ng-click="closeModal()">No</button>
+				<button class="btn btn-danger" ng-click="outboundDeleteRelationship()">Yes</button>
+			 </div>
+		  </div>
+		  
+		  <!--Edit Outbound Modal-->
+		  <div modal="outboundEditModal" close="closeModal()">
+			 <div class="modal-header">
+				<h4>Edit Outbound Relationship</h4>
+			 </div>
+			 <div class="modal-body">
+				Out Node Type:
+			 	<input ng-disabled="true" value="{{editOutRelationship[0] | shortenValueFilter}}" class="input-xxlarge">
+			 	<br />
+				Out Node Instance:
+				<input ng-disabled="true" value="{{editOutRelationship[1] | shortenValueFilter}}" class="input-xxlarge">
+				<br />
+				Verb:
+				<input ng-disabled="true" value="{{editOutRelationship[3] | shortenValueFilter}}" class="input-xxlarge">
+				<br />
+				In Node Type:
+				<input ng-disabled="true" value="{{editOutRelationship[4] | shortenValueFilter}}" class="input-xxlarge">
+				<br />
+				In Node Instance:
+				<select ng-model="newEditOutInstance" ng-options="opt for opt in outEditNodeInstanceOptions" class="input-xxlarge"></select>
+			 </div>
+			 <div class="modal-footer">
+				<button type="button" class="btn" ng-click="closeModal()">Cancel</button>
+				<button class="btn btn-danger" ng-click="outboundEditRelationship()">Apply Changes</button>
+			 </div>
+		  </div>
+            
+	   </div></div>   
+	   
+    </div>
+    <!-- jQuery and Bootstrap Libraries -->
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+    
+    <script src="lib/bootstrap.js"></script>
+    <script src="lib/jquery/bootstrap-editable.js"></script>
+	<script src="lib/jqXMLUtils.js"></script>
+	<script src="lib/underscore.js"></script>
+	
+    <!-- AngularJS -->
+    <script src="lib/angular/angular.js"></script>
+    <script src="lib/angular/angular-ui.js"></script>
+    <script src="lib/angular/angular-ui-bootstrap.js"></script>
+    <script src="lib/angular/angular-strap.js"></script>
+    
+    <!-- Angular Module -->
+    <script src="js/app.js"></script>
+    
+    <!-- Angular Controllers -->
+    <script src="js/controllers.js"></script>
+    <script src="js/directives.js"></script>
+    <script src="js/filters.js"></script>	
+    <script src="js/services.js"></script>
+    <script>
+        function start(uri, nodeName, nodeType) {
+            //alert('Yoo Hoo ');
+			
+			//RunBaby();
+            //RdfEditCtrl.resolve
+			 
+			//alert('about to run execute from the start');
+			//alert(SPARQLExecute('blah blah sparql blah'));
+            //var jsonData = data;
+
+            // Declaration instance of scope where is my function
+            var ctrlScope = angular.element(jQuery('#IndexCtrlDiv')).scope();
+            // calling that function
+            ctrlScope.setNodeData(uri, nodeName, nodeType);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+#Tue Jul 30 17:11:32 EDT 2013
+com.bigdata.journal.AbstractJournal.file=db/VendorSelection/VendorSelection.jnl
+com.bigdata.rdf.store.AbstractTripleStore.axiomsClass=com.bigdata.rdf.axioms.NoAxioms
+com.bigdata.rdf.store.DataLoader.commit=Incremental
+ENGINE_TYPE=prerna.rdf.engine.impl.BigDataEngine
+DREAMER=db/VendorSelection/VendorSelection_Questions.properties
+com.bigdata.rdf.sail.truthMaintenance=true
+ENGINE=VendorSelection
+com.bigdata.btree.writeRetentionQueue.capacity=4000
+Base=Properties 
+com.bigdata.rdf.store.AbstractTripleStore.textIndex=true
+com.bigdata.btree.BTree.branchingFactor=512
+com.bigdata.rdf.store.AbstractTripleStore.quads=false
+com.bigdata.rdf.store.AbstractTripleStore.statementIdentifiers=false
+ONTOLOGY=db/VendorSelection/VendorSelection_Custom_Map.prop
+com.bigdata.journal.AbstractJournal.bufferMode=DiskRW
+com.bigdata.rdf.sail.bufferCapacity=100000

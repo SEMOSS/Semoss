@@ -1,0 +1,12 @@
+Release Date: 11/15/2013
+Version: 0.4
+
+Features Added: 
+- UI upgraded, icons added to graph sheet buttons
+- Added keyboard shortcuts, can be found in button tooltips
+- Added PNG and EPS export functionality to graphs
+- POIReader updated to take in information from Loader tab of loading sheets rather than just "Usual"
+- Updated error catching, bubbling up exceptions to user via UI
+- Updated CSV and property file formats
+- Added functionality to loading sheet ingestion to define subclassing
+- Added automation of OWL file generation containing base relationships

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SANKEY Experiment</title>
+<style>
+ 
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+ 
+.node text {
+  font-size: 9px;
+  font-family: sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+ 
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+ 
+.link:hover {
+  stroke-opacity: .5;
+}
+ 
+</style>
+<body>
+ 
+<p id="chart">
+ 
+<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
+<script src="lib/d3.v3.js"></script>
+<script src="lib/underscore.js"></script>
+<script src="lib/tooltip.js"></script>
+<script src="lib/sankey.js"></script>
+<script>
+
+
+  
+var units = "Widgets";
+ 
+var margin = {top: 10, right: 10, bottom: 10, left: 10},
+    width = 1000 - margin.left - margin.right,
+    height = 2000 - margin.top - margin.bottom;
+ 
+var formatNumber = d3.format(",.0f"),    // zero decimal places
+    format = function(d) { return formatNumber(d) + " " + units; },
+    color = d3.scale.category20();
+	
+ 
+// append the svg canvas to the page
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .call (
+		d3.behavior.zoom()
+			.scaleExtent([.1, 10])
+			.on("zoom", zoom)
+	)
+	.append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+          
+function zoom() {
+	svg.attr("transform", "translate(" 
+	+ d3.event.translate 
+	+ ")scale(" + d3.event.scale + ")");
+}	
+ 
+// Set the sankey diagram properties
+var sankey = d3.sankey()
+    .nodeWidth(36)
+    .nodePadding(10)
+    .size([width, height]);
+ 
+var path = sankey.link();
+//var dataString = {"links":[{"source":"Allergy","target":"Check-In_Patient","value":1},{"source":"Access_Appropriate_Guidelines,_Protocols_to_Determine_Most_Appropriate_Intervention","target":"Encounter_Information","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Patient_Procedures","value":1},{"source":"Allergy","target":"Manage_Beneficiary_Eligibility_Process","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Allergy_Information","value":1},{"source":"Plan_Treatment","target":"Patient_Treatment_Plan","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Patient_Treatment_Plan","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Patient_Test_Results","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Order_Information","value":1},{"source":"Evaluate_Beneficiary_Health_Status","target":"Medical_Intelligence","value":1},{"source":"Maintain_Accurate_Beneficiary_Information","target":"Benefits_Eligibility_Information","value":1},{"source":"Allergy","target":"Provide_Immunization_and_Medication_Alerts","value":1},{"source":"Track_Procedures","target":"Order_Information","value":1},{"source":"Provide_Direct_Care_Services","target":"Encounter_Information","value":1},{"source":"Allergy","target":"Obtain_Patient_History","value":1},{"source":"Allergy","target":"Assess_Appropriate_Beneficiary_Care_Services","value":1},{"source":"Support_Results_Interpretation","target":"Patient_Test_Results","value":1},{"source":"Manage_Beneficiary_Encounter","target":"Encounter_Information","value":1},{"source":"Provide_Immunization_and_Medication_Alerts","target":"Medication_Information","value":1},{"source":"Allergy","target":"Maintain_Beneficiary_Health_Profile","value":1},{"source":"Allergy","target":"Evaluate_Beneficiary_Health_Status","value":1},{"source":"Provide_Immunization_and_Medication_Alerts","target":"Order_Information","value":1},{"source":"Provide_Direct_Care_Services","target":"Care_Management","value":1},{"source":"Manage_Orders_and_Referrals","target":"Order_Information","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Patient_Treatment_Plan","value":1},{"source":"Obtain_Health_Summary_and_Comprehensive_Health_Record","target":"Patient_Health_Record","value":1},{"source":"Provide_Immunization_and_Medication_Alerts","target":"Patient_Immunization","value":1},{"source":"Evaluate_Beneficiary_Health_Status","target":"Patient_Health_Record","value":1},{"source":"Allergy","target":"Initiate_Care_Plan_and_Perform_Intervention_Service","value":1},{"source":"Check-In_Patient","target":"Patient_Demographics_and_Information","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Patient_Test_Results","value":1},{"source":"Direct_Care_Record_Management_Services","target":"Patient_Health_Record","value":1},{"source":"Allergy","target":"Administer_Health_Risk_Screening","value":1},{"source":"Allergy","target":"Document_Care_Plans_and_Delivery_of_Service","value":1},{"source":"Track_Procedures","target":"Medication_Information","value":1},{"source":"Allergy","target":"Provide_Communications_with_Medical_Devices","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Medication_Information","value":1},{"source":"Assess_Appropriate_Beneficiary_Care_Services","target":"Care_Management","value":1},{"source":"Maintain_Accurate_Beneficiary_Information","target":"Patient_Demographics_and_Information","value":1},{"source":"Check-In_Patient","target":"Patient_ID","value":1},{"source":"Allergy","target":"Manage_Orders_and_Referrals","value":1},{"source":"Allergy","target":"Support_Results_Interpretation","value":1},{"source":"Provide_Communications_with_Medical_Devices","target":"Patient_ID","value":1},{"source":"Allergy","target":"Manage_Beneficiary_Encounter","value":1},{"source":"Obtain_Patient_History","target":"Patient_Health_Record","value":1},{"source":"Plan_Treatment","target":"Care_Management","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Imaging-Radiology","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Encounter_Information","value":1},{"source":"Provide_Direct_Care_Services","target":"Patient_Administration","value":1},{"source":"Verify_Eligibility_for_Benefit_Servces","target":"Patient_ID","value":1},{"source":"Access_Appropriate_Guidelines,_Protocols_to_Determine_Most_Appropriate_Intervention","target":"Patient_Health_Record","value":1},{"source":"Provide_Automated_Support_for_Patient_Assessments","target":"Care_Management","value":1},{"source":"Provide_Automated_Support_for_Patient_Assessments","target":"Patient_Health_Record","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Emergency_Department","value":1},{"source":"Administer_Health_Risk_Screening","target":"Encounter_Information","value":1},{"source":"Provide_Communications_with_Medical_Devices","target":"Patient_Demographics_and_Information","value":1},{"source":"Provide_Communications_with_Medical_Devices","target":"Patient_Vital_Signs","value":1},{"source":"Manage_Orders_and_Referrals","target":"Referral_Information","value":1},{"source":"Evaluate_Beneficiary_Health_Status","target":"Patient_Procedures","value":1},{"source":"Initiate_Care_Plan_and_Perform_Intervention_Service","target":"Patient_Implant_Information","value":1},{"source":"Maintain_Beneficiary_Health_Profile","target":"Patient_Health_Record","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Patient_Immunization","value":1},{"source":"Verify_Eligibility_for_Benefit_Servces","target":"Patient_Demographics_and_Information","value":1},{"source":"Provide_Immunization_and_Medication_Alerts","target":"Allergy_Information","value":1},{"source":"Provide_Communications_with_Medical_Devices","target":"Patient_Test_Results","value":1},{"source":"Manage_Beneficiary_Eligibility_Process","target":"Patient_Demographics_and_Information","value":1},{"source":"Evaluate_Beneficiary_Health_Status","target":"Patient_Test_Results","value":1},{"source":"Allergy","target":"Provide_Appropriate_Level_of_Care_and_Service","value":1},{"source":"Allergy","target":"Plan_Treatment","value":1},{"source":"Check-In_Patient","target":"Appointment","value":1},{"source":"Maintain_Accurate_Beneficiary_Information","target":"Patient_ID","value":1},{"source":"Allergy","target":"Access_Appropriate_Guidelines,_Protocols_to_Determine_Most_Appropriate_Intervention","value":1},{"source":"Provide_Automated_Support_for_Patient_Assessments","target":"Patient_Demographics_and_Information","value":1},{"source":"Track_Procedures","target":"Patient_Test_Results","value":1},{"source":"Verify_Eligibility_for_Benefit_Servces","target":"Benefits_Eligibility_Information","value":1},{"source":"Allergy","target":"Obtain_Health_Summary_and_Comprehensive_Health_Record","value":1},{"source":"Allergy","target":"Provide_Automated_Support_for_Patient_Assessments","value":1},{"source":"Allergy","target":"Direct_Care_Record_Management_Services","value":1},{"source":"Maintain_Beneficiary_Health_Profile","target":"Patient_Demographics_and_Information","value":1},{"source":"Manage_Beneficiary_Encounter","target":"Case_Management_Information","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Imaging-Radiology","value":1},{"source":"Plan_Treatment","target":"Encounter_Information","value":1},{"source":"Track_Procedures","target":"Patient_Immunization","value":1},{"source":"Allergy","target":"Maintain_Accurate_Beneficiary_Information","value":1},{"source":"Provide_Communications_with_Medical_Devices","target":"Patient_Procedures","value":1},{"source":"Maintain_Beneficiary_Health_Profile","target":"Patient_Administration","value":1},{"source":"Provide_Appropriate_Level_of_Care_and_Service","target":"Care_Management","value":1},{"source":"Access_Appropriate_Guidelines,_Protocols_to_Determine_Most_Appropriate_Intervention","target":"Care_Management","value":1},{"source":"Allergy","target":"Provide_Direct_Care_Services","value":1},{"source":"Allergy","target":"Verify_Eligibility_for_Benefit_Servces","value":1},{"source":"Evaluate_Beneficiary_Health_Status","target":"Encounter_Information","value":1},{"source":"Manage_Beneficiary_Eligibility_Process","target":"Benefits_Eligibility_Information","value":1},{"source":"Track_Procedures","target":"Patient_Procedures","value":1},{"source":"Direct_Care_Record_Management_Services","target":"Patient_Demographics_and_Information","value":1},{"source":"Allergy","target":"Track_Procedures","value":1},{"source":"Provide_Direct_Care_Services","target":"Patient_Procedures","value":1},{"source":"Document_Care_Plans_and_Delivery_of_Service","target":"Dosimetry-Measurement","value":1},{"source":"Manage_Beneficiary_Encounter","target":"Patient_Administration","value":1}],"nodes":[{"name":"Care_Management"},{"name":"Emergency_Department"},{"name":"Patient_Health_Record"},{"name":"Appointment"},{"name":"Initiate_Care_Plan_and_Perform_Intervention_Service"},{"name":"Obtain_Patient_History"},{"name":"Plan_Treatment"},{"name":"Provide_Immunization_and_Medication_Alerts"},{"name":"Provide_Communications_with_Medical_Devices"},{"name":"Benefits_Eligibility_Information"},{"name":"Document_Care_Plans_and_Delivery_of_Service"},{"name":"Patient_Treatment_Plan"},{"name":"Manage_Beneficiary_Encounter"},{"name":"Evaluate_Beneficiary_Health_Status"},{"name":"Assess_Appropriate_Beneficiary_Care_Services"},{"name":"Patient_Administration"},{"name":"Order_Information"},{"name":"Direct_Care_Record_Management_Services"},{"name":"Provide_Direct_Care_Services"},{"name":"Patient_Procedures"},{"name":"Medical_Intelligence"},{"name":"Administer_Health_Risk_Screening"},{"name":"Patient_Test_Results"},{"name":"Medication_Information"},{"name":"Patient_Implant_Information"},{"name":"Track_Procedures"},{"name":"Check-In_Patient"},{"name":"Patient_Demographics_and_Information"},{"name":"Support_Results_Interpretation"},{"name":"Manage_Beneficiary_Eligibility_Process"},{"name":"Obtain_Health_Summary_and_Comprehensive_Health_Record"},{"name":"Patient_ID"},{"name":"Manage_Orders_and_Referrals"},{"name":"Provide_Appropriate_Level_of_Care_and_Service"},{"name":"Patient_Vital_Signs"},{"name":"Allergy_Information"},{"name":"Maintain_Accurate_Beneficiary_Information"},{"name":"Dosimetry-Measurement"},{"name":"Allergy"},{"name":"Access_Appropriate_Guidelines,_Protocols_to_Determine_Most_Appropriate_Intervention"},{"name":"Provide_Automated_Support_for_Patient_Assessments"},{"name":"Case_Management_Information"},{"name":"Verify_Eligibility_for_Benefit_Servces"},{"name":"Encounter_Information"},{"name":"Patient_Immunization"},{"name":"Imaging-Radiology"},{"name":"Referral_Information"},{"name":"Maintain_Beneficiary_Health_Profile"}]};
+
+//start(dataString);
+// load the data
+// d3.json("energy.json", function(error, graph) {
+ function start(dataString) {
+	var jsonData = jQuery.parseJSON(dataString);
+	var data = jsonData ;
+	var nodeMap = {};
+	data.nodes.forEach(function(x, i) { 
+		nodeMap[x.name] = x; 
+		nodeMap[x.name].id = "node-"+i;
+	});
+    data.links = data.links.map(function(x, i) {
+		return {
+			source: nodeMap[x.source],
+			target: nodeMap[x.target],
+			value: x.value,
+			id: "link-"+i
+		  };
+		});
+ 
+	sankey
+		.nodes(data.nodes)
+		.links(data.links)
+		.layout(32);
+ 
+// add in the links
+	var link = svg.append("g").selectAll(".link")
+		.data(data.links)
+		.enter().append("path")
+		.attr("class", "link")
+		.attr("d", path)
+		.attr("id", function(d, i) { return "link-" + i; })
+		.style("stroke-width", function(d) { return Math.max(1, d.dy); })
+		.sort(function(a, b) { return b.dy - a.dy; });
+ 
+// add the link titles
+  link.append("title")
+        .text(function(d) {
+      	return d.source.name + " -> " + 
+			d.target.name + "\n" + format(d.value); });
+ 
+// add in the nodes
+	var node = svg.append("g").selectAll(".node")
+		.data(data.nodes)
+		.enter().append("g")
+		.attr("class", "node")
+		.attr("transform", function(d) { 
+			return "translate(" + d.x + "," + d.y + ")"; })
+		.attr("id", function(d, i) { return "node-" + i; })
+		.attr("data-clicked", function() { return 0; })
+		.on("click", function(d,i){
+			highlight_node_links(d, i);})
+		.call(d3.behavior.drag()
+			.origin(function(d) { return d; })
+			.on("dragstart", function() { 
+				this.parentNode.appendChild(this); })
+			.on("drag", dragmove));
+ 
+// add the rectangles for the nodes
+	node.append("rect")
+		.attr("height", function(d) { return d.dy; })
+		.attr("width", sankey.nodeWidth())
+		.style("fill", function(d) { 
+			return d.color = color(d.name.replace(/ .*/, "")); })
+		.style("stroke", function(d) { 
+			return d3.rgb(d.color).darker(2); })
+		.append("title")
+		.text(function(d) { 
+			return d.name + "\n" + format(d.value); });
+ 
+// add in the title for the nodes
+	node.append("text")
+		.attr("x", -6)
+		.attr("y", function(d) { return d.dy / 2; })
+		.attr("dy", ".35em")
+		.attr("text-anchor", "end")
+		.attr("transform", null)
+		.text(function(d) { return d.name; })
+		.filter(function(d) { return d.x < width / 2; })
+		.attr("x", 6 + sankey.nodeWidth())
+		.attr("text-anchor", "start");
+ 
+// the function for moving the nodes
+	function dragmove(d) {
+		d3.select(this).attr("transform", 
+		"translate(" + (
+				d.x = Math.max(0, Math.min(width - d.dx, d3.event.x))
+			) + "," + (
+				d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))
+			) + ")");
+		sankey.relayout();
+		link.attr("d", path);
+	}
+  
+// add the function for highlight all paths
+	function highlight_node_links(node, i){
+		var remainingNodes=[],
+			nextNodes=[];
+
+	var stroke_opacity = .9;
+	var nodeID = node.id;
+	var gNode = d3.select("#"+nodeID);
+      if( gNode.attr("data-clicked") == "1" ){
+        stroke_opacity = .2;
+      	gNode.attr("data-clicked", 0);
+      }
+      else{
+      	gNode.attr("data-clicked", 1);
+      }
+
+	var traverse = [{
+                    linkType : "sourceLinks",
+                    nodeType : "target"
+                  },{
+                    linkType : "targetLinks",
+                    nodeType : "source"
+                  }];
+
+	traverse.forEach(function(step){
+		node[step.linkType].forEach(function(link) {
+			remainingNodes.push(link[step.nodeType]);
+			highlight_link(link.id, stroke_opacity);
+		});
+
+		while (remainingNodes.length) {
+			nextNodes = [];
+			remainingNodes.forEach(function(node) {
+				node[step.linkType].forEach(function(link) {
+					nextNodes.push(link[step.nodeType]);
+					highlight_link(link.id, stroke_opacity);
+				});
+			});
+		  remainingNodes = nextNodes;
+		}
+	  });
+	}
+
+	function highlight_link(id,opacity){
+		d3.select("#"+id).style("stroke-opacity", opacity);
+	}
+}
+
+
+ 
+</script>
+ 
+</body>
+</html>

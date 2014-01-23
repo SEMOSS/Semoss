@@ -1,0 +1,422 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.poi.specific;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Hashtable;
+
+import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.Picture;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.util.IOUtils;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.extensions.XSSFHeaderFooter;
+
+import prerna.util.ConstantsTAP;
+import prerna.util.Utility;
+
+/**
+ *This will take the information from the tasker generation processor and write a fact sheet report to an excel file for a given system name
+ */
+public class TaskerGenerationWriter {
+
+	Logger logger = Logger.getLogger(getClass());
+
+	public String systemName;
+
+	/**
+	 * Retrieves the query results for a given system from the tasker generation processor and creates the tasker
+	 * @param systemName		String containing the name of the system to create the tasker for
+	 * @param fileLoc			String containing the file location to write the tasker to
+	 * @param templateFileLoc	String containing the location of the tasker template
+	 * @param systemDataHash	Hashtable containing all the query results from the tasker generation processor for a given system
+	 */
+	public void exportTasker(String systemName, String fileLoc, String templateFileLoc, Hashtable systemDataHash) {
+		XSSFWorkbook wb;
+		this.systemName = systemName;
+		//if a report template exists, then create a copy of the template, otherwise create a new workbook
+		if(templateFileLoc!=null)
+			try{
+				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateFileLoc));
+			}
+		catch(Exception e){
+			wb=new XSSFWorkbook();
+		}
+		else wb=new XSSFWorkbook();
+
+		//create an Arraylist of results for each query - retrieve results from Hashtable
+
+		ArrayList systemNameResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_NAME_QUERY);
+		ArrayList systemHighlightsResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY);
+		ArrayList userTypesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_TYPES_QUERY);
+		ArrayList userInterfacesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_INTERFACES_QUERY);
+
+		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
+		ArrayList activityResults = (ArrayList) systemDataHash.get(ConstantsTAP.ACTIVITY_QUERY);
+		ArrayList bluResults = (ArrayList) systemDataHash.get(ConstantsTAP.BLU_QUERY);
+		ArrayList dataResults = (ArrayList) systemDataHash.get(ConstantsTAP.DATA_QUERY);
+		ArrayList icdResults = (ArrayList) systemDataHash.get(ConstantsTAP.LIST_OF_INTERFACES_QUERY);
+		ArrayList budgetResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUDGET_QUERY);
+		ArrayList siteResults = (ArrayList) systemDataHash.get(ConstantsTAP.SITE_LIST_QUERY);
+		ArrayList ownerResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
+		ArrayList systemSWResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_SW_QUERY);
+		ArrayList systemHWResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HW_QUERY);
+		ArrayList terrorResults = (ArrayList) systemDataHash.get(ConstantsTAP.TERROR_QUERY);	
+
+		writeSystemOverviewSheet(wb, systemNameResults,systemHighlightsResults, userTypesResults, userInterfacesResults);
+		writeMappingSheet(wb, "Business Processes",businessProcessResults);
+		writeMappingSheet(wb, "Activities",activityResults);
+		writeMappingSheet(wb, "Business Logic",bluResults);
+		writeMappingSheet(wb, "Data Objects",dataResults);
+		writeListOfInterfacesSheet(wb, ownerResults, icdResults);
+		writeBudgetSheet(wb, budgetResults);
+		writeSiteListSheet(wb, siteResults);
+		writeListSheet(wb, "Software",systemSWResults);
+		writeListSheet(wb, "Hardware",systemHWResults);
+		writeListSheet(wb, "Technical Gaps",terrorResults);
+
+		wb.setForceFormulaRecalculation(true);
+		Utility.writeWorkbook(wb, fileLoc);
+
+	}
+
+	/**
+	 * Writes the System Overview Sheet in the workbook
+	 * @param wb							XSSFWorkbook containing the System Overview Sheet to populate
+	 * @param systemHighlightsResults		ArrayList containing the system highlights
+	 * @param userTypesResults				ArrayList containing the type of users
+	 * @param userInterfacesResults			ArrayList containing the type of user interfaces
+	 */
+	public void writeSystemOverviewSheet(XSSFWorkbook wb, ArrayList systemNameResults, ArrayList systemHighlightsResults, ArrayList userTypesResults, ArrayList userInterfacesResults) {
+		XSSFSheet sheetToWriteOver = wb.getSheet("System Information");
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(2);
+		XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
+
+		//write the systemname and acronym
+		rowToWriteOn = sheetToWriteOver.getRow(2);
+		for (int i=0; i<systemNameResults.size(); i++) {	
+			ArrayList row = (ArrayList) systemNameResults.get(i);
+			if (row.get(0) instanceof String) {
+				String acronym= (String) row.get(0);
+				cellToWriteOn=rowToWriteOn.getCell(3);
+				cellToWriteOn.setCellValue(acronym);
+			}
+			if (row.get(1) instanceof String) {
+				String fullName= (String) row.get(1);
+				cellToWriteOn=rowToWriteOn.getCell(6);
+				cellToWriteOn.setCellValue(fullName);
+			}
+		}
+		
+		//System Highlights
+		for (int i=0; i<systemHighlightsResults.size(); i++) {	
+			ArrayList highlights = (ArrayList) systemHighlightsResults.get(i);			
+			for (int j=0; j< highlights.size(); j++) {
+				rowToWriteOn = sheetToWriteOver.getRow(6+j);
+				cellToWriteOn = rowToWriteOn.getCell(3);
+				if (highlights.get(j) instanceof String) {
+					String highlight = (String) highlights.get(j);
+					highlight = highlight.replaceAll("\"", "");					
+					if ( (j==6 || j==7) && ( (highlight.length() >= 10) && (!highlight.equals("TBD")) && (!highlight.equals("")) && (!highlight.equals("NA")) ) ) {
+						cellToWriteOn.setCellValue(highlight.substring(0, 10));
+					}
+					else					
+						cellToWriteOn.setCellValue(highlight);
+				}
+				if (highlights.get(j) instanceof Double) {
+					double highlight = (Double) highlights.get(j);
+					cellToWriteOn.setCellValue(highlight);
+				}
+			}
+		}
+
+		//User Types
+		rowToWriteOn = sheetToWriteOver.getRow(7);
+		for (int i=0; i<userTypesResults.size(); i++) {	
+			ArrayList row = (ArrayList) userTypesResults.get(i);
+			for (int j=0; j< row.size(); j++) {
+				if (row.get(j) instanceof String) {
+					String user= (String) row.get(j);
+					if(user.equals("Doctors"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(6);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("Nurses"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(7);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("Schedulers"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(8);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("Logistician"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(9);
+						cellToWriteOn.setCellValue("X");
+					}
+				}
+			}
+		}
+
+		//User Interfaces
+		rowToWriteOn = sheetToWriteOver.getRow(7);
+		for (int i=0; i<userInterfacesResults.size(); i++) {	
+			ArrayList row = (ArrayList) userInterfacesResults.get(i);
+			for (int j=0; j< row.size(); j++) {
+				if (row.get(j) instanceof String) {
+					String user= (String) row.get(j);
+					if(user.equals("Web-Based"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(15);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("Mobile"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(16);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("PC Application"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(17);
+						cellToWriteOn.setCellValue("X");
+					}
+					else if(user.equals("Other Device"))
+					{
+						cellToWriteOn=rowToWriteOn.getCell(18);
+						cellToWriteOn.setCellValue("X");
+					}
+				}
+			}
+		}
+
+		
+	}
+
+	
+	/**
+	 * Writes the Mapping Sheets in the workbook
+	 * Used for any sheet that has a list of instances and writes an X next to the ones that are mapped for this System
+	 * @param wb					XSSFWorkbook containing the Mapping Sheet to populate
+	 * @param mappingResults		ArrayList containing the mappings
+	 */
+	public void writeMappingSheet(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		XSSFRow rowToWriteOn;
+		XSSFCell cellToCheck;
+		XSSFCell cellToWriteOn;
+		int maxRow=sheetToWriteOver.getLastRowNum();
+		for (int i=0; i<mappingResults.size(); i++) {	
+			ArrayList mappingResultsList = (ArrayList) mappingResults.get(i);			
+			String instance = ((String)mappingResultsList.get(1)).replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
+			//go through each bp on the sheet and find the match		
+			for(int rowCount=3;rowCount<maxRow;rowCount++)
+			{
+				rowToWriteOn = sheetToWriteOver.getRow(rowCount);
+				cellToCheck = rowToWriteOn.getCell(0);
+				String valToCheck = cellToCheck.getStringCellValue().replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
+				if(valToCheck.equals(instance))
+				{
+					cellToWriteOn=rowToWriteOn.getCell(1);
+					if(mappingResultsList.size()>2)
+						cellToWriteOn.setCellValue(((String)mappingResultsList.get(2)).replaceAll("\"", ""));
+					else
+						cellToWriteOn.setCellValue("1");
+				}
+			}
+
+		}
+
+	}
+	
+	
+	/**
+	 * Write the List of Interfaces Sheet in the workbook
+	 * @param wb		XSSFWorkbook containing the List of Interfaces Sheet to populate
+	 * @param result	ArrayList containing the interface query results
+	 */
+	public void writeListOfInterfacesSheet (XSSFWorkbook wb, ArrayList owner, ArrayList result) {
+		String own = "TBD";
+		if(owner.size()>0)
+			own = (String) ((ArrayList)owner.get(0)).get(0);
+		int count=1;
+		while (count<owner.size())
+		{
+			if(((String) ((ArrayList)owner.get(count)).get(0)).equals("Central"))
+				own = "Central";
+			count++;
+		}
+		XSSFSheet sheetToWriteOver = wb.getSheet("ICDs");
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(4);
+		XSSFCell cellToWriteOn = rowToWriteOn.getCell(0);
+		XSSFCellStyle style = cellToWriteOn.getCellStyle();
+		if(result.size()==0)
+			cellToWriteOn.setCellValue("N/A");
+		else
+		{
+			if(result.size()>1)
+				sheetToWriteOver.shiftRows(5, sheetToWriteOver.getLastRowNum(), result.size()-1);
+			for (int i=0; i<result.size(); i++) {
+				ArrayList resultRowValues = (ArrayList) result.get(i);
+				rowToWriteOn = sheetToWriteOver.getRow(4+i);
+				if(sheetToWriteOver.getRow(4+i)== null)
+					rowToWriteOn = sheetToWriteOver.createRow(4+i);
+				for (int j=0; j< resultRowValues.size()+1; j++) {
+					cellToWriteOn = rowToWriteOn.getCell(j);
+					if(cellToWriteOn==null)
+					{
+						cellToWriteOn=rowToWriteOn.createCell(j);
+						cellToWriteOn.setCellStyle(style);
+					}
+					if(j==0)
+						cellToWriteOn.setCellValue(own);
+					else
+						cellToWriteOn.setCellValue(((String)resultRowValues.get(j-1)).replaceAll("\"", ""));
+				}
+			}
+		}
+	}	
+
+	/**
+	 * Write the Budget Sheet in the workbook
+	 * @param wb		XSSFWorkbook containing the Budget Sheet to populate
+	 * @param budgetValues	ArrayList containing the budget query results
+	 */
+	public void writeBudgetSheet(XSSFWorkbook wb, ArrayList budgetValues) {
+		XSSFSheet sheetToWriteOver = wb.getSheet("Budget");
+		XSSFRow rowToWriteOn;
+		XSSFCell cellToCheck;
+		XSSFCell cellToWriteOn;
+		int maxRow=sheetToWriteOver.getLastRowNum();
+		for (int i=0; i<budgetValues.size(); i++) {	
+			ArrayList budgetRowValues = (ArrayList) budgetValues.get(i);
+			String instance = ((String)budgetRowValues.get(0)).replaceAll("_", " ").replaceAll("\"","");
+			if(instance.equals("Applic- Mission"))
+				instance = "Applic/ Mission";
+			for(int rowCount=3;rowCount<maxRow;rowCount++)
+			{
+				rowToWriteOn = sheetToWriteOver.getRow(rowCount);
+				if(rowToWriteOn!=null)
+				{
+				cellToCheck = rowToWriteOn.getCell(0);
+				if(cellToCheck.getStringCellValue().equals(instance))
+					for(int j=1;j<budgetRowValues.size();j++)
+					{
+						cellToWriteOn=rowToWriteOn.getCell(j);
+						Object val = budgetRowValues.get(j);
+						if(val instanceof Double)
+							cellToWriteOn.setCellValue((Double)val);
+						else
+							cellToWriteOn.setCellValue((String)val);
+					}
+				}
+			}
+		}
+	}
+	/**
+	 * Writes the data from the site list query to the Deployment Sheet
+	 * @param wb		XSSFWorkbook containing the Deployment Sheet to populate
+	 * @param result	ArrayList containing the output of the site list query
+	 */
+	public void writeSiteListSheet (XSSFWorkbook wb, ArrayList result){
+		XSSFSheet sheetToWriteOver = wb.getSheet("Deployment");
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(3);
+		XSSFCell cellToWriteOn=rowToWriteOn.getCell(0);
+		XSSFCell formCellToWrite=rowToWriteOn.getCell(1);
+		XSSFCellStyle style = cellToWriteOn.getCellStyle();
+		XSSFCellStyle formstyle = formCellToWrite.getCellStyle();
+		
+		for (int i=0; i<result.size(); i++) {
+			rowToWriteOn = sheetToWriteOver.getRow(3+i);
+			if(rowToWriteOn==null)
+				rowToWriteOn=sheetToWriteOver.createRow(3+i);
+			cellToWriteOn = rowToWriteOn.getCell(0);
+			if(cellToWriteOn==null)
+			{
+				cellToWriteOn=rowToWriteOn.createCell(0);
+				cellToWriteOn.setCellStyle(style);
+				for(int j=1;j<5;j++)
+				{
+					formCellToWrite=rowToWriteOn.createCell(j);
+					formCellToWrite.setCellStyle(formstyle);
+				}
+			}
+			ArrayList row = (ArrayList) result.get(i);
+			cellToWriteOn.setCellValue((((String) row.get(0) ).replaceAll("\"", "")).replaceAll("_", " ") );
+			for(int j=1;j<5;j++)
+			{
+				formCellToWrite = rowToWriteOn.getCell(j);
+				formCellToWrite.setCellFormula("IFERROR(VLOOKUP(A"+(4+i)+",SiteDB2!$A$2:$E$3355,"+(j+1)+",FALSE),\"\")");
+			}	
+		}
+	}
+	
+	
+	/**
+	 * Writes the data from the queries to the sheet specified in list format
+	 * @param wb		XSSFWorkbook containing the sheet to populate
+	 * @param sheetName	String containing the name of the sheet to populate
+	 * @param result	ArrayList containing the output of the query
+	 */
+	public void writeListSheet(XSSFWorkbook wb, String sheetName, ArrayList result){
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(3);
+		XSSFCell cellToWriteOn=rowToWriteOn.getCell(0);
+		XSSFCellStyle style = cellToWriteOn.getCellStyle();
+		
+		for (int i=0; i<result.size(); i++) {
+			ArrayList resultRowValues = (ArrayList) result.get(i);
+			rowToWriteOn = sheetToWriteOver.getRow(3+i);
+			if(sheetToWriteOver.getRow(3+i)== null)
+				rowToWriteOn = sheetToWriteOver.createRow(3+i);
+			for (int j=0; j< resultRowValues.size(); j++) {
+				cellToWriteOn = rowToWriteOn.getCell(j);
+				if(cellToWriteOn==null)
+				{
+					cellToWriteOn=rowToWriteOn.createCell(j);
+					cellToWriteOn.setCellStyle(style);
+				}
+				if(resultRowValues.get(j) instanceof Double)
+					cellToWriteOn.setCellValue(((Double)resultRowValues.get(j)));
+				else
+					cellToWriteOn.setCellValue(((String)resultRowValues.get(j)).replaceAll("\"", ""));
+			}
+		}
+	}
+}

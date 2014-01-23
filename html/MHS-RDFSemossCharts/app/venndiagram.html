@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>mds venn.js example</title>
+</head>
+
+<body>
+    <div class="mds"></div>
+</body>
+<script src="lib/jquery/jquery-1.8.3.min.js"></script>
+<script src="lib/d3.v3.js"></script>
+<script src="lib/venn.js"></script>
+<script src="lib/multipleVenn.js"></script>
+<script src="lib/numeric.js"></script>
+<script>
+
+//var data = {"Sets":[{"value":488,"source":0,"target":1},{"value":264,"source":0,"target":2},{"value":408,"source":1,"target":2}],"Labels":[{"name":"VendorA","value":1748,"id":0},{"name":"VendorB","value":2084,"id":1},{"name":"VendorC","value":1188,"id":2}]}
+//start(data);
+
+function start(dataString) {
+    var data = jQuery.parseJSON(dataString);
+    
+    var overlaps = [];
+    var sets = [];
+    
+    /* loop to create the overlaps array */
+    for (var i = 0; i<data.Sets.length; i++) {
+        var source = data.Sets[i].source
+        var target = data.Sets[i].target
+        var value = data.Sets[i].value
+        var srctgt = [source, target]
+        
+        var obj = {
+            sets: srctgt,
+            size: value
+        }
+        
+
+        overlaps.push(obj);
+    }
+    
+    /* loop to create the sets array */
+    for (var i = 0; i<data.Labels.length; i++) {
+        var name = data.Labels[i].name
+        var value = data.Labels[i].value
+        var index = data.Labels[i].index
+        
+        var obj = {
+            label: name,
+            size: value,
+            index: index
+        }
+        
+        sets.push(obj)
+    }
+    
+    
+    
+    // get positions for each set
+    sets = venn.venn(sets, overlaps, {layoutFunction: venn.classicMDSLayout})
+    
+    // draw the diagram in the 'mds' div
+    venn.drawD3Diagram(d3.select(".mds"), sets, 300, 300);  
+
+}
+
+
+</script>
+</html>

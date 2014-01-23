@@ -1,0 +1,52 @@
+
+##Base Objects##
+
+System http://health.mil/ontologies/Concept/System
+FYTag http://health.mil/ontologies/Concept/FYTag
+Enterprise http://health.mil/ontologies/Concept/Enterprise
+GLTag http://health.mil/ontologies/Concept/GLTag
+Complexity http://health.mil/ontologies/Concept/Complexity
+EnterpriseBudgetGLItem http://health.mil/ontologies/Concept/EnterpriseBudgetGLItem
+SystemBudgetGLItem http://health.mil/ontologies/Concept/SystemBudgetGLItem
+FundingSource http://health.mil/ontologies/Concept/FundingSource
+
+##Base Predicates##
+
+EnterpriseBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
+EnterpriseBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
+SystemBudgetGLItem_FundedBy_FundingSource http://health.mil/ontologies/Relation/FundedBy
+GLTag_Includes_GLTag http://health.mil/ontologies/Relation/Includes
+SystemBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
+System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
+Enterprise_Consists_System http://health.mil/ontologies/Relation/Consists
+Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
+SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+
+##Base Objects Class##
+
+GLTag_CLASS http://semoss.org/ontologies/Concept/GLTag
+Enterprise_CLASS http://semoss.org/ontologies/Concept/Enterprise
+Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
+SystemBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/SystemBudgetGLItem
+System_CLASS http://semoss.org/ontologies/Concept/System
+EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem
+FundingSource_CLASS http://semoss.org/ontologies/Concept/FundingSource
+FYTag_CLASS http://semoss.org/ontologies/Concept/FYTag
+
+##Base Predicates Class##
+
+GLTag_Includes_GLTag_CLASS http://semoss.org/ontologies/Relation/Includes
+Enterprise_Has_EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+System_Has_SystemBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+SystemBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
+Enterprise_Consists_System_CLASS http://semoss.org/ontologies/Relation/Consists
+SystemBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+SystemBudgetGLItem_FundedBy_FundingSource_CLASS http://semoss.org/ontologies/Relation/FundedBy
+EnterpriseBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+EnterpriseBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;

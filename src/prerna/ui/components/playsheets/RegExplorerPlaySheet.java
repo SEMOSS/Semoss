@@ -1,0 +1,345 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.ui.components.playsheets;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.ComponentOrientation;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.SystemColor;
+import java.beans.PropertyVetoException;
+
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+
+import prerna.ui.components.NewScrollBarUI;
+import prerna.ui.components.PaintLabel;
+import prerna.ui.components.WrapLayout;
+
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.ListModel;
+import javax.swing.Painter;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.UIDefaults;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+
+import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.main.listener.impl.GridPlaySheetListener;
+import prerna.ui.main.listener.impl.RegressionAnalysisButtonListener;
+import prerna.ui.main.listener.impl.RegressionDepVarListener;
+import prerna.ui.main.listener.impl.RegressionIndepVarDeleteListener;
+import prerna.ui.main.listener.impl.RegressionIndepVarListener;
+import prerna.ui.main.listener.impl.RepoSelectionListener;
+import prerna.ui.swing.custom.CustomButton;
+import prerna.ui.swing.custom.ProgressPainter;
+import prerna.util.CSSApplication;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import aurelienribon.ui.css.Style;
+
+import com.hp.hpl.jena.query.ResultSet;
+
+/**
+ */
+public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
+
+	
+	String depVarText;
+	ArrayList<String> indepVarTextList;
+	ArrayList<Double> indepVarMedianValues;
+	ArrayList<Double> indepVarSlopeValues;
+	ArrayList<JPanel> indepPanelList = new ArrayList<JPanel>();
+	JPanel depPanel;
+	
+	JPanel regPanel;
+	
+	protected ResultSet rs = null;
+
+	/**
+	 * Method createView.
+	 */
+	@Override
+	public void createView() {
+		addPanel();
+	}
+	
+	
+	/**
+	 * Method setRs.
+	 * @param rs ResultSet
+	 */
+	public void setRs(ResultSet rs) {
+		this.rs = rs;
+	}
+	
+	/**
+	 * Method getVariable.
+	 * @param varName String
+	 * @param sjss SesameJenaSelectStatement
+	
+	 * @return Object */
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
+	}
+
+	/**
+	 * Method refineView.
+	 */
+	@Override
+	public void refineView() {
+		// TODO Auto-generated method stub
+		// this is easy
+		// just use the filter to not show stuff I dont need to show
+		// but this also means I need to create the vertex filter data etc. 
+		//
+		
+	}
+	/**
+	 * Method overlayView.
+	 */
+	@Override
+	public void overlayView() {
+		//Fill
+	}
+	
+
+	/**
+	 * Method addPanel.
+	 */
+	public void addPanel()
+	{
+		try{
+			
+			regPanel = new JPanel();
+			this.setContentPane(regPanel);
+			regPanel.setLayout(new GridBagLayout());
+
+			JLabel regressorLabel = new JLabel("Regressors:");
+			regressorLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+			GridBagConstraints gbc_regressorLabel = new GridBagConstraints();
+			gbc_regressorLabel.insets= new Insets(0,0,50,0);
+			gbc_regressorLabel.anchor= GridBagConstraints.WEST;
+			//gbc_regressorLabel.fill= GridBagConstraints.BOTH;
+			gbc_regressorLabel.gridx = 0;
+			gbc_regressorLabel.gridy = 0;
+			regPanel.add(regressorLabel,gbc_regressorLabel);
+			
+			JPanel indepPanel = new JPanel();
+			indepPanel.setLayout(new WrapLayout());
+			for(int i=0;i<indepVarTextList.size();i++)
+			{
+				JPanel panel = new JPanel();
+				panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+				panel.setBorder(new EmptyBorder(10, 10, 10, 10) );
+				
+				JLabel label = new JLabel(indepVarTextList.get(i));
+				label.setAlignmentX(CENTER_ALIGNMENT);
+				panel.add(label);
+
+				String toPut = indepVarSlopeValues.get(i).toString();
+				int indexOfDec = toPut.indexOf(".");
+				if(indexOfDec>0&&toPut.length()>(indexOfDec+4))
+					toPut=toPut.substring(0,indexOfDec+4);				
+				JLabel labelRegCoeff = new JLabel("Reg Coeff: "+toPut);
+				labelRegCoeff.setAlignmentX(CENTER_ALIGNMENT);
+				panel.add(labelRegCoeff);
+				
+				toPut = indepVarMedianValues.get(i).toString();
+				indexOfDec = toPut.indexOf(".");
+				if(indexOfDec>0&&toPut.length()>(indexOfDec+4))
+					toPut=toPut.substring(0,indexOfDec+4);
+				JTextField field = new JTextField(toPut);
+				field.setAlignmentX(CENTER_ALIGNMENT);
+				panel.add(field);
+				indepPanelList.add(panel);
+				indepPanel.add(panel);			
+			}
+			GridBagConstraints gbc_indepPanel = new GridBagConstraints();
+			gbc_indepPanel.insets= new Insets(0,0,50,0);
+			gbc_indepPanel.anchor= GridBagConstraints.NORTH;
+			gbc_indepPanel.fill= GridBagConstraints.BOTH;
+			gbc_indepPanel.gridx = 0;
+			gbc_indepPanel.gridy = 1;
+			regPanel.add(indepPanel,gbc_indepPanel);
+			indepPanel.repaint();
+			regPanel.repaint();
+
+			
+			
+			JLabel depVarLabel = new JLabel("Dependent Variable Prediction:");
+			depVarLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+			GridBagConstraints gbc_depVarLabel = new GridBagConstraints();
+			gbc_depVarLabel.insets= new Insets(0,0,50,0);
+			gbc_depVarLabel.anchor= GridBagConstraints.NORTH;
+			gbc_depVarLabel.fill= GridBagConstraints.BOTH;
+			gbc_depVarLabel.gridx = 0;
+			gbc_depVarLabel.gridy = 2;
+			regPanel.add(depVarLabel,gbc_depVarLabel);
+			
+			depPanel = new JPanel();
+			depPanel.setLayout(new BoxLayout(depPanel, BoxLayout.Y_AXIS));
+			
+			JLabel deplabel = new JLabel(depVarText);
+			deplabel.setAlignmentX(CENTER_ALIGNMENT);
+			depPanel.add(deplabel);
+			
+			Double depValue =0.0;//constVal;
+			for(int i=0;i<indepVarSlopeValues.size();i++)
+			{
+				Double medValue = Double.parseDouble(((JTextField)indepPanelList.get(i).getComponent(2)).getText());
+				depValue+=indepVarSlopeValues.get(i)*medValue;
+			}
+			JTextField depfield = new JTextField(depValue.toString().substring(0,8));
+			depfield.setAlignmentX(CENTER_ALIGNMENT);
+			depPanel.add(depfield);
+			//depPanel.setPreferredSize(new Dimension(100,100));
+
+			GridBagConstraints gbc_depPanel = new GridBagConstraints();
+			gbc_depPanel.gridx = 0;
+			gbc_depPanel.gridy = 3;
+			regPanel.add(depPanel,gbc_depPanel);
+			
+			
+			JButton recalculateBtn = new CustomButton("Recalculate");
+			recalculateBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+			recalculateBtn.setAlignmentX(CENTER_ALIGNMENT);
+
+			GridBagConstraints gbc_recalculateBtn = new GridBagConstraints();
+			gbc_recalculateBtn.gridx = 0;
+			gbc_recalculateBtn.gridy = 4;
+			//gbc_recalculateBtn.fill = GridBagConstraints.HORIZONTAL;
+			recalculateBtn.setMinimumSize(new Dimension(100,30));
+			regPanel.add(recalculateBtn,gbc_recalculateBtn);
+			
+			recalculateBtn.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	    			try{
+		        		Double depValue = 0.0;
+		        		for(int i=0;i<indepVarSlopeValues.size();i++)
+		        		{
+		        			Double medValue = Double.parseDouble(((JTextField)indepPanelList.get(i).getComponent(2)).getText());
+		        			depValue+=indepVarSlopeValues.get(i)*medValue;
+		        		}
+		        		((JTextField)(depPanel.getComponent(1))).setText(depValue.toString());
+	    			}
+	    			catch(Exception ex){
+	    				displayCheckBoxError();
+	    			}
+	            }
+	        });
+			CSSApplication css = new CSSApplication(recalculateBtn,".standardButton");
+
+			
+			
+			
+			pane.add(this);
+			this.setMaximum(true);
+//			this.setExtendedState(Frame.MAXIMIZED_BOTH);
+			this.pack();
+			this.setVisible(true);
+			this.setSelected(false);
+			this.setSelected(true);
+			this.setMaximum(true);
+//			this.setExtendedState(Frame.MAXIMIZED_BOTH);
+			this.pack();
+			this.setVisible(true);
+			this.setSelected(false);
+			this.setSelected(true);
+	
+			logger.debug("Added the main pane");
+		} catch (PropertyVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Method setValues.
+	 * @param dependentVar String
+	 * @param independentVarList ArrayList<String>
+	 * @param independentVarMedianValues ArrayList<Double>
+	 * @param independentVarSlopeValues ArrayList<Double>
+	 */
+	public void setValues(String dependentVar,ArrayList<String> independentVarList,ArrayList<Double> independentVarMedianValues,ArrayList<Double> independentVarSlopeValues)
+	{
+		depVarText = dependentVar;
+		indepVarTextList = independentVarList;
+		indepVarMedianValues =independentVarMedianValues;
+		indepVarSlopeValues = independentVarSlopeValues;
+	}
+	
+	/**
+	 * Method displayCheckBoxError.
+	 * 
+	 */
+	
+	public void displayCheckBoxError(){
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JOptionPane.showMessageDialog(playPane, "One of the elements is not a number.", "Error", JOptionPane.ERROR_MESSAGE);
+		
+	}
+
+
+	@Override
+	public void createData() {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Object getData() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void runAnalytics() {
+		// TODO Auto-generated method stub
+		
+	}
+}

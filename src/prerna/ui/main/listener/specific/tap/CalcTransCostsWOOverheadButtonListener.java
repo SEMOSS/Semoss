@@ -1,0 +1,157 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.ui.main.listener.specific.tap;
+
+import java.awt.event.ActionEvent;
+
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JTable;
+
+import org.apache.log4j.Logger;
+
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.tap.TransitionCostInsert;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
+
+//TODO: Class is no longer used. CalculateTransitionCostsButtonListener takes into consideration if TAP overhead radiobutton is pressed
+
+/**
+ */
+public class CalcTransCostsWOOverheadButtonListener implements IChakraListener {
+
+	Logger logger = Logger.getLogger(getClass());
+	SesameJenaSelectWrapper selectWrapper;
+	GridFilterData gfd = new GridFilterData();
+	JTable table = null;
+	
+	
+	/**
+	 * Method actionPerformed.
+	 * @param actionevent ActionEvent
+	 */
+	@Override
+	public void actionPerformed(ActionEvent actionevent) {
+		logger.info("Transition Costs button pressed");
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		String loeCalcCheckquery = "SELECT ?s ?p ?o WHERE{ BIND(<http://health.mil/ontologies/dRelation/Contains/LOEcalc> AS ?p) {?s ?p ?o}}";
+
+		boolean check = Utility.runCheck(loeCalcCheckquery); //check to see if the property LOEcalc already exists in the database.
+		if (check == false){
+			String glItemCheckQuery = "SELECT ?s ?p ?o WHERE{ BIND(<http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity> AS ?o) {?s ?p ?o}}";
+			boolean dbCheck = Utility.runCheck(glItemCheckQuery);//check if engine contains estimates
+			if(dbCheck == false){
+				JOptionPane.showMessageDialog(playPane, "The selected RDF store does not contain the necessary baseline estimates \nto " +
+						"perfrom the calculation.  Please select a different RDF store and try again.", 
+						"Error", JOptionPane.ERROR_MESSAGE);
+				
+			}
+			else {
+				runInsert(false);
+			}
+		}
+		else{
+			Object[] buttons = {"Cancel Calculation", "Continue With Calculation"};
+			int response = JOptionPane.showOptionDialog(playPane, "The selected RDF store already " +
+					"contains calculated transition values.  Would you like to overwrite?", 
+					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
+
+			if (response == 1){
+				runInsert(true);
+			}
+			else {
+			}
+			
+		}
+	}
+	
+	
+	
+	/*
+	public void fillTable(){
+		String [] names = selectWrapper.getVariables();
+		ArrayList <String []> list = new ArrayList();
+		
+		gfd.setColumnNames(names);
+		int count = 0;
+		// now get the bindings and generate the data
+		try {
+			while(selectWrapper.hasNext())
+			{
+				SesameJenaSelectStatement sjss = selectWrapper.next();
+				
+				String [] values = new String[names.length];
+				for(int colIndex = 0;colIndex < names.length;colIndex++)
+				{
+					values[colIndex] = sjss.getVar(names[colIndex])+"";
+					logger.debug("Binding Name " + names[colIndex]);
+					logger.debug("Binding Value " + values[colIndex]);
+				}
+				logger.debug("Creating new Value " + values);
+				list.add(count, values);
+				count++;
+			}
+			gfd.setDataList(list);
+			GridTableModel model = new GridTableModel(gfd);
+			table.setModel(model);
+		} catch (Exception e) {
+			logger.fatal(e);
+		}
+	}*/
+
+
+	/**
+	 * Method runInsert.
+	 * @param delete boolean
+	 */
+	public void runInsert(boolean delete){
+		String query = null;
+		if(delete==true) query=DIHelper.getInstance().getProperty(Constants.TRANSITION_COST_DELETE)+
+				Constants.TRANSITION_QUERY_SEPARATOR+
+				DIHelper.getInstance().getProperty(Constants.TRANSITION_COST_INSERT_WITHOUT_OVERHEAD)
+				+Constants.TRANSITION_QUERY_SEPARATOR+
+				DIHelper.getInstance().getProperty(Constants.TRANSITION_COST_INSERT_SITEGLITEM);
+		else if (delete==false) query=DIHelper.getInstance().getProperty(Constants.TRANSITION_COST_INSERT_WITHOUT_OVERHEAD)
+				+Constants.TRANSITION_QUERY_SEPARATOR+
+				DIHelper.getInstance().getProperty(Constants.TRANSITION_COST_INSERT_SITEGLITEM);
+		TransitionCostInsert insert = new TransitionCostInsert();
+		insert.setQuery(query);
+		Runnable playRunner = null;
+		playRunner = insert;
+		// thread
+		Thread playThread = new Thread(playRunner);
+		playThread.start();
+	}
+
+	/**
+	 * Method setView.
+	 * @param view JComponent
+	 */
+	@Override
+	public void setView(JComponent view) {
+		
+	}
+
+	
+}

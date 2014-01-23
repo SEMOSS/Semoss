@@ -1,0 +1,27 @@
+Base Properties 
+ENGINE	VCAMP_Core
+ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
+ONTOLOGY	db/VCAMP_Core/VCAMP_Core_Custom_Map.prop
+OWL	db/VCAMP_Core/VCAMP_Core_OWL.OWL
+DREAMER	db/VCAMP_Core/VCAMP_Core_Questions.properties
+
+
+# changing the axiom model to none essentially disables all inference
+com.bigdata.rdf.store.AbstractTripleStore.axiomsClass=com.bigdata.rdf.axioms.NoAxioms
+com.bigdata.rdf.store.AbstractTripleStore.quads=false
+com.bigdata.rdf.store.AbstractTripleStore.statementIdentifiers=false
+com.bigdata.rdf.store.AbstractTripleStore.textIndex=true
+	
+com.bigdata.rdf.sail.bufferCapacity=100000
+
+# turn off automatic inference in the SAIL
+com.bigdata.rdf.sail.truthMaintenance=true
+	
+# The name of the backing file.
+com.bigdata.journal.AbstractJournal.file=db/VCAMP_Core/VCAMP_Core.jnl
+com.bigdata.journal.AbstractJournal.bufferMode=DiskRW
+	
+com.bigdata.btree.writeRetentionQueue.capacity=4000
+com.bigdata.btree.BTree.branchingFactor=512
+	
+com.bigdata.rdf.store.DataLoader.commit=Incremental

@@ -1,0 +1,76 @@
+.timeline-default {
+    border: 1px solid #AAAAAA;
+    font-family: Trebuchet MS,Helvetica,Arial,sans serif;
+    font-size: 8pt;
+}
+.tape-special_event, .small-special_event {
+    background-color: orange;
+}
+
+.t-highlight1 {
+    background-color: #CCCCFF;
+}
+.p-highlight1 {
+    background-color: #FFCCCC;
+}
+.timeline-highlight-label-start .label_t-highlight1 {
+    color: #FF0000;
+}
+.timeline-highlight-label-end .label_t-highlight1 {
+    color: #AAAAFF;
+}
+.timeline-band-events .important {
+    color: #FF0000;
+}
+.timeline-band-events .small-important {
+    background: none repeat scroll 0 0 #CC0000;
+}
+.dark-theme {
+    color: #EEEEEE;
+}
+.dark-theme .timeline-band-0 .timeline-ether-bg {
+    background-color: #333333;
+}
+.dark-theme .timeline-band-1 .timeline-ether-bg {
+    background-color: #111111;
+}
+.dark-theme .timeline-band-2 .timeline-ether-bg {
+    background-color: #222222;
+}
+.dark-theme .timeline-band-3 .timeline-ether-bg {
+    background-color: #444444;
+}
+.dark-theme .t-highlight1 {
+    background-color: #000033;
+}
+.dark-theme .p-highlight1 {
+    background-color: #330000;
+}
+.dark-theme .timeline-highlight-label-start .label_t-highlight1 {
+    color: #FF0000;
+}
+.dark-theme .timeline-highlight-label-end .label_t-highlight1 {
+    color: #111155;
+}
+.dark-theme .timeline-band-events .important {
+    color: #CC0000;
+}
+.dark-theme .timeline-band-events .small-important {
+    background: none repeat scroll 0 0 #CC0000;
+}
+.dark-theme .timeline-date-label-em {
+    color: #FFFFFF;
+}
+.dark-theme .timeline-ether-lines {
+    border-color: #555555;
+    border-style: solid;
+}
+.dark-theme .timeline-ether-highlight {
+    background: none repeat scroll 0 0 #555555;
+}
+.dark-theme .timeline-event-tape, .dark-theme .timeline-small-event-tape {
+    background: none repeat scroll 0 0 #FF6600;
+}
+.dark-theme .timeline-ether-weekends {
+    background: none repeat scroll 0 0 #111111;
+}

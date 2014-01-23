@@ -1,0 +1,4 @@
+Sno,FirstName,Height,LastName,MiddleName,Crazy,LevelOfCraziness,CrazySince,Comment1,Comment2
+1,Prabhu,110,Kapaleeswaran,,TRUE,High,1/1/2011,Really Crazy,Wow
+2,Bill,180,Sutton,,TRUE,Medium,10/1/2012,Really Crazy,Wow
+3,Tom,110,Chen,,FALSE,NA,8/1/2012,Not Crazy,Meh

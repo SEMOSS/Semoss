@@ -1,0 +1,54 @@
+// List of things I need
+// Number of Columns
+// Column Number to type
+// Types are
+// Decimal
+// Number
+// String
+// Boolean
+// Date - Format mm/dd/yyyy
+
+NUM_COLUMNS	11
+
+NOT_OPTIONAL	1;
+
+IGNORE_URI      ;
+PROP_URI ;
+PREDICATE_URI ;
+
+Contains	http://health.mil/ontologies/dbcm/Relation/Contains
+
+// Relationships to create and their ontology
+// if nothing is specified
+// it gets created as Property
+
+// base Concepts first
+CaseID	http://health.mil/ontologies/dbcm/Concept/CaseID
+DefaultAssignmentGroup	http://health.mil/ontologies/dbcm/Concept/DefaultAssignmentGroup
+AssignedToGroup	http://health.mil/ontologies/dbcm/Concept/AssignedToGroup
+Item	http://health.mil/ontologies/dbcm/Concept/Item
+ResolutionMethod	http://health.mil/ontologies/dbcm/Concept/ResolutionMethod
+PossibleDeviceID	http://health.mil/ontologies/dbcm/Concept/PossibleDeviceID
+PossibleLocation	http://health.mil/ontologies/dbcm/Concept/PossibleLocation
+City	http://health.mil/ontologies/dbcm/Concept/City
+State	http://health.mil/ontologies/dbcm/Concept/State
+
+
+CaseID@DefaultAssignmentGroup	http://health.mil/ontologies/dbcm/Relation/Assigned
+CaseID@AssignedToGroup	http://health.mil/ontologies/dbcm/Relation/Resolves
+CaseID@ResolutionMethod	http://health.mil/ontologies/dbcm/Relation/Method
+PossibleDeviceID@CaseID	http://health.mil/ontologies/dbcm/Relation/Failure
+Item@PossibleDeviceID	http://health.mil/ontologies/dbcm/Relation/Type
+PossibleLocation@PossibleDeviceID	http://health.mil/ontologies/dbcm/Relation/Located
+PossibleLocation@City	http://health.mil/ontologies/dbcm/Relation/LocatedInCity
+PossibleLocation@State	http://health.mil/ontologies/dbcm/Relation/LocatedInState
+CaseID@ArrivalTime	http://health.mil/ontologies/dbcm/Relation/Contains/ArrivalTime
+CaseID@ResolvedTime	http://health.mil/ontologies/dbcm/Relation/Contains/ResolvedTime
+
+
+
+RELATION	CaseID@DefaultAssignmentGroup;CaseID@AssignedToGroup;CaseID@ResolutionMethod;PossibleDeviceID@CaseID;Item@PossibleDeviceID;PossibleLocation@PossibleDeviceID;PossibleLocation@City;PossibleLocation@State;CaseID@ArrivalTime;CaseID@ResolvedTime
+
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://health.mil/ontologies/dbcm/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://health.mil/ontologies/dbcm/Concept/CaseID+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/DefaultAssignmentGroup+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Item+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/ResolutionMethod+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/PossibleDeviceID+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/PossibleLocation+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/City+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/State+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/AssignedToGroup+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;
+BaseMetaRelationships=http://health.mil/ontologies/dbcm/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://health.mil/ontologies/dbcm/Relation/Modifies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Assigned+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Resolves+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Priority+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Type+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation/Contains;http://health.mil/ontologies/dbcm/Relation/Failure+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Method+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Located+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/LocatedInCity+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/LocatedInState+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;

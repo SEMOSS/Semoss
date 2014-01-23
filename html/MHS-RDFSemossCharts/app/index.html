@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="no-js" ng-app="rdfgraph">
+<head>
+    <title>RDF Editor</title>    
+    <!-- CSS -->
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+    <link rel="stylesheet" href="css/bootstrap.css"/> 
+    <!--<link rel="stylesheet" href="css/bootstrap-responsive.css"/> --><!--For Responsive Web Design -->   
+    <link rel="stylesheet" href="css/jquery-ui-1.8.23.custom.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+    <link rel="stylesheet" href="css/bootstrap-editable.css"/>
+</head>
+
+<body ng-cloak class="ng-cloak">
+    <div id='thecontroller' ng-controller="indexCtrl">
+	   <div id="logo"><img src="img/logo.png"></div>
+	   <div class="span12 formContainer"> 
+		  <h3 style="display: inline;">Select Graph Data</h3>
+		  <button class="btn btn-success addDimension" ng-click="addDimension()"><i class="icon-plus icon-white"></i> Add Dimension</button>
+		  <div style="clear: both"></div>
+		  
+
+		    <accordion close-others="oneAtATime">
+			 <accordion-group heading="{{dimension.name}}" ng-repeat="dimension in dimensions">
+				<div class="span3 drop">					   
+				    <!--Data Selectors-->
+				    <table class="table table-striped">
+					   <tr class="blue"> <!--Table Header-->
+						  <th class="tableCheck"><input ng-model="dimension.selectedType" ng-click="selectAllTypes()" type="checkbox"></th>
+						  <th class="tableBody"> Select Type(s)</th>
+					   </tr>
+				    </table>
+				    <div class="graphTableContainer">
+					   <table class="blue table table-striped">
+						  <tr ng-repeat="type in types[dimension.index]">
+							 <td class="tableCheck"><input type="checkbox" ng-model="type.selected" ng-click="typesChecked()"></td>
+							 <td class="tableBody" >{{type.name}}</td>
+						  </tr>
+					   </table>
+				    </div>
+					<div style="clear: both;"></div>
+                    <button class="btn" ng-click="deleteDim()" ng-show="isDeleteShow()">Delete Dimension</button>
+				 </div><!--Span3 Drop-->
+				 
+				 <div class="span3 drop">					   
+				    <!--Data Selectors-->
+				    <table class="table table-striped">
+					   <tr class="blue"> <!--Table Header-->
+						  <th class="tableCheck"><input ng-model="dimension.selectedInstance" ng-click="selectAllInstances()" type="checkbox"></th>
+						  <th class="tableBody"> Select Instance(s)</th>
+					   </tr>
+				    </table>
+				    <div class="graphTableContainer">
+					   <table class="blue table table-striped">
+						  <tr ng-repeat="instance in instances[dimension.index]">
+							 <td class="tableCheck"><input type="checkbox" ng-model="instance.selected" ng-click="instancesChecked()"></td>
+							 <td class="tableBody">{{instance.name.propHash.VERTEX_LABEL_PROPERTY}}</td>
+						  </tr>
+					   </table>
+				    </div>
+					<div style="clear: both;"></div>
+				 </div><!--Span3 Drop-->
+				 
+				 <div class="span3 drop">					   
+				    <!--Data Selectors-->
+				    <table class="table table-striped">
+					   <tr class="blue"> <!--Table Header-->
+						  <th class="tableFull">Select Property</th>
+					   </tr>
+				    </table>
+				    <div class="graphTableContainer">
+					   <table class="table table-striped">
+						  <tr ng-repeat="property in properties[dimension.index]">
+							 <!--These radio buttons need distinct names (dimension[1])-->
+							 <td class="tableCheck"><input type="radio" name="{{dimension.index}}" ng-value="property.name" ng-click="propertiesChecked()"></td>
+							 <td class="tableBody">{{property.name}}</td>
+						  </tr>
+					   </table>
+				    </div>
+					<div style="clear: both;"></div>
+				 </div><!--Span3 Drop-->
+				 
+				 <div class="span3 drop">					   
+				    <!--Data Selectors-->
+				    <table class="blue table table-striped">
+					   <tr class="blue"> <!--Table Header-->
+						  <th class="tableBody">Value</th>
+					   </tr>
+				    </table>
+				    <div class="graphTableContainer">
+					   <table class="blue table table-striped">
+						  <tr ng-repeat="value in values[dimension.index]">
+							 <td class="tableFull">{{value.name}}</td>
+							 <td class="tableNone"></td>
+						  </tr>
+					   </table>
+				    </div>
+					<div style="clear: both;"></div>
+				 </div><!--Span3 Drop-->
+			 </accordion-group>
+		    </accordion>
+			 
+            <div id="graphSpace">
+                <div class="options">
+				<div>
+				    Group Data By: 
+				    Property: <input type="radio" name="groupby" value="Property" ng-model="groupby">
+				    Instance: <input type="radio" name="groupby" value="Instance" ng-model="groupby">
+				</div>
+				Select Chart: 
+                <!-- <button class="btn" ng-click="healthGrid('bubble')">Health Grid</button> -->
+				<button class="btn btn-large btn-primary" ng-click='drawGraph("bar")'><img src="img/column.png"></button>
+				<button class="btn btn-large btn-warning" ng-click='drawGraph("column")'><img src="img/bar.png"></button>
+				<button class="btn btn-large btn-danger" ng-click='drawGraph("scatter")' ng-disabled="isScatterDisabled()"><img src="img/scatter.png"></button>
+				<button class="btn btn-large btn-success" ng-click='drawGraph("pie")' ng-disabled="isPieDisabled()"><img src="img/pie.png"></button>
+				<button class="btn btn-large btn-info" ng-click='drawGraph("line")'><img src="img/line.png"></button>
+                <button class="btn btn-large btn-inverse" ng-click='drawGraph("bubble")' ng-disabled="isBubbleDisabled()"><img src="img/bubble.png"></button>
+			 </div>
+                <div id='visualization' style="width:600px;height:523px"></div>
+            </div>   
+    </div>
+    
+    <!-- jQuery and Bootstrap Libraries -->
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+    <script src="lib/bootstrap.js"></script>
+    <script src="lib/underscore.js"></script>
+
+	
+	<!-- AngularJS -->
+	<script src="lib/angular/angular.js"></script>
+	<script src="lib/angular/angular-ui.js"></script>
+	<script src="lib/angular/angular-ui-bootstrap.js"></script>
+		
+	<!-- Angular Module -->
+	<script src="js/app.js"></script>
+	
+	<!-- Angular Controllers -->
+	<script src="js/controllers.js"></script>
+	<script src="js/directives.js"></script>
+	<script src="js/filters.js"></script>	
+	<script src="js/services.js"></script>
+	
+	<!-- Make Dem Charts -->
+    <script src="lib/highcharts.js"></script>
+    <script src="lib/highcharts-more.js"></script>
+    <script>
+        function start(data) {
+        	//alert('Yoo Hoo ');
+            //var jsonData = data;
+            
+         // Declaration instance of scope where is my function
+            var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+            // calling that function
+            ctrlScope.setJSONData(data);
+        };
+    </script>
+	
+</body>
+</html>

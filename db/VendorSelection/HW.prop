@@ -1,0 +1,28 @@
+START_ROW	2
+END_ROW	10000
+
+NUM_COLUMNS	6
+1	String
+2	String
+3	String
+4	Decimal
+5	Decimal
+6	SimpleDate
+
+
+NOT_OPTIONAL	;
+
+RELATION		Vendor@Uses@Hardware;Hardware@Has@HardwareType;
+
+NODE_PROP	Hardware%EOL;Hardware%Quantity;Hardware%Cost;
+
+RELATION_PROP
+
+##Base Objects##
+
+##Base Objects Class##
+
+##Base Predicates##
+
+##Base Predicates Class##
+

@@ -1,0 +1,2084 @@
+{
+    "ManageServiceAuthorization: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 888.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 31 business days",
+        "title": "ManageServiceAuthorization: Design",
+        "start": "10 30 2018"
+    },
+    "Get_Patient_Data: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1194.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 91 business days",
+        "title": "Get_Patient_Data: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Patient_Consent_and_Authorization: Test": {
+        "end": "12 14 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 773.0 (hours)~Resources Needed: 5.0~Total Time Elasped: 20 business days",
+        "title": "CRUD_Patient_Consent_and_Authorization: Test",
+        "start": "11 16 2015"
+    },
+    "CRUD_Lab_Test_Results: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 2738.0 (hours)~Resources Needed: 3.8~Total Time Elasped: 91 business days",
+        "title": "CRUD_Lab_Test_Results: Test",
+        "start": "1 13 2016"
+    },
+    "Get-Set_Educational_Material: Develop": {
+        "end": "1 13 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 772.0 (hours)~Resources Needed: 4.1~Total Time Elasped: 24 business days",
+        "title": "Get-Set_Educational_Material: Develop",
+        "start": "12 12 2019"
+    },
+    "CRUD_Procedure_Order: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 4779.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Procedure_Order: Test",
+        "start": "1 13 2017"
+    },
+    "Display_Efficiency_Information: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 470.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 31 business days",
+        "title": "Display_Efficiency_Information: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Transfer_Order: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2368.0 (hours)~Resources Needed: 12.5~Total Time Elasped: 24 business days",
+        "title": "CRUD_Transfer_Order: Develop",
+        "start": "12 12 2017"
+    },
+    "Get_Provider_Role_in_Team: Develop": {
+        "end": "12 1 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 2.7~Total Time Elasped: 17 business days",
+        "title": "Get_Provider_Role_in_Team: Develop",
+        "start": "11 8 2018"
+    },
+    "Get-SetPatientHistory: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1689.0 (hours)~Resources Needed: 8.9~Total Time Elasped: 24 business days",
+        "title": "Get-SetPatientHistory: Develop",
+        "start": "12 12 2015"
+    },
+    "CRUD_Recommendations: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 983.0 (hours)~Resources Needed: 5.9~Total Time Elasped: 21 business days",
+        "title": "CRUD_Recommendations: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Financial_and_Administrative_Data: Deploy": {
+        "end": "12 15 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 128.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 8 business days",
+        "title": "CRUD_Financial_and_Administrative_Data: Deploy",
+        "start": "12 5 2016"
+    },
+    "CRUD_Team_Wait_List: Design": {
+        "end": "11 8 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 313.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 16 business days",
+        "title": "CRUD_Team_Wait_List: Design",
+        "start": "10 17 2018"
+    },
+    "Find_Team: Develop": {
+        "end": "12 1 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 2.7~Total Time Elasped: 17 business days",
+        "title": "Find_Team: Develop",
+        "start": "11 8 2018"
+    },
+    "CRUD_Exposure_Data: Requirements": {
+        "end": "10 30 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 629.0 (hours)~Resources Needed: 3.8~Total Time Elasped: 21 business days",
+        "title": "CRUD_Exposure_Data: Requirements",
+        "start": "10 1 2019"
+    },
+    "CRUD_Patient_Preferences: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Preferences: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Patient_Consent_and_Authorization: Requirements": {
+        "end": "10 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 9 business days",
+        "title": "CRUD_Patient_Consent_and_Authorization: Requirements",
+        "start": "10 1 2015"
+    },
+    "CRUD_Patient_Guidance_and_Reminder: Requirements": {
+        "end": "10 30 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 613.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Guidance_and_Reminder: Requirements",
+        "start": "10 1 2019"
+    },
+    "CRUD_Referral: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 724.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Referral: Requirements",
+        "start": "10 1 2018"
+    },
+    "GetPatient_(Patient_Identity:_Person_Search): Test": {
+        "end": "3 19 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 2594.0 (hours)~Resources Needed: 6.9~Total Time Elasped: 47 business days",
+        "title": "GetPatient_(Patient_Identity:_Person_Search): Test",
+        "start": "1 13 2015",
+        "trackNum": "5"
+    },
+    "Get-Set_Educational_Material: Design": {
+        "end": "12 12 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 771.0 (hours)~Resources Needed: 3.2~Total Time Elasped: 31 business days",
+        "title": "Get-Set_Educational_Material: Design",
+        "start": "10 30 2019"
+    },
+    "Get-Set_Care-Treatment_Plan: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 3881.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 91 business days",
+        "title": "Get-Set_Care-Treatment_Plan: Test",
+        "start": "1 13 2018"
+    },
+    "CRUD_Labor_Order: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2211.0 (hours)~Resources Needed: 9.2~Total Time Elasped: 31 business days",
+        "title": "CRUD_Labor_Order: Design",
+        "start": "10 30 2017"
+    },
+    "CRUD_Facility: Deploy": {
+        "end": "6 15 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 336.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 17 business days",
+        "title": "CRUD_Facility: Deploy",
+        "start": "5 23 2018"
+    },
+    "CRUD_Clinical_Measurements: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1694.0 (hours)~Resources Needed: 8.9~Total Time Elasped: 24 business days",
+        "title": "CRUD_Clinical_Measurements: Develop",
+        "start": "12 12 2016"
+    },
+    "CRUD_Team_Wait_List: Requirements": {
+        "end": "10 17 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 246.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 12 business days",
+        "title": "CRUD_Team_Wait_List: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2582.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Recommendations: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2985.0 (hours)~Resources Needed: 4.1~Total Time Elasped: 91 business days",
+        "title": "CRUD_Recommendations: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Budgets_and_Authorization: Test": {
+        "end": "2 17 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 492.0 (hours)~Resources Needed: 1.3~Total Time Elasped: 47 business days",
+        "title": "CRUD_Budgets_and_Authorization: Test",
+        "start": "12 14 2018"
+    },
+    "CRUD_Consult_Report: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1600.0 (hours)~Resources Needed: 8.4~Total Time Elasped: 24 business days",
+        "title": "CRUD_Consult_Report: Develop",
+        "start": "12 12 2016"
+    },
+    "Asset_Management_Service: Design": {
+        "end": "11 19 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 505.0 (hours)~Resources Needed: 3.5~Total Time Elasped: 18 business days",
+        "title": "Asset_Management_Service: Design",
+        "start": "10 26 2019"
+    },
+    "CRUD_Consult_Report: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1196.0 (hours)~Resources Needed: 7.2~Total Time Elasped: 21 business days",
+        "title": "CRUD_Consult_Report: Requirements",
+        "start": "10 1 2016"
+    },
+    "CRUD_Admission_Information: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1866.0 (hours)~Resources Needed: 7.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Admission_Information: Design",
+        "start": "10 30 2018"
+    },
+    "Materiel_Monitoring_Service: Requirements": {
+        "end": "10 26 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 942.0 (hours)~Resources Needed: 6.3~Total Time Elasped: 19 business days",
+        "title": "Materiel_Monitoring_Service: Requirements",
+        "start": "10 1 2016"
+    },
+    "Materiel_Monitoring_Service: Develop": {
+        "end": "12 24 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1043.0 (hours)~Resources Needed: 5.9~Total Time Elasped: 22 business days",
+        "title": "Materiel_Monitoring_Service: Develop",
+        "start": "11 24 2016"
+    },
+    "Get_Encounter_Data: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1310.0 (hours)~Resources Needed: 7.8~Total Time Elasped: 21 business days",
+        "title": "Get_Encounter_Data: Requirements",
+        "start": "10 1 2016"
+    },
+    "Assess_Facility_Efficiency: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1197.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 91 business days",
+        "title": "Assess_Facility_Efficiency: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Clinical_Measurements: Deploy": {
+        "end": "6 7 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 209.0 (hours)~Resources Needed: 1.9~Total Time Elasped: 14 business days",
+        "title": "CRUD_Clinical_Measurements: Deploy",
+        "start": "5 20 2017"
+    },
+    "CRUD_Order: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2485.0 (hours)~Resources Needed: 3.4~Total Time Elasped: 91 business days",
+        "title": "CRUD_Order: Test",
+        "start": "1 13 2018"
+    },
+    "Get_Guidelines_and_Protocols: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1168.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 91 business days",
+        "title": "Get_Guidelines_and_Protocols: Test",
+        "start": "1 13 2019"
+    },
+    "Account_Monitoring_Service: Deploy": {
+        "end": "3 6 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 100.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 13 business days",
+        "title": "Account_Monitoring_Service: Deploy",
+        "start": "2 17 2019"
+    },
+    "Get-Set_Pharmacy_Data: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 2639.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 91 business days",
+        "title": "Get-Set_Pharmacy_Data: Test",
+        "start": "1 13 2016"
+    },
+    "Add_Encounter_Data_to_Encounter_History: Deploy": {
+        "end": "6 11 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 127.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 16 business days",
+        "title": "Add_Encounter_Data_to_Encounter_History: Deploy",
+        "start": "5 20 2017"
+    },
+    "Get_Guidelines_and_Protocols: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 494.0 (hours)~Resources Needed: 2.6~Total Time Elasped: 24 business days",
+        "title": "Get_Guidelines_and_Protocols: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Labor_Order: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 5017.0 (hours)~Resources Needed: 6.9~Total Time Elasped: 91 business days",
+        "title": "CRUD_Labor_Order: Test",
+        "start": "1 13 2018"
+    },
+    "CRUD_Appointment: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1112.0 (hours)~Resources Needed: 6.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Appointment: Requirements",
+        "start": "10 1 2015"
+    },
+    "CRUD_Lab_Test_Results: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1238.0 (hours)~Resources Needed: 5.1~Total Time Elasped: 31 business days",
+        "title": "CRUD_Lab_Test_Results: Design",
+        "start": "10 30 2015"
+    },
+    "Send-Receive_Image: Test": {
+        "end": "5 20 2015",
+        "color": "rgb(255,0,51)",
+        "description": "Total LOE: 2222.0 (hours)~Resources Needed: 3.1~Total Time Elasped: 91 business days",
+        "title": "Test",
+        "start": "1 13 2015",
+        "trackNum": "1",
+        "classname": "testclass"
+    },
+    "CRUD_Provider_Information: Develop": {
+        "end": "1 16 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2509.0 (hours)~Resources Needed: 12.8~Total Time Elasped: 25 business days",
+        "title": "CRUD_Provider_Information: Develop",
+        "start": "12 12 2016"
+    },
+    "CRUD_Patient_Allergy_List: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1390.0 (hours)~Resources Needed: 7.3~Total Time Elasped: 24 business days",
+        "title": "CRUD_Patient_Allergy_List: Develop",
+        "start": "12 12 2015"
+    },
+    "Contract_Monitoring_Service: Develop": {
+        "end": "12 14 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 231.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 19 business days",
+        "title": "Contract_Monitoring_Service: Develop",
+        "start": "11 19 2018"
+    },
+    "CRUD_Documentation_or_Note: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 3416.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 91 business days",
+        "title": "CRUD_Documentation_or_Note: Test",
+        "start": "1 13 2016"
+    },
+    "Display_Efficiency_Information: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 445.0 (hours)~Resources Needed: 2.3~Total Time Elasped: 24 business days",
+        "title": "Display_Efficiency_Information: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Screening_Questionnaire: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 296.0 (hours)~Resources Needed: 1.8~Total Time Elasped: 21 business days",
+        "title": "CRUD_Screening_Questionnaire: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Documentation_or_Note: Deploy": {
+        "end": "6 6 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Documentation_or_Note: Deploy",
+        "start": "5 19 2016"
+    },
+    "Get-SetPatientHistory: Deploy": {
+        "end": "6 9 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 255.0 (hours)~Resources Needed: 2.2~Total Time Elasped: 15 business days",
+        "title": "Get-SetPatientHistory: Deploy",
+        "start": "5 19 2016"
+    },
+    "Materiel_Monitoring_Service: Design": {
+        "end": "11 24 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 961.0 (hours)~Resources Needed: 5.8~Total Time Elasped: 21 business days",
+        "title": "Materiel_Monitoring_Service: Design",
+        "start": "10 26 2016"
+    },
+    "CRUD_Family_Preferences: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1183.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Family_Preferences: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Appointment: Deploy": {
+        "end": "6 6 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 200.0 (hours)~Resources Needed: 1.8~Total Time Elasped: 14 business days",
+        "title": "CRUD_Appointment: Deploy",
+        "start": "5 19 2016"
+    },
+    "Get-Set_Pharmacy_Data: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 966.0 (hours)~Resources Needed: 5.8~Total Time Elasped: 21 business days",
+        "title": "Get-Set_Pharmacy_Data: Requirements",
+        "start": "10 1 2015"
+    },
+    "CRUD_Managed_Care_Contracting_data: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 241.0 (hours)~Resources Needed: 1.4~Total Time Elasped: 21 business days",
+        "title": "CRUD_Managed_Care_Contracting_data: Requirements",
+        "start": "10 1 2017"
+    },
+    "GetPatient_(Patient_Identity:_Person_Search): Design": {
+        "end": "12 5 2014",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 1291.0 (hours)~Resources Needed: 6.0~Total Time Elasped: 27 business days",
+        "title": "GetPatient_(Patient_Identity:_Person_Search): Design",
+        "start": "10 29 2014",
+        "trackNum": "5"
+    },
+    "CRUD_Facility: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1772.0 (hours)~Resources Needed: 10.6~Total Time Elasped: 21 business days",
+        "title": "CRUD_Facility: Requirements",
+        "start": "10 1 2017"
+    },
+    "CRUD_Patient_Allergy_List: Deploy": {
+        "end": "6 6 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Allergy_List: Deploy",
+        "start": "5 19 2016"
+    },
+    "Get_Guidelines_and_Protocols: Deploy": {
+        "end": "6 3 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 73.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 10 business days",
+        "title": "Get_Guidelines_and_Protocols: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Exposure_Data: Design": {
+        "end": "12 12 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 870.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 31 business days",
+        "title": "CRUD_Exposure_Data: Design",
+        "start": "10 30 2019"
+    },
+    "CRUD_Immunization_List: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1089.0 (hours)~Resources Needed: 5.7~Total Time Elasped: 24 business days",
+        "title": "CRUD_Immunization_List: Develop",
+        "start": "12 12 2016"
+    },
+    "CRUD_Screening_Questionnaire: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1069.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 91 business days",
+        "title": "CRUD_Screening_Questionnaire: Test",
+        "start": "1 13 2019"
+    },
+    "Get_Encounter_Data: Deploy": {
+        "end": "6 11 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 191.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 16 business days",
+        "title": "Get_Encounter_Data: Deploy",
+        "start": "5 20 2017"
+    },
+    "Inventory_Monitoring_Service: Design": {
+        "end": "11 19 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 505.0 (hours)~Resources Needed: 3.5~Total Time Elasped: 18 business days",
+        "title": "Inventory_Monitoring_Service: Design",
+        "start": "10 26 2019"
+    },
+    "CRUD_Facility: Test": {
+        "end": "5 23 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 4851.0 (hours)~Resources Needed: 6.7~Total Time Elasped: 91 business days",
+        "title": "CRUD_Facility: Test",
+        "start": "1 16 2018"
+    },
+    "Account_Monitoring_Service: Requirements": {
+        "end": "10 26 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 658.0 (hours)~Resources Needed: 4.4~Total Time Elasped: 19 business days",
+        "title": "Account_Monitoring_Service: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Transfer_Order: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2262.0 (hours)~Resources Needed: 9.4~Total Time Elasped: 31 business days",
+        "title": "CRUD_Transfer_Order: Design",
+        "start": "10 30 2017"
+    },
+    "Get_Care_Plan: Design": {
+        "end": "12 12 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 938.0 (hours)~Resources Needed: 3.9~Total Time Elasped: 31 business days",
+        "title": "Get_Care_Plan: Design",
+        "start": "10 30 2019"
+    },
+    "Get-Set_Eligibility_Information: Test": {
+        "end": "1 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1918.0 (hours)~Resources Needed: 8.3~Total Time Elasped: 29 business days",
+        "title": "Get-Set_Eligibility_Information: Test",
+        "start": "12 11 2015"
+    },
+    "Assemblage_Monitoring_Service: Deploy": {
+        "end": "3 19 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 118.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 15 business days",
+        "title": "Assemblage_Monitoring_Service: Deploy",
+        "start": "2 26 2019"
+    },
+    "CRUD_Referral: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Referral: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Accounts_Receivable_Data: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1800.0 (hours)~Resources Needed: 7.5~Total Time Elasped: 31 business days",
+        "title": "CRUD_Accounts_Receivable_Data: Design",
+        "start": "10 30 2017"
+    },
+    "CRUD_Clinical_Measurements: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1337.0 (hours)~Resources Needed: 8.0~Total Time Elasped: 21 business days",
+        "title": "CRUD_Clinical_Measurements: Requirements",
+        "start": "10 1 2016"
+    },
+    "Get-Set_Care-Treatment_Plan: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1634.0 (hours)~Resources Needed: 6.8~Total Time Elasped: 31 business days",
+        "title": "Get-Set_Care-Treatment_Plan: Design",
+        "start": "10 30 2017"
+    },
+    "Assess_Facility_Efficiency: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 355.0 (hours)~Resources Needed: 2.1~Total Time Elasped: 21 business days",
+        "title": "Assess_Facility_Efficiency: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Consult_Report: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 3139.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 91 business days",
+        "title": "CRUD_Consult_Report: Test",
+        "start": "1 13 2017"
+    },
+    "CRUD_Screening_Questionnaire: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 371.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 24 business days",
+        "title": "CRUD_Screening_Questionnaire: Develop",
+        "start": "12 12 2018"
+    },
+    "Add_Encounter_Data_to_Encounter_History: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 3139.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 91 business days",
+        "title": "Add_Encounter_Data_to_Encounter_History: Test",
+        "start": "1 13 2017"
+    },
+    "CRUD_Clinical_Measurements: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 3818.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 91 business days",
+        "title": "CRUD_Clinical_Measurements: Test",
+        "start": "1 13 2017"
+    },
+    "Get-Set_Eligibility_Information: Design": {
+        "end": "11 13 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 961.0 (hours)~Resources Needed: 6.5~Total Time Elasped: 19 business days",
+        "title": "Get-Set_Eligibility_Information: Design",
+        "start": "10 19 2015"
+    },
+    "CRUD_Procedure_Order: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2124.0 (hours)~Resources Needed: 8.8~Total Time Elasped: 31 business days",
+        "title": "CRUD_Procedure_Order: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Provider_Information: Deploy": {
+        "end": "6 15 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 300.0 (hours)~Resources Needed: 2.2~Total Time Elasped: 17 business days",
+        "title": "CRUD_Provider_Information: Deploy",
+        "start": "5 23 2017"
+    },
+    "CRUD_Managed_Care_Contracting_data: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 285.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 24 business days",
+        "title": "CRUD_Managed_Care_Contracting_data: Develop",
+        "start": "12 12 2017"
+    },
+    "CRUD_Managed_Care_Contracting_data: Deploy": {
+        "end": "5 28 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 46.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 6 business days",
+        "title": "CRUD_Managed_Care_Contracting_data: Deploy",
+        "start": "5 20 2018"
+    },
+    "Find_Team: Design": {
+        "end": "11 8 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 313.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 16 business days",
+        "title": "Find_Team: Design",
+        "start": "10 17 2018"
+    },
+    "CRUD_Team: Requirements": {
+        "end": "10 17 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 246.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 12 business days",
+        "title": "CRUD_Team: Requirements",
+        "start": "10 1 2018"
+    },
+    "Get_Patient_Data: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 511.0 (hours)~Resources Needed: 2.1~Total Time Elasped: 31 business days",
+        "title": "Get_Patient_Data: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Patient_Demographic_Data: Requirements": {
+        "end": "10 30 2014",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 1547.0 (hours)~Resources Needed: 9.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Demographic_Data: Requirements",
+        "start": "10 1 2014",
+        "trackNum": "3"
+    },
+    "CRUD_Admission_Information: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1937.0 (hours)~Resources Needed: 10.2~Total Time Elasped: 24 business days",
+        "title": "CRUD_Admission_Information: Develop",
+        "start": "12 12 2018"
+    },
+    "Assess_Facility_Efficiency: Deploy": {
+        "end": "6 4 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 82.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 11 business days",
+        "title": "Assess_Facility_Efficiency: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Patient_Demographic_Data: Deploy": {
+        "end": "6 29 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 167.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Demographic_Data: Deploy",
+        "start": "5 31 2015",
+        "trackNum": "3"
+    },
+    "CRUD_Consult_Report: Deploy": {
+        "end": "6 11 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 127.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 16 business days",
+        "title": "CRUD_Consult_Report: Deploy",
+        "start": "5 20 2017"
+    },
+    "CRUD_Screening_Questionnaire: Deploy": {
+        "end": "6 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "CRUD_Screening_Questionnaire: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Patient_Guidance_and_Reminder: Deploy": {
+        "end": "6 6 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Guidance_and_Reminder: Deploy",
+        "start": "5 19 2020"
+    },
+    "Get-Set_Pharmacy_Data: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1204.0 (hours)~Resources Needed: 5.0~Total Time Elasped: 31 business days",
+        "title": "Get-Set_Pharmacy_Data: Design",
+        "start": "10 30 2015"
+    },
+    "Get_Care_Plan: Develop": {
+        "end": "1 13 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 959.0 (hours)~Resources Needed: 5.0~Total Time Elasped: 24 business days",
+        "title": "Get_Care_Plan: Develop",
+        "start": "12 12 2019"
+    },
+    "CRUD_Patient_Instructions: Deploy": {
+        "end": "6 6 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 200.0 (hours)~Resources Needed: 1.8~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Instructions: Deploy",
+        "start": "5 19 2020"
+    },
+    "CRUD_Patient_Consent_and_Authorization: Develop": {
+        "end": "11 16 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 494.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Consent_and_Authorization: Develop",
+        "start": "10 29 2015"
+    },
+    "Assemblage_Monitoring_Service: Develop": {
+        "end": "12 23 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 875.0 (hours)~Resources Needed: 5.1~Total Time Elasped: 22 business days",
+        "title": "Assemblage_Monitoring_Service: Develop",
+        "start": "11 23 2018"
+    },
+    "Get_Encounter_Data: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 3390.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 91 business days",
+        "title": "Get_Encounter_Data: Test",
+        "start": "1 13 2017"
+    },
+    "CRUD_Team_Wait_List: Develop": {
+        "end": "12 1 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 2.7~Total Time Elasped: 17 business days",
+        "title": "CRUD_Team_Wait_List: Develop",
+        "start": "11 8 2018"
+    },
+    "CRUD_Patient_Allergy_List: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 2914.0 (hours)~Resources Needed: 4.0~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Allergy_List: Test",
+        "start": "1 13 2016"
+    },
+    "CRUD_Transfer_Order: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1808.0 (hours)~Resources Needed: 10.8~Total Time Elasped: 21 business days",
+        "title": "CRUD_Transfer_Order: Requirements",
+        "start": "10 1 2017"
+    },
+    "CRUD_Team_Wait_List: Test": {
+        "end": "1 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 545.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 25 business days",
+        "title": "CRUD_Team_Wait_List: Test",
+        "start": "12 1 2018"
+    },
+    "Equipment_Monitoring_Service: Design": {
+        "end": "11 23 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2008.0 (hours)~Resources Needed: 12.6~Total Time Elasped: 20 business days",
+        "title": "Equipment_Monitoring_Service: Design",
+        "start": "10 26 2017"
+    },
+    "Inventory_Monitoring_Service: Test": {
+        "end": "2 17 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 1195.0 (hours)~Resources Needed: 3.2~Total Time Elasped: 47 business days",
+        "title": "Inventory_Monitoring_Service: Test",
+        "start": "12 14 2019"
+    },
+    "Equipment_Monitoring_Service: Requirements": {
+        "end": "10 26 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1960.0 (hours)~Resources Needed: 13.1~Total Time Elasped: 19 business days",
+        "title": "Equipment_Monitoring_Service: Requirements",
+        "start": "10 1 2017"
+    },
+    "Contract_Monitoring_Service: Design": {
+        "end": "11 19 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 215.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 18 business days",
+        "title": "Contract_Monitoring_Service: Design",
+        "start": "10 26 2018"
+    },
+    "Get_Provider_Role_in_Team: Deploy": {
+        "end": "1 21 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "Get_Provider_Role_in_Team: Deploy",
+        "start": "1 5 2019"
+    },
+    "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 949.0 (hours)~Resources Needed: 5.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Referral: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2098.0 (hours)~Resources Needed: 2.9~Total Time Elasped: 91 business days",
+        "title": "CRUD_Referral: Test",
+        "start": "1 13 2019"
+    },
+    "Send-Receive_Image: Design": {
+        "end": "12 12 2014",
+        "color": "rgb(255,0,85)",
+        "description": "Total LOE: 894.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 31 business days",
+        "title": "Design",
+        "start": "10 30 2014",
+        "trackNum": "1"
+    },
+    "Asset_Management_Service: Develop": {
+        "end": "12 14 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 549.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 19 business days",
+        "title": "Asset_Management_Service: Develop",
+        "start": "11 19 2019"
+    },
+    "CRUD_Facility: Develop": {
+        "end": "1 16 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2142.0 (hours)~Resources Needed: 10.9~Total Time Elasped: 25 business days",
+        "title": "CRUD_Facility: Develop",
+        "start": "12 12 2017"
+    },
+    "CRUD_Recommendations: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1269.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 31 business days",
+        "title": "CRUD_Recommendations: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Immunization_List: Test": {
+        "end": "5 20 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2476.0 (hours)~Resources Needed: 3.4~Total Time Elasped: 91 business days",
+        "title": "CRUD_Immunization_List: Test",
+        "start": "1 13 2017"
+    },
+    "CRUD_Team: Design": {
+        "end": "11 8 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 313.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 16 business days",
+        "title": "CRUD_Team: Design",
+        "start": "10 17 2018"
+    },
+    "CRUD_Order: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1103.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 31 business days",
+        "title": "CRUD_Order: Design",
+        "start": "10 30 2017"
+    },
+    "Get-Set_Performance_andAccountability_Measures: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 351.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 31 business days",
+        "title": "Get-Set_Performance_andAccountability_Measures: Design",
+        "start": "10 30 2018"
+    },
+    "Get_Team_Members_for_Provider: Develop": {
+        "end": "12 1 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 2.7~Total Time Elasped: 17 business days",
+        "title": "Get_Team_Members_for_Provider: Develop",
+        "start": "11 8 2018"
+    },
+    "Display_Efficiency_Information: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 355.0 (hours)~Resources Needed: 2.1~Total Time Elasped: 21 business days",
+        "title": "Display_Efficiency_Information: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Medication_Order: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1103.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 31 business days",
+        "title": "CRUD_Medication_Order: Design",
+        "start": "10 30 2017"
+    },
+    "CRUD_Procedure_Order: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2209.0 (hours)~Resources Needed: 11.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Procedure_Order: Develop",
+        "start": "12 12 2016"
+    },
+    "Get-SetPatientHistory: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1323.0 (hours)~Resources Needed: 7.9~Total Time Elasped: 21 business days",
+        "title": "Get-SetPatientHistory: Requirements",
+        "start": "10 1 2015"
+    },
+    "ManageServiceAuthorization: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "ManageServiceAuthorization: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1183.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Financial_and_Administrative_Data: Requirements": {
+        "end": "10 11 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 280.0 (hours)~Resources Needed: 4.5~Total Time Elasped: 8 business days",
+        "title": "CRUD_Financial_and_Administrative_Data: Requirements",
+        "start": "10 1 2016"
+    },
+    "Display_Efficiency_Information: Deploy": {
+        "end": "6 4 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 82.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 11 business days",
+        "title": "Display_Efficiency_Information: Deploy",
+        "start": "5 20 2019"
+    },
+    "GetPatient_(Patient_Identity:_Person_Search): Requirements": {
+        "end": "10 29 2014",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 1098.0 (hours)~Resources Needed: 7.1~Total Time Elasped: 20 business days",
+        "title": "GetPatient_(Patient_Identity:_Person_Search): Requirements",
+        "start": "10 1 2014",
+        "trackNum": "5"
+    },
+    "CRUD_Budgets_and_Authorization: Design": {
+        "end": "11 19 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 219.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 18 business days",
+        "title": "CRUD_Budgets_and_Authorization: Design",
+        "start": "10 26 2018"
+    },
+    "Get_Patient_Data: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 374.0 (hours)~Resources Needed: 2.2~Total Time Elasped: 21 business days",
+        "title": "Get_Patient_Data: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Team: Test": {
+        "end": "1 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 545.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 25 business days",
+        "title": "CRUD_Team: Test",
+        "start": "12 1 2018"
+    },
+    "CRUD_Team_Wait_List: Deploy": {
+        "end": "1 21 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "CRUD_Team_Wait_List: Deploy",
+        "start": "1 5 2019"
+    },
+    "Get-Set_Eligibility_Information: Develop": {
+        "end": "12 11 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1064.0 (hours)~Resources Needed: 6.8~Total Time Elasped: 20 business days",
+        "title": "Get-Set_Eligibility_Information: Develop",
+        "start": "11 13 2015"
+    },
+    "CRUD_Admission_Information: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 4223.0 (hours)~Resources Needed: 5.8~Total Time Elasped: 91 business days",
+        "title": "CRUD_Admission_Information: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Labor_Order: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2353.0 (hours)~Resources Needed: 12.4~Total Time Elasped: 24 business days",
+        "title": "CRUD_Labor_Order: Develop",
+        "start": "12 12 2017"
+    },
+    "ManageServiceAuthorization: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 902.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 24 business days",
+        "title": "ManageServiceAuthorization: Develop",
+        "start": "12 12 2018"
+    },
+    "Get-Set_Educational_Material: Requirements": {
+        "end": "10 30 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 623.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 21 business days",
+        "title": "Get-Set_Educational_Material: Requirements",
+        "start": "10 1 2019"
+    },
+    "Get_Patient_Data: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 484.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 24 business days",
+        "title": "Get_Patient_Data: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Patient_Information_in_Facility: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1183.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Information_in_Facility: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Family_Preferences: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 949.0 (hours)~Resources Needed: 5.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Family_Preferences: Requirements",
+        "start": "10 1 2018"
+    },
+    "Get-Set_Care-Treatment_Plan: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1335.0 (hours)~Resources Needed: 8.0~Total Time Elasped: 21 business days",
+        "title": "Get-Set_Care-Treatment_Plan: Requirements",
+        "start": "10 1 2017"
+    },
+    "Get-Set_Educational_Material: Deploy": {
+        "end": "6 6 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 120.0 (hours)~Resources Needed: 1.1~Total Time Elasped: 14 business days",
+        "title": "Get-Set_Educational_Material: Deploy",
+        "start": "5 19 2020"
+    },
+    "Get-SetPatientHistory: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 3488.0 (hours)~Resources Needed: 4.8~Total Time Elasped: 91 business days",
+        "title": "Get-SetPatientHistory: Test",
+        "start": "1 13 2016"
+    },
+    "CRUD_Labor_Order: Deploy": {
+        "end": "6 10 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 327.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 15 business days",
+        "title": "CRUD_Labor_Order: Deploy",
+        "start": "5 20 2018"
+    },
+    "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1250.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Develop",
+        "start": "12 12 2018"
+    },
+    "ManageServiceAuthorization: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2098.0 (hours)~Resources Needed: 2.9~Total Time Elasped: 91 business days",
+        "title": "ManageServiceAuthorization: Test",
+        "start": "1 13 2019"
+    },
+    "Get_Provider_Role_in_Team: Requirements": {
+        "end": "10 17 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 246.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 12 business days",
+        "title": "Get_Provider_Role_in_Team: Requirements",
+        "start": "10 1 2018"
+    },
+    "Asset_Management_Service: Requirements": {
+        "end": "10 26 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 489.0 (hours)~Resources Needed: 3.3~Total Time Elasped: 19 business days",
+        "title": "Asset_Management_Service: Requirements",
+        "start": "10 1 2019"
+    },
+    "CRUD_Lab_Test_Results: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1324.0 (hours)~Resources Needed: 7.0~Total Time Elasped: 24 business days",
+        "title": "CRUD_Lab_Test_Results: Develop",
+        "start": "12 12 2015"
+    },
+    "CRUD_Lab_Test_Results: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1009.0 (hours)~Resources Needed: 6.0~Total Time Elasped: 21 business days",
+        "title": "CRUD_Lab_Test_Results: Requirements",
+        "start": "10 1 2015"
+    },
+    "Contract_Monitoring_Service: Requirements": {
+        "end": "10 26 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 211.0 (hours)~Resources Needed: 1.4~Total Time Elasped: 19 business days",
+        "title": "Contract_Monitoring_Service: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Patient_Instructions: Requirements": {
+        "end": "10 30 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 717.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Instructions: Requirements",
+        "start": "10 1 2019"
+    },
+    "Asset_Management_Service: Deploy": {
+        "end": "3 5 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 100.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 13 business days",
+        "title": "Asset_Management_Service: Deploy",
+        "start": "2 17 2020"
+    },
+    "CRUD_Admission_Information: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 218.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Admission_Information: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Referral: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 902.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 24 business days",
+        "title": "CRUD_Referral: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Provider_Information: Test": {
+        "end": "5 23 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 5228.0 (hours)~Resources Needed: 7.2~Total Time Elasped: 91 business days",
+        "title": "CRUD_Provider_Information: Test",
+        "start": "1 16 2017"
+    },
+    "CRUD_Team: Develop": {
+        "end": "12 1 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 350.0 (hours)~Resources Needed: 2.7~Total Time Elasped: 17 business days",
+        "title": "CRUD_Team: Develop",
+        "start": "11 8 2018"
+    },
+    "CRUD_Patient_Consent_and_Authorization: Design": {
+        "end": "10 29 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 455.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 13 business days",
+        "title": "CRUD_Patient_Consent_and_Authorization: Design",
+        "start": "10 12 2015"
+    },
+    "Find_Team: Requirements": {
+        "end": "10 17 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 246.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 12 business days",
+        "title": "Find_Team: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Immunization_List: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1055.0 (hours)~Resources Needed: 4.4~Total Time Elasped: 31 business days",
+        "title": "CRUD_Immunization_List: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Labor_Order: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1941.0 (hours)~Resources Needed: 11.6~Total Time Elasped: 21 business days",
+        "title": "CRUD_Labor_Order: Requirements",
+        "start": "10 1 2017"
+    },
+    "CRUD_Medication_Order: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2485.0 (hours)~Resources Needed: 3.4~Total Time Elasped: 91 business days",
+        "title": "CRUD_Medication_Order: Test",
+        "start": "1 13 2018"
+    },
+    "Get_Team_Members_for_Provider: Design": {
+        "end": "11 8 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 313.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 16 business days",
+        "title": "Get_Team_Members_for_Provider: Design",
+        "start": "10 17 2018"
+    },
+    "CRUD_Patient_Preferences: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2582.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Preferences: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Patient_Guidance_and_Reminder: Develop": {
+        "end": "1 13 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 757.0 (hours)~Resources Needed: 4.0~Total Time Elasped: 24 business days",
+        "title": "CRUD_Patient_Guidance_and_Reminder: Develop",
+        "start": "12 12 2019"
+    },
+    "CRUD_Lab_Test_Results: Deploy": {
+        "end": "6 6 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Lab_Test_Results: Deploy",
+        "start": "5 19 2016"
+    },
+    "Send-Receive_Image: Requirements": {
+        "end": "10 30 2014",
+        "color": "rgb(255,0,115)",
+        "description": "Total LOE: 760.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 21 business days",
+        "title": "Send-Receive_Image: Requirements",
+        "start": "10 1 2014",
+        "trackNum": "1",
+        "classname": "testclass"
+    },
+    "CRUD_Patient_Allergy_List: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1082.0 (hours)~Resources Needed: 6.5~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Allergy_List: Requirements",
+        "start": "10 1 2015"
+    },
+    "Get_Care_Plan: Test": {
+        "end": "5 19 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 2184.0 (hours)~Resources Needed: 3.0~Total Time Elasped: 91 business days",
+        "title": "Get_Care_Plan: Test",
+        "start": "1 13 2020"
+    },
+    "Assemblage_Monitoring_Service: Test": {
+        "end": "2 26 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1974.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 47 business days",
+        "title": "Assemblage_Monitoring_Service: Test",
+        "start": "12 23 2018"
+    },
+    "CRUD_Transfer_Order: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 4934.0 (hours)~Resources Needed: 6.8~Total Time Elasped: 91 business days",
+        "title": "CRUD_Transfer_Order: Test",
+        "start": "1 13 2018"
+    },
+    "CRUD_Financial_and_Administrative_Data: Design": {
+        "end": "10 26 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 363.0 (hours)~Resources Needed: 4.2~Total Time Elasped: 11 business days",
+        "title": "CRUD_Financial_and_Administrative_Data: Design",
+        "start": "10 11 2016"
+    },
+    "CRUD_Patient_Demographic_Data: Test": {
+        "end": "5 31 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 3914.0 (hours)~Resources Needed: 5.4~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Demographic_Data: Test",
+        "start": "1 24 2015",
+        "trackNum": "3"
+    },
+    "CRUD_Documentation_or_Note: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1714.0 (hours)~Resources Needed: 9.0~Total Time Elasped: 24 business days",
+        "title": "CRUD_Documentation_or_Note: Develop",
+        "start": "12 12 2015"
+    },
+    "CRUD_Medication_Order: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1151.0 (hours)~Resources Needed: 6.1~Total Time Elasped: 24 business days",
+        "title": "CRUD_Medication_Order: Develop",
+        "start": "12 12 2017"
+    },
+    "Materiel_Monitoring_Service: Deploy": {
+        "end": "3 21 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 123.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 16 business days",
+        "title": "Materiel_Monitoring_Service: Deploy",
+        "start": "2 27 2017"
+    },
+    "CRUD_Patient_Preferences: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1183.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Preferences: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Family_Preferences: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Family_Preferences: Deploy",
+        "start": "5 20 2019"
+    },
+    "GetPatient_(Patient_Identity:_Person_Search): Develop": {
+        "end": "1 13 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 1500.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 29 business days",
+        "title": "GetPatient_(Patient_Identity:_Person_Search): Develop",
+        "start": "12 5 2014",
+        "trackNum": "5"
+    },
+    "GetPatient_(Patient_Identity:_Person_Search): Deploy": {
+        "end": "4 16 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 158.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 20 business days",
+        "title": "GetPatient_(Patient_Identity:_Person_Search): Deploy",
+        "start": "3 19 2015",
+        "trackNum": "5"
+    },
+    "Contract_Monitoring_Service: Test": {
+        "end": "2 17 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 520.0 (hours)~Resources Needed: 1.4~Total Time Elasped: 47 business days",
+        "title": "Contract_Monitoring_Service: Test",
+        "start": "12 14 2018"
+    },
+    "Account_Monitoring_Service: Develop": {
+        "end": "12 14 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 709.0 (hours)~Resources Needed: 4.7~Total Time Elasped: 19 business days",
+        "title": "Account_Monitoring_Service: Develop",
+        "start": "11 19 2018"
+    },
+    "ManageServiceAuthorization: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 724.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 21 business days",
+        "title": "ManageServiceAuthorization: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Exposure_Data: Deploy": {
+        "end": "6 6 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 182.0 (hours)~Resources Needed: 1.7~Total Time Elasped: 14 business days",
+        "title": "CRUD_Exposure_Data: Deploy",
+        "start": "5 19 2020"
+    },
+    "Assemblage_Monitoring_Service: Requirements": {
+        "end": "10 26 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 804.0 (hours)~Resources Needed: 5.4~Total Time Elasped: 19 business days",
+        "title": "Assemblage_Monitoring_Service: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Facility: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2085.0 (hours)~Resources Needed: 8.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Facility: Design",
+        "start": "10 30 2017"
+    },
+    "CRUD_Exposure_Data: Develop": {
+        "end": "1 13 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 805.0 (hours)~Resources Needed: 4.2~Total Time Elasped: 24 business days",
+        "title": "CRUD_Exposure_Data: Develop",
+        "start": "12 12 2019"
+    },
+    "CRUD_Medication_Order: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 893.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Medication_Order: Requirements",
+        "start": "10 1 2017"
+    },
+    "Inventory_Monitoring_Service: Deploy": {
+        "end": "3 5 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 100.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 13 business days",
+        "title": "Inventory_Monitoring_Service: Deploy",
+        "start": "2 17 2020"
+    },
+    "CRUD_Transfer_Order: Deploy": {
+        "end": "6 7 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 218.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Transfer_Order: Deploy",
+        "start": "5 20 2018"
+    },
+    "Get_Care_Plan: Deploy": {
+        "end": "6 6 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 191.0 (hours)~Resources Needed: 1.8~Total Time Elasped: 14 business days",
+        "title": "Get_Care_Plan: Deploy",
+        "start": "5 19 2020"
+    },
+    "CRUD_Patient_Demographic_Data: Develop": {
+        "end": "1 24 2015",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 2117.0 (hours)~Resources Needed: 8.8~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Demographic_Data: Develop",
+        "start": "12 12 2014",
+        "trackNum": "3"
+    },
+    "CRUD_Accounts_Receivable_Data: Deploy": {
+        "end": "6 15 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 264.0 (hours)~Resources Needed: 1.9~Total Time Elasped: 17 business days",
+        "title": "CRUD_Accounts_Receivable_Data: Deploy",
+        "start": "5 23 2018"
+    },
+    "CRUD_Clinical_Measurements: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1673.0 (hours)~Resources Needed: 6.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Clinical_Measurements: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Accounts_Receivable_Data: Test": {
+        "end": "5 23 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 4230.0 (hours)~Resources Needed: 5.8~Total Time Elasped: 91 business days",
+        "title": "CRUD_Accounts_Receivable_Data: Test",
+        "start": "1 16 2018"
+    },
+    "Get-Set_Care-Treatment_Plan: Deploy": {
+        "end": "6 7 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 218.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 14 business days",
+        "title": "Get-Set_Care-Treatment_Plan: Deploy",
+        "start": "5 20 2018"
+    },
+    "CRUD_Patient_Guidance_and_Reminder: Test": {
+        "end": "5 19 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 1817.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Guidance_and_Reminder: Test",
+        "start": "1 13 2020"
+    },
+    "Get-Set_Eligibility_Information: Deploy": {
+        "end": "2 6 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 327.0 (hours)~Resources Needed: 3.0~Total Time Elasped: 14 business days",
+        "title": "Get-Set_Eligibility_Information: Deploy",
+        "start": "1 19 2016"
+    },
+    "Get_Encounter_Data: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1771.0 (hours)~Resources Needed: 9.3~Total Time Elasped: 24 business days",
+        "title": "Get_Encounter_Data: Develop",
+        "start": "12 12 2016"
+    },
+    "CRUD_Procedure_Order: Deploy": {
+        "end": "6 7 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 218.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Procedure_Order: Deploy",
+        "start": "5 20 2017"
+    },
+    "Account_Monitoring_Service: Design": {
+        "end": "11 19 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 656.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 18 business days",
+        "title": "Account_Monitoring_Service: Design",
+        "start": "10 26 2018"
+    },
+    "Add_Encounter_Data_to_Encounter_History: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1494.0 (hours)~Resources Needed: 6.2~Total Time Elasped: 31 business days",
+        "title": "Add_Encounter_Data_to_Encounter_History: Design",
+        "start": "10 30 2016"
+    },
+    "Find_Team: Test": {
+        "end": "1 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 545.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 25 business days",
+        "title": "Find_Team: Test",
+        "start": "12 1 2018"
+    },
+    "CRUD_Patient_Preferences: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 949.0 (hours)~Resources Needed: 5.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Preferences: Requirements",
+        "start": "10 1 2018"
+    },
+    "Find_Team: Deploy": {
+        "end": "1 21 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "Find_Team: Deploy",
+        "start": "1 5 2019"
+    },
+    "CRUD_Patient_Information_in_Facility: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2582.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Information_in_Facility: Test",
+        "start": "1 13 2019"
+    },
+    "Get_Care_Plan: Requirements": {
+        "end": "10 30 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 770.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 21 business days",
+        "title": "Get_Care_Plan: Requirements",
+        "start": "10 1 2019"
+    },
+    "Get_Patient_Data: Deploy": {
+        "end": "5 30 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 110.0 (hours)~Resources Needed: 1.7~Total Time Elasped: 8 business days",
+        "title": "Get_Patient_Data: Deploy",
+        "start": "5 20 2019"
+    },
+    "Get-Set_Care-Treatment_Plan: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1661.0 (hours)~Resources Needed: 8.7~Total Time Elasped: 24 business days",
+        "title": "Get-Set_Care-Treatment_Plan: Develop",
+        "start": "12 12 2017"
+    },
+    "CRUD_Patient_Information_in_Facility: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 949.0 (hours)~Resources Needed: 5.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Patient_Information_in_Facility: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Financial_and_Administrative_Data: Test": {
+        "end": "12 5 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 633.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 18 business days",
+        "title": "CRUD_Financial_and_Administrative_Data: Test",
+        "start": "11 11 2016"
+    },
+    "CRUD_Patient_Information_in_Facility: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1250.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Patient_Information_in_Facility: Develop",
+        "start": "12 12 2018"
+    },
+    "Get-Set_Pharmacy_Data: Deploy": {
+        "end": "6 10 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 127.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 16 business days",
+        "title": "Get-Set_Pharmacy_Data: Deploy",
+        "start": "5 19 2016"
+    },
+    "CRUD_Immunization_List: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 885.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Immunization_List: Requirements",
+        "start": "10 1 2016"
+    },
+    "CRUD_Documentation_or_Note: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1618.0 (hours)~Resources Needed: 6.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Documentation_or_Note: Design",
+        "start": "10 30 2015"
+    },
+    "Asset_Management_Service: Test": {
+        "end": "2 17 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 1195.0 (hours)~Resources Needed: 3.2~Total Time Elasped: 47 business days",
+        "title": "Asset_Management_Service: Test",
+        "start": "12 14 2019"
+    },
+    "CRUD_Financial_and_Administrative_Data: Develop": {
+        "end": "11 11 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 393.0 (hours)~Resources Needed: 4.2~Total Time Elasped: 12 business days",
+        "title": "CRUD_Financial_and_Administrative_Data: Develop",
+        "start": "10 26 2016"
+    },
+    "CRUD_Family_Preferences: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1250.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Family_Preferences: Develop",
+        "start": "12 12 2018"
+    },
+    "Get-SetPatientHistory: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1585.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 31 business days",
+        "title": "Get-SetPatientHistory: Design",
+        "start": "10 30 2015"
+    },
+    "Display_Efficiency_Information: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1197.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 91 business days",
+        "title": "Display_Efficiency_Information: Test",
+        "start": "1 13 2019"
+    },
+    "Get-Set_Educational_Material: Test": {
+        "end": "5 19 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 1840.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 91 business days",
+        "title": "Get-Set_Educational_Material: Test",
+        "start": "1 13 2020"
+    },
+    "CRUD_Appointment: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1400.0 (hours)~Resources Needed: 5.8~Total Time Elasped: 31 business days",
+        "title": "CRUD_Appointment: Design",
+        "start": "10 30 2015"
+    },
+    "CRUD_Patient_Allergy_List: Design": {
+        "end": "12 12 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1320.0 (hours)~Resources Needed: 5.5~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Allergy_List: Design",
+        "start": "10 30 2015"
+    },
+    "CRUD_Recommendations: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1251.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Recommendations: Develop",
+        "start": "12 12 2018"
+    },
+    "Get_Guidelines_and_Protocols: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 512.0 (hours)~Resources Needed: 2.1~Total Time Elasped: 31 business days",
+        "title": "Get_Guidelines_and_Protocols: Design",
+        "start": "10 30 2018"
+    },
+    "Inventory_Monitoring_Service: Requirements": {
+        "end": "10 26 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 489.0 (hours)~Resources Needed: 3.3~Total Time Elasped: 19 business days",
+        "title": "Inventory_Monitoring_Service: Requirements",
+        "start": "10 1 2019"
+    },
+    "Equipment_Monitoring_Service: Deploy": {
+        "end": "3 19 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 236.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 15 business days",
+        "title": "Equipment_Monitoring_Service: Deploy",
+        "start": "2 26 2018"
+    },
+    "Account_Monitoring_Service: Test": {
+        "end": "2 17 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1625.0 (hours)~Resources Needed: 4.3~Total Time Elasped: 47 business days",
+        "title": "Account_Monitoring_Service: Test",
+        "start": "12 14 2018"
+    },
+    "CRUD_Accounts_Receivable_Data: Develop": {
+        "end": "1 16 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1810.0 (hours)~Resources Needed: 9.2~Total Time Elasped: 25 business days",
+        "title": "CRUD_Accounts_Receivable_Data: Develop",
+        "start": "12 12 2017"
+    },
+    "Equipment_Monitoring_Service: Develop": {
+        "end": "12 23 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 2169.0 (hours)~Resources Needed: 12.8~Total Time Elasped: 22 business days",
+        "title": "Equipment_Monitoring_Service: Develop",
+        "start": "11 23 2017"
+    },
+    "Get_Encounter_Data: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1655.0 (hours)~Resources Needed: 6.9~Total Time Elasped: 31 business days",
+        "title": "Get_Encounter_Data: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Provider_Information: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1954.0 (hours)~Resources Needed: 11.7~Total Time Elasped: 21 business days",
+        "title": "CRUD_Provider_Information: Requirements",
+        "start": "10 1 2016"
+    },
+    "Contract_Monitoring_Service: Deploy": {
+        "end": "2 24 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 37.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 5 business days",
+        "title": "Contract_Monitoring_Service: Deploy",
+        "start": "2 17 2019"
+    },
+    "Add_Encounter_Data_to_Encounter_History: Develop": {
+        "end": "1 13 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1600.0 (hours)~Resources Needed: 8.4~Total Time Elasped: 24 business days",
+        "title": "Add_Encounter_Data_to_Encounter_History: Develop",
+        "start": "12 12 2016"
+    },
+    "Send-Receive_Image: Deploy": {
+        "end": "6 7 2015",
+        "color": "rgb(255,0,170)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "Deploy",
+        "start": "5 20 2015",
+        "trackNum": "1"
+    },
+    "Get_Guidelines_and_Protocols: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 370.0 (hours)~Resources Needed: 2.2~Total Time Elasped: 21 business days",
+        "title": "Get_Guidelines_and_Protocols: Requirements",
+        "start": "10 1 2018"
+    },
+    "Get_Team_Members_for_Provider: Test": {
+        "end": "1 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 545.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 25 business days",
+        "title": "Get_Team_Members_for_Provider: Test",
+        "start": "12 1 2018"
+    },
+    "Assemblage_Monitoring_Service: Design": {
+        "end": "11 23 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 813.0 (hours)~Resources Needed: 5.1~Total Time Elasped: 20 business days",
+        "title": "Assemblage_Monitoring_Service: Design",
+        "start": "10 26 2018"
+    },
+    "CRUD_Referral: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 888.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Referral: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Patient_Preferences: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1250.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "CRUD_Patient_Preferences: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Procedure_Order: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1707.0 (hours)~Resources Needed: 10.2~Total Time Elasped: 21 business days",
+        "title": "CRUD_Procedure_Order: Requirements",
+        "start": "10 1 2016"
+    },
+    "CRUD_Recommendations: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 182.0 (hours)~Resources Needed: 1.7~Total Time Elasped: 14 business days",
+        "title": "CRUD_Recommendations: Deploy",
+        "start": "5 20 2019"
+    },
+    "Get_Provider_Role_in_Team: Test": {
+        "end": "1 5 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 545.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 25 business days",
+        "title": "Get_Provider_Role_in_Team: Test",
+        "start": "12 1 2018"
+    },
+    "CRUD_Team: Deploy": {
+        "end": "1 21 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "CRUD_Team: Deploy",
+        "start": "1 5 2019"
+    },
+    "CRUD_Order: Deploy": {
+        "end": "6 7 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Order: Deploy",
+        "start": "5 20 2018"
+    },
+    "Get-Set_Performance_andAccountability_Measures: Deploy": {
+        "end": "5 30 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 64.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 8 business days",
+        "title": "Get-Set_Performance_andAccountability_Measures: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Medication_Order: Deploy": {
+        "end": "6 7 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Medication_Order: Deploy",
+        "start": "5 20 2018"
+    },
+    "CRUD_Patient_Instructions: Develop": {
+        "end": "1 13 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 910.0 (hours)~Resources Needed: 4.8~Total Time Elasped: 24 business days",
+        "title": "CRUD_Patient_Instructions: Develop",
+        "start": "12 12 2019"
+    },
+    "CRUD_Admission_Information: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 1507.0 (hours)~Resources Needed: 9.0~Total Time Elasped: 21 business days",
+        "title": "CRUD_Admission_Information: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Accounts_Receivable_Data: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1488.0 (hours)~Resources Needed: 8.9~Total Time Elasped: 21 business days",
+        "title": "CRUD_Accounts_Receivable_Data: Requirements",
+        "start": "10 1 2017"
+    },
+    "CRUD_Provider_Information: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2385.0 (hours)~Resources Needed: 9.9~Total Time Elasped: 31 business days",
+        "title": "CRUD_Provider_Information: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Budgets_and_Authorization: Develop": {
+        "end": "12 14 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 232.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 19 business days",
+        "title": "CRUD_Budgets_and_Authorization: Develop",
+        "start": "11 19 2018"
+    },
+    "CRUD_Family_Preferences: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 2582.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Family_Preferences: Test",
+        "start": "1 13 2019"
+    },
+    "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Single_Patient_(Mark_Erroneous,_Associate_Patient_with_Record,_Create_Patient_with_Unknown_Identity,_Associate_Multiple_Identifiers): Deploy",
+        "start": "5 20 2019"
+    },
+    "Send-Receive_Image: Develop": {
+        "end": "1 13 2015",
+        "color": "rgb(255,0,0)",
+        "description": "Total LOE: 935.0 (hours)~Resources Needed: 4.9~Total Time Elasped: 24 business days",
+        "title": "Develop",
+        "start": "12 12 2014",
+        "trackNum": "1"
+    },
+    "Assess_Facility_Efficiency: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 445.0 (hours)~Resources Needed: 2.3~Total Time Elasped: 24 business days",
+        "title": "Assess_Facility_Efficiency: Develop",
+        "start": "12 12 2018"
+    },
+    "Get-Set_Performance_andAccountability_Measures: Develop": {
+        "end": "1 13 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 311.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 24 business days",
+        "title": "Get-Set_Performance_andAccountability_Measures: Develop",
+        "start": "12 12 2018"
+    },
+    "CRUD_Managed_Care_Contracting_data: Design": {
+        "end": "12 12 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 327.0 (hours)~Resources Needed: 1.4~Total Time Elasped: 31 business days",
+        "title": "CRUD_Managed_Care_Contracting_data: Design",
+        "start": "10 30 2017"
+    },
+    "CRUD_Documentation_or_Note: Requirements": {
+        "end": "10 30 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1311.0 (hours)~Resources Needed: 7.9~Total Time Elasped: 21 business days",
+        "title": "CRUD_Documentation_or_Note: Requirements",
+        "start": "10 1 2015"
+    },
+    "Assess_Facility_Efficiency: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 470.0 (hours)~Resources Needed: 2.0~Total Time Elasped: 31 business days",
+        "title": "Assess_Facility_Efficiency: Design",
+        "start": "10 30 2018"
+    },
+    "Get_Team_Members_for_Provider: Requirements": {
+        "end": "10 17 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 246.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 12 business days",
+        "title": "Get_Team_Members_for_Provider: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Budgets_and_Authorization: Deploy": {
+        "end": "2 26 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 55.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 7 business days",
+        "title": "CRUD_Budgets_and_Authorization: Deploy",
+        "start": "2 17 2019"
+    },
+    "CRUD_Patient_Demographic_Data: Design": {
+        "end": "12 12 2014",
+        "color": "rgb(60,234,174)",
+        "description": "Total LOE: 1917.0 (hours)~Resources Needed: 8.0~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Demographic_Data: Design",
+        "start": "10 30 2014",
+        "trackNum": "3"
+    },
+    "CRUD_Consult_Report: Design": {
+        "end": "12 12 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1494.0 (hours)~Resources Needed: 6.2~Total Time Elasped: 31 business days",
+        "title": "CRUD_Consult_Report: Design",
+        "start": "10 30 2016"
+    },
+    "CRUD_Screening_Questionnaire: Design": {
+        "end": "12 12 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 412.0 (hours)~Resources Needed: 1.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Screening_Questionnaire: Design",
+        "start": "10 30 2018"
+    },
+    "CRUD_Patient_Guidance_and_Reminder: Design": {
+        "end": "12 12 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 757.0 (hours)~Resources Needed: 3.1~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Guidance_and_Reminder: Design",
+        "start": "10 30 2019"
+    },
+    "CRUD_Patient_Instructions: Test": {
+        "end": "5 19 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 2043.0 (hours)~Resources Needed: 2.8~Total Time Elasped: 91 business days",
+        "title": "CRUD_Patient_Instructions: Test",
+        "start": "1 13 2020"
+    },
+    "Get-Set_Eligibility_Information: Requirements": {
+        "end": "10 19 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 762.0 (hours)~Resources Needed: 7.2~Total Time Elasped: 14 business days",
+        "title": "Get-Set_Eligibility_Information: Requirements",
+        "start": "10 1 2015"
+    },
+    "CRUD_Appointment: Test": {
+        "end": "5 19 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 3326.0 (hours)~Resources Needed: 4.6~Total Time Elasped: 91 business days",
+        "title": "CRUD_Appointment: Test",
+        "start": "1 13 2016"
+    },
+    "Equipment_Monitoring_Service: Test": {
+        "end": "2 26 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 4776.0 (hours)~Resources Needed: 12.8~Total Time Elasped: 47 business days",
+        "title": "Equipment_Monitoring_Service: Test",
+        "start": "12 23 2017"
+    },
+    "Get-Set_Performance_andAccountability_Measures: Test": {
+        "end": "5 20 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 939.0 (hours)~Resources Needed: 1.3~Total Time Elasped: 91 business days",
+        "title": "Get-Set_Performance_andAccountability_Measures: Test",
+        "start": "1 13 2019"
+    },
+    "Add_Encounter_Data_to_Encounter_History: Requirements": {
+        "end": "10 30 2016",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 1196.0 (hours)~Resources Needed: 7.2~Total Time Elasped: 21 business days",
+        "title": "Add_Encounter_Data_to_Encounter_History: Requirements",
+        "start": "10 1 2016"
+    },
+    "CRUD_Patient_Instructions: Design": {
+        "end": "12 12 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 898.0 (hours)~Resources Needed: 3.7~Total Time Elasped: 31 business days",
+        "title": "CRUD_Patient_Instructions: Design",
+        "start": "10 30 2019"
+    },
+    "Materiel_Monitoring_Service: Test": {
+        "end": "2 27 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 2300.0 (hours)~Resources Needed: 6.1~Total Time Elasped: 47 business days",
+        "title": "Materiel_Monitoring_Service: Test",
+        "start": "12 24 2016"
+    },
+    "CRUD_Exposure_Data: Test": {
+        "end": "5 19 2020",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 2195.0 (hours)~Resources Needed: 3.0~Total Time Elasped: 91 business days",
+        "title": "CRUD_Exposure_Data: Test",
+        "start": "1 13 2020"
+    },
+    "CRUD_Patient_Information_in_Facility: Deploy": {
+        "end": "6 7 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Patient_Information_in_Facility: Deploy",
+        "start": "5 20 2019"
+    },
+    "CRUD_Order: Requirements": {
+        "end": "10 30 2017",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 893.0 (hours)~Resources Needed: 5.3~Total Time Elasped: 21 business days",
+        "title": "CRUD_Order: Requirements",
+        "start": "10 1 2017"
+    },
+    "CRUD_Budgets_and_Authorization: Requirements": {
+        "end": "10 26 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 204.0 (hours)~Resources Needed: 1.4~Total Time Elasped: 19 business days",
+        "title": "CRUD_Budgets_and_Authorization: Requirements",
+        "start": "10 1 2018"
+    },
+    "Get-Set_Pharmacy_Data: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1263.0 (hours)~Resources Needed: 6.6~Total Time Elasped: 24 business days",
+        "title": "Get-Set_Pharmacy_Data: Develop",
+        "start": "12 12 2015"
+    },
+    "Inventory_Monitoring_Service: Develop": {
+        "end": "12 14 2019",
+        "color": "rgb(114,253,58)",
+        "description": "Total LOE: 549.0 (hours)~Resources Needed: 3.6~Total Time Elasped: 19 business days",
+        "title": "Inventory_Monitoring_Service: Develop",
+        "start": "11 19 2019"
+    },
+    "CRUD_Appointment: Develop": {
+        "end": "1 13 2016",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 1404.0 (hours)~Resources Needed: 7.4~Total Time Elasped: 24 business days",
+        "title": "CRUD_Appointment: Develop",
+        "start": "12 12 2015"
+    },
+    "Get-Set_Performance_andAccountability_Measures: Requirements": {
+        "end": "10 30 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 258.0 (hours)~Resources Needed: 1.5~Total Time Elasped: 21 business days",
+        "title": "Get-Set_Performance_andAccountability_Measures: Requirements",
+        "start": "10 1 2018"
+    },
+    "CRUD_Managed_Care_Contracting_data: Test": {
+        "end": "5 20 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 901.0 (hours)~Resources Needed: 1.2~Total Time Elasped: 91 business days",
+        "title": "CRUD_Managed_Care_Contracting_data: Test",
+        "start": "1 13 2018"
+    },
+    "CRUD_Order: Develop": {
+        "end": "1 13 2018",
+        "color": "rgb(169,140,152)",
+        "description": "Total LOE: 1151.0 (hours)~Resources Needed: 6.1~Total Time Elasped: 24 business days",
+        "title": "CRUD_Order: Develop",
+        "start": "12 12 2017"
+    },
+    "Get_Provider_Role_in_Team: Design": {
+        "end": "11 8 2018",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 313.0 (hours)~Resources Needed: 2.5~Total Time Elasped: 16 business days",
+        "title": "Get_Provider_Role_in_Team: Design",
+        "start": "10 17 2018"
+    },
+    "CRUD_Patient_Consent_and_Authorization: Deploy": {
+        "end": "12 28 2015",
+        "color": "rgb(143,81,216)",
+        "description": "Total LOE: 119.0 (hours)~Resources Needed: 1.6~Total Time Elasped: 10 business days",
+        "title": "CRUD_Patient_Consent_and_Authorization: Deploy",
+        "start": "12 14 2015"
+    },
+    "CRUD_Immunization_List: Deploy": {
+        "end": "6 7 2017",
+        "color": "rgb(11,152,124)",
+        "description": "Total LOE: 109.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 14 business days",
+        "title": "CRUD_Immunization_List: Deploy",
+        "start": "5 20 2017"
+    },
+    "Get_Team_Members_for_Provider: Deploy": {
+        "end": "1 21 2019",
+        "color": "rgb(84,23,201)",
+        "description": "Total LOE: 91.0 (hours)~Resources Needed: 1.0~Total Time Elasped: 12 business days",
+        "title": "Get_Team_Members_for_Provider: Deploy",
+        "start": "1 5 2019"
+    }
+}

@@ -1,0 +1,159 @@
+body {
+  background-image: url("../img/absurdidad.png");
+  background-repeat: repeat;
+}
+
+#logo {
+  margin: 0 auto;
+  width: 990px;
+  margin-top: 25px;
+}
+
+.formContainer {
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  margin-top: 30px;
+  border-radius: 3px;
+  box-shadow: 0px 0px 4px #ddd;
+  margin-bottom: 30px;
+  padding: 20px;
+  float: none;
+}
+
+
+/*------------------Tables-------------------*/
+
+table {
+  border-bottom: 1px solid #ccc;
+  table-layout:fixed;
+  width: 218px;
+  word-wrap: normal;
+  word-break: break-all;
+}
+
+table tr td {
+  padding: 10px;
+  border-left: 1px solid #ccc;
+}
+
+table tr td.tableCheck {
+  border-left: none;
+}
+
+.span3.drop {
+  margin-left: 10px;
+}
+
+.graphTableContainer {
+  float: left;
+  overflow-y: auto;
+  height: 200px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  background-color: #fff;
+}
+
+.tableBody {
+  width: 94%;
+}
+
+.tableFull {
+  width: 100%;
+  border-left: none;
+}
+
+.tableNone {
+  width: 0%;
+  border: none;
+}
+
+.tableCheck {
+  width: 6%;
+}
+
+tr.blue th {
+  background-color: #0088cc;
+  color: white;
+  font-weight: bold;
+  border: #0044cc 1px solid;
+  z-index: 99;
+}
+
+tr.blue {
+  margin-bottom: 1px;
+}
+
+
+/*-------------Accordians-------------*/
+
+.accordion {
+  padding-right: 0px;
+}
+
+.accordion-group {
+  margin-top: 5px;
+}
+
+.accordion-inner {
+  padding-left: 0px;
+}
+
+.collapse{
+  background-color: #fafafa;
+}
+
+/*------------Graph-------------*/
+
+#graphSpace {
+  border: solid 1px #ccc;
+}
+
+#graphSpace button {
+  margin-right: 15px;
+  margin-top: 15px;
+}
+
+.extLegend {
+  float:right; 
+  width: 130px;
+  background-color: #eee;
+  border-left: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  display: block;
+  height: 100%;
+  padding: 10px 10px 9px 10px;
+  margin-right: 5px;
+}
+
+.addDimension {
+  float: right;
+}
+
+.graphEditor {
+  float: right;
+}
+
+.options {
+  float: right;
+  width: 100px;
+  background-color: #eee;
+  border-left: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  display: block;
+  height: 100%;
+  padding: 10px 10px 9px 10px;
+}
+
+.options .btn {
+  display: block;
+  width: 100px;
+}
+
+/*----------RWD----------*/
+.row.drop {
+  margin-left: 0px;
+}

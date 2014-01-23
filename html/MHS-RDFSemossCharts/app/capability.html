@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="css/capabilityHeat.css">
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <!--<script src="data/heatmap-data.js"></script>-->
+
+  </head>
+  <body>
+    <div id="nav"></div>
+    <div id="chart"></div>
+    <script type="text/javascript">
+       
+      function start(dataString) {
+	//var level1Data = dataString;
+	var jsonData = jQuery.parseJSON(dataString);
+	var data = jsonData.dataSeries
+	//var data = level1Data.dataSeries;
+	var xAxisName = jsonData.xAxisTitle;
+	var yAxisName = jsonData.yAxisTitle;
+	var value = jsonData.value;
+	var xAxisArray = [];
+	var xAxisArrayLvl2 = [];
+	var xAxisArrayLvl3 = [];
+	var yAxisArray = [];
+	var dataArray = [];
+	var truncY = [];
+	var truncX = [];
+	var truncXLvl3 = [];
+	var level2Param = [];
+	var level3Param = [];
+	var uniqxAxisArrayLvl3 = [];
+	var sumArrayLvl1 = [];
+	var sumArrayLengthLvl1 = [];
+	var sumArrayLvl2 = [];
+	var sumArrayLengthLvl2 = [];
+	var level2ValueArray = [];
+	var level1Average = 0;
+	var level1AverageRound = 0;
+	var level1AverageRoundArray = [];
+	var valueArray = [];
+	var containerArray = [];
+	var roundLvl2;
+	var valueLvl2;
+	var averageArray = [];
+	var navData = [];
+	var capabilityLevelArray = [];
+	var btbdLevelArray = [];
+	var currentCapability = [];
+	var capability = {}; // This holds the capability object that is being looped through
+	var btbdObj = {};
+	var vendor = {}; // This holds the vendor object that is being looped through LEVEL 1
+	var vendorBtbd = {}; // This holds the vendor object that is being looped through LEVEL 2
+	var vendorSum = 0; // This value keeps ticking up for every vendor.sum that gets added
+	var vendorShortSum = [];
+	var vendorSumBtbd = 0;
+	var vendorFinalSum = []; // Because we need a value that doesn't keep increasing
+	
+	
+	
+/*--------------We need to load the second level averages in order to average the first level (Average of average)--------------*/
+	  xAxisArrayLvl2.length = 0;
+	  for (var key in data) {
+	    
+	    btbdLevelArray.length = 0; //Empty so that everytime it is fresh values, not aggregated.
+	    sumArrayLvl2.length = 0; //for getting average, we need this to reset
+	    sumArrayLengthLvl2.length = 0;
+	    for (var btbd in data[key]) {
+	
+	      sumArrayLvl2.length = 0; //for getting average, we need this to reset
+	      btbdLevelArray.push({btbdName: btbd, vendors: {}});
+	      for (var ven in data[key][btbd].requirement) {
+		
+		// The following code is used to aggregate the numbers in the heatmap for level 2
+		btbdObj = _.find(btbdLevelArray, function(obj) {return obj.btbdName === btbd; });
+		vendorBtbd = _.find(btbdObj.vendors, function(obj) {return obj.vendorName === data[key][btbd].requirement[ven][yAxisName]; });
+		if (vendorBtbd === undefined) { // If this vendor doesn't exist yet...
+		  //btbdObj.vendors.push( { vendorName: data[key][btbd].requirement[ven][yAxisName], sum: data[key][btbd].requirement[ven][value] }); // push this new vendor into the vendors array. This object is being created with a new sum value.
+		  btbdObj.vendors[data[key][btbd].requirement[ven][yAxisName]] = { vendorName: data[key][btbd].requirement[ven][yAxisName], sum: data[key][btbd].requirement[ven][value] };
+		  sumArrayLvl2.push(data[key][btbd].requirement[ven]);
+		} else  { //if this vendor does exist...
+		  
+		  vendorBtbd.sum += data[key][btbd].requirement[ven][value]; // create a counter that adds up all the values for a given vendor in the specified btbd
+		  //for getting average, we will need to get the length of this array
+		  sumArrayLvl2.push(data[key][btbd].requirement[ven]);
+		}
+	      }
+	      
+	      
+	      sumArrayLengthLvl2.push(sumArrayLvl2.length);
+	    }
+	  
+	  
+	  // In this loop we loop through the vendor object first...
+	  // then loop through all the second level x-axis in order to get the averages of the  level 2 values.
+	    var counter = 0; // we need this inside the array because our first loop is looping through an object
+	    //valueArray.length = 0;
+	    for(var vendors in btbdLevelArray[0].vendors) {
+	      valueArray[counter] = [];
+	      for (var j=0; j<btbdLevelArray.length; j++) {
+		var vendorLength = _.size(btbdLevelArray[0].vendors)
+		valueLvl2 = (btbdLevelArray[j].vendors[vendors].sum / (sumArrayLengthLvl2[j]/vendorLength));
+		roundLvl2 = Math.round(valueLvl2 * 100) / 100;
+		valueArray[counter].push(roundLvl2);
+	      }
+	      counter = counter + 1; 
+	    }
+	    
+	    var avgArr = [];
+	    for (var i=0; i<valueArray.length;i++){
+	      var sum = 0;
+	      var average = 0;
+	      
+	      for (var j=0;j<valueArray[i].length;j++){
+		sum += valueArray[i][j];
+	      }
+	      
+	      average = Math.round((sum / valueArray[i].length)* 100) / 100;
+	      avgArr.push(average)
+	    }
+	    averageArray.push(avgArr);
+	  }
+	
+	
+	
+	/*----------------------Level one computing ---------------*/
+	
+	  for (var key in data) { // Capabilities
+	   sumArrayLvl1.length = 0;
+	    xAxisArray.push(key); // Push all the capabilities into one array
+	    capabilityLevelArray.push({capabilityName: key, vendors: []}); // New json filled with capability name, and a vendor array. The vendor array holds the summed values
+	    for (var btbd in data[key]) { // btbd = BLUs, Tech Standards, Bus Standards, Data Objects
+	      sumArrayLvl1.length = 0;
+	      
+	      for (var ven in data[key][btbd].requirement) { // Level that holds vendor, value, and requirement
+		
+		
+		// The following code is used to aggregate the numbers in the heatmap for level 1
+		capability = _.find(capabilityLevelArray, function (obj) { return obj.capabilityName === key; }); // Returns the capability object that coorresponds to the capability currently being looped through
+		vendor = _.find(capability.vendors, function(obj) { return obj.vendorName === data[key][btbd].requirement[ven][yAxisName]; }); // Returning the vendor object for the capability we are currently looping through
+		
+	
+		if (vendor === undefined) { // If this vendor doesn't exist yet...
+		  capability.vendors.push( { vendorName: data[key][btbd].requirement[ven][yAxisName], sum: data[key][btbd].requirement[ven][value] }); // push this new vendor into the vendors array. This object is being created with a new sum value.
+		  sumArrayLvl1.push(data[key][btbd].requirement[ven]);
+		} else  { // if this vendor does exist...
+		  vendor.sum += data[key][btbd].requirement[ven][value]; // create a counter that adds up all the values for a given vendor in the specified capability
+		  vendorSum = vendor.sum; // Take this sum (which keeps ticking up) and make it availible outside these loops
+		  sumArrayLvl1.push(data[key][btbd].requirement[ven]);
+		}
+		
+		// These are the Vendor names for the y-axis
+		yAxisArray.push(data[key][btbd].requirement[ven][yAxisName]);
+		//This array stores all the values into a json to be accessed by d3
+	      }
+	    }
+	   
+	  sumArrayLengthLvl1.push(sumArrayLvl1.length)
+	  }
+	  
+	
+	// Create our level 1 data array 
+	  for (var i=0;i<capabilityLevelArray.length;i++) {
+	   // console.log("level I: " + i)
+	    var xAxisNameSpecific = capabilityLevelArray[i].capabilityName;
+	   
+	    for (var j=0;j<capabilityLevelArray[i].vendors.length; j++) {
+	       //console.log("level J: " + j)
+	      var yAxisNameLvl1 = capabilityLevelArray[i].vendors[j].vendorName;
+	      dataArray.push({yAxis: yAxisNameLvl1, Value: averageArray[i][j], xAxis: xAxisNameSpecific, xAxisName: xAxisNameSpecific, yAxisName: yAxisNameLvl1, valueTitle: averageArray[i][j]});
+	    }
+	  }
+
+
+	  //********************Level 2 Update
+	  function level2Update(param) {
+	  level2Param = param;
+	  vendorSumBtbd = 0;
+	  sumArrayLengthLvl2.length = 0;
+	  var dataArrayLvl2 = [];
+	  xAxisArrayLvl2.length = 0;
+	  
+
+	 
+	    navData = ["Home > " + level2Param];
+	    navText = nav.selectAll("text")
+	      .data(navData);
+	    navText
+	      .enter()
+	      .append("text");
+	    navText
+	      .text(function(d){return d})
+	      .attr("x", 0)
+	      .attr("y", 15);
+	    navText
+	      .exit()
+	      .remove();
+	  
+	  
+	   
+	  var drillBtn = btnSvg.selectAll(".drillBtn")
+	    .data([1])
+	    .enter()
+	    .append("image")
+	    .attr("xlink:href", "img/arrow-up.jpg")
+	    .attr("width", 20)
+	    .attr("height", 20)
+	    .attr("class", "active")
+	    .on("click", function(d,i) { level1Update(d); });
+
+	  currentCapability = data[param];
+	  btbdLevelArray.length = 0; //Empty so that everytime it is fresh values, not aggregated.
+	  sumArrayLvl2.length = 0; //for getting average, we need this to reset
+	    for (var btbd in currentCapability) {
+	      sumArrayLvl2.length = 0; //for getting average, we need this to reset
+	      btbdLevelArray.push({btbdName: btbd, vendors: []});
+	      for (ven in currentCapability[btbd].requirement) {
+		
+		// The following code is used to aggregate the numbers in the heatmap for level 2
+		btbdObj = _.find(btbdLevelArray, function(obj) {return obj.btbdName === btbd; });
+		vendorBtbd = _.find(btbdObj.vendors, function(obj) {return obj.vendorName === currentCapability[btbd].requirement[ven][yAxisName]; });
+		if (vendorBtbd === undefined) { // If this vendor doesn't exist yet...
+		  btbdObj.vendors.push( { vendorName: currentCapability[btbd].requirement[ven][yAxisName], sum: currentCapability[btbd].requirement[ven][value] }); // push this new vendor into the vendors array. This object is being created with a new sum value.
+		  sumArrayLvl2.push(currentCapability[btbd].requirement[ven]);
+		} else  { //if this vendor does exist...
+		  
+		  vendorBtbd.sum += currentCapability[btbd].requirement[ven][value]; // create a counter that adds up all the values for a given vendor in the specified btbd
+		  
+		  //for getting average, we will need to get the length of this array
+		  sumArrayLvl2.push(currentCapability[btbd].requirement[ven]);
+		 
+		  vendorSumBtbd = vendorBtbd.sum; // Take this sum (which keeps ticking up) and make it availible outside these loops
+		}
+	      }
+	      sumArrayLengthLvl2.push(sumArrayLvl2.length);
+	    }
+	    
+	    
+	    var valueLvl2Sum = 0;
+	    //turn array into numbers
+	    for (var i=0; i<btbdLevelArray.length; i++) {
+	      xAxisArrayLvl2.push(btbdLevelArray[i].btbdName)
+	      var xAxisLvl2Specific = btbdLevelArray[i].btbdName;
+	      for (var j=0; j<btbdLevelArray[i].vendors.length; j++) {
+		var yAxisLvl2 = btbdLevelArray[i].vendors[j].vendorName;
+		var valueLvl2 = (btbdLevelArray[i].vendors[j].sum / (sumArrayLengthLvl2[i] / btbdLevelArray[i].vendors.length));
+		var roundLvl2 = Math.round(valueLvl2 * 100) / 100
+		valueLvl2Sum += roundLvl2;
+		
+		dataArrayLvl2.push({yAxis: yAxisLvl2, Value: roundLvl2, xAxis: xAxisLvl2Specific, xAxisName: xAxisLvl2Specific, yAxisName: yAxisLvl2, valueTitle: roundLvl2})
+
+	      }
+	    }
+	   
+	    sumArrayLengthLvl2.length = 0;
+	
+	    /* Assign each name a number for level 2 */
+	    for (var i = 0; i<dataArrayLvl2.length;i++) {
+	      for (var j = 0; j<xAxisArrayLvl2.length; j++) {
+		if (xAxisArrayLvl2[j] == dataArrayLvl2[i].xAxis) {
+		  dataArrayLvl2[i].xAxis = j;
+		}
+	      }
+	      for (var j = 0; j<yAxisArray.length; j++) {
+		if (yAxisArray[j] == dataArrayLvl2[i].yAxis) {
+		  dataArrayLvl2[i].yAxis = j;
+		}
+	      }
+	    };
+	    
+	    
+	    /* Start rebuilding the elements */
+	    var width = xAxisArrayLvl2.length * gridSize,
+	    height = yAxisData.length * gridSize,
+	    legendElementWidth = 60,
+	    buckets = 4,
+	    colors = ["#f4f9e5","#b4d987","#74a53b","#46781e"]; // alternatively colorbrewer.YlGnBu[9]
+	    
+	    var colorScale = d3.scale.quantile()
+	      .domain([0, 10])
+	      .range(colors);
+	    
+	  // Update the X Labels for level 2
+	    
+	    var xText = svg.selectAll(".xAxis")
+	      .data(xAxisArrayLvl2, function(d, i) { return d; });
+	   
+	    xText
+	      .enter().append("text") 
+	      .transition()
+	      .duration(300)
+	      .text(function(d) { return d; })
+	      .style("text-anchor", "start")
+	      .attr("x", 10)
+	      .attr("y", 12)
+	      .attr("class", "xAxis active")
+	      .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	    
+	    xText.on("click", function(d,i) { level3Update(d); });
+	    
+	    xText
+	      .exit()
+	      .remove();
+	  
+	  // Update the lines for level 2
+	  
+	    /* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>" + value + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	
+		 
+	     var heatMap = svg.selectAll(".heat")
+	      .data(dataArrayLvl2);
+	      
+	      heatMap.enter().append("rect")
+		.attr("rx", 2)
+		.attr("ry", 2)
+		.attr("class", "heat bordered")
+		.attr("width", gridSize)
+		.attr("height", gridSize)
+		.style("fill", colors[0])
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide);
+	      
+	      heatMap
+	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
+	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
+	      .style("fill", function(d) { return colorScale(d.Value)})
+	      ;
+	      
+	      
+	      heatMap
+		.exit()
+		.remove();
+		
+		
+	       heatMap.call(tip);
+	       
+	   
+	    //heatMap.transition().duration(1000)
+	  } // End level 2 function
+	  
+	  
+	  //****************Level 3 Update
+	  function level3Update(param) {
+	    level3Param = param;
+	    var dataArrayLvl3 = [];
+	    dataArrayLvl3.length = 0;
+	    xAxisArrayLvl3.length = 0; // Empty this out so it doesn't keep adding
+  
+	    navData = ["Home > " + level2Param +  " > " + level3Param];
+	   
+	    var navText = nav.selectAll("text")
+	      .data(navData);
+	    navText
+	      .enter()
+	      .append("text")
+	      
+	    navText
+	      .text(function(d){return d})
+	      .attr("x", 0)
+	      .attr("y", 15);
+	      
+	    navText
+	      .exit()
+	      .remove();
+	  
+	      
+	    
+	    
+	    for (key in currentCapability[level3Param].requirement) {
+	      xAxisArrayLvl3.push(currentCapability[level3Param].requirement[key].Requirement);
+	      
+	      var xAxisArrayLvl3Specific = currentCapability[level3Param].requirement[key].Requirement;
+	      var yAxisLvl3 = currentCapability[level3Param].requirement[key].Vendor
+	      var valueLvl3 = currentCapability[level3Param].requirement[key].value
+	      var support;
+	      if (currentCapability[level3Param].requirement[key].value == 10) {
+		support = "Supports_Out_Of_Box";
+	      }else if (currentCapability[level3Param].requirement[key].value == 7) {
+		support = "Supports_With_Configuration";
+	      }else if (currentCapability[level3Param].requirement[key].value == 3) {
+		support = "Supports_With_Customization";
+	      }else if (currentCapability[level3Param].requirement[key].value == 0) {
+		support = "Does_Not_Support";
+	      }else {
+		support = "?";
+	      }
+	      
+	      dataArrayLvl3.push({yAxis: yAxisLvl3, Value: valueLvl3, xAxis: xAxisArrayLvl3Specific, xAxisName: xAxisArrayLvl3Specific, yAxisName: yAxisLvl3, valueTitle: support})
+	    }
+	    
+	    
+	    uniqxAxisArrayLvl3 = _.uniq(xAxisArrayLvl3)
+	    truncXLvl3.length = 0;
+	    // Truncate level 3 xAxis requirements
+	    for (i = 0; i < uniqxAxisArrayLvl3.length; i++) {
+	      if (uniqxAxisArrayLvl3[i].length > 40) {
+		truncXLvl3.push(uniqxAxisArrayLvl3[i].substring(0, 40) + '...');
+	      } else {
+		truncXLvl3.push(uniqxAxisArrayLvl3[i]);
+	      }
+	    }
+	    
+	  
+	   
+	     
+	     var width = uniqxAxisArrayLvl3.length * gridSize,
+	      height = yAxisData.length * gridSize,
+	      legendElementWidth = 60;
+	      colors = ["#f4f9e5","#b4d987","#74a53b","#46781e"]; // alternatively colorbrewer.YlGnBu[9]
+	    svg.attr("width", width)
+	    
+	    /* Assign each name a number for level 3 */
+	    for (var i = 0; i<dataArrayLvl3.length;i++) {
+	      for (var j = 0; j<uniqxAxisArrayLvl3.length; j++) {
+		if (uniqxAxisArrayLvl3[j] == dataArrayLvl3[i].xAxis) {
+		  dataArrayLvl3[i].xAxis = j;
+		}
+	      }
+	      for (var j = 0; j<yAxisArray.length; j++) {
+		if (yAxisArray[j] == dataArrayLvl3[i].yAxis) {
+		  dataArrayLvl3[i].yAxis = j;
+		}
+	      }
+	    };
+	    
+ 
+	    var colorScale = d3.scale.quantile()
+	      .domain([0, 10])
+	      .range(colors);
+	    	    /* Start rebuilding the elements */
+	  
+	    
+	  // Update the X Labels for level 3
+	    
+	    var xText = svg.selectAll(".xAxis")
+	      .data(truncXLvl3);
+	    
+	    xText
+	      .enter().append("text");
+	    
+	    xText
+	      .transition()
+	      .duration(300)
+	      .text(function(d) { return d; })
+	      .style("text-anchor", "start")
+	      .attr("x", 10)
+	      .attr("y", 12)
+	      .attr("class", "xAxis")
+	      .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	    
+	    xText
+	      .exit()
+	      .remove();
+	    
+	   
+	    var drillBtn = btnSvg.selectAll(".drillBtn")
+	      .data([1])
+	      .enter()
+	      .append("image")
+	      .attr("xlink:href", "img/arrow-up.jpg")
+	      .attr("width", 20)
+	      .attr("height", 20)
+	      .attr("class", "active")
+	      .style("fill", "#333")
+	      .on("click", function(){level2Update(level2Param)});
+	  
+	    
+	    
+	    
+	  /* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>" + value + "</span> " + d.valueTitle + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	
+	    // Update the lines for level 2
+	    var heatMap = svg.selectAll(".heat")
+	      .data(dataArrayLvl3);
+	    
+	    heatMap.enter().append("rect")
+	      .attr("rx", 2)
+	      .attr("ry", 2)
+	      .attr("class", "heat bordered")
+	      .attr("width", gridSize)
+	      .attr("height", gridSize)
+	      .style("fill", colors[0]);
+	    
+	    heatMap
+	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
+	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
+	      .style("fill", function(d) { return colorScale(d.Value)})
+	      .on('mouseover', tip.show)
+	      .on('mouseout', tip.hide);
+
+	    heatMap
+	      .exit()
+	      .remove();
+	    
+	    
+	    /* Invoke the tooltip in the context of your visualization */
+	    heatMap.call(tip);
+	    
+ 
+	  } // **************** End of Level 3
+	  
+	  
+	  var uniqueX = _.uniq(xAxisArray);
+	  var uniqueY = _.uniq(yAxisArray);
+	  xAxisArray = uniqueX.sort();
+	  //xAxisArray = uniqueX;
+	  /* Reg Ex so that we sort group by their numbers */
+	  var reA = /[^a-zA-Z]/g;
+	  var reN = /[^0-9]/g;
+	  function sortAlphaNum(a,b) {
+	      var aA = a.replace(reA, "");
+	      var bA = b.replace(reA, "");
+	      if(aA === bA) {
+		  var aN = parseInt(a.replace(reN, ""), 10);
+		  var bN = parseInt(b.replace(reN, ""), 10);
+		  return aN === bN ? 0 : aN > bN ? 1 : -1;
+	      } else {
+		  return aA > bA ? 1 : -1;
+	      }
+	  }
+	  yAxisArray = uniqueY.sort(sortAlphaNum);
+	  /* Assign each name a number and place matrix coordinates inside of dataArray */
+	  
+	  
+	  for (var i = 0; i<dataArray.length;i++) {
+	      
+	    for (var j = 0; j<xAxisArray.length; j++) {
+	
+	     
+	      if (xAxisArray[j] == dataArray[i].xAxis) {
+		dataArray[i].xAxis = j;
+		
+	      }
+	    }
+	  for (var j = 0; j<yAxisArray.length; j++) {
+	      if (yAxisArray[j] == dataArray[i].yAxis) {
+		dataArray[i].yAxis = j;
+	      }
+	    }
+	  };
+	  
+	  /* Truncate Values */
+	  for (i = 0; i < uniqueY.length; i++) {
+	    if (uniqueY[i].length > 20) {
+	      truncY.push(uniqueY[i].substring(0, 20) + '...');
+	    } else {
+	      truncY.push(uniqueY[i]);
+	    }
+	  }
+	  
+	  for (i = 0; i < uniqueX.length; i++) {
+	    if (uniqueX[i].length > 30) {
+	      truncX.push(uniqueX[i].substring(0, 30) + '...');
+	    } else {
+	      truncX.push(uniqueX[i]);
+	    }
+	  }
+      
+    
+	var margin = { top: 185, right: 150, bottom: 42, left: 150 },
+        xAxisData = xAxisArray,
+        yAxisData = yAxisArray,
+	gridSize = 75
+        
+	if (gridSize > 30) {
+	  gridSize = 30;
+	}
+	if (gridSize < 15) {
+	  gridSize = 15;
+	}
+	
+	var width = xAxisData.length * gridSize,
+        height = yAxisData.length * gridSize,
+        legendElementWidth = 60,
+        buckets = 4,
+        colors = ["#f4f9e5","#b4d987","#74a53b","#46781e"]; // alternatively colorbrewer.YlGnBu[9]
+	
+	if (xAxisData.length < 35) {
+	  legendElementWidth = 30
+	}
+      
+	
+	
+	  var colorScale = d3.scale.quantile()
+	      .domain([0, 10])
+	      .range(colors);
+	      
+
+	  var svg = d3.select("#chart").append("svg")
+	      .attr("width", 40000)
+	      .attr("height", height + margin.top + margin.bottom)
+	      .attr("overflow", "scroll")
+	      .append("g")
+	      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	    
+	  
+	    
+	  var btnSvg = d3.select("#nav").append("svg")
+	      .attr("width", 30)
+	      .attr("height", 30);
+	  var nav = d3.select("#nav").append("svg")
+	    .attr("width", 1000)
+	    .attr("height", 50);
+	
+	/* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>" + value + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	
+	  
+	  level1Update();
+	  function level1Update() {
+
+	    var yText = svg.selectAll(".yAxis")
+		.data(truncY)
+		.enter().append("text")
+		.text(function (d) { return d; })
+		.attr("x", 0)
+		.attr("y", function (d, i) { return i * gridSize; })
+		.style("text-anchor", "end")
+		.attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+		.attr("class", "yAxis");
+	    
+	    
+	    var xText = svg.selectAll(".xAxis")
+	      .data(truncX, function(d, i) { return d; });
+	    
+	    xText
+	      .enter().append("text") 
+	      .transition()
+	      .duration(300)
+	      .text(function(d) { return d; })
+	      .style("text-anchor", "start")
+	      .attr("x", 10)
+	      .attr("y", 12)
+	      .attr("class", "xAxis active")
+	      xText
+	      .on("click", function(d,i) { level2Update(d); })
+	      .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	    
+	    xText
+	      .exit()
+	      .remove();
+	    
+	        
+	    var heatMap = svg.selectAll(".heat")
+	      .data(dataArray);
+	      
+	      heatMap.enter().append("rect")
+		.attr("rx", 2)
+		.attr("ry", 2)
+		.attr("class", "heat bordered")
+		.attr("width", gridSize)
+		.attr("height", gridSize)
+		.style("fill", colors[0])
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide)
+		.transition().duration(1000)
+		.style("fill", function(d) { return colorScale(d.Value); });;
+	      
+	      heatMap
+	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
+	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
+	      .style("fill", function(d) { return colorScale(d.Value)});
+
+	      heatMap
+		.exit()
+		.remove();
+	
+	    /* Invoke the tooltip in the context of your visualization */
+	    heatMap.call(tip);
+	    
+	    //vertical lines
+	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisData.length + 1));
+	      
+	    
+		
+	    vLine
+		.attr("x1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y1", function (d) {
+		return 0;
+	    })
+		.attr("y2", function (d) {
+		return height;
+	    })
+		.style("stroke", "#eee");
+		
+	    vLine
+	      .enter()
+	      .append("line");
+		
+	    vLine
+	      .exit()
+	      .remove();
+	    
+	    // horizontal lines
+	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisData.length + 1));
+	    
+	    
+	    
+	    hLine
+		.attr("y1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x1", function (d) {
+		return 0;
+	    })
+		.attr("x2", function (d) {
+		return width;
+	    })
+		.style("stroke", "#eee");
+		
+	    hLine
+	      .enter()
+	      .append("line");
+	      
+	    hLine
+	      .exit()
+	      .remove();
+	  
+	 
+	     // Create level 3 legend
+	    var legend = svg.selectAll(".legend")
+	      .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+	      .enter().append("g")
+	      .attr("stroke", "#ccc")
+	      .attr("stroke-width", "2")
+	      .attr("class", "legend");
+  
+	    legend.append("rect")
+	      .attr("x", function(d, i) { return 20 * i; })
+	      .attr("y", yAxisData.length * gridSize + 20)
+	      .attr("width", 20)
+	      .attr("height", 20)
+	      .style("fill", function(d, i) { return colors[i]; });
+    
+	    legend.append("text")
+	      .text("Low")
+	      .attr("x", -10)
+	      .attr("y", function (i) { return (i * gridSize) + 123;})
+	      .style("text-anchor", "end");
+	      
+	    legend.append("text")
+	      .text("High")
+	      .attr("x", function (i) { return (i * gridSize) + 90;})
+	      .attr("y", function (i) { return (i * gridSize) + 123;})
+	      .style("text-anchor", "start");
+	      
+	    var drillBtn = btnSvg.selectAll(".drillBtn")
+	      .data([1])
+	      .enter()
+	      .append("rect")
+	      .attr("width", 20)
+	      .attr("height", 20)
+	      .style("fill", "#999");
+	      
+	     
+	  navData = ["Home"];
+	    
+	  var navText = nav.selectAll("text")
+	    .data(navData, function(d, i) { return d; })
+	  navText
+	    .enter()
+	    .append("text")
+	    .text(function(d){return d;})
+	    .attr("x", 0)
+	    .attr("y", 15);
+	    
+	  navText
+	    .exit()
+	    .remove();
+	  }
+	    
+	  
+       }; // End start function
+       
+    </script>
+  
+  </body>
+</html>

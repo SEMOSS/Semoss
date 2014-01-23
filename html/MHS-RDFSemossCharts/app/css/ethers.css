@@ -1,0 +1,150 @@
+
+.timeline-ether-lines {
+    border-color: #666666;
+    border-style: dotted;
+    position: absolute;
+}
+.timeline-horizontal .timeline-ether-lines {
+    border-width: 0 0 0 1px;
+    height: 100%;
+    top: 0;
+    width: 1px;
+}
+.timeline-vertical .timeline-ether-lines {
+    border-width: 1px 0 0;
+    height: 1px;
+    left: 0;
+    width: 100%;
+}
+.timeline-ether-weekends {
+    background-color: #FFFFE0;
+    position: absolute;
+}
+.timeline-vertical .timeline-ether-weekends {
+    left: 0;
+    width: 100%;
+}
+.timeline-horizontal .timeline-ether-weekends {
+    height: 100%;
+    top: 0;
+}
+.timeline-highlight-decorator, .timeline-highlight-point-decorator {
+    overflow: hidden;
+    position: absolute;
+}
+.timeline-horizontal .timeline-highlight-point-decorator, .timeline-horizontal .timeline-highlight-decorator {
+    height: 100%;
+    top: 0;
+}
+.timeline-vertical .timeline-highlight-point-decorator, .timeline-vertical .timeline-highlight-decorator {
+    left: 0;
+    width: 100%;
+}
+.timeline-highlight-decorator {
+    background-color: #FFC080;
+}
+.timeline-highlight-point-decorator {
+    background-color: #FFFF55;
+}
+.timeline-highlight-label {
+    color: #999999;
+    font-size: 200%;
+    font-weight: bold;
+    overflow: hidden;
+    position: absolute;
+}
+.timeline-horizontal .timeline-highlight-label {
+    height: 100%;
+    top: 0;
+}
+.timeline-horizontal .timeline-highlight-label td {
+    vertical-align: middle;
+}
+.timeline-horizontal .timeline-highlight-label-start {
+    text-align: right;
+}
+.timeline-horizontal .timeline-highlight-label-end {
+    text-align: left;
+}
+.timeline-vertical .timeline-highlight-label {
+    left: 0;
+    width: 100%;
+}
+.timeline-vertical .timeline-highlight-label td {
+    vertical-align: top;
+}
+.timeline-vertical .timeline-highlight-label-start {
+    text-align: center;
+}
+.timeline-vertical .timeline-highlight-label-end {
+    text-align: center;
+}
+.timeline-date-label {
+    border: medium solid #AAAAAA;
+    color: #AAAAAA;
+    height: 1.5em;
+    position: absolute;
+    width: 5em;
+}
+.timeline-date-label-em {
+    color: #000000;
+}
+.timeline-horizontal .timeline-date-label {
+    padding-left: 2px;
+}
+.timeline-horizontal .timeline-date-label {
+    border-width: 0 0 0 1px;
+}
+.timeline-horizontal .timeline-date-label-em {
+    height: 2em;
+}
+.timeline-vertical .timeline-date-label {
+    padding-top: 2px;
+}
+.timeline-vertical .timeline-date-label {
+    border-width: 1px 0 0;
+}
+.timeline-vertical .timeline-date-label-em {
+    width: 7em;
+}
+.timeline-ether-highlight {
+    background-color: #FFFFFF;
+    position: absolute;
+}
+.timeline-horizontal .timeline-ether-highlight {
+    top: 2px;
+}
+.timeline-vertical .timeline-ether-highlight {
+    left: 2px;
+}
+.timeline-event-icon, .timeline-event-label, .timeline-event-tape {
+    cursor: pointer;
+    position: absolute;
+}
+.timeline-event-tape, .timeline-small-event-tape, .timeline-small-event-icon {
+    background-color: #58A0DC;
+    overflow: hidden;
+}
+.timeline-small-event-tape, .timeline-small-event-icon {
+    position: absolute;
+}
+.timeline-small-event-icon {
+    height: 6px;
+    width: 1px;
+}
+.timeline-ether-bg {
+    height: 100%;
+    width: 100%;
+}
+.timeline-band-0 .timeline-ether-bg {
+    background-color: #EEEEEE;
+}
+.timeline-band-1 .timeline-ether-bg {
+    background-color: #DDDDDD;
+}
+.timeline-band-2 .timeline-ether-bg {
+    background-color: #CCCCCC;
+}
+.timeline-band-3 .timeline-ether-bg {
+    background-color: #AAAAAA;
+}

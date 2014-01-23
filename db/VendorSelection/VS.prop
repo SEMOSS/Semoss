@@ -1,0 +1,43 @@
+// List of things I need
+// Number of Columns
+// Column Number to type
+// Types are
+// Decimal
+// Number
+// String
+// Boolean
+// Date - Format mm/dd/yyyy
+
+NUM_COLUMNS	10
+1	Decimal
+3	Number
+4	String
+6	Boolean
+8	Date
+
+NOT_OPTIONAL	1;2;
+
+IGNORE_URI      ;
+PROP_URI ;
+PREDICATE_URI ;
+
+Contains	http://doh.com/Relation/Contains
+
+// Relationships to create and their ontology
+// if nothing is specified
+// it gets created as Property
+
+// base Concepts first
+FirstName_Sno	http://doh.com/Concept/FirstNameSno
+Crazy	http://doh.com/Concept/Crazy
+
+
+FirstName_Sno@Height
+FirstName_Sno@LastName
+FirstName_Sno@Crazy	http://doh.com/Relation/Is
+FirstName_Sno@CrazySince
+FirstName_Sno@LevelOfCraziness
+FirstName_Sno@Comment1
+
+RELATION	FirstName_Sno@Height;FirstName_Sno@LastName;FirstName_Sno@Crazy;FirstName_Sno@CrazySince;FirstName_Sno@LevelOfCraziness;FirstName_Sno@Comment1
+

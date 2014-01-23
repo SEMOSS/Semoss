@@ -1,0 +1,38 @@
+
+##Base Objects##
+
+Type http://health.mil/ontologies/dbcm/Concept/Type
+Hospital http://health.mil/ontologies/dbcm/Concept/Hospital
+DRG http://health.mil/ontologies/dbcm/Concept/DRG
+Specialty http://health.mil/ontologies/dbcm/Concept/Specialty
+HospitalDRG http://health.mil/ontologies/dbcm/Concept/HospitalDRG
+Credential http://health.mil/ontologies/dbcm/Concept/Credential
+Sex http://health.mil/ontologies/dbcm/Concept/Sex
+ZipCode http://health.mil/ontologies/dbcm/Concept/ZipCode
+CostLevel http://health.mil/ontologies/dbcm/Concept/CostLevel
+Doctor http://health.mil/ontologies/dbcm/Concept/Doctor
+State http://health.mil/ontologies/dbcm/Concept/State
+
+##Base Predicates##
+
+Doctor_ExistsIn_ZipCode http://health.mil/ontologies/dbcm/Relation/ExistsIn
+Doctor_PracticesIn_Hospital http://health.mil/ontologies/dbcm/Relation/PracticesIn
+Doctor_Refers_Doctor http://health.mil/ontologies/dbcm/Relation/Refers
+Doctor_IsType_Type http://health.mil/ontologies/dbcm/Relation/IsType
+State_Includes_ZipCode http://health.mil/ontologies/dbcm/Relation/Includes
+Doctor_Has_Credential http://health.mil/ontologies/dbcm/Relation/Has
+Doctor_Is_Sex http://health.mil/ontologies/dbcm/Relation/Is
+HospitalDRG_Incurs_CostLevel http://health.mil/ontologies/dbcm/Relation/Incurs
+Doctor_SpecializesIn_Specialty http://health.mil/ontologies/dbcm/Relation/SpecializesIn
+Hospital_Performs_HospitalDRG http://health.mil/ontologies/dbcm/Relation/Performs
+HospitalDRG_TypeOf_DRG http://health.mil/ontologies/dbcm/Relation/TypeOf
+
+
+IGNORE_URI	;
+
+
+PROP_URI http://health.mil/ontologies/dbcm/Relation/Contains
+PREDICATE_URI http://health.mil/ontologies/dbcm/Relation
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://health.mil/ontologies/dbcm/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://health.mil/ontologies/dbcm/Concept/DRG+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/HospitalDRG+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Specialty+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/CostLevel+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Type+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Doctor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/State+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Credential+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Hospital+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/Sex+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;http://health.mil/ontologies/dbcm/Concept/ZipCode+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://health.mil/ontologies/dbcm/Concept;
+BaseMetaRelationships=http://health.mil/ontologies/dbcm/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://health.mil/ontologies/dbcm/Relation/Performs+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/TypeOf+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/IsType+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Is+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/ExistsIn+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Incurs+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/PracticesIn+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Refers+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/SpecializesIn+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;http://health.mil/ontologies/dbcm/Relation/Includes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://health.mil/ontologies/dbcm/Relation;

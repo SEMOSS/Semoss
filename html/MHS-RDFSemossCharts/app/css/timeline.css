@@ -1,0 +1,74 @@
+
+.timeline-container {
+    overflow: hidden;
+    position: relative;
+}
+.timeline-copyright {
+    bottom: 0;
+    cursor: pointer;
+    left: 0;
+    position: absolute;
+    z-index: 1000;
+}
+.timeline-message-container {
+    display: none;
+    left: 35%;
+    position: absolute;
+    right: 35%;
+    top: 30%;
+    z-index: 1000;
+}
+.timeline-message {
+    font-size: 120%;
+    font-weight: bold;
+    text-align: center;
+}
+.timeline-message img {
+    vertical-align: middle;
+}
+.timeline-band {
+    background: none repeat scroll 0 0 #EEEEEE;
+    position: absolute;
+    z-index: 10;
+}
+.timeline-band-inner {
+    height: 100%;
+    position: relative;
+    width: 100%;
+}
+.timeline-band-input {
+    height: 1em;
+    overflow: hidden;
+    position: absolute;
+    width: 1em;
+    z-index: 0;
+}
+.timeline-band-input input {
+    width: 0;
+}
+.timeline-band-layer {
+    height: 100%;
+    position: absolute;
+    width: 100%;
+}
+.timeline-band-layer-inner {
+    height: 100%;
+    position: relative;
+    width: 100%;
+}
+
+.timeline-band-scrollbar {
+    display: none;
+    position: absolute;
+    background: #f8f8f8;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.timeline-band-scrollbar-thumb {
+    margin: 2px;
+    background: #666;
+    position: relative;
+    cursor: default !important;
+}
+
