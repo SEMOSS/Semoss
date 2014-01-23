@@ -1,0 +1,14 @@
+
+html {
+    height: 100%;
+}
+body {
+    margin-top: 7em;
+}
+h1 {
+    padding: 20px;
+    text-align: center;
+}
+div.message {
+    padding: 0 30%;
+}

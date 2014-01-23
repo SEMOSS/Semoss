@@ -1,0 +1,108 @@
+
+##Base Objects##
+
+Organization http://semoss.org/ontologies/Concept/Organization
+
+
+Type http://semoss.org/ontologies/Concept/Type
+LifeCycle http://semoss.org/ontologies/Concept/LifeCycle
+Use http://semoss.org/ontologies/Concept/Use
+
+ObservingSystem http://semoss.org/ontologies/Concept/ObservingSystem
+KeyObjective http://semoss.org/ontologies/Concept/KeyObjective
+DirectObservation http://semoss.org/ontologies/Concept/DirectObservation
+KeyObjectiveSource http://semoss.org/ontologies/Concept/KeyObjectiveSource
+SBASubArea http://semoss.org/ontologies/Concept/SBASubArea
+Source http://semoss.org/ontologies/Concept/Source
+SystemCategory http://semoss.org/ontologies/Concept/SystemCategory
+SBA http://semoss.org/ontologies/Concept/SBA
+
+##Base Predicates##
+
+Organization_has_SBA http://semoss.org/ontologies/Relation/has
+
+
+ObservingSystem_Has_Type http://semoss.org/ontologies/Relation/Has
+ObservingSystem_Has_LifeCycle http://semoss.org/ontologies/Relation/Has
+ObservingSystem_Intended_Use http://semoss.org/ontologies/Relation/Intended
+
+DirectObservation_Requires_ObservingSystem http://semoss.org/ontologies/Relation/Requires
+KeyObjective_MapsTo_KeyObjectiveSource http://semoss.org/ontologies/Relation/MapsTo
+KeyObjectiveSource_Requires_DirectObservation http://semoss.org/ontologies/Relation/Requires
+SBA_Consists_SBASubArea http://semoss.org/ontologies/Relation/Consists
+SBASubArea_Requires_KeyObjective http://semoss.org/ontologies/Relation/Requires
+KeyObjective_Requires_Source http://semoss.org/ontologies/Relation/Requires
+ObservingSystem_TaggedBy_SystemCategory http://semoss.org/ontologies/Relation/TaggedBy
+Source_Requires_DirectObservation http://semoss.org/ontologies/Relation/Requires
+KeyObjectiveSource_MapsTo_Source http://semoss.org/ontologies/Relation/MapsTo
+
+
+IGNORE_URI	;
+
+
+##Base Objects Class##
+
+Organization_CLASS http://semoss.org/ontologies/Concept/Organization
+
+
+Type_CLASS http://semoss.org/ontologies/Concept/Type
+LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
+Use_CLASS http://semoss.org/ontologies/Concept/Use
+
+DirectObservation_CLASS http://semoss.org/ontologies/Concept/DirectObservation
+SBASubArea_CLASS http://semoss.org/ontologies/Concept/SBASubArea
+KeyObjectiveSource_CLASS http://semoss.org/ontologies/Concept/KeyObjectiveSource
+SBA_CLASS http://semoss.org/ontologies/Concept/SBA
+SystemCategory_CLASS http://semoss.org/ontologies/Concept/SystemCategory
+ObservingSystem_CLASS http://semoss.org/ontologies/Concept/ObservingSystem
+Source_CLASS http://semoss.org/ontologies/Concept/Source
+KeyObjective_CLASS http://semoss.org/ontologies/Concept/KeyObjective
+
+##Base Predicates Class##
+
+Organization_has_SBA_CLASS http://semoss.org/ontologies/Relation/has
+
+
+ObservingSystem_Intended_Use_CLASS http://semoss.org/ontologies/Relation/Intended
+ObservingSystem_Has_Type_CLASS http://semoss.org/ontologies/Relation/Has
+ObservingSystem_Has_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Has
+
+ObservingSystem_TaggedBy_SystemCategory_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+KeyObjectiveSource_Requires_DirectObservation_CLASS http://semoss.org/ontologies/Relation/Requires
+DirectObservation_Requires_ObservingSystem_CLASS http://semoss.org/ontologies/Relation/Requires
+Source_Requires_DirectObservation_CLASS http://semoss.org/ontologies/Relation/Requires
+KeyObjectiveSource_MapsTo_Source_CLASS http://semoss.org/ontologies/Relation/MapsTo
+SBA_Consists_SBASubArea_CLASS http://semoss.org/ontologies/Relation/Consists
+SBASubArea_Requires_KeyObjective_CLASS http://semoss.org/ontologies/Relation/Requires
+KeyObjective_MapsTo_KeyObjectiveSource_CLASS http://semoss.org/ontologies/Relation/MapsTo
+KeyObjective_Requires_Source_CLASS http://semoss.org/ontologies/Relation/Requires
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+PREDICATE_URI 
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/SystemCategory+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SBA+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Source+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/KeyObjective+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DirectObservation+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ObservingSystem+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/KeyObjectiveSource+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SBASubArea+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Intended+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;
+BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Consists+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/TaggedBy+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/MapsTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/Type+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/LifeCycle+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Use+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/Organization+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;
+
+
+##Base Predicates Class##
+
+Organization_has_SBA_CLASS http://semoss.org/ontologies/Relation/has
+
+
+ObservingSystem_Intended_Use_CLASS http://semoss.org/ontologies/Relation/Intended
+ObservingSystem_Has_Type_CLASS http://semoss.org/ontologies/Relation/Has
+ObservingSystem_Has_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Has
+
+
+
+##Base Predicates Class##
+
+Organization_has_SBA_CLASS http://semoss.org/ontologies/Relation/has
+
+
+
+
+##Base Predicates Class##
+
+Organization_has_SBA_CLASS http://semoss.org/ontologies/Relation/has
+

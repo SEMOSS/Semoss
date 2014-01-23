@@ -1,0 +1,126 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.ui.components.specific.cbp;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Enumeration;
+
+import prerna.om.SEMOSSEdge;
+import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.util.Constants;
+
+/**
+ * Creates a graph playsheet specifically for time down.
+ */
+public class GraphPlaySheetTimeDown extends GraphPlaySheet {
+
+	public int year;
+	public int month;
+	
+	/**
+	 * Constructor for GraphPlaySheetTimeDown.
+	 */
+	public GraphPlaySheetTimeDown() {
+		super();
+	}
+
+	/**
+	 * Creates the forest based on information about time down.
+	 * This includes getting properties about arrival time and resolved time and comparing the amount of time down.
+	 */
+	@Override
+	public void createForest() throws Exception {
+
+		super.createForest();
+		Enumeration keyList = vertStore.keys();
+		if(edgeStore.keys().hasMoreElements())
+		{
+			
+		while(keyList.hasMoreElements()) {
+			String currKey = (String) keyList.nextElement();
+			SEMOSSVertex vert1 = vertStore.get(currKey);
+			SEMOSSVertex vert2 = null;
+			SEMOSSEdge edge = null;
+			String TimeDownType = "";
+			String predicate = "http://semoss.org/ontologies/Relation/Contains/";	
+			DateFormat dfm = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Calendar tempDate = Calendar.getInstance();
+			
+			if(vert1.getProperty(Constants.VERTEX_TYPE).toString().equals("CaseID"))
+			{
+				if(vert1.getProperty("ArrivalTime")!=null&&vert1.getProperty("ResolvedTime")!=null)
+				{
+					String start=vert1.getProperty("ArrivalTime").toString();
+					String end=vert1.getProperty("ResolvedTime").toString();
+
+					Date startDate = dfm.parse(start.substring(1,11)+" "+start.substring(12,20));
+					Date endDate = dfm.parse(end.substring(1,11)+" "+end.substring(12,20));
+						
+					tempDate.setTime(startDate);
+					tempDate.add(Calendar.HOUR,1);
+
+					if(tempDate.getTime().after(endDate))
+						TimeDownType="http://semoss.org/ontologies/Concept/TimeDown/Under_One_Hour";
+					else
+					{
+						tempDate.add(Calendar.HOUR, 3);
+						if(tempDate.getTime().after(endDate))
+							TimeDownType="http://semoss.org/ontologies/Concept/TimeDown/One_to_Four_Hours";
+						else
+						{
+							tempDate.add(Calendar.HOUR, 9);
+							if(tempDate.getTime().after(endDate))
+								TimeDownType="http://semoss.org/ontologies/Concept/TimeDown/Four_to_Twelve_Hours";
+							else
+								TimeDownType="http://semoss.org/ontologies/Concept/TimeDown/Over_Twelve_Hours";
+
+						}
+							
+					}
+				
+				vert2=vertStore.get(TimeDownType+"");
+				if(vert2==null)
+				{
+					vert2 = new SEMOSSVertex(TimeDownType);
+					filterData.addVertex(vert2);
+				}
+				
+				vertStore.put(TimeDownType, vert2);
+				predicate=predicate+vert1.getProperty(Constants.VERTEX_NAME)+":"+vert2.getProperty(Constants.VERTEX_NAME);
+				edge = new SEMOSSEdge(vert1, vert2, predicate);
+				edgeStore.put(predicate, edge);
+				this.forest.addEdge(edge,vert1,vert2);
+				genControlData(vert2);
+				genControlData(edge);
+				}
+			}
+			
+		} 
+		}
+		genBaseConcepts();
+		genBaseGraph();
+		genAllData();	
+	}
+	
+
+}

@@ -1,0 +1,48 @@
+
+##Base Objects##
+
+Site http://BreachedNetwork.com/ontologies/Concept/Site
+Employee http://BreachedNetwork.com/ontologies/Concept/Employee
+AssetID http://BreachedNetwork.com/ontologies/Concept/AssetID
+IPAddress http://BreachedNetwork.com/ontologies/Concept/IPAddress
+UserName http://BreachedNetwork.com/ontologies/Concept/UserName
+
+##Base Predicates##
+
+AssetID_Accesses_IPAddress http://BreachedNetwork.com/ontologies/Relation/Accesses
+Employee_Has_UserName http://BreachedNetwork.com/ontologies/Relation/Has
+Employee_AssignedTo_Site http://BreachedNetwork.com/ontologies/Relation/AssignedTo
+UserName_AssignedTo_AssetID http://BreachedNetwork.com/ontologies/Relation/AssignedTo
+
+##Base Objects Class##
+
+AssetID_CLASS http://semoss.org/ontologies/Concept/AssetID
+UserName_CLASS http://semoss.org/ontologies/Concept/UserName
+IPAddress_CLASS http://semoss.org/ontologies/Concept/IPAddress
+Employee_CLASS http://semoss.org/ontologies/Concept/Employee
+Site_CLASS http://semoss.org/ontologies/Concept/Site
+
+##Base Predicates Class##
+
+Employee_AssignedTo_Site_CLASS http://semoss.org/ontologies/Relation/AssignedTo
+UserName_AssignedTo_AssetID_CLASS http://semoss.org/ontologies/Relation/AssignedTo
+Employee_Has_UserName_CLASS http://semoss.org/ontologies/Relation/Has
+AssetID_Accesses_IPAddress_CLASS http://semoss.org/ontologies/Relation/Accesses
+
+
+
+IGNORE_URI	;
+
+
+##Base Predicates Class##
+
+Employee_AssignedTo_Site_CLASS http://semoss.org/ontologies/Relation/AssignedTo
+UserName_AssignedTo_AssetID_CLASS http://semoss.org/ontologies/Relation/AssignedTo
+Employee_Has_UserName_CLASS http://semoss.org/ontologies/Relation/Has
+AssetID_Accesses_IPAddress_CLASS http://semoss.org/ontologies/Relation/Accesses
+
+PROP_URI http://BreachedNetwork.com/ontologies/Relation/Contains
+PREDICATE_URI 
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/Site+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Employee+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/AssetID+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/IPAddress+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/UserName+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;
+BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Accesses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssignedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;

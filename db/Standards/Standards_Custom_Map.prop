@@ -1,0 +1,64 @@
+
+##Base Objects##
+
+
+
+DISRServiceArea http://health.mil/ontologies/Concept/DISRServiceArea
+System http://health.mil/ontologies/Concept/System
+PPI http://health.mil/ontologies/Concept/PPI
+TechStandardIdentifier http://health.mil/ontologies/Concept/TechStandardIdentifier
+
+##Base Predicates##
+
+
+
+TechStandardIdentifier_UsedBy_PPI http://health.mil/ontologies/Relation/UsedBy
+DISRServiceArea_Has_TechStandardIdentifier http://health.mil/ontologies/Relation/Has
+PPI_MapsTo_System http://health.mil/ontologies/Relation/MapsTo
+
+##Base Objects Class##
+
+
+
+PPI_CLASS http://semoss.org/ontologies/Concept/PPI
+TechStandardIdentifier_CLASS http://semoss.org/ontologies/Concept/TechStandardIdentifier
+DISRServiceArea_CLASS http://semoss.org/ontologies/Concept/DISRServiceArea
+System_CLASS http://semoss.org/ontologies/Concept/System
+
+##Base Predicates Class##
+
+
+
+TechStandardIdentifier_UsedBy_PPI_CLASS http://semoss.org/ontologies/Relation/UsedBy
+PPI_MapsTo_System_CLASS http://semoss.org/ontologies/Relation/MapsTo
+DISRServiceArea_Has_TechStandardIdentifier_CLASS http://semoss.org/ontologies/Relation/Has
+
+
+
+IGNORE_URI	;
+
+
+##Base Predicates Class##
+
+
+
+TechStandardIdentifier_UsedBy_PPI_CLASS http://semoss.org/ontologies/Relation/UsedBy
+PPI_MapsTo_System_CLASS http://semoss.org/ontologies/Relation/MapsTo
+DISRServiceArea_Has_TechStandardIdentifier_CLASS http://semoss.org/ontologies/Relation/Has
+
+PROP_URI http://health.mil/ontologies/Relation/Contains
+PREDICATE_URI 
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/DISRServiceArea+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/System+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/PPI+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/TechStandardIdentifier+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;;
+BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/UsedBy+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/MapsTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;;
+
+
+##Base Predicates Class##
+
+
+
+
+
+##Base Predicates Class##
+
+

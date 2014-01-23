@@ -1,0 +1,9 @@
+Base Properties 
+ENGINE	ZRemote
+ENGINE_TYPE	prerna.rdf.engine.impl.RemoteBigdataEngine
+ONTOLOGY	db/Tap_Core_Data/Tap_Core_Data_Custom_Map.prop
+DREAMER	db/CSVTester/Trueup_Questions.properties
+
+
+SPARQL_QUERY_ENDPOINT	http://localhost:9080/bigdata_2/sparql
+SPARQL_UPDATE_ENDPOINT	http://localhost:9080/bigdata_2/sparql

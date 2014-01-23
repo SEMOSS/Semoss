@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+    
+    
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/select2.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <script src="lib/bootstrap-slider.js"></script>
+    <!--<script src="data/heatmap-data.js"></script>-->
+
+  </head>
+  <body>
+    <div id="nav">
+      <img id="logo" src="img/heatmap.png"><span class="brand">Heatmap</span>
+      <b id="min"></b><input type="text" class="slider" id="slider" value=""><b id="max"></b>
+    </div>
+    <div id="chart"></div>
+    
+    <script type="text/javascript">
+     
+      //start(dataString);
+       
+       function start(dataString) {
+	
+	
+	var jsonData = jQuery.parseJSON(dataString);
+	var data = jsonData.dataSeries
+	//var data = dataString.dataSeries
+	var xAxisName = jsonData.xAxisTitle
+	var yAxisName = jsonData.yAxisTitle
+	var value = jsonData.value
+	
+	var xAxisArray = [];
+	var yAxisArray = [];
+	var dataArray = [];
+	var truncY = [];
+	var truncX = [];
+	var domainArray = [];
+	
+	  for (var key in data) {
+	    xAxisArray.push(data[key][xAxisName]);
+	    yAxisArray.push(data[key][yAxisName]);
+	    var round = (Math.round(data[key][value] * 100) / 100);
+	    //This array stores the values as numbers
+	    dataArray.push({yAxis: data[key][yAxisName], Value: round, xAxis: data[key][xAxisName], xAxisName: data[key][xAxisName], yAxisName: data[key][yAxisName]});
+	  };
+	  
+	  var uniqueX = _.uniq(xAxisArray);
+	  var uniqueY = _.uniq(yAxisArray);
+	  xAxisArray = uniqueX.sort();
+	  yAxisArray = uniqueY.sort();
+	  
+	  /* Assign each name a number and place matrix coordinates inside of dataArray */
+	  for (var i = 0; i<dataArray.length;i++) {
+	    for (var j = 0; j<xAxisArray.length; j++) {
+	      if (xAxisArray[j] == dataArray[i].xAxis) {
+		dataArray[i].xAxis = j;
+	      }
+	    }
+	    for (var j = 0; j<yAxisArray.length; j++) {
+	      if (yAxisArray[j] == dataArray[i].yAxis) {
+		dataArray[i].yAxis = j;
+	      }
+	    }
+	  };
+	  
+	  /* Truncate Values */
+	  for (i = 0; i < yAxisArray.length; i++) {
+	    if (yAxisArray[i].length > 20) {
+	      truncY.push(yAxisArray[i].substring(0, 20) + '...');
+	    } else {
+	      truncY.push(yAxisArray[i]);
+	    }
+	  }
+	  
+	  for (i = 0; i < xAxisArray.length; i++) {
+	    if (xAxisArray[i].length > 30) {
+	      truncX.push(xAxisArray[i].substring(0, 30) + '...');
+	    } else {
+	      truncX.push(xAxisArray[i]);
+	    }
+	  }
+      
+    
+	var margin = { top: 185, right: 150, bottom: 100, left: 150 },
+        xAxisData = xAxisArray,
+        yAxisData = yAxisArray
+	gridSize = 15;
+	
+	var width = xAxisData.length * gridSize,
+        height = yAxisData.length * gridSize,
+        legendElementWidth = 60,
+        buckets = 9,
+	colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+        colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"], // alternatively colorbrewer.YlGnBu[9]
+        colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
+	colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
+	
+	
+	//color selection
+	
+	if (xAxisData.length < 35) {
+	  legendElementWidth = 40
+	  if (xAxisData.length < 25) {
+	    legendElementWidth = 25
+	    if (xAxisData.length < 15) {
+	      legendElementWidth = 15
+	    }
+	  }
+	}
+	
+	var colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+                .range(colors);
+	    
+            var svg = d3.select("#chart").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            
+            var yAxis = svg.selectAll(".yAxis")
+                .data(truncY)
+                .enter().append("text")
+                .text(function (d) { return d; })
+                .attr("x", 0)
+                .attr("y", function (d, i) { return i * gridSize; })
+                .style("text-anchor", "end")
+                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+                .attr("class", "yAxis");
+            
+	    
+            var xAxis = svg.selectAll(".xAxis")
+		.data(truncX)
+		.enter().append("svg:g")
+		xAxis.append("text")
+		.text(function(d) { return d; })
+		.style("text-anchor", "start")
+		.attr("x", 6)
+		.attr("y", 7)
+		.attr("class", "xAxis")
+		.attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	    
+	    /* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>" + value + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	    
+            var heatMap = svg.selectAll(".heat")
+                .data(dataArray)
+                .enter().append("rect")
+                .attr("x", function(d) { return (d.xAxis) * gridSize; })
+                .attr("y", function(d) { return (d.yAxis) * gridSize; })
+                .attr("rx", 2)
+                .attr("ry", 2)
+                .attr("class", "heat bordered")
+                .attr("width", gridSize)
+                .attr("height", gridSize)
+                .style("fill", colors[0])
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide);
+		
+	      heatMap
+		.transition()
+		.duration(1000)
+		.style("fill", function(d) { return colorScale(d.Value); });
+	    
+	    /* Invoke the tooltip in the context of your visualization */
+	    heatMap.call(tip);
+	    
+	    
+	 
+		
+	    //vertical lines
+	    svg.selectAll(".vline").data(d3.range(xAxisData.length + 1)).enter()
+		.append("line")
+		.attr("x1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y1", function (d) {
+		return 0;
+	    })
+		.attr("y2", function (d) {
+		return height;
+	    })
+		.style("stroke", "#eee");
+	    
+	    // horizontal lines
+	    svg.selectAll(".hline").data(d3.range(yAxisData.length + 1)).enter()
+		.append("line")
+		.attr("y1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x1", function (d) {
+		return 0;
+	    })
+		.attr("x2", function (d) {
+		return width;
+	    })
+		.style("stroke", "#eee");
+
+
+          //heatMap.append("title").text(function(d) { return d.Value; });
+              
+          var legend = svg.selectAll(".legend")
+              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+              .enter().append("g")
+              .attr("class", "legend");
+	  
+          legend.append("rect")
+            .attr("x", function(d, i) { return legendElementWidth * i; })
+            .attr("y", yAxisData.length * gridSize + 40)
+            .attr("width", legendElementWidth)
+            .attr("height", 20);
+            
+	  legend.style("fill", function(d, i) { return colors[i]; });
+
+          legend.append("text")
+            .attr("class", "mono")
+            .text(function(d) { return "" + Math.round(d); })
+            .attr("x", function(d, i) { return legendElementWidth * i; })
+            .attr("y", yAxisData.length * gridSize + 75);
+	  
+	  // Color Changer  
+	    d3.select("#nav").append("select")
+	      .attr("id", "select2DropDown")
+	      .attr("class", "mySelect2")
+	      .selectAll("option")
+	      .data(["Red","Blue","Green"])
+	      .enter()
+	      .append("option")
+	      .attr("value", function(d){ return d; }) /* This gives me the value */
+	      .text(function(d){ return d})
+	      ;
+	    
+	    $("#select2DropDown").select2();
+	    $("#select2DropDown").on("change", change);
+	    
+	    function change() {
+	      colors.length = 0;
+	      domainArray = $('#slider').data('slider').getValue()  
+	      if (this.options[this.selectedIndex].value == 'Green') {
+		colors.push(colorsGreen);
+	      } else if (this.options[this.selectedIndex].value == 'Blue') {
+		colors.push(colorsBlue);
+		
+	      }else {
+		colors.push(colorsRed);
+	      }
+	      
+	      colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+                .range(colors[0]);
+		
+	      heatMap.style("fill", function(d) {
+		console.log(domainArray[0]);
+		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		  return colorScale(d.Value);
+		}else {return "white"}
+		
+	      });
+	      legend.style("fill", function(d, i) { return colors[0][i]; });
+	    }
+	    
+	    
+	  // Slider
+	  $('#slider').slider({
+	      min: Math.floor(d3.min(dataArray, function (d) { return d.Value; })),
+	      max: Math.ceil(d3.max(dataArray, function (d) { return d.Value; })),
+	      value:[0, Math.ceil(d3.max(dataArray, function (d) { return d.Value; }))],
+	      step:1
+	      
+	    })
+	  .on('slide', function(){
+	      domainArray = $('#slider').data('slider').getValue()  
+	      heatMap
+	      .style("fill", function(d) {
+		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		  return colorScale(d.Value);
+		}else {return "white"}
+		
+	      });
+	  })
+	  
+	   
+	  d3.select("#min").append("text")
+	    .text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	    
+	  d3.select("#max").append("text")
+	    .text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	    
+
+      };      
+    </script>
+  </body>
+</html>

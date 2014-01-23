@@ -1,0 +1,142 @@
+
+##Base Objects##
+
+BusinessRule http://health.mil/ontologies/Concept/BusinessRule
+Task http://health.mil/ontologies/Concept/Task
+Attribute http://health.mil/ontologies/Concept/Attribute
+MissionOutcome http://health.mil/ontologies/Concept/MissionOutcome
+BusinessStandard http://health.mil/ontologies/Concept/BusinessStandard
+BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
+SLA http://health.mil/ontologies/Concept/SLA
+Reference http://health.mil/ontologies/Concept/Reference
+TechSubCategory http://health.mil/ontologies/Concept/TechSubCategory
+Participant http://health.mil/ontologies/Concept/Participant
+MissionElement http://health.mil/ontologies/Concept/MissionElement
+TechStandardIdentifier http://health.mil/ontologies/Concept/TechStandardIdentifier
+DataObject http://health.mil/ontologies/Concept/DataObject
+Capability http://health.mil/ontologies/Concept/Capability
+BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
+CapabilityTag http://health.mil/ontologies/Concept/CapabilityTag
+CapabilityFunctionalArea http://health.mil/ontologies/Concept/CapabilityFunctionalArea
+TechRequirement http://health.mil/ontologies/Concept/TechRequirement
+TechCategory http://health.mil/ontologies/Concept/TechCategory
+Gap http://health.mil/ontologies/Concept/Gap
+FError http://health.mil/ontologies/Concept/FError
+CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
+
+##Base Predicates##
+
+TechRequirement_Has_TechStandardIdentifier http://health.mil/ontologies/Relation/Has
+Task_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
+Capability_Consists_Task http://health.mil/ontologies/Relation/Consists
+BusinessStandard_Supports_Attribute http://health.mil/ontologies/Relation/Supports
+Task_Has_Attribute http://health.mil/ontologies/Relation/Has
+Task_Supports_BusinessStandard http://health.mil/ontologies/Relation/Supports
+TechSubCategory_Has_TechRequirement http://health.mil/ontologies/Relation/Has
+CapabilityFunctionalArea_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
+BusinessStandard_Requires_SLA http://health.mil/ontologies/Relation/Requires
+TechRequirement_Satisfies_Attribute http://health.mil/ontologies/Relation/Satisfies
+CapabilityGroup_Consists_Capability http://health.mil/ontologies/Relation/Consists
+Task_Requires_SLA http://health.mil/ontologies/Relation/Requires
+Task_Needs_BusinessProcess http://health.mil/ontologies/Relation/Needs
+BusinessRule_Supports_Attribute http://health.mil/ontologies/Relation/Supports
+Task_Supports_BusinessRule http://health.mil/ontologies/Relation/Supports
+Capability_References_Reference http://health.mil/ontologies/Relation/References
+BusinessRule_Requires_SLA http://health.mil/ontologies/Relation/Requires
+Task_Requires_Participant http://health.mil/ontologies/Relation/Requires
+Attribute_Has_Gap http://health.mil/ontologies/Relation/Has
+FError_Supports_Attribute http://health.mil/ontologies/Relation/Supports
+TechCategory_Has_TechSubCategory http://health.mil/ontologies/Relation/Has
+CapabilityTag_TaggedBy_Capability http://health.mil/ontologies/Relation/TaggedBy
+MissionOutcome_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
+Task_Needs_DataObject http://health.mil/ontologies/Relation/Needs
+MissionElement_Requires_MissionOutcome http://health.mil/ontologies/Relation/Requires
+
+##Base Objects Class##
+
+CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Concept/CapabilityFunctionalArea
+FError_CLASS http://semoss.org/ontologies/Concept/FError
+Reference_CLASS http://semoss.org/ontologies/Concept/Reference
+BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
+MissionOutcome_CLASS http://semoss.org/ontologies/Concept/MissionOutcome
+Task_CLASS http://semoss.org/ontologies/Concept/Task
+BusinessStandard_CLASS http://semoss.org/ontologies/Concept/BusinessStandard
+BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
+TechRequirement_CLASS http://semoss.org/ontologies/Concept/TechRequirement
+CapabilityGroup_CLASS http://semoss.org/ontologies/Concept/CapabilityGroup
+Capability_CLASS http://semoss.org/ontologies/Concept/Capability
+Participant_CLASS http://semoss.org/ontologies/Concept/Participant
+Gap_CLASS http://semoss.org/ontologies/Concept/Gap
+CapabilityTag_CLASS http://semoss.org/ontologies/Concept/CapabilityTag
+BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
+TechStandardIdentifier_CLASS http://semoss.org/ontologies/Concept/TechStandardIdentifier
+Attribute_CLASS http://semoss.org/ontologies/Concept/Attribute
+TechCategory_CLASS http://semoss.org/ontologies/Concept/TechCategory
+TechSubCategory_CLASS http://semoss.org/ontologies/Concept/TechSubCategory
+SLA_CLASS http://semoss.org/ontologies/Concept/SLA
+DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+MissionElement_CLASS http://semoss.org/ontologies/Concept/MissionElement
+
+##Base Predicates Class##
+
+BusinessStandard_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Task_Supports_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_Consists_Task_CLASS http://semoss.org/ontologies/Relation/Consists
+TechRequirement_Satisfies_Attribute_CLASS http://semoss.org/ontologies/Relation/Satisfies
+Task_Requires_Participant_CLASS http://semoss.org/ontologies/Relation/Requires
+BusinessRule_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_References_Reference_CLASS http://semoss.org/ontologies/Relation/References
+Task_Needs_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Needs
+MissionElement_Requires_MissionOutcome_CLASS http://semoss.org/ontologies/Relation/Requires
+Attribute_Has_Gap_CLASS http://semoss.org/ontologies/Relation/Has
+TechRequirement_Has_TechStandardIdentifier_CLASS http://semoss.org/ontologies/Relation/Has
+Task_Has_Attribute_CLASS http://semoss.org/ontologies/Relation/Has
+Task_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+Task_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+TechCategory_Has_TechSubCategory_CLASS http://semoss.org/ontologies/Relation/Has
+BusinessStandard_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+CapabilityFunctionalArea_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
+MissionOutcome_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
+Task_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Task_Supports_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Supports
+FError_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+CapabilityGroup_Consists_Capability_CLASS http://semoss.org/ontologies/Relation/Consists
+BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+TechSubCategory_Has_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Has
+CapabilityTag_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+
+
+
+IGNORE_URI	;
+
+
+##Base Predicates Class##
+
+BusinessStandard_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Task_Supports_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_Consists_Task_CLASS http://semoss.org/ontologies/Relation/Consists
+TechRequirement_Satisfies_Attribute_CLASS http://semoss.org/ontologies/Relation/Satisfies
+Task_Requires_Participant_CLASS http://semoss.org/ontologies/Relation/Requires
+BusinessRule_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_References_Reference_CLASS http://semoss.org/ontologies/Relation/References
+Task_Needs_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Needs
+MissionElement_Requires_MissionOutcome_CLASS http://semoss.org/ontologies/Relation/Requires
+Attribute_Has_Gap_CLASS http://semoss.org/ontologies/Relation/Has
+TechRequirement_Has_TechStandardIdentifier_CLASS http://semoss.org/ontologies/Relation/Has
+Task_Has_Attribute_CLASS http://semoss.org/ontologies/Relation/Has
+Task_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+Task_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+TechCategory_Has_TechSubCategory_CLASS http://semoss.org/ontologies/Relation/Has
+BusinessStandard_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+CapabilityFunctionalArea_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
+MissionOutcome_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
+Task_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Task_Supports_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Supports
+FError_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+CapabilityGroup_Consists_Capability_CLASS http://semoss.org/ontologies/Relation/Consists
+BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+TechSubCategory_Has_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Has
+CapabilityTag_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+PREDICATE_URI 

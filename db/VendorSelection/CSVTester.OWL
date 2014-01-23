@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns="http://health.mil/ontologies/dbcm/Relation/"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<Concept xmlns="http://health.mil/ontologies/dbcm/" rdf:about="http://doh.com/Concept/Crazy/FALSE"/>
+<Concept xmlns="http://health.mil/ontologies/dbcm/" rdf:about="http://doh.com/Concept/Crazy/TRUE"/>
+<Concept xmlns="http://health.mil/ontologies/dbcm/" rdf:about="http://doh.com/Concept/FirstNameSno/Bill_2"/>
+<Concept xmlns="http://health.mil/ontologies/dbcm/" rdf:about="http://doh.com/Concept/FirstNameSno/Prabhu_1"/>
+<Concept xmlns="http://health.mil/ontologies/dbcm/" rdf:about="http://doh.com/Concept/FirstNameSno/Tom_3"/>
+<rdf:Description rdf:about="http://doh.com/Relation/Is/Bill_2:TRUE">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Is/Prabhu_1:TRUE">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Is/Tom_3:FALSE">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Contains/Comment1">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Contains/CrazySince">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Contains/Height">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Contains/LastName">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://doh.com/Relation/Contains/LevelOfCraziness">
+	<rdfs:subPropertyOf rdf:resource="http://health.mil/ontologies/dbcm/Relation"/>
+</rdf:Description>
+
+</rdf:RDF>

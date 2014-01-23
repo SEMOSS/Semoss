@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html class="no-js" ng-app="rdfgraph">
+<head>
+    <title>Lifecycle</title>    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/bootstrap.css"/> 
+    <link rel="stylesheet" href="css/jquery-ui-1.7.1.custom.css" type="text/css" />
+    <link rel="stylesheet" href="css/lifecycle.css"/>
+    <link rel="stylesheet" href="css/ui.slider.extras.css"/>
+    
+</head>
+
+<body ng-cloak class="ng-cloak">
+    <div id='lifecyclecontroller' ng-controller="HWLifecycleCtrl">
+        <div class="slider">
+            <form action="#" class="slider-plugin">
+    		<!-- demo 1 -->
+    		<fieldset>
+    			<select name="speed" id="speed" timeslider parentfunc="setlifecycledata(startdate)">
+    				<option value="Today">Today</option>
+    				<option value="3">3 Months</option>
+    				<option value="6">6 Months</option>
+    				<option value="9">9 Months</option>
+    				<option value="1 Year">1 Year</option>
+                    <option value="15">15 Months</option>
+                    <option value="18">18 Months</option>
+                    <option value="21">21 Months</option>
+                    <option value="2 Years">2 Years</option>
+                    <option value="27">27 Months</option>
+                    <option value="30">30 Months</option>
+                    <option value="33">33 Months</option>
+                    <option value="3 Years">3 Years</option>
+                    <option value="39">39 Months</option>
+                    <option value="42">42 Months</option>
+                    <option value="45">45 Months</option>
+                    <option value="4 Years">4 Years</option>
+                    <option value="51">51 Months</option>
+                    <option value="54">54 Months</option>
+                    <option value="57">57 Months</option>
+                    <option value="5 Years">5 Years</option>
+    			</select>
+    		</fieldset>
+    	</form>
+        </div>
+        
+        <div class="container">
+            <div class="row">
+                <div class="span6">
+                    <div id="visualization"></div>
+                </div>
+                <div class="span6">
+                    <ul class="table-header">
+                        <li id="hardware">Hardware</li>
+                        <li id="upgrade">Upgrade</li>
+                        <li id="cost">Cost</li>
+                        <li id="quantity">Quantity</li>
+                        <li id="total">Total</li>
+                    </ul>
+                    <div class="clearfix"></div>
+                    
+                    <div class="fancy-table green"> 
+                        <table>
+                            <th colspan="5">GA_(Generally_Available)</th>
+                            <tbody>
+                                <tr ng-repeat="hw in hardware.ga">
+                                    <td class="first">{{hw.name | removeUnderScoreAddSpaces}}</td>
+                                    <td class="second">{{hw.upgradeHW | removeUnderScoreAddSpaces}}</td>
+                                    <td class="third">{{hw.cost | shortenDecimalPlaces}}</td>
+                                    <td class="fourth">{{hw.quantity | shortenDecimalPlaces}}</td>
+                                    <td class="fifth">{{hw.totalCost | shortenDecimalPlaces}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="fancy-table light-green" > 
+                        <table>
+                            <th colspan="5">Supported</th>
+                            <tbody>
+                                <tr ng-repeat="hw in hardware.supported">
+                                    <td class="first">{{hw.name | removeUnderScoreAddSpaces}}</td>
+                                    <td class="second">{{hw.upgradeHW | removeUnderScoreAddSpaces}}</td>
+                                    <td class="third">{{hw.cost | shortenDecimalPlaces}}</td>
+                                    <td class="fourth">{{hw.quantity | shortenDecimalPlaces}}</td>
+                                    <td class="fifth">{{hw.totalCost | shortenDecimalPlaces}}</td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="fancy-table yellow"> 
+                        <table>
+                            <th colspan="5">Sunset_(End_of_Life)</th>
+                            <tbody>
+                                <tr ng-repeat="hw in hardware.sunset">
+                                    <td class="first">{{hw.name | removeUnderScoreAddSpaces}}</td>
+                                    <td class="second">{{hw.upgradeHW | removeUnderScoreAddSpaces}}</td>
+                                    <td class="third">{{hw.cost | shortenDecimalPlaces}}</td>
+                                    <td class="fourth">{{hw.quantity | shortenDecimalPlaces}}</td>
+                                    <td class="fifth">{{hw.totalCost | shortenDecimalPlaces}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="fancy-table light-red"> 
+                        <table>
+                            <th colspan="5">Retired_(Not_Supported)</th>
+                            <tbody>
+                                <tr ng-repeat="hw in hardware.retired">
+                                    <td class="first">{{hw.name | removeUnderScoreAddSpaces}}</td>
+                                    <td class="second">{{hw.upgradeHW | removeUnderScoreAddSpaces}}</td>
+                                    <td class="third">{{hw.cost | shortenDecimalPlaces}}</td>
+                                    <td class="fourth">{{hw.quantity | shortenDecimalPlaces}}</td>
+                                    <td class="fifth">{{hw.totalCost | shortenDecimalPlaces}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="fancy-table red"> 
+                        <table>
+                            <th colspan="5">Unknown</th>
+                            <tbody>
+                                <tr ng-repeat="hw in hardware.unknown">
+                                    <td class="first">{{hw.name | removeUnderScoreAddSpaces}}</td>
+                                    <td class="second">{{hw.upgradeHW | removeUnderScoreAddSpaces}}</td>
+                                    <td class="third">{{hw.cost | shortenDecimalPlaces}}</td>
+                                    <td class="fourth">{{hw.quantity | shortenDecimalPlaces}}</td>
+                                    <td class="fifth">{{hw.totalCost | shortenDecimalPlaces}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    
+    
+    <!-- jQuery and Bootstrap Libraries -->
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+    <script src="lib/bootstrap.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/selectToUISlider.jQuery.js"></script>
+
+	
+    <!-- AngularJS -->
+    <script src="lib/angular/angular.js"></script>
+    <script src="lib/angular/angular-ui.js"></script>
+    <script src="lib/angular/angular-ui-bootstrap.js"></script>
+            
+    <!-- Angular Module -->
+    <script src="js/app.js"></script>
+    
+    <!-- Angular Controllers -->
+    <script src="js/controllers.js"></script>
+    <script src="js/directives.js"></script>
+    <script src="js/filters.js"></script>	
+    <script src="js/services.js"></script>
+    
+    <!-- Make Dem Charts -->
+    <script src="lib/highcharts.js"></script>
+    <script src="lib/highcharts-more.js"></script>
+    
+    
+    
+    <script>
+        function start(data) {
+            //alert('Yoo Hoo ');
+            //var jsonData = data;
+            
+         // Declaration instance of scope where is my function
+            var ctrlScope = angular.element(jQuery('#lifecyclecontroller')).scope();
+            // calling that function
+            ctrlScope.setJSONData(data);
+        };
+    </script>
+	
+</body>
+</html>

@@ -1,0 +1,138 @@
+/*  This keeps your width at the original percentage regardless of borders/padding  */
+*, *:before, *:after {
+  -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+}
+
+.clearfix {
+    clear: both;
+}
+
+.slider {
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ccc;
+    height: 120px;
+    margin-bottom: 30px;
+    padding-top: 25px;
+}
+
+.slider-plugin {
+    width: 960px;
+    margin: 29px auto;
+    font-size: 62.5%;
+}
+		
+.fancy-table {
+    max-height: 150px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.fancy-table table thead {
+    border-bottom: 0;
+}
+
+table {
+    width: 100%;
+    overflow-y: scroll;
+}
+
+
+.table-header {
+    list-style: none;
+    display: block;
+    margin-left: 0px;
+}
+
+.table-header li {
+    float: left;
+    font-weight: bold;
+    border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    padding-left: 5px;
+}
+
+.table-header li#hardware {
+    width: 114px;
+    border-left: 1px solid #ccc;
+}
+.table-header li#upgrade {
+    width: 101px;
+}
+.table-header li#cost {
+    width: 66px;
+}
+.table-header li#quantity {
+    width: 74px;
+}
+.table-header li#total {
+    width: 105px;
+}
+
+.fancy-table.no-scroll {
+    overflow: hidden;
+}
+
+.fancy-table table {
+    width: 100%;
+}
+
+.fancy-table tbody td {
+    width: 25%;
+    padding: 4px;
+    border-top: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+}
+
+.fancy-table tbody td.first {
+    width: 25%;
+}
+
+.fancy-table tbody td.second {
+    width: 23%;
+}
+
+.fancy-table tbody td.third {
+    width: 15%;
+}
+
+.fancy-table tbody td.fourth {
+    width: 17%;
+}
+
+.fancy-table tbody td.fifth {
+    width: 20%;
+}
+
+.fancy-table thead th {
+    border-left: 1px solid #ccc;
+}
+
+.fancy-table.green tbody {
+    border-left: 4px solid #18a600;
+    background-color: #effede;
+}
+
+.fancy-table.light-green tbody {
+    border-left: 4px solid #6fd531;
+    background-color: #f8fff0;
+}
+
+.fancy-table.yellow tbody {
+    border-left: 4px solid #eec76a;
+    background-color: #ffffe8;
+}
+
+.fancy-table.light-red tbody {
+    border-left: 4px solid #ee7d7d;
+    background-color: #fff1ea;
+}
+
+.fancy-table.red tbody {
+    border-left: 4px solid #b70000;
+    background-color: #ffe6dd;
+}
+

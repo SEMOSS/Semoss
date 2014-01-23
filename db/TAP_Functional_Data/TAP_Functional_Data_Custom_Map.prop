@@ -1,0 +1,170 @@
+
+##Base Objects##
+
+DataElement http://health.mil/ontologies/Concept/DataElement
+RDF http://health.mil/ontologies/Concept/RDF
+VISTA http://health.mil/ontologies/Concept/VISTA
+ActivityCategory http://health.mil/ontologies/Concept/ActivityCategory
+Activity http://health.mil/ontologies/Concept/Activity
+VISTAElement http://health.mil/ontologies/Concept/VISTAElement
+Requirement http://health.mil/ontologies/Concept/Requirement
+CDRElement http://health.mil/ontologies/Concept/CDRElement
+ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
+BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
+CapabilityCategory http://health.mil/ontologies/Concept/CapabilityCategory
+DBCMSubject http://health.mil/ontologies/Concept/DBCMSubject
+VISTAUnion http://health.mil/ontologies/Concept/VISTAUnion
+CDR http://health.mil/ontologies/Concept/CDR
+HL7 http://health.mil/ontologies/Concept/HL7
+RequirementCategory http://health.mil/ontologies/Concept/RequirementCategory
+Service http://health.mil/ontologies/Concept/Service
+DataObject http://health.mil/ontologies/Concept/DataObject
+Capability http://health.mil/ontologies/Concept/Capability
+BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
+Database http://health.mil/ontologies/Concept/Database
+ActivityLevel http://health.mil/ontologies/Concept/ActivityLevel
+Element http://health.mil/ontologies/Concept/Element
+FError http://health.mil/ontologies/Concept/FError
+
+##Base Predicates##
+
+Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
+Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
+Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
+Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
+DataObject_Connected_VISTA http://health.mil/ontologies/Relation/Connected
+DBCMSubject_Predicates_DBCMSubject http://health.mil/ontologies/Relation/Predicates
+DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
+ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
+Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
+Activity_Needs_DataObject http://health.mil/ontologies/Relation/Needs
+Capability_Has_CapabilityCategory http://health.mil/ontologies/Relation/Has
+Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
+Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
+CDRElement_BelongsTo_CDR http://health.mil/ontologies/Relation/BelongsTo
+Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
+VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
+Requirement_Consists_ConformanceCriteria http://health.mil/ontologies/Relation/Consists
+FError_Needs_DataObject http://health.mil/ontologies/Relation/Needs
+DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
+DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
+Activity_Has_ActivityCategory http://health.mil/ontologies/Relation/Has
+DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
+FError_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
+VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
+VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
+Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
+Capability_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
+Requirement_Provide_DataObject http://health.mil/ontologies/Relation/Provide
+Requirement_Has_RequirementCategory http://health.mil/ontologies/Relation/Has
+DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
+BusinessProcess_Consists_Activity http://health.mil/ontologies/Relation/Consists
+ConformanceCriteria_Fulfill_DataObject http://health.mil/ontologies/Relation/Fulfill
+
+##Base Objects Class##
+
+FError_CLASS http://semoss.org/ontologies/Concept/FError
+RDF_CLASS http://semoss.org/ontologies/Concept/RDF
+ActivityLevel_CLASS http://semoss.org/ontologies/Concept/ActivityLevel
+BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
+CDR_CLASS http://semoss.org/ontologies/Concept/CDR
+RequirementCategory_CLASS http://semoss.org/ontologies/Concept/RequirementCategory
+BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
+ActivityCategory_CLASS http://semoss.org/ontologies/Concept/ActivityCategory
+DBCMSubject_CLASS http://semoss.org/ontologies/Concept/DBCMSubject
+Capability_CLASS http://semoss.org/ontologies/Concept/Capability
+VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
+Requirement_CLASS http://semoss.org/ontologies/Concept/Requirement
+CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
+Element_CLASS http://semoss.org/ontologies/Concept/Element
+CapabilityCategory_CLASS http://semoss.org/ontologies/Concept/CapabilityCategory
+VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
+ConformanceCriteria_CLASS http://semoss.org/ontologies/Concept/ConformanceCriteria
+DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
+HL7_CLASS http://semoss.org/ontologies/Concept/HL7
+Database_CLASS http://semoss.org/ontologies/Concept/Database
+Service_CLASS http://semoss.org/ontologies/Concept/Service
+Activity_CLASS http://semoss.org/ontologies/Concept/Activity
+DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+VISTAUnion_CLASS http://semoss.org/ontologies/Concept/VISTAUnion
+
+##Base Predicates Class##
+
+Requirement_Has_RequirementCategory_CLASS http://semoss.org/ontologies/Relation/Has
+Requirement_Provide_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Provide
+Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
+Capability_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
+Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
+Capability_Fulfill_Requirement_CLASS http://semoss.org/ontologies/Relation/Fulfill
+VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
+Activity_Has_ActivityCategory_CLASS http://semoss.org/ontologies/Relation/Has
+DBCMSubject_Predicates_DBCMSubject_CLASS http://semoss.org/ontologies/Relation/Predicates
+DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
+BusinessProcess_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+ConformanceCriteria_Fulfill_DataObject_CLASS http://semoss.org/ontologies/Relation/Fulfill
+Activity_Assigned_FError_CLASS http://semoss.org/ontologies/Relation/Assigned
+FError_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+Requirement_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
+Service_Exposes_DataObject_CLASS http://semoss.org/ontologies/Relation/Exposes
+DataObject_Connected_VISTA_CLASS http://semoss.org/ontologies/Relation/Connected
+Capability_Has_CapabilityCategory_CLASS http://semoss.org/ontologies/Relation/Has
+VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+Activity_ActivitySplit_Element_CLASS http://semoss.org/ontologies/Relation/ActivitySplit
+DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
+Activity_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+Requirement_Consists_ConformanceCriteria_CLASS http://semoss.org/ontologies/Relation/Consists
+DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
+Activity_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+ConformanceCriteria_Fulfill_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Fulfill
+VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataElement_Connected_CDRElement_CLASS http://semoss.org/ontologies/Relation/Connected
+FError_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+Activity_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+
+
+
+IGNORE_URI	;
+
+
+##Base Predicates Class##
+
+Requirement_Has_RequirementCategory_CLASS http://semoss.org/ontologies/Relation/Has
+Requirement_Provide_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Provide
+Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
+Capability_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
+Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
+Capability_Fulfill_Requirement_CLASS http://semoss.org/ontologies/Relation/Fulfill
+VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
+Activity_Has_ActivityCategory_CLASS http://semoss.org/ontologies/Relation/Has
+DBCMSubject_Predicates_DBCMSubject_CLASS http://semoss.org/ontologies/Relation/Predicates
+DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
+BusinessProcess_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+ConformanceCriteria_Fulfill_DataObject_CLASS http://semoss.org/ontologies/Relation/Fulfill
+Activity_Assigned_FError_CLASS http://semoss.org/ontologies/Relation/Assigned
+FError_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+Requirement_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
+Service_Exposes_DataObject_CLASS http://semoss.org/ontologies/Relation/Exposes
+DataObject_Connected_VISTA_CLASS http://semoss.org/ontologies/Relation/Connected
+Capability_Has_CapabilityCategory_CLASS http://semoss.org/ontologies/Relation/Has
+VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+Activity_ActivitySplit_Element_CLASS http://semoss.org/ontologies/Relation/ActivitySplit
+DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
+Activity_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+Requirement_Consists_ConformanceCriteria_CLASS http://semoss.org/ontologies/Relation/Consists
+DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
+Activity_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+ConformanceCriteria_Fulfill_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Fulfill
+VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataElement_Connected_CDRElement_CLASS http://semoss.org/ontologies/Relation/Connected
+FError_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
+Activity_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
+CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+
+PROP_URI http://health.mil/ontologies/Relation/Contains
+PREDICATE_URI 
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/DataObject+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Service+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DBCMSubject+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DataElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessLogicUnit+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Capability+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CDR+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CapabilityCategory+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Element+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Database+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/HL7+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ConformanceCriteria+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/FError+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Requirement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ActivityLevel+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CDRElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTAElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTAUnion+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/RDF+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Activity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTA+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessProcess+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ActivityCategory+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/RequirementCategory+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;
+BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Provide+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Fulfill+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Assigned+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Consists+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Exposes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Needs+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Predicates+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/MappedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Connected+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/ActivitySplit+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/BelongsTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;

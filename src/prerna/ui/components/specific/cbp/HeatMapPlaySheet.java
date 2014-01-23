@@ -1,0 +1,80 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.ui.components.specific.cbp;
+
+import java.awt.Dimension;
+import java.util.Hashtable;
+
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+
+/**
+ * This class is used to create the playsheet for a heat map.
+ */
+public class HeatMapPlaySheet extends BrowserPlaySheet{
+	
+	/**
+	 * Constructor for HeatMapPlaySheet.
+	 * Runs methods from parent browser playsheet, sets dimensions for heat map playsheet, gets the user directory, and sets the file name.
+	 */
+	public HeatMapPlaySheet() {
+		super();
+		this.setPreferredSize(new Dimension(800,600));
+		String workingDir = System.getProperty("user.dir");
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/heatmap.html";
+	}
+
+	/**
+	 * Processes the data from a SPARQL query into an appropriate format for the specified playsheet.
+	
+	 * @return 	Hashtable with data from the SPARQL query results in correct format. */
+	@Override
+	public Hashtable processQueryData()
+	{
+		Hashtable dataHash = new Hashtable();
+		Hashtable dataSeries = new Hashtable();
+		for (int i=0;i<list.size();i++)
+		{
+			Hashtable elementHash = new Hashtable();
+			Object[] listElement = list.get(i);
+
+			if (!((String)listElement[3]).contains("blank") && !((String)listElement[1]).contains("blank") 
+					&& !((String)listElement[1]).contains("#N-A")&& !((String)listElement[1]).contains("#VALUE!") )
+			{
+				String methodName = (String) listElement[1];
+				String groupName = (String) listElement[2];
+				String key = methodName +"-"+groupName;
+				if(dataHash.get(key)==null)
+				{
+					elementHash.put("Method", methodName);
+					elementHash.put("Group", groupName);
+					elementHash.put("value", 1.0);
+					dataHash.put(key, elementHash);
+				}
+				else
+				{
+					elementHash = (Hashtable) dataHash.get(key);
+					double count = (Double) elementHash.get("value");
+					elementHash.put("value", count+1);
+				}
+			}
+		}
+		return dataHash;
+	}
+
+}

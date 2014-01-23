@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html class="no-js" ng-app="rdfgraph">
+    <head>
+        <title>Local Timeline Example</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+
+        <!-- Load the Timeline libraries -->
+        <script src="lib/simile-ajax-api.js?bundle=true" type="text/javascript"></script>
+        <script src="lib/timeline-api.js?bundle=true" type="text/javascript"></script>
+        <script src="lib/other/timeline.js" type="text/javascript"></script>
+        <script src="lib/other/labellers.js" type="text/javascript"></script>
+
+        <!--timeline css classes-->
+        <link rel="stylesheet" href="css/local_example.css" type="text/css">
+        <link rel="stylesheet" href="css/ethers.css" type="text/css">
+        <link rel="stylesheet" href="css/timeline.css" type="text/css">
+        <link rel="stylesheet" href="css/common.css" type="text/css">
+        <link rel="stylesheet" href="css/error.css" type="text/css">
+        <link rel="stylesheet" href="css/styles.css" type="text/css">
+        <link rel="stylesheet" href="css/base-min.css" type="text/css">
+        <link rel="stylesheet" href="css/reset-fonts-grid.css" type="text/css">
+        <link rel="stylesheet" href="css/net-error.css" type="text/css">
+        <link rel="stylesheet" href="css/timelinebundle.css" type="text/css">
+        <link rel="stylesheet" href="css/graphics.css" type="text/css">
+        <link rel="stylesheet" href="css/events.css" type="text/css">
+
+        <!--<script>
+            var tl2;
+            var timeline_data;
+            function start(data){
+
+                /*timeline_data = {
+                    'dateTimeFormat': 'Gregorian',
+                    'events': [
+                        {
+                            'start':"05 20 2005",
+                            'title':"'Bay of Pigs' Invasion'",
+                            'durationEvent':false // Notes: not "false". And no trailing comma.
+                        }, 
+                        {
+                            'start':"05 01 2006" ,
+                            'end':"06 01 2006" ,
+                            'durationEvent':true,
+                            'title':"Oswald moves to New Orleans",
+                            'description':"Oswald moves to New Orleans, and finds employment at the William B. Riley Coffee Company. <i>ref. Treachery in Dallas, p 320</i>"
+                        }
+                    ]    // Note: Do NOT include a trailing comma! (Breaks on IE)
+                }*/
+
+                timeline_data = {
+                    'dateTimeFormat': 'Gregorian',
+                    'events': data
+                }
+
+
+                var eventSource = new Timeline.DefaultEventSource();
+                var bandInfos2 = [
+                    Timeline.createBandInfo({
+                        eventSource:    eventSource,
+                        date:           "Jun 28 2013 00:00:00 GMT",
+                        width:          "75%", 
+                        intervalUnit:   Timeline.DateTime.MONTH, 
+                        intervalPixels: 100
+                    }),
+                    Timeline.createBandInfo({
+                        overview: true,
+                        eventSource:    eventSource,
+                        date:           "Jun 28 2013 00:00:00 GMT",
+                        width:          "25%", 
+                        intervalUnit:   Timeline.DateTime.YEAR, 
+                        intervalPixels: 200
+                    })
+                ];
+
+                bandInfos2[1].syncWith = 0;
+                bandInfos2[1].highlight = true;
+                tl2 = Timeline.create(document.getElementById("my-timeline"), bandInfos2);
+
+                //using json example from above
+                var url = '.';
+                eventSource.loadJSON(timeline_data, url);
+            }
+
+            var resizeTimerID = null;
+            function onResize() {
+                if (resizeTimerID == null) {
+                    resizeTimerID = window.setTimeout(function() {
+                        resizeTimerID = null;
+                        tl2.layout();
+                    }, 500);
+                }
+            }
+        </script>-->
+
+    </head>
+    <body>
+        <div id='thecontroller' ng-controller="TimelineCtrl">
+            <div id="hd" role="banner">
+                <h1>Local Timeline Example</h1>
+            </div>
+            <div id="doc3" class="yui-t7">
+                <div id="my-timeline" style="height: 400px; border: 1px solid #aaa"></div>
+                <noscript>
+                    This page uses Javascript to show you a Timeline. Please enable Javascript in your browser to see the full page. Thank you.
+                </noscript>
+            </div>
+
+            <!-- jQuery and Bootstrap Libraries -->
+            <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+            <script src="lib/jquery/jquery-ui-1.8.23.custom.min.js"></script>
+            <script src="lib/bootstrap.js"></script>
+            <script src="lib/underscore.js"></script>
+
+            
+            <!-- AngularJS -->
+            <script src="lib/angular/angular.js"></script>
+            <script src="lib/angular/angular-ui.js"></script>
+            <script src="lib/angular/angular-ui-bootstrap.js"></script>
+                
+            <!-- Angular Module -->
+            <script src="js/app.js"></script>
+            
+            <!-- Angular Controllers -->
+            <script src="js/controllers.js"></script>
+            <script src="js/directives.js"></script>
+            <script src="js/filters.js"></script>   
+            <script src="js/services.js"></script>
+            
+            <script>
+                function start(data) {
+                    //alert('Yoo Hoo ');
+                    //var jsonData = data;
+                    
+                 // Declaration instance of scope where is my function
+                    var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+                    // calling that function
+                    setTimeout(function(){ctrlScope.setJSONData(data);},5000);
+                    //ctrlScope.setJSONData(data);
+                };
+            </script>
+        </div>
+
+    </body>
+</html>

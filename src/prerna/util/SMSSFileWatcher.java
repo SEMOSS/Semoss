@@ -1,0 +1,148 @@
+/*******************************************************************************
+ * Copyright 2013 SEMOSS.ORG
+ * 
+ * This file is part of SEMOSS.
+ * 
+ * SEMOSS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SEMOSS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package prerna.util;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Properties;
+
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListModel;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JList;
+
+/**
+ * This class opens a thread and watches a specific SMSS file.
+ */
+public class SMSSFileWatcher extends AbstractFileWatcher {
+
+	/**
+	 * Processes SMSS files.
+	 * @param	Name of the file.
+	 */
+	@Override
+	public void process(String fileName) {
+		try {
+			//loadExistingDB();
+			loadNewDB(fileName);							
+		} catch(Exception ex) {
+			// TODO: Specify exception
+			ex.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Returns an array of strings naming the files in the directory.
+	 * Goes through list and loads an existing database.
+	 */
+	public void loadExistingDB() throws Exception
+	{
+		File dir = new File(folderToWatch);
+		String [] fileNames = dir.list(this);
+		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
+		{
+			try{
+				String fileName = folderToWatch + "/" + fileNames[fileIdx];
+				loadNewDB(fileNames[fileIdx]);
+				//Utility.loadEngine(fileName, prop);				
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+				logger.fatal("Engine Failed " + "./db/" + fileNames[fileIdx]);
+			}
+		}	
+
+	}
+	
+	/**
+	 * Loads a new database by setting a specific engine with associated properties.
+	 * @param 	Specifies properties to load 
+	 */
+	public void loadNewDB(String newFile) throws Exception
+	{
+		Properties prop = new Properties();
+		prop.load(new FileInputStream(folderToWatch + "/"  +  newFile));
+
+		Utility.loadEngine(folderToWatch+ "/" +  newFile, prop);
+		String engineName = prop.getProperty(Constants.ENGINE);
+		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		DefaultListModel listModel = (DefaultListModel) list.getModel();
+		listModel.addElement(engineName);
+		//list.setModel(listModel);
+		list.setSelectedIndex(0);
+		list.repaint();
+		
+		JComboBox changedDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+		DefaultComboBoxModel changedDBComboBoxModel = (DefaultComboBoxModel) changedDBComboBox.getModel();
+		changedDBComboBoxModel.addElement(engineName);
+		changedDBComboBox.repaint();
+		
+		JComboBox costDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COST_DB_COMBOBOX);
+		DefaultComboBoxModel costDBComboBoxModel = (DefaultComboBoxModel) costDBComboBox.getModel();
+		costDBComboBoxModel.addElement(engineName);
+		costDBComboBox.repaint();
+		
+		JComboBox exportDataDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+		DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
+		exportDataDBComboBoxModel.addElement(engineName);
+		exportDataDBComboBox.repaint();
+		
+		JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
+				Constants.MAIN_FRAME);
+		frame2.repaint();
+	}
+	
+	
+	/**
+	 * Used in the starter class for processing SMSS files.
+	 */
+	@Override
+	public void loadFirst()
+	{
+		File dir = new File(folderToWatch);
+		String [] fileNames = dir.list(this);
+		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
+		{
+			try{
+				String fileName = folderToWatch + fileNames[fileIdx];
+				Properties prop = new Properties();
+				process(fileNames[fileIdx]);
+			}catch(Exception ex)
+			{
+				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+			}
+		}
+	}
+
+	
+	/**
+	 * Processes new SMSS files.
+	 */
+	@Override
+	public void run()
+	{
+		logger.info("Starting thread");
+		synchronized(monitor)
+		{
+			super.run();
+		}
+	}
+
+}

@@ -1,0 +1,33 @@
+<div class="formContainer" ng-controller="searchCtrl">
+    <div id="four">
+	   <img id="alert" src="img/alert.png">
+	   <h1>404 Error</h1>
+	   <p>
+		  Sorry, but this page does not exist.<br>
+		  If you want to look for another node <br>
+		  you can use the search bar below.<br>
+
+	   </p>
+    </div>
+    
+    <hr style="border-bottom-color: #ccc; border-top: none;">
+    <input class="bigSearch" type="text" ng-model="typeaheadValue" placeholder="e.g. Anesthesia" uri-typeahead>
+    <button class="bigSearch btn btn-primary" ng-click="getSearchURIList(typeaheadValue)"><img src="img/bigSearch.png"></img></button>
+    
+    <table ng-show="searchResults" class="crazyTable table table-striped" style="margin-top:20px;">
+	   <tr class="blue">
+		  <th>Search Results</th>
+	   </tr>
+        <tr ng-repeat="result in searchResults | startFrom:currentPage4*pageSize4 | limitTo:pageSize4"">
+            <td><div class="tableOverflow" tooltip="{{result}}"><a href="#/rdfnode/<{{result | replaceForwardSlashWithCaretFilter}}>">{{result}}</a></div></td>
+        </tr>
+    </table>
+    
+    <div class="pagination" ng-show="searchResults.length >= 10">
+	   <button class="btn btn-mini " ng-disabled="currentPage4 == 0" ng-click="currentPage4=currentPage4-1"><<</button>
+			 {{currentPage4+1}}/{{numberOfPagesSearch()}}
+	   <button class="btn btn-mini" ng-disabled="currentPage4 >= searchResults.length/pageSize4 - 1" ng-click="currentPage4=currentPage4+1">>></button>
+    </div>
+    <div style="clear:right"></div>
+    
+</div>

@@ -1,0 +1,133 @@
+
+##Base Objects##
+
+DataElement http://health.mil/ontologies/Concept/DataElement
+RDF http://health.mil/ontologies/Concept/RDF
+VISTA http://health.mil/ontologies/Concept/VISTA
+System http://health.mil/ontologies/Concept/System
+InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+Activity http://health.mil/ontologies/Concept/Activity
+VISTAElement http://health.mil/ontologies/Concept/VISTAElement
+Data http://health.mil/ontologies/Concept/Data
+CDRElement http://health.mil/ontologies/Concept/CDRElement
+VISTAUnion http://health.mil/ontologies/Concept/VISTAUnion
+CDR http://health.mil/ontologies/Concept/CDR
+HL7 http://health.mil/ontologies/Concept/HL7
+Service http://health.mil/ontologies/Concept/Service
+DataObject http://health.mil/ontologies/Concept/DataObject
+BLU http://health.mil/ontologies/Concept/BLU
+ActivityLevel http://health.mil/ontologies/Concept/ActivityLevel
+SoftwareM http://health.mil/ontologies/Concept/SoftwareM
+ICD http://health.mil/ontologies/Concept/ICD
+Hardware http://health.mil/ontologies/Concept/Hardware
+
+##Base Predicates##
+
+System_Provide_BLU http://health.mil/ontologies/Relation/Provide
+ICD_Downstream_System http://health.mil/ontologies/Relation/Downstream
+System_Has_SoftwareM http://health.mil/ontologies/Relation/Has
+System_Upstream_ICD http://health.mil/ontologies/Relation/Upstream
+System_Has_Hardware http://health.mil/ontologies/Relation/Has
+Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
+DataObject_Connected_VISTA http://health.mil/ontologies/Relation/Connected
+DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
+Service_Provide_BLU http://health.mil/ontologies/Relation/Provide
+ICD_Carries_Data http://health.mil/ontologies/Relation/Carries
+Service_Replace_ICD http://health.mil/ontologies/Relation/Replace
+CDRElement_BelongsTo_CDR http://health.mil/ontologies/Relation/BelongsTo
+Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
+InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
+VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
+Service_Provide_Data http://health.mil/ontologies/Relation/Provide
+DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
+System_Provide_Data http://health.mil/ontologies/Relation/Provide
+DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
+DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
+VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
+VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
+DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
+
+##Base Objects Class##
+
+RDF_CLASS http://semoss.org/ontologies/Concept/RDF
+ActivityLevel_CLASS http://semoss.org/ontologies/Concept/ActivityLevel
+CDR_CLASS http://semoss.org/ontologies/Concept/CDR
+Data_CLASS http://semoss.org/ontologies/Concept/Data
+ICD_CLASS http://semoss.org/ontologies/Concept/ICD
+BLU_CLASS http://semoss.org/ontologies/Concept/BLU
+VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
+CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
+InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
+VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
+Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
+DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
+HL7_CLASS http://semoss.org/ontologies/Concept/HL7
+Service_CLASS http://semoss.org/ontologies/Concept/Service
+Activity_CLASS http://semoss.org/ontologies/Concept/Activity
+DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+System_CLASS http://semoss.org/ontologies/Concept/System
+VISTAUnion_CLASS http://semoss.org/ontologies/Concept/VISTAUnion
+SoftwareM_CLASS http://semoss.org/ontologies/Concept/SoftwareM
+
+##Base Predicates Class##
+
+Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
+Service_Replace_ICD_CLASS http://semoss.org/ontologies/Relation/Replace
+VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
+ICD_Downstream_System_CLASS http://semoss.org/ontologies/Relation/Downstream
+System_Has_Hardware_CLASS http://semoss.org/ontologies/Relation/Has
+System_Has_SoftwareM_CLASS http://semoss.org/ontologies/Relation/Has
+InterfaceControlDocument_Carries_DataElement_CLASS http://semoss.org/ontologies/Relation/Carries
+DataObject_Connected_VISTA_CLASS http://semoss.org/ontologies/Relation/Connected
+Service_Provide_BLU_CLASS http://semoss.org/ontologies/Relation/Provide
+ICD_Carries_Data_CLASS http://semoss.org/ontologies/Relation/Carries
+VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+System_Upstream_ICD_CLASS http://semoss.org/ontologies/Relation/Upstream
+DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+System_Provide_BLU_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
+System_Provide_Data_CLASS http://semoss.org/ontologies/Relation/Provide
+Activity_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+Service_Provide_Data_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
+VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataElement_Connected_CDRElement_CLASS http://semoss.org/ontologies/Relation/Connected
+CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+
+
+
+IGNORE_URI	;
+
+
+##Base Predicates Class##
+
+Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
+Service_Replace_ICD_CLASS http://semoss.org/ontologies/Relation/Replace
+VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
+ICD_Downstream_System_CLASS http://semoss.org/ontologies/Relation/Downstream
+System_Has_Hardware_CLASS http://semoss.org/ontologies/Relation/Has
+System_Has_SoftwareM_CLASS http://semoss.org/ontologies/Relation/Has
+InterfaceControlDocument_Carries_DataElement_CLASS http://semoss.org/ontologies/Relation/Carries
+DataObject_Connected_VISTA_CLASS http://semoss.org/ontologies/Relation/Connected
+Service_Provide_BLU_CLASS http://semoss.org/ontologies/Relation/Provide
+ICD_Carries_Data_CLASS http://semoss.org/ontologies/Relation/Carries
+VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+System_Upstream_ICD_CLASS http://semoss.org/ontologies/Relation/Upstream
+DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+System_Provide_BLU_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
+System_Provide_Data_CLASS http://semoss.org/ontologies/Relation/Provide
+Activity_Consists_Activity_CLASS http://semoss.org/ontologies/Relation/Consists
+Service_Provide_Data_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
+VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
+DataElement_Connected_CDRElement_CLASS http://semoss.org/ontologies/Relation/Connected
+CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+
+PROP_URI http://health.mil/ontologies/Relation/Contains
+PREDICATE_URI 
+BaseData=BaseMetaRelationships;BaseMetaProperties
+BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/DataElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/RDF+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/System+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTA+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/InterfaceControlDocument+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Activity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Data+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTAElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CDRElement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VISTAUnion+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CDR+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/HL7+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Service+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DataObject+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BLU+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ActivityLevel+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SoftwareM+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/ICD+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Hardware+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;
+BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Connected+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Provide+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Replace+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Upstream+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Consists+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/MappedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Downstream+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Carries+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/BelongsTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;

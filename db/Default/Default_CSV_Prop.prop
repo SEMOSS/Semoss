@@ -1,0 +1,29 @@
+
+
+START_ROW	2
+END_ROW	10000
+
+NUM_COLUMNS	5
+1	String
+2	String
+3	String
+4	String
+5	String
+
+NOT_OPTIONAL	;
+
+RELATION		
+
+NODE_PROP
+
+RELATION_PROP
+
+
+
+##Base Objects##
+
+##Base Objects Class##
+
+##Base Predicates##
+
+##Base Predicates Class##

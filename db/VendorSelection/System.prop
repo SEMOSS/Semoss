@@ -1,0 +1,131 @@
+START_ROW	2
+END_ROW	10000
+
+NUM_COLUMNS	8
+1	String
+2	String
+3	String
+4	String
+5	String
+6	String
+7	String
+8	String
+9	String
+10	String
+
+NOT_OPTIONAL	;
+
+RELATION	
+
+NODE_PROP
+
+RELATION_PROP
+
+##Base Objects##
+
+Vendor+System+Capability+Task	http://health.mil/ontologies/Concept/VendorSystemCapabilityTask
+
+##Base Objects Class##
+
+Vendor+System+Capability+Task_CLASS	http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask
+
+##Base Predicates##
+
+##Base Predicates Class##
+
+
+
+
+
+
+
+
+
+
+// when you specify a crosser 
+// for each of the crosser it looks at all the columns and based on that selects one of it
+// if all of them is null then it wont create the relationship or defaults it to a specific one
+	
+// Relationships to create and their ontology
+// if nothing is specified
+// it gets created as Property
+
+// base Concepts first
+Capatility	http://health.mil/ontologies/Concept/Capability
+Task	http://health.mil/ontologies/Concept/Task
+BusinessProcess	http://health.mil/ontologies/Concept/BusinessProcess
+Activity	http://health.mil/ontologies/Concept/Activity
+Vendor	http://health.mil/ontologies/Concept/Vendor
+System	http://health.mil/ontologies/Concept/System
+CustomizationEffort	http://health.mil/ontologies/Concept/Effort
+Vendor_System_Capability_Task_BP_Activity	http://health.mil/ontologies/Concept/SystemFulfillment
+SupportLevel	http://health.mil/ontologies/Concept/Customization
+Comments	http://health.mil/ontologies/Concept/Comments
+BusinessStandard	http://health.mil/ontologies/Concept/BusinessStandard
+Vendor_System_Capability_Task	http://health.mil/ontologies/Concept/VendorSystemCapabilityTask
+
+Vendor_System_Capability_Task_BP_Activity@Vendor_System_Capability_Task	http://health.mil/ontologies/Relation/AssociatedTo
+Vendor_System_Capability_Task_BP_Activity@Comments	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task_BP_Activity@Customization	http://health.mil/ontologies/Relation/Supports
+Vendor_System_Capability_Task_BP_Activity@Effort	http://health.mil/ontologies/Relation/Requires
+Vendor_System_Capability_Task_BP_Activity@BusinessProcess	http://health.mil/ontologies/Relation/Satisfies
+Vendor_System_Capability_Task_BP_Activity@Activity	http://health.mil/ontologies/Relation/Satisfies
+
+Vendor_System_Capability_Task@Vendor	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task@System	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task@Capability	http://health.mil/ontologies/Relation/Satisfies
+Vendor_System_Capability_Task@Task	http://health.mil/ontologies/Relation/Satisfies
+
+// CAPABILITY BP Activity	
+RELATION_CAPABILITY_BP_ACTIVITY	Vendor_System_Capability_Task_BP_Activity@System;Vendor_System_Capability_Task_BP_Activity@Task;Vendor_System_Capability_Task_BP_Activity@Comment;Vendor_System_Capability_Task_BP_Activity@Support;Vendor_System_Capability_Task_BP_Activity@Effort;Vendor_System_Capability_Task_BP_Activity@Capability;Vendor_System_Capability_Task_BP_Activity@BusinessProcess;Vendor_System_Capability_Task_BP_Activity@Activity
+
+
+Vendor_System_Capability_Task_BusinessStandard	http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskBusinessStandard
+
+
+// Capability Business Statndard
+Vendor_System_Capability_Task_BusinessStandard@Vendor_System_Capability_Task	http://health.mil/ontologies/Relation/AssociatedTo
+Vendor_System_Capability_Task_BusinessStandard@Comments	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task_BusinessStandard@SupportLevel	http://health.mil/ontologies/Relation/Supports
+Vendor_System_Capability_Task_BusinessStandard@CustomizationEffort	http://health.mil/ontologies/Relation/Requires
+Vendor_System_Capability_Task_BusinessStandard@BusinessStandard	http://health.mil/ontologies/Relation/Satisfies
+
+RELATION_CAPABILITY_BUSINESS_STANDARD
+
+RELATION		Vendor_System_Capability_Task@Has@Vendor;Vendor_System_Capability_Task@Has@System;Vendor_System_Capability_Task@Satisfies@Capability;Vendor_System_Capability_Task@Satisfies@Task;Vendor_System_Capability_Task_BusinessStandard@AssociatedTo@Vendor_System_Capability_Task;Vendor_System_Capability_Task_BusinessStandard@Has@Comments;Vendor_System_Capability_Task_BusinessStandard@Supports@SupportLevel;Vendor_System_Capability_Task_BusinessStandard@Requires@CustomizationEffort;Vendor_System_Capability_Task_BusinessStandard@Satisfies@BusinessStandard
+
+// Capability Business rule
+
+Vendor_System_Capability_Task_BusinessRule	http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskBusinessRule
+
+Vendor_System_Capability_Task_BusinessRule@Vendor_System_Capability_Task	http://health.mil/ontologies/Relation/AssociatedTo
+Vendor_System_Capability_Task_BusinessRule@Comments	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task_BusinessRule@Customization	http://health.mil/ontologies/Relation/Supports
+Vendor_System_Capability_Task_BusinessRule@Effort	http://health.mil/ontologies/Relation/Requires
+Vendor_System_Capability_Task_BusinessRule@BusinessRule	http://health.mil/ontologies/Relation/Satisfies
+
+RELATION_CAPABILITY_BUSINESS_RULE	Vendor_System_Capability_Task_BP_Activity@BusinessProcess;Vendor_System_Capability_Task_BP_Activity@Activity;Vendor_System_Capability_Task_BusinessRule@Vendor_System_Capability_Task;Vendor_System_Capability_Task_BusinessRule@Comments;Vendor_System_Capability_Task_BusinessRule@Customization;Vendor_System_Capability_Task_BusinessRule@Effort;Vendor_System_Capability_Task_BusinessRule@BusinessRule
+
+
+// Capability Tech Requirement
+
+Vendor_System_Capability_Task_TechRequirement	http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement
+
+Vendor_System_Capability_Task_TechRequirement@Vendor_System_Capability_Task	http://health.mil/ontologies/Relation/AssociatedTo
+Vendor_System_Capability_Task_TechRequirement@Comments	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task_TechRequirement@Customization	http://health.mil/ontologies/Relation/Supports
+Vendor_System_Capability_Task_TechRequirement@Effort	http://health.mil/ontologies/Relation/Requires
+Vendor_System_Capability_Task_TechRequirement@TechRequirement	http://health.mil/ontologies/Relation/Satisfies
+
+RELATION_CAPABILITY_TECH_REQUIREMENT	Vendor_System_Capability_Task_BP_Activity@BusinessProcess;Vendor_System_Capability_Task_BP_Activity@Activity;Vendor_System_Capability_Task_TechRequirement@Vendor_System_Capability_Task;Vendor_System_Capability_Task_TechRequirement@Comments;Vendor_System_Capability_Task_TechRequirement@Customization;Vendor_System_Capability_Task_TechRequirement@Effort;Vendor_System_Capability_Task_TechRequirement@TechRequirement
+
+
+// Capability Data Service, Business Logic Service
+
+Vendor_System_Capability_Task_Service_Role	http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskServiceRole
+
+Vendor_System_Capability_Task_Service_Role@Vendor_System_Capability_Task	http://health.mil/ontologies/Relation/AssociatedTo
+Vendor_System_Capability_Task_Service_Role@Comments	http://health.mil/ontologies/Relation/Has
+Vendor_System_Capability_Task_Service_Role@Customization	http://health.mil/ontologies/Relation/Supports
+Vendor_System_Capability_Task_Service_Role@Effort	http://health.mil/ontologies/Relation/Requires
+Vendor_System_Capability_Task_Service_Role@Service	http://health.mil/ontologies/Relation/Satisfies

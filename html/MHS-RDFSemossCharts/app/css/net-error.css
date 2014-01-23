@@ -1,0 +1,106 @@
+
+html {
+    background: none repeat scroll 0 0 -moz-dialog;
+}
+body {
+    color: -moz-fieldtext;
+    font: message-box;
+    margin: 0;
+    padding: 0 1em;
+}
+h1 {
+    border-bottom: 1px solid threedlightshadow;
+    font-size: 160%;
+    margin: 0 0 0.6em;
+}
+ul, ol {
+    -moz-margin-start: 1.5em;
+    margin: 0;
+    padding: 0;
+}
+ul > li, ol > li {
+    margin-bottom: 0.5em;
+}
+ul {
+    list-style: square outside none;
+}
+#errorPageContainer {
+    -moz-padding-start: 30px;
+    background: url("chrome://global/skin/icons/warning-large.png") no-repeat scroll left 0 content-box border-box -moz-field;
+    border: 1px solid threedshadow;
+    border-radius: 10px 10px 10px 10px;
+    margin: 4em auto;
+    max-width: 52em;
+    min-width: 13em;
+    padding: 3em;
+    position: relative;
+}
+#errorPageContainer.certerror {
+    background-image: url("chrome://global/skin/icons/sslWarning.png");
+}
+#errorPageContainer:-moz-dir(rtl) {
+    background-position: right 0;
+}
+#errorTitle {
+    -moz-margin-start: 80px;
+}
+#errorLongContent {
+    -moz-margin-start: 80px;
+}
+#errorShortDesc > p {
+    border-bottom: 1px solid threedlightshadow;
+    font-size: 130%;
+    overflow: auto;
+    padding-bottom: 1em;
+    white-space: pre-wrap;
+}
+#errorLongDesc {
+    -moz-padding-end: 3em;
+    font-size: 110%;
+}
+#errorLongDesc > p {
+}
+#errorTryAgain {
+    -moz-margin-start: 80px;
+    margin-top: 2em;
+}
+#brand {
+    -moz-margin-end: 10px;
+    bottom: -1.5em;
+    opacity: 0.4;
+    position: absolute;
+    right: 0;
+}
+#brand:-moz-dir(rtl) {
+    left: 0;
+    right: auto;
+}
+#brand > p {
+    margin: 0;
+}
+#errorContainer {
+    display: none;
+}
+#securityOverrideDiv {
+    padding-top: 10px;
+}
+#securityOverrideContent {
+    background-color: infobackground;
+    border-radius: 10px 10px 10px 10px;
+    color: infotext;
+    padding: 10px;
+}
+.blacklist:root #errorTitle, .blacklist:root #errorLongContent, .blacklist:root #errorShortDesc, .blacklist:root #errorLongDesc, .blacklist:root a {
+    background-color: #772222;
+    color: white;
+}
+.blacklist:root #errorPageContainer {
+    background-color: #772222;
+    background-image: url("chrome://global/skin/icons/blacklist_large.png");
+}
+.blacklist:root {
+    background: none repeat scroll 0 0 #333333;
+}
+.blacklist:root #errorTryAgain {
+    display: none;
+}
