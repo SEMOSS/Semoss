@@ -113,8 +113,8 @@ public class AdjacentPopupMenuListener implements ActionListener {
 				
 				//if the button name contains upstream, get the upstream edges and vertices
 				if(buttonName.contains("Downstream")){
-					edgeHash = putEdgesInHash(vert.getInEdges(), edgeHash);
-					for (SEMOSSEdge edge : vert.getInEdges()){
+					edgeHash = putEdgesInHash(vert.getOutEdges(), edgeHash);
+					for (SEMOSSEdge edge : vert.getOutEdges()){
 						if (allEdgesVect.contains(edge)){
 							vertHash.put(edge.inVertex.getURI(), edge.inVertex.getURI());
 							state.pick(edge.inVertex, true);
@@ -124,8 +124,8 @@ public class AdjacentPopupMenuListener implements ActionListener {
 				
 				//if the button name contains downstream, get the downstream edges and vertices
 				if(buttonName.contains("Upstream")){
-					edgeHash = putEdgesInHash(vert.getOutEdges(), edgeHash);
-					for (SEMOSSEdge edge : vert.getOutEdges()){
+					edgeHash = putEdgesInHash(vert.getInEdges(), edgeHash);
+					for (SEMOSSEdge edge : vert.getInEdges()){
 						if (allEdgesVect.contains(edge)){
 							vertHash.put(edge.outVertex.getURI(), edge.outVertex.getURI());
 							state.pick(edge.outVertex, true);
