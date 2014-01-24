@@ -180,7 +180,8 @@ public class FactSheetProcessor {
 	public void generateReports() {
 		sysDupe = new FactSheetSysDupeCalculator();		
 
-		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System ?SystemCategory WHERE{{?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}{?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?System ?Submits ?SystemTasker}{?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?SystemTasker ?TypeOf ?Tasker}{?BelongsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo> ;}{?SystemCategory <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemCategory>;}{?SystemTasker ?BelongsTo ?SystemCategory}} ");
+			ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System ?SystemUser WHERE{{?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}{?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?System ?Submits ?SystemTasker}{?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?SystemTasker ?TypeOf ?Tasker}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy> ;}{?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>;}{?SystemTasker ?UsedBy ?SystemUser}} ");
+
 
 		for (int i=0; i<systemList.size(); i++) {
 			String systemName = systemList.get(i);
@@ -231,7 +232,7 @@ public class FactSheetProcessor {
 		systemDescriptionQuery = systemDescriptionQuery.replaceAll("AHLTA", systemName);
 
 		//System PPI Owner Query
-		String ppiQuery ="SELECT DISTINCT ?Service WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>} {?Service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?System ?OwnedBy ?Service} }";
+		String ppiQuery ="SELECT DISTINCT ?SystemUser WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?System ?UsedBy ?SystemUser} }";
 		ppiQuery = ppiQuery.replaceAll("ASIMS", systemName);
 
 		//Business Processes Supported Query
@@ -243,7 +244,7 @@ public class FactSheetProcessor {
 		systemPOCQuery = systemPOCQuery.replaceAll("AHLTA", systemName);
 
 		//System Maturity Query
-		String systemMaturityQuery = "SELECT DISTINCT (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm .} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm .} } OPTIONAL { {?cat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemCategory>} } }";
+		String systemMaturityQuery = "SELECT DISTINCT (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm .} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm .} } OPTIONAL { {?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} } }";
 		systemMaturityQuery = systemMaturityQuery.replaceAll("APEQS", systemName);
 
 		//System Software Query

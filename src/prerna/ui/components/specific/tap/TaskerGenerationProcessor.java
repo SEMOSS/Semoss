@@ -121,7 +121,7 @@ public class TaskerGenerationProcessor {
 		sysHighlightsQuery = sysHighlightsQuery.replaceAll("ASIMS", systemName);
 
 		//Types of Users Query
-		String userTypesQuery = "SELECT DISTINCT ?Users WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?System ?UsedBy ?Users} }";
+		String userTypesQuery = "SELECT DISTINCT ?Users WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>}{?Users <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel>} {?System ?UsedBy ?Users} }";
 		userTypesQuery = userTypesQuery.replaceAll("ASIMS", systemName);
 
 		//User Interface Query

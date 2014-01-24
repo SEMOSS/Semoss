@@ -467,7 +467,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		EntityFiller filler = new EntityFiller();
 		filler.engineName = "TAP_Core_Data";
 		filler.type = "System";
-		filler.setExternalQuery("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/System> ;}{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} BIND(<http://health.mil/ontologies/Concept/SystemCategory/Central> AS ?central){?entity ?has ?central}}");
+		filler.setExternalQuery("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/System> ;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;} BIND(<http://health.mil/ontologies/Concept/SystemOwner/Central> AS ?central){?entity ?OwnedBy ?central}}");
 		filler.run();
 		Vector names = filler.nameVector;
 		String[] listArray=new String[names.size()];

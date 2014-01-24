@@ -19,32 +19,16 @@
 package prerna.poi.specific;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.ClientAnchor;
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.Drawing;
-import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
-import org.apache.poi.xssf.usermodel.XSSFColor;
-import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xssf.usermodel.extensions.XSSFHeaderFooter;
 
 import prerna.util.ConstantsTAP;
 import prerna.util.Utility;
@@ -103,7 +87,7 @@ public class TaskerGenerationWriter {
 		writeMappingSheet(wb, "Business Logic",bluResults);
 		writeMappingSheet(wb, "Data Objects",dataResults);
 		writeListOfInterfacesSheet(wb, ownerResults, icdResults);
-		writeBudgetSheet(wb, budgetResults);
+//		writeBudgetSheet(wb, budgetResults);
 		writeSiteListSheet(wb, siteResults);
 		writeListSheet(wb, "Software",systemSWResults);
 		writeListSheet(wb, "Hardware",systemHWResults);
@@ -341,9 +325,14 @@ public class TaskerGenerationWriter {
 						cellToWriteOn=rowToWriteOn.getCell(j);
 						Object val = budgetRowValues.get(j);
 						if(val instanceof Double)
-							cellToWriteOn.setCellValue((Double)val);
+						{
+							if(!((Double)val).equals(0.0))
+								cellToWriteOn.setCellValue((Double)val);
+						}
 						else
+						{
 							cellToWriteOn.setCellValue((String)val);
+						}
 					}
 				}
 			}
@@ -362,29 +351,29 @@ public class TaskerGenerationWriter {
 		XSSFCellStyle style = cellToWriteOn.getCellStyle();
 		XSSFCellStyle formstyle = formCellToWrite.getCellStyle();
 		
-		for (int i=0; i<result.size(); i++) {
-			rowToWriteOn = sheetToWriteOver.getRow(3+i);
-			if(rowToWriteOn==null)
-				rowToWriteOn=sheetToWriteOver.createRow(3+i);
-			cellToWriteOn = rowToWriteOn.getCell(0);
-			if(cellToWriteOn==null)
-			{
-				cellToWriteOn=rowToWriteOn.createCell(0);
-				cellToWriteOn.setCellStyle(style);
+			for (int i=0; i<result.size(); i++) {
+				rowToWriteOn = sheetToWriteOver.getRow(3+i);
+				if(rowToWriteOn==null)
+					rowToWriteOn=sheetToWriteOver.createRow(3+i);
+				cellToWriteOn = rowToWriteOn.getCell(0);
+				if(cellToWriteOn==null)
+				{
+					cellToWriteOn=rowToWriteOn.createCell(0);
+					cellToWriteOn.setCellStyle(style);
+					for(int j=1;j<5;j++)
+					{
+						formCellToWrite=rowToWriteOn.createCell(j);
+						formCellToWrite.setCellStyle(formstyle);
+					}
+				}
+				ArrayList row = (ArrayList) result.get(i);
+				cellToWriteOn.setCellValue((((String) row.get(0) ).replaceAll("\"", "")).replaceAll("_", " ") );
 				for(int j=1;j<5;j++)
 				{
-					formCellToWrite=rowToWriteOn.createCell(j);
-					formCellToWrite.setCellStyle(formstyle);
-				}
+					formCellToWrite = rowToWriteOn.getCell(j);
+					formCellToWrite.setCellFormula("IFERROR(VLOOKUP(A"+(4+i)+",SiteDB2!$A$2:$E$3355,"+(j+1)+",FALSE),\"\")");
+				}	
 			}
-			ArrayList row = (ArrayList) result.get(i);
-			cellToWriteOn.setCellValue((((String) row.get(0) ).replaceAll("\"", "")).replaceAll("_", " ") );
-			for(int j=1;j<5;j++)
-			{
-				formCellToWrite = rowToWriteOn.getCell(j);
-				formCellToWrite.setCellFormula("IFERROR(VLOOKUP(A"+(4+i)+",SiteDB2!$A$2:$E$3355,"+(j+1)+",FALSE),\"\")");
-			}	
-		}
 	}
 	
 	

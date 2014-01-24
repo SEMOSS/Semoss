@@ -112,7 +112,9 @@ public class Starter {
 
 		// first get the engine file
 		DIHelper.getInstance().loadCoreProp(propFile);
-		
+		DIHelper.getInstance().putProperty("BaseFolder",System.getProperty("user.dir"));
+		DIHelper.getInstance().putProperty("LOG4J",System.getProperty("user.dir")+"\\log4j.prop");
+
 		// get the engine name
 		//String engines = DIHelper.getInstance().getProperty(Constants.ENGINES);
 		String engines = "";

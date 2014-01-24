@@ -22,7 +22,7 @@ public class FactSheetImageExportProcessor {
 		ArrayList<String> sysList = new ArrayList<String>();
 		HashMap<String,String> catHash= new HashMap<String,String>();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		String query = "SELECT DISTINCT ?System ?Owner WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?Has ?Owner}}ORDER BY ?Owner ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/Service/Army>)(<http://health.mil/ontologies/Concept/Service/Navy>)(<http://health.mil/ontologies/Concept/Service/Air_Force>)(<http://health.mil/ontologies/Concept/Service/Central>)}";
+		String query = "SELECT DISTINCT ?System ?Owner WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?Owner}}ORDER BY ?Owner ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
@@ -43,7 +43,8 @@ public class FactSheetImageExportProcessor {
 			e.printStackTrace();
 		}
 
-		query = "SELECT DISTINCT ?System ?SystemCategory WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}} ORDER BY ?SystemCategory ?System BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)(<http://health.mil/ontologies/Concept/SystemCategory/Central>)}";
+		query = "SELECT DISTINCT ?System ?SystemOwner WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?OwnedBy ?SystemOwner}} ORDER BY ?SystemOwner ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
+
 
 		wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
