@@ -64,10 +64,10 @@ public class SEMOSSEdge {
 		this.outVertex = outVertex;
 		
 		// in vertex
-		inVertex.addOutEdge(this);
+		inVertex.addInEdge(this);
 		
 		// out vertex
-		outVertex.addInEdge(this);
+		outVertex.addOutEdge(this);
 		
 	}
 	
