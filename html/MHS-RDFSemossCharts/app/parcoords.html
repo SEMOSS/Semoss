@@ -1,65 +1,252 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<html>
-  <head>
-    <link rel="stylesheet" type="text/css" href="css/parcoords.css">
-    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
-    <script src="lib/d3.v3.js"></script>
-    <script src="lib/underscore.js"></script>
-    <script src="lib/tooltip.js"></script>
-    <script src="lib/parcoords.js"></script>
+<!doctype html>
+<title>Parallel Coordinates</title>
 
-  </head>
-  <body>
+<!-- SlickGrid -->
+<link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/examples.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
+<script src="lib/slickgrid/jquery-1.7.min.js"></script>
+<script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
+<script src="lib/slickgrid/slick.core.js"></script>
+<script src="lib/slickgrid/slick.grid.js"></script>
+<script src="lib/slickgrid/slick.pager.js"></script>
+<script src="lib/slickgrid/slick.dataview.js"></script>
+<!-- End SlickGrid -->
 
-    <div id="chart" class="parcoords" style="width:1300px;height:1000px"></div>
-    
-    <script type="text/javascript">
+<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="css/d3.parcoords.css">
+<link rel="stylesheet" type="text/css" href="css/style.css"> 
+<link rel="stylesheet" type="text/css" href="css/thisparcoords.css"> 
+<script src="js/bootstrap.min.js"></script>
+<!-- <script src="data/ATFData.js"></script> -->
+<style>
+body, html {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+}
+#grid, #pager {
+  position: fixed;
+  width: 100%;
+}
+#grid {
+  bottom: 0;
+  height: 300px;
+}
+#pager {
+  bottom: 306px;
+  height: 20px;
+}
+.slick-row:hover {
+  font-weight: bold;
+  color: #069;
+}
+
+text {
+  font: 10px sans-serif;
+}
+</style>
+<script src="lib/d3.min.js"></script>
+<script src="js/d3.parcoords.js"></script>
+<script src="/lib/underscore.js"></script>
+<script src="/lib/divgrid.js"></script>
+<div id="nav" style="position: fixed; z-index:1;" >
+  <span class="brand">Parallel Coordinates</span>
+<button id="refreshBtn" type="button" class="btn btn-success" data-toggle="buttons-checkbox">Table</button>
+</div>
+<div id="example" class="parcoords" style="height:240px;"></div>
+
+<div id="slick">
+  <div id="grid"></div>
+  <div id="pager"></div>
+</div>
+
+<script id="brushing">
+
+// var ref = d3.select("#refreshBtn")
+//   .html("Hide Table")
+
+
+
+var touch = "true";
+
+var parcoords = d3.parcoords()("#example")
+  .alpha(0.1)
+  .mode("queue") // progressive rendering
+  .height(d3.max([document.body.clientHeight-05, 220]))
+  .width(d3.max([document.body.clientWidth]))
+  .margin({
+    top: 72,
+    left: 80,
+    right: 0,
+    bottom: 10
+  });
+
+//external version
+   //   start(dataString); 
+   //   function start(dataString) {
+   // var data = dataString.dataSeries
+
+//SEMOSS version
      function start(dataString) {
-      var jsonData = jQuery.parseJSON(dataString);
-      var data = jsonData.dataSeries
-      var blue_to_brown = d3.scale.linear()
-	.domain([0,0.0003])
-	.range(["green", "red"])
-	.interpolate(d3.interpolateLab);
-      
-      // interact with this variable from a javascript console
-      var pc1;
-    
-	pc1 = d3.parcoords()("#chart")
-	  .data(data)
-	  .margin({
-	    top: 50,
-	    left: 200,
-	    right: 0,
-	    bottom: 50
-	  })
-	  //.color(function(d) { return blue_to_brown(d['Murder']); })  // quantitative color scale
-	  .alpha(0.4)
-	  .render()
-	  .brushable()  // enable brushing
-	  .interactive()  // command line mode
-	  .reorderable()
-	  
-	  ;
-      
-	var explore_count = 0;
-	var exploring = {};
-	var explore_start = false;
-	pc1.svg
-	  .selectAll(".dimension")
-	  .style("cursor", "pointer")
-	  .on("click", function(d) {
-	    exploring[d] = d in exploring ? false : true;
-	    event.preventDefault();W
-	    if (exploring[d]) d3.timer(explore(d,explore_count));
-	  });
-	
-     };
+   var jsonData = jQuery.parseJSON(dataString);
+   var data = jsonData.dataSeries
 
-    </script>
+  // slickgrid needs each data element to have an id
+  data.forEach(function(d,i) { d.id = d.id || i; });
+
+
+  parcoords
+    .data(data)
+    .render()
+    .reorderable()
+    .brushable();
+
+
+
+  // setting up grid
+  var column_keys = d3.keys(data[0]);
+
+console.log(column_keys);
+
+  var columns = column_keys.map(function(key,i) {
+    return {
+      id: key,
+      name: key,
+      field: key,
+      sortable: true
+    }
+  });
+
+  var options = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    multiColumnSort: false,
+    forceFitColumns: true
+  };
+
+  var dataView = new Slick.Data.DataView();
+  var grid = new Slick.Grid("#grid", dataView, columns, options);
+  var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
+
+  // wire up model events to drive the grid
+  dataView.onRowCountChanged.subscribe(function (e, args) {
+    grid.updateRowCount();
+    grid.render();
+  });
+
+  dataView.onRowsChanged.subscribe(function (e, args) {
+    grid.invalidateRows(args.rows);
+    grid.render();
+  });
+
+  // column sorting
+  var sortcol = column_keys[0];
+  var sortdir = 1;
+
+  function comparer(a, b) {
+    var x = a[sortcol], y = b[sortcol];
+    return (x == y ? 0 : (x > y ? 1 : -1));
+  }
   
-  </body>
-</html>
+  // click header to sort grid column
+  grid.onSort.subscribe(function (e, args) {
+    sortdir = args.sortAsc ? 1 : -1;
+    sortcol = args.sortCol.field;
+
+    if ($.browser.msie && $.browser.version <= 8) {
+      dataView.fastSort(sortcol, args.sortAsc);
+    } else {
+      dataView.sort(comparer, args.sortAsc);
+    }
+  });
+
+  // highlight row in chart
+  grid.onMouseEnter.subscribe(function(e,args) {
+    var i = grid.getCellFromEvent(e).row;
+    var d = parcoords.brushed() || data;
+    parcoords.highlight([d[i]]);
+  });
+  grid.onMouseLeave.subscribe(function(e,args) {
+    parcoords.unhighlight();
+  });
+
+  // fill grid with data
+  gridUpdate(data);
+
+  // update grid on brush
+  parcoords.on("brush", function(d) {
+    gridUpdate(d);
+  });
+
+  function gridUpdate(data) {
+    dataView.beginUpdate();
+    dataView.setItems(data);
+    dataView.endUpdate();
+  };
+
+$(document).ready(function(){
+    $('#grid').slideToggle(01);
+    $('#pager').fadeToggle(01);
+});
+
+d3.select(window).on('resize', resize); 
+
+function resize() {
+    if(touch == "false"){
+    parcoords
+      .height(d3.max([document.body.clientHeight-325, 220]))
+      .width(d3.max([document.body.clientWidth]))
+      .data(data)
+      .render()
+      .reorderable()
+      .brushable();
+    }else{
+    parcoords
+      .height(d3.max([document.body.clientHeight-05, 220]))
+      .width(d3.max([document.body.clientWidth]))
+      .data(data)
+      .render()
+      .reorderable()
+      .brushable();
+  }
+
+  grid.resizeCanvas();
+  };
 
 
+
+$(document).ready(function(){
+    $('#refreshBtn').click(function(){
+        $('#grid').slideToggle(50);
+        $('#pager').fadeToggle(100);
+
+        if(touch == "false"){
+          touch = "true";
+          parcoords
+            .height(d3.max([document.body.clientHeight-05, 220]))
+            .width(d3.max([document.body.clientWidth]))
+            .data(data)
+            .render()
+            .reorderable()
+            .brushable();
+        }else{
+          touch = "false";
+          parcoords
+            .height(d3.max([document.body.clientHeight-325, 220]))
+            .width(d3.max([document.body.clientWidth]))
+            .data(data)
+            .render()
+            .reorderable()
+            .brushable();
+        }
+
+    });
+
+  });
+
+};
+</script>
