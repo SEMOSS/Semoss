@@ -2308,19 +2308,9 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				else {
 					RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
 				}
-				if (((AbstractEngine)engine).getBaseHash() == null)
-				{
-					String owlFile = (String) DIHelper.getInstance().getProperty(engine.getEngineName() + "_" + Constants.OWL);
-					String baseFolder = DIHelper.getInstance().getProperty(
-					"BaseFolder");
-					owlFile = engine.getProperty(Constants.OWL);
-					//engine.get
-					this.baseFilterHash = RDFEngineHelper.loadBaseRelationsFromOWL(owlFile);
-				}
-				else
-				{
-					this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
-				}
+
+				this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
+				
 				RDFEngineHelper.addAllData(baseRelEngine, rc);
 				loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
 			}

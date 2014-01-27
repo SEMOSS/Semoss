@@ -35,7 +35,6 @@ public class SPARQLExecuteFilterNoBaseFunction extends AbstractBrowserSPARQLFunc
 	Hashtable filterHash;
 	static final String concept = "http://semoss.org/ontologies/Concept";
 	static final String relation = "http://semoss.org/ontologies/Relation";
-	GraphPlaySheet gps;
 	
 	/**
 	 * Method invoke.

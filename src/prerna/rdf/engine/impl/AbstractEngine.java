@@ -50,6 +50,7 @@ import org.openrdf.sail.memory.MemoryStore;
 import prerna.om.Insight;
 import prerna.om.Node;
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -73,6 +74,7 @@ public abstract class AbstractEngine implements IEngine {
 	RepositoryConnection insightBase = null;
 	ValueFactory insightVF = null;
 	Resource engineURI2 = null;
+	Hashtable baseDataHash;
 
 	public static final String perspectives = "SELECT ?perspective WHERE {{<@engine@> <"
 			+ Constants.PERSPECTIVE
@@ -142,7 +144,6 @@ public abstract class AbstractEngine implements IEngine {
 			+ Constants.LABEL + "> ?insight.}" + ""
 			+ "FILTER (regex (?insight, \"@insight@\" ,\"i\"))" + "}";
 
-	Hashtable baseDataHash;
 
 	// some indices for easy retrieval
 	// for a given perspective // all the various questions
@@ -756,6 +757,7 @@ public abstract class AbstractEngine implements IEngine {
 					+ Constants.LABEL);
 
 			String insightSparql = "SELECT ?insightURI ?insight ?sparql ?output WHERE {"
+					+"BIND(\"" + label + "\" AS ?insight)"
 					+ "{?insightURI <"
 					+ insightPred
 					+ "> ?insight.}"
@@ -767,9 +769,9 @@ public abstract class AbstractEngine implements IEngine {
 					+ insightVF.createURI(Constants.INSIGHT + ":"
 							+ Constants.OUTPUT)
 					+ "> ?output.}"
-					+ "FILTER (regex (?insight, \""
-					+ label
-					+ "\" ,\"i\"))"
+//					+ "FILTER (regex (?insight, \""
+//					+ label
+//					+ "\" ,\"i\"))"
 					+ "}";
 			System.err.println("Insighter... " + insightSparql + label);
 			System.err.println("Lable is " + label);
@@ -857,6 +859,7 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	private void createBaseRelationEngine() {
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
+		Hashtable baseHash = new Hashtable();
 		// If OWL file doesn't exist, go the old way and create the base
 		// relation engine
 		// String owlFileName =
@@ -870,22 +873,28 @@ public abstract class AbstractEngine implements IEngine {
 			owl = baseFolder + "/db/" + getEngineName() + "/" + getEngineName()
 					+ ".OWL";
 		}
-		if (owl != null) {
-			baseRelEngine.fileName = owl;
-			baseRelEngine.openDB(null);
-			addConfiguration(Constants.OWL, owl);
-		}
 		if (ontoProp.containsKey("BaseData")) {
 			// TODO: Need to find a way to write this into the prop file
 			try {
 				System.err.println("Executed this block");
-				Hashtable hash = createBaseRelations(ontoProp, baseRelEngine);
-				setBaseHash(hash);
+				baseHash = createBaseRelations(ontoProp, baseRelEngine);
 			} catch (Exception e) {
 				// TODO: Specify exception
 				e.printStackTrace();
 			}
 		}
+		baseRelEngine.fileName = owl;
+		baseRelEngine.openDB(null);
+		addConfiguration(Constants.OWL, owl);
+		
+		try {
+			baseHash.putAll(RDFEngineHelper.loadBaseRelationsFromOWL(owl));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		setBaseHash(baseHash);
+		
 		baseRelEngine.commit();
 		setBaseData(baseRelEngine);
 	}
