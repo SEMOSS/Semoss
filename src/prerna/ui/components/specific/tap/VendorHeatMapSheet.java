@@ -20,6 +20,7 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;
@@ -34,6 +35,7 @@ import prerna.util.DIHelper;
  */
 public class VendorHeatMapSheet extends HeatMapPlaySheet {
 
+	Hashtable allHash;
 	
 	/**
 	 * Constructor for VendorHeatMapSheet.
@@ -49,7 +51,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 	 * Overrides BrowserPlaySheet createView(). Executes processing/data gathering and loads proper file (capability.html).
 	 */
 	@Override
-	public void createView() {
+	public void createData() {
 		addPanel();
 		
 		updateProgressBar("0%...Generating Queries", 0);
@@ -192,7 +194,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		browser.navigate(fileName);
 		browser.waitReady();
 		
-		Hashtable allHash = new Hashtable();
+		allHash = new Hashtable();
 
 		allHash.put("dataSeries",capabilities);
 		allHash.put("title", "Requirements vs. Vendors");
@@ -201,8 +203,15 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		allHash.put("requirement","requirement");
 		allHash.put("weight","weight");
 		allHash.put("value", "value");
-		callIt(allHash);
+	}
+	
+	@Override
+	public void createView()
+	{
+		browser.navigate(fileName);
+		browser.waitReady();
 		
+		callIt(allHash);
 		updateProgressBar("100%...Heat Map Generation Complete", 100);
-	}	
+	}
 }

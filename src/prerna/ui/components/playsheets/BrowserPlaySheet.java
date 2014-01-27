@@ -46,7 +46,7 @@ import com.teamdev.jxbrowser.BrowserType;
  */
 public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 
-	Boolean empty = false;
+	public Boolean empty = false;
 	public Browser browser = null;
 	protected String fileName;
 	JSplitPane splitPane;
