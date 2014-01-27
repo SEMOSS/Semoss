@@ -1,0 +1,28 @@
+  #nav {
+  ;
+  background-color: #eee;
+  height: 36px;
+  width: 100%;
+  padding: 0px 10px;
+  position: fixed;
+  z-index: 2;
+  border-bottom: 1px solid #ccc;
+  -webkit-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+  -moz-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+  box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+      }
+      
+  #nav .brand {
+  margin-left: 0px;
+  margin-right: 10px;
+  color: #555;
+  font-size: 17px;
+  font-weight: bold;
+  position: relative;
+  top:3px;
+      }
+
+
+  #refreshBtn{
+  margin-top: 4px;
+      }
