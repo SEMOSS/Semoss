@@ -145,7 +145,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 			list.add(0,names);
 			hash.put(outputArray.get(ind), list);
 		}
-		hash.put(outputArray.get(9), processICDs(hash.get(outputArray.get(9))));
+	//	hash.put(outputArray.get(9), processICDs(hash.get(outputArray.get(9))));
 		writer.ExportLoadingSheets(fileLoc, hash,templateLoc,outputArray);
 		
 		
