@@ -106,7 +106,9 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 			WatchService watcher = FileSystems.getDefault().newWatchService();
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
-			Path dir2Watch = Paths.get(baseFolder + "/" + folderToWatch);
+			//Path dir2Watch = Paths.get(baseFolder + "/" + folderToWatch);
+
+			Path dir2Watch = Paths.get(folderToWatch);
 
 			WatchKey key = dir2Watch.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
 			while(true)
