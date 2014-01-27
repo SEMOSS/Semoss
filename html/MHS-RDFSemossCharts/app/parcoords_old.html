@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="css/parcoords.css">
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <script src="lib/parcoords.js"></script>
+
+  </head>
+  <body>
+
+    <div id="chart" class="parcoords" style="width:1300px;height:1000px"></div>
+    
+    <script type="text/javascript">
+     function start(dataString) {
+      var jsonData = jQuery.parseJSON(dataString);
+      var data = jsonData.dataSeries
+      var blue_to_brown = d3.scale.linear()
+	.domain([0,0.0003])
+	.range(["green", "red"])
+	.interpolate(d3.interpolateLab);
+      
+      // interact with this variable from a javascript console
+      var pc1;
+    
+	pc1 = d3.parcoords()("#chart")
+	  .data(data)
+	  .margin({
+	    top: 50,
+	    left: 200,
+	    right: 0,
+	    bottom: 50
+	  })
+	  //.color(function(d) { return blue_to_brown(d['Murder']); })  // quantitative color scale
+	  .alpha(0.4)
+	  .render()
+	  .brushable()  // enable brushing
+	  .interactive()  // command line mode
+	  .reorderable()
+	  
+	  ;
+      
+	var explore_count = 0;
+	var exploring = {};
+	var explore_start = false;
+	pc1.svg
+	  .selectAll(".dimension")
+	  .style("cursor", "pointer")
+	  .on("click", function(d) {
+	    exploring[d] = d in exploring ? false : true;
+	    event.preventDefault();W
+	    if (exploring[d]) d3.timer(explore(d,explore_count));
+	  });
+	
+     };
+
+    </script>
+  
+  </body>
+</html>
+
+
