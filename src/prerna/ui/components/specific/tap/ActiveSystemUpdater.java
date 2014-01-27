@@ -56,6 +56,7 @@ public class ActiveSystemUpdater {
 	String typeURI = Constants.TYPE_URI;
 	String baseSemossSystemURI = "http://semoss.org/ontologies/Concept";
 	String activeSystemURI = "http://semoss.org/ontologies/Concept/ActiveSystem";
+	private boolean foundQuery = false;
 	
 	/**
 	 * Functions as the main method for the class
@@ -113,24 +114,27 @@ public class ActiveSystemUpdater {
 	 */
 	public void insertSubclassTriple(ArrayList<String> activeSystems)
 	{
-		// add semoss base subclass triple
-		String insertQuery = "INSERT DATA { <" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "> .";
-		insertQuery = insertQuery + "<" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "/System> .";
-		Iterator<String> iterator = activeSystems.iterator();
-		String systemInstanceURI = "";
-		// add all the instance typeOf triples
-		while(iterator.hasNext())
+		if(this.foundQuery)
 		{
-			systemInstanceURI = "<" + iterator.next() + ">";
-			insertQuery = insertQuery + " " + systemInstanceURI +" <" +  typeURI + "> <"+ activeSystemURI + "> .";
+			// add semoss base subclass triple
+			String insertQuery = "INSERT DATA { <" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "> .";
+			insertQuery = insertQuery + "<" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "/System> .";
+			Iterator<String> iterator = activeSystems.iterator();
+			String systemInstanceURI = "";
+			// add all the instance typeOf triples
+			while(iterator.hasNext())
+			{
+				systemInstanceURI = "<" + iterator.next() + ">";
+				insertQuery = insertQuery + " " + systemInstanceURI +" <" +  typeURI + "> <"+ activeSystemURI + "> .";
+			}
+			insertQuery = insertQuery + " }";
+			logger.info("Inserting: " + insertQuery);
+			// process query suing UpdateProcessor class
+			UpdateProcessor proc = new UpdateProcessor();
+			proc.setEngine(engine);
+			proc.setQuery(insertQuery);
+			proc.processQuery();
 		}
-		insertQuery = insertQuery + " }";
-		logger.info("Inserting: " + insertQuery);
-		// process query suing UpdateProcessor class
-		UpdateProcessor proc = new UpdateProcessor();
-		proc.setEngine(engine);
-		proc.setQuery(insertQuery);
-		proc.processQuery();
 	}
 	
 	/**
@@ -147,6 +151,7 @@ public class ActiveSystemUpdater {
 		String queryData = DIHelper.getInstance().getProperty(query);
 		if(queryData != null)
 		{
+			this.foundQuery = true;
 			logger.info("Running: " + queryData);
 			System.out.println(queryData);
 			SesameJenaSelectWrapper wrapperAllSystems = new SesameJenaSelectWrapper();
@@ -163,7 +168,7 @@ public class ActiveSystemUpdater {
 			}
 		}
 		else{
-			Utility.showError("Could not find query!\nCheck that your Question Sheet has the correct queries.");
+			this.foundQuery = false;
 		}
 		return systemList;
 	}
@@ -209,5 +214,13 @@ public class ActiveSystemUpdater {
 	 */
 	public void setEngine(String engineName){
 		this.engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+	}
+	
+	/**
+	 * Sends the boolean to UpdateActiveSystems to determine if the correct queries are found in the question sheet
+	 * @return	Boolean foundQuery which is true if the query is found in the question sheet
+	 */
+	public boolean getFoundQuery(){
+		return this.foundQuery;
 	}
 }

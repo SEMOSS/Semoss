@@ -53,9 +53,13 @@ public class UpdateActiveSystemsListener extends AbstractListener{
 			ActiveSystemUpdater updateSystemsClass = new ActiveSystemUpdater();
 			updateSystemsClass.setEngine(engineName);
 			updateSystemsClass.runUpdateActiveSystems();
-			// call UpdateActiveSystems to add the new base relationships to the OWL file
-			updateSystemsClass.addToOWL(engineName);
-			Utility.showMessage("Your database has been successfully updated!");
+			if(!updateSystemsClass.getFoundQuery()){
+				Utility.showError("Could not find query!\nCheck that your Question Sheet has the correct queries.");
+			}
+			else{ // call UpdateActiveSystems to add the new base relationships to the OWL file
+				updateSystemsClass.addToOWL(engineName);
+				Utility.showMessage("Your database has been successfully updated!");
+			}
 		} catch (Exception ex){
 			ex.printStackTrace();
 			Utility.showError("Load has failed.");
