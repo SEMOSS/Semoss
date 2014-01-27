@@ -32,6 +32,8 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 
+import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
+
 /**
  * Connects to an RDBMS and facilitates query execution.
  */
@@ -149,7 +151,7 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	public void openDB(String propFile) {
 		
 		try {
-			jenaModel = new de.fuberlin.wiwiss.d2rq.ModelD2RQ("file:" + propFile);
+			jenaModel = new ModelD2RQ("file:" + propFile);
 			this.connected = true;
 		} catch (Exception e) {
 			// TODO: Specify exception

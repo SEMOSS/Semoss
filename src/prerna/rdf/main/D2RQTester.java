@@ -34,6 +34,8 @@ import com.hp.hpl.jena.update.UpdateAction;
 import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateRequest;
 
+import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
+
 /**
  */
 public class D2RQTester {
@@ -65,7 +67,7 @@ public class D2RQTester {
 		
 		rdqlLogger.setLevel(Level.DEBUG);
 
-		Model m = new de.fuberlin.wiwiss.d2rq.ModelD2RQ("file:" + propFile);
+		Model m = new ModelD2RQ("file:" + propFile);
 		
 		String sparql = "CONSTRUCT {?s ?p ?o.} WHERE {?s ?p ?o.}";
 		Query q = QueryFactory.create(sparql); 
