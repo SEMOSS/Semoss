@@ -69,7 +69,7 @@ public class SPARQLParse {
 	IEngine bdEngine = null;
 
 	public static void main(String[] args) throws Exception {
-		String query2 = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) WHERE {BIND(<http://health.mil/ontologies/Concept/SystemOwner/Central> AS ?SystemOwner) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/Status> ?status } } } LIMIT 1";
+		String query2 = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) WHERE {BIND(<http://health.mil/ontologies/Concept/SystemCategory/Central> AS ?SystemCategory) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/Status> ?status } } } LIMIT 1";
 		
 		String query3 = "SELECT ?Capability ?support ?BusinessProcess WHERE {BIND(<Capability-http://semoss.org/ontologies/Concept/Laboratory> AS ?Capability) {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
 
@@ -95,7 +95,7 @@ public class SPARQLParse {
 		System.out.println("Loading base DB");
 		parse.loadBaseDB(parse.bdEngine.getProperty(Constants.OWL)); // load the OWL
 		System.out.println("Testing Query"); 
-		//parse.testQueryGen(); // test the generated query
+		parse.testQueryGen(); // test the generated query
 		parse.testIt(query);
 		//parse.exportToFile(); // export database to file if need to
 		

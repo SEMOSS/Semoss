@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import org.openrdf.model.ValueFactory;
+import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.algebra.Coalesce;
@@ -22,8 +23,8 @@ import org.openrdf.repository.sparql.query.SPARQLQueryBindingSet;
 
 public class SesameQueryExpression {
 	
-	GraphPattern finalExpr = null;
-	ValueFactory vf = null;
+	GraphPattern finalExpr = new GraphPattern();
+	ValueFactory vf = new ValueFactoryImpl();
 	int classCount = 0;
 	int instanceCount = 0;
 	int propCount = 0;
@@ -279,7 +280,7 @@ public class SesameQueryExpression {
 	
 	// need to do this
 
-	public void buildExpr()
+	public GraphPattern buildExpr()
 	{
 		GraphPattern gp = new GraphPattern();
 		gp.addRequiredTE(proj);
@@ -292,6 +293,19 @@ public class SesameQueryExpression {
 		// add the coalesce stuff next
 		
 		gp.addRequiredTE(finalExpr.buildTupleExpr());
+		return gp;
+	}
+	
+	public static void main(String [] args)
+	{
+		// tests 
+		
+		SesameQueryExpression expr = new SesameQueryExpression();
+		expr.addTypeProjection("http://semoss.org/concept/system");
+		expr.addRelationTriple("http://semoss.org/concept/system", "http://semoss.org/relation/provide", "http://semoss.org/concept/do");
+		expr.addRelationTriple("http://semoss.org/concept/service", "http://semoss.org/relation/exposes", "http://semoss.org/concept/do");
+		System.out.println(expr.buildExpr().buildTupleExpr());
+		
 	}
 	
 	
