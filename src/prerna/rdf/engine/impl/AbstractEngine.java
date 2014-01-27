@@ -184,7 +184,7 @@ public abstract class AbstractEngine implements IEngine {
 						"BaseFolder");
 				String fileName = baseFolder + "/" + propFile;
 				System.err.println("Loading file ENGINE " + fileName);
-				prop = loadProp(fileName);
+				prop = loadProp(propFile);
 				// in here I should also load the questions and insights and
 				// everything else
 				// get the questions sheet

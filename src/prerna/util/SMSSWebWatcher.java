@@ -74,12 +74,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		Properties prop = new Properties();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
-		prop.load(new FileInputStream(baseFolder + "/" + folderToWatch + "/"  +  newFile));
+		prop.load(new FileInputStream(folderToWatch + "/"  +  newFile));
 		
 		String fileName = folderToWatch + "/" + newFile;
-		System.err.println("Loading DB " + newFile);
+		System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
 		
-		Utility.loadEngine(folderToWatch +"/" + newFile, prop);
+		Utility.loadEngine(fileName, prop);
 	}
 	
 	
@@ -90,7 +90,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	public void loadFirst()
 	{
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		File dir = new File(baseFolder + "/" + folderToWatch);
+		File dir = new File(folderToWatch);
+		System.err.println("Dir... " + dir);
 		String [] fileNames = dir.list(this);
 		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
 		{
