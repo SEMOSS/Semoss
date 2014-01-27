@@ -8,7 +8,6 @@
 	<classpathentry kind="lib" path="RDFGraphLib/commons-codec-1.4.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/commons-httpclient-3.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/commons-logging-1.1.1.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/d2rq-0.7.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/d2rqUpdate.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/dom4j-1.6.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/engine-gecko.jar"/>
@@ -70,8 +69,8 @@
 	<classpathentry kind="lib" path="RDFGraphLib/jgrapht-jdk1.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/slf4j-log4j12-1.5.8.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/slf4j-api-1.5.8.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/bigdata-1.2.1.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/openrdf-sesame-2.6.3-onejar.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/bigdata-1.2.3.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/openrdf-sesame-2.6.10-onejar.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-model-2.6.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-query-2.6.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-queryalgebra-evaluation-2.6.6.jar"/>
@@ -81,5 +80,8 @@
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-sail-api-2.6.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-sail-inferencer-2.6.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sesame-util-2.6.6.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/jet-regression-1.0-beta-4.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/mvel2-2.1.3.Final.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/d2rq-0.8.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
