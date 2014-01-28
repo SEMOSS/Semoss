@@ -68,9 +68,9 @@ public class Constants {
 	
 	//graphplaysheet option constants
 	// layouts
-	public static String GPSSudowl="GPSSudowl";
-	public static String GPSSearch = "GPSSearch";
-	public static String GPSProp = "GPSProp";
+	public static String GPSSudowl="GPS_SUDOWL_DEFAULT";
+	public static String GPSSearch = "GPS_SEARCH_DEFAULT";
+	public static String GPSProp = "GPS_PROPERTIES_DEFAULT";
 	public static String highQualityExport = "GPSHighQualityExport";
 	public static String sudowlCheck="sudowlCheck";
 	public static String searchCheck = "searchCheck";
