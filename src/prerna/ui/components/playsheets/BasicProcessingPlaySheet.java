@@ -76,6 +76,9 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 				btnShowPlaySheetsList.setEnabled(false);
 			}
+		}
+		
+		if(rs==null) {
 			Utility.showError("Query returned no results.");
 			return;
 		}
@@ -83,6 +86,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		//createData();
 		if(table==null)
 			addPanel();
+		
 		
 		updateProgressBar("80%...Creating Visualization", 80);
 		gfd.setColumnNames(names);
