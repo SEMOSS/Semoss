@@ -2568,16 +2568,16 @@ public class PlayPane extends JFrame {
 
 		propertyCheck = new JCheckBox("Enable graph properties");
 		propertyCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		propertyCheck.setSelected(true);
+		propertyCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp)));
 		GridBagConstraints gbc_propertyCheck = new GridBagConstraints();
 		gbc_propertyCheck.anchor = GridBagConstraints.WEST;
 		gbc_propertyCheck.insets = new Insets(0, 5, 5, 0);
 		gbc_propertyCheck.gridx = 1;
 		gbc_propertyCheck.gridy = 1;
 		settingsPanel.add(propertyCheck, gbc_propertyCheck);
-		DIHelper.getInstance().setLocalProperty(Constants.GPSProp, true);
 
 		sudowlCheck = new JCheckBox("Enable SUDOWL");
+		sudowlCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl)));
 		sudowlCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		GridBagConstraints gbc_sudowlCheck = new GridBagConstraints();
 		gbc_sudowlCheck.anchor = GridBagConstraints.WEST;
@@ -2585,18 +2585,16 @@ public class PlayPane extends JFrame {
 		gbc_sudowlCheck.gridx = 1;
 		gbc_sudowlCheck.gridy = 2;
 		settingsPanel.add(sudowlCheck, gbc_sudowlCheck);
-		DIHelper.getInstance().setLocalProperty(Constants.GPSSudowl, false);
 
 		searchCheck = new JCheckBox("Enable graph search");
 		searchCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		searchCheck.setSelected(true);
+		searchCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch)));
 		GridBagConstraints gbc_searchCheck = new GridBagConstraints();
 		gbc_searchCheck.insets = new Insets(0, 5, 0, 0);
 		gbc_searchCheck.anchor = GridBagConstraints.WEST;
 		gbc_searchCheck.gridx = 1;
 		gbc_searchCheck.gridy = 3;
 		settingsPanel.add(searchCheck, gbc_searchCheck);
-		DIHelper.getInstance().setLocalProperty(Constants.GPSSearch, true);
 
 		highQualityExportCheck = new JCheckBox(	"Enable high quality vector graph export (*.eps)");
 		highQualityExportCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));

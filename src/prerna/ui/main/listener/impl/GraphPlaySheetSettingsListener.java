@@ -44,10 +44,10 @@ public class GraphPlaySheetSettingsListener implements IChakraListener{
 		JCheckBox searchCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.searchCheck);
 		JCheckBox highQualityExportCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.highQualityExportCheck);
 		
-		boolean sudowl = (Boolean) DIHelper.getInstance().getLocalProp(Constants.GPSSudowl);
-		boolean prop = (Boolean) DIHelper.getInstance().getLocalProp(Constants.GPSProp);
-		boolean search = (Boolean) DIHelper.getInstance().getLocalProp(Constants.GPSSearch);
-		boolean highQuality = (Boolean) DIHelper.getInstance().getLocalProp(Constants.highQualityExport);
+		boolean sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
+		boolean prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
+		boolean search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
+		boolean highQuality = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.highQualityExport));
 		
 		sudowl = sudowlCheck.isSelected();
 		DIHelper.getInstance().setLocalProperty(Constants.GPSSudowl, sudowl);

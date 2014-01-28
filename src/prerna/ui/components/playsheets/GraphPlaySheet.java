@@ -2228,9 +2228,9 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		// this is where the block goes
 		//figure out if we need to index jena for search and process for SUDOWL
 		
-		sudowl = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSudowl);
-		prop = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSProp);
-		search = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSearch);
+		sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
+		prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
+		search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
 		try {
 			boolean isError = false;
 			if(rc != null && (extend || overlay))
