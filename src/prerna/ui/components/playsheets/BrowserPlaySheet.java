@@ -90,6 +90,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	public void createView()
 	{
 		super.createView();
+		if(rs==null)
+			return;
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
 		browser.navigate(fileName);
 		browser.waitReady();
