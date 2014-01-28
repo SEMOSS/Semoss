@@ -78,10 +78,10 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 			}
 		}
 		
-		if(rs==null) {
-			Utility.showError("Query returned no results.");
-			return;
-		}
+//		if(rs==null) {
+//			Utility.showError("Query returned no results.");
+//			return;
+//		}
 		super.createView();
 		//createData();
 		if(table==null)
