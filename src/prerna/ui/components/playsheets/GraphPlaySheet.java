@@ -244,9 +244,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		super.createView();
 		
 		this.setPreferredSize(new Dimension(1000,750));
-		sudowl = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSudowl);
-		prop = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSProp);
-		search = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSearch);
+
 		searchPanel=new ControlPanel(search);
 
 		try {
@@ -262,7 +260,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			//writeStatus(" Starting create view");
 			getForest();
 			
-			curModel = null;
+			
 			addInitialPanel();
 
 			addToMainPane(pane);
@@ -762,7 +760,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			// add the model to search panel
 			if (search)
 			{
-			//searchPanel.searchCon.indexStatements(jenaModel);
+				searchPanel.searchCon.indexStatements(jenaModel);
 			}
 			//graphSplitPane.removeAll();
 			//graphPanel.setLayout(new BorderLayout());
@@ -1799,7 +1797,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				curModel.add(jenaSt);
 			}
 		}
-		jenaModel.add(jenaSt);
+		//jenaModel.add(jenaSt);
 		// just so that we can remove it later
 
 
@@ -2228,8 +2226,11 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		*/
 		
 		// this is where the block goes
+		//figure out if we need to index jena for search and process for SUDOWL
 		
-		
+		sudowl = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSudowl);
+		prop = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSProp);
+		search = (Boolean)DIHelper.getInstance().getLocalProp(Constants.GPSSearch);
 		try {
 			boolean isError = false;
 			if(rc != null && (extend || overlay))
