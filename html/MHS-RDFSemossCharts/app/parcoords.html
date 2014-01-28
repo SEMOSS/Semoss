@@ -71,11 +71,6 @@ text {
 
 <script id="brushing">
 
-// var ref = d3.select("#refreshBtn")
-//   .html("Hide Table")
-
-
-
 var touch = "true";
 
 var parcoords = d3.parcoords()("#example")
@@ -100,22 +95,20 @@ var parcoords = d3.parcoords()("#example")
    var jsonData = jQuery.parseJSON(dataString);
    var data = jsonData.dataSeries
 
-  // slickgrid needs each data element to have an id
-  data.forEach(function(d,i) { d.id = d.id || i; });
-
-
   parcoords
     .data(data)
     .render()
     .reorderable()
     .brushable();
 
-
+  // slickgrid needs each data element to have an id
+  data.forEach(function(d,i) { d.id = d.id || i; });
 
   // setting up grid
   var column_keys = d3.keys(data[0]);
+  // var identifiers = column_keys.pop();
 
-console.log(column_keys);
+  console.log(column_keys);
 
   var columns = column_keys.map(function(key,i) {
     return {
