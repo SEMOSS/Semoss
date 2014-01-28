@@ -7,17 +7,20 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	db
+SMSSWatcher_DIR	C:\\Users\\bisutton\\workspace\\Semoss\\db
 SMSSWatcher_EXT	.smss
 
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\Users\\pkapaleeswaran\\workspacej\\foxhole4\\db
+SMSSWebWatcher_DIR	C:\\Users\\bisutton\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
 
-LOG4J	C:\\Users\\pkapaleeswaran\\workspacej\\foxhole4\\log4j.prop
-BaseFolder	C:\\Users\\pkapaleeswaran\\workspacej\\foxhole4
+LOG4J	C:\\Users\\bisutton\\workspace\\Semoss\\log4j.prop
+BaseFolder	C:\\Users\\bisutton\\workspace\\Semoss
 
+GPS_SUDOWL_DEFAULT	false
+GPS_SEARCH_DEFAULT	true
+GPS_PROPERTIES_DEFAULT	true
 
 Concept	http://semoss.org/ontologies
 
