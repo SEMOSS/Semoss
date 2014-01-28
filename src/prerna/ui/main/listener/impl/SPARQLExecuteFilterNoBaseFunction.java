@@ -43,13 +43,23 @@ public class SPARQLExecuteFilterNoBaseFunction extends AbstractBrowserSPARQLFunc
 	 * @return Object */
 	@Override
 	public Object invoke(Object... arg0) {
-		Hashtable retHash = new Hashtable();
-		ArrayList ret = new ArrayList();
-		boolean success = true;
+
 		logger.info("Arguments are " + arg0);
 		
 		//get the query from the args
 		String query = ((String) arg0[0]).trim(); 
+		
+		Hashtable retHash = process(query);
+
+		Gson gson = new Gson();
+        
+		return gson.toJson(retHash);
+	}
+	
+	public Hashtable process(String query){
+		Hashtable retHash = new Hashtable();
+		ArrayList ret = new ArrayList();
+		boolean success = true;
 
 		//run the query against the set repository
 		try {
@@ -75,11 +85,11 @@ public class SPARQLExecuteFilterNoBaseFunction extends AbstractBrowserSPARQLFunc
 		Object[] retArray = ret.toArray();
 		retHash.put("results", retArray);
 		retHash.put("success", success);
-
-		Gson gson = new Gson();
-        
-		return gson.toJson(retHash);
+		
+		return retHash;
 	}
+	
+	
 	
 	/**
 	 * Method processSelect.
