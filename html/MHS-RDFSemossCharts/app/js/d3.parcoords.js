@@ -138,7 +138,7 @@ pc.autoscale = function() {
   // hack to remove ordinal dimensions with many values
   pc.dimensions(pc.dimensions().filter(function(p,i) {
     var uniques = yscale[p].domain().length;
-    if (__.types[p] == "string" && (uniques > 300 || uniques < 1)) {
+    if (__.types[p] == "string" && (uniques > 500 || uniques < 1)) {
       return false;
     }
     return true;
