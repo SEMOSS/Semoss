@@ -63,10 +63,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 * sheet is to first be created, most notably in ProcessQueryListener.
 	 */
 	@Override
-	public void createView() {
+	public void createData() {
 				
 		list = new ArrayList();
-		addPanel();
 		
 		//Process query 1
 		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
@@ -74,9 +73,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			wrapper1.setQuery(query1);
 			updateProgressBar("10%...Querying RDF Repository", 10);
 			wrapper1.setEngine(engine1);
-			updateProgressBar("30%...Querying RDF Repository", 30);
+			updateProgressBar("20%...Querying RDF Repository", 30);
 			wrapper1.executeQuery();
-			updateProgressBar("60%...Processing RDF Statements	", 60);
+			updateProgressBar("30%...Processing RDF Statements	", 60);
 		}
 		// get the bindings from it
 		String [] names1 = wrapper1.getVariables();
@@ -86,9 +85,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
 		if(engine2!= null){
 			wrapper2.setQuery(query2);
-			updateProgressBar("10%...Querying RDF Repository", 10);
+			updateProgressBar("40%...Querying RDF Repository", 10);
 			wrapper2.setEngine(engine2);
-			updateProgressBar("30%...Querying RDF Repository", 30);
+			updateProgressBar("50%...Querying RDF Repository", 30);
 			wrapper2.executeQuery();
 			updateProgressBar("60%...Processing RDF Statements	", 60);
 		}
@@ -104,7 +103,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		processWrapper(commonVar, wrapper1, dataHash1, names1);
 		processWrapper(commonVar, wrapper2, dataHash2, names2);
 		
-		updateProgressBar("80%...Preparing List", 80);
+		updateProgressBar("60%...Preparing List", 80);
 		
 		prepareList(dataHash1, dataHash2);
 		
@@ -112,15 +111,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		for(int i = 0; i<totalNames.length; i++){
 			if(i<names1.length) totalNames[i] = names1[i];
 			else totalNames[i] = names2[i-names1.length];
-		}
-		
-		gfd.setColumnNames(totalNames);
-		gfd.setDataList(list);
-		GridTableModel model = new GridTableModel(gfd);
-		table.setModel(model);
-			
+		}			
 
-		updateProgressBar("100%...Table Generation Complete", 100);
 	}
 	
 	/**
@@ -190,7 +182,6 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
 	private void processWrapper(String commonVar, SesameJenaSelectWrapper sjw, Hashtable<Object, ArrayList<Object[]>> hash, String[] names){
-		int count = 0;
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext())
