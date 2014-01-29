@@ -117,8 +117,9 @@ public class SystemBudgetPropInserter {
 			//add to insert query
 			String subjectUri = "<http://health.mil/ontologies/Concept/System/"+values[0] +">";
 			String objectUri = "\"" + values[1] + "\"" + "^^<http://www.w3.org/2001/XMLSchema#double>";
+			int unk = -1;
 			if (values[1]==null)
-				objectUri = "\"" + "NA" + "\"" + "^^<http://www.w3.org/2001/XMLSchema#double>";
+				objectUri = "\"" + unk + "\"" + "^^<http://www.w3.org/2001/XMLSchema#double>";
 			insertQuery = insertQuery + subjectUri + " " + predUri + " " + objectUri + ". ";
 			
 			logger.debug("Creating new Value " + values);
