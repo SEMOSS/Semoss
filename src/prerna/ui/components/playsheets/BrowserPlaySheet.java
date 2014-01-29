@@ -52,6 +52,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	JSplitPane splitPane;
 	Hashtable output = null;
 	ChartControlPanel controlPanel = new ChartControlPanel();
+	Hashtable dataHash = new Hashtable();
 	
 	/**
 	 * Method getControlPanel.  Gets the current Control Panel.
@@ -96,8 +97,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		browser.navigate(fileName);
 		browser.waitReady();
 		empty = false;
-		Hashtable dataHash = new Hashtable();
-		dataHash = processQueryData();
 		if(dataHash.get("dataSeries") instanceof HashSet)
 		{
 			HashSet dataSeries = (HashSet)dataHash.get("dataSeries");
@@ -109,6 +108,13 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		}                                                                      
 		callIt(dataHash);
 	}
+
+	@Override
+	public void createData()
+	{
+		super.createData();
+		dataHash = processQueryData();
+	}
 	
 	/**
 	 * Method refreshView.  Refreshes the view and re-populates the play sheet.
@@ -116,8 +122,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	public void refreshView()
 	{
 		empty = false;
-		Hashtable dataHash = new Hashtable();
-		dataHash = processQueryData();
 		if(dataHash.get("dataSeries") instanceof HashSet)
 		{
 			HashSet dataSeries = (HashSet)dataHash.get("dataSeries");
@@ -236,5 +240,10 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	 * @return Browser - the current browser. */
 	public Browser getBrowser() {
 		return this.browser;
+	}
+	
+	@Override
+	public Object getData() {
+		return dataHash;
 	}
 }
