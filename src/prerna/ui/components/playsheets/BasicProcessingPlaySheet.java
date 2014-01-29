@@ -20,6 +20,7 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
@@ -209,8 +210,9 @@ e.printStackTrace();
 
 	@Override
 	public Object getData() {
-		// TODO Auto-generated method stub
-		//if(list != null)
+		Hashtable dataHash = new Hashtable();
+		dataHash.put("data", list);
+		dataHash.put("headers", gfd.columnNames);
 		return list;
 	}
 
