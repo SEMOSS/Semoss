@@ -20,6 +20,7 @@ package prerna.ui.main;
 
 import java.awt.Color;
 import java.awt.Insets;
+import java.io.File;
 
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
@@ -112,8 +113,19 @@ public class Starter {
 
 		// first get the engine file
 		DIHelper.getInstance().loadCoreProp(propFile);
-		DIHelper.getInstance().putProperty("BaseFolder",System.getProperty("user.dir"));
-		DIHelper.getInstance().putProperty("LOG4J",System.getProperty("user.dir")+"\\log4j.prop");
+		File baseFolderCheckFile = new File(DIHelper.getInstance().getProperty("BaseFolder"));
+		if (!(baseFolderCheckFile.exists() && baseFolderCheckFile.isDirectory())) {
+			DIHelper.getInstance().putProperty("BaseFolder",System.getProperty("user.dir"));
+		}
+		File logCheckFile = new File(DIHelper.getInstance().getProperty("LOG4J"));
+		if (!logCheckFile.exists()) {
+			DIHelper.getInstance().putProperty("LOG4J",System.getProperty("user.dir")+"\\log4j.prop");
+		}
+		File smssWatcherCheckFile = new File(DIHelper.getInstance().getProperty("SMSSWatcher_DIR"));
+		if (!smssWatcherCheckFile.exists()) {
+			DIHelper.getInstance().putProperty("SMSSWatcher_DIR",System.getProperty("user.dir")+"\\db");
+		}
+		
 
 		// get the engine name
 		//String engines = DIHelper.getInstance().getProperty(Constants.ENGINES);
