@@ -1368,6 +1368,9 @@ function gridCtrl($scope, $http) {
                             if (graphOptions.zAxis){
                             	if (graphOptions.showZTooltip == false) {
                             		zInfo = '<br/><b>Radius: </b>' + graphOptions.zAxis;
+                            		if (this.point.options.z == -1) {
+                            			zInfo = '<br/><b>Radius: </b>' + graphOptions.zAxis + ' <b>Unknown</b>';
+                            		}
                             	} else {
                             		zInfo = '<br/><b>' + graphOptions.zAxis + '</b> (radius): ' + this.point.options.z;
                             	}
