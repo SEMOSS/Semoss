@@ -51,7 +51,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	protected String fileName;
 	JSplitPane splitPane;
 	Hashtable output = null;
-	ChartControlPanel controlPanel = new ChartControlPanel();
+	ChartControlPanel controlPanel;
 	Hashtable dataHash = new Hashtable();
 	
 	/**
@@ -168,6 +168,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	{
 		try {
 			table = new JTable();
+			controlPanel = new ChartControlPanel();
 			JPanel mainPanel = new JPanel();
 			setWindow();
 			
