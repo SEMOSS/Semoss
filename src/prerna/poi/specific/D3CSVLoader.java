@@ -146,7 +146,7 @@ public class D3CSVLoader extends CSVReader{
 
 		reader.openOWLWithOutConnection();
 		ArrayList<String> files = new ArrayList<String>();
-		files.add(workingDir+"/db/D3/APMoller.csv");
+		files.add(workingDir+"/db/D3/Dell.csv");
 		for(int i = 0; i<files.size();i++)
 		{
 			String fileName = files.get(i);
@@ -261,7 +261,7 @@ public class D3CSVLoader extends CSVReader{
 				String subjectTypeURI = uriHash.get("Organization");
 				String subjectURI = subjectTypeURI + "/" + Utility.cleanString(subject, true);
 				
-				if(predicate != null)
+				if(predicate != null && uriHash.containsKey(predicate))
 				{
 					String predicateTypeURI = uriHash.get(predicate);
 					String predicateURI = predicateTypeURI + "/" + Utility.cleanString(subject, false) + "_" + Utility.cleanString(object, true);
@@ -290,7 +290,9 @@ public class D3CSVLoader extends CSVReader{
 						printTriple(subjectURI, predicateURI, new LiteralImpl(object));
 				}
 				else
-					printTriple(object, "property", subject);
+				{
+					//printTriple(object, "property", subject);
+				}
 
 			}
 		} catch (IOException e) {
@@ -303,6 +305,7 @@ public class D3CSVLoader extends CSVReader{
 	
 	public void printTriple(String subject, String predicate, Object object)
 	{
+		System.err.println(subject + "<>" + predicate + "<>" + object);
 		try {
 			if(object instanceof Literal)
 				sc.addStatement(vf.createURI(subject), vf.createURI(predicate), (Literal)object);
@@ -313,7 +316,6 @@ public class D3CSVLoader extends CSVReader{
 			e.printStackTrace();
 		}
 
-		System.err.println(subject + "<>" + predicate + "<>" + object);
 	}
 	
 	
@@ -1145,8 +1147,9 @@ public class D3CSVLoader extends CSVReader{
 		header = mapReader.getHeader(true);
 		headerList = Arrays.asList(header);
 		// last header in CSV file is the absolute path to the prop file
-		String propFileName = header[header.length-1];
+		//String propFileName = header[header.length-1];
 		// load the prop file for the CSV file 
+		String propFileName = "db/d3/csvload.prop";
 		openProp(propFileName);
 		// determine the type of data in each column of CSV file
 		createProcessors();
