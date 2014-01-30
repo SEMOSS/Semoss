@@ -59,8 +59,8 @@ Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 BusinessProcess_Consists_Activity http://health.mil/ontologies/Relation/Consists
-VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
+VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
@@ -82,9 +82,9 @@ Capability_Supports_BusinessProcess http://health.mil/ontologies/Relation/Suppor
 Activity_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
-System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
+System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 Requirement_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 System_Provide_DataObject http://health.mil/ontologies/Relation/Provide
