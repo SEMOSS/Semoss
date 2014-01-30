@@ -146,7 +146,7 @@ public class D3CSVLoader extends CSVReader{
 
 		reader.openOWLWithOutConnection();
 		ArrayList<String> files = new ArrayList<String>();
-		files.add(workingDir+"/db/D3/Dell.csv");
+		files.add(workingDir+"/db/D3/Ships2.csv");
 		for(int i = 0; i<files.size();i++)
 		{
 			String fileName = files.get(i);
@@ -485,7 +485,7 @@ public class D3CSVLoader extends CSVReader{
 	public void createProcessors()
 	{
 		// get the number columns in CSV file
-		int numColumns = Integer.parseInt(rdfMap.getProperty(NUMCOL))+1;
+		int numColumns = Integer.parseInt(rdfMap.getProperty(NUMCOL));
 		// Columns in prop file that are NON_OPTIMAL must contain a value
 		String optional  = rdfMap.getProperty(NOT_OPTIONAL);
 		processors = new CellProcessor[numColumns];
