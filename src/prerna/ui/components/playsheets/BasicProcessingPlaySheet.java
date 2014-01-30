@@ -66,7 +66,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	@Override
 	public void createView() {	
-		if(list==null){
+		if(list.isEmpty()){
 			String questionID = getQuestionID();
 			// fill the nodetype list so that they can choose from
 			// remove from store
@@ -77,6 +77,8 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 				btnShowPlaySheetsList.setEnabled(false);
 			}
+			Utility.showError("Query returned no results.");
+			return;		
 		}
 		
 //		if(rs==null) {
