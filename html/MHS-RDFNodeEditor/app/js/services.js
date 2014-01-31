@@ -10,11 +10,11 @@ angular.module('rdfeditor.services', []).service('nodeService', function($q, $ro
     // that will be called with 'new'
     
     // service call to run sparql 'SELECT' statement to retrieve outbound relationships
-	this.getOutboundRelationships = function(param) {
+	this.getOutboundRelationships = function(param, type) {
 		var deferred = $q.defer();
 		
 		//var sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {BIND (' + param + ' as ?subject). ?subject ?predicate ?object; } LIMIT 1'
-		var sparql = 'SELECT DISTINCT ?subjectType ?subject ?verb ?verbType ?objectType ?object WHERE {BIND (<' + param + '> as ?subject) {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?verbType ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subjectType ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objectType;} {?subject ?verb ?object ;} }';
+		var sparql = 'SELECT DISTINCT ?subjectType ?subject ?verb ?verbType ?objectType ?object WHERE {BIND (<' + param + '> as ?subject) BIND (<' + type + '> as ?subjectType) {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?verbType ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subjectType ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objectType;} {?subject ?verb ?object ;} FILTER NOT EXISTS { { ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objSubtype} {?objSubtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?objectType} } }';
 		var returnData = jQuery.parseJSON(SPARQLExecuteFilterNoBase(sparql));
 		if (returnData.success == true) {
 			deferred.resolve (returnData.results);
@@ -103,10 +103,10 @@ angular.module('rdfeditor.services', []).service('nodeService', function($q, $ro
 	};
 	
 	// service call to run sparql 'SELECT' statement to retrieve inbound relationships
-	this.getInboundRelationships = function(param) {
+	this.getInboundRelationships = function(param, type) {
 		var deferred = $q.defer();
 		
-		var sparql = 'SELECT DISTINCT ?subjectType ?subject ?verb ?verbType ?objectType ?object WHERE {BIND (<' + param + '> as ?object) {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?verbType ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subjectType ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objectType;} {?subject ?verb ?object ;} }';
+		var sparql = 'SELECT DISTINCT ?subjectType ?subject ?verb ?verbType ?objectType ?object WHERE {BIND (<' + param + '> as ?object) BIND (<' + type + '> as ?objectType) {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?verbType ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subjectType ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept> ;} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objectType;} {?subject ?verb ?object ;} FILTER NOT EXISTS { { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?subjectType} } }';
 		var returnData = jQuery.parseJSON(SPARQLExecuteFilterNoBase(sparql));
 		if (returnData.success == true) {
 			deferred.resolve (returnData.results);
@@ -160,7 +160,7 @@ angular.module('rdfeditor.services', []).service('nodeService', function($q, $ro
 	this.getOutboundTypeOptions = function(type) {
 		var deferred = $q.defer();
 		
-		var sparql = 'SELECT DISTINCT ?inType WHERE { BIND (<' + type + '> as ?outType) {?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?outType ;} {?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?inType ;}{?inType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} {?out ?x ?in}}';
+		var sparql = 'SELECT DISTINCT ?inType WHERE { BIND (<' + type + '> as ?outType) {?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?outType ;} {?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?inType ;}{?inType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} {?out ?x ?in} FILTER NOT EXISTS { { ?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?inType} } }';
 		var returnData = jQuery.parseJSON(SPARQLExecuteFilterBase(sparql));
 		if (returnData.success == true) {
 			deferred.resolve (returnData.results);
@@ -173,7 +173,7 @@ angular.module('rdfeditor.services', []).service('nodeService', function($q, $ro
 	this.getInboundTypeOptions = function(type) {
 		var deferred = $q.defer();
 		
-		var sparql = 'SELECT DISTINCT ?outType WHERE { BIND (<' + type + '> as ?inType) {?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?outType ;} {?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?inType ;}{?inType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} {?out ?x ?in}}';
+		var sparql = 'SELECT DISTINCT ?outType WHERE { BIND (<' + type + '> as ?inType) {?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?outType ;} {?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?inType ;}{?inType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} {?out ?x ?in} FILTER NOT EXISTS { { ?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?outType} } }';
 		var returnData = jQuery.parseJSON(SPARQLExecuteFilterBase(sparql));
 		if (returnData.success == true) {
 			deferred.resolve (returnData.results);
