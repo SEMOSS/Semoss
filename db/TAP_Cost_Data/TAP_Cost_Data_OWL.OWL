@@ -37,6 +37,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Database">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemOwner">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLTag">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -74,6 +77,9 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Influences">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OwnedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity">
@@ -254,12 +260,6 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OwnedBy">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemOwner">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
