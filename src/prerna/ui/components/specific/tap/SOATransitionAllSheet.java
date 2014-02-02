@@ -18,9 +18,12 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.Dimension;
 import java.beans.PropertyVetoException;
 import java.util.Hashtable;
 import java.util.Vector;
+
+import javax.swing.JButton;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.impl.URIImpl;
@@ -36,9 +39,13 @@ import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
+import prerna.ui.components.ControlPanel;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QuestionPlaySheetStore;
+import prerna.util.Utility;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
@@ -100,35 +107,8 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	public void extendSOAView()
 	{
 		updateProgressBar("50%...Extending Services", 50);
-		showAll();
-		try
-		{
-			overlay = false;
-			extend = true;
-
-			curModel = null;
-			if(query.toUpperCase().contains("CONSTRUCT"))
-				sjw = new SesameJenaConstructWrapper();
-			else
-				sjw = new SesameJenaSelectCheater();
-			sjw.setEngine(engine);
-			sjw.setQuery(query);
-			sjw.execute();
-
-			extend = true;
-			createForest();
-			
-			// create the specified layout
-			logger.debug("Adding the new model " + curModel);
-			modelStore.addElement(curModel);
-			rcStore.addElement(curRC);
-			logger.debug("Extend : Total Models added = " + modelStore.size());
-			//queryPropAll();
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-			logger.fatal(ex);
-		}
+		createData();
+		extendView();
 	}
 	/**
 	 * Generates the data and recreates the legend for a refined SOA view.
@@ -152,7 +132,10 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	 * Repaint the display with the SOA view.
 	 */
 	public void recreateSOAView() {
-		// need to include the relation vs. prop logic
+		this.setPreferredSize(new Dimension(1000,750));
+
+		searchPanel=new ControlPanel(search);
+
 		try {
 			// get the graph query result and paint it
 			// need to get all the vertex transformers here
@@ -160,33 +143,47 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 			// create initial panel
 			// addInitialPanel();
 			// execute the query now
+			setAppend(false);
+			setExtend(false);
 			
-			//writeStatus(" Starting create view");
-			updateProgressBar("40%...Recreate Graph", 40);
+			getForest();
 			
-			//curModel = null;
+			
 			addInitialPanel();
+
 			addToMainPane(pane);
 			showAll();
 			
-			getForest();
-			if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine)
-			{
-				if(this.baseRelEngine == null) this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-				else RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
-				RDFEngineHelper.addAllData(baseRelEngine, rc);
-				loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
-			}
+			logger.debug("Executed the select");
+			logger.info("Creating the base Graph");
 			genBaseConcepts();
-			genBaseGraph();
+			logger.info("Loaded Orphan");
+			genBaseGraph();//subjects2, predicates2, subjects2);
+			logger.info("Loaded Graph");
+			genAllData();
+
+			logger.info("Done with everything");
+			// first execute all the predicate selectors
+			// Backdoor entry
+			Thread thread = new Thread(){
+				public void run()
+				{
+					printAllRelationship();				
+				}
+			};
+			thread.start();
+			modelCounter++;
+			logger.info("Creating Forest Complete >>>>>> ");	
+			createLayout();
+			processView();
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 			logger.fatal(e.getStackTrace());
 		}
-		
 	}
-	
+		
+
 	// this process is to remove an existing  forest
 	// will come back to this later
 	// this is going to be tricky
