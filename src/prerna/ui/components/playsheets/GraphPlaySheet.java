@@ -141,7 +141,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public DelegateForest forest = null;
 	protected Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
-	String layoutName = Constants.FR;
+	protected String layoutName = Constants.FR;
 	Layout layout2Use = null;
 	public LegendPanel2 legendPanel = null;
 	public JPanel cheaterPanel = new JPanel();
@@ -1191,7 +1191,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
     /**
      * Method printAllRelationship.
      */
-    private void printAllRelationship()
+    public void printAllRelationship()
     {
           String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
           "{" +

@@ -87,13 +87,13 @@ public class SOAAnalysisPerformer implements Runnable {
 		removeICDs();
 		//recreateNewSheet();
 		
-		//get all estimates from financial database
+	//	get all estimates from financial database
 		newPlaySheet.updateProgressBar("80%...Performing Financial Analysis", 80);
 		getDataEstimates();
 		getBLUEstimates();
 		getGenericEstimates();
-		
-		
+//		
+//		
 		double [] soaICDMaintenanceCost = soaCalc.processSOAICDMaintenance(oldPlaySheet.filterData,newPlaySheet.filterData);
 		double [] icdMaintenanceCost = soaCalc.processICDMaintenance(oldPlaySheet.filterData);
 		double [] soaCost = soaCalc.processEstimates(totalList);
@@ -152,8 +152,6 @@ public class SOAAnalysisPerformer implements Runnable {
 			
 			newPlaySheet = (SOATransitionAllSheet) newIPlaySheet;
 			//newPlaySheet = oldPlaySheet;
-			JTextArea queryArea = (JTextArea)DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD);
-			String query = queryArea.getText();
 			newPlaySheet.setTitle("Service-Oriented Architecture Transition All");
 			//newPlaySheet.setQuery(query);
 			newPlaySheet.setRDFEngine((IEngine)engine);
