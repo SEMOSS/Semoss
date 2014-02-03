@@ -111,7 +111,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		}
 		
 		allHash.put("xAxisMin", 0.01);
-		if(series.toLowerCase().contains("vendor"))
+		if(xName.toLowerCase().contains("score")||yName1.toLowerCase().contains("score"))
 		{
 			allHash.put("xAxisMax", 10);
 			allHash.put("xLineVal", 5);
