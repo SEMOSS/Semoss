@@ -45,7 +45,7 @@ public class TaskerGenerationProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	String tapCoreEngine = "TAP_Core_Data";
 	String tapSiteEngine = "TAP_Site_Data";
-	String tapPortfolioEngine = "TAP_Portfolio";
+//	String tapPortfolioEngine = "TAP_Portfolio";
 	String workingDir = System.getProperty("user.dir");
 
 	/**
@@ -154,8 +154,8 @@ public class TaskerGenerationProcessor {
 		interfacesQuery = interfacesQuery.replaceAll("ASIMS", systemName);
 		
 		//Budget Query
-		String budgetQuery = "SELECT DISTINCT ?GLTag (max(coalesce(?FY14,0)) as ?fy14) (max(coalesce(?FY15,0)) as ?fy15) (max(coalesce(?FY16,0)) as ?fy16) (max(coalesce(?FY17,0)) as ?fy17) (max(coalesce(?FY18,0)) as ?fy18) (max(coalesce(?FY19,0)) as ?fy19) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;} {?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?System ?Has ?SystemBudgetGLItem} {?SystemBudgetGLItem ?TaggedBy ?GLTag} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY14>, ?Budget,0) as ?FY14) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY16>, ?Budget,0) as ?FY16) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY17>, ?Budget,0) as ?FY17) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY18>, ?Budget,0) as ?FY18) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY19>, ?Budget,0) as ?FY19) } GROUP BY ?System ?GLTag";		
-		budgetQuery = budgetQuery.replaceAll("APEQS", systemName);
+//		String budgetQuery = "SELECT DISTINCT ?GLTag (max(coalesce(?FY14,0)) as ?fy14) (max(coalesce(?FY15,0)) as ?fy15) (max(coalesce(?FY16,0)) as ?fy16) (max(coalesce(?FY17,0)) as ?fy17) (max(coalesce(?FY18,0)) as ?fy18) (max(coalesce(?FY19,0)) as ?fy19) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;} {?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?System ?Has ?SystemBudgetGLItem} {?SystemBudgetGLItem ?TaggedBy ?GLTag} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY14>, ?Budget,0) as ?FY14) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY16>, ?Budget,0) as ?FY16) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY17>, ?Budget,0) as ?FY17) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY18>, ?Budget,0) as ?FY18) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15) BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY19>, ?Budget,0) as ?FY19) } GROUP BY ?System ?GLTag";		
+//		budgetQuery = budgetQuery.replaceAll("APEQS", systemName);
 
 		//Site List Query
 		String siteListQuery = "SELECT DISTINCT ?SiteName WHERE { BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System) {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System ?DeployedAt1 ?SystemDCSite} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SiteName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Facility>} {?SystemDCSite ?DeployedAt ?SiteName}} ORDER BY ?SiteName";		
@@ -187,7 +187,7 @@ public class TaskerGenerationProcessor {
 		
 		ArrayList<ArrayList<Object>> interfacesResultsList = runQuery(tapCoreEngine, interfacesQuery);
 		ArrayList<String> ownerList = runQuery(tapCoreEngine, ownerQuery);
-		ArrayList<ArrayList<Object>> budgetResultsList = runQuery(tapPortfolioEngine, budgetQuery);
+//		ArrayList<ArrayList<Object>> budgetResultsList = runQuery(tapPortfolioEngine, budgetQuery);
 		ArrayList<ArrayList<Object>> siteResultsList = runQuery(tapSiteEngine, siteListQuery);
 		ArrayList<String> systemSWResultsList = runQuery(tapCoreEngine, systemSWQuery);
 		ArrayList<String> systemHWResultsList = runQuery(tapCoreEngine, systemHWQuery);
@@ -203,7 +203,7 @@ public class TaskerGenerationProcessor {
 		returnHash.put(ConstantsTAP.BLU_QUERY, bluList);
 		returnHash.put(ConstantsTAP.DATA_QUERY, dataList);
 		returnHash.put(ConstantsTAP.LIST_OF_INTERFACES_QUERY, interfacesResultsList);
-		returnHash.put(ConstantsTAP.BUDGET_QUERY, budgetResultsList);
+//		returnHash.put(ConstantsTAP.BUDGET_QUERY, budgetResultsList);
 		returnHash.put(ConstantsTAP.SITE_LIST_QUERY, siteResultsList);
 		returnHash.put(ConstantsTAP.PPI_QUERY, ownerList);
 		returnHash.put(ConstantsTAP.SYSTEM_SW_QUERY, systemSWResultsList);

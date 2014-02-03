@@ -74,7 +74,7 @@ public class TaskerGenerationWriter {
 		ArrayList bluResults = (ArrayList) systemDataHash.get(ConstantsTAP.BLU_QUERY);
 		ArrayList dataResults = (ArrayList) systemDataHash.get(ConstantsTAP.DATA_QUERY);
 		ArrayList icdResults = (ArrayList) systemDataHash.get(ConstantsTAP.LIST_OF_INTERFACES_QUERY);
-		ArrayList budgetResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUDGET_QUERY);
+//		ArrayList budgetResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUDGET_QUERY);
 		ArrayList siteResults = (ArrayList) systemDataHash.get(ConstantsTAP.SITE_LIST_QUERY);
 		ArrayList ownerResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
 		ArrayList systemSWResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_SW_QUERY);
@@ -150,30 +150,41 @@ public class TaskerGenerationWriter {
 
 		//User Types
 		rowToWriteOn = sheetToWriteOver.getRow(7);
+		int addUserTypeCount=10;
 		for (int i=0; i<userTypesResults.size(); i++) {	
 			ArrayList row = (ArrayList) userTypesResults.get(i);
 			for (int j=0; j< row.size(); j++) {
 				if (row.get(j) instanceof String) {
 					String user= (String) row.get(j);
-					if(user.equals("Doctors"))
+					if(user.toLowerCase().equals("doctors"))
 					{
 						cellToWriteOn=rowToWriteOn.getCell(6);
 						cellToWriteOn.setCellValue("X");
 					}
-					else if(user.equals("Nurses"))
+					else if(user.toLowerCase().equals("nurses"))
 					{
 						cellToWriteOn=rowToWriteOn.getCell(7);
 						cellToWriteOn.setCellValue("X");
 					}
-					else if(user.equals("Schedulers"))
+					else if(user.toLowerCase().equals("schedulers"))
 					{
 						cellToWriteOn=rowToWriteOn.getCell(8);
 						cellToWriteOn.setCellValue("X");
 					}
-					else if(user.equals("Logistician"))
+					else if(user.toLowerCase().equals("logistician"))
 					{
 						cellToWriteOn=rowToWriteOn.getCell(9);
 						cellToWriteOn.setCellValue("X");
+					}
+					else
+					{
+						rowToWriteOn= sheetToWriteOver.getRow(6);
+						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
+						cellToWriteOn.setCellValue(user.replaceAll("_"," "));
+						rowToWriteOn= sheetToWriteOver.getRow(7);
+						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
+						cellToWriteOn.setCellValue("X");
+						addUserTypeCount++;
 					}
 				}
 			}
@@ -181,6 +192,7 @@ public class TaskerGenerationWriter {
 
 		//User Interfaces
 		rowToWriteOn = sheetToWriteOver.getRow(7);
+		addUserTypeCount=19;
 		for (int i=0; i<userInterfacesResults.size(); i++) {	
 			ArrayList row = (ArrayList) userInterfacesResults.get(i);
 			for (int j=0; j< row.size(); j++) {
@@ -205,6 +217,16 @@ public class TaskerGenerationWriter {
 					{
 						cellToWriteOn=rowToWriteOn.getCell(18);
 						cellToWriteOn.setCellValue("X");
+					}
+					else
+					{
+						rowToWriteOn= sheetToWriteOver.getRow(6);
+						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
+						cellToWriteOn.setCellValue(user.replaceAll("_"," "));
+						rowToWriteOn= sheetToWriteOver.getRow(7);
+						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
+						cellToWriteOn.setCellValue("X");
+						addUserTypeCount++;
 					}
 				}
 			}
