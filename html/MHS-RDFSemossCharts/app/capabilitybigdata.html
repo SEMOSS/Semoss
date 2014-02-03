@@ -15,7 +15,7 @@
     <script src="lib/select2.js"></script>
     <script src="lib/tooltip.js"></script>
     <script src="lib/bootstrap-slider.js"></script>
-    <!--<script src="data/heatmap-data.js"></script>--> 
+    <!--<script src="data/heatmap-data.js"></script>-->
 
   </head>
   <body>
@@ -44,31 +44,8 @@
     <div id="chart"></div>
     <script type="text/javascript">
      
- //      start(dataString);
- //      function start(dataString) {
- //      	// var jsonData = jQuery.parseJSON(dataString);
-	// var data = dataString.dataSeries
-	// var xAxisName = dataString.xAxisTitle
-	// var yAxisName = dataString.yAxisTitle
-	// var heatValue = dataString.value
-      
-      //Create the dataString global variable that is passed to both the data formation functions as well as the start function
-     /* var dataString = {};
-      dataString["dataSeries"] = {}; // we need this to be created so all our data can go in it
-      
-      //For our actual data      
-      function dataBuilder (dataPiece, key) {
-	dataPieceFormatted = jQuery.parseJSON(dataPiece)
-	dataString["dataSeries"][key] = dataPieceFormatted;
-	
-      }
-      //For our xAxisName, value etc.
-      function dimensionData (dataPiece, key) {
-	dataPieceFormatted = jQuery.parseJSON(dataPiece)
-	dataString[key] = dataPieceFormatted;
-      }
-      */
-      //start(dataString);
+ 
+     // start(dataString);
       
       
       function start(dataString) {
@@ -112,6 +89,7 @@
 	var xAxisArrayLvl2 = [];
 	var yAxisArrayLvl2 = [];
 	var uniqueStandards = [];
+	var numberOfCapabilities;
 	
 	
 	/*----------Format Data-------------*/
@@ -122,6 +100,8 @@
 	  capabilitySize.push(_.size(data[capability]));
 	  uniqueStandards.push(_.keys(data[capability]));
 	}
+	numberOfCapabilities = capabilityArray.length;
+	
 	uniqueStandards = _.flatten(uniqueStandards);
 	uniqueStandards = _.uniq(uniqueStandards);
 //getting a list of all of the 7 categories
@@ -179,8 +159,21 @@
 	    var barData = [];
 	    barData.length = 0;
 	    barData = systemValues;
-	    barChart(barData);
+	    barChart(barData, 1);
 	    
+	  }
+	  
+	  var popoverLvl2 = function (param, array) {
+	    var listOfCurrentObjects = _.where(array, {xAxisName: param.xAxisName, yAxisName: param.yAxisName});
+	    systemValues.length = 0;
+	    for(var i=0; i<listOfCurrentObjects.length;i++){
+	      systemValues.push(listOfCurrentObjects[i]);
+	    }
+	    
+	    var barData = [];
+	    barData.length = 0;
+	    barData = systemValues;
+	    barChart(barData, 2);
 	  }
 	  
 //sets up the axes for the heat map
@@ -230,7 +223,7 @@
 	var margin = { top: 185, right: 150, bottom: 100, left: 150 },
         xAxisData = xAxisArray,
         yAxisData = yAxisArray
-	gridSize = 15;
+	gridSize = 20;
 	
 	var width = xAxisData.length * gridSize,
         height = yAxisData.length * gridSize,
@@ -278,8 +271,8 @@
 		xAxis.append("text")
 		.text(function(d) { return d; })
 		.style("text-anchor", "start")
-		.attr("x", 6)
-		.attr("y", 7)
+		.attr("x", 7)
+		.attr("y", 9)
 		.attr("class", "xAxis")
 		.attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
 	    
@@ -386,55 +379,9 @@
             .attr("class", "mono legendText")
             .text(function(d){return d})
             .attr("x", function(d, i){ return (i * 103) - 33})
-            .attr("y", 114);
+            .attr("y", gridSize * yAxisArray.length + 55);
 	  
-	  
-	  /*----------Color Changer-------------*/ 
-	    /*d3.select("#nav").append("select")
-	      .attr("id", "select2DropDown")
-	      .attr("class", "mySelect2")
-	      .selectAll("option")
-	      .data(["Red","Blue","Green"])
-	      .enter()
-	      .append("option")
-	      .attr("value", function(d){ return d; }) 
-	      .text(function(d){ return d})
-	      ;
-	    
-	    $("#select2DropDown").select2();
-	    $("#select2DropDown").on("change", change);
-	    
-	    function change() {
-	      colors.length = 0;
-	      domainArray = $('#slider').data('slider').getValue();
-	      
-	      if (this.options[this.selectedIndex].value == 'Green') {
-		colors.push(colorsGreen);
-	      } else if (this.options[this.selectedIndex].value == 'Blue') {
-		colors.push(colorsBlue);
-	      }else {
-		colors.push(colorsRed);
-	      }
-	      
-	      colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, 100]) // should be max value
-                .range(colors[0]);
-		
-	     var bar = side.selectAll("rect.bar")
-		.attr("fill", function(d) { return colorScale(d.Value) });
-		
-	      heatMap
-		.style("fill", function(d) {
-		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		  return colorScale(d.Value);
-		}else {return "white"}
-	      });
-	      legend.style("fill", function(d, i) { return colors[0][i]; });
-	      
-
-	    }*/
-
-
+	
 	  /*----------Slider-------------*/
 	  sliderInit(dataArray);
 	  function sliderInit(data) {
@@ -481,12 +428,13 @@
 	  var side = d3.select("#barCanvas")
 	    .append("svg")
 	    .attr("width", barW)
-	    .attr("height", barH);
+	    .attr("height", numberOfCapabilities * 35);
 	    
 	  var cbx = d3.select("#checkboxes")
 	    .append("svg")
 	    .attr("width", barW)
-	    .attr("height", 180)
+	    .attr("height", numberOfCapabilities * 25)
+	    .attr("fill", "red")
 	    .attr("class","cbxContainer");
 	    
 	  var ref = d3.select("#refreshBtn")
@@ -525,19 +473,7 @@
 	  
 	  // loop through ny new clone object and delete out all the values that dont meet the thresholds
 	  catThresh = 0;
-	  /*for(var cat in cloneObject){
-	    catThresh = document.getElementById(cat + "filter").value
-	    for(pair in cloneObject[cat]){
-	      if(cloneObject[cat][pair][heatValue] < catThresh){
-		delete cloneObject[cat][pair];
-	      }
-	    }
-	  }*/
-	  
-	  //var keys = _.keys(cloneObject);
-	  
-	  //var smallRefresh = cloneObject[keys[0]]; //Grab one capability inside my smaller refreshed object
-	  for (var i=0; i<uniqueStandards.length; i++) {
+    	  for (var i=0; i<uniqueStandards.length; i++) {
 	    var totalVal = 0;
 	    var roundedAvg = 0;
 	    var roundedVal = 0;
@@ -640,12 +576,12 @@
 	  xAxis
 	    .text(function(d) { return d; })
 	    .style("text-anchor", "start")
-	    .attr("x", 6)
-	    .attr("y", 7)
+	    .attr("x", 7)
+	    .attr("y", 9)
 	    .attr("class", "xAxis")
 	    .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" })
 	    .on("click", function(d){ if (checkedCapabilities.length == 1) {
-	      console.log(checkedCapabilities.length);
+	      
 	      level2(checkedCapabilities[0],d);
 	    }});
 	  xAxis.exit().remove();
@@ -739,12 +675,7 @@
 	    
 	    function changeRefresh() {
 	      colors.length = 0;
-	      domainArray = $('#slider').data('slider').getValue();
-
-
-
-
-	      
+	      domainArray = $('#slider').data('slider').getValue();	      
 	      if (this.options[this.selectedIndex].value == 'Green') {
 		colors.push(colorsGreen);
 	      } else if (this.options[this.selectedIndex].value == 'Blue') {
@@ -864,8 +795,12 @@
 	  //On click of checkbox
 	  var checkbox = function(param){
 	    if(document.getElementById(param).checked) {
-	      checkedCapabilities.push(param);
-	      refreshObject[param] = data[param];
+	      var capabilityIndex = checkedCapabilities.indexOf(param);
+	      // Make sure the value clicked doesn't exist in the array already (we can't have two with the same name)
+	      if (!(capabilityIndex > -1)) {
+		checkedCapabilities.push(param);
+		refreshObject[param] = data[param];
+	      }
 	      //document.getElementById(param + "filter").disabled = false;
 	      
 	    }else{
@@ -873,7 +808,6 @@
 	      if (capabilityIndex > -1) {
 		checkedCapabilities.splice(capabilityIndex, 1);
 	      }
-	      
 	      refreshObject = _.omit(refreshObject, param);
 	      //document.getElementById(param + "filter").disabled = true;
 	      //document.getElementById(param + "filter").value = "";
@@ -905,24 +839,11 @@
 	    .attr("y", function(d,i){return ((i * 25) + 16)})
 	    .attr("x", 20);
 	    
-	   /*cbx.selectAll("foreignObject.filter")
-	    .data(capabilityArray)
-	    .enter()
-	    .append("foreignObject")
-	      .attr("class","filter")
-	      .attr("class","cbx")
-	      .attr("x", function (d,i) { return 250 })
-	      .attr("y",  function (d,i) { return i*25 })
-	      .attr("width", "30px")
-	      .attr("height", "30px")
-	    .append("xhtml:div")
-	      .html(function(d){ return ("<input type=text class='filter input-sm' id=" + d + 'filter' + "></input>")}) // give each element a unique id
-	      .on("click", function(d){checkbox(d);});*/
-	  
+	
 
 	  //popover generates data. barChart displays it.
 	  /*----------Bar Chart--------------*/
-	  var barChart = function(data){
+	  var barChart = function(data, level){
 	    var barPadding = 1;
 	    var barHeight = 20;
 	    var barSpacing = barHeight + barPadding;
@@ -949,7 +870,13 @@
 	      .enter()
 	      .append("text");
 	    barLabel
-	      .text(function(d){return d.key})
+	      .text(function(d){
+		if (level == 1) {
+		  return d.key
+		} else {
+		  return d.Support
+		}
+		})
 	      .attr("text-anchor", "end")
 	      .style("font-size", "9px")
 	      .attr("class","labels")
@@ -969,7 +896,7 @@
 	      .attr("id","barValue");
 	      
 	    barValue.attr("class",function(d){
-		if (d.Value > 8){
+		if (d.Value > 4){
 		    return "light"
 		  } else{return "dark"}
 	      })
@@ -985,7 +912,13 @@
 	      .enter()
 	      .append("text");
 	    system1
-	      .text(function(d){return xAxisName + ": "+ d.xAxisName})
+	      .text(function(d){
+		if (level == 1) {
+		  return "Capability: "+ d.xAxisName
+		} else {
+		  return "Requirement: "+ d.xAxisName
+		}
+		})
 	      .attr("class","system1")
 	      .attr("text-anchor", "start")
 	      .attr("y", 10)
@@ -997,7 +930,7 @@
 	      .enter()
 	      .append("text");
 	    system2
-	      .text(function(d){return yAxisName + ": " + d.yAxisName})
+	      .text(function(d){return d.yAxisName})
 	      .attr("class","system2")
 	      .attr("text-anchor", "start")
 	      .attr("y", 25)
@@ -1008,7 +941,7 @@
 
 	  
 	  function level2 (capability, standard) {
-	    console.log("made it to level2");
+	    barChart([]); // refresh the bar chart
 	    xAxisArrayLvl2.length = 0;
 	    yAxisArrayLvl2.length = 0;
 	    dataArrayLvl2.length = 0;
@@ -1017,19 +950,35 @@
 	    for(var standards in data[capability]) {
 	      if(data[capability][standards].System1 == standard){
 		for (var children in data[capability][standards].Children){
+		  
 		  var xAxisLvl2 = data[capability][standards].Children[children].Requirement;
 		  var yAxisLvl2 = data[capability][standards].Children[children].Vendor;
 		  var valueLvl2 = data[capability][standards].Children[children].Value;
 		  
+		  var support;
+		  if (valueLvl2 == 10) {
+		    support = "Supports_Out_Of_Box";
+		  }else if (valueLvl2 == 7) {
+		    support = "Supports_With_Configuration";
+		  }else if (valueLvl2 == 3) {
+		    support = "Supports_With_Customization";
+		  }else if (valueLvl2 == 0) {
+		    support = "Does_Not_Support";
+		  }else {
+		    support = "?";
+		  }
 		  xAxisArrayLvl2.push(data[capability][standards].Children[children].Requirement);
 		  yAxisArrayLvl2.push(data[capability][standards].Children[children].Vendor);
-		  dataArrayLvl2.push({Value: valueLvl2, xAxis:xAxisLvl2, yAxis: yAxisLvl2, xAxisName: xAxisLvl2, yAxisName: yAxisLvl2})
+		  dataArrayLvl2.push({Value: valueLvl2, xAxis:xAxisLvl2, yAxis: yAxisLvl2, xAxisName: xAxisLvl2, yAxisName: yAxisLvl2, Support: support})
 		  
 		}
 	      }
 	    }
 	    
-	    
+	    var uniqueXLvl2 = _.uniq(xAxisArrayLvl2);
+	    var uniqueYLvl2 = _.uniq(yAxisArrayLvl2);
+	    xAxisArrayLvl2 = uniqueXLvl2.sort();
+	    yAxisArrayLvl2 = uniqueYLvl2.sort();
 	    
 	    /* Assign each name a number for level 2 */
 	    for (var i = 0; i<dataArrayLvl2.length;i++) {
@@ -1038,8 +987,8 @@
 		  dataArrayLvl2[i].xAxis = j;
 		}
 	      }
-	      for (var j = 0; j<yAxisArray.length; j++) {
-		if (yAxisArray[j] == dataArrayLvl2[i].yAxis) {
+	      for (var j = 0; j<yAxisArrayLvl2.length; j++) {
+		if (yAxisArrayLvl2[j] == dataArrayLvl2[i].yAxis) {
 		  dataArrayLvl2[i].yAxis = j;
 		}
 	      }
@@ -1061,37 +1010,26 @@
 	    
 	    var xText = svg.selectAll(".xAxis")
 	      .data(xAxisArrayLvl2, function(d, i) { return d; });
-	   
 	    xText
 	      .enter().append("text") 
 	      .transition()
 	      .duration(300)
 	      .text(function(d) { return d; })
 	      .style("text-anchor", "start")
-	      .attr("x", 10)
-	      .attr("y", 12)
+	      .attr("x", 7)
+	      .attr("y", 9)
 	      .attr("class", "xAxis active")
 	      .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
-      
 	    
 	    xText
 	      .exit()
 	      .remove();
 	    
-	    
-	   /* var returnUp = svg.selectAll(".drillUp")
-	      .data(["Return"])
-	      .enter()
-	      .append("text")
-	      .text("Return")
-	      .attr("x", -100)
-	      .attr("y", -100);*/
-	  // Update the lines for level 2
-	  
+	
 	    /* Initialize tooltip */
 	    var tip = d3.tip()
 	      .attr('class', 'd3-tip')
-	      .html(function(d) { return "<div> <span class='light'>Value </span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	      .html(function(d) { return "<div> <span class='light'></span> " + d.Support + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
 	
 		 
 	     var heatMap = svg.selectAll(".heat")
@@ -1103,15 +1041,14 @@
 		.attr("class", "heat bordered")
 		.attr("width", gridSize)
 		.attr("height", gridSize)
-		.style("fill", colors[0])
-		.on('mouseover', tip.show)
-		.on('mouseout', tip.hide);
-	      
+		.style("fill", colors[0]);
 	      heatMap
-	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
-	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
-	      .style("fill", function(d) { return colorScale(d.Value)})
-	      ;
+		.attr("x", function(d) { return (d.xAxis) * gridSize; })
+		.attr("y", function(d) { return (d.yAxis) * gridSize; })
+		.style("fill", function(d) { return colorScale(d.Value)})
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide)
+		.on('click', function(d){popoverLvl2(d, dataArrayLvl2)});
 	      
 	      
 	      heatMap
@@ -1121,24 +1058,31 @@
 		
 	       heatMap.call(tip);
 	      
-	   //vertical lines
-	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArrayLvl2.length + 1));
-	      
-	  
-		
-	    vLine
-	      .exit()
-	      .remove();
+	    //Refresh vertical lines
+	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArrayLvl2.length + 1))
 	    
-	    // horizontal lines
-	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisData.length + 1));
-
-	      
-	    hLine
-	      .exit()
-	      .remove();
-	  
+	    vLine.exit().remove();
 	    
+	    // Refreshhorizontal lines
+	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisArray.length + 1))
+	      hLine.enter()
+		.append("line");
+	      hLine
+		.attr("class","hline")
+		.attr("y1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x1", function (d) {
+		return 0;
+	    })
+		.attr("x2", function (d) {
+		return width;
+	    })
+		.style("stroke", "#eee");
+	      hLine.exit().remove();
 	    
 	    
 	    
