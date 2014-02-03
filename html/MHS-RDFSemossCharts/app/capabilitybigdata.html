@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html >
+  <head>
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/heatmap-vendor.css">
+      
+
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/select2.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <script src="lib/bootstrap-slider.js"></script>
+    <!--<script src="data/heatmap-data.js"></script>--> 
+
+  </head>
+  <body>
+    <div id="nav">
+      
+    </div>
+    <div id="sidebarContainer">
+   		
+	  	
+		    
+		    <div id="sidebarContentCenter">
+		      
+		      <!--<br>
+		      <b id="min"></b><input type="text" class="slider" id="slider" ><b id="max"></b>
+		      <br>
+			<hr>-->
+		      <div id="checkboxes"></div>
+		      <div id="refreshBtn"></div>
+		      <div id="barCanvas"></div>
+		    </div>
+		
+	  
+	</div>
+
+    
+    <div id="chart"></div>
+    <script type="text/javascript">
+     
+ //      start(dataString);
+ //      function start(dataString) {
+ //      	// var jsonData = jQuery.parseJSON(dataString);
+	// var data = dataString.dataSeries
+	// var xAxisName = dataString.xAxisTitle
+	// var yAxisName = dataString.yAxisTitle
+	// var heatValue = dataString.value
+      
+      //Create the dataString global variable that is passed to both the data formation functions as well as the start function
+     /* var dataString = {};
+      dataString["dataSeries"] = {}; // we need this to be created so all our data can go in it
+      
+      //For our actual data      
+      function dataBuilder (dataPiece, key) {
+	dataPieceFormatted = jQuery.parseJSON(dataPiece)
+	dataString["dataSeries"][key] = dataPieceFormatted;
+	
+      }
+      //For our xAxisName, value etc.
+      function dimensionData (dataPiece, key) {
+	dataPieceFormatted = jQuery.parseJSON(dataPiece)
+	dataString[key] = dataPieceFormatted;
+      }
+      */
+      //start(dataString);
+      
+      
+      function start(dataString) {
+	
+	var jsonData = jQuery.parseJSON(dataString);
+	var data = jsonData.dataSeries
+	
+	//var data = dataString.dataSeries
+	var xAxisName = jsonData.xAxisTitle
+	var yAxisName = jsonData.yAxisTitle
+	var heatValue = jsonData.value
+
+	var refreshObject = data; // we need thisbecause we are not manipulating the data
+	
+	var xAxisArray = [];
+	var yAxisArray = [];
+	var helperArray = [];
+	var dataArray = [];
+	var refreshArray = [];
+	
+	var finderArray = [];
+	var truncY = [];
+	var truncX = [];
+	var domainArray = [];
+	var keyVal = [];
+	var keyLength = 0;
+	var systemValues = [];
+	var groupedValues = [];
+	var avg;
+	var minSize;
+	var capabilityArray = [];
+	var capabilitySize = [];
+	var eliminateFlag = false;
+	var catThresh = 0;
+	var sliderArray = [0,10];
+	var refreshPushed = false;
+	var yAxisMatches = [];
+	var dropDownArrayYAxisMatches = [];
+	var checkedCapabilities = [];
+	var dataArrayLvl2 = [];
+	var xAxisArrayLvl2 = [];
+	var yAxisArrayLvl2 = [];
+	var uniqueStandards = [];
+	
+	
+	/*----------Format Data-------------*/
+	var keys = _.keys(refreshObject);
+	for (var capability in data) {
+	  checkedCapabilities.push(capability);
+	  capabilityArray.push(capability);
+	  capabilitySize.push(_.size(data[capability]));
+	  uniqueStandards.push(_.keys(data[capability]));
+	}
+	uniqueStandards = _.flatten(uniqueStandards);
+	uniqueStandards = _.uniq(uniqueStandards);
+//getting a list of all of the 7 categories
+//the length of each capability - maybe not important
+	
+	
+	var small = refreshObject[keys[0]];
+
+//this is the first capability. Look through all of the categories 
+
+	for (var i=0; i<uniqueStandards.length; i++) {
+	  
+	  var totalVal = 0;
+	  var roundedAvg = 0;
+	  var roundedVal = 0;
+	  var val = 0;
+	  var count = 0;
+	  var xAxisVal;
+	  var yAxisVal;
+	  eliminateFlag = false;
+	  for (var capability in data) {
+	    if (refreshObject[capability][uniqueStandards[i]]) {
+	      count++
+	      totalVal += refreshObject[capability][uniqueStandards[i]][heatValue];
+	      val = refreshObject[capability][uniqueStandards[i]][heatValue];
+	      roundedVal = Math.round(val * 10) / 10
+	      xAxisVal = refreshObject[capability][uniqueStandards[i]][xAxisName];
+	      yAxisVal = refreshObject[capability][uniqueStandards[i]][yAxisName];
+	      finderArray.push({Value: roundedVal, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal, key: capability})
+	    } 
+	    //if you don't find the matching or combo in any capability, flag on, and break
+	  }
+	  
+	  avg = totalVal / count;
+	  roundedAvg = Math.round(avg * 10) / 10
+	 
+	  //if exists in all selected categories, then push in new array
+
+	  if (!eliminateFlag) {
+	   
+	    xAxisArray.push(xAxisVal);
+	    yAxisArray.push(yAxisVal);
+	    dataArray.push({Value: roundedAvg, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal})
+	  }
+	}
+	  
+	  //On click of heatmap this function is called. this is just for the bar chart
+	  var popover = function(param) {
+	    var listOfCurrentObjects = _.where(finderArray, {xAxisName: param.xAxisName, yAxisName: param.yAxisName});
+	    systemValues.length = 0;
+	    for(var i=0; i<listOfCurrentObjects.length;i++){
+	      systemValues.push(listOfCurrentObjects[i]);
+	    }
+	    
+	    var barData = [];
+	    barData.length = 0;
+	    barData = systemValues;
+	    barChart(barData);
+	    
+	  }
+	  
+//sets up the axes for the heat map
+
+	  var uniqueX = _.uniq(xAxisArray);
+	  var uniqueY = _.uniq(yAxisArray);
+	  xAxisArray = uniqueX.sort();
+	  yAxisArray = uniqueY.sort();
+	  
+	  /* Assign each name a number and place matrix coordinates inside of dataArray */
+
+	  //loop through data array, give every namea number. Heat values correspond to these numbers.  It's important that this comes after the sort. Same as before
+
+	  for (var i = 0; i<dataArray.length;i++) {
+	    for (var j = 0; j<xAxisArray.length; j++) {
+	      if (xAxisArray[j] == dataArray[i].xAxis) {
+		dataArray[i].xAxis = j;
+	      }
+	    }
+	    for (var j = 0; j<yAxisArray.length; j++) {
+	      if (yAxisArray[j] == dataArray[i].yAxis) {
+		dataArray[i].yAxis = j;
+	      }
+	    }
+	  };
+	  
+//truncate if labels get over a certain length.
+
+	  /* Truncate Values */
+	  for (var i = 0; i < yAxisArray.length; i++) {
+	    if (yAxisArray[i].length > 20) {
+	      truncY.push(yAxisArray[i].substring(0, 20) + '...');
+	    } else {
+	      truncY.push(yAxisArray[i]);
+	    }
+	  }
+	  
+	  for (var i = 0; i < xAxisArray.length; i++) {
+	    if (xAxisArray[i].length > 30) {
+	      truncX.push(xAxisArray[i].substring(0, 30) + '...');
+	    } else {
+	      truncX.push(xAxisArray[i]);
+	    }
+	  }
+      
+	/*----------Build Heatmap-------------*/
+	var margin = { top: 185, right: 150, bottom: 100, left: 150 },
+        xAxisData = xAxisArray,
+        yAxisData = yAxisArray
+	gridSize = 15;
+	
+	var width = xAxisData.length * gridSize,
+        height = yAxisData.length * gridSize,
+        legendElementWidth = 60,
+        buckets = 4,
+	colors = ["#f4f9e5","#b4d987","#74a53b","#46781e"];
+	
+	
+	//color selection
+	
+	if (xAxisData.length < 35) {
+	  legendElementWidth = 40
+	  if (xAxisData.length < 25) {
+	    legendElementWidth = 25
+	    if (xAxisData.length < 15) {
+	      legendElementWidth = 15
+	    }
+	  }
+	}
+	
+	    var colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+                .range(colors);
+	    
+            var svg = d3.select("#chart").append("svg")
+                .attr("width", 40000)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            
+            var yAxis = svg.selectAll(".yAxis")
+                .data(truncY)
+                .enter().append("text")
+                .text(function (d) { return d; })
+                .attr("x", 0)
+                .attr("y", function (d, i) { return i * gridSize; })
+                .style("text-anchor", "end")
+                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+                .attr("class", "yAxis");
+            
+            var xAxis = svg.selectAll(".xAxis")
+		.data(truncX)
+		.enter().append("svg:g")
+		xAxis.append("text")
+		.text(function(d) { return d; })
+		.style("text-anchor", "start")
+		.attr("x", 6)
+		.attr("y", 7)
+		.attr("class", "xAxis")
+		.attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	    
+	    /* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	    
+            var heatMap = svg.selectAll(".heat")
+                .data(dataArray);
+              heatMap
+		.enter().append("rect");
+	      heatMap
+                .attr("x", function(d) { return (d.xAxis) * gridSize; })
+                .attr("y", function(d) { return (d.yAxis) * gridSize; })
+                .attr("rx", 2)
+                .attr("ry", 2)
+                .attr("class", "heat bordered")
+                .attr("width", gridSize)
+                .attr("height", gridSize)
+                .style("fill", colors[0])
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide)
+		.on('click', function(d){popover(d)});
+		
+//passes data into popover. param is the label, which is the system-sys pair.
+
+	      heatMap
+		.transition()
+		.duration(1000)
+		.style("fill", function(d) { return colorScale(d.Value); });
+	      heatMap.exit().remove();
+	    
+	    /* Invoke the tooltip in the context of your visualization */
+	    heatMap.call(tip);
+	    
+	    
+	    /*----------Horizontal and Vertical Lines-------------*/
+	    //vertical lines
+	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisData.length + 1));
+	    
+	    vLine.enter()
+	      .append("line");
+	      
+	    vLine
+	    .attr("class", "vline")
+	    .attr("x1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y1", function (d) {
+		return 0;
+	    })
+		.attr("y2", function (d) {
+		return height;
+	    })
+		.style("stroke", "#eee");
+		
+	    vLine.exit().remove();
+	    
+	    // horizontal lines
+	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisData.length + 1))
+	      hLine.enter()
+		.append("line");
+	      hLine
+		.attr("class","hline")
+		.attr("y1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x1", function (d) {
+		return 0;
+	    })
+		.attr("x2", function (d) {
+		return width;
+	    })
+		.style("stroke", "#eee");
+	      hLine.exit().remove();
+
+          
+          /*----------Legend-------------*/
+          var legend = svg.selectAll(".legend")
+              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
+              .enter().append("g")
+              .attr("class", "legend");
+	  
+          legend.append("rect")
+            .attr("x", function(d, i) { return legendElementWidth * i; })
+            .attr("y", yAxisData.length * gridSize + 40)
+            .attr("width", legendElementWidth)
+            .attr("height", 20);
+            
+	  legend.style("fill", function(d, i) { return colors[i]; })
+	    .attr("stroke", "#eaeaea")
+	    .attr("stroke-width",2);
+
+          var legendText = svg.selectAll(".legendText")
+	    .data(["Low", "High"])
+	    .enter().append("text")
+            .attr("class", "mono legendText")
+            .text(function(d){return d})
+            .attr("x", function(d, i){ return (i * 103) - 33})
+            .attr("y", 114);
+	  
+	  
+	  /*----------Color Changer-------------*/ 
+	    /*d3.select("#nav").append("select")
+	      .attr("id", "select2DropDown")
+	      .attr("class", "mySelect2")
+	      .selectAll("option")
+	      .data(["Red","Blue","Green"])
+	      .enter()
+	      .append("option")
+	      .attr("value", function(d){ return d; }) 
+	      .text(function(d){ return d})
+	      ;
+	    
+	    $("#select2DropDown").select2();
+	    $("#select2DropDown").on("change", change);
+	    
+	    function change() {
+	      colors.length = 0;
+	      domainArray = $('#slider').data('slider').getValue();
+	      
+	      if (this.options[this.selectedIndex].value == 'Green') {
+		colors.push(colorsGreen);
+	      } else if (this.options[this.selectedIndex].value == 'Blue') {
+		colors.push(colorsBlue);
+	      }else {
+		colors.push(colorsRed);
+	      }
+	      
+	      colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, 100]) // should be max value
+                .range(colors[0]);
+		
+	     var bar = side.selectAll("rect.bar")
+		.attr("fill", function(d) { return colorScale(d.Value) });
+		
+	      heatMap
+		.style("fill", function(d) {
+		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		  return colorScale(d.Value);
+		}else {return "white"}
+	      });
+	      legend.style("fill", function(d, i) { return colors[0][i]; });
+	      
+
+	    }*/
+
+
+	  /*----------Slider-------------*/
+	  sliderInit(dataArray);
+	  function sliderInit(data) {
+	     
+
+	    $('#slider').slider({
+		min: Math.floor(d3.min(data, function (d) { return d.Value; })),
+		max: Math.ceil(d3.max(data, function (d) { return d.Value; })),
+		value:[Math.floor(d3.min(data, function (d) { return d.Value; })), Math.ceil(d3.max(data, function (d) { return d.Value; }))],
+		step:1
+	      })
+	    .on('slide', function(){
+		domainArray = $('#slider').data('slider').getValue()
+
+		sliderArray = []
+		sliderArray.push(domainArray[0],domainArray[1]);
+
+		heatMap
+		.style("fill", function(d) {
+		  if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		    return colorScale(d.Value);
+		  }else {return "white"}
+		});
+
+
+	    })
+	  }
+	   
+
+
+	  d3.select("#min").append("span")
+	    .text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	    
+	  d3.select("#max").append("span")
+	    .text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	    
+	  var barW = 280;
+	  var barH = 190;
+	  
+	  var side = d3.select("#barCanvas")
+	    .append("svg")
+	    .attr("width", barW)
+	    .attr("height", barH);
+	    
+	  var cbx = d3.select("#checkboxes")
+	    .append("svg")
+	    .attr("width", barW)
+	    .attr("height", 180)
+	    .attr("class","cbxContainer");
+	    
+	  var ref = d3.select("#refreshBtn")
+	    .append("svg")
+	    .attr("width", 100)
+	    .attr("height", 50);
+
+	  var appBtn = d3.select("#appGridBtn")
+	    .append("svg")
+	    .attr("width", 100)
+	    .attr("height", 50);
+
+	  var selectedSystem = "";
+
+
+	  /*----------Checkboxes and Refresh-------------*/
+//function called when refresh button is clicked
+	var refresh = function() {
+	  barChart([]); // refresh the bar chart
+	  refreshArray.length = 0;
+	  finderArray.length = 0; // we still need this for the bar chart to update correctly
+	  xAxisArray.length = 0;
+	  yAxisArray.length = 0;
+	  refreshPushed = true;
+	  refreshArray = [];
+	  sliderArray = [0,100];
+	  var cloneObject = {}; // we need this clone of refreshObject so that when we delete values, we aren't deleting from the refresh Object
+	  cloneObject = jQuery.extend(true, {}, refreshObject);
+//for the filter. Say you select 50 in the fitler, you don't want to delete the original data because you won't be able to decrease filter value in subsequent refreshes. You only delete cloneObject, and the cloneObject copies off of the original.
+	  uniqueStandards.length = 0;
+	  for (var capability in cloneObject) {
+	    uniqueStandards.push(_.keys(data[capability]));
+	  }
+	  uniqueStandards = _.flatten(uniqueStandards);
+	  uniqueStandards = _.uniq(uniqueStandards);
+	  
+	  // loop through ny new clone object and delete out all the values that dont meet the thresholds
+	  catThresh = 0;
+	  /*for(var cat in cloneObject){
+	    catThresh = document.getElementById(cat + "filter").value
+	    for(pair in cloneObject[cat]){
+	      if(cloneObject[cat][pair][heatValue] < catThresh){
+		delete cloneObject[cat][pair];
+	      }
+	    }
+	  }*/
+	  
+	  //var keys = _.keys(cloneObject);
+	  
+	  //var smallRefresh = cloneObject[keys[0]]; //Grab one capability inside my smaller refreshed object
+	  for (var i=0; i<uniqueStandards.length; i++) {
+	    var totalVal = 0;
+	    var roundedAvg = 0;
+	    var roundedVal = 0;
+	    var val = 0;
+	    var count = 0;
+	    var xAxisVal;
+	    var yAxisVal;
+	    eliminateFlag = false;
+	    for (var capability in cloneObject) {
+	      
+	      if (cloneObject[capability][uniqueStandards[i]]) {
+		count++
+		totalVal += cloneObject[capability][uniqueStandards[i]][heatValue];
+		val = cloneObject[capability][uniqueStandards[i]][heatValue];
+		roundedVal = Math.round(val * 10) / 10
+		xAxisVal = cloneObject[capability][uniqueStandards[i]][xAxisName];
+		yAxisVal = cloneObject[capability][uniqueStandards[i]][yAxisName];
+		finderArray.push({Value: roundedVal, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal, key: capability})
+	      } 
+	    }
+	    
+	    avg = totalVal / count;
+	    roundedAvg = Math.round(avg * 10) / 10
+	   
+//new data array
+
+
+	    if (!eliminateFlag) {
+	      xAxisArray.push(xAxisVal);
+	      yAxisArray.push(yAxisVal);
+	     
+	      refreshArray.push({Value: roundedAvg, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal})
+	    }
+	  }
+	  
+	  // We need this to recreate the slider everytime because there's no other way to update the min/max values
+	  changeSliderRange(refreshArray)
+	  function changeSliderRange(refreshArray){
+	    //Save old slider's css width
+	    var oldSliderWidth = $("#slider").css("width");
+	
+	   //remove the old slider      
+	   $(".slider").remove();   
+	
+	   //Recreate slider anchor tag with saved width value
+	   $("#min").after("<input type='text' class='slider' id='slider'/>");
+	
+	   //Now recreate the slider
+	   sliderInit(refreshArray);
+	  };
+	  
+//need to recreate all of this
+
+	  var uniqueX = _.uniq(xAxisArray);
+	  var uniqueY = _.uniq(yAxisArray);
+	  xAxisArray = uniqueX.sort();
+	  yAxisArray = uniqueY.sort();
+	  
+	  var width = xAxisArray.length * gridSize
+	  var height = yAxisArray.length * gridSize
+
+	  
+	  
+	  /* Assign each name a number and place matrix coordinates inside of dataArray */
+	  for (var i = 0; i<refreshArray.length;i++) {
+	    for (var j = 0; j<xAxisArray.length; j++) {
+	      if (xAxisArray[j] == refreshArray[i].xAxis) {
+		refreshArray[i].xAxis = j;
+	      }
+	    }
+	    for (var j = 0; j<yAxisArray.length; j++) {
+	      if (yAxisArray[j] == refreshArray[i].yAxis) {
+		refreshArray[i].yAxis = j;
+	      }
+	    }
+	  };
+	  
+	  //refresh x/y labels
+	  var yAxis = svg.selectAll(".yAxis")
+	    .data(yAxisArray);
+	  yAxis
+	    .enter().append("text");
+	    
+	  yAxis.text(function (d) { return d; })
+	    .attr("x", 0)
+	    .attr("y", function (d, i) { return i * gridSize; })
+	    .style("text-anchor", "end")
+	    .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+	    .attr("class", "yAxis");
+	  yAxis.exit().remove();
+	  
+	  var xAxis = svg.selectAll(".xAxis")
+	    .data(xAxisArray);
+	  xAxis
+	    .enter()
+	    .append("svg:g")
+	  xAxis
+	    .enter()
+	    .append("text");
+	  xAxis
+	    .text(function(d) { return d; })
+	    .style("text-anchor", "start")
+	    .attr("x", 6)
+	    .attr("y", 7)
+	    .attr("class", "xAxis")
+	    .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" })
+	    .on("click", function(d){ if (checkedCapabilities.length == 1) {
+	      console.log(checkedCapabilities.length);
+	      level2(checkedCapabilities[0],d);
+	    }});
+	  xAxis.exit().remove();
+	  
+	  //Refresh tooltip
+	  var tip = d3.tip()
+	   .attr('class', 'd3-tip')
+	   .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	 
+	 
+	  //refresh heat values
+	  var heatMap = svg.selectAll(".heat")
+	      .data(refreshArray);
+	    heatMap
+	      .enter().append("rect");
+	    heatMap
+	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
+	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
+	      .attr("rx", 2)
+	      .attr("ry", 2)
+	      .attr("class", "heat bordered")
+	      .attr("width", gridSize)
+	      .attr("height", gridSize)
+	      .style("fill", colors[0])
+	      .on('mouseover', tip.show)
+	      .on('mouseout', tip.hide)
+	      .on('click', function(d){popover(d)});
+	      
+	    heatMap
+	      .transition()
+	      .duration(0)
+	      .style("fill", function(d) { return colorScale(d.Value); });
+	    heatMap.exit().remove();
+	    
+	    heatMap.call(tip);
+	    
+	   
+	    //Refresh vertical lines
+	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArray.length + 1))
+	    
+	    vLine
+		.enter()
+		.append("line");
+	    vLine
+		.attr("class", "vline")
+		.attr("x1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y1", function (d) {
+		return 0;
+	    })
+		.attr("y2", function (d) {
+		return height;
+	    })
+		.style("stroke", "#eee");
+	    vLine.exit().remove();
+	    
+	    // Refreshhorizontal lines
+	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisArray.length + 1))
+	      hLine.enter()
+		.append("line");
+	      hLine
+		.attr("class","hline")
+		.attr("y1", function (d) {
+		return d * gridSize;
+	    })
+		.attr("y2", function (d) {
+		return d * gridSize;
+	    })
+		.attr("x1", function (d) {
+		return 0;
+	    })
+		.attr("x2", function (d) {
+		return width;
+	    })
+		.style("stroke", "#eee");
+	      hLine.exit().remove();
+	    	    
+	    // Update legend
+	    var legendText = svg.selectAll(".legend text")
+	    .attr("y", yAxisArray.length * gridSize + 75);
+	    
+	    var legendText = svg.selectAll(".legend rect")
+            .attr("y", yAxisArray.length * gridSize + 40);
+	
+	    // Update color changer for new values
+	    $("#select2DropDown").on("change", changeRefresh);
+	    
+	    function changeRefresh() {
+	      colors.length = 0;
+	      domainArray = $('#slider').data('slider').getValue();
+
+
+
+
+	      
+	      if (this.options[this.selectedIndex].value == 'Green') {
+		colors.push(colorsGreen);
+	      } else if (this.options[this.selectedIndex].value == 'Blue') {
+		colors.push(colorsBlue);
+	      }else {
+		colors.push(colorsRed);
+	      }
+	      
+	      colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, 100])
+                .range(colors[0]);
+		
+	     
+	      heatMap
+		.style("fill", function(d) {
+		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		  return colorScale(d.Value);
+		}else {return "white"}
+	      });
+	      legend.style("fill", function(d, i) { return colors[0][i]; });
+	    }
+	    
+	  // Update slider
+	   sliderInitRefresh(refreshArray);
+	  function sliderInitRefresh(data) {
+	    
+	    /*----------Slider-------------*/
+	    $('#slider').slider({
+		min: Math.floor(d3.min(data, function (d) { return d.Value; })),
+		max: Math.ceil(d3.max(data, function (d) { return d.Value; })),
+		value:[Math.floor(d3.min(data, function (d) { return d.Value; })), Math.ceil(d3.max(data, function (d) { return d.Value; }))],
+		step:1
+	      })
+	    .on('slide', function(){
+		domainArray = $('#slider').data('slider').getValue()
+		
+		heatMap
+		.style("fill", function(d) {
+		  if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		    return colorScale(d.Value);
+		  }else {return "white"}
+		});
+	    })
+	  }
+	  
+
+
+		//Updating the dropDownArray so as to only include systems with matches
+		dropDownArray = [];
+		for(i=0; i<xAxisArray.length; i++){
+			dropDownArrayYAxisMatches = [];					
+			for(j=0; j<refreshArray.length; j++){
+			    if(refreshArray[j].xAxisName === xAxisArray[i]){
+				    dropDownArrayYAxisMatches.push(refreshArray[j].yAxisName);
+			    }
+				if(dropDownArrayYAxisMatches.length>1){
+					dropDownArray.push(xAxisArray[i]);
+					break;
+				}	  
+			}	  
+		}
+
+	  //Sidebar drop down datat updates
+	  dropDownArray.unshift("");
+	  selectedSystem = dropDownArray[0];
+      
+
+	   var sidebarDropDown = d3.select("#sidebarContentCenter").select("#select2DropDown2")
+	     	.selectAll("option")
+	    	.data(dropDownArray);
+
+	    sidebarDropDown
+	    	.enter()
+	    	.append("option");
+
+	    sidebarDropDown
+		    .attr("value", function(d){ return d; }) /* This gives me the value */
+		    .text(function(d){ return d});
+
+	    sidebarDropDown.exit().remove();
+	   	 
+		$("#select2DropDown2").select2("val", "");
+	    $("#select2DropDown2").select2({
+		    placeholder: "Select a System"
+		});
+
+
+	  d3.select("#min")
+	  
+	    .text("Min: " + Math.floor(d3.min(refreshArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	    
+	  d3.select("#max")
+	    .text("Max: " + Math.ceil(d3.max(refreshArray, function (d) { return d.Value; })))
+	    .attr("x", 20)
+	    .attr("y", 0);
+	} //end of refresh function
+
+	
+	  //refresh button
+	  var refBtn = ref.selectAll("foreignObject")
+	    .data([1])
+	    .enter()
+	    .append("foreignObject")
+	    .attr("y", 0)
+	    .attr("x", 0)
+	    .attr("width", "140px")
+	    .attr("height", "60px")
+	    .append("xhtml:div")
+	    .html("<a>Refresh</a>")
+	    .attr("class","btn btn-success");
+	    refBtn.on("click", function(d){ refresh()});
+	    
+//this is where they select the checkboxes. When they click refresh, you only look at the checkboxes that were checked
+
+	  //On click of checkbox
+	  var checkbox = function(param){
+	    if(document.getElementById(param).checked) {
+	      checkedCapabilities.push(param);
+	      refreshObject[param] = data[param];
+	      //document.getElementById(param + "filter").disabled = false;
+	      
+	    }else{
+	      var capabilityIndex = checkedCapabilities.indexOf(param);
+	      if (capabilityIndex > -1) {
+		checkedCapabilities.splice(capabilityIndex, 1);
+	      }
+	      
+	      refreshObject = _.omit(refreshObject, param);
+	      //document.getElementById(param + "filter").disabled = true;
+	      //document.getElementById(param + "filter").value = "";
+	    }
+	  }
+	  //sets values back to zero after you uncheck
+
+
+
+	  cbx.selectAll("foreignObject.cbx")
+	    .data(capabilityArray)
+	      .enter()
+	    .append("foreignObject")
+	      .attr("class","cbx")
+	      .attr("x", function (d,i) { return 0 })
+	      .attr("y",  function (d,i) { return i*25 })
+	      .attr("width", "13px")
+	      .attr("height", "18px")
+	    .append("xhtml:div")
+	      .html(function(d){ return ("<input type=checkbox checked='checked' class='cbx' id=" + d + "></input>")}) // give each element a unique id
+	      .on("click", function(d){checkbox(d);});
+	
+	  cbx.selectAll("text.cbxLabels")
+	    .data(capabilityArray)
+	    .enter()
+	    .append("text")
+	    .text(function(d){return d})
+	    .attr("class","cbxLabels")
+	    .attr("y", function(d,i){return ((i * 25) + 16)})
+	    .attr("x", 20);
+	    
+	   /*cbx.selectAll("foreignObject.filter")
+	    .data(capabilityArray)
+	    .enter()
+	    .append("foreignObject")
+	      .attr("class","filter")
+	      .attr("class","cbx")
+	      .attr("x", function (d,i) { return 250 })
+	      .attr("y",  function (d,i) { return i*25 })
+	      .attr("width", "30px")
+	      .attr("height", "30px")
+	    .append("xhtml:div")
+	      .html(function(d){ return ("<input type=text class='filter input-sm' id=" + d + 'filter' + "></input>")}) // give each element a unique id
+	      .on("click", function(d){checkbox(d);});*/
+	  
+
+	  //popover generates data. barChart displays it.
+	  /*----------Bar Chart--------------*/
+	  var barChart = function(data){
+	    var barPadding = 1;
+	    var barHeight = 20;
+	    var barSpacing = barHeight + barPadding;
+	    
+	    var bar = side.selectAll("rect.bar")
+	      .data(data);
+	    bar
+	      .enter()
+	      .append("rect");
+	    bar
+	      .attr("class","bar")
+	      .attr("y",function(d,i){return 40 + (i*(barHeight + barPadding))})
+	      .attr("x", 177)
+	      .attr("height", barHeight)
+	      .attr("fill", function(d) { return colorScale(d.Value) });
+	    bar.transition()
+	      .duration(600)
+	      .attr("width", function(d){ return d.Value * 8});
+	    bar.exit().remove();
+	    
+	    var barLabel = side.selectAll("text.labels")
+	      .data(data);
+	    barLabel
+	      .enter()
+	      .append("text");
+	    barLabel
+	      .text(function(d){return d.key})
+	      .attr("text-anchor", "end")
+	      .style("font-size", "9px")
+	      .attr("class","labels")
+	      .attr("y", function(d,i){return (i * barSpacing) + 52})
+	      .attr("x", 170);
+	    barLabel.exit().remove();
+	    
+	    var barValue = side.selectAll("text#barValue")
+	      .data(data);
+	    barValue
+	     .enter()
+	     .append("text");
+	    
+	  
+	    barValue
+	      .attr("text-anchor", "start")
+	      .attr("id","barValue");
+	      
+	    barValue.attr("class",function(d){
+		if (d.Value > 8){
+		    return "light"
+		  } else{return "dark"}
+	      })
+	      .attr("y", function(d,i){return (i * barSpacing) + 55})
+	      .attr("x", 180)
+	      .text(function(d){return d.Value});
+	    
+	    barValue.exit().remove();
+	    
+	    var system1 = side.selectAll("text.system1")
+	      .data(data);
+	    system1
+	      .enter()
+	      .append("text");
+	    system1
+	      .text(function(d){return xAxisName + ": "+ d.xAxisName})
+	      .attr("class","system1")
+	      .attr("text-anchor", "start")
+	      .attr("y", 10)
+	      .attr("x", 0);
+	    system1.exit().remove();
+	    var system2 = side.selectAll("text.system2")
+	      .data(data);
+	    system2
+	      .enter()
+	      .append("text");
+	    system2
+	      .text(function(d){return yAxisName + ": " + d.yAxisName})
+	      .attr("class","system2")
+	      .attr("text-anchor", "start")
+	      .attr("y", 25)
+	      .attr("x", 0);
+	    system2.exit().remove();
+
+	  } //End bar chart function
+
+	  
+	  function level2 (capability, standard) {
+	    console.log("made it to level2");
+	    xAxisArrayLvl2.length = 0;
+	    yAxisArrayLvl2.length = 0;
+	    dataArrayLvl2.length = 0;
+	    
+	    //Build my level 2 array
+	    for(var standards in data[capability]) {
+	      if(data[capability][standards].System1 == standard){
+		for (var children in data[capability][standards].Children){
+		  var xAxisLvl2 = data[capability][standards].Children[children].Requirement;
+		  var yAxisLvl2 = data[capability][standards].Children[children].Vendor;
+		  var valueLvl2 = data[capability][standards].Children[children].Value;
+		  
+		  xAxisArrayLvl2.push(data[capability][standards].Children[children].Requirement);
+		  yAxisArrayLvl2.push(data[capability][standards].Children[children].Vendor);
+		  dataArrayLvl2.push({Value: valueLvl2, xAxis:xAxisLvl2, yAxis: yAxisLvl2, xAxisName: xAxisLvl2, yAxisName: yAxisLvl2})
+		  
+		}
+	      }
+	    }
+	    
+	    
+	    
+	    /* Assign each name a number for level 2 */
+	    for (var i = 0; i<dataArrayLvl2.length;i++) {
+	      for (var j = 0; j<xAxisArrayLvl2.length; j++) {
+		if (xAxisArrayLvl2[j] == dataArrayLvl2[i].xAxis) {
+		  dataArrayLvl2[i].xAxis = j;
+		}
+	      }
+	      for (var j = 0; j<yAxisArray.length; j++) {
+		if (yAxisArray[j] == dataArrayLvl2[i].yAxis) {
+		  dataArrayLvl2[i].yAxis = j;
+		}
+	      }
+	    };
+	    
+	    
+	    /* Start rebuilding the elements */
+	    var width = xAxisArrayLvl2.length * gridSize,
+	    height = yAxisData.length * gridSize,
+	    legendElementWidth = 800,
+	    buckets = 4,
+	    colors = ["#f4f9e5","#b4d987","#74a53b","#46781e"]; // alternatively colorbrewer.YlGnBu[9]
+	    
+	    var colorScale = d3.scale.quantile()
+	      .domain([0, 10])
+	      .range(colors);
+	    
+	  // Update the X Labels for level 2
+	    
+	    var xText = svg.selectAll(".xAxis")
+	      .data(xAxisArrayLvl2, function(d, i) { return d; });
+	   
+	    xText
+	      .enter().append("text") 
+	      .transition()
+	      .duration(300)
+	      .text(function(d) { return d; })
+	      .style("text-anchor", "start")
+	      .attr("x", 10)
+	      .attr("y", 12)
+	      .attr("class", "xAxis active")
+	      .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+      
+	    
+	    xText
+	      .exit()
+	      .remove();
+	    
+	    
+	   /* var returnUp = svg.selectAll(".drillUp")
+	      .data(["Return"])
+	      .enter()
+	      .append("text")
+	      .text("Return")
+	      .attr("x", -100)
+	      .attr("y", -100);*/
+	  // Update the lines for level 2
+	  
+	    /* Initialize tooltip */
+	    var tip = d3.tip()
+	      .attr('class', 'd3-tip')
+	      .html(function(d) { return "<div> <span class='light'>Value </span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	
+		 
+	     var heatMap = svg.selectAll(".heat")
+	      .data(dataArrayLvl2);
+	      
+	      heatMap.enter().append("rect")
+		.attr("rx", 2)
+		.attr("ry", 2)
+		.attr("class", "heat bordered")
+		.attr("width", gridSize)
+		.attr("height", gridSize)
+		.style("fill", colors[0])
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide);
+	      
+	      heatMap
+	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
+	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
+	      .style("fill", function(d) { return colorScale(d.Value)})
+	      ;
+	      
+	      
+	      heatMap
+		.exit()
+		.remove();
+		
+		
+	       heatMap.call(tip);
+	      
+	   //vertical lines
+	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArrayLvl2.length + 1));
+	      
+	  
+		
+	    vLine
+	      .exit()
+	      .remove();
+	    
+	    // horizontal lines
+	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisData.length + 1));
+
+	      
+	    hLine
+	      .exit()
+	      .remove();
+	  
+	    
+	    
+	    
+	    
+	    
+	  } // End of level2 function
+	  
+	  
+
+	  
+      };      
+    </script>
+  </body>
+</html>
