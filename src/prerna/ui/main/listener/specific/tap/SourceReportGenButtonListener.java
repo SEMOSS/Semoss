@@ -149,41 +149,41 @@ public class SourceReportGenButtonListener implements IChakraListener {
 		writer.ExportLoadingSheets(fileLoc, hash,templateLoc,outputArray);
 		
 		
-		query="SELECT DISTINCT ?Data_Object ?Description ?DataElement WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Task_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data_Object ?Data_Object}{?Data_Object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?DataElement <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataElement> ;} {?DataElement ?belongs ?Data_Object.}OPTIONAL{?Data_Object <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}} ORDER BY ?Data_Object ?DataElement BINDINGS ?Capability {@FillCapability@}";
-		ArrayList<String[]> list = new ArrayList<String[]>();
-		String[] names=null;
-		
-		Hashtable<String, String> capHash = new Hashtable<String, String>();
-		
-		capHash.put("FillCapability", capabilityList);				
-		String nFillQuery = Utility.fillParam(query, capHash);
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(nFillQuery);
-		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-		
-		names = wrapper.getVariables();
-		try {
-			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
-				String [] values = new String[names.length];
-				for(int colIndex = 0;colIndex < names.length;colIndex++) {
-					if(sjss.getVar(names[colIndex]) != null) {
-						values[colIndex] = (String)sjss.getVar(names[colIndex]);
-					}
-				}
-				list.add(values);
-			}
-		} 
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		list.add(0,names);
-
-		String writeDataFileName = "Report Source Selector Data Objects " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
-		String dataFileLoc = workingDir + folder + writeDataFileName;
-		writer.exportDataWorkbook(dataFileLoc,list);
-	
+//		query="SELECT DISTINCT ?Data_Object ?Description ?DataElement WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Task_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data_Object ?Data_Object}{?Data_Object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?DataElement <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataElement> ;} {?DataElement ?belongs ?Data_Object.}OPTIONAL{?Data_Object <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}} ORDER BY ?Data_Object ?DataElement BINDINGS ?Capability {@FillCapability@}";
+//		ArrayList<String[]> list = new ArrayList<String[]>();
+//		String[] names=null;
+//		
+//		Hashtable<String, String> capHash = new Hashtable<String, String>();
+//		
+//		capHash.put("FillCapability", capabilityList);				
+//		String nFillQuery = Utility.fillParam(query, capHash);
+//		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+//		wrapper.setQuery(nFillQuery);
+//		wrapper.setEngine(engine);
+//		wrapper.executeQuery();
+//		
+//		names = wrapper.getVariables();
+//		try {
+//			while(wrapper.hasNext()) {
+//				SesameJenaSelectStatement sjss = wrapper.next();
+//				String [] values = new String[names.length];
+//				for(int colIndex = 0;colIndex < names.length;colIndex++) {
+//					if(sjss.getVar(names[colIndex]) != null) {
+//						values[colIndex] = (String)sjss.getVar(names[colIndex]);
+//					}
+//				}
+//				list.add(values);
+//			}
+//		} 
+//		catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		list.add(0,names);
+//
+//		String writeDataFileName = "Report Source Selector Data Objects " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
+//		String dataFileLoc = workingDir + folder + writeDataFileName;
+//		writer.exportDataWorkbook(dataFileLoc,list);
+//	
 		logger.info("Source Report Generator Button Pushed");
 
 	}
