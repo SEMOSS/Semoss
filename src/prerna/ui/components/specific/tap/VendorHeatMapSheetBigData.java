@@ -286,7 +286,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		allHash.put("title", "Requirements vs. Vendors");
 		allHash.put("xAxisTitle","System1");
 		allHash.put("yAxisTitle","System2");
-		allHash.put("requirement","requirement");
+		allHash.put("childxAxisTitle","Requirement");
+		allHash.put("childyAxisTitle","Vendor");
 		allHash.put("weight","weight");
 		allHash.put("value", "Score");
 	}

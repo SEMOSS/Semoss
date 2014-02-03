@@ -1,18 +1,19 @@
 START_ROW	2
 END_ROW	10000
 
-NUM_COLUMNS	6
+NUM_COLUMNS	7
 1	String
 2	String
 3	String
-4	Decimal
+4	String
 5	Decimal
-6	SimpleDate
+6	Decimal
+7	SimpleDate
 
 
 NOT_OPTIONAL	;
 
-RELATION		Vendor@Uses@Hardware;Hardware@Has@HardwareType;
+RELATION	Vendor@Uses@System;System@Uses@Hardware;Hardware@Has@HardwareType;
 
 NODE_PROP	Hardware%EOL;Hardware%Quantity;Hardware%Cost;
 
