@@ -44,7 +44,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = System.getProperty("user.dir");
-		fileName = "file://" + workingDir+"/html/MHS-RDFSemossCharts/app/capability.html";
+		fileName = "file://" + workingDir+"/html/MHS-RDFSemossCharts/app/capabilitybigdata.html";
 	}
 	
 	/**
