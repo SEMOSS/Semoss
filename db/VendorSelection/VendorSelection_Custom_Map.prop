@@ -1,34 +1,18 @@
 
 ##Base Objects##
 
-SoftwareType http://health.mil/ontologies/Concept/SoftwareType
-HardwareType http://health.mil/ontologies/Concept/HardwareType
-Software http://health.mil/ontologies/Concept/Software
-Hardware http://health.mil/ontologies/Concept/Hardware
-Vendor http://health.mil/ontologies/Concept/Vendor
-
-SoftwareType http://health.mil/ontologies/Concept/SoftwareType
-HardwareType http://health.mil/ontologies/Concept/HardwareType
-Software http://health.mil/ontologies/Concept/Software
-Hardware http://health.mil/ontologies/Concept/Hardware
-Vendor http://health.mil/ontologies/Concept/Vendor
-
-BusinessRule http://health.mil/ontologies/Concept/BusinessRule
 Task http://health.mil/ontologies/Concept/Task
-Vendor+System+Capability+Task+BusinessRule http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskBusinessRule
 System http://health.mil/ontologies/Concept/System
-Vendor+System+Capability+Task+BusinessProcess+Activity http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskBusinessProcessActivity
-Activity http://health.mil/ontologies/Concept/Activity
 BusinessStandard http://health.mil/ontologies/Concept/BusinessStandard
-BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 Comments http://health.mil/ontologies/Concept/Comments
-SLA http://health.mil/ontologies/Concept/SLA
+Software http://health.mil/ontologies/Concept/Software
 TechStandard http://health.mil/ontologies/Concept/TechStandard
-DataObject http://health.mil/ontologies/Concept/DataObject
 SupportLevel http://health.mil/ontologies/Concept/SupportLevel
 Service http://health.mil/ontologies/Concept/Service
+DataObject http://health.mil/ontologies/Concept/DataObject
 Capability http://health.mil/ontologies/Concept/Capability
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
+SoftwareType http://health.mil/ontologies/Concept/SoftwareType
 Vendor+System+Capability+Task+BusinessStandard http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskBusinessStandard
 Vendor+System+Capability+Task http://health.mil/ontologies/Concept/VendorSystemCapabilityTask
 Vendor+System+Capability+Task+DataObject+Service http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskDataObjectService
@@ -37,291 +21,96 @@ TechRequirement http://health.mil/ontologies/Concept/TechRequirement
 Vendor http://health.mil/ontologies/Concept/Vendor
 Vendor+System+Capability+Task+TechRequirement http://health.mil/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement
 CustomizationEffort http://health.mil/ontologies/Concept/CustomizationEffort
-
-
-SoftwareType http://health.mil/ontologies/Concept/SoftwareType
-HardwareType http://health.mil/ontologies/Concept/HardwareType
-Software http://health.mil/ontologies/Concept/Software
 Hardware http://health.mil/ontologies/Concept/Hardware
-Vendor http://health.mil/ontologies/Concept/Vendor
+HardwareType http://health.mil/ontologies/Concept/HardwareType
 
 ##Base Predicates##
 
-Software_Has_SoftwareType http://health.mil/ontologies/Relation/Has
-Hardware_Has_HardwareType http://health.mil/ontologies/Relation/Has
-Vendor_Uses_Hardware http://health.mil/ontologies/Relation/Uses
-Vendor_Uses_Software http://health.mil/ontologies/Relation/Uses
-
-Software_Has_SoftwareType http://health.mil/ontologies/Relation/Has
-Hardware_Has_HardwareType http://health.mil/ontologies/Relation/Has
-Vendor_Uses_Hardware http://health.mil/ontologies/Relation/Uses
-Vendor_Uses_Software http://health.mil/ontologies/Relation/Uses
-
 Vendor+System+Capability+Task+BusinessStandard_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
 Vendor+System+Capability+Task+DataObject+Service_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_BusinessProcess http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+TechRequirement_Has_Comments http://health.mil/ontologies/Relation/Has
 Vendor+System+Capability+Task+TechRequirement_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
+Vendor+System+Capability+Task+TechRequirement_Has_Comments http://health.mil/ontologies/Relation/Has
+Vendor+System+Capability+Task_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
+System_Uses_Hardware http://health.mil/ontologies/Relation/Uses
 TechRequirement_Has_TechStandard http://health.mil/ontologies/Relation/Has
 Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
-Vendor+System+Capability+Task+BusinessProcess+Activity_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
+Vendor+System+Capability+Task_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+BusinessStandard_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
 Vendor+System+Capability+Task+BusinessStandard_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+TechRequirement_Satisfies_TechStandard http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_DataObject http://health.mil/ontologies/Relation/Satisfies
 Vendor+System+Capability+Task+BusinessStandard_Satisfies_BusinessStandard http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_Activity http://health.mil/ontologies/Relation/Satisfies
-BusinessRule_Requires_SLA http://health.mil/ontologies/Relation/Requires
+Vendor+System+Capability+Task+DataObject+Service_Satisfies_DataObject http://health.mil/ontologies/Relation/Satisfies
 Vendor+System+Capability+Task+DataObject+Service_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
 Vendor+System+Capability+Task_Satisfies_Task http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessRule_Has_Comments http://health.mil/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessProcess+Activity_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
 Vendor+System+Capability+Task+TechRequirement_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessRule_AssociatedTo_Vendor+System+Capability+Task http://health.mil/ontologies/Relation/AssociatedTo
+Vendor+System+Capability+Task_Has_Comments http://health.mil/ontologies/Relation/Has
 Vendor+System+Capability+Task_Has_Vendor http://health.mil/ontologies/Relation/Has
+System_Uses_Software http://health.mil/ontologies/Relation/Uses
 Vendor+System+Capability+Task_Satisfies_Capability http://health.mil/ontologies/Relation/Satisfies
 Vendor+System+Capability+Task+DataObject+Service_Has_Comments http://health.mil/ontologies/Relation/Has
+Software_Has_SoftwareType http://health.mil/ontologies/Relation/Has
 Task_Requires_DataObject http://health.mil/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Supports_SupportLevel http://health.mil/ontologies/Relation/Supports
 Task_Requires_TechRequirement http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+DataObject+Service_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_Has_Comments http://health.mil/ontologies/Relation/Has
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_BusinessLogicUnit http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_Has_Comments http://health.mil/ontologies/Relation/Has
-Task_Requires_Activity http://health.mil/ontologies/Relation/Requires
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_Service http://health.mil/ontologies/Relation/Satisfies
-Task_Requires_BusinessRule http://health.mil/ontologies/Relation/Requires
+Hardware_Has_HardwareType http://health.mil/ontologies/Relation/Has
 Task_Requires_BusinessLogicUnit http://health.mil/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Satisfies_BusinessRule http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
+Vendor+System+Capability+Task+DataObject+Service_Satisfies_Service http://health.mil/ontologies/Relation/Satisfies
 Vendor+System+Capability+Task+TechRequirement_Satisfies_TechRequirement http://health.mil/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessRule_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+TechRequirement_Requires_CustomizationEffort http://health.mil/ontologies/Relation/Requires
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_Service http://health.mil/ontologies/Relation/Satisfies
 Task_Requires_BusinessStandard http://health.mil/ontologies/Relation/Requires
+Vendor_Uses_System http://health.mil/ontologies/Relation/Uses
 Capability_Supports_Task http://health.mil/ontologies/Relation/Supports
 Vendor+System+Capability+Task_Has_System http://health.mil/ontologies/Relation/Has
 Vendor+System+Capability+Task+BusinessStandard_Has_Comments http://health.mil/ontologies/Relation/Has
 
-Software_Has_SoftwareType http://health.mil/ontologies/Relation/Has
-Hardware_Has_HardwareType http://health.mil/ontologies/Relation/Has
-Vendor_Uses_Hardware http://health.mil/ontologies/Relation/Uses
-Vendor_Uses_Software http://health.mil/ontologies/Relation/Uses
-
 ##Base Objects Class##
-
-Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
-HardwareType_CLASS http://semoss.org/ontologies/Concept/HardwareType
-Vendor_CLASS http://semoss.org/ontologies/Concept/Vendor
-SoftwareType_CLASS http://semoss.org/ontologies/Concept/SoftwareType
-Software_CLASS http://semoss.org/ontologies/Concept/Software
-
-Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
-HardwareType_CLASS http://semoss.org/ontologies/Concept/HardwareType
-Vendor_CLASS http://semoss.org/ontologies/Concept/Vendor
-SoftwareType_CLASS http://semoss.org/ontologies/Concept/SoftwareType
-Software_CLASS http://semoss.org/ontologies/Concept/Software
 
 BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 Vendor+System+Capability+Task+BusinessStandard_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessStandard
 Vendor_CLASS http://semoss.org/ontologies/Concept/Vendor
 Task_CLASS http://semoss.org/ontologies/Concept/Task
 BusinessStandard_CLASS http://semoss.org/ontologies/Concept/BusinessStandard
-BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
-Vendor+System+Capability+Task+BusinessProcess+Activity_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessProcessActivity
 TechRequirement_CLASS http://semoss.org/ontologies/Concept/TechRequirement
+SoftwareType_CLASS http://semoss.org/ontologies/Concept/SoftwareType
 Comments_CLASS http://semoss.org/ontologies/Concept/Comments
 Capability_CLASS http://semoss.org/ontologies/Concept/Capability
+Software_CLASS http://semoss.org/ontologies/Concept/Software
 TechStandard_CLASS http://semoss.org/ontologies/Concept/TechStandard
 Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask
-BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
+Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
 Vendor+System+Capability+Task+TechRequirement_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement
-SupportLevel_CLASS http://semoss.org/ontologies/Concept/SupportLevel
 Service_CLASS http://semoss.org/ontologies/Concept/Service
-Vendor+System+Capability+Task+BusinessRule_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessRule
-Activity_CLASS http://semoss.org/ontologies/Concept/Activity
+SupportLevel_CLASS http://semoss.org/ontologies/Concept/SupportLevel
 Vendor+System+Capability+Task+BusinessLogicUnit+Service_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessLogicUnitService
 CustomizationEffort_CLASS http://semoss.org/ontologies/Concept/CustomizationEffort
-SLA_CLASS http://semoss.org/ontologies/Concept/SLA
+HardwareType_CLASS http://semoss.org/ontologies/Concept/HardwareType
 Vendor+System+Capability+Task+DataObject+Service_CLASS http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskDataObjectService
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
 System_CLASS http://semoss.org/ontologies/Concept/System
 
-Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
-HardwareType_CLASS http://semoss.org/ontologies/Concept/HardwareType
-Vendor_CLASS http://semoss.org/ontologies/Concept/Vendor
-SoftwareType_CLASS http://semoss.org/ontologies/Concept/SoftwareType
-Software_CLASS http://semoss.org/ontologies/Concept/Software
-
 ##Base Predicates Class##
 
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-Vendor+System+Capability+Task+BusinessRule_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+TechRequirement_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Satisfies_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_Service_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
-BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessProcess+Activity_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_Service_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+DataObject+Service_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Service_Exposes_DataObject_CLASS http://semoss.org/ontologies/Relation/Exposes
-Vendor+System+Capability+Task+BusinessStandard_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_DataObject_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Satisfies
 TechRequirement_Has_TechStandard_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+DataObject+Service_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Capability_Supports_Task_CLASS http://semoss.org/ontologies/Relation/Supports
-Task_Requires_Activity_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+TechRequirement_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessRule_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task_Has_Vendor_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessStandard_Satisfies_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessStandard_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+TechRequirement_Satisfies_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+TechRequirement_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+DataObject+Service_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task_Has_System_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessRule_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_Activity_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task_Satisfies_Task_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessProcess+Activity_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+TechRequirement_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+DataObject+Service_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessStandard_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Task_Requires_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+TechRequirement_Satisfies_TechStandard_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task_Satisfies_Capability_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessStandard_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessProcess+Activity_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-
-
-IGNORE_URI	;
-
-
-##Base Predicates Class##
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-Vendor+System+Capability+Task+BusinessRule_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+TechRequirement_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Satisfies_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_Service_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
-BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessProcess+Activity_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_Service_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+DataObject+Service_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Service_Exposes_DataObject_CLASS http://semoss.org/ontologies/Relation/Exposes
-Vendor+System+Capability+Task+BusinessStandard_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Requires_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+DataObject+Service_Satisfies_DataObject_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Satisfies_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Satisfies
-TechRequirement_Has_TechStandard_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+DataObject+Service_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Capability_Supports_Task_CLASS http://semoss.org/ontologies/Relation/Supports
-Task_Requires_Activity_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+TechRequirement_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessRule_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task_Has_Vendor_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessStandard_Satisfies_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessStandard_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+TechRequirement_Satisfies_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+TechRequirement_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+DataObject+Service_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task_Has_System_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor+System+Capability+Task+BusinessRule_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+BusinessProcess+Activity_Satisfies_Activity_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task_Satisfies_Task_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessProcess+Activity_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+BusinessLogicUnit+Service_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessProcess+Activity_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+TechRequirement_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
-Vendor+System+Capability+Task+DataObject+Service_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessStandard_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-Task_Requires_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+BusinessRule_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
-Task_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
-Vendor+System+Capability+Task+TechRequirement_Satisfies_TechStandard_CLASS http://semoss.org/ontologies/Relation/Satisfies
 Vendor+System+Capability+Task_Satisfies_Capability_CLASS http://semoss.org/ontologies/Relation/Satisfies
-Vendor+System+Capability+Task+BusinessStandard_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
-Vendor+System+Capability+Task+BusinessProcess+Activity_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
-
-
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
+Vendor+System+Capability+Task+TechRequirement_Satisfies_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Satisfies
+Vendor+System+Capability+Task+TechRequirement_Supports_SupportLevel_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_Supports_Task_CLASS http://semoss.org/ontologies/Relation/Supports
+Vendor+System+Capability+Task_Has_Vendor_CLASS http://semoss.org/ontologies/Relation/Has
+Vendor+System+Capability+Task+TechRequirement_Has_Comments_CLASS http://semoss.org/ontologies/Relation/Has
+Vendor+System+Capability+Task_Has_System_CLASS http://semoss.org/ontologies/Relation/Has
+Vendor+System+Capability+Task+TechRequirement_Satisfies_TechStandard_CLASS http://semoss.org/ontologies/Relation/Satisfies
+Vendor+System+Capability+Task+TechRequirement_Requires_CustomizationEffort_CLASS http://semoss.org/ontologies/Relation/Requires
+Vendor+System+Capability+Task_Satisfies_Task_CLASS http://semoss.org/ontologies/Relation/Satisfies
+Vendor+System+Capability+Task+TechRequirement_AssociatedTo_Vendor+System+Capability+Task_CLASS http://semoss.org/ontologies/Relation/AssociatedTo
 
 PROP_URI http://semoss.org/ontologies/Relation/Contains
-PREDICATE_URI 
-BaseData=BaseMetaRelationships;BaseMetaProperties
-BaseMetaProperties=http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/SoftwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/HardwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Software+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Hardware+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Vendor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Exposes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Exposes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Exposes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Exposes+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/AssociatedTo+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Requires+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Satisfies+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Supports+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Uses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Uses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Uses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Uses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;
-BaseMetaRelationships=http://semoss.org/ontologies/Relation+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/1999/02/22-rdf-syntax-ns#Property;http://semoss.org/ontologies/Relation/Contains+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation/Contains;http://semoss.org/ontologies/Relation/Uses+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;http://semoss.org/ontologies/Relation/Has+http://www.w3.org/2000/01/rdf-schema#subPropertyOf+http://semoss.org/ontologies/Relation;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/BusinessLogicUnit+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Vendor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Task+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessProcess+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessProcessActivity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/TechRequirement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Comments+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Capability+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/TechStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessRule+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SupportLevel+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Service+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessRule+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Activity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessLogicUnitService+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CustomizationEffort+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SLA+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskDataObjectService+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DataObject+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/System+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/BusinessLogicUnit+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Vendor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Task+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessProcess+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessProcessActivity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/TechRequirement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Comments+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Capability+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/TechStandard+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/BusinessRule+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SupportLevel+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Service+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessRule+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Activity+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskBusinessLogicUnitService+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/CustomizationEffort+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SLA+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskDataObjectService+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/DataObject+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/System+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/Hardware+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/HardwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Vendor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SoftwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Software+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;;http://semoss.org/ontologies/Concept+http://www.w3.org/1999/02/22-rdf-syntax-ns#type+http://www.w3.org/2000/01/rdf-schema#Class;http://semoss.org/ontologies/Concept/Hardware+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/HardwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Vendor+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/SoftwareType+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;http://semoss.org/ontologies/Concept/Software+http://www.w3.org/2000/01/rdf-schema#subClassOf+http://semoss.org/ontologies/Concept;
 
-
-##Base Predicates Class##
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
-
-
-##Base Predicates Class##
-
-Vendor_Uses_Software_CLASS http://semoss.org/ontologies/Relation/Uses
-Hardware_Has_HardwareType_CLASS http://semoss.org/ontologies/Relation/Has
-Vendor_Uses_Hardware_CLASS http://semoss.org/ontologies/Relation/Uses
-Software_Has_SoftwareType_CLASS http://semoss.org/ontologies/Relation/Has
-
+IGNORE_URI	;
