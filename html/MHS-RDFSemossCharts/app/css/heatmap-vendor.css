@@ -1,0 +1,272 @@
+      body {
+      margin-left: 0px;
+      margin-right: 0px;
+      margin-bottom: 0px;
+      margin-top: 0px;
+      }
+      
+      #chart {
+	background-color: #fff;
+	margin-left: 320px;
+	margin-right: auto;
+      }
+      
+      rect.bordered {
+        stroke: #E6E6E6;
+        stroke-width:2px;
+      }
+      
+  
+      text {
+        font-size: 9pt;
+        font-family: arial, courier;
+        fill: #000;
+      }
+
+      text.axis-workweek {
+        fill: #000;
+      }
+
+      text.axis-worktime {
+        fill: #000;
+      }
+      
+      .xAxis {
+	font-size: 9px;
+	width: 4px;
+      }
+      .yAxis {
+	font-size: 9px;
+	width: 4px;
+	
+      }
+      
+      .row-hide {
+	display: none;
+      }
+      
+      .row-show {
+	display: none;
+      }
+	    
+      .d3-tip {
+	line-height: 1.4;
+	font-weight: bold;
+	padding: 12px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 3px;
+	margin-top: -7px;
+	font-family: sans-serif;
+	font-size: 12px;
+      }
+      
+      /* Creates a small triangle extender for the tooltip */
+      .d3-tip:after {
+	box-sizing: border-box;
+	display: inline;
+	font-size: 10px;
+	width: 100%;
+	line-height: 1;
+	color: rgba(0, 0, 0, 0.8);
+	content: "\25BC";
+	position: absolute;
+	text-align: center;
+      }
+      
+      /* Style northward tooltips differently */
+      .d3-tip.n:after {
+	margin: -1px 0 0 0;
+	top: 98%;
+	left: 0;
+      }
+      
+      .light {
+	color: #bbb;
+      }
+      
+      
+      #min {
+	margin-left: 0px;
+	position: relative;
+	top:2px;
+      }
+      
+      #max {
+	margin-right: 0px;
+	position: relative;
+	top:2px;
+      }
+      
+      .slider {
+	margin-left: 0px;
+	margin-right: 0px;
+	position: relative;
+	top:1px;
+	width: 105px;
+	
+      }
+      
+      
+      #sidebarContentCenter #min {
+  margin-left: 0px;
+  margin-right: 17px;
+  position: relative;
+  top:2px;
+      }
+      
+      #sidebarContentCenter #max {
+  margin-right: 30px;
+  position: relative;
+  top:2px;
+      }
+
+    #sidebarContentCenter .slider {
+  margin-left: 0px;
+  margin-right: 20px;
+  position: relative;
+  top:1px;
+  
+      }
+      
+    #sidebarContentCenter .mySelect2v2 {
+  width: 270px;
+  margin-left: 0px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+      }
+
+      #refreshBtn {
+  margin-top: 0px;
+  margin-bottom: 0px;
+      }
+
+      #appGridBtn {
+  margin-top: 10px;
+  margin-bottom: 10px;
+      }
+      
+  #sidebarContentCenter .brand {
+  margin-left: 10px;
+  color: #555;
+  font-size: 17px;
+  font-weight: bold;
+  position: relative;
+  top:2px;
+      }
+
+
+    #barCanvas {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding-left: 2px;
+      padding-right: 0px;
+      padding-bottom: 0px;
+      padding-top: 2px;
+      margin-top: 0px;
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      font-size: 9px;
+    }
+    
+    #description {
+      margin-top: 80px;
+    }
+    
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+    
+    #checkboxes {
+      margin-top: 10px;
+      margin-bottom: 0px;
+    }
+    
+    .btn a, .btn a:hover {
+      color: white;
+      text-decoration: none;
+    }
+    
+    .light {
+      fill: #fff;
+    }
+    .dark {
+      fill: #222;
+    }
+  
+  .cbxContainer {
+    margin-top: 0px;
+  }
+  
+  .cbxLabels {
+    font-size: 9px;
+  }
+  
+  .filter.input-sm {
+    width: 25px;
+    padding: 0px;
+  }
+  
+  #header {
+    margin-top: 70px;
+    font-size: 18px;
+  }
+    
+  #header2 {
+    padding-top: 10px;
+    font-size: 18px;
+  }
+
+#sidebarContainer {
+    position: fixed;
+    width: 330px;
+    height: 100%;
+
+}
+#sidebarHeader {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    height: 48px;
+    background-color:white;
+}
+
+
+#sidebarContentArea{
+    position: absolute;
+    left: 0px;
+    top: 48px;
+    right: 0px;
+    bottom: 0px;
+}
+
+#sidebarContentCenter {
+  position: absolute;
+  overflow-y: scroll;
+  top: 0px;
+  left: 0px;
+  bottom: 0px;
+  right:0px;
+  background-color: #eee;
+  z-index: 1;
+  background-repeat: repeat-y;
+  padding: 10px 15px 0px 15px;
+  border-right: 1px solid #ccc;
+  -webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065);
+  -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065);
+}
+
+#sidebarFooter {
+    position: absolute;
+    height: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    background-color:white;
+}
