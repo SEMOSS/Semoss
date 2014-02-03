@@ -22,48 +22,57 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Iterator;
 
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 public class CSVMetamodelBuilder {
-	
+
 	static String jsonHeaders = "";
 	public String file;
-	
-	public static void main(String[] args){
-		String test = "C:\\Users\\mahkhalil\\Documents\\JHU_Recruiting\\BI\\LoadHopkinsData.csv";
-		System.out.println(getHeaders(test));
-			
-	}
-	
-	public static List<String> getHeaders(String files){
-		// get the headers for one CSVFile
-		String[] fileName = files.split(";");
-		String[] header = null;
-		try {
-			ICsvMapReader mapReader = new CsvMapReader(new FileReader(fileName[0]), CsvPreference.STANDARD_PREFERENCE);
-			header = mapReader.getHeader(true);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
 
-		// need to check if last header in CSV file is an absolute path to a prop file
-		File propFile = new File(header[header.length-1]);
-		if(propFile != null){
-			header = Arrays.copyOfRange(header, 0, header.length-1);
-		}
-		
-		return Arrays.asList(header);
+	public static void main(String[] args){
+		//String test = "C:\\Users\\mahkhalil\\Documents\\JHU_Recruiting\\BI\\LoadHopkinsData.csv";
+		//System.out.println(getHeaders(test));
+
 	}
-	
+
+	public List<String> getHeaders(ArrayList<File> files){
+		// get the headers for one CSVFile
+		Iterator<File> it = files.iterator();
+		List<String> outputHeaders = null;
+		while(it.hasNext())
+		{
+			String[] header = null;
+			try {
+				ICsvMapReader mapReader = new CsvMapReader(new FileReader(it.next()), CsvPreference.STANDARD_PREFERENCE);
+				header = mapReader.getHeader(true);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}		
+
+			// need to check if last header in CSV file is an absolute path to a prop file
+			File propFile = new File(header[header.length-1]);
+			if(propFile != null){
+				header = Arrays.copyOfRange(header, 0, header.length-1);
+			}
+			
+			for(int i = 0; i < header.length; i++){
+				outputHeaders.add(header[i]);
+			}
+		}
+		return outputHeaders;
+	}
+
 	public String setFile(String filePath){
 		return this.file = filePath;
 	}
