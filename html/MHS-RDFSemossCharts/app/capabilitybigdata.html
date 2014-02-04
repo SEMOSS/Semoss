@@ -461,6 +461,8 @@
 	  refreshPushed = true;
 	  refreshArray = [];
 	  sliderArray = [0,100];
+	  
+	  $("input[name='cbx']").prop("disabled", false);
 	  var cloneObject = {}; // we need this clone of refreshObject so that when we delete values, we aren't deleting from the refresh Object
 	  cloneObject = jQuery.extend(true, {}, refreshObject);
 //for the filter. Say you select 50 in the fitler, you don't want to delete the original data because you won't be able to decrease filter value in subsequent refreshes. You only delete cloneObject, and the cloneObject copies off of the original.
@@ -473,6 +475,7 @@
 	  
 	  // loop through ny new clone object and delete out all the values that dont meet the thresholds
 	  catThresh = 0;
+	  refBtn.html("<a><i class='icon-refresh icon-white'></i> Refresh</a>")
     	  for (var i=0; i<uniqueStandards.length; i++) {
 	    var totalVal = 0;
 	    var roundedAvg = 0;
@@ -698,81 +701,7 @@
 	      legend.style("fill", function(d, i) { return colors[0][i]; });
 	    }
 	    
-	  // Update slider
-	   sliderInitRefresh(refreshArray);
-	  function sliderInitRefresh(data) {
-	    
-	    /*----------Slider-------------*/
-	    $('#slider').slider({
-		min: Math.floor(d3.min(data, function (d) { return d.Value; })),
-		max: Math.ceil(d3.max(data, function (d) { return d.Value; })),
-		value:[Math.floor(d3.min(data, function (d) { return d.Value; })), Math.ceil(d3.max(data, function (d) { return d.Value; }))],
-		step:1
-	      })
-	    .on('slide', function(){
-		domainArray = $('#slider').data('slider').getValue()
-		
-		heatMap
-		.style("fill", function(d) {
-		  if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		    return colorScale(d.Value);
-		  }else {return "white"}
-		});
-	    })
-	  }
-	  
 
-
-		//Updating the dropDownArray so as to only include systems with matches
-		dropDownArray = [];
-		for(i=0; i<xAxisArray.length; i++){
-			dropDownArrayYAxisMatches = [];					
-			for(j=0; j<refreshArray.length; j++){
-			    if(refreshArray[j].xAxisName === xAxisArray[i]){
-				    dropDownArrayYAxisMatches.push(refreshArray[j].yAxisName);
-			    }
-				if(dropDownArrayYAxisMatches.length>1){
-					dropDownArray.push(xAxisArray[i]);
-					break;
-				}	  
-			}	  
-		}
-
-	  //Sidebar drop down datat updates
-	  dropDownArray.unshift("");
-	  selectedSystem = dropDownArray[0];
-      
-
-	   var sidebarDropDown = d3.select("#sidebarContentCenter").select("#select2DropDown2")
-	     	.selectAll("option")
-	    	.data(dropDownArray);
-
-	    sidebarDropDown
-	    	.enter()
-	    	.append("option");
-
-	    sidebarDropDown
-		    .attr("value", function(d){ return d; }) /* This gives me the value */
-		    .text(function(d){ return d});
-
-	    sidebarDropDown.exit().remove();
-	   	 
-		$("#select2DropDown2").select2("val", "");
-	    $("#select2DropDown2").select2({
-		    placeholder: "Select a System"
-		});
-
-
-	  d3.select("#min")
-	  
-	    .text("Min: " + Math.floor(d3.min(refreshArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
-	    
-	  d3.select("#max")
-	    .text("Max: " + Math.ceil(d3.max(refreshArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
 	} //end of refresh function
 
 	
@@ -786,7 +715,7 @@
 	    .attr("width", "140px")
 	    .attr("height", "60px")
 	    .append("xhtml:div")
-	    .html("<a>Refresh</a>")
+	    .html("<a><i class='icon-refresh icon-white'></i> Refresh</a>")
 	    .attr("class","btn btn-success");
 	    refBtn.on("click", function(d){ refresh()});
 	    
@@ -959,6 +888,11 @@
 
 	  
 	  function level2 (capability, standard) {
+	    $("input[name='cbx']").prop("disabled", true);
+	
+	    
+	    refBtn.html("<a><i class='icon-arrow-up icon-white'></i>Drill Up</a>")
+	    
 	    barChart([]); // refresh the bar chart
 	    xAxisArrayLvl2.length = 0;
 	    yAxisArrayLvl2.length = 0;
@@ -1078,7 +1012,6 @@
 	      
 	    //Refresh vertical lines
 	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArrayLvl2.length + 1))
-	    
 	    vLine.exit().remove();
 	    
 	    // Refreshhorizontal lines
