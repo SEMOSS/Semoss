@@ -32,6 +32,7 @@
 		      <b id="min"></b><input type="text" class="slider" id="slider" ><b id="max"></b>
 		      <br>
 			<hr>-->
+		      <input id="selectAllCbx" type="checkbox" checked="checked"> <span>Select All</span>
 		      <div id="checkboxes"></div>
 		      <div id="refreshBtn"></div>
 		      <div id="barCanvas"></div>
@@ -45,14 +46,13 @@
     <script type="text/javascript">
      
  
-     // start(dataString);
-      
+      //start(dataString);
       
       function start(dataString) {
 	
 	var jsonData = jQuery.parseJSON(dataString);
-	var data = jsonData.dataSeries
 	
+	var data = jsonData.dataSeries
 	//var data = dataString.dataSeries
 	var xAxisName = jsonData.xAxisTitle
 	var yAxisName = jsonData.yAxisTitle
@@ -791,9 +791,27 @@
 	    refBtn.on("click", function(d){ refresh()});
 	    
 //this is where they select the checkboxes. When they click refresh, you only look at the checkboxes that were checked
-
+	  
+	  var selectAllCbx = document.getElementById("selectAllCbx");
+	  selectAllCbx.onclick = function selectAll(){
+	    if (selectAllCbx.checked) {
+	      $("input[name='cbx']").prop("checked", true);
+	      refreshObject = data;
+	      checkedCapabilities = capabilityArray;
+	    } else {
+	      $("input[name='cbx']").prop("checked", false);
+	      refreshObject = {};
+	      checkedCapabilities.length = 0;
+	    }
+	  
+	  }
+	  
+	  
+	  
+	  
 	  //On click of checkbox
 	  var checkbox = function(param){
+	    
 	    if(document.getElementById(param).checked) {
 	      var capabilityIndex = checkedCapabilities.indexOf(param);
 	      // Make sure the value clicked doesn't exist in the array already (we can't have two with the same name)
@@ -827,7 +845,7 @@
 	      .attr("width", "13px")
 	      .attr("height", "18px")
 	    .append("xhtml:div")
-	      .html(function(d){ return ("<input type=checkbox checked='checked' class='cbx' id=" + d + "></input>")}) // give each element a unique id
+	      .html(function(d){ return ("<input type=checkbox checked='checked' name='cbx' class='cbx' id=" + d + "></input>")}) // give each element a unique id
 	      .on("click", function(d){checkbox(d);});
 	
 	  cbx.selectAll("text.cbxLabels")
