@@ -45,7 +45,7 @@ public class CSVMetamodelBuilder {
 	public List<String> getHeaders(ArrayList<File> files){
 		// get the headers for one CSVFile
 		Iterator<File> it = files.iterator();
-		List<String> outputHeaders = null;
+		ArrayList<String> outputHeaders = new ArrayList<String>();
 		while(it.hasNext())
 		{
 			String[] header = null;
