@@ -164,10 +164,15 @@ public class SEMOSSVertex{
 		String vertType = (String)outVert.getProperty(Constants.VERTEX_TYPE);
 		//logger.info("Vertex Type is >>>>>>>>>>>>>>>>>" + vertType);
 		Integer vertTypeCount = new Integer(0);
-		if(propHash.containsKey(vertType))
-			vertTypeCount = (Integer)propHash.get(vertType);	
-		vertTypeCount++;
-		propHash.put(vertType, vertTypeCount);
+		try
+		{
+			if(propHash.containsKey(vertType))
+				vertTypeCount = (Integer)propHash.get(vertType);	
+			vertTypeCount++;
+			propHash.put(vertType, vertTypeCount);
+		}catch (Exception ignored)
+		{
+		}
 	}
 	
 	
