@@ -462,7 +462,7 @@
 	  refreshArray = [];
 	  sliderArray = [0,100];
 	  
-	  $("input[name='cbx']").prop("disabled", false);
+	  $("input[type='checkbox']").prop("disabled", false);
 	  var cloneObject = {}; // we need this clone of refreshObject so that when we delete values, we aren't deleting from the refresh Object
 	  cloneObject = jQuery.extend(true, {}, refreshObject);
 //for the filter. Say you select 50 in the fitler, you don't want to delete the original data because you won't be able to decrease filter value in subsequent refreshes. You only delete cloneObject, and the cloneObject copies off of the original.
@@ -888,7 +888,7 @@
 
 	  
 	  function level2 (capability, standard) {
-	    $("input[name='cbx']").prop("disabled", true);
+	    $("input[type='checkbox']").prop("disabled", true);
 	
 	    
 	    refBtn.html("<a><i class='icon-arrow-up icon-white'></i>Drill Up</a>")
