@@ -290,6 +290,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		allHash.put("childyAxisTitle","Vendor");
 		allHash.put("weight","weight");
 		allHash.put("value", "Score");
+		allHash.put("childvalue","Value");
 	}
 	
 	@Override
