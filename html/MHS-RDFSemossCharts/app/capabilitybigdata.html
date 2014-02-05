@@ -441,7 +441,7 @@
 	    
 	  var ref = d3.select("#refreshBtn")
 	    .append("svg")
-	    .attr("width", 100)
+	    .attr("width", 300)
 	    .attr("height", 50);
 
 	  var appBtn = d3.select("#appGridBtn")
@@ -455,6 +455,7 @@
 	  /*----------Checkboxes and Refresh-------------*/
 //function called when refresh button is clicked
 	var refresh = function() {
+	  var context = ref.selectAll("text").remove();
 	  barChart([]); // refresh the bar chart
 	  refreshArray.length = 0;
 	  finderArray.length = 0; // we still need this for the bar chart to update correctly
@@ -895,6 +896,13 @@
 	    
 	    refBtn.html("<a><i class='icon-arrow-up icon-white'></i>Drill Up</a>")
 	    
+	    var context = ref
+	      .append("text")
+	      .text(standard)
+	      .attr("x", 100)
+	      .attr("font-size", 11)
+	      .attr("y", 20);
+	      
 	    barChart([]); // refresh the bar chart
 	    xAxisArrayLvl2.length = 0;
 	    yAxisArrayLvl2.length = 0;
@@ -962,6 +970,9 @@
 	    
 	  // Update the X Labels for level 2
 	    
+	    
+	  
+	  
 	    var xText = svg.selectAll(".xAxis")
 	      .data(xAxisArrayLvl2, function(d, i) { return d; });
 	    xText
