@@ -56,7 +56,10 @@ public class GridScatterSheet extends BrowserPlaySheet{
 			{
 				dataSet[2]=0.0;
 			}
+			else
+			{
 			dataSet[2]=(Double) listElement[3];
+			}
 			dataSet[3]=(String) listElement[0];
 			allData.add(dataSet);
 		}
