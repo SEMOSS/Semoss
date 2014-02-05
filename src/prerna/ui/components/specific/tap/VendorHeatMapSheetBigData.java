@@ -231,8 +231,12 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 							capabilities.put(capability,reqCategoriesAndVendors);
 						}
 					}
-					if(requirementCategory.contains("TechStandard")&&!techReqWithStandard.contains(requirement))
-						techReqWithStandard.add(requirement);
+					if(requirementCategory.contains("TechStandard"))
+					{
+						String techrequirement = (String)sjss.getVar(names[4]);
+						if(!techReqWithStandard.contains(techrequirement))
+							techReqWithStandard.add(techrequirement);
+					}
 					
 				}
 			} catch (Exception e) {
