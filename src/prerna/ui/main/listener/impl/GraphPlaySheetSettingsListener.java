@@ -23,6 +23,8 @@ import java.awt.event.ActionEvent;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 
+import org.apache.log4j.Logger;
+
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -33,33 +35,34 @@ import prerna.util.DIHelper;
  */
 public class GraphPlaySheetSettingsListener implements IChakraListener{
 
+	Logger logger = Logger.getLogger(getClass());
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
 	 * @param e ActionEvent - The event that triggers the actions in the method.
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		logger.info("Registering check box");
 		JCheckBox sudowlCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.sudowlCheck);
 		JCheckBox propCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.propertyCheck);
 		JCheckBox searchCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.searchCheck);
 		JCheckBox highQualityExportCheck = (JCheckBox) DIHelper.getInstance().getLocalProp(Constants.highQualityExportCheck);
 		
-		boolean sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
-		boolean prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
-		boolean search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
-		boolean highQuality = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.highQualityExport));
+		boolean sudowl = sudowlCheck.isSelected();
+		logger.info("GPSSudowl: " + sudowl);
+		DIHelper.getInstance().getCoreProp().put(Constants.GPSSudowl, sudowl);
 		
-		sudowl = sudowlCheck.isSelected();
-		DIHelper.getInstance().setLocalProperty(Constants.GPSSudowl, sudowl);
+		boolean prop = propCheck.isSelected();
+		logger.info("GPSProp: " + prop);
+		DIHelper.getInstance().getCoreProp().put(Constants.GPSProp, prop);
 		
-		prop = propCheck.isSelected();
-		DIHelper.getInstance().setLocalProperty(Constants.GPSProp, prop);
+		boolean search = searchCheck.isSelected();
+		logger.info("GPSSearch: " + search);
+		DIHelper.getInstance().getCoreProp().put(Constants.GPSSearch, search);
 		
-		search = searchCheck.isSelected();
-		DIHelper.getInstance().setLocalProperty(Constants.GPSSearch, search);
-		
-		highQuality = highQualityExportCheck.isSelected();
-		DIHelper.getInstance().setLocalProperty(Constants.highQualityExport, highQuality);
+		boolean highQuality = highQualityExportCheck.isSelected();
+		logger.info("highQualityExport: " + highQuality);
+		DIHelper.getInstance().getCoreProp().put(Constants.highQualityExport, highQuality);
 	}
 
 	/**

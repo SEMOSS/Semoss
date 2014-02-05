@@ -2568,7 +2568,12 @@ public class PlayPane extends JFrame {
 
 		propertyCheck = new JCheckBox("Enable graph properties");
 		propertyCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		propertyCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp)));
+		boolean propBool = false;
+		if(DIHelper.getInstance().getProperty(Constants.GPSProp) != null)
+			propBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
+		else
+			logger.error("Failed to read default sudowl boolean from map");
+		propertyCheck.setSelected(propBool);
 		GridBagConstraints gbc_propertyCheck = new GridBagConstraints();
 		gbc_propertyCheck.anchor = GridBagConstraints.WEST;
 		gbc_propertyCheck.insets = new Insets(0, 5, 5, 0);
@@ -2577,7 +2582,12 @@ public class PlayPane extends JFrame {
 		settingsPanel.add(propertyCheck, gbc_propertyCheck);
 
 		sudowlCheck = new JCheckBox("Enable SUDOWL");
-		sudowlCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl)));
+		boolean sudowlBool = false;
+		if(DIHelper.getInstance().getProperty(Constants.GPSSudowl) != null)
+			sudowlBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
+		else
+			logger.error("Failed to read default sudowl boolean from map");
+		sudowlCheck.setSelected(sudowlBool);
 		sudowlCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		GridBagConstraints gbc_sudowlCheck = new GridBagConstraints();
 		gbc_sudowlCheck.anchor = GridBagConstraints.WEST;
@@ -2587,8 +2597,13 @@ public class PlayPane extends JFrame {
 		settingsPanel.add(sudowlCheck, gbc_sudowlCheck);
 
 		searchCheck = new JCheckBox("Enable graph search");
+		boolean searchBool = false;
+		if(DIHelper.getInstance().getProperty(Constants.GPSSearch) != null)
+			searchBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
+		else
+			logger.error("Failed to read default sudowl boolean from map");
 		searchCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		searchCheck.setSelected(Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch)));
+		searchCheck.setSelected(searchBool);
 		GridBagConstraints gbc_searchCheck = new GridBagConstraints();
 		gbc_searchCheck.insets = new Insets(0, 5, 0, 0);
 		gbc_searchCheck.anchor = GridBagConstraints.WEST;
