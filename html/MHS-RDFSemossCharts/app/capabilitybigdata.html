@@ -861,7 +861,7 @@
 	    system1
 	      .text(function(d){
 		if (level == 1) {
-		  return "Capability: "+ d.xAxisName
+		  return "Criteria: "+ d.xAxisName
 		} else {
 		  return "Requirement: "+ d.xAxisName
 		}
@@ -900,7 +900,7 @@
 	    
 	    //Build my level 2 array
 	    for(var standards in data[capability]) {
-	      if(data[capability][standards].System1 == standard){
+	      if(data[capability][standards][xAxisName] == standard){
 		for (var children in data[capability][standards].Children){
 		  
 		  var xAxisLvl2 = data[capability][standards].Children[children].Requirement;
