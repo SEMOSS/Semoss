@@ -200,8 +200,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 							else
 							{
 								requirements = new Hashtable<String,Object>();
-								requirements.put("System2",vendor);
-								requirements.put("System1",requirementCategory);
+								requirements.put("Vendor",vendor);
+								requirements.put("Criteria",requirementCategory);
 								children = new Hashtable<String,Object>();
 								values = new Hashtable<String, Object>();
 								values.put("Requirement", requirement);
@@ -217,8 +217,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 						{
 							reqCategoriesAndVendors = new Hashtable<String, Object>();
 							requirements = new Hashtable<String,Object>();
-							requirements.put("System2",vendor);
-							requirements.put("System1",requirementCategory);
+							requirements.put("Vendor",vendor);
+							requirements.put("Criteria",requirementCategory);
 							children = new Hashtable<String,Object>();
 							values = new Hashtable<String, Object>();
 							values.put("Requirement", requirement);
@@ -283,9 +283,9 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		allHash = new Hashtable();
 
 		allHash.put("dataSeries",capabilities);
-		allHash.put("title", "Requirements vs. Vendors");
-		allHash.put("xAxisTitle","System1");
-		allHash.put("yAxisTitle","System2");
+		allHash.put("title", "Criteria vs. Vendors");
+		allHash.put("xAxisTitle","Criteria");
+		allHash.put("yAxisTitle","Vendor");
 		allHash.put("childxAxisTitle","Requirement");
 		allHash.put("childyAxisTitle","Vendor");
 		allHash.put("weight","weight");
