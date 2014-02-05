@@ -57,6 +57,8 @@
 	var xAxisName = jsonData.xAxisTitle
 	var yAxisName = jsonData.yAxisTitle
 	var heatValue = jsonData.value
+	var yAxisChild = jsonData.childyAxisTitle
+	var xAxisChild = jsonData.childxAxisTitle
 
 	var refreshObject = data; // we need thisbecause we are not manipulating the data
 	
@@ -903,9 +905,9 @@
 	      if(data[capability][standards][xAxisName] == standard){
 		for (var children in data[capability][standards].Children){
 		  
-		  var xAxisLvl2 = data[capability][standards].Children[children].Requirement;
-		  var yAxisLvl2 = data[capability][standards].Children[children].Vendor;
-		  var valueLvl2 = data[capability][standards].Children[children].Value;
+		  var xAxisLvl2 = data[capability][standards].Children[children][xAxisChild];
+		  var yAxisLvl2 = data[capability][standards].Children[children][yAxisChild];
+		  var valueLvl2 = data[capability][standards].Children[children][heatValue];
 		  
 		  var support;
 		  if (valueLvl2 == 10) {
@@ -919,8 +921,8 @@
 		  }else {
 		    support = "?";
 		  }
-		  xAxisArrayLvl2.push(data[capability][standards].Children[children].Requirement);
-		  yAxisArrayLvl2.push(data[capability][standards].Children[children].Vendor);
+		  xAxisArrayLvl2.push(data[capability][standards].Children[children][xAxisChild]);
+		  yAxisArrayLvl2.push(data[capability][standards].Children[children][yAxisChild]);
 		  dataArrayLvl2.push({Value: valueLvl2, xAxis:xAxisLvl2, yAxis: yAxisLvl2, xAxisName: xAxisLvl2, yAxisName: yAxisLvl2, Support: support})
 		  
 		}
