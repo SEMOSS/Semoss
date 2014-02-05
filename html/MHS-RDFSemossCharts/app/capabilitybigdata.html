@@ -59,6 +59,7 @@
 	var heatValue = jsonData.value
 	var yAxisChild = jsonData.childyAxisTitle
 	var xAxisChild = jsonData.childxAxisTitle
+	var childValue = jsonData.childvalue
 
 	var refreshObject = data; // we need thisbecause we are not manipulating the data
 	
@@ -915,7 +916,7 @@
 		  
 		  var xAxisLvl2 = data[capability][standards].Children[children][xAxisChild];
 		  var yAxisLvl2 = data[capability][standards].Children[children][yAxisChild];
-		  var valueLvl2 = data[capability][standards].Children[children].Value;
+		  var valueLvl2 = data[capability][standards].Children[children][childValue];
 		  
 		  var support;
 		  if (valueLvl2 == 10) {
