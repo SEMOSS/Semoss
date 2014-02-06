@@ -22,6 +22,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.poi.hssf.usermodel.DVConstraint;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -186,6 +187,12 @@ public class ReportSheetWriter {
 			XSSFDataValidation validation = (XSSFDataValidation)dvHelper.createValidation(dvConstraint, addressList);
 			validation.setShowErrorBox(true);
 			worksheet.addValidationData(validation);
+			XSSFDataValidationHelper dvHelperCost = new XSSFDataValidationHelper(worksheet);
+			XSSFDataValidationConstraint dvConstraintCost = (XSSFDataValidationConstraint)dvHelperCost.createNumericConstraint(DVConstraint.ValidationType.DECIMAL, DVConstraint.OperatorType.GREATER_OR_EQUAL, "0", "");
+			CellRangeAddressList addressListCost = new CellRangeAddressList(1, worksheet.getLastRowNum(),sheetVector.get(0).length+1, sheetVector.get(0).length+1);
+			XSSFDataValidation validationCost = (XSSFDataValidation)dvHelperCost.createValidation(dvConstraintCost, addressListCost);
+			validationCost.setShowErrorBox(true);
+			worksheet.addValidationData(validationCost);
 		}
 
 	}
