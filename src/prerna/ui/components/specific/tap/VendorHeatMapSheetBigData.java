@@ -181,7 +181,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 								{
 									values=(Hashtable<String,Object>)children.get(requirement+"-"+vendor);
 									double oldValue = (Double)values.get("Value");
-									if(oldValue<score)
+									if(oldValue>score)
 									{
 										values.put("Value", score);
 										requirements.put("Score", (Double)requirements.get("Score")+score-oldValue);
