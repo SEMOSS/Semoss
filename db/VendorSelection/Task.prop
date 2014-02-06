@@ -1,0 +1,27 @@
+START_ROW	2
+END_ROW	10000
+
+NUM_COLUMNS	7
+1	String
+2	String
+3	String
+4	String
+5	Double
+6	String
+7	String
+
+NOT_OPTIONAL	;
+
+RELATION		Vendor+System+Capability+Task@Has@Vendor;Vendor+System+Capability+Task@Has@System;Vendor+System+Capability+Task@Satisfies@Capability;Vendor+System+Capability+Task@Satisfies@Task;Vendor+System+Capability+Task@Has@Comments;Vendor+System+Capability+Task@Supports@SupportLevel;Vendor+System+Capability+Task@Requires@CustomizationEffort;Capability@Supports@Task;
+
+NODE_PROP
+
+RELATION_PROP
+
+##Base Objects##
+
+##Base Objects Class##
+
+##Base Predicates##
+
+##Base Predicates Class##
