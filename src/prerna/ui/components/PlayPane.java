@@ -260,6 +260,7 @@ public class PlayPane extends JFrame {
 	
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
+//	public JButton btnCommonGraph;
 
 	/**
 	 * Launch the application.
@@ -2002,7 +2003,7 @@ public class PlayPane extends JFrame {
 		gbl_tapReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		tapReportTopPanel.setLayout(gbl_tapReportTopPanel);
 
-		JLabel tapReportTitleLabel = new JLabel("Generate Combined Source Selection Report");
+		JLabel tapReportTitleLabel = new JLabel("Generate Vendor Input Report");
 		GridBagConstraints gbc_tapReportTitleLabel = new GridBagConstraints();
 		gbc_tapReportTitleLabel.gridwidth = 2;
 		gbc_tapReportTitleLabel.anchor = GridBagConstraints.WEST;
@@ -2074,7 +2075,7 @@ public class PlayPane extends JFrame {
 		tapReportTopPanel.add(sourceSelectScrollPane, gbc_sourceSelectScrollPane);
 		sourceSelectScrollPane.setPreferredSize(new Dimension(300, 300));
 
-		sourceReportGenButton = new CustomButton("Generate RFP Report");
+		sourceReportGenButton = new CustomButton("Generate Vendor Input Report");
 		GridBagConstraints gbc_sourceReportGenButton = new GridBagConstraints();
 		gbc_sourceReportGenButton.anchor = GridBagConstraints.WEST;
 		gbc_sourceReportGenButton.insets = new Insets(0, 0, 5, 5);
@@ -2108,7 +2109,7 @@ public class PlayPane extends JFrame {
 		gbl_updateTaskWeightPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
 		updateTaskWeightPanel.setLayout(gbl_updateTaskWeightPanel);
 
-		JLabel updateTaskWeightTitleLabel = new JLabel("Calculate Vendor DB Scores and Values");
+		JLabel updateTaskWeightTitleLabel = new JLabel("Calculate Vendor Selection Scores");
 		GridBagConstraints gbc_updateTaskWeightTitleLabel = new GridBagConstraints();
 		gbc_updateTaskWeightTitleLabel.gridwidth = 3;
 		gbc_updateTaskWeightTitleLabel.fill = GridBagConstraints.BOTH;
@@ -2119,7 +2120,7 @@ public class PlayPane extends JFrame {
 		updateTaskWeightTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 
 		btnUpdateVendorDB = new CustomButton("Update Vendor DB Weight");
-		btnUpdateVendorDB.setText("Calculate Business and Tech Scores");
+		btnUpdateVendorDB.setText("Calculate Business and Tech Standard Fulfillment");
 		btnUpdateVendorDB.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnUpdateVendorDB = new GridBagConstraints();
 		gbc_btnUpdateVendorDB.fill = GridBagConstraints.HORIZONTAL;
@@ -2553,9 +2554,9 @@ public class PlayPane extends JFrame {
 		rightView.addTab("Settings", null, settingsPanel, null);
 		GridBagLayout gbl_settingsPanel = new GridBagLayout();
 		gbl_settingsPanel.columnWidths = new int[] { 15, 0, 0 };
-		gbl_settingsPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		gbl_settingsPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_settingsPanel.columnWeights = new double[] { 0.0, 0.0,	Double.MIN_VALUE };
-		gbl_settingsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	Double.MIN_VALUE };
+		gbl_settingsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	Double.MIN_VALUE };
 		settingsPanel.setLayout(gbl_settingsPanel);
 
 		JLabel lblNetworkGraphsheetSettings = new JLabel("Network Graphsheet Generation Settings");
@@ -2605,7 +2606,7 @@ public class PlayPane extends JFrame {
 		searchCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		searchCheck.setSelected(searchBool);
 		GridBagConstraints gbc_searchCheck = new GridBagConstraints();
-		gbc_searchCheck.insets = new Insets(0, 5, 0, 0);
+		gbc_searchCheck.insets = new Insets(0, 5, 5, 0);
 		gbc_searchCheck.anchor = GridBagConstraints.WEST;
 		gbc_searchCheck.gridx = 1;
 		gbc_searchCheck.gridy = 3;
@@ -2615,13 +2616,21 @@ public class PlayPane extends JFrame {
 		highQualityExportCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		highQualityExportCheck.setSelected(false);
 		GridBagConstraints gbc_highQualityExportCheck = new GridBagConstraints();
-		gbc_highQualityExportCheck.insets = new Insets(0, 5, 0, 0);
+		gbc_highQualityExportCheck.insets = new Insets(0, 5, 5, 0);
 		gbc_highQualityExportCheck.anchor = GridBagConstraints.WEST;
 		gbc_highQualityExportCheck.gridx = 1;
 		gbc_highQualityExportCheck.gridy = 4;
 		settingsPanel.add(highQualityExportCheck, gbc_highQualityExportCheck);
 		DIHelper.getInstance().setLocalProperty(Constants.highQualityExport,false);
-
+		
+//		btnCommonGraph = new JButton("Find Common Graph");
+//		btnCommonGraph.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_btnCommonGraph = new GridBagConstraints();
+//		gbc_btnCommonGraph.gridx = 1;
+//		gbc_btnCommonGraph.gridy = 7;
+//		settingsPanel.add(btnCommonGraph, gbc_btnCommonGraph);
+//		Style.registerTargetClassName(btnCommonGraph, ".standardButton");
+		
 		JPanel overAllHelpPanel = new JPanel();
 		overAllHelpPanel.setBackground(SystemColor.control);
 		overAllHelpPanel.setBorder(null);
