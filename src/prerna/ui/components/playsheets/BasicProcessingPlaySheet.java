@@ -53,7 +53,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public JTable table = null;
 	public ArrayList <Object []> list = null;
 	public SesameJenaSelectWrapper wrapper;
-	
+
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -80,26 +80,26 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 			Utility.showError("Query returned no results.");
 			return;		
 		}
-		
-//		if(rs==null) {
-//			Utility.showError("Query returned no results.");
-//			return;
-//		}
+
+		//		if(rs==null) {
+		//			Utility.showError("Query returned no results.");
+		//			return;
+		//		}
 		super.createView();
 		//createData();
 		if(table==null)
 			addPanel();
-		
-		
+
+
 		updateProgressBar("80%...Creating Visualization", 80);
 		gfd.setColumnNames(names);
-			gfd.setDataList(list);
-			GridTableModel model = new GridTableModel(gfd);
-			table.setModel(model);
+		gfd.setDataList(list);
+		GridTableModel model = new GridTableModel(gfd);
+		table.setModel(model);
 
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
-	
+
 	/**
 	 * This function is very similar to {@link #extendView()}.  Its adds additional data to the model already associated with 
 	 * the play sheet.  The main difference between these two functions, though is {@link #overlayView()} is used to overlay 
@@ -110,13 +110,13 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	@Override
 	public void overlayView() {
-		
+
 		gfd.setDataList(list);
 		((GridTableModel)table.getModel()).fireTableDataChanged();
-			
+
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
-	
+
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
@@ -124,7 +124,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	{
 		//Fill
 	}
-	
+
 	/**
 	 * Method setRs. Sets the result set to the results generated from the query.
 	 * @param rs ResultSet.
@@ -132,12 +132,12 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public void setRs(ResultSet rs) {
 		this.rs = rs;
 	}
-	
+
 	/**
 	 * Method getVariable. Gets the variable names from the query results.
 	 * @param varName String - the variable name.
 	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
-	
+
 	 * @return Object - results.*/
 	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
 		return sjss.getVar(varName);
@@ -168,23 +168,23 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		else list = new ArrayList();
 		wrapper = new SesameJenaSelectWrapper();
 		if(engine!= null && rs == null){
-			
+
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			try{
-			wrapper.executeQuery();	
+				wrapper.executeQuery();	
 			}
 			catch (Exception e)
 			{
-e.printStackTrace();
-}		
-			
+				e.printStackTrace();
+			}		
+
 		}
 		else if (engine==null && rs!=null){
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
 		}
-		
+
 		// get the bindings from it
 		names = wrapper.getVariables();
 		int count = 0;
@@ -193,7 +193,7 @@ e.printStackTrace();
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-				
+
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
@@ -221,7 +221,7 @@ e.printStackTrace();
 	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
