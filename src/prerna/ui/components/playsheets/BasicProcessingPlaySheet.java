@@ -214,8 +214,8 @@ e.printStackTrace();
 	public Object getData() {
 		Hashtable dataHash = new Hashtable();
 		dataHash.put("data", list);
-		dataHash.put("headers", gfd.columnNames);
-		return list;
+		dataHash.put("headers", names);
+		return dataHash;
 	}
 
 	@Override
