@@ -3,8 +3,7 @@ package prerna.ui.components;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
-
-import javax.swing.JList;
+import java.util.Hashtable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -23,31 +22,32 @@ import prerna.util.DIHelper;
 public class ImportDataProcessor {
 
 	Logger logger = Logger.getLogger(getClass());
-	
+
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE};
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL};
-	
+
 	String baseDirectory;
-	
+	Hashtable<String, String> propHash = new Hashtable<String, String>();
+
 	public void setBaseDirectory(String baseDirectory){
 		this.baseDirectory = baseDirectory;
 	}
-	
+
 	//This method will take in all possible required information
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
 	public boolean runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
 			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName){
 		boolean success = false;
-		
+
 		if(importMethod == IMPORT_METHOD.CREATE_NEW)
 			success = processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile);
 
 		else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING)
 			success = processAddToExisting(importType, customBaseURI, fileNames, repoName);
-		
+
 		else if(importMethod == IMPORT_METHOD.OVERRIDE)
 			success = processOverride(importType, customBaseURI, fileNames, repoName);
-		
+
 		return success;
 	}
 
@@ -80,6 +80,7 @@ public class ImportDataProcessor {
 		else if (importType == IMPORT_TYPE.CSV)
 		{
 			CSVReader csvReader = new CSVReader();
+			csvReader.setRdfMap(propHash);
 			try {
 				//run the reader
 				csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
@@ -109,18 +110,18 @@ public class ImportDataProcessor {
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
 		String owlPath = baseDirectory + "/" + propWriter.owlFile;
-		
+
 		//then process based on what type of file
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
 			try{
 				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
-	
+
 				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 				ontologyWriter.runAugment(ontoPath, reader.createdURIsHash, reader.createdBaseURIsHash, 
 						reader.createdRelURIsHash, reader.createdBaseRelURIsHash,
 						reader.basePropURI);
-				
+
 				File propFile = new File(propWriter.propFileName);
 				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 				FileUtils.copyFile(propFile, newProp);
@@ -144,15 +145,15 @@ public class ImportDataProcessor {
 		else if (importType == IMPORT_TYPE.CSV)
 		{
 			CSVReader csvReader = new CSVReader();
-
-				try{
+			csvReader.setRdfMap(propHash);
+			try{
 				csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
-				
+
 				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 				ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
 						csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
 						csvReader.basePropURI);
-				
+
 				File propFile = new File(propWriter.propFileName);
 				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 				FileUtils.copyFile(propFile, newProp);
@@ -166,7 +167,7 @@ public class ImportDataProcessor {
 					csvReader.closeDB();
 					logger.warn("SC IS OPEN:" + csvReader.sc.isOpen());
 				} catch(Exception exe){
-					
+
 				}
 				File propFile = new File(propWriter.propFileName);
 				deleteFile(propFile);
@@ -176,6 +177,7 @@ public class ImportDataProcessor {
 		}
 		return success;
 	}
+
 
 	/**
 	 * Method executeDeleteAndLoad.  Executes the deleting and loading of files.
@@ -195,7 +197,7 @@ public class ImportDataProcessor {
 					XSSFWorkbook book = new XSSFWorkbook(new FileInputStream(file));
 					XSSFSheet lSheet = book.getSheet("Loader");
 					int lastRow = lSheet.getLastRowNum();
-	
+
 					ArrayList<String> sheets = new ArrayList<String>();
 					ArrayList<String> nodes = new ArrayList<String>();
 					ArrayList<String[]> relationships = new ArrayList<String[]>();
@@ -203,7 +205,7 @@ public class ImportDataProcessor {
 						XSSFRow sheetNameRow = lSheet.getRow(rIndex);
 						XSSFCell cell = sheetNameRow.getCell(0);
 						XSSFSheet sheet = book.getSheet(cell.getStringCellValue());
-	
+
 						XSSFRow row = sheet.getRow(0);
 						String sheetType = "";
 						if (row.getCell(0) != null) {
@@ -221,13 +223,13 @@ public class ImportDataProcessor {
 							if (row.getCell(1) != null && row.getCell(2) != null) {
 								subject = row.getCell(1).getStringCellValue();
 								object = row.getCell(2).getStringCellValue();
-	
+
 								row = sheet.getRow(1);
 								if (row.getCell(0) != null) {
 									relationship = row.getCell(0)
 											.getStringCellValue();
 								}
-	
+
 								relationships.add(new String[] { subject,
 										relationship, object });
 							}
@@ -235,7 +237,7 @@ public class ImportDataProcessor {
 					}
 					String deleteQuery = "";
 					UpdateProcessor proc = new UpdateProcessor();
-	
+
 					int numberNodes = nodes.size();
 					if (numberNodes > 0) {
 						for (String node : nodes) {
@@ -245,13 +247,13 @@ public class ImportDataProcessor {
 							deleteQuery += "> ;} {?s ?x ?y} MINUS {?x <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} ";
 							deleteQuery += "OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } } } ";
 							deleteQuery += "}";
-	
+
 							proc.setQuery(deleteQuery);
 							logger.info(deleteQuery);
 							proc.processQuery();
 						}
 					}
-	
+
 					int numberRelationships = relationships.size();
 					if (numberRelationships > 0) {
 						for (String[] rel : relationships) {
@@ -260,31 +262,31 @@ public class ImportDataProcessor {
 									+ "{?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
 							deleteQuery += rel[0];
 							deleteQuery += "> ;} ";
-	
+
 							deleteQuery += "{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
 							deleteQuery += rel[2];
 							deleteQuery += "> ;} ";
-	
+
 							deleteQuery += "{?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/";
 							deleteQuery += rel[1];
 							deleteQuery += "> ;} {?in ?relationship ?out ;} ";
 							deleteQuery += "OPTIONAL { {?relationship ?contains ?prop ;} } } } ";
 							deleteQuery += "}";
-	
+
 							proc.setQuery(deleteQuery);
 							logger.info(deleteQuery);
 							proc.processQuery();
 						}
 					}
-	
+
 					String mapName = DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
 					String owlFile = DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
 					// run the reader
 					reader.importFileWithConnection(repoName, file, customBaseURI,
 							mapName, owlFile);
-	
+
 					// run the ontology augmentor
-	
+
 					OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 					ontologyWriter.runAugment(mapName, reader.createdURIsHash,
 							reader.createdBaseURIsHash, reader.createdRelURIsHash,
@@ -307,35 +309,39 @@ public class ImportDataProcessor {
 	 * @param file File
 	 */
 	public void deleteFile(File file) {
-	    	if(file.isDirectory()) {
-	    		//directory is empty, then delete it
-	    		if(file.list().length==0) {
-	    			file.delete();
-	    			logger.info("Directory is deleted : " + file.getAbsolutePath());
-	    		} else {
-	    			//list all the directory contents
-	    			String files[] = file.list();
+		if(file.isDirectory()) {
+			//directory is empty, then delete it
+			if(file.list().length==0) {
+				file.delete();
+				logger.info("Directory is deleted : " + file.getAbsolutePath());
+			} else {
+				//list all the directory contents
+				String files[] = file.list();
 
-	    			for (String temp : files) {
-	    				//construct the file structure
-	    				File fileDelete = new File(file, temp);
+				for (String temp : files) {
+					//construct the file structure
+					File fileDelete = new File(file, temp);
 
-	    				//this delete is only for two levels.  At this point, must be file, so just delete it
-	    				fileDelete.delete();
-	    			}
-	    			
-	    			//check the directory again, if empty then delete it
-	    			if(file.list().length==0) {
-	    				file.delete();
-	    				logger.info("Directory is deleted : " + file.getAbsolutePath());
-	        	   }
-	    		}
-	    		
-	    	} else {
-	    		//if file, then delete it
-	    		file.delete();
-	    		logger.info("File is deleted : " + file.getAbsolutePath());
-	    	}
-	    }
-	
+					//this delete is only for two levels.  At this point, must be file, so just delete it
+					fileDelete.delete();
+				}
+
+				//check the directory again, if empty then delete it
+				if(file.list().length==0) {
+					file.delete();
+					logger.info("Directory is deleted : " + file.getAbsolutePath());
+				}
+			}
+
+		} else {
+			//if file, then delete it
+			file.delete();
+			logger.info("File is deleted : " + file.getAbsolutePath());
+		}
+	}
+
+	public void setPropHash(Hashtable<String, String> propHash) {
+		this.propHash = propHash;
+	}
+
 }
