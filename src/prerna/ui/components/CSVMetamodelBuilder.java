@@ -24,23 +24,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 public class CSVMetamodelBuilder {
-
-	static String jsonHeaders = "";
-	public String file;
-
-	public static void main(String[] args){
-		//String test = "C:\\Users\\mahkhalil\\Documents\\JHU_Recruiting\\BI\\LoadHopkinsData.csv";
-		//System.out.println(getHeaders(test));
-
-	}
 
 	public List<String> getHeaders(ArrayList<File> files){
 		// get the headers for one CSVFile
@@ -72,9 +63,4 @@ public class CSVMetamodelBuilder {
 		}
 		return outputHeaders;
 	}
-
-	public String setFile(String filePath){
-		return this.file = filePath;
-	}
-
 }

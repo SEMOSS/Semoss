@@ -83,8 +83,8 @@ public class CSVReader {
 	Logger logger = Logger.getLogger(getClass());
 
 	String fileName; // the file to be read and imported
-	String propFile; // the file that serves as the property file
-	Properties rdfMap;
+	static String propFile; // the file that serves as the property file
+	Hashtable<String, String> rdfMap = new Hashtable<String, String>();
 	String bdPropFile;
 	ICsvMapReader mapReader;
 	String [] header;
@@ -113,7 +113,9 @@ public class CSVReader {
 	ValueFactory vfOWL;
 	SailConnection scOWL;
 	String owlFile;
-
+	
+	boolean propFileExist = true;
+	
 	/**
 	 * The main method is never called within SEMOSS
 	 * Used to load data without having to start SEMOSS
@@ -138,7 +140,8 @@ public class CSVReader {
 		{
 			String fileName = files.get(i);
 			reader.openCSVFile(fileName);
-
+			// load the prop file for the CSV file 
+			reader.openProp(propFile);
 			// load the big data properties file
 			// create processors based on property file
 			reader.createProcessors();
@@ -183,6 +186,12 @@ public class CSVReader {
 		{
 			String fileName = files[i];
 			openCSVFile(fileName);			
+			// load the prop file for the CSV file 
+			if(propFileExist){
+				openProp(propFile);
+			}
+			// determine the type of data in each column of CSV file
+			createProcessors();
 			processConceptRelationURIs();
 			processNodePropURIs();
 			processRelationPropURIs();
@@ -220,6 +229,12 @@ public class CSVReader {
 		{
 			String fileName = files[i];
 			openCSVFile(fileName);			
+			// load the prop file for the CSV file 
+			if(propFileExist){
+				openProp(propFile);
+			}
+			// determine the type of data in each column of CSV file
+			createProcessors();
 			processConceptRelationURIs();
 			processNodePropURIs();
 			processRelationPropURIs();
@@ -319,14 +334,14 @@ public class CSVReader {
 	public void createProcessors()
 	{
 		// get the number columns in CSV file
-		int numColumns = Integer.parseInt(rdfMap.getProperty(NUMCOL))+1;
+		int numColumns = Integer.parseInt(rdfMap.get(NUMCOL));
 		// Columns in prop file that are NON_OPTIMAL must contain a value
-		String optional  = rdfMap.getProperty(NOT_OPTIONAL);
+		String optional  = rdfMap.get(NOT_OPTIONAL);
 		processors = new CellProcessor[numColumns];
 		for(int procIndex = 1;procIndex <= numColumns;procIndex++)
 		{
 			// find the type for each column
-			String type = rdfMap.getProperty(procIndex+"");
+			String type = rdfMap.get(procIndex+"");
 			boolean opt = true;
 			if(optional.indexOf(";" + procIndex + ";") > 1)
 				opt = false;
@@ -349,8 +364,8 @@ public class CSVReader {
 		//start count at 1 just row 1 is the header
 		count = 1;
 		int startRow = 2;
-		if (rdfMap.getProperty("START_ROW") != null)
-			startRow = Integer.parseInt(rdfMap.getProperty("START_ROW")); 
+		if (rdfMap.get("START_ROW") != null)
+			startRow = Integer.parseInt(rdfMap.get("START_ROW")); 
 		while( count<startRow-1 && mapReader.read(header, processors) != null)// && count<maxRows)
 		{
 			count++;
@@ -368,8 +383,8 @@ public class CSVReader {
 		// max row predetermined value
 		int maxRows = 10000;
 		// overwrite this value if user specified the max rows to load
-		if (rdfMap.getProperty("END_ROW") != null)
-			maxRows =  Integer.parseInt(rdfMap.getProperty("END_ROW"));
+		if (rdfMap.get("END_ROW") != null)
+			maxRows =  Integer.parseInt(rdfMap.get("END_ROW"));
 		// only start from the maxRow - the startRow
 		// added -1 is because of index nature
 		// the earlier rows should already have been skipped
@@ -379,7 +394,7 @@ public class CSVReader {
 			logger.info("Process line: " +count);
 
 			// process all relationships in row
-			for(int relIndex = 0;relIndex<relationArrayList.size();relIndex++)
+			for(int relIndex = 0; relIndex < relationArrayList.size(); relIndex++)
 			{
 				String relation = relationArrayList.get(relIndex);
 				String[] strSplit = relation.split("@");
@@ -457,11 +472,11 @@ public class CSVReader {
 	 */
 	public void processConceptRelationURIs() throws Exception{
 		// get the list of relationships from the prop file
-		String relationNames = rdfMap.getProperty("RELATION");
+		String relationNames = rdfMap.get("RELATION");
 		StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
 		relationArrayList = new ArrayList<String>();
 		// process each relationship
-		for(int relIndex = 0;relationTokens.hasMoreElements();relIndex++)
+		while(relationTokens.hasMoreElements())
 		{
 			String relation = relationTokens.nextToken();
 			// just in case the end of the prop string is empty string or spaces
@@ -511,7 +526,7 @@ public class CSVReader {
 			// see if subject node SEMOSS base URI exist in prop file first
 			if(rdfMap.containsKey(subject+Constants.CLASS))
 			{
-				baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.getProperty(subject+Constants.CLASS));
+				baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.get(subject+Constants.CLASS));
 			}
 			// if no user specific URI, use generic SEMOSS base URI
 			else
@@ -530,7 +545,7 @@ public class CSVReader {
 			// see if subject node instance URI exists in prop file
 			if(rdfMap.containsKey(subject))
 			{
-				conceptURIHash.put(subject, rdfMap.getProperty(subject));
+				conceptURIHash.put(subject, rdfMap.get(subject));
 			}
 			// if no user specified URI, use generic custombaseURI
 			else
@@ -549,7 +564,7 @@ public class CSVReader {
 			// see if object node SEMOSS base URI exists in prop file
 			if(rdfMap.containsKey(object+Constants.CLASS))
 			{
-				baseConceptURIHash.put(object+Constants.CLASS,rdfMap.getProperty(object+Constants.CLASS));
+				baseConceptURIHash.put(object+Constants.CLASS,rdfMap.get(object+Constants.CLASS));
 			}
 			// if no user specified URI, use generic SEMOSS base URI
 			else
@@ -568,7 +583,7 @@ public class CSVReader {
 			// see if object node instance URI exists in prop file
 			if(rdfMap.containsKey(object))
 			{
-				conceptURIHash.put(object, rdfMap.getProperty(object));
+				conceptURIHash.put(object, rdfMap.get(object));
 			}
 			// if no user specified URI, use generic custombaseURI
 			else
@@ -589,7 +604,7 @@ public class CSVReader {
 
 			// see if relationship SEMOSS base URI exists in prop file
 			if(rdfMap.containsKey(relPropString+Constants.CLASS)) {
-				baseRelationURIHash.put(relPropString+Constants.CLASS,rdfMap.getProperty(relPropString+Constants.CLASS));
+				baseRelationURIHash.put(relPropString+Constants.CLASS,rdfMap.get(relPropString+Constants.CLASS));
 			}
 			// if no user specified URI, use generic SEMOSS base URI
 			else
@@ -599,7 +614,7 @@ public class CSVReader {
 			}
 			// see if relationship URI exists in prop file
 			if(rdfMap.containsKey(relPropString)) {
-				relationURIHash.put(relPropString,rdfMap.getProperty(relPropString));
+				relationURIHash.put(relPropString,rdfMap.get(relPropString));
 			}
 			// if no user specified URI, use generic custombaseURI
 			else {
@@ -614,7 +629,7 @@ public class CSVReader {
 	 */
 	public void processNodePropURIs() throws Exception
 	{
-		String nodePropNames = rdfMap.getProperty("NODE_PROP");
+		String nodePropNames = rdfMap.get("NODE_PROP");
 		StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
 		nodePropArrayList = new ArrayList<String>();
 		if(basePropURI.equals("")){
@@ -670,7 +685,7 @@ public class CSVReader {
 				// see if subject node SEMOSS base URI exists in prop file
 				if(rdfMap.containsKey(subject+Constants.CLASS))
 				{
-					baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.getProperty(subject));
+					baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.get(subject));
 				}
 				// if no user specified URI, use generic SEMOSS base URI
 				else
@@ -681,7 +696,7 @@ public class CSVReader {
 				// see if subject node instance URI exists in prop file
 				if(rdfMap.containsKey(subject))
 				{
-					conceptURIHash.put(subject, rdfMap.getProperty(subject));
+					conceptURIHash.put(subject, rdfMap.get(subject));
 				}
 				// if no user specified URI, use generic custombaseURI
 				else
@@ -702,13 +717,13 @@ public class CSVReader {
 	 */
 	public void processRelationPropURIs() throws Exception
 	{
-		String propNames = rdfMap.getProperty("RELATION_PROP");
+		String propNames = rdfMap.get("RELATION_PROP");
 		StringTokenizer propTokens = new StringTokenizer(propNames, ";");
 		relPropArrayList = new ArrayList<String>();
 		if(basePropURI.equals("")){
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 		}
-		for(int relIndex = 0;propTokens.hasMoreElements();relIndex++)
+		while(propTokens.hasMoreElements())
 		{
 
 			String relation = propTokens.nextToken();
@@ -940,8 +955,20 @@ public class CSVReader {
 	 */
 	public void openProp(String fileName) throws Exception
 	{
-		rdfMap = new Properties();
-		rdfMap.load(new FileInputStream(fileName));
+		Properties rdfPropMap = new Properties();
+		rdfPropMap.load(new FileInputStream(fileName));
+		for(String name: rdfPropMap.stringPropertyNames()){
+			rdfMap.put(name, rdfPropMap.getProperty(name).toString());
+		}
+	}
+	
+	/**
+	 * Setter to store the metamodel created by user as a Hashtable
+	 * @param data	Hashtable<String, String> containing all the information in a properties file
+	 */
+	public void setRdfMap(Hashtable<String, String> rdfMap) {
+		this.rdfMap = rdfMap;
+		propFileExist = false;
 	}
 
 	/**
@@ -956,11 +983,7 @@ public class CSVReader {
 		header = mapReader.getHeader(true);
 		headerList = Arrays.asList(header);
 		// last header in CSV file is the absolute path to the prop file
-		String propFileName = header[header.length-1];
-		// load the prop file for the CSV file 
-		openProp(propFileName);
-		// determine the type of data in each column of CSV file
-		createProcessors();
+		propFile = header[header.length-1];
 	}
 
 	/**
