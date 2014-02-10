@@ -7,6 +7,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirementTechStandard">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessLogicUnit">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -46,9 +49,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Hardware">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SupportLevel">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -73,9 +73,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Requires">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Satisfies">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -83,6 +80,9 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/AssociatedTo">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Requires">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Supports">
