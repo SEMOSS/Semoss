@@ -14,7 +14,7 @@ NUM_COLUMNS	9
 
 NOT_OPTIONAL	;
 
-RELATION		Vendor+System+Capability+Task@Has@Vendor;Vendor+System+Capability+Task@Has@System;Vendor+System+Capability+Task@Satisfies@Capability;Vendor+System+Capability+Task@Satisfies@Task;Vendor+System+Capability+Task+TechRequirement@AssociatedTo@Vendor+System+Capability+Task;Vendor+System+Capability+Task+TechRequirement@Has@Comments;Vendor+System+Capability+Task+TechRequirement@Supports@SupportLevel;Vendor+System+Capability+Task+TechRequirement@Requires@CustomizationEffort;Vendor+System+Capability+Task+TechRequirement@Satisfies@TechRequirement;Vendor+System+Capability+Task+TechRequirement@Satisfies@TechStandard;Capability@Supports@Task;Task@Requires@TechRequirement;TechRequirement@Has@TechStandard
+RELATION		Vendor+System+Capability+Task@Has@Vendor;Vendor+System+Capability+Task@Has@System;Vendor+System+Capability+Task@Satisfies@Capability;Vendor+System+Capability+Task@Satisfies@Task;Vendor+System+Capability+Task+TechRequirement+TechStandard@AssociatedTo@Vendor+System+Capability+Task;Vendor+System+Capability+Task+TechRequirement+TechStandard@Has@Comments;Vendor+System+Capability+Task+TechRequirement+TechStandard@Supports@SupportLevel;Vendor+System+Capability+Task+TechRequirement+TechStandard@Requires@CustomizationEffort;Vendor+System+Capability+Task+TechRequirement+TechStandard@Satisfies@TechRequirement;Vendor+System+Capability+Task+TechRequirement+TechStandard@Satisfies@TechStandard;Capability@Supports@Task;Task@Requires@TechRequirement;TechRequirement@Has@TechStandard
 
 NODE_PROP
 
