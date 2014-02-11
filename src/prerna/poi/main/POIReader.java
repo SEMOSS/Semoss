@@ -95,6 +95,7 @@ public class POIReader {
 	public String basePropURI = "";
 	public POIReader importReader;
 	public String semossURI;
+	Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 	// OWL variables
 	RepositoryConnection rcOWL;
 	ValueFactory vfOWL;
@@ -350,6 +351,15 @@ public class POIReader {
 				scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 				logger.info(subject +" "+ predicate +" "+ object);
 			}
+		}
+		for(String[] relArray : baseRelations.values()){
+			String subject = relArray[0];
+			String predicate = relArray[1];
+			String object = relArray[2];
+
+//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
 		scOWL.commit();
@@ -652,6 +662,10 @@ public class POIReader {
 		baseRelationsSubjectHash.put(relName, relSemossBaseURI);
 		createdRelURIsHash.put(subjectNodeType + "_"+ relName + "_" + objectNodeType, relInstanceBaseURI);
 		createdBaseRelURIsHash.put(subjectNodeType + "_"+ relName + "_" + objectNodeType +Constants.CLASS, relSemossBaseURI);
+
+		String relArrayKey = subjectSemossBaseURI+relSemossBaseURI+objectSemossBaseURI;
+		if(!baseRelations.contains(relArrayKey))
+			baseRelations.put(relArrayKey, new String[]{subjectSemossBaseURI, relSemossBaseURI, objectSemossBaseURI});
 
 		// create instance value of relationship and add instance relationship, subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
