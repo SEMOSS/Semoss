@@ -95,6 +95,12 @@ public class CSVPropFileBuilder{
 
 	public String determineProcessor(String s) {
 		String processor = "";
+		
+		// if column is left blank
+		if(s == null){
+			return (processor = "STRING");
+		}
+		
 		boolean isInt = true;
 		try { 
 			Integer.parseInt(s); 
@@ -116,7 +122,7 @@ public class CSVPropFileBuilder{
 		if(isDouble) {
 			return (processor = "DECIMAL");
 		}
-		
+
 		//TODO: combine determining long date vs. simple date into a loop
 
 		Boolean isLongDate = true;
