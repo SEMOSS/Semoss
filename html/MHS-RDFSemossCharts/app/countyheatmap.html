@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3: Scaling the circles by data value</title>
+	
+		<style type="text/css">	
+		  .d3-tip {
+		    line-height: 1.4;
+		    font-weight: bold;
+		    padding: 12px;
+		    background: rgba(0, 0, 0, 0.8);
+		    color: #fff;
+		    border-radius: 3px;
+		    margin-top: -7px;
+		    font-family: sans-serif;
+		    font-size: 12px;
+		  }
+		  
+		  /* Creates a small triangle extender for the tooltip */
+		  .d3-tip:after {
+		    box-sizing: border-box;
+		    display: inline;
+		    font-size: 10px;
+		    width: 100%;
+		    line-height: 1;
+		    color: rgba(0, 0, 0, 0.8);
+		    content: "\25BC";
+		    position: absolute;
+		    text-align: center;
+		  }
+		  
+		  /* Style northward tooltips differently */
+		  .d3-tip.n:after {
+		    margin: -1px 0 0 0;
+		    top: 98%;
+		    left: 0;
+		  }
+      
+			
+		</style>
+	
+ 
+		<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
+		<script src="lib/d3.v3.js"></script>
+		<script src="lib/underscore.js"></script>
+		<script src="lib/tooltip.js"></script>
+		<script src="structure changesJS_V0.4.js"></script>
+
+		
+	</head>
+	<body>
+		<script type="text/javascript">
+			
+			//var dataString = {"dataSeries":[{"size":1000000,"System":"AFCHIPS","Facility":"CHARLESTON_AFB","lat":32.887015,"lon":-80.0235}]}
+
+
+			
+			//Width and height
+			var w = 1500;
+			var h = 1000;
+
+			//Define map projection
+			var projection = d3.geo.mercator()
+				.translate([w/2, h/2])
+				.scale([1500]);
+
+			//Define path generator
+			var path = d3.geo.path()
+				.projection(projection);
+
+			//Create SVG element
+			var svg = d3.select("body")
+				.append("svg")
+				.attr("width", w)
+				.attr("height", h)
+				.call (
+					d3.behavior.zoom()
+						.scaleExtent([.1, 10])
+						.on("zoom", zoom)
+				)
+				.append("g");
+					
+			function zoom() {
+				svg.attr("transform", "translate(" 
+				+ d3.event.translate 
+				+ ")scale(" + d3.event.scale + ")");
+			}	
+			
+//				start(dataString);					
+				function start(dataString) {  
+					var jsonData = jQuery.parseJSON(dataString);
+					var data = jsonData.dataSeries  
+					var value = jsonData.value
+					var locationName = jsonData.locationName 
+					
+					var dataArray = [];
+
+				for (var key in data) {
+						dataArray.push({
+						locationName: data[key][locationName], 
+						value: data[key][value]			
+						});
+				};
+
+				var buckets = 9,
+					colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+					colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+					colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
+					colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
+				
+				var colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.value; })])
+                .range(colors);
+				
+
+				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
+				
+					var countryOn = d.properties.name;
+					for(var key in dataArray){
+						var currentLoc = dataArray[key].locationName;
+						if(countryOn == currentLoc)
+							{
+							
+							return "<div> <span class='light'>" + locationName + ":</span> " + dataArray[key].locationName + "</div>" + "<div><span class='light'>" + value + ":</span> " + dataArray[key].value + "</div>";
+							}
+					}
+						return "<div> <span class='light'>" + locationName + ":</span> " + countryOn + "</div>" + "<div><span class='light'>" + value + ":</span> undefined </div>";					
+					});
+							
+				//Load in GeoJSON data
+				d3.json("us-counties.json", function(json) {
+					//Bind data and create one path per GeoJSON feature
+					var coloredCountry = svg.selectAll("path")
+					   .data(json.features)
+					   .enter()
+					   .append("path")
+					   .attr("d", path)
+					   .attr("stroke","#fff")
+					   .attr("stroke-width", "2")
+					   .style("fill", function(d) {
+					   		//Get data value
+							var name = "id";
+					   		var country = d.properties.name;
+					   		var colorToPut = "#ccc";
+							for (var key in dataArray) {
+								var loc = dataArray[key].locationName;
+								if(country == loc)
+								{
+									colorToPut = colorScale(dataArray[key].value);
+									return colorToPut;
+								}
+							}
+						   	return colorToPut;
+					   })//;
+					   
+					   .on('mouseover', tip.show)
+					   .on('mouseout', tip.hide);
+						   					
+					coloredCountry.call(tip);
+							
+				});
+			
+			};
+			
+		</script>
+	</body>
+</html>
