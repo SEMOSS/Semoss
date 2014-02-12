@@ -62,7 +62,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 				if (listElement[j] instanceof String)
 				{	
 					String text = (String) listElement[j];
-					elementHash.put(colName, text.replaceAll("_"," "));
+					elementHash.put(colName, Integer.parseInt(text.replaceAll("\"","")));
 				}
 				else 
 				{	
