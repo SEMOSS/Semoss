@@ -33,17 +33,17 @@ import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.JSplitPane;
+import javax.swing.JProgressBar;
+import javax.swing.JTabbedPane;
 
 import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
+import prerna.ui.components.LegendPanel2;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Utility;
-import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
 
 /**
- * Controls the export of a graph to a vector image.
+ * Controls the export of a graph to PNG/EPS image formats.
  */
 public class GraphImageExportListener extends AbstractAction implements IChakraListener {
 
@@ -54,17 +54,13 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		Component source = (Component) arg0.getSource(); //Export (>>) button
-		JSplitPane cont = (JSplitPane) source.getParent().getParent(); //Parent JPanel
+		JPanel cont = (JPanel) source.getParent().getParent().getParent().getParent(); //Overall container JPanel
 		
-		JPanel searchPanel = (JPanel) cont.getLeftComponent(); //Search panel JPanel
-		GraphZoomScrollPane graph = (GraphZoomScrollPane) cont.getRightComponent(); //Graph area pane
+		JPanel jp = (JPanel) cont.getComponent(0);
+		JTabbedPane tabbedPane = (JTabbedPane) cont.getComponent(1);
 		
-		Component[] graphComps = graph.getComponents();
-		JScrollBar vertScrollBar = (JScrollBar) graphComps[1]; //Vertical scrollbar
-		JPanel panel = (JPanel) graphComps[2];
-		
-		Component[] panelComps = panel.getComponents();
-		JScrollBar horizScrollBar = (JScrollBar) panelComps[0]; //Horizontal scrollbar
+		LegendPanel2 legend = (LegendPanel2) jp.getComponent(0);
+		JProgressBar progressBar = (JProgressBar) jp.getComponent(1);
 		
 		Object[] options = {"High Quality (*.eps)", "Low Quality (*.png)"};
 		int n = JOptionPane.showOptionDialog(cont,"Please choose the type of export: ",
@@ -95,9 +91,9 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 			fileLoc += writeFileName;
 			
 			int boundingBoxMinWidth = 0;
-			int boundingBoxMinHeight = searchPanel.getHeight(); //Crop out search panel
-			int boundingBoxMaxWidth = cont.getWidth() - vertScrollBar.getWidth(); //Crop out vertical scrollbar
-			int boundingBoxMaxHeight = cont.getHeight() - horizScrollBar.getHeight(); //Crop out horizontal scrollbar
+			int boundingBoxMinHeight = 0; //Crop out search panel
+			int boundingBoxMaxWidth = cont.getWidth();
+			int boundingBoxMaxHeight = cont.getHeight() - progressBar.getHeight(); //Crop out progress bar
 			
 			if(highQuality) {
 				Graphics2D g = new EpsGraphics2D("Graph Export", new FileOutputStream(fileLoc), boundingBoxMinWidth, boundingBoxMinHeight, boundingBoxMaxWidth, boundingBoxMaxHeight);
