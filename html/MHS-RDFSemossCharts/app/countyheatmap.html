@@ -116,7 +116,7 @@
 
 				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
 				
-					var countryOn = d.properties.name;
+					var countryOn = d.name;
 					for(var key in dataArray){
 						var currentLoc = dataArray[key].locationName;
 						if(countryOn == currentLoc)
@@ -141,7 +141,7 @@
 					   .style("fill", function(d) {
 					   		//Get data value
 							var name = "id";
-					   		var country = d.properties.name;
+					   		var country = d.name;
 					   		var colorToPut = "#ccc";
 							for (var key in dataArray) {
 								var loc = dataArray[key].locationName;
