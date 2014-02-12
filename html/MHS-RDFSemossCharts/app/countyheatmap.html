@@ -91,8 +91,8 @@
 				function start(dataString) {  
 					var jsonData = jQuery.parseJSON(dataString);
 					var data = jsonData.dataSeries  
-					var value = jsonData.value
-					var locationName = jsonData.locationName 
+					var value = jsonData.value// "Value"
+					var locationName = jsonData.locationName// "fips" 
 					
 					var dataArray = [];
 
@@ -116,7 +116,7 @@
 
 				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
 				
-					var countryOn = d.name;
+					var countryOn = d.id;
 					for(var key in dataArray){
 						var currentLoc = dataArray[key].locationName;
 						if(countryOn == currentLoc)
@@ -137,11 +137,10 @@
 					   .append("path")
 					   .attr("d", path)
 					   .attr("stroke","#fff")
-					   .attr("stroke-width", "2")
+					   .attr("stroke-width", ".1")//changed from 2
 					   .style("fill", function(d) {
 					   		//Get data value
-							var name = "id";
-					   		var country = d.name;
+							var country =d.id;
 					   		var colorToPut = "#ccc";
 							for (var key in dataArray) {
 								var loc = dataArray[key].locationName;
