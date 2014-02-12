@@ -1015,7 +1015,7 @@ public class D3CSVLoader extends CSVReader{
 	 * @param predicate		URI for the predicate of the triple
 	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
 	 */
-	private void createStatement(URI subject, URI predicate, Value object) throws Exception
+	protected void createStatement(URI subject, URI predicate, Value object) throws Exception
 	{
 		URI newSub;
 		URI newPred;
@@ -1194,7 +1194,7 @@ public class D3CSVLoader extends CSVReader{
 	/**
 	 * Close the OWL engine
 	 */
-	private void closeOWL() throws Exception {
+	protected void closeOWL() throws Exception {
 		scOWL.close();
 		rcOWL.close();
 	}

@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.poi.main;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -78,41 +79,17 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
  */
-public class CSVReader {
+public class CSVReader extends AbstractFileReader {
 
-	Logger logger = Logger.getLogger(getClass());
-
-	String fileName; // the file to be read and imported
-	static String propFile; // the file that serves as the property file
-	Hashtable<String, String> rdfMap = new Hashtable<String, String>();
-	String bdPropFile;
 	ICsvMapReader mapReader;
 	String [] header;
 	List<String> headerList;
 	CellProcessor[] processors;
-	Properties bdProp = new Properties(); // properties for big data
-	Sail bdSail;
-	ValueFactory vf;
-	public SailConnection sc;
 	static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
-	public static String CONTAINS = "Contains";
 	public static String NUMCOL = "NUM_COLUMNS";
 	public static String NOT_OPTIONAL = "NOT_OPTIONAL";
-	public String semossURI;
-	String customBaseURI = "";
-	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
-	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
-	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
-	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
-	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-	public String basePropURI= "";
 	ArrayList<String> relationArrayList, nodePropArrayList, relPropArrayList;
 	int count = 0;
-	// OWL variables
-	RepositoryConnection rcOWL;
-	ValueFactory vfOWL;
-	SailConnection scOWL;
-	String owlFile;
 	
 	boolean propFileExist = true;
 	
@@ -166,22 +143,11 @@ public class CSVReader {
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
 	 */
-	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String owlFile) throws Exception  
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception  
 	{
-		String[] files = fileNames.split(";");
-		this.semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
-		//make location of the owl file in the dbname folder
-		this.owlFile = owlFile; 
-		String bdPropFile = dbName;
-		if(!customBase.equals(""))
-		{
-			customBaseURI = customBase;
-		}
-		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		createTypes();
-		loadBDProperties(bdPropFile);
-		openDB();
-		openOWLWithOutConnection();
+		String[] files = prepareReader(fileNames, customBase, owlFile);
+		openEngineWithoutConnection(engineName);
+		
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
@@ -212,18 +178,9 @@ public class CSVReader {
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception 
 	{
-		String[] files = fileNames.split(";");
-		semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		BigDataEngine bigEngine = (BigDataEngine) engine;
-		//make location of the owl file in the dbname folder
-		this.owlFile = owlFile; 
-		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		if(!customBase.equals("")) customBaseURI = customBase;
-		bdSail = bigEngine.bdSail;
-		sc = bigEngine.sc;
-		vf = bigEngine.vf;
-		openOWLWithConnection(engine);
+		String[] files = prepareReader(fileNames, customBase, owlFile);
+		openEngineWithConnection(engineName);
+		
 		createTypes();
 		for(int i = 0; i<files.length;i++)
 		{
@@ -242,68 +199,6 @@ public class CSVReader {
 			processRelationShips();
 		}
 		createBaseRelations();
-		bigEngine.infer();
-	}
-
-	/**
-	 * Creates all base relationships in the metamodel to add into the database and creates the OWL file
-	 */
-	public void createBaseRelations() throws Exception{
-
-		// necessary triple saying Concept is a type of Class
-		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-		String pred = RDF.TYPE.stringValue();
-		String obj = Constants.CLASS_URI;
-		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-		scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-		// necessary triple saying Relation is a type of Property
-		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-		pred = RDF.TYPE.stringValue();
-		obj = Constants.DEFAULT_PROPERTY_URI;
-		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-		scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-
-		if(basePropURI.equals("")){
-			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-		}
-		scOWL.addStatement(vf.createURI(basePropURI), vf.createURI(Constants.SUBPROPERTY_URI), vf.createURI(basePropURI));
-
-		Iterator baseHashIt = baseConceptURIHash.keySet().iterator();
-		//now add all of the base relations that have been stored in the hash.
-		while(baseHashIt.hasNext()){
-			String subjectInstance = baseHashIt.next() +"";
-			String predicate = Constants.SUBCLASS_URI;
-			//convert instances to URIs
-			String subject = baseConceptURIHash.get(subjectInstance) +"";
-			String object = semossURI + "/Concept";
-			// create the statement now
-			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			// add base relations URIs to OWL
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.commit();
-		}
-		baseHashIt = baseRelationURIHash.keySet().iterator();
-		while(baseHashIt.hasNext()){
-			String subjectInstance = baseHashIt.next() +"";
-			String predicate = Constants.SUBPROPERTY_URI;
-			//convert instances to URIs
-			String subject = baseRelationURIHash.get(subjectInstance) +"";
-			String object = semossURI + "/Relation";
-			// create the statement now
-			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			// add base relationship URIs to OWL
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.commit();
-		}
-
-		// create the OWL File
-		FileWriter fWrite = new FileWriter(owlFile);
-		RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-		rcOWL.export(owlWriter);
-		fWrite.close();
-		owlWriter.close();
-
-		closeOWL();
 	}
 
 	/**
@@ -337,8 +232,13 @@ public class CSVReader {
 		int numColumns = Integer.parseInt(rdfMap.get(NUMCOL));
 		// Columns in prop file that are NON_OPTIMAL must contain a value
 		String optional  = rdfMap.get(NOT_OPTIONAL);
-		processors = new CellProcessor[numColumns];
-		for(int procIndex = 1;procIndex <= numColumns;procIndex++)
+		
+		int offset = 0;
+		if(propFileExist){
+			offset = 1;
+		}
+		processors = new CellProcessor[numColumns+offset];
+		for(int procIndex = 1;procIndex <= processors.length;procIndex++)
 		{
 			// find the type for each column
 			String type = rdfMap.get(procIndex+"");
@@ -402,7 +302,6 @@ public class CSVReader {
 				String subject = strSplit[0];
 				String predicate = strSplit[1];
 				String object = strSplit[2];
-				String relPropString = subject + "_"+ predicate + "_" + object;
 
 				String subjectValue = createInstanceValue(subject, jcrMap);
 				String objectValue = createInstanceValue(object, jcrMap);
@@ -410,25 +309,9 @@ public class CSVReader {
 				{
 					continue;
 				}
-
-				//get all uri's needed for given relationship
-				String subjectInstanceURI = conceptURIHash.get(subject)+"/"+subjectValue;
-				String objectInstanceURI = conceptURIHash.get(object)+"/"+objectValue;
-				String subjectTypeURI = baseConceptURIHash.get(subject+Constants.CLASS);
-				String objectTypeURI = baseConceptURIHash.get(object+Constants.CLASS);
-				String predicateInstanceURI = relationURIHash.get(relPropString)+"/"+subjectValue+Constants.RELATION_URI_CONCATENATOR+objectValue;
-				String predicateSubclassURI = baseRelationURIHash.get(relPropString+Constants.CLASS);
-
-				//creates seven triples (three of which are label triples)
-				createStatement(vf.createURI(subjectInstanceURI), RDF.TYPE, vf.createURI(subjectTypeURI));
-				createStatement(vf.createURI(objectInstanceURI), RDF.TYPE, vf.createURI(objectTypeURI));
-				createStatement(vf.createURI(subjectInstanceURI), vf.createURI(predicateInstanceURI), vf.createURI(objectInstanceURI));
-				createStatement(vf.createURI(predicateInstanceURI), RDFS.SUBPROPERTYOF, vf.createURI(predicateSubclassURI));
-				createStatement(vf.createURI(subjectInstanceURI), RDFS.LABEL, vf.createLiteral(subjectValue));
-				createStatement(vf.createURI(objectInstanceURI), RDFS.LABEL, vf.createLiteral(objectValue));
-				createStatement(vf.createURI(predicateInstanceURI), RDFS.LABEL, vf.createLiteral(subjectValue+Constants.RELATION_URI_CONCATENATOR+objectValue));
-
+				
 				// look through all relationship properties for the specific relationship
+				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
 				for(int relPropIndex = 0; relPropIndex < relPropArrayList.size(); relPropIndex++)
 				{
 					String relProp = relPropArrayList.get(relPropIndex);
@@ -438,31 +321,32 @@ public class CSVReader {
 						// loop through all properties on the relationship
 						for(int i = 1; i < relPropSplit.length; i++)
 						{
-							String propURI = basePropURIHash.get(relPropSplit[i]);
 							// add the necessary triples for the relationship property
-							createProperty(predicateInstanceURI, propURI, relPropSplit[i], jcrMap);
+							String prop = relPropSplit[i];
+//							createProperty(predicateInstanceURI, propURI, relPropSplit[i], jcrMap);
+							propHash.put(prop, createObject(prop, jcrMap));
 						}
 					}
 				}
+				createRelationship(subject, object, subjectValue, objectValue, predicate, propHash);
 			}
 
 			// look through all node properties
 			for(int relIndex = 0;relIndex<nodePropArrayList.size();relIndex++)
 			{
+				Hashtable<String, Object> nodePropHash = new Hashtable<String, Object>();
 				String relation = nodePropArrayList.get(relIndex);
 				String[] strSplit = relation.split("%");
 				// get the subject (the first index) and objects for triple
 				String subject = strSplit[0];
 				String subjectValue = createInstanceValue(subject, jcrMap);
-				String subjectInstanceURI = conceptURIHash.get(subject)+"/"+subjectValue;
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
 					String prop = strSplit[i];
-					String propURI = basePropURIHash.get(prop);
-					createStatement(vf.createURI(subjectInstanceURI), RDF.TYPE, vf.createURI(baseConceptURIHash.get(subject+Constants.CLASS)));
-					createProperty(subjectInstanceURI, propURI,prop, jcrMap);
+					nodePropHash.put(prop, createObject(prop, jcrMap));
 				}
+				addNodeProperties(subject, subjectValue, nodePropHash);
 			}
 		}
 	}
@@ -797,76 +681,6 @@ public class CSVReader {
 	}
 
 	/**
-	 * Creates and adds the triples associated with properties based on the variable type
-	 * @param subjectURI 		String containing the instance URI of the node or relationship with the property
-	 * @param propPredBaseURI 	String containing the URI of the relationship 
-	 * @param propName 			String containing the name of the property
-	 * @param jcrMap 			Map containing the data in the CSV file
-	 */
-	public void createProperty(String subjectURI, String propPredBaseURI, String propName, Map jcrMap) throws Exception
-	{
-		if(jcrMap.containsKey(propName) && jcrMap.get(propName)!= null)
-		{
-			Object oInstance = createObject(propName, jcrMap);
-			if(oInstance instanceof Double)
-			{
-				createStatement(vf.createURI(subjectURI), vf.createURI(propPredBaseURI), vf.createLiteral(((Double)oInstance).doubleValue()));
-			}
-			else if(oInstance instanceof Date)
-			{
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				if(oInstance.toString().length()<=10)
-				{
-					df=new SimpleDateFormat("MM-dd-yyyy");
-				}
-				String date = df.format(oInstance);
-				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-				createStatement(vf.createURI(subjectURI), vf.createURI(propPredBaseURI), vf.createLiteral(date, datatype));
-			}
-			else
-			{
-				String value = oInstance + "";
-				// try to see if it already has properties then add to it
-				String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-				createStatement(vf.createURI(subjectURI), vf.createURI(propPredBaseURI), vf.createLiteral(cleanValue));
-			}		
-		}
-
-	}
-
-	/**
-	 * Creates and adds the triple into the repository connection
-	 * @param subject		URI for the subject of the triple
-	 * @param predicate		URI for the predicate of the triple
-	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
-	 */
-	private void createStatement(URI subject, URI predicate, Value object) throws Exception
-	{
-		URI newSub;
-		URI newPred;
-		Value newObj;
-		String subString;
-		String predString;
-		String objString;
-		String sub = subject.stringValue().trim();
-		String pred = predicate.stringValue().trim();
-
-		subString = Utility.cleanString(sub, false);
-		newSub = vf.createURI(subString);
-
-		predString = Utility.cleanString(pred, false);
-		newPred = vf.createURI(predString);
-
-		if(object instanceof Literal) 
-			newObj = object;
-		else {
-			objString = Utility.cleanString(object.stringValue(), false);
-			newObj = vf.createURI(objString);
-		}
-		sc.addStatement(newSub, newPred, newObj);
-	}
-
-	/**
 	 * Constructs the node instance name
 	 * @param subject 		String containing the node type name
 	 * @param jcrMap 		Map containing the data in the CSV file
@@ -923,46 +737,6 @@ public class CSVReader {
 	}
 
 	/**
-	 * Loading engine properties in order to create the database 
-	 * @param fileName String containing the fileName of the temp file that contains the information of the smss file
-	 */
-	public void loadBDProperties(String fileName) throws Exception
-	{
-		InputStream fis = new FileInputStream(fileName);
-		bdProp.load(fis);
-		fis.close();
-	}
-
-	/**
-	 * Creates the database based on the engine properties 
-	 */
-	public void openDB() throws Exception {
-		// create database based on engine properties
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String fileName = baseFolder + "/" + bdProp.getProperty("com.bigdata.journal.AbstractJournal.file");
-		bdProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
-		bdSail = new BigdataSail(bdProp);
-		Repository repo = new BigdataSailRepository((BigdataSail) bdSail);
-		repo.initialize();
-		SailRepositoryConnection src = (SailRepositoryConnection) repo.getConnection();
-		sc = src.getSailConnection();
-		vf = bdSail.getValueFactory();
-	}
-
-	/**
-	 * Loads the prop file for the CSV file
-	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
-	 */
-	public void openProp(String fileName) throws Exception
-	{
-		Properties rdfPropMap = new Properties();
-		rdfPropMap.load(new FileInputStream(fileName));
-		for(String name: rdfPropMap.stringPropertyNames()){
-			rdfMap.put(name, rdfPropMap.getProperty(name).toString());
-		}
-	}
-	
-	/**
 	 * Setter to store the metamodel created by user as a Hashtable
 	 * @param data	Hashtable<String, String> containing all the information in a properties file
 	 */
@@ -984,63 +758,8 @@ public class CSVReader {
 		headerList = Arrays.asList(header);
 		// last header in CSV file is the absolute path to the prop file
 		propFile = header[header.length-1];
+
+
 	}
 
-	/**
-	 * Creates a repository connection to be put all the base relationship data to create the OWL file
-	 */
-	public void openOWLWithOutConnection() throws RepositoryException
-	{
-		Repository myRepository = new SailRepository(new MemoryStore());
-		myRepository.initialize();
-		rcOWL = myRepository.getConnection();
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
-	}
-
-	/**
-	 * Creates a repository connection and puts all the existing base relationships to create an updated OWL file
-	 * @param engine	The database engine used to get all the existing base relationships
-	 */
-	public void openOWLWithConnection(IEngine engine) throws RepositoryException
-	{
-		Repository myRepository = new SailRepository(new MemoryStore());
-		myRepository.initialize();
-		rcOWL = myRepository.getConnection();
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
-
-		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseRelEngine).getRc();
-		// load pre-existing base data
-		RepositoryResult<Statement> rcBase = existingRC.getStatements(null, null, null, false);
-		List<Statement> rcBaseList = rcBase.asList();
-		Iterator<Statement> iterator = rcBaseList.iterator();
-		while(iterator.hasNext()){
-			logger.info(iterator.next());
-		}
-		rcOWL.add(rcBaseList);		
-	}
-
-	/**
-	 * Close the OWL engine
-	 */
-	private void closeOWL() throws Exception {
-		scOWL.close();
-		rcOWL.close();
-	}
-
-	/**
-	 * Close the database engine
-	 */
-	public void closeDB() throws Exception
-	{
-		logger.warn("Closing....");
-		sc.commit();
-		InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-		ie.computeClosure(null);
-		sc.commit();
-		sc.close();
-		bdSail.shutDown();
-	}	
 }

@@ -195,8 +195,8 @@ public class CostDBUpdateListener extends AbstractListener {
 				//run the ontology augmentor
 
 				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(mapName, reader.createdURIsHash, reader.createdBaseURIsHash, 
-						reader.createdRelURIsHash,  reader.createdBaseRelURIsHash, 
+				ontologyWriter.runAugment(mapName, reader.conceptURIHash, reader.baseConceptURIHash, 
+						reader.relationURIHash, reader.baseRelationURIHash,
 						reader.basePropURI);
 
 				Utility.showMessage("Your database has been successfully updated!");

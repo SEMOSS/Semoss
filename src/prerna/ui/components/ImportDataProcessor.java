@@ -27,7 +27,7 @@ public class ImportDataProcessor {
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL};
 
 	String baseDirectory;
-	Hashtable<String, String> propHash = new Hashtable<String, String>();
+	Hashtable<String, String> propHash;
 
 	public void setBaseDirectory(String baseDirectory){
 		this.baseDirectory = baseDirectory;
@@ -66,8 +66,8 @@ public class ImportDataProcessor {
 				//run the ontology augmentor
 
 				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(mapPath, reader.createdURIsHash, reader.createdBaseURIsHash, 
-						reader.createdRelURIsHash,  reader.createdBaseRelURIsHash, 
+				ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
+						reader.relationURIHash,  reader.baseRelationURIHash, 
 						reader.basePropURI);
 			}
 			catch (Exception ex)
@@ -80,7 +80,10 @@ public class ImportDataProcessor {
 		else if (importType == IMPORT_TYPE.CSV)
 		{
 			CSVReader csvReader = new CSVReader();
-			csvReader.setRdfMap(propHash);
+			//If propHash has not been set, we are coming from semoss and need to read the propFile
+			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
+			if(propHash != null)
+				csvReader.setRdfMap(propHash);
 			try {
 				//run the reader
 				csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
@@ -118,8 +121,8 @@ public class ImportDataProcessor {
 				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
 				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(ontoPath, reader.createdURIsHash, reader.createdBaseURIsHash, 
-						reader.createdRelURIsHash, reader.createdBaseRelURIsHash,
+				ontologyWriter.runAugment(ontoPath, reader.conceptURIHash, reader.baseConceptURIHash, 
+						reader.relationURIHash, reader.baseRelationURIHash,
 						reader.basePropURI);
 
 				File propFile = new File(propWriter.propFileName);
@@ -130,8 +133,8 @@ public class ImportDataProcessor {
 			{
 				success = false;
 				try {
-					reader.importReader.closeDB();
-					logger.warn("SC IS OPEN:" + reader.importReader.sc.isOpen());
+					reader.closeDB();
+					logger.warn("SC IS OPEN:" + reader.sc.isOpen());
 					ex.printStackTrace();
 				} catch(Exception exe){
 					exe.printStackTrace();
@@ -145,7 +148,10 @@ public class ImportDataProcessor {
 		else if (importType == IMPORT_TYPE.CSV)
 		{
 			CSVReader csvReader = new CSVReader();
-			csvReader.setRdfMap(propHash);
+			//If propHash has not been set, we are coming from semoss and need to read the propFile
+			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
+			if(propHash != null)
+				csvReader.setRdfMap(propHash);
 			try{
 				csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
 
@@ -288,9 +294,9 @@ public class ImportDataProcessor {
 					// run the ontology augmentor
 
 					OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-					ontologyWriter.runAugment(mapName, reader.createdURIsHash,
-							reader.createdBaseURIsHash, reader.createdRelURIsHash,
-							reader.createdBaseRelURIsHash, reader.basePropURI);
+					ontologyWriter.runAugment(mapName, reader.conceptURIHash,
+							reader.baseConceptURIHash, reader.relationURIHash,
+							reader.baseRelationURIHash, reader.basePropURI);
 				} catch (Exception ex) {
 					success = false;
 					ex.printStackTrace();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2013 SEMOSS.ORG
+\ * Copyright 2013 SEMOSS.ORG
  * 
  * This file is part of SEMOSS.
  * 
