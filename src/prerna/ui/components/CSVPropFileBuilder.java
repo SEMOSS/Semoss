@@ -37,7 +37,7 @@ public class CSVPropFileBuilder{
 			object = object + objIt.next() + "+";
 		}
 
-		node_properties.append(subject.substring(0, subject.length()-1)+"@"+object.substring(0, object.length()-1)+";");
+		node_properties.append(subject.substring(0, subject.length()-1)+"%"+object.substring(0, object.length()-1)+";");
 	}
 
 	public void addRelationship(ArrayList<String> sub, String pred, ArrayList<String> obj) {
