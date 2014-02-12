@@ -75,32 +75,9 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
  */
-public class POIReader {
+public class POIReader extends AbstractFileReader {
 
-	Logger logger = Logger.getLogger(getClass());
-
-	Properties rdfMap = new Properties(); // rdf mapping DBCM Prop
-	Properties bdProp = new Properties(); // properties for big data
-	public static String CONTAINS = "Contains";
-	public SailConnection sc;
-	Sail bdSail;
-	ValueFactory vf;
-	String customBaseURI = "";
-	Hashtable<String, String> baseRelationsTypeHash = new Hashtable<String, String>(); // base relations type
-	Hashtable<String, String> baseRelationsSubjectHash = new Hashtable<String, String>(); // base relations object URIs
-	public Hashtable<String, String> createdURIsHash = new Hashtable<String, String>(); // new object URIs
-	public Hashtable<String, String> createdBaseURIsHash = new Hashtable<String, String>(); // new object URIs
-	public Hashtable<String, String> createdRelURIsHash = new Hashtable<String, String>(); // new relationship URIs
-	public Hashtable<String, String> createdBaseRelURIsHash = new Hashtable<String, String>(); // new relationship URIs
-	public String basePropURI = "";
-	public POIReader importReader;
-	public String semossURI;
 	Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-	// OWL variables
-	RepositoryConnection rcOWL;
-	ValueFactory vfOWL;
-	SailConnection scOWL;
-	String owlFile;
 
 	/**
 	 * The main method is never called within SEMOSS
@@ -181,7 +158,7 @@ public class POIReader {
 		reader.openDB();
 		reader.openOWLWithOutConnection();
 		if(reader.customBaseURI == null)
-			reader.loadProperties(propFile);
+			reader.openProp(propFile);
 		for(String fileName : files){
 			reader.importFile(fileName);
 		}
@@ -199,31 +176,19 @@ public class POIReader {
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
 	{
-		String[] files = fileNames.split(";");
-		this.semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
-		this.owlFile = owlFile; 
+		String[] files = prepareReader(fileNames, customBase, owlFile);
+		openEngineWithConnection(engineName);
+		
 		// load map file for existing db
 		if(!customMap.equals(""))
 		{
-			loadProperties(customMap);
+			openProp(customMap);
 		}
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		BigDataEngine bigEngine= (BigDataEngine) engine;
-		openOWLWithConnection(engine);
-		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		if(!customBase.equals(""))
-		{
-			customBaseURI = customBase;
-		}
-		bdSail = bigEngine.bdSail;
-		sc = bigEngine.sc;
-		vf = bigEngine.vf;
 		for(String fileName : files)
 		{
 			importFile(fileName);
 		}
 		createBaseRelations();
-		bigEngine.infer();
 	}
 
 	/**
@@ -234,26 +199,16 @@ public class POIReader {
 	 * @param customMap		Absolute path that determines the location of a custom map file for the data
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
 	 */
-	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
 	{
-		//convert fileNames to array list of files-------all fileNames separated by ";" as defined in FileBrowseListener
-		String[] files = fileNames.split(";");
-		this.owlFile = owlFile; 
+		String[] files = prepareReader(fileNames, customBase, owlFile);
+		openEngineWithoutConnection(engineName);
+		
 		// load map file for db if user wants to use specific URIs
 		if(!customMap.equals("")) 
 		{
-			loadProperties(customMap);
+			openProp(customMap);
 		}
-		String bdPropFile = dbName;
-		this.semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
-		if(!customBase.equals(""))
-		{
-			customBaseURI = customBase;
-		}
-		loadBDProperties(bdPropFile);
-		openDB();
-		openOWLWithOutConnection();
-		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 		for(String fileName : files){
 			importFile(fileName);
@@ -299,88 +254,6 @@ public class POIReader {
 			scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
 		}
 		scOWL.commit();
-	}
-
-	/**
-	 * Creates all base relationships in the metamodel to add into the database and creates the OWL file
-	 */
-	public void createBaseRelations() throws Exception{
-		if(baseRelationsTypeHash.size()>0) 
-		{
-			// necessary triple saying Concept is a type of Class
-			String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-			String pred = RDF.TYPE.stringValue();
-			String obj = Constants.CLASS_URI;
-			createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-			// necessary triple saying Relation is a type of Property
-			sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-			pred = RDF.TYPE.stringValue();
-			obj = Constants.DEFAULT_PROPERTY_URI;
-			createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-
-			if(!basePropURI.equals(""))
-			{
-				createStatement(vf.createURI(basePropURI), vf.createURI(Constants.SUBPROPERTY_URI), vf.createURI(basePropURI));
-				scOWL.addStatement(vf.createURI(basePropURI), vf.createURI(Constants.SUBPROPERTY_URI), vf.createURI(basePropURI));
-			}
-
-			Iterator<String> baseHashIt = baseRelationsTypeHash.keySet().iterator();
-			//now add all of the base relations that have been stored in the hash.
-			while(baseHashIt.hasNext()){
-				String subjectInstance = baseHashIt.next().toString();
-				String objectInstance = baseRelationsTypeHash.get(subjectInstance).toString();
-
-				// predicate depends on whether its a relation or a node
-				String predicate = "";
-				if(objectInstance.equals(Constants.DEFAULT_NODE_CLASS))
-				{
-					predicate = Constants.SUBCLASS_URI;
-				}
-				else if (objectInstance.equals(Constants.DEFAULT_RELATION_CLASS)){
-					predicate = Constants.SUBPROPERTY_URI;
-				}
-
-				// convert instances to URIs
-				String subject = baseRelationsSubjectHash.get(subjectInstance).toString();
-				String object = semossURI + "/" + objectInstance;
-
-				// create the statement now
-				createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-				scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-				logger.info(subject +" "+ predicate +" "+ object);
-			}
-		}
-		for(String[] relArray : baseRelations.values()){
-			String subject = relArray[0];
-			String predicate = relArray[1];
-			String object = relArray[2];
-
-//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
-		}
-
-		scOWL.commit();
-
-		// TODO DELETE THIS CODE ONCE ALL DATABASES HAVE BEEN CREATED WITH OWL FILES, DO NOT PERFORM CHECK, JUST WRITE OWLFILE
-		// export OWL File
-		if(owlFile == null){
-			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			JOptionPane.showMessageDialog(playPane, "<html>No OWL File found for existing database.<br> New Base Relations will not be stored </html>");
-			throw new Exception();
-		}
-		else{
-			FileWriter fWrite = new FileWriter(owlFile);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			rcOWL.export(owlWriter);
-			fWrite.close();
-			owlWriter.close();	
-		}
-
-		scOWL.close();
-		rcOWL.close();
 	}
 
 	/**
@@ -498,8 +371,8 @@ public class POIReader {
 					offset++;
 				}
 
-				// add properties to propHash
 				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+				//process properties
 				for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
 					if(propNames.size() <= (colIndex-offset)) {
 						continue;
@@ -528,13 +401,11 @@ public class POIReader {
 				{
 					// adjust indexing since first row in java starts at 0
 					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex+1));
-					processRelationships(subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
+					createRelationship(subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
 				} 
 				else 
 				{
-					// adjust indexing since first row in java starts at 0
-					logger.info("Processing Node Property Sheet: " + sheetToLoad + ", Row: " + (rowIndex+1));
-					processNodeProperties(subjectNode, instanceSubjectNode, propHash);
+					addNodeProperties(subjectNode, instanceSubjectNode, propHash);
 				}
 				if(rowIndex == (lastRow-1)){
 					logger.info("Done processing: " + sheetToLoad);	
@@ -542,307 +413,6 @@ public class POIReader {
 			}
 		} finally {
 		}
-	}
-
-	/**
-	 * Create and add all triples associated with relationship tabs
-	 * @param subjectNodeType 			String containing the subject node type
-	 * @param objectNodeType 			String containing the object node type
-	 * @param instanceSubjectName 		String containing the name of the subject instance
-	 * @param instanceObjectName	 	String containing the name of the object instance
-	 * @param relName 					String containing the name of the relationship between the subject and object
-	 * @param propHash 					Hashtable that contains all properties
-	 */
-	public void processRelationships(String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) throws Exception{
-		// cellCounter used to determine which column currently processing
-		int cellCounter = 'B';
-		instanceSubjectName = Utility.cleanString(instanceSubjectName, true);
-		instanceObjectName = Utility.cleanString(instanceObjectName, true);
-
-		// Generate URI for subject node at the instance and base level
-		String subjectInstanceBaseURI = "";
-		String subjectSemossBaseURI = "";
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType+Constants.CLASS))
-		{
-			subjectSemossBaseURI = rdfMap.getProperty(subjectNodeType+Constants.CLASS);
-		}
-		// if no user specified URI, use generic SEMOSS URI
-		else
-		{
-			subjectSemossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subjectNodeType;
-		}
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType))
-		{
-			subjectInstanceBaseURI = rdfMap.getProperty(subjectNodeType);
-		}
-		// if no user specified URI, use generic customBaseURI
-		else 
-		{
-			subjectInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subjectNodeType;
-		}
-
-		baseRelationsTypeHash.put(subjectNodeType, Constants.DEFAULT_NODE_CLASS);
-		baseRelationsSubjectHash.put(subjectNodeType, subjectSemossBaseURI);
-		createdURIsHash.put(subjectNodeType, subjectInstanceBaseURI);
-		createdBaseURIsHash.put(subjectNodeType+Constants.CLASS, subjectSemossBaseURI);
-
-		// generate base URIs for object node at instance and semoss level
-		String objectInstanceBaseURI = "";
-		String objectSemossBaseURI = "";
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(objectNodeType+Constants.CLASS))
-		{
-			objectSemossBaseURI = rdfMap.getProperty(objectNodeType+Constants.CLASS);
-		}
-		// if no user specified URI, use generic SEMOSS URI
-		else
-		{
-			objectSemossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ objectNodeType;
-		}
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(objectNodeType)) 
-		{
-			objectInstanceBaseURI = rdfMap.getProperty(objectNodeType);
-		}
-		// if no user specified URI, use generic customBaseURI
-		else 
-		{
-			objectInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ objectNodeType;
-		}
-
-		baseRelationsTypeHash.put(objectNodeType, Constants.DEFAULT_NODE_CLASS);
-		baseRelationsSubjectHash.put(objectNodeType, objectSemossBaseURI);
-		createdURIsHash.put(objectNodeType, objectInstanceBaseURI);
-		createdBaseURIsHash.put(objectNodeType+Constants.CLASS, objectSemossBaseURI);
-
-		// create the full URI for the subject instance
-		// add type and label triples to database
-		logger.info("Processing Node-Type Column: " + ((char) cellCounter)); 
-		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName;
-		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(subjectSemossBaseURI));
-		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName));
-		cellCounter++;
-		
-		// create the full URI for the object instance
-		// add type and label triples to database
-		logger.info("Processing Node-Type Column: " + ((char) cellCounter)); 
-		String objectNodeURI = objectInstanceBaseURI + "/" + instanceObjectName;
-		createStatement(vf.createURI(objectNodeURI), RDF.TYPE, vf.createURI(objectSemossBaseURI));
-		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
-		cellCounter++;
-		
-		// generate URIs for the relationship
-		relName = Utility.cleanString(relName, true);
-		String relInstanceBaseURI = "";
-		String relSemossBaseURI = "";
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType + "_"+ relName + "_" + objectNodeType+Constants.CLASS)) 
-		{
-			relSemossBaseURI = rdfMap.getProperty(subjectNodeType + "_"+ relName + "_" + objectNodeType+Constants.CLASS);
-		}
-		// if no user specified URI, use generic SEMOSS URI
-		else
-		{
-			relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
-		}
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType + "_"+ relName + "_" + objectNodeType)) 
-		{
-			relInstanceBaseURI = rdfMap.getProperty(subjectNodeType + "_"+ relName + "_" + objectNodeType);
-		}
-		// if no user specified URI, use generic customBaseURI
-		else 
-		{
-			relInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
-		}
-
-		baseRelationsTypeHash.put(relName, Constants.DEFAULT_RELATION_CLASS);
-		baseRelationsSubjectHash.put(relName, relSemossBaseURI);
-		createdRelURIsHash.put(subjectNodeType + "_"+ relName + "_" + objectNodeType, relInstanceBaseURI);
-		createdBaseRelURIsHash.put(subjectNodeType + "_"+ relName + "_" + objectNodeType +Constants.CLASS, relSemossBaseURI);
-
-		String relArrayKey = subjectSemossBaseURI+relSemossBaseURI+objectSemossBaseURI;
-		if(!baseRelations.contains(relArrayKey))
-			baseRelations.put(relArrayKey, new String[]{subjectSemossBaseURI, relSemossBaseURI, objectSemossBaseURI});
-
-		// create instance value of relationship and add instance relationship, subproperty, and label triples
-		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
-		logger.info("Processing Relationship Between Nodes"); 
-		createStatement(vf.createURI(instanceRelURI), RDFS.SUBPROPERTYOF, vf.createURI(relSemossBaseURI));
-		createStatement(vf.createURI(instanceRelURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName));
-		createStatement(vf.createURI(subjectNodeURI), vf.createURI(instanceRelURI), vf.createURI(objectNodeURI));
-
-		// add all relationship properties
-		Enumeration<String> propKeys = propHash.keys();
-		if(basePropURI.equals(""))
-		{
-			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-		}
-		// add property triple based on data type of property
-		while(propKeys.hasMoreElements()) 
-		{
-			String key = propKeys.nextElement().toString();
-			String propURI = basePropURI + "/" + key;
-			logger.info("Processing Property Name");
-			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));	
-			if(propHash.get(key).getClass() == new Double(1).getClass())
-			{
-				Double value = (Double) propHash.get(key);
-				logger.info("Processing Property Column: " + ((char) cellCounter)); 
-				createStatement(vf.createURI(instanceRelURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
-			}
-			else if(propHash.get(key).getClass() == new Date(1).getClass())
-			{
-				Date value = (Date)propHash.get(key);
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String date = df.format(value);
-				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-				logger.info("Processing Property Column: " + ((char) cellCounter)); 
-				createStatement(vf.createURI(instanceRelURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
-			}
-			else
-			{
-				String value = propHash.get(key).toString();
-				String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");
-				logger.info("Processing Property Column: " + ((char) cellCounter)); 
-				createStatement(vf.createURI(instanceRelURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
-			}
-			cellCounter++;
-		}
-	}
-
-	/**
-	 * Create and add triples associated with node property tabs
-	 * @param subjectNodeType 			String containing the subject node type
-	 * @param instanceSubjectName 		String containing the name of the subject instance
-	 * @param propHash 					Hashtable that contains all properties
-	 */
-	public void processNodeProperties(String subjectNodeType, String instanceSubjectName, Hashtable<String, Object> propHash) throws Exception{
-		// cellCounter used to determine which column currently processing
-		int cellCounter = 'B';
-		instanceSubjectName = Utility.cleanString(instanceSubjectName, true);
-
-		// Generate URI for subject node at the instance and base level
-		String subjectInstanceBaseURI = "";
-		String subjectSemossBaseURI = "";
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType+Constants.CLASS))
-		{
-			subjectSemossBaseURI = rdfMap.getProperty(subjectNodeType+Constants.CLASS);
-		}
-		// if no user specified URI, use generic SEMOSS URI
-		else
-		{
-			subjectSemossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subjectNodeType;
-		}
-		// check to see if user specified URI in custom map file
-		if(rdfMap.containsKey(subjectNodeType))
-		{
-			subjectInstanceBaseURI = rdfMap.getProperty(subjectNodeType);
-		}
-		// if no user specified URI, use generic customBaseURI
-		else 
-		{
-			subjectInstanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subjectNodeType;
-		}
-
-		baseRelationsTypeHash.put(subjectNodeType, Constants.DEFAULT_NODE_CLASS);
-		baseRelationsSubjectHash.put(subjectNodeType, subjectSemossBaseURI);
-		createdURIsHash.put(subjectNodeType, subjectInstanceBaseURI);
-		createdBaseURIsHash.put(subjectNodeType+Constants.CLASS, subjectSemossBaseURI);
-
-		// create the full URI for the subject instance
-		// add type and label triples to database
-		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName;
-		logger.info("Processing Node-Type Column: " + ((char) cellCounter)); 
-		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(subjectSemossBaseURI));
-		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName));
-		cellCounter++;
-		
-		// add all relationship properties
-		Enumeration<String> propKeys = propHash.keys();
-		if(basePropURI.equals(""))
-		{
-			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-		}
-		// add property triple based on data type of property
-		while (propKeys.hasMoreElements()) 
-		{
-			String key = propKeys.nextElement().toString();
-			String propInstanceURI = basePropURI + "/" + key;
-			logger.info("Processing Property Name");
-			createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(basePropURI));
-			if(propHash.get(key).getClass() == new Double(1).getClass())
-			{
-				logger.info("Processing Property Column: " + ((char) cellCounter)); 
-				Double value = (Double) propHash.get(key);
-				createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(value.doubleValue()));
-			}
-			else if(propHash.get(key).getClass() == new Date(1).getClass())
-			{
-				Date value = (Date)propHash.get(key);
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String date = df.format(value);
-				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-				logger.info("Processing Property Column: " + ((char) cellCounter)); 
-				createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(date, datatype));
-			}
-			else
-			{
-				String value = propHash.get(key).toString();
-				if(value.equals(Constants.PROCESS_CURRENT_DATE)){
-					logger.info("Processing Property Column: " + ((char) cellCounter)); 
-					insertCurrentDate(propInstanceURI, basePropURI, subjectNodeURI);
-				}
-				else if(value.equals(Constants.PROCESS_CURRENT_USER)){
-					logger.info("Processing Property Column: " + ((char) cellCounter)); 
-					insertCurrentUser(propInstanceURI, basePropURI, subjectNodeURI);
-				}
-				else{
-					logger.info("Processing Property Column: " + ((char) cellCounter)); 
-					String cleanValue = Utility.cleanString(value, true);
-					createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(cleanValue));
-				}
-			}
-			cellCounter++;
-		}
-	}
-
-	/**
-	 * Insert the current user as a property onto a node if property is "PROCESS_CURRENT_USER"
-	 * @param propURI 			String containing the URI of the property at the instance level
-	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
-	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
-	 */
-	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI){
-		String cleanValue = System.getProperty("user.name");
-		try{
-			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));				
-			createStatement(vf.createURI(subjectNodeURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
-		} catch (Exception e) {
-			logger.error(e);
-		}	
-	}
-
-	/**
-	 * Insert the current date as a property onto a node if property is "PROCESS_CURRENT_DATE"
-	 * @param propURI 			String containing the URI of the property at the instance level
-	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
-	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
-	 */
-	private void insertCurrentDate(String propInstanceURI, String basePropURI, String subjectNodeURI){
-		Date dValue = new Date();
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-		String date = df.format(dValue);
-		try {
-			createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(basePropURI));
-			URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-			createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(date, datatype));
-		} catch (Exception e) {
-			logger.error(e);
-		}	
 	}
 
 	/**
@@ -938,12 +508,12 @@ public class POIReader {
 					if (sheetType.equalsIgnoreCase("Relation") && mapExists)
 					{
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						processRelationships(subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
+						createRelationship(subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
 					}
 					else
 					{
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						processNodeProperties(subjectNodeType, instanceSubjectName, propHash);	
+						addNodeProperties(subjectNodeType, instanceSubjectName, propHash);	
 					}
 				}
 				logger.info(instanceSubjectName);
@@ -951,122 +521,6 @@ public class POIReader {
 		} finally {
 			logger.info("Done processing: " + sheetToLoad);
 		}
-	}
-
-	/**
-	 * Creates and adds the triple into the repository connection
-	 * @param subject		URI for the subject of the triple
-	 * @param predicate		URI for the predicate of the triple
-	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
-	 */
-	private void createStatement(URI subject, URI predicate, Value object) throws Exception
-	{
-		URI newSub;
-		URI newPred;
-		Value newObj;
-		String subString;
-		String predString;
-		String objString;
-		String sub = subject.stringValue().trim();
-		String pred = predicate.stringValue().trim();
-
-		subString = Utility.cleanString(sub, false);
-		newSub = vf.createURI(subString);
-
-		predString = Utility.cleanString(pred, false);
-		newPred = vf.createURI(predString);
-
-		if(object instanceof Literal) 
-			newObj = object;
-		else {
-			objString = Utility.cleanString(object.stringValue(), false);
-			newObj = vf.createURI(objString);
-		}
-		sc.addStatement(newSub, newPred, newObj);
-	}
-
-	/**
-	 * Creates a repository connection to be put all the base relationship data to create the OWL file
-	 */
-	public void openOWLWithOutConnection() throws RepositoryException
-	{
-		Repository myRepository = new SailRepository(new MemoryStore());
-		myRepository.initialize();
-		rcOWL = myRepository.getConnection();
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
-	}
-
-	/**
-	 * Creates a repository connection and puts all the existing base relationships to create an updated OWL file
-	 * @param engine	The database engine used to get all the existing base relationships
-	 */
-	public void openOWLWithConnection(IEngine engine) throws RepositoryException
-	{
-		Repository myRepository = new SailRepository(new MemoryStore());
-		myRepository.initialize();
-		rcOWL = myRepository.getConnection();
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
-
-		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseRelEngine).getRc();
-		// load pre-existing base data
-		RepositoryResult<Statement> rcBase = existingRC.getStatements(null, null, null, false);
-		List<Statement> rcBaseList = rcBase.asList();
-		Iterator<Statement> iterator = rcBaseList.iterator();
-		while(iterator.hasNext()){
-			logger.info(iterator.next());
-		}
-		rcOWL.add(rcBaseList);		
-	}
-
-	/**
-	 * Creates the database based on the engine properties 
-	 */
-	public void openDB() throws Exception 
-	{
-		// create database based on engine properties
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String fileName = baseFolder + "/" + bdProp.getProperty("com.bigdata.journal.AbstractJournal.file");
-		bdProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
-		bdSail = new BigdataSail(bdProp);
-		Repository repo = new BigdataSailRepository((BigdataSail) bdSail);
-		repo.initialize();
-		SailRepositoryConnection src = (SailRepositoryConnection) repo.getConnection();
-		sc = src.getSailConnection();
-		vf = bdSail.getValueFactory();
-	}
-
-	/**
-	 * Loading user custom map to specify unique URIs 
-	 * @param fileName 	String containing the path to the custom map file
-	 */
-	public void loadProperties(String fileName) throws Exception {
-		rdfMap.load(new FileInputStream(fileName));
-	}
-
-	/**
-	 * Loading engine properties in order to create the database 
-	 * @param fileName 	String containing the fileName of the temp file that contains the information of the smss file
-	 */
-	public void loadBDProperties(String fileName) throws Exception
-	{
-		bdProp.load(new FileInputStream(fileName));
-
-	}
-
-	/**
-	 * Close the database engine
-	 */
-	public void closeDB() throws Exception
-	{
-		sc.commit();
-		InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-		ie.computeClosure(null);
-		sc.commit();
-		sc.close();
-		bdSail.shutDown();
 	}
 
 }
