@@ -154,9 +154,9 @@ public class POIReader extends AbstractFileReader {
 			reader.customBaseURI = customBase;
 		}
 		reader.semossURI= "http://semoss.org/ontologies";
-		reader.loadBDProperties(bdPropFile);
-		reader.openDB();
-		reader.openOWLWithOutConnection();
+//		reader.loadBDProperties(bdPropFile);
+//		reader.openDB();
+//		reader.openOWLWithOutConnection();
 		if(reader.customBaseURI == null)
 			reader.openProp(propFile);
 		for(String fileName : files){
@@ -189,6 +189,7 @@ public class POIReader extends AbstractFileReader {
 			importFile(fileName);
 		}
 		createBaseRelations();
+		commitDB();
 	}
 
 	/**
