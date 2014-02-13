@@ -108,8 +108,8 @@ public class CSVReader extends AbstractFileReader {
 		reader.createTypes();
 		String bdPropFile = workingDir + "/db/DOJ2 - Copy.smss";
 
-		reader.loadBDProperties(bdPropFile);
-		reader.openDB();
+//		reader.loadBDProperties(bdPropFile);
+//		reader.openDB();
 
 		ArrayList<String> files = new ArrayList<String>();
 		files.add(workingDir+"/JEAD_Systems_SEMOSS_Test2.csv");
@@ -130,7 +130,7 @@ public class CSVReader extends AbstractFileReader {
 			reader.skipRows();
 			reader.processRelationShips();
 		}
-		reader.openOWLWithOutConnection();
+//		reader.openOWLWithOutConnection();
 		reader.createBaseRelations();
 		reader.closeDB();
 	}
@@ -199,6 +199,7 @@ public class CSVReader extends AbstractFileReader {
 			processRelationShips();
 		}
 		createBaseRelations();
+		commitDB();
 	}
 
 	/**
