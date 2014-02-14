@@ -1180,4 +1180,26 @@ public abstract class AbstractEngine implements IEngine {
 	{
 		return this.insightBase;
 	}
+	
+	public Vector<String> getDownstreamBaseTypeConnections(String type){
+		Vector<String> downNodes = new Vector<String>();
+		String query = "SELECT DISTINCT ?entity WHERE { "
+				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+				+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{<" + type + "> ?rel ?entity}"
+						+ "}";
+		downNodes = baseDataEngine.getEntityOfType(query);
+		return downNodes;
+	}
+
+	public Vector<String> getUpstreamBaseTypeConnections(String type){
+		Vector<String> upNodes = new Vector<String>();
+		String query = "SELECT DISTINCT ?entity WHERE { "
+				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+				+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{?entity ?rel <" + type + ">}"
+						+ "}";
+		upNodes = baseDataEngine.getEntityOfType(query);
+		return upNodes;
+	}
 }
