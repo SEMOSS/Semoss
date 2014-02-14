@@ -2,6 +2,8 @@ package prerna.rdf.engine.api;
 
 import java.util.Vector;
 
+import org.openrdf.repository.RepositoryConnection;
+
 import prerna.om.Insight;
 
 public interface IExplorable {
@@ -33,6 +35,12 @@ public interface IExplorable {
 	// gets the from and to nodes
 	public Vector <String> getNeighbors(String nodeType, int neighborHood);
 	
+	// gets the insight database
+	public RepositoryConnection getInsightDB();
+	
+	// gets all the params
+	public Vector getParams(String insightName);
+
 
 
 }
