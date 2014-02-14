@@ -22,6 +22,7 @@ import java.util.Vector;
 
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.UpdateExecutionException;
+import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
@@ -170,7 +171,15 @@ public interface IEngine extends IExplorable{
 	public String getProperty(String key);
 	
 	// gets the param values for a parameter
+	public Vector<Node> getParamValues(String label, String type, String insightId, String query);
+
+	// gets the param values for a parameter
+	// overloaded query - I just need to make the query optional
 	public Vector<Node> getParamValues(String label, String type, String insightId);
+
+	// gets the OWL engine
+	// this needs to change later
+	public RepositoryConnection getOWL();	
 	
 }
 

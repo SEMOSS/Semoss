@@ -49,6 +49,7 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.Insight;
 import prerna.om.Node;
+import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
@@ -304,7 +305,9 @@ public abstract class AbstractEngine implements IEngine {
 				int count = 1;
 				StringTokenizer qsTokens = new StringTokenizer(qsList, ";");
 				while (qsTokens.hasMoreElements()) {
+					// get the question
 					String qsKey = qsTokens.nextToken();
+					
 					String qsDescr = dreamerProp.getProperty(qsKey);
 					String layoutName = dreamerProp.getProperty(qsKey + "_"
 							+ Constants.LAYOUT);
@@ -378,9 +381,50 @@ public abstract class AbstractEngine implements IEngine {
 					Enumeration<String> paramKeys = paramHash.keys();
 					// need to find a way to handle multiple param types
 					while (paramKeys.hasMoreElements()) {
-						String paramKey = paramKeys.nextElement();
-						String type = paramKey
-								.substring(paramKey.indexOf("-") + 1);
+						String param = paramKeys.nextElement();
+						String paramKey = param.substring(0, param.indexOf("-"));
+						String type = param
+								.substring(param.indexOf("-") + 1);
+						
+						String qsParamKey = engineName + ":" + perspective + ":" + qsKey + ":" + paramKey;
+						
+						// add this parameter to the quri
+						insightBase.add(qURI, insightVF.createURI("INSIGHT:PARAM"), insightVF.createURI(qsParamKey));
+						insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("PARAM:TYPE"), insightVF.createLiteral(type));
+						insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("INSIGHT:PARAM:LABEL"), insightVF.createLiteral(paramKey));
+						
+						// see if the param key has a query associated with it
+						// usually it is of the form qsKey + _ + paramKey + _ + Query
+						String result = DIHelper.getInstance().getProperty(
+								"TYPE" + "_" + Constants.QUERY);
+						if(dreamerProp.containsKey(qsKey + "_" + paramKey +"_" + Constants.QUERY))
+							// record this
+							// qskey_paramKey - Entity:Query - result
+							result = dreamerProp.getProperty(qsKey + "_" + paramKey +"_" + Constants.QUERY);
+							insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("PARAM:QUERY"), insightVF.createLiteral(result));							
+						
+						// see if there is dependency
+						// dependency is of the form qsKey + _ + paramKey + _ + Depend
+						if(dreamerProp.containsKey(qsKey + "_" + paramKey +"_" + Constants.DEPEND))
+						{
+							// record this
+							// qsKey_paramkey  - qsKey:Depends - result
+							result = dreamerProp.getProperty(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
+							StringTokenizer depTokens = new StringTokenizer(result, ";");
+							insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("HAS:PARAM:DEPEND"), insightVF.createLiteral("true"));
+							while(depTokens.hasMoreElements())
+							{
+								String depToken = depTokens.nextToken();
+								//String resKey = engineName + ":" + perspective + ":" + qsKey + ":" + depToken;
+								insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("PARAM:DEPEND"), insightVF.createLiteral(depToken));
+							}
+						}						
+						else
+						{
+							insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("HAS:PARAM:DEPEND"), insightVF.createLiteral("false"));
+							insightBase.add(insightVF.createURI(qsParamKey), insightVF.createURI("PARAM:DEPEND"), insightVF.createLiteral("None"));
+						}
+
 						// insight.setEntityType(type);
 
 						// add to entity types
@@ -748,7 +792,75 @@ public abstract class AbstractEngine implements IEngine {
 		return getSelect(Utility.fillParam(tag4InsightSparql, paramHash),
 				insightBase, "tag");
 	}
+	
+	public Vector getParams(String label)
+	{
+		Vector <SEMOSSParam> retParam = new Vector<SEMOSSParam>();
+		try {
+			URI insightPred = insightVF.createURI(Constants.INSIGHT + ":"
+					+ Constants.LABEL);
+			URI paramPred = insightVF.createURI("INSIGHT:PARAM");
+			URI paramPredLabel = insightVF.createURI("INSIGHT:PARAM:LABEL");
+			URI queryPred = insightVF.createURI("PARAM:QUERY");
+			URI hasDependPred = insightVF.createURI("HAS:PARAM:DEPEND");
+			URI dependPred = insightVF.createURI("PARAM:DEPEND");
+			URI typePred = insightVF.createURI("PARAM:TYPE");
 
+			String paramSparql = "SELECT ?paramLabel ?query ?depend ?dependVar ?paramType WHERE {"
+				+"BIND(\"" + label + "\" AS ?insight)"
+				+ "{?insightURI <"
+				+ insightPred
+				+ "> ?insight}"
+				+ "{?insightURI <" + paramPred + "> ?param } "
+				+ "{?param <" + paramPredLabel + "> ?paramLabel } "
+				+ "{?param <" + typePred + "> ?paramType } "
+				+ "{?param <" + queryPred + "> ?query } "
+				+ "{?param <" + hasDependPred + "> ?depend } " 
+				+ "{?param <" + dependPred + "> ?dependVar } "
+				+ "}";
+			TupleQuery query = insightBase.prepareTupleQuery(
+					QueryLanguage.SPARQL, paramSparql);
+			
+			System.err.println("SPARQL " + paramSparql);
+			TupleQueryResult res = query.evaluate();
+			
+			
+			while(res.hasNext())
+			{
+				BindingSet bs = res.next();
+				SEMOSSParam param = new SEMOSSParam();
+				param.setName(bs.getBinding("paramLabel").getValue() + "");
+				if(bs.getBinding("query") != null)
+					param.setQuery(bs.getBinding("query").getValue() + "");
+				if(bs.getBinding("depend") != null)
+					param.setDepends(bs.getBinding("depend").getValue() +"");
+				if(bs.getBinding("paramType") != null)
+					param.setType(bs.getBinding("paramType").getValue() +"");
+				if(bs.getBinding("dependVar") != null)
+					param.addDependVar(bs.getBinding("dependVar").getValue() +"");
+				
+				
+				retParam.addElement(param);
+				
+				System.out.println(param.getName() + param.getQuery() + param.isDepends() + param.getType());
+				
+				
+			}
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedQueryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return retParam;
+	}
+	
+	
+	
 	public Insight getInsight(String label) {
 		// replace this with the query
 		Insight in = new Insight();
@@ -857,7 +969,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @param Engine
 	 *            to set
 	 */
-	private void createBaseRelationEngine() {
+	protected void createBaseRelationEngine() {
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
 		Hashtable baseHash = new Hashtable();
 		// If OWL file doesn't exist, go the old way and create the base
@@ -1002,13 +1114,19 @@ public abstract class AbstractEngine implements IEngine {
 
 	}
 
+	public Vector<Node> getParamValues(String name, String type, String insightId) 
+	{
+		String query = DIHelper.getInstance().getProperty(
+				"TYPE" + "_" + Constants.QUERY);
+		return getParamValues(name, type, insightId, query);
+	}
 	// gets the param values for a parameter
-	public Vector<Node> getParamValues(String name, String type, String insightId) {
+	public Vector<Node> getParamValues(String name, String type, String insightId, String query) {
 		// TODO
 		// try to see if this type is available with direct values
 		Vector<Node> names = new Vector<Node>();
 		String options = dreamerProp.getProperty(type + "_" + Constants.OPTION);
-		String customQuery = dreamerProp.getProperty(insightId.substring(insightId.lastIndexOf(":")+1) + "_" + name + "_" + Constants.QUERY);
+		String customQuery = query ;//dreamerProp.getProperty(insightId.substring(insightId.lastIndexOf(":")+1) + "_" + name + "_" + Constants.QUERY);
 		if (options != null) {
 			StringTokenizer tokens = new StringTokenizer(options, ";");
 			// sorry for the cryptic crap below
@@ -1050,5 +1168,16 @@ public abstract class AbstractEngine implements IEngine {
 		return names;
 		// return null;
 	}
-
+	
+	// gets the OWL engine
+	// this needs to change later
+	public RepositoryConnection getOWL()
+	{
+		return baseDataEngine.rc;
+	}
+	
+	public RepositoryConnection getInsightDB()
+	{
+		return this.insightBase;
+	}
 }
