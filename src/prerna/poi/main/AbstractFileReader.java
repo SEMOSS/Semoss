@@ -63,6 +63,7 @@ public abstract class AbstractFileReader {
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
+	Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 	public String basePropURI= "";
 	Logger logger = Logger.getLogger(getClass());
 
@@ -256,15 +257,15 @@ public abstract class AbstractFileReader {
 			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			scOWL.commit();
 		}
-//		for(String[] relArray : baseRelations.values()){
-//			String subject = relArray[0];
-//			String predicate = relArray[1];
-//			String object = relArray[2];
-//
-////			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-//			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
-//		}
+		for(String[] relArray : baseRelations.values()){
+			String subject = relArray[0];
+			String predicate = relArray[1];
+			String object = relArray[2];
+
+//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+		}
 
 		// create the OWL File
 		FileWriter fWrite = new FileWriter(owlFile);
@@ -419,9 +420,9 @@ public abstract class AbstractFileReader {
 			relationURIHash.put(subjectNodeType + "_"+ relName + "_" + objectNodeType, relInstanceBaseURI);
 		}
 
-//		String relArrayKey = subjectSemossBaseURI+relSemossBaseURI+objectSemossBaseURI;
-//		if(!baseRelations.contains(relArrayKey))
-//			baseRelations.put(relArrayKey, new String[]{subjectSemossBaseURI, relSemossBaseURI, objectSemossBaseURI});
+		String relArrayKey = subjectSemossBaseURI+relSemossBaseURI+objectSemossBaseURI;
+		if(!baseRelations.contains(relArrayKey))
+			baseRelations.put(relArrayKey, new String[]{subjectSemossBaseURI, relSemossBaseURI, objectSemossBaseURI});
 
 		// create instance value of relationship and add instance relationship, subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
