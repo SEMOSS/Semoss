@@ -334,7 +334,7 @@ TRAVERSE_FREELY_QUERY_2	SELECT DISTINCT ?subject ?predicate ?object WHERE {?obje
 TRAVERSE_INSTANCE_FREELY_QUERY	SELECT DISTINCT ?subject ?predicate ?object WHERE {BIND(<@SUBJECT@> AS ?subject) BIND(<@OBJECT@> AS ?object). ?subject ?predicate ?object. } 
 TRAVERSE_INSTANCE_FREELY_QUERY_2	SELECT DISTINCT	?subject ?predicate ?object WHERE {BIND(<@OBJECT@> AS ?subject) BIND(<@SUBJECT@> AS ?object). ?subject ?predicate ?object. }
 
-SUBJECT_TYPE_QUERY SELECT ?object WHERE {BIND (<@ENTITY@> AS ?subject) { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object}}
+SUBJECT_TYPE_QUERY SELECT ?object WHERE {BIND (<@ENTITY@> AS ?subject) { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object}   FILTER NOT EXISTS { { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?object} }}
 TYPE_QUERY	SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}
 
 #Relation Predictor Queries

@@ -77,8 +77,6 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
  */
 public class POIReader extends AbstractFileReader {
 
-	Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-
 	/**
 	 * The main method is never called within SEMOSS
 	 * Used to load data without having to start SEMOSS

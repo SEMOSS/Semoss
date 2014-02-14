@@ -29,6 +29,7 @@ import java.util.Vector;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
+import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.MalformedQueryException;
@@ -246,7 +247,21 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * if it does not. */
 	@Override
 	public Boolean execAskQuery(String query) {
-		return null;
+		BooleanQuery bq;
+		boolean response = false;
+		try {
+			bq = rc.prepareBooleanQuery(QueryLanguage.SPARQL, query);
+			logger.debug("\nSPARQL: " + query);
+			response = bq.evaluate();
+		} catch (MalformedQueryException e) {
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+		
+		return response;
 	}
 
 	/**
