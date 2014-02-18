@@ -1,6 +1,7 @@
 package prerna.rdf.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -69,40 +70,78 @@ public class RDFJSONConverter {
 		return gson.toJson(output);
 	}*/	
 	
-	public static String getGraphAsJSON(String query, IEngine engine, Hashtable baseFilterHash)
+	public static Hashtable getGraphAsJSON(String query, IEngine engine, Hashtable baseFilterHash)
 	{
 		// the engine will always return a vector
 		// the variables are then plugged into a hashtable
 		// which is plugged into an vector and then converts the vector into a json
-		System.err.println("Called the new routine ");
+		System.err.println("Called edges routine ");
 		Vector output = new Vector();
 		SesameJenaSelectCheater sjsw = new SesameJenaSelectCheater();
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.execute();
 		//sjsw.getVariables();
-		StringBuilder stringOutput = new StringBuilder();
+//		StringBuilder stringOutput = new StringBuilder();
 		//stringOutput.append("[");
+		
+		Hashtable<String, Hashtable> nodesHash = new Hashtable<String, Hashtable>();
+		Hashtable<String, Hashtable> edgesHash = new Hashtable<String, Hashtable>();
 		
 		while(sjsw.hasNext())
 		{
-			ArrayList tempVector = new ArrayList();
 			SesameJenaConstructStatement sct = sjsw.next();
 			if(!baseFilterHash.containsKey(sct.getSubject()) && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 			{
+				String sub = sct.getSubject();
+				String pred = sct.getPredicate() + "";
+				String obj = sct.getObject() + "";
+				//add subject as node
+				Hashtable subjHash = nodesHash.get(sub);
+				if(subjHash==null){
+					subjHash = new Hashtable();
+					subjHash.put("id", sub);
+					subjHash.put("label", Utility.getInstanceName(sub));
+					nodesHash.put(sub, subjHash);
+				}
+				//add object as node
+				Hashtable objectHash = nodesHash.get(obj);
+				if(objectHash==null){
+					objectHash = new Hashtable();
+					objectHash.put("id", obj);
+					objectHash.put("label", Utility.getInstanceName(obj));
+					nodesHash.put(obj, objectHash);
+				}
+				//add pred as edge
+				if(!edgesHash.contains(pred)){
+					Hashtable edgeHash = new Hashtable();
+					edgeHash.put("id", pred);
+					edgeHash.put("source", sub);
+					edgeHash.put("target", obj);
+					edgeHash.put("label", Utility.getInstanceName(pred));
+					edgesHash.put(pred, edgeHash);
+				}
 				// add this guy as source and target
-				stringOutput.append(Utility.getInstanceName(sct.getSubject()+"")+ "," + Utility.getInstanceName(sct.getObject()+"")+ ",1 newline");
+//				stringOutput.append(Utility.getInstanceName(sct.getSubject()+"")+ "," + Utility.getInstanceName(sct.getObject()+"")+ ",1 newline");
 				//stringOutput.app
 				//output.add("{" + sct.getSubject()+ "," + sct.getObject()+",1}");
 			}
 		}
+
+		Hashtable returnHash = new Hashtable();
+		returnHash.put("nodes", nodesHash);
+		returnHash.put("edges", edgesHash.values());
+		
 		//stringOutput.append("]");
 		// return the output
-		return stringOutput.toString();//gson.toJson(output);
+//		return stringOutput.toString();//gson.toJson(output);
+		
+		System.out.println(returnHash.toString());
+		return returnHash;
 	}	
 
 	
-	public static String getGraphAsJSON(IEngine engine, Hashtable baseFilterHash)
+	public static Object getGraphAsJSON(IEngine engine, Hashtable baseFilterHash)
 	{
 		// pretty much gets the graph from a given repository connection
 		// 
@@ -116,8 +155,48 @@ public class RDFJSONConverter {
 		  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 		  "{?Subject ?Predicate ?Object.}" +
 		  "}";
+		
+		Hashtable retHash = getGraphAsJSON(predicateSelectQuery, engine, baseFilterHash);
 
-		return getGraphAsJSON(predicateSelectQuery, engine, baseFilterHash);
+		String conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+									  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+									  "{?Subject ?Predicate ?Object.}" +
+									  "}";
+		
+		Hashtable fullNodesHash = getConceptsAsJSON((Hashtable)retHash.get("nodes"), conceptSelectQuery, engine, baseFilterHash);
+		retHash.put("nodes", fullNodesHash);
+		System.out.println("final graph hashtable: " + retHash.toString());
+		return retHash;
+	}
+	
+	public static Hashtable getConceptsAsJSON(Hashtable nodesHash, String query, IEngine engine, Hashtable baseFilterHash){
+		System.err.println("Called concept routine ");
+		Vector output = new Vector();
+		SesameJenaSelectCheater sjsw = new SesameJenaSelectCheater();
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.execute();
+		
+		while(sjsw.hasNext())
+		{
+			SesameJenaConstructStatement sct = sjsw.next();
+			if(!baseFilterHash.containsKey(sct.getSubject()))
+			{
+				String sub = sct.getSubject();
+				//add subject as node
+				Hashtable subjHash = (Hashtable) nodesHash.get(sub);
+				if(subjHash==null){
+					subjHash = new Hashtable();
+					subjHash.put("id", sub);
+					subjHash.put("label", Utility.getInstanceName(sub));
+					nodesHash.put(sub, subjHash);
+				}
+			}
+		}
+
+		System.out.println(nodesHash.toString());
+		return nodesHash;
 	}
 	
 }
