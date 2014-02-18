@@ -82,16 +82,16 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		}
 		if(TMhash.size()>0)
 		{
-			ArrayList<Double> techStdValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_TECH_STD);
+//			ArrayList<Double> techStdValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_TECH_STD);
 			ArrayList<Double> extStabValues = (ArrayList<Double>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_MATRIX_EXT_STAB);
 			ArrayList<String> technicalNames = (ArrayList<String>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_NAMES_LIST);
 			
 			String extStabQuery = prepareInsert(technicalNames, extStabValues, "ExternalStabilityTM");
-			String techStdQuery = prepareInsert(technicalNames, techStdValues,"TechnicalStandardTM");
+	//		String techStdQuery = prepareInsert(technicalNames, techStdValues,"TechnicalStandardTM");
 			
 			UpdateProcessor pro = new UpdateProcessor();
-			pro.setQuery(techStdQuery);
-			pro.processQuery();
+	//		pro.setQuery(techStdQuery);
+	//		pro.processQuery();
 			pro = new UpdateProcessor();
 			pro.setQuery(extStabQuery);
 			pro.processQuery();
@@ -202,9 +202,9 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	private String getLifeCycle(String date){
 		if(date.contains("TBD"))
 			return "Date_TBD";
-		date=date.substring(1,date.substring(1).indexOf("\""));
-		int year=Integer.parseInt(date.substring(0,4));
-		int month=Integer.parseInt(date.substring(5,7));
+		date=date.substring(1,date.substring(1).indexOf("T"));
+		int year=Integer.parseInt(date.substring(0,date.indexOf("-")));
+		int month=Integer.parseInt(date.substring(date.indexOf("-")+1,date.lastIndexOf("-")));
 		
 		Calendar now = Calendar.getInstance();
 		int currYear = now.get(Calendar.YEAR);
@@ -271,7 +271,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	 * Performs technical maturity calculations, inserting them into TMhash.
 	 */
 	private void calculateTechMaturity(){
-		prepareTechStandardFulfillment();
+//		prepareTechStandardFulfillment();
 		prepareSysSoft();
 		combineWithSysHard();
 		ArrayList<String> allSysNames = new ArrayList<String>();
@@ -307,7 +307,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 			sysTechStdMat.add(techStdValue);
 		}
 		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_EXT_STAB, sysExtStabMat);
-		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_TECH_STD, sysTechStdMat);
+//		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_MATRIX_TECH_STD, sysTechStdMat);
 		TMhash.put(Constants.TECH_MATURITY + Constants.CALC_NAMES_LIST, allSysNames);
 
 	}
