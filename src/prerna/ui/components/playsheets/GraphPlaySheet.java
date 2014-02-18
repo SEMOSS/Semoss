@@ -2343,7 +2343,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
 				logger.info("Finished loading OWL");
 			}
-			if(true){
+			if(prop){
 				logger.info("Starting to load properties");
 				logger.info("Creating the properties");
 				if(containsRelation != null)

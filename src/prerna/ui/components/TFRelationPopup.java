@@ -114,7 +114,11 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				typeV.addElement(typeName);
 			}
 			String type = Utility.getClassName(uri);
-			hash.put("SUBJECT_TYPE", typeName);
+			if(prefix.equals(""))
+				hash.put("SUBJECT_TYPE", typeName);
+			else
+				hash.put("OBJECT_TYPE", typeName);
+			
 			
 			// get the filter values
 			String fileName = "";
@@ -172,7 +176,12 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 
 					logger.debug("Adding Relation " + objClassName);
 					String instance = Utility.getInstanceName(objClassName);
-					hash.put("OBJECT_TYPE", objClassName);
+
+					if(prefix.equals(""))
+						hash.put("OBJECT_TYPE", objClassName);
+					else
+						hash.put("SUBJECT_TYPE", objClassName);
+
 					String nFillQuery = Utility.fillParam(typeQuery, hash);
 
 					NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);

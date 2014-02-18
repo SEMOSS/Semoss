@@ -1114,17 +1114,17 @@ public abstract class AbstractEngine implements IEngine {
 
 	}
 
-	public Vector<Node> getParamValues(String name, String type, String insightId) 
+	public Vector<String> getParamValues(String name, String type, String insightId) 
 	{
 		String query = DIHelper.getInstance().getProperty(
 				"TYPE" + "_" + Constants.QUERY);
 		return getParamValues(name, type, insightId, query);
 	}
 	// gets the param values for a parameter
-	public Vector<Node> getParamValues(String name, String type, String insightId, String query) {
+	public Vector<String> getParamValues(String name, String type, String insightId, String query) {
 		// TODO
 		// try to see if this type is available with direct values
-		Vector<Node> names = new Vector<Node>();
+		Vector<String> uris = new Vector<String>();
 		String options = dreamerProp.getProperty(type + "_" + Constants.OPTION);
 		String customQuery = query ;//dreamerProp.getProperty(insightId.substring(insightId.lastIndexOf(":")+1) + "_" + name + "_" + Constants.QUERY);
 		if (options != null) {
@@ -1132,12 +1132,12 @@ public abstract class AbstractEngine implements IEngine {
 			// sorry for the cryptic crap below
 			int tknIndex = 0;
 			for (; tokens.hasMoreTokens(); tknIndex++) {
-				Node node = new Node();
+//				Node node = new Node();
 				String token = tokens.nextToken();
-				node.setLabel(token);
-				node.setURI(token);
-				node.setType(type);
-				names.addElement(node);
+//				node.setLabel(token);
+//				node.setURI(token);
+//				node.setType(type);
+				uris.addElement(token);
 			}
 		} else {
 			// this needs to be retrieved through SPARQL
@@ -1158,14 +1158,14 @@ public abstract class AbstractEngine implements IEngine {
 			for(int entityIndex = 0;entityIndex < entities.size();entityIndex++)
 			{
 				String entity = entities.elementAt(entityIndex);
-				Node node = new Node();
-				node.setLabel(Utility.getInstanceName(entity));
-				node.setType(type);
-				node.setURI(entity);
-				names.addElement(node);
+//				Node node = new Node();
+//				node.setLabel(Utility.getInstanceName(entity));
+//				node.setType(type);
+//				node.setURI(entity);
+				uris.addElement(entity);
 			}
 		}
-		return names;
+		return uris;
 		// return null;
 	}
 	
