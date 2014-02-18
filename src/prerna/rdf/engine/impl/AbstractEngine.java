@@ -102,22 +102,17 @@ public abstract class AbstractEngine implements IEngine {
 			+ "> ?insight.}"
 			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
 
-	public static final String fromSparql = "SELECT ?range WHERE {"
-			+ "{BIND(<@nodeType@> AS ?domain) }" + "{?relation <" + RDF.TYPE
-			+ "> <http://www.w3.org/2002/07/owl#ObjectProperty>;}"
-			+ "{?relation <" + RDFS.DOMAIN + "> ?domain;}" + "{?relation <"
-			+ RDFS.RANGE + "> ?range;}" + "}";
+	public static final String fromSparql = "SELECT DISTINCT ?entity WHERE { "
+			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+			+ "{?entity ?rel <@nodeType@>}"
+					+ "}";
 
-	public static final String toSparql = "SELECT ?relation ?domain ?range WHERE {"
-			+ "{BIND(<@nodeType@> AS ?range) }"
-			+ "{?relation <"
-			+ RDF.TYPE
-			+ "> <http://www.w3.org/2002/07/owl#ObjectProperty>;}"
-			+ "{?relation <"
-			+ RDFS.DOMAIN
-			+ "> ?domain;}"
-			+ "{?relation <"
-			+ RDFS.RANGE + "> ?range;}" + "}";
+	public static final String toSparql = "SELECT DISTINCT ?entity WHERE { "
+			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+			+ "{<@nodeType@> ?rel ?entity}"
+					+ "}";
 
 	public static final String typeSparql = "SELECT ?insight WHERE {"
 			+ "{<@type@> <" + Constants.INSIGHT + ":" + Constants.TYPE
@@ -1062,8 +1057,7 @@ public abstract class AbstractEngine implements IEngine {
 		// this is where this node is the from node
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("nodeType", nodeType);
-		return getSelect(Utility.fillParam(fromSparql, paramHash),
-				baseDataEngine.rc, "range");
+		return baseDataEngine.getEntityOfType(Utility.fillParam(fromSparql, paramHash));
 	}
 
 	// gets the to nodes
@@ -1071,8 +1065,7 @@ public abstract class AbstractEngine implements IEngine {
 		// this is where this node is the to node
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("nodeType", nodeType);
-		return getSelect(Utility.fillParam(toSparql, paramHash),
-				baseDataEngine.rc, "domain");
+		return baseDataEngine.getEntityOfType(Utility.fillParam(toSparql, paramHash));
 	}
 
 	// gets the from and to nodes
@@ -1181,25 +1174,4 @@ public abstract class AbstractEngine implements IEngine {
 		return this.insightBase;
 	}
 	
-	public Vector<String> getDownstreamBaseTypeConnections(String type){
-		Vector<String> downNodes = new Vector<String>();
-		String query = "SELECT DISTINCT ?entity WHERE { "
-				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
-				+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "{<" + type + "> ?rel ?entity}"
-						+ "}";
-		downNodes = baseDataEngine.getEntityOfType(query);
-		return downNodes;
-	}
-
-	public Vector<String> getUpstreamBaseTypeConnections(String type){
-		Vector<String> upNodes = new Vector<String>();
-		String query = "SELECT DISTINCT ?entity WHERE { "
-				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
-				+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "{?entity ?rel <" + type + ">}"
-						+ "}";
-		upNodes = baseDataEngine.getEntityOfType(query);
-		return upNodes;
-	}
 }
