@@ -171,11 +171,11 @@ public interface IEngine extends IExplorable{
 	public String getProperty(String key);
 	
 	// gets the param values for a parameter
-	public Vector<Node> getParamValues(String label, String type, String insightId, String query);
+	public Vector<String> getParamValues(String label, String type, String insightId, String query);
 
 	// gets the param values for a parameter
 	// overloaded query - I just need to make the query optional
-	public Vector<Node> getParamValues(String label, String type, String insightId);
+	public Vector<String> getParamValues(String label, String type, String insightId);
 
 	// gets the OWL engine
 	// this needs to change later
