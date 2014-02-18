@@ -105,13 +105,13 @@ public abstract class AbstractEngine implements IEngine {
 	public static final String fromSparql = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-			+ "{?entity ?rel <@nodeType@>}"
+			+ "{?entity ?rel  ?x} { <@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
 					+ "}";
 
 	public static final String toSparql = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-			+ "{<@nodeType@> ?rel ?entity}"
+			+ "{?x ?rel ?entity} { <@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
 					+ "}";
 
 	public static final String typeSparql = "SELECT ?insight WHERE {"
