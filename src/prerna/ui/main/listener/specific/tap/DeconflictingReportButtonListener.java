@@ -23,9 +23,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
-import javax.swing.JFrame;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 
 import org.apache.log4j.Logger;
 
