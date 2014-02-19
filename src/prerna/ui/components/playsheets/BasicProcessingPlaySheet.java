@@ -18,23 +18,18 @@
  ******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 import javax.swing.JTable;
-import javax.swing.Painter;
-import javax.swing.UIDefaults;
-import javax.swing.UIManager;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
-import prerna.ui.swing.custom.ProgressPainter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;

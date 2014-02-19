@@ -48,7 +48,6 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.Insight;
-import prerna.om.Node;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.RDFEngineHelper;

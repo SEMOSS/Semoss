@@ -18,14 +18,8 @@
  ******************************************************************************/
 package prerna.util;
 
-import java.beans.PropertyVetoException;
 import java.util.Hashtable;
 import java.util.Set;
-
-import javax.swing.JDesktopPane;
-import javax.swing.JInternalFrame;
-import javax.swing.JToggleButton;
-import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
@@ -40,8 +34,8 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 
 	public static QuestionPlaySheetStore store = null;
 	//public Vector 
-	public int count = 0;
-	public int customcount = 0;
+	public int idCount = 0;
+	public int customIDcount = 0;
 	public static IPlaySheet activeSheet = null;
 
 	/**
@@ -133,58 +127,58 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 		{
 			activeSheet = null;
 		}
-		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		//System.err.println("Into the part for selecting the active sheet    ");
-
-		JInternalFrame [] frames = pane.getAllFrames();
-		boolean foundFrame = false;
-		for(int frameIndex = 0;frameIndex < frames.length;frameIndex++)
-		{
-			try {
-				if(frames[frameIndex].isVisible() && frames[frameIndex] instanceof IPlaySheet)
-				{
-					//logger.info("Frame is visible");
-					activeSheet = (IPlaySheet)frames[frameIndex];
-					frames[frameIndex].setSelected(false);
-					frames[frameIndex].setSelected(true);
-					foundFrame = true;
-					break;
-				}
-			} catch (PropertyVetoException e) {
-				e.printStackTrace();
-			}
-		}
-		if(!foundFrame)
-		{
-			
-			SwingUtilities.invokeLater(new Runnable(){
-				public void run() {
-					try 
-					{
-						JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
-						//append.doClick();
-						append.setSelected(false);
-						
-						append.setEnabled(false);
-						CSSApplication css = new CSSApplication(append, ".toggleButtonDisabled");
-					}
-
-					catch (Exception e1) {
-						// TODO: Specify exception
-						e1.printStackTrace();
-					}
-				}
-			});
-
-		}
+//		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+//		//System.err.println("Into the part for selecting the active sheet    ");
+//
+//		JInternalFrame [] frames = pane.getAllFrames();
+//		boolean foundFrame = false;
+//		for(int frameIndex = 0;frameIndex < frames.length;frameIndex++)
+//		{
+//			try {
+//				if(frames[frameIndex].isVisible() && frames[frameIndex] instanceof IPlaySheet)
+//				{
+//					//logger.info("Frame is visible");
+//					activeSheet = (IPlaySheet)frames[frameIndex];
+//					frames[frameIndex].setSelected(false);
+//					frames[frameIndex].setSelected(true);
+//					foundFrame = true;
+//					break;
+//				}
+//			} catch (PropertyVetoException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		if(!foundFrame)
+//		{
+//			
+//			SwingUtilities.invokeLater(new Runnable(){
+//				public void run() {
+//					try 
+//					{
+//						JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
+//						//append.doClick();
+//						append.setSelected(false);
+//						
+//						append.setEnabled(false);
+//						CSSApplication css = new CSSApplication(append, ".toggleButtonDisabled");
+//					}
+//
+//					catch (Exception e1) {
+//						// TODO: Specify exception
+//						e1.printStackTrace();
+//					}
+//				}
+//			});
+//
+//		}
 	}
 
 
 	/**
 	 * Gets the count of all the sheets in the question store.	
 	 * @return Count */
-	public int getCount() {
-		int total = count + customcount;
+	public int getIDCount() {
+		int total = idCount + customIDcount;
 		return total;
 	}
 	
@@ -193,7 +187,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	
 	 * @return The number of custom sheets in the question store */
 	public int getCustomCount() {
-		return customcount;
+		return customIDcount;
 	}
 	
 	/**

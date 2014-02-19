@@ -5,7 +5,6 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -32,12 +31,6 @@ import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.memory.MemoryStore;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.io.ICsvMapReader;
-
-import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
@@ -46,6 +39,10 @@ import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepository;
 
 public abstract class AbstractFileReader {
 

@@ -41,11 +41,9 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
-import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Holds the database in memory, and uses the Sesame API to facilitate querying of RDF data sources.

@@ -26,8 +26,6 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
-import prerna.om.Node;
-
 /**
  * This interface standardizes the functionality of the engines to be used.  All current engines must implement this interface 
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 

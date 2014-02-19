@@ -26,13 +26,13 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
+
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.events.NavigationEvent;
 import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
 import com.teamdev.jxbrowser.events.NavigationListener;
-
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
 
 /**
  */
