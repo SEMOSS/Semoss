@@ -25,7 +25,6 @@ import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.Hashtable;
 
-import javax.swing.JComboBox;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -38,7 +37,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
+import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -80,8 +79,8 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		try {
 			table = new JTable();
 			JPanel mainPanel = new JPanel();
-
-			this.addInternalFrameListener(GridPlaySheetListener.getInstance());
+			PlaySheetListener psListener = new PlaySheetListener();
+			this.addInternalFrameListener(psListener);
 			this.setContentPane(mainPanel);
 			GridBagLayout gbl_mainPanel = new GridBagLayout();
 			gbl_mainPanel.columnWidths = new int[]{0, 0};

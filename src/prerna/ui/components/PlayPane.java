@@ -2929,6 +2929,7 @@ public class PlayPane extends JFrame {
 		UIManager.put("Separator.foreground", Color.RED);
 
 		appendButton = new ToggleButton("Overlay");
+		appendButton.setEnabled(false);
 		appendButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_appendButton = new GridBagConstraints();
 		gbc_appendButton.fill = GridBagConstraints.HORIZONTAL;
@@ -2936,7 +2937,7 @@ public class PlayPane extends JFrame {
 		gbc_appendButton.gridx = 1;
 		gbc_appendButton.gridy = 10;
 		inputPanel.add(appendButton, gbc_appendButton);
-		Style.registerTargetClassName(appendButton, ".standardButton");
+		Style.registerTargetClassName(appendButton, ".toggleButtonDisabled");
 		// appendButton.setEnabled(false);
 
 		JLabel lblAddsAdditionalGraph = new JLabel("<HTML> Adds graph to window<br>based off another query</HTML>");

@@ -92,7 +92,7 @@ public class CONUSMapExporter {
 	{
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "CONUS_Map";
-		String question = QuestionPlaySheetStore.getInstance().getCount() + ". "+id;
+		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
 		String query = "SELECT DISTINCT ?System ?Facility ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?Facility <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Facility>;} {?Facility  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?Facility  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?Facility;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 		IPlaySheet playSheet = null;

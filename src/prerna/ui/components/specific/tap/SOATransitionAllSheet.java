@@ -23,8 +23,6 @@ import java.beans.PropertyVetoException;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import javax.swing.JButton;
-
 import org.apache.log4j.Logger;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.MalformedQueryException;
@@ -35,17 +33,12 @@ import org.openrdf.repository.RepositoryException;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.ui.components.ControlPanel;
-import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-import prerna.util.Utility;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;

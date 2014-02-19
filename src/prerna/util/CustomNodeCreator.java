@@ -4,14 +4,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.mvel2.MVEL;
 
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.VertexFilterData;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 public class CustomNodeCreator {
 	

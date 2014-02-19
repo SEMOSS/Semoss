@@ -24,17 +24,11 @@ import java.util.List;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
-import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 
 import prerna.ui.components.api.IChakraListener;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 /**
  * Controls the deletion of independent variables from the input.

@@ -34,8 +34,7 @@ import javax.swing.JToggleButton;
 
 import org.apache.log4j.Logger;
 
-import prerna.om.Insight;
-import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.api.IPlaySheet;
@@ -43,8 +42,6 @@ import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * 1. Get information from the textarea for the query 2. Process the query
@@ -59,7 +56,8 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	JComponent rightPanel = null;
 	Logger logger = Logger.getLogger(getClass());
 	JTextArea sparql = null;
-
+	boolean custom = false;
+	boolean append = false;
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
 	 * @param actionevent ActionEvent - The event that triggers the actions in the method.
@@ -72,94 +70,42 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		// there are other types of queries
 		// especially the ones that would use JGraph
 		// get the query
+
+		//initiate executeQueryProcessor
+
+
 		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
-		JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(
-				Constants.SHOW_PLAYSHEETS_LIST);
+		JToggleButton appendBtn = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
+
+		//set custom and append variables to processor
+		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
+		exQueryProcessor.setAppendBoolean(appendBtn.isSelected());
+		exQueryProcessor.setCustomBoolean(btnCustomSparql.isSelected());
+
+		//setting the playsheet selectiondropdown as enabled when a graph is created
+		((JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST)).setEnabled(true);
+
+		// get the selected repository, in case someone selects multiple, it'll always use first one
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		String engineName = (String)list.getSelectedValue();
+
+		//enable the top right playsheet selector button
+		JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 		btnShowPlaySheetsList.setEnabled(true);
-		
-		JList list = (JList) DIHelper.getInstance().getLocalProp(
-				Constants.REPO_LIST);
-		// get the selected repository
-		Object[] repos = (Object[]) list.getSelectedValues();
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
 
-		JComboBox questionList = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD);
-		String id = DIHelper.getInstance().getIDForQuestion(questionList.getSelectedItem() + "");
-
-		
+		//setup playsheet depending whether its custom or not, exQueryProcessor will also take care of append or create
+		//custom query 
 		if (btnCustomSparql.isSelected()) {
-			// perform user inputed sparql code
-			JTextArea userInputSparql = (JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD);
-			String sparql = userInputSparql.getText();
+			String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
+			String playSheetString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST)).getSelectedItem()+"";
+			exQueryProcessor.processCustomQuery(engineName, query, playSheetString);
 
-			// determine user inputed playsheet to use
-			// if playsheet is not in predefined combobox list get playsheet from current question	
-			JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
-			String userPlaySheet = (String) playSheetComboBox.getSelectedItem();
-			String layoutValue;
-			// what kind of absurdity is this ?
-			if(userPlaySheet.startsWith("*"))
-			{
-				String keyToSearch = id + "_" + Constants.LAYOUT;
-				layoutValue = DIHelper.getInstance().getProperty(keyToSearch);
-			}
-			else //get the playsheet from play sheet enum
-			{
-				layoutValue = PlaySheetEnum.getClassFromName(userPlaySheet);
-			}
-
-			logger.info("Layout value set to [" + layoutValue + "]");
-			logger.info("Repository is " + repos);
-			Runnable playRunner = null;
-			
-			// if user is inputing a new custom querry
-			for (int repoIndex = 0; repoIndex < repos.length; repoIndex++) {
-				//engine.setEngineName(repos[repoIndex] + "");
-				logger.info("Selecting repository " + repos[repoIndex]);
-				// use the layout to load the sheet later
-				// see if the append is on
-				JToggleButton append = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
-				logger.debug("Toggle is selected");
-
-				IPlaySheet playSheet = null;
-				try {
-					playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					logger.fatal(ex);
-				}
-				if (append.isSelected()) {
-					logger.debug("Appending ");
-					playSheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
-					playSheet.setRDFEngine((IEngine) engine);
-
-					playRunner = new PlaysheetOverlayRunner(playSheet);
-					playSheet.setQuery(sparql);
-				} else {
-					QuestionPlaySheetStore.getInstance().customcount++;
-					playSheet.setTitle("Custom Query - "+QuestionPlaySheetStore.getInstance().getCustomCount());
-					playSheet.setQuery(sparql);
-					playSheet.setRDFEngine((IEngine) engine);
-					playSheet.setQuestionID(QuestionPlaySheetStore.getInstance().getCount()+"custom");
-					JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-					playSheet.setJDesktopPane(pane);
-					playRunner = new PlaysheetCreateRunner(playSheet);					
-				}
-				QuestionPlaySheetStore.getInstance().put(QuestionPlaySheetStore.getInstance().getCount()+"custom", playSheet);
-				System.out.println(QuestionPlaySheetStore.getInstance().getCustomCount());
-				Thread playThread = new Thread(playRunner);
-				playThread.start();
-				
-			}
-
-		} else {
-			// using default sparql queries
-			// get the insight from this engine
-			Insight in = engine.getInsight(questionList.getSelectedItem()+"");
-			
-			//String sparql = in.getSparql();
-			String sparql = (String) DIHelper.getInstance().getLocalProp(Constants.BASE_QUERY);
+		} 
+		else 
+		{
+			String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
+			//get Swing UI and set ParamHash";
 			JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
 			DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN,	false);
 			// get the currently visible panel
@@ -169,12 +115,9 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 					&& curPanel == null; compIndex++)
 				if (comps[compIndex].isVisible())
 					curPanel = (JComponent) comps[compIndex];
-
 			// get all the param field
 			Component[] fields = curPanel.getComponents();
-			Hashtable paramHash = new Hashtable();
-			String title = "";
-
+			Hashtable<String, Object> paramHash = new Hashtable<String, Object>();
 			for (int compIndex = 0; compIndex < fields.length; compIndex++) {
 				if (fields[compIndex] instanceof ParamComboBox) {
 					String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
@@ -183,73 +126,27 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 					if (uriFill == null)
 						uriFill = fieldValue;
 					paramHash.put(fieldName, uriFill);
-					title = fieldValue + " - " + title;
 				}
 			}
-
-			sparql = prerna.util.Utility.fillParam(sparql, paramHash);
-			// Feed all of this information to the playsheet
-			// get the layout class based on the query
-
-			// Properties prop = DIHelper.getInstance().getEngineCoreProp();
-			// uses pattern QUERY_Layout
-			// need to get the key first here >>>>
-			//String keyToSearch = id + "_" + Constants.LAYOUT;
-			String layoutValue = in.getOutput(); //DIHelper.getInstance().getProperty(keyToSearch);
-
-			// now just do class.forName for this layout Value and set it inside
-			// playsheet
-			// need to template this out and there has to be a directive to
-			// identify
-			// specifically what sheet we need to refer to
-
-
-			logger.info("Layout value set to [" + layoutValue + "]");
-			logger.info("Repository is " + repos);
-			Runnable playRunner = null;
-			// if user is inputing a new custom querry
-			for (int repoIndex = 0; repoIndex < repos.length; repoIndex++) {
-				//engine.setEngineName(repos[repoIndex] + "");
-				logger.info("Selecting repository " + repos[repoIndex]);
-				// use the layout to load the sheet later
-				// see if the append is on
-				JToggleButton append = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
-
-				logger.debug("Toggle is selected");
-
-				IPlaySheet playSheet = null;
-				try {
-					playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					logger.fatal(ex);
-				}
-				if (append.isSelected()) {
-					logger.debug("Appending ");
-					playSheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
-					playSheet.setRDFEngine((IEngine) engine);
-					playRunner = new PlaysheetOverlayRunner(playSheet);
-					playSheet.setQuery(sparql);
-				} else {
-					QuestionPlaySheetStore.getInstance().count++;
-					String question = QuestionPlaySheetStore.getInstance().getCount()+". "+ id;
-					String questionTitle = (String) questionList.getSelectedItem();
-					String[] questionTitleArray = questionTitle.split("\\.");
-					title = title+questionTitleArray[1].trim()+" ("+questionTitleArray[0]+")";
-					playSheet.setTitle(title);
-					playSheet.setQuery(sparql);
-					playSheet.setRDFEngine((IEngine) engine);
-					playSheet.setQuestionID(question);
-					JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-					playSheet.setJDesktopPane(pane);
-					playRunner = new PlaysheetCreateRunner(playSheet);
-					QuestionPlaySheetStore.getInstance().put(question, playSheet);
-				}				
-				// thread
-				Thread playThread = new Thread(playRunner);
-				playThread.start();
-			}
+			exQueryProcessor.processQuestionQuery(engineName, insightString, paramHash);
 		}
+
+		//getplaysheet
+		//then figure out if its append or create and then call the right threadrunners
+		Runnable playRunner = null;	
+		IPlaySheet playSheet= exQueryProcessor.getPlaySheet();
+		if (appendBtn.isSelected()) {
+			logger.debug("Appending ");
+			playRunner = new PlaysheetOverlayRunner(playSheet);
+		} 
+		else 
+		{
+			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+			playSheet.setJDesktopPane(pane);
+			playRunner = new PlaysheetCreateRunner(playSheet);
+		}				
+		Thread playThread = new Thread(playRunner);
+		playThread.start();
 
 	}
 

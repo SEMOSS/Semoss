@@ -21,24 +21,19 @@ package prerna.ui.main.listener.impl;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JLayeredPane;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.RegCalculationPerformer;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.RegressionAnalysisPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

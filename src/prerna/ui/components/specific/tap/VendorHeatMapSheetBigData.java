@@ -20,7 +20,6 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;

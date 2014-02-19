@@ -11,7 +11,6 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
 
 public class ClusterEngine extends AbstractEngine {

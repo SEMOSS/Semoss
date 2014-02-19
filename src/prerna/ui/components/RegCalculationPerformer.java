@@ -20,13 +20,11 @@ package prerna.ui.components;
 
 
 import java.util.ArrayList;
-import java.util.Set;
-
-import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
 
 import javax.swing.JDesktopPane;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;

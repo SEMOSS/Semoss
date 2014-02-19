@@ -31,7 +31,6 @@ import javax.swing.JDesktopPane;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 
 import org.apache.log4j.Logger;
 
@@ -122,7 +121,7 @@ public class SOAAnalysisPerformer implements Runnable {
 
 		JComboBox questionList = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD);
 		String id = DIHelper.getInstance().getIDForQuestion(questionList.getSelectedItem() + "");
-		String question = QuestionPlaySheetStore.getInstance().getCount() +". "+ id;
+		String question = QuestionPlaySheetStore.getInstance().getIDCount() +". "+ id;
 		
 		JPanel panel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
 		DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN, false);

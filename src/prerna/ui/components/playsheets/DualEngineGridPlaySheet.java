@@ -31,7 +31,6 @@ import javax.swing.JDesktopPane;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.GridTableModel;
 import prerna.util.DIHelper;
 
 /**

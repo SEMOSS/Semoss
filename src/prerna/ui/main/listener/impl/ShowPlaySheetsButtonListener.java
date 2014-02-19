@@ -21,16 +21,11 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
-import prerna.om.SEMOSSEdge;
-import prerna.ui.components.GraphToTreeConverter;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
 import prerna.util.QuestionPlaySheetStore;
 import prerna.util.StringNumericComparator;

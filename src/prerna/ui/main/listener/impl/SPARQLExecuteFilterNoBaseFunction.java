@@ -24,7 +24,6 @@ import java.util.Hashtable;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 
 import com.google.gson.Gson;
 

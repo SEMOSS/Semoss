@@ -21,8 +21,6 @@ package prerna.ui.components;
 import java.awt.BorderLayout;
 import java.util.Hashtable;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.apache.log4j.Logger;

@@ -88,7 +88,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		String query = playSheet.getQuery();
 		String selectQuery = convertConstructToSelect(query);
 		String questionID = playSheet.getQuestionID();
-		String question = QuestionPlaySheetStore.getInstance().getCount() + ". "+questionID;
+		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+questionID;
 		String title = "EXPORT: " + playSheet.getTitle();
 		IEngine engine = playSheet.getRDFEngine();
 		

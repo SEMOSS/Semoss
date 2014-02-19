@@ -8,9 +8,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.specific.tap.CONUSMapExporter;
 import prerna.ui.components.specific.tap.HealthGridExporter;
-import prerna.ui.components.specific.tap.OCONUSMapExporter;
 import prerna.util.DIHelper;
 
 public class FactSheetImageExportProcessor {

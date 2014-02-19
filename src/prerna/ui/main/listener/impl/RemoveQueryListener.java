@@ -135,7 +135,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
 				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
-				String question = id + QuestionPlaySheetStore.getInstance().getCount();
+				String question = id + QuestionPlaySheetStore.getInstance().getIDCount();
 				// use the layout to load the sheet later
 				// see if the append is on
 				logger.debug("Toggle is selected");

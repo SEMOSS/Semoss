@@ -41,27 +41,7 @@ import prerna.util.DIHelper;
  */
 public class PlaySheetColorShapeListener implements InternalFrameListener {
 
-	public static PlaySheetColorShapeListener listener = null;
 	Logger logger = Logger.getLogger(getClass());
-	
-	/**
-	 * Constructor for PlaySheetColorShapeListener.
-	 */
-	protected PlaySheetColorShapeListener()
-	{
-		
-	}
-	
-	/**
-	 * Method getInstance.  Gets the instance of the play sheet color shape listener.	
-	 * @return PlaySheetColorShapeListener */
-	public static PlaySheetColorShapeListener getInstance()
-	{
-		if(listener == null)
-			listener = new PlaySheetColorShapeListener();
-		return listener;
-	}
-	
 	
 	/**
 	 * TODO unused method
@@ -107,8 +87,6 @@ public class PlaySheetColorShapeListener implements InternalFrameListener {
 		logger.info("Begin");
 		JInternalFrame jf = e.getInternalFrame();
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
-		String questionID = ps.getQuestionID();
-		
 		// get the table
 		TableModel model = new DefaultTableModel();
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);

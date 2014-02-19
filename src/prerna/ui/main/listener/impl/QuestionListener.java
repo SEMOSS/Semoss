@@ -22,7 +22,6 @@ import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Properties;
 import java.util.StringTokenizer;
 
 import javax.swing.DefaultComboBoxModel;

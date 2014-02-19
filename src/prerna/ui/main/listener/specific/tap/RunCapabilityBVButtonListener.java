@@ -22,21 +22,14 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.JTextField;
 
-import prerna.algorithm.impl.DistanceDownstreamInserter;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.BVCalculationPerformer;
 import prerna.ui.components.specific.tap.CapabilityBVCalculationPerformer;
-import prerna.ui.components.specific.tap.FillTMHash;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Listener for btnRunCapabilityBV

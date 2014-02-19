@@ -22,9 +22,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
-import javax.swing.JFrame;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 
 import org.apache.log4j.Logger;
 

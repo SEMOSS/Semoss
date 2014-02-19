@@ -42,9 +42,6 @@ import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.Painter;
-import javax.swing.UIDefaults;
-import javax.swing.UIManager;
 
 import org.jgrapht.Graph;
 import org.jgrapht.alg.ConnectivityInspector;
@@ -75,7 +72,6 @@ import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
-import prerna.rdf.util.SPARQLParse;
 import prerna.ui.components.ControlData;
 import prerna.ui.components.ControlPanel;
 import prerna.ui.components.GraphOWLHelper;
@@ -88,12 +84,11 @@ import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
 import prerna.ui.main.listener.impl.GraphNodeListener;
+import prerna.ui.main.listener.impl.GraphPlaySheetListener;
 import prerna.ui.main.listener.impl.PickedStateListener;
 import prerna.ui.main.listener.impl.PlaySheetColorShapeListener;
 import prerna.ui.main.listener.impl.PlaySheetControlListener;
-import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.PlaySheetOWLListener;
-import prerna.ui.swing.custom.ProgressPainter;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -448,7 +443,6 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		setUndoRedoBtn();
 	}
 	
-	
 	/**
 	 * Method undoView.
 	 */
@@ -684,11 +678,15 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		// frame.setPreferredSize(new Dimension(400,600));
 		// if there is a view remove it
 		// get
+		GraphPlaySheetListener gpListener = new GraphPlaySheetListener();
+		PlaySheetControlListener gpControlListener = new PlaySheetControlListener();
+		PlaySheetOWLListener gpOWLListener = new PlaySheetOWLListener();
+		PlaySheetColorShapeListener gpColorShapeListener = new PlaySheetColorShapeListener();
 		
-		this.addInternalFrameListener(PlaySheetListener.getInstance());
-		this.addInternalFrameListener(PlaySheetControlListener.getInstance());
-		this.addInternalFrameListener(PlaySheetOWLListener.getInstance());
-		this.addInternalFrameListener(PlaySheetColorShapeListener.getInstance());
+		this.addInternalFrameListener(gpListener);
+		this.addInternalFrameListener(gpControlListener);
+		this.addInternalFrameListener(gpOWLListener);
+		this.addInternalFrameListener(gpColorShapeListener);
 
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();

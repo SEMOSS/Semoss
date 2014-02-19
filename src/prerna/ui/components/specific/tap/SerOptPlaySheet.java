@@ -59,7 +59,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.impl.BasicPlaySheetListener;
+import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.AdvParamListener;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SerOptBtnListener;
@@ -138,7 +138,8 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 	 */
 	public void createUI() throws UnsupportedBrowserTypeException
 	{
-		this.addInternalFrameListener(BasicPlaySheetListener.getInstance());
+		PlaySheetListener psListener = new PlaySheetListener();
+		this.addInternalFrameListener(psListener);
 		//		try{
 		tab1 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
 		tab1.setPreferredSize(new Dimension(500, 400));
@@ -1081,7 +1082,8 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 			showAll();
 		}catch(UnsupportedBrowserTypeException e){
 			displayCheckBoxError();
-			BasicPlaySheetListener.getInstance().internalFrameClosed(new InternalFrameEvent(this,0));
+			PlaySheetListener psListener = (PlaySheetListener)this.getInternalFrameListeners()[0];
+			psListener.internalFrameClosed(new InternalFrameEvent(this,0));
 			return;
 		}
 	}

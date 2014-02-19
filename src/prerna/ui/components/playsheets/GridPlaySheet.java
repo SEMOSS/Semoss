@@ -45,9 +45,9 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		try {
 			table = new JTable();
 			JPanel mainPanel = new JPanel();
-
+			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
 			logger.debug("Created the table");
-			this.addInternalFrameListener(GridPlaySheetListener.getInstance());
+			this.addInternalFrameListener(gridPSListener);
 			logger.debug("Added the internal frame listener ");
 			table.setAutoCreateRowSorter(true);
 			this.setContentPane(mainPanel);

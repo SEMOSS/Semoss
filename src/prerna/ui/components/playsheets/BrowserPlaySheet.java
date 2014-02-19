@@ -32,7 +32,7 @@ import javax.swing.JTable;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
+import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -177,7 +177,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			splitPane.setLeftComponent(controlPanel);
 			splitPane.setRightComponent(mainPanel);
 
-			this.addInternalFrameListener(GridPlaySheetListener.getInstance());
+			PlaySheetListener psListener = new PlaySheetListener();
+			this.addInternalFrameListener(psListener);
 			this.setContentPane(splitPane);
 			GridBagLayout gbl_mainPanel = new GridBagLayout();
 			gbl_mainPanel.columnWidths = new int[]{0, 0};

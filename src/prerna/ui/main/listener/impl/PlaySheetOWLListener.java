@@ -39,28 +39,7 @@ import prerna.util.DIHelper;
  */
 public class PlaySheetOWLListener implements InternalFrameListener {
 
-	public static PlaySheetOWLListener listener = null;
 	Logger logger = Logger.getLogger(getClass());
-	
-	/**
-	 * Constructor for PlaySheetOWLListener.
-	 */
-	protected PlaySheetOWLListener()
-	{
-		
-	}
-	
-	/**
-	 * Method getInstance. Gets the instance of the play sheet OWL listener.	
-	 * @return PlaySheetOWLListener */
-	public static PlaySheetOWLListener getInstance()
-	{
-		if(listener == null)
-			listener = new PlaySheetOWLListener();
-		return listener;
-	}
-	
-	
 	/**
 	 * TODO unused method
 	 * Method internalFrameActivated.
@@ -79,26 +58,15 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 		}
 		// get the filter data
 		PropertySpecData psd = ps.getPredicateData();
-		
 		OPropertyTableModel model = new OPropertyTableModel(psd);
 	
 		logger.info("Lable count is " + model.getRowCount());
-		// get the table
-		/*JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.OBJECT_PROP_TABLE);
-		table.setModel(model);
-		//table.repaint();
-		model.fireTableDataChanged();
-		logger.debug("Added the Node filter table ");
-		*/
-		
 		PropertyTableModel model2 = new PropertyTableModel(psd);
-
 		// get the table
 		JTable table2 = (JTable)DIHelper.getInstance().getLocalProp(Constants.DATA_PROP_TABLE);
 		table2.setModel(model2);
 		//table.repaint();
 		model2.fireTableDataChanged();
-		
 		logger.debug("Added the Edge filter table ");
 		logger.info("Internal Frame Activated OWL >>>> Complete ");
 	}
@@ -115,8 +83,6 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 		logger.info("Begin");
 		JInternalFrame jf = e.getInternalFrame();
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
-		String questionID = ps.getQuestionID();
-		
 		// get the table
 		TableModel model = new DefaultTableModel();
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.OBJECT_PROP_TABLE);

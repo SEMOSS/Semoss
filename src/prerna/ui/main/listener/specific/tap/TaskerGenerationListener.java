@@ -21,7 +21,6 @@ package prerna.ui.main.listener.specific.tap;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import org.apache.log4j.Logger;
@@ -29,7 +28,6 @@ import org.apache.log4j.Logger;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.TaskerGenerationProcessor;
-import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 

@@ -18,67 +18,31 @@
  ******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.ComponentOrientation;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.SystemColor;
-import java.beans.PropertyVetoException;
-
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-
-import prerna.ui.components.NewScrollBarUI;
-import prerna.ui.components.PaintLabel;
-import prerna.ui.components.WrapLayout;
-
-import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTable;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.ListModel;
-import javax.swing.Painter;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.UIDefaults;
-import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
-import prerna.ui.main.listener.impl.RegressionAnalysisButtonListener;
-import prerna.ui.main.listener.impl.RegressionDepVarListener;
-import prerna.ui.main.listener.impl.RegressionIndepVarDeleteListener;
-import prerna.ui.main.listener.impl.RegressionIndepVarListener;
-import prerna.ui.main.listener.impl.RepoSelectionListener;
+import prerna.ui.components.WrapLayout;
 import prerna.ui.swing.custom.CustomButton;
-import prerna.ui.swing.custom.ProgressPainter;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import aurelienribon.ui.css.Style;
 
 import com.hp.hpl.jena.query.ResultSet;
 
