@@ -22,45 +22,201 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import org.supercsv.io.CsvListReader;
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 public class CSVMetamodelBuilder {
 
-	public List<String> getHeaders(ArrayList<File> files){
-		// get the headers for one CSVFile
-		Iterator<File> it = files.iterator();
-		ArrayList<String> outputHeaders = new ArrayList<String>();
-		while(it.hasNext())
-		{
-			String[] header = null;
-			try {
-				ICsvMapReader mapReader = new CsvMapReader(new FileReader(it.next()), CsvPreference.STANDARD_PREFERENCE);
-				header = mapReader.getHeader(true);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}		
+	private ArrayList<File> files;
+	private Hashtable<String, Hashtable<String, Set<String>>> dataType = new Hashtable<String, Hashtable<String, Set<String>>>();
+	private String[] header;
 
-			// need to check if last header in CSV file is an absolute path to a prop file
-			File propFile = new File(header[header.length-1]);
-			if(propFile != null){
-				header = Arrays.copyOfRange(header, 0, header.length-1);
+	public void setFiles(ArrayList<File> files) {
+		this.files = files;
+	}
+
+	public Hashtable<String, Hashtable<String, Set<String>>> returnDataTypes(){
+
+		//TODO: loop through multiple files?
+
+		File fileName = files.get(0);
+
+		CsvListReader listReader = null;
+		String[] header = null;
+		try {
+			listReader = new CsvListReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
+			this.header = listReader.getHeader(true);
+		}		
+		catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		initiateDataTypeHash();
+		getAllDataType(listReader);
+		getAllowedDataType();
+
+		return this.dataType;
+	}
+
+	private void initiateDataTypeHash() {
+		Hashtable<String, Set<String>> allHash = new Hashtable<String, Set<String>>();
+		Hashtable<String, Set<String>> allowedHash = new Hashtable<String, Set<String>>();
+
+		allHash.put("AllDataTypes", new HashSet<String>());
+		allowedHash.put("AllowedDataTypes", new HashSet<String>());
+
+
+		for(int i = 0; i < header.length; i++)
+		{
+			this.dataType.put(header[i], allHash);
+			this.dataType.put(header[i], allowedHash);
+		}
+
+	}
+
+	private void getAllDataType(CsvListReader listReader)
+	{
+		List<String> instances;
+		try {
+			instances = listReader.read();
+			while((instances = listReader.read()) != null)
+			{
+				for(int i = 0; i < header.length; i++)
+				{
+					String dataType = determineProcessor(instances.get(i));
+					this.dataType.get(header[i]).get("AllDataTypes").add(dataType);
+					this.dataType.get(header[i]).get("AllowedDataTypes").add(dataType);
+				}
 			}
-			
-			for(int i = 0; i < header.length; i++){
-				outputHeaders.add(header[i]);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void getAllowedDataType()
+	{
+		HashSet<String> numSet = new HashSet<String>();
+		numSet.add("DOUBLE");
+		numSet.add("INTEGER");
+
+		for(int i = 0; i < header.length; i++)
+		{
+			if(this.dataType.get(header[i]).get("AllowedDataTypes").isEmpty())
+			{
+				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+			}
+			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() == 1)
+			{
+				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+			}
+			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() == 2)
+			{
+				if(this.dataType.get(header[i]).get("AllowedDataTypes").equals(numSet))
+				{
+					this.dataType.get(header[i]).get("AllowedDataTypes").remove("INTEGER");
+					this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+				}
+				else
+				{
+					this.dataType.get(header[i]).get("AllowedDataTypes").clear();
+					this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+				}
+			}
+			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() > 2)
+			{
+				Iterator<String> typeIt = this.dataType.get(header[i]).get("AllowedDataTypes").iterator();
+				while(typeIt.hasNext())
+				{
+					typeIt.next();
+					typeIt.remove();
+				}
+				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 			}
 		}
-		return outputHeaders;
+	}
+
+	public static String determineProcessor(String s) {
+		String processor = "";
+
+		// if column is left blank
+		if(s == null){
+			return (processor = "STRING");
+		}
+
+		boolean isInt = true;
+		try { 
+			Integer.parseInt(s); 
+		} catch(NumberFormatException e) { 
+			isInt = false;
+		}
+
+		if(isInt){
+			return (processor = "INTEGER");
+		}
+
+		boolean isDouble = true;
+		try {
+			Double.parseDouble(s);
+		} catch(NumberFormatException e) {
+			isDouble = false;
+		}
+
+		if(isDouble) {
+			return (processor = "DOUBLE");
+		}
+
+		//TODO: combine determining long date vs. simple date into a loop
+
+		Boolean isLongDate = true;
+		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+		Date longdate = null;
+		try {
+			formatLongDate.setLenient(true);
+			longdate  = formatLongDate.parse(s);
+		} catch (ParseException e) {
+			isLongDate = false;
+		}
+
+		if(isLongDate){
+			return (processor = "DATE");
+		}
+
+		Boolean isSimpleDate = true;
+		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy");
+		Date simpleDate = null;
+		try {
+			formatSimpleDate.setLenient(true);
+			simpleDate  = formatSimpleDate.parse(s);
+		} catch (ParseException e) {
+			isSimpleDate = false;
+		}
+
+		if(isSimpleDate){
+			return (processor = "SIMPLEDATE");
+		}
+
+		if(Boolean.parseBoolean(s)){
+			return (processor = "BOOLEAN");
+		}
+
+		return (processor = "STRING");
 	}
 }
