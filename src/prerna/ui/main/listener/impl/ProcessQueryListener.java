@@ -73,7 +73,6 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 
 		//initiate executeQueryProcessor
 
-
 		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 		JToggleButton appendBtn = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
 

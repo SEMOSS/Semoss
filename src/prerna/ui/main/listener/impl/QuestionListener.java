@@ -49,14 +49,14 @@ import prerna.util.Utility;
  *	 refreshes the panel with all the parameters
  */
 public class QuestionListener implements IChakraListener {
-	
+
 	Hashtable model = null;
 	JPanel view = null; // reference to the param panel
 	JTextArea sparqlArea = null;
 	Hashtable panelHash = new Hashtable();
 	String prevQuestionId = "";
 	Logger logger = Logger.getLogger(getClass());
-	
+
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
 	 * @param actionevent ActionEvent - The event that triggers the actions in the method.
@@ -73,22 +73,21 @@ public class QuestionListener implements IChakraListener {
 			JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 			btnCustomSparql.setSelected(false);
 
-			JList list = (JList) DIHelper.getInstance().getLocalProp(
-					Constants.REPO_LIST);
+			JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
 			Object[] repos = (Object[]) list.getSelectedValues();
 
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
-			
+
 			//String id = DIHelper.getInstance().getIDForQuestion(question);
 			Insight in = engine.getInsight(question);
 			//id = in.getId();
-			
+
 			// now get the SPARQL query for this id
 			//String sparql = DIHelper.getInstance().getProperty(id + "_" + Constants.QUERY);
 			String sparql = in.getSparql();
 			//Properties prop = DIHelper.getInstance().getEngineProp();
-			
+
 			//String keyToSearch = id + "_" + Constants.LAYOUT;
 			//String layoutValue = prop.getProperty(keyToSearch);
 			String layoutValue = in.getOutput();
@@ -106,9 +105,9 @@ public class QuestionListener implements IChakraListener {
 			else{
 				playSheetComboBox.setSelectedItem(PlaySheetEnum.getNameFromClass(layoutValue));
 			}
-			
+
 			logger.info("Sparql is " + sparql);
-						
+
 			// get all the parameters and names from the SPARQL
 			Hashtable paramHash = Utility.getParams(sparql);
 			// for each of the params pick out the type now
@@ -130,7 +129,7 @@ public class QuestionListener implements IChakraListener {
 			sparql = Utility.fillParam(sparql, paramHash);
 			logger.debug(sparql  + "<<<");
 			Hashtable paramHash3 = Utility.getParams(sparql);
-			
+
 			ParamPanel panel = new ParamPanel();
 			panel.setParams(paramHash3);
 			panel.setParamType(paramHash2);
@@ -139,19 +138,15 @@ public class QuestionListener implements IChakraListener {
 				panel.setNewQuestion(true);
 			}*/
 			panel.paintParam();
-			
+
 			// finally add the param to the core panel
 			// confused about how to add this need to revisit
 			JPanel mainPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
 			mainPanel.add(panel, question + "_1"); // mark it to the question index
 			CardLayout layout = (CardLayout)mainPanel.getLayout();
 			layout.show(mainPanel, question + "_1");
-			
-			// jeez.. who codes things like this..
-			// the shit is incredibly thread unsafe !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			DIHelper.getInstance().setLocalProperty(Constants.BASE_QUERY, sparql);
-			}		
 		}
+	}
 
 	/**
 	 * Method setView. Sets a JComponent that the listener will access and/or modify when an action event occurs.  

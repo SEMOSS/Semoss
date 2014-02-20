@@ -27,15 +27,19 @@ import java.util.Hashtable;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 
+import prerna.om.Insight;
+import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
+import prerna.util.Utility;
 
 /**
  * If the custom button is selected, shows the current SPARQL query
@@ -61,9 +65,18 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 	public void actionPerformed(ActionEvent e) {
 		JButton btnGetQuestionSparql = (JButton)DIHelper.getInstance().getLocalProp(Constants.GET_CURRENT_SPARQL);
 		JTextArea area = (JTextArea)DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD);
-		String sparql = (String)DIHelper.getInstance().getLocalProp(Constants.BASE_QUERY);
 		ToggleButton btnCustomSparql = (ToggleButton)DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
-		
+
+		// get the selected engine
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		Object[] repos = (Object[]) list.getSelectedValues();
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
+		// get the selected question
+		String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
+		// create insight to get sparql text
+		Insight insight = engine.getInsight(insightString);
+		String sparql = Utility.normalizeParam(insight.getSparql());
+
 		// only allow use of get current sparql question btn when custom sparql btn is selected
 		if(btnCustomSparql.isSelected())
 		{
