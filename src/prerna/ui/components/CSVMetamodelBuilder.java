@@ -98,9 +98,12 @@ public class CSVMetamodelBuilder {
 			{
 				for(int i = 0; i < header.length; i++)
 				{
-					String dataType = determineProcessor(instances.get(i));
-					this.dataType.get(header[i]).get("AllDataTypes").add(dataType);
-					this.dataType.get(header[i]).get("AllowedDataTypes").add(dataType);
+					if(instances.get(i) != null)
+					{
+						String dataType = determineProcessor(instances.get(i));
+						this.dataType.get(header[i]).get("AllDataTypes").add(dataType);
+						this.dataType.get(header[i]).get("AllowedDataTypes").add(dataType);
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -153,11 +156,6 @@ public class CSVMetamodelBuilder {
 
 	public static String determineProcessor(String s) {
 		String processor = "";
-
-		// if column is left blank
-		if(s == null){
-			return (processor = "STRING");
-		}
 
 		boolean isInt = true;
 		try { 
