@@ -68,7 +68,7 @@ public abstract class AbstractFileReader {
 	RepositoryConnection rcOWL;
 	ValueFactory vfOWL;
 	SailConnection scOWL;
-	String owlFile;
+	String owlFile = "";
 	
 	/**
 	 * Creates and adds the triple into the repository connection
