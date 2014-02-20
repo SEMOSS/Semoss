@@ -128,7 +128,20 @@
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-            
+            var yAxisTitle = svg.selectAll(".yAxisTitle")
+	      .data([yAxisName]);
+	    yAxisTitle
+	      .enter().append("text");
+	    yAxisTitle
+	      .attr("class", "yAxisTitle")
+	      .attr("transform","rotate(-90)")
+	      .attr("y", -140)
+	      .attr("x", 0)
+	      .attr("text-anchor", "end")
+	      .text(function(d){return d});
+	    yAxisTitle
+	      .exit().remove();
+	      
             var yAxis = svg.selectAll(".yAxis")
                 .data(truncY)
                 .enter().append("text")
@@ -138,8 +151,19 @@
                 .style("text-anchor", "end")
                 .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
                 .attr("class", "yAxis");
+		
+	    var xAxisTitle = svg.selectAll(".xAxisTitle")
+	      .data([xAxisName]);
+	    xAxisTitle
+	      .enter().append("text");
+	    xAxisTitle
+	      .attr("class", "xAxisTitle")
+	      .attr("y", -120)
+	      .attr("x", 0)
+	      .text(function(d){return d});
+	    xAxisTitle
+	      .exit().remove();
             
-	    
             var xAxis = svg.selectAll(".xAxis")
 		.data(truncX)
 		.enter().append("svg:g")
