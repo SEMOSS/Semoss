@@ -63,7 +63,6 @@ public class Constants {
 	public static final String OUTEDGE_COUNT = "Outputs";
 	public static String PROCESS_CURRENT_DATE = "PROCESS_CURRENT_DATE";
 	public static String PROCESS_CURRENT_USER = "PROCESS_CURRENT_USER";
-	public static String BASE_QUERY = "BASE_QUERY";
 	public static String CURRENT_PLAYSHEET = "layoutValue";
 	
 	//graphplaysheet option constants
