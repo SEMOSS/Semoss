@@ -51,8 +51,8 @@ public class CSVReader extends AbstractFileReader {
 	List<String> headerList;
 	CellProcessor[] processors;
 	static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
-	public static String NUMCOL = "NUM_COLUMNS";
-	public static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	public final static String NUMCOL = "NUM_COLUMNS";
+	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
 	ArrayList<String> relationArrayList, nodePropArrayList, relPropArrayList;
 	int count = 0;
 	
@@ -64,40 +64,36 @@ public class CSVReader extends AbstractFileReader {
 	 * User must specify location of all files manually inside the method
 	 * @param args String[]
 	 */
-	public static void main(String[] args) throws Exception
+	public void main(String[] args) throws Exception
 	{
-		CSVReader reader = new CSVReader();
 		String workingDir = System.getProperty("user.dir");
-		reader.customBaseURI = "http://health.mil/ontologies";
-		reader.semossURI = "http://semoss.org/ontologies";
-		reader.createTypes();
-		String bdPropFile = workingDir + "/db/DOJ2 - Copy.smss";
-
-//		reader.loadBDProperties(bdPropFile);
-//		reader.openDB();
-
-		ArrayList<String> files = new ArrayList<String>();
-		files.add(workingDir+"/JEAD_Systems_SEMOSS_Test2.csv");
-		for(int i = 0; i<files.size();i++)
+		this.customBaseURI = "http://health.mil/ontologies";
+		this.semossURI = "http://semoss.org/ontologies";
+		
+		String engineName = "dbName";
+		openEngineWithoutConnection(engineName);
+		createTypes();
+		
+		String fileNames = workingDir+"/JEAD_Systems_SEMOSS_Test2.csv";
+		
+		String[] files = prepareReader(fileNames, customBaseURI, owlFile);
+		for(int i = 0; i < files.length; i++)
 		{
-			String fileName = files.get(i);
-			reader.openCSVFile(fileName);
+			String fileName = files[i];
+			openCSVFile(fileName);
 			// load the prop file for the CSV file 
-			reader.openProp(propFile);
+			openProp(propFile);
 			// load the big data properties file
 			// create processors based on property file
-			reader.createProcessors();
-			// DB
-			// Process
-			reader.processConceptRelationURIs();
-			reader.processNodePropURIs();
-			reader.processRelationPropURIs();
-			reader.skipRows();
-			reader.processRelationShips();
+			createProcessors();
+			processConceptRelationURIs();
+			processNodePropURIs();
+			processRelationPropURIs();
+			skipRows();
+			processRelationShips();
 		}
-//		reader.openOWLWithOutConnection();
-		reader.createBaseRelations();
-		reader.closeDB();
+		createBaseRelations();
+		closeDB();
 	}
 
 	/**
@@ -112,6 +108,7 @@ public class CSVReader extends AbstractFileReader {
 	{
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
+		createTypes();
 		
 		for(int i = 0; i<files.length;i++)
 		{
@@ -174,18 +171,22 @@ public class CSVReader extends AbstractFileReader {
 	public static void createTypes()
 	{
 		typeHash.put("DECIMAL", new ParseDouble());
+		typeHash.put("DOUBLE", new ParseDouble());
 		typeHash.put("STRING", new NotNull());
 		typeHash.put("DATE", new ParseDate("yyyy-mm-dd hh:mm:ss"));
 		typeHash.put("SIMPLEDATE", new ParseDate("mm/dd/yyyy"));
 		typeHash.put("NUMBER", new ParseInt());
+		typeHash.put("INTEGER", new ParseInt());
 		typeHash.put("BOOLEAN", new ParseBool());
 
 		// now the optionals
 		typeHash.put("DECIMAL_OPTIONAL", new Optional(new ParseDouble()));
+		typeHash.put("DOUBLE_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("STRING_OPTIONAL", new Optional());
 		typeHash.put("DATE_OPTIONAL", new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")));
 		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("mm/dd/yyyy")));
 		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
+		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
 		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
 	}
 
@@ -271,7 +272,7 @@ public class CSVReader extends AbstractFileReader {
 
 				String subjectValue = createInstanceValue(subject, jcrMap);
 				String objectValue = createInstanceValue(object, jcrMap);
-				if (subjectValue.equals("") || objectValue.equals(""))
+				if (subjectValue.isEmpty() || objectValue.isEmpty())
 				{
 					continue;
 				}
@@ -289,7 +290,7 @@ public class CSVReader extends AbstractFileReader {
 						{
 							// add the necessary triples for the relationship property
 							String prop = relPropSplit[i];
-//							createProperty(predicateInstanceURI, propURI, relPropSplit[i], jcrMap);
+							// createProperty(predicateInstanceURI, propURI, relPropSplit[i], jcrMap);
 							propHash.put(prop, createObject(prop, jcrMap));
 						}
 					}
@@ -310,6 +311,11 @@ public class CSVReader extends AbstractFileReader {
 				for(int i = 1; i < strSplit.length; i++)
 				{
 					String prop = strSplit[i];
+					String propValue = createInstanceValue(prop, jcrMap);
+					if (subjectValue.isEmpty() || propValue.isEmpty())
+					{
+						continue;
+					}
 					nodePropHash.put(prop, createObject(prop, jcrMap));
 				}
 				addNodeProperties(subject, subjectValue, nodePropHash);
@@ -699,6 +705,16 @@ public class CSVReader extends AbstractFileReader {
 	public Object createObject(String object, Map <String, Object> jcrMap)
 	{
 		// need to do the class vs. object magic
+		if(object.contains("+"))
+		{
+			StringBuilder strBuilder = new StringBuilder();
+			String[] objList = object.split("\\+");
+			for(int i = 0; i < objList.length; i++){
+				strBuilder.append(jcrMap.get(objList[i])); 
+			}
+			return strBuilder.toString();
+		}
+		
 		return jcrMap.get(object);
 	}
 
@@ -724,8 +740,6 @@ public class CSVReader extends AbstractFileReader {
 		headerList = Arrays.asList(header);
 		// last header in CSV file is the absolute path to the prop file
 		propFile = header[header.length-1];
-
-
 	}
 
 }
