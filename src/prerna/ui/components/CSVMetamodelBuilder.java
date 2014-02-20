@@ -76,17 +76,15 @@ public class CSVMetamodelBuilder {
 	}
 
 	private void initiateDataTypeHash() {
-		Hashtable<String, Set<String>> allHash = new Hashtable<String, Set<String>>();
-		Hashtable<String, Set<String>> allowedHash = new Hashtable<String, Set<String>>();
+		Hashtable<String, Set<String>> innerHash = new Hashtable<String, Set<String>>();
 
-		allHash.put("AllDataTypes", new HashSet<String>());
-		allowedHash.put("AllowedDataTypes", new HashSet<String>());
+		innerHash.put("AllDataTypes", new HashSet<String>());
+		innerHash.put("AllowedDataTypes", new HashSet<String>());
 
 
 		for(int i = 0; i < header.length; i++)
 		{
-			this.dataType.put(header[i], allHash);
-			this.dataType.put(header[i], allowedHash);
+			this.dataType.put(header[i], innerHash);
 		}
 
 	}
