@@ -72,19 +72,16 @@ public class CSVMetamodelBuilder {
 		getAllDataType(listReader);
 		getAllowedDataType();
 
-		return this.dataType;
+		return dataType;
 	}
 
 	private void initiateDataTypeHash() {
-		Hashtable<String, Set<String>> innerHash = new Hashtable<String, Set<String>>();
-
-		innerHash.put("AllDataTypes", new HashSet<String>());
-		innerHash.put("AllowedDataTypes", new HashSet<String>());
-
-
 		for(int i = 0; i < header.length; i++)
 		{
-			this.dataType.put(header[i], innerHash);
+			Hashtable<String, Set<String>> innerHash = new Hashtable<String, Set<String>>();
+			innerHash.put("AllDataTypes", new HashSet<String>());
+			innerHash.put("AllowedDataTypes", new HashSet<String>());
+			dataType.put(header[i], innerHash);
 		}
 
 	}
@@ -100,9 +97,9 @@ public class CSVMetamodelBuilder {
 				{
 					if(instances.get(i) != null)
 					{
-						String dataType = determineProcessor(instances.get(i));
-						this.dataType.get(header[i]).get("AllDataTypes").add(dataType);
-						this.dataType.get(header[i]).get("AllowedDataTypes").add(dataType);
+						String type = new String(determineProcessor(instances.get(i)));
+						dataType.get(header[i]).get("AllDataTypes").add(type);
+						dataType.get(header[i]).get("AllowedDataTypes").add(type);
 					}
 				}
 			}
@@ -120,36 +117,36 @@ public class CSVMetamodelBuilder {
 
 		for(int i = 0; i < header.length; i++)
 		{
-			if(this.dataType.get(header[i]).get("AllowedDataTypes").isEmpty())
+			if(dataType.get(header[i]).get("AllowedDataTypes").isEmpty())
 			{
-				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 			}
-			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() == 1)
+			else if(dataType.get(header[i]).get("AllowedDataTypes").size() == 1)
 			{
-				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 			}
-			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() == 2)
+			else if(dataType.get(header[i]).get("AllowedDataTypes").size() == 2)
 			{
-				if(this.dataType.get(header[i]).get("AllowedDataTypes").equals(numSet))
+				if(dataType.get(header[i]).get("AllowedDataTypes").equals(numSet))
 				{
-					this.dataType.get(header[i]).get("AllowedDataTypes").remove("INTEGER");
-					this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+					dataType.get(header[i]).get("AllowedDataTypes").remove("INTEGER");
+					dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 				}
 				else
 				{
-					this.dataType.get(header[i]).get("AllowedDataTypes").clear();
-					this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+					dataType.get(header[i]).get("AllowedDataTypes").clear();
+					dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 				}
 			}
-			else if(this.dataType.get(header[i]).get("AllowedDataTypes").size() > 2)
+			else if(dataType.get(header[i]).get("AllowedDataTypes").size() > 2)
 			{
-				Iterator<String> typeIt = this.dataType.get(header[i]).get("AllowedDataTypes").iterator();
+				Iterator<String> typeIt = dataType.get(header[i]).get("AllowedDataTypes").iterator();
 				while(typeIt.hasNext())
 				{
 					typeIt.next();
 					typeIt.remove();
 				}
-				this.dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
 			}
 		}
 	}
