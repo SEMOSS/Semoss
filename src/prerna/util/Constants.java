@@ -57,6 +57,7 @@ public class Constants {
 	public static String LAYOUT = "LAYOUT";
 	public static String VERTEX_NAME = "VERTEX_LABEL_PROPERTY";
 	public static String VERTEX_TYPE = "VERTEX_TYPE_PROPERTY";
+	public static String VERTEX_COLOR = "VERTEX_COLOR_PROPERTY";
 	public static String GENERIC_IMAGE = "GENERIC";
 	public static String PERSPECTIVE = "PERSPECTIVE";
 	public static final String INEDGE_COUNT = "Inputs";

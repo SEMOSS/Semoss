@@ -39,8 +39,7 @@ import prerna.ui.main.listener.impl.EditPlaySheetTitleListener;
  */
 public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPlaySheet {
 
-	public boolean extend = false;
-	public boolean overlay = false;
+	boolean overlay = false;
 	protected String query = null;
 	protected String title = null;
 	public IEngine engine = null;
@@ -63,7 +62,10 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public void run() {
 		createView();		
 	}
-
+	
+	public void setAppend(boolean overlay) {
+		this.overlay = overlay;	
+	}
 	/**
 	 * Gets the latest query set to the play sheet.  <p> If multiple queries have been set to the specific play sheet through
 	 * Extend or Overlay, the function will return the last query set to the play sheet.

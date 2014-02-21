@@ -39,6 +39,8 @@ public class SEMOSSEdge {
 	transient public SEMOSSVertex inVertex = null;
 	transient public SEMOSSVertex outVertex = null;
 	String uri = null;
+	String source = null;
+	String target = null;
 
 	transient Hashtable uriHash = new Hashtable();
 	public Hashtable <String, Object> propHash = new Hashtable();
@@ -55,6 +57,8 @@ public class SEMOSSEdge {
 	public SEMOSSEdge(SEMOSSVertex outVertex, SEMOSSVertex inVertex, String uri)
 	{
 		this.uri = uri;
+		this.source = outVertex.getURI();
+		this.target = inVertex.getURI();
 		putProperty(Constants.URI, uri);
 		String className = Utility.getClassName(uri);
 		String edgeName = Utility.getInstanceName(uri);
@@ -103,8 +107,7 @@ public class SEMOSSEdge {
 	
 	 * @return Set<String> */
 	public Set<String> getPropertyKeys() {
-		// TODO: Don't return null
-		return null;
+		return propHash.keySet();
 	}
 
 	/**

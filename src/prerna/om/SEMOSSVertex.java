@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.om;
 
+import java.awt.Color;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -26,6 +27,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
+import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -87,6 +89,9 @@ public class SEMOSSVertex{
 		putProperty(Constants.VERTEX_NAME, instanceName);
 		logger.debug("Name is " + instanceName);
 
+		Color color = TypeColorShapeTable.getInstance().getColor(className, instanceName);
+		putProperty(Constants.VERTEX_COLOR, color.getRGB()+"");
+		logger.debug("Color is " + color);
 	}
 	
 	/**
@@ -133,6 +138,12 @@ public class SEMOSSVertex{
 	public Hashtable getProperty()
 	{
 		return this.propHash;
+	}
+	
+	// refresh the color with what is in TypeColorShapeTable
+	public void resetColor()
+	{
+		this.setProperty(Constants.VERTEX_COLOR, TypeColorShapeTable.getInstance().getColor(this.getProperty(Constants.VERTEX_TYPE)+"", this.getProperty(Constants.VERTEX_NAME)+"").getRGB()+"");
 	}
 	
 	// this is the out vertex
@@ -234,8 +245,7 @@ public class SEMOSSVertex{
 	
 	 * @return Set<String> */
 	public Set<String> getPropertyKeys() {
-		// TODO Auto-generated method stub
-		return null;
+		return propHash.keySet();
 	}
 
 	/**
