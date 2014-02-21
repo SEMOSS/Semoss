@@ -35,6 +35,7 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.SEMOSSEdge;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
@@ -61,7 +62,7 @@ public class RDFEngineHelper {
 	 * @param objects 			Object.
 	 * @param ps 				Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadConceptHierarchy(IEngine fromEngine, String subjects, String objects, GraphPlaySheet ps)
+	public static void loadConceptHierarchy(IEngine fromEngine, String subjects, String objects, GraphDataModel ps)
 	{
 		String conceptHierarchyForSubject = "" ;
 
@@ -92,7 +93,7 @@ public class RDFEngineHelper {
 	 * @param predicates 			Predicate.
 	 * @param ps 					Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadRelationHierarchy(IEngine fromEngine, String predicates, GraphPlaySheet ps)
+	public static void loadRelationHierarchy(IEngine fromEngine, String predicates, GraphDataModel ps)
 	{
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
@@ -125,7 +126,7 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation.
 	 * @param ps 				Graph playsheet that allows properties to be added to the repository connection.
 	 */
-	public static void loadPropertyHierarchy(IEngine fromEngine, String predicates, String containsRelation, GraphPlaySheet ps)
+	public static void loadPropertyHierarchy(IEngine fromEngine, String predicates, String containsRelation, GraphDataModel ps)
 	{
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
@@ -160,7 +161,7 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation for the property query.
 	 * @param ps 				Graph playsheet that allows properties to be added to repository connection.
 	 */
-	public static void genPropertiesRemote(IEngine fromEngine, String subjects, String objects, String predicates, String containsRelation, GraphPlaySheet ps)
+	public static void genPropertiesRemote(IEngine fromEngine, String subjects, String objects, String predicates, String containsRelation, GraphDataModel ps)
 	{
 
 		String propertyQuery = "";
@@ -194,7 +195,7 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation for the property query.
 	 * @param ps 				Graph playsheet where edge properties are added.
 	 */
-	public static void genNodePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphPlaySheet ps)
+	public static void genNodePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps)
 	{
 
 		IEngine sesameEngine = new InMemorySesameEngine();
@@ -229,7 +230,7 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation for the property query.
 	 * @param ps 				Graph playsheet where edge properties are added.
 	 */
-	public static void genEdgePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphPlaySheet ps)
+	public static void genEdgePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps)
 	{
 
 		IEngine sesameEngine = new InMemorySesameEngine();
@@ -269,7 +270,7 @@ public class RDFEngineHelper {
 	 * @param subjects 		String containing the subjects.
 	 * @param ps 			Graph playsheet where vertexes and edges are stored.
 	 */
-	public static void loadLabels(IEngine fromEngine, String subjects, GraphPlaySheet ps)
+	public static void loadLabels(IEngine fromEngine, String subjects, GraphDataModel ps)
 	{
 		// loads all of the labels
 		// http://www.w3.org/2000/01/rdf-schema#label
@@ -296,19 +297,21 @@ public class RDFEngineHelper {
 		sjsw.executeQuery();
 		sjsw.getVariables();
 
+		Hashtable<String, SEMOSSVertex> vertStore = ps.getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = ps.getEdgeStore();
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement st = sjsw.next();
 			String subject = st.getRawVar("Subject") + "";
 			String label = st.getVar("Label") + "";
 
-			SEMOSSVertex vert = ps.vertStore.get(subject);
+			SEMOSSVertex vert = vertStore.get(subject);
 			if(vert != null)
 				vert.setProperty(Constants.VERTEX_NAME, label);
 			else
 			{
 				// may be an edge ?
-				SEMOSSEdge edge = ps.edgeStore.get(subject);
+				SEMOSSEdge edge = edgeStore.get(subject);
 				if(edge != null)
 					edge.setProperty(Constants.EDGE_NAME, label);
 			}
@@ -321,7 +324,7 @@ public class RDFEngineHelper {
 	 * @param query 		Query to be run.
 	 * @param ps 			Graph playsheet where sesame construct statement is stored.
 	 */
-	private static void addResultsToRC(IEngine fromEngine, String query, GraphPlaySheet ps){
+	private static void addResultsToRC(IEngine fromEngine, String query, GraphDataModel ps){
 		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
 		sjsc.setQuery(query);
@@ -356,8 +359,8 @@ public class RDFEngineHelper {
 				// get the properties
 				// add it to the in memory jena model
 				SesameJenaConstructStatement st = sjsc.next();
-				PropertySpecData psd = ps.getPredicateData();
-				psd.addConcept(st.getObject()+"", st.getSubject()+"");
+//				PropertySpecData psd = ps.getPredicateData();
+//				psd.addConcept(st.getObject()+"", st.getSubject()+"");
 
 				// I have to have some logic which will add the type name 
 				// basically the object is the main type

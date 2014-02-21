@@ -68,12 +68,12 @@ public class PlaysheetRemoveRunner implements Runnable{
 		colNames[0] = "Edges Removed";
 		gfd.setColumnNames(colNames);
 		ArrayList <Object []> list = new ArrayList();
-		Vector edgeV = gPlaySheet.edgeVector;
-		for(int i = 0; i < edgeV.size(); i++){
-			String [] strArray = new String[1];
-			strArray[0]=(String) edgeV.get(i);
-			list.add(i, strArray);
-		}
+//		Vector edgeV = gPlaySheet.edgeVector;
+//		for(int i = 0; i < edgeV.size(); i++){
+//			String [] strArray = new String[1];
+//			strArray[0]=(String) edgeV.get(i);
+//			list.add(i, strArray);
+//		}
 		gfd.setDataList(list);
 		JTable table = new JTable();
 		GridTableModel model = new GridTableModel(gfd);

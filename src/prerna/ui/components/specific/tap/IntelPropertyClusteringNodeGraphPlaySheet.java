@@ -19,6 +19,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.Enumeration;
+import java.util.Hashtable;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -43,7 +44,9 @@ public class IntelPropertyClusteringNodeGraphPlaySheet extends GraphPlaySheet {
 	@Override
 	public void createForest() throws Exception {
 		super.createForest();
-		Enumeration keyList = vertStore.keys();
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+		Enumeration keyList = myVertStore.keys();
 		String questionId = this.questionNum;
 		String propToCluster = DIHelper.getInstance().getProperty(questionId + "_" + "CLUSTER_PROP");
 		String propRangeVal = DIHelper.getInstance().getProperty(questionId + "_" + "CLUSTER_RANGES");
@@ -52,11 +55,11 @@ public class IntelPropertyClusteringNodeGraphPlaySheet extends GraphPlaySheet {
 			propRanges = propRangeVal.split("-");
 		}
 
-		if(edgeStore.keys().hasMoreElements())
+		if(myEdgeStore.keys().hasMoreElements())
 		{
 			while(keyList.hasMoreElements()) {
 				String currKey = (String) keyList.nextElement();
-				SEMOSSVertex vert1 = vertStore.get(currKey);
+				SEMOSSVertex vert1 = myVertStore.get(currKey);
 				SEMOSSVertex vert2 = null;
 				SEMOSSEdge edge = null;
 				String propRangeURI ="http://health.mil/ontologies/dbcm/Concept/" + propToCluster + "_Range/";
@@ -91,27 +94,27 @@ public class IntelPropertyClusteringNodeGraphPlaySheet extends GraphPlaySheet {
 						propRangeURI+="TBD";
 					}
 
-					vert2=vertStore.get(propRangeURI);
+					vert2=myVertStore.get(propRangeURI);
 					if(vert2==null)
 					{
 						vert2 = new SEMOSSVertex(propRangeURI);
 						filterData.addVertex(vert2);
 					}
 
-					vertStore.put(propRangeURI, vert2);
+					myVertStore.put(propRangeURI, vert2);
 					predicate += vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
 					edge = new SEMOSSEdge(vert1, vert2, predicate);
-					edgeStore.put(predicate, edge);
+					myEdgeStore.put(predicate, edge);
 					this.forest.addEdge(edge,vert1,vert2);
-					genControlData(vert2);
-					genControlData(edge);
+//					genControlData(vert2);
+//					genControlData(edge);
 				}
 			}
 		}
 
-		genBaseConcepts();
-		genBaseGraph();
-		genAllData();
+//		genBaseConcepts();
+//		genBaseGraph();
+//		genAllData();
 	}
 
 	/**

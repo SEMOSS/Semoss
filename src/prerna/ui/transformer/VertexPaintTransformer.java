@@ -34,7 +34,7 @@ import prerna.util.Constants;
  */
 public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint> {
 
-	Hashtable verticeURI2Show = null;
+	Hashtable<String, String> verticeURI2Show = null;
 	Logger logger = Logger.getLogger(getClass());
 	
 	/**
@@ -49,7 +49,7 @@ public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint>
 	 * Method setVertHash.  Sets the Hashtable of vertices.
 	 * @param verticeURI2Show Hashtable
 	 */
-	public void setVertHash(Hashtable verticeURI2Show)
+	public void setVertHash(Hashtable<String, String> verticeURI2Show)
 	{
 		this.verticeURI2Show = verticeURI2Show;
 	}
@@ -71,11 +71,9 @@ public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint>
 	@Override
 	public Paint transform(SEMOSSVertex arg0) {
 		Paint type = null;
+		
 		if(verticeURI2Show == null){
-			String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
-			String vertName = (String)arg0.getProperty(Constants.VERTEX_NAME);
-			
-			type = TypeColorShapeTable.getInstance().getColor(propType, vertName);
+			type = new Color(Integer.parseInt(arg0.getProperty(Constants.VERTEX_COLOR)+""));
 		}
 		else if(verticeURI2Show != null)
 		{
@@ -83,18 +81,19 @@ public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint>
 			logger.debug("URI " + URI);
 			if(verticeURI2Show.containsKey(URI))
 			{
-				String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
-				String vertName = (String)arg0.getProperty(Constants.VERTEX_NAME);
-				logger.debug("Found the URI");
-				Object hashRet = verticeURI2Show.get(URI);
-				if (hashRet instanceof Color)
-				{
-					type = (Color)verticeURI2Show.get(URI);
-				}
-				else
-				{
-					type = TypeColorShapeTable.getInstance().getColor(propType, vertName);
-				}
+				type = new Color(Integer.parseInt(arg0.getProperty(Constants.VERTEX_COLOR)+""));
+//				String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
+//				String vertName = (String)arg0.getProperty(Constants.VERTEX_NAME);
+//				logger.debug("Found the URI");
+//				Object hashRet = verticeURI2Show.get(URI);
+//				if (hashRet instanceof Color)
+//				{
+//					type = (Color)verticeURI2Show.get(URI);
+//				}
+//				else
+//				{
+//					type = TypeColorShapeTable.getInstance().getColor(propType, vertName);
+//				}
 			}
 		}
 		return type;

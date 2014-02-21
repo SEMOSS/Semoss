@@ -160,7 +160,9 @@ public class RDFJSONConverter {
 		String conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
 									  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
 									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-									  "{?Subject ?Predicate ?Object.}" +
+//									  "{?Subject ?Predicate ?Object.}" +
+									  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+									  "BIND(\"\" AS ?Object)" +
 									  "}";
 		
 		Hashtable fullNodesHash = getConceptsAsJSON((Hashtable)retHash.get("nodes"), conceptSelectQuery, engine, baseFilterHash);

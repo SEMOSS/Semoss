@@ -52,7 +52,7 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 		logger.info("Internal Frame Activated OWL Manipulator>>>> ");
 		JInternalFrame jf = e.getInternalFrame();
 		GraphPlaySheet ps = (GraphPlaySheet)jf;
-		if(!ps.sudowl)
+		if(!ps.getSudowl())
 		{
 			return;
 		}

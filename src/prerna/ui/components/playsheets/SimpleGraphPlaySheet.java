@@ -27,6 +27,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
+import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
@@ -60,6 +61,8 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		StringBuffer predicates = new StringBuffer("");
 		StringBuffer objects = new StringBuffer("");
 		
+
+		SesameJenaConstructWrapper sjw = null;
 		while(sjw.hasNext())
 		{
 			// read the subject predicate object
@@ -99,14 +102,14 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 				}
 			}
 			//addToJenaModel(st);
-			addToSesame(st, false, false);
-			if (search) addToJenaModel3(st);
+//			addToSesame(st, false, false);
+//			if (search) addToJenaModel3(st);
 		}		
 		genBaseConcepts();
 		genBaseGraph();//subjects2, predicates2, subjects2);
 		
 		try {
-			RDFEngineHelper.loadLabels(engine, subjects.toString() + objects.toString(), this);
+//			RDFEngineHelper.loadLabels(engine, subjects.toString() + objects.toString(), this);
 		} catch (Exception e) {
 			// TODO: Specify exception
 			e.printStackTrace();
@@ -142,7 +145,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
 		IEngine jenaEngine = new InMemorySesameEngine();
-		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
+//		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
@@ -165,17 +168,17 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 
 				SesameJenaConstructStatement sct = sjsc.next();
 
-						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
-						if(vert1 == null)
-						{
-							vert1 = new SEMOSSVertex(sct.getSubject());
-							vertStore.put(sct.getSubject()+"", vert1);
-							genControlData(vert1);
-						}
-						// add my friend
-						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
-							this.forest.addVertex(vertStore.get(sct.getSubject()));
-						filterData.addVertex(vert1);
+//						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+//						if(vert1 == null)
+//						{
+//							vert1 = new SEMOSSVertex(sct.getSubject());
+//							vertStore.put(sct.getSubject()+"", vert1);
+//							genControlData(vert1);
+//						}
+//						// add my friend
+//						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
+//							this.forest.addVertex(vertStore.get(sct.getSubject()));
+//						filterData.addVertex(vert1);
 			}
 		}catch(Exception ex)
 		{
@@ -206,7 +209,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
 		IEngine jenaEngine = new InMemorySesameEngine();
-		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
+//		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
@@ -234,74 +237,74 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 						// look for the appropriate vertices etc and paint it
 						predData.addConceptAvailable(sct.getSubject());
 						predData.addConceptAvailable(sct.getObject()+"");
-						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
-						if(vert1 == null)
-						{
-							vert1 = new SEMOSSVertex(sct.getSubject());
-							vertStore.put(sct.getSubject()+"", vert1);
-							genControlData(vert1);
-						}
-						SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
-						if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
-						{
-							if(sct.getObject() instanceof URI)
-								vert2 = new SEMOSSVertex(sct.getObject()+"");
-							else // ok this is a literal
-								vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
-							vertStore.put(sct.getObject()+"", vert2);
-							genControlData(vert2);
-						}
-						// create the edge now
-						SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
-						// check to see if this is another type of edge
-						if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
-							predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
-						if(edge == null)
-							edge = edgeStore.get(predicateName);
-						if(edge == null)
-						{
-							// need to create the predicate at runtime I think
-							/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-							System.err.println("Predicate plugged is " + predicateName);
-							edgeStore.put(sct.getPredicate()+"", edge);*/
-
-							// the logic works only when the predicates dont have the vertices on it.. 
-							edge = new SEMOSSEdge(vert1, vert2, predicateName);
-							edgeStore.put(predicateName, edge);
-						}
-						filterData.addVertex(vert1);
-						filterData.addVertex(vert2);
-						filterData.addEdge(edge);
-						//logger.warn("Found Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-
-						
-						// add the edge now if the edge does not exist
-						// need to handle the duplicate issue again
-						try
-						{
-							if ((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")
-									&& !filteredNodes.containsKey(sct.getObject() +"") && !filterData.edgeFilterNodes.containsKey(sct.getPredicate() + ""))) 						{	
-								predData.addPredicateAvailable(sct.getPredicate());
-								// try to see if the predicate here is a property
-								// if so then add it as a property
-							this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-								vertStore.get(sct.getObject()+""));
-							genControlData(edge);
-							// to be removed later
-							// I dont know if we even use this
-							// need to ask Bill and Tom
-							graph.addVertex(vertStore.get(sct.getSubject()));
-							graph.addVertex(vertStore.get(sct.getObject()+""));
-							
-							graph.addEdge(vertStore.get(sct.getSubject()),
-									vertStore.get(sct.getObject()+""), edge);
-							}
-						}catch (Exception ex)
-						{
-							ex.printStackTrace();
-							logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-							// ok.. I am going to ignore for now that this is a duplicate edge
-						}
+//						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+//						if(vert1 == null)
+//						{
+//							vert1 = new SEMOSSVertex(sct.getSubject());
+//							vertStore.put(sct.getSubject()+"", vert1);
+//							genControlData(vert1);
+//						}
+//						SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
+//						if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
+//						{
+//							if(sct.getObject() instanceof URI)
+//								vert2 = new SEMOSSVertex(sct.getObject()+"");
+//							else // ok this is a literal
+//								vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
+//							vertStore.put(sct.getObject()+"", vert2);
+//							genControlData(vert2);
+//						}
+//						// create the edge now
+//						SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
+//						// check to see if this is another type of edge
+//						if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
+//							predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+//						if(edge == null)
+//							edge = edgeStore.get(predicateName);
+//						if(edge == null)
+//						{
+//							// need to create the predicate at runtime I think
+//							/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
+//							System.err.println("Predicate plugged is " + predicateName);
+//							edgeStore.put(sct.getPredicate()+"", edge);*/
+//
+//							// the logic works only when the predicates dont have the vertices on it.. 
+//							edge = new SEMOSSEdge(vert1, vert2, predicateName);
+//							edgeStore.put(predicateName, edge);
+//						}
+//						filterData.addVertex(vert1);
+//						filterData.addVertex(vert2);
+//						filterData.addEdge(edge);
+//						//logger.warn("Found Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
+//
+//						
+//						// add the edge now if the edge does not exist
+//						// need to handle the duplicate issue again
+//						try
+//						{
+//							if ((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")
+//									&& !filteredNodes.containsKey(sct.getObject() +"") && !filterData.edgeFilterNodes.containsKey(sct.getPredicate() + ""))) 						{	
+//								predData.addPredicateAvailable(sct.getPredicate());
+//								// try to see if the predicate here is a property
+//								// if so then add it as a property
+//							this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
+//								vertStore.get(sct.getObject()+""));
+//							genControlData(edge);
+//							// to be removed later
+//							// I dont know if we even use this
+//							// need to ask Bill and Tom
+//							graph.addVertex(vertStore.get(sct.getSubject()));
+//							graph.addVertex(vertStore.get(sct.getObject()+""));
+//							
+//							graph.addEdge(vertStore.get(sct.getSubject()),
+//									vertStore.get(sct.getObject()+""), edge);
+//							}
+//						}catch (Exception ex)
+//						{
+//							ex.printStackTrace();
+//							logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
+//							// ok.. I am going to ignore for now that this is a duplicate edge
+//						}
 			}
 		} catch (Exception e) {
 			// TODO: Specify exception

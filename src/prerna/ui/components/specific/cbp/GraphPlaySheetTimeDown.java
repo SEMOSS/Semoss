@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Hashtable;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -52,13 +53,15 @@ public class GraphPlaySheetTimeDown extends GraphPlaySheet {
 	public void createForest() throws Exception {
 
 		super.createForest();
-		Enumeration keyList = vertStore.keys();
-		if(edgeStore.keys().hasMoreElements())
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+		Enumeration keyList = myVertStore.keys();
+		if(myEdgeStore.keys().hasMoreElements())
 		{
 			
 		while(keyList.hasMoreElements()) {
 			String currKey = (String) keyList.nextElement();
-			SEMOSSVertex vert1 = vertStore.get(currKey);
+			SEMOSSVertex vert1 = myVertStore.get(currKey);
 			SEMOSSVertex vert2 = null;
 			SEMOSSEdge edge = null;
 			String TimeDownType = "";
@@ -98,28 +101,28 @@ public class GraphPlaySheetTimeDown extends GraphPlaySheet {
 							
 					}
 				
-				vert2=vertStore.get(TimeDownType+"");
+				vert2=myVertStore.get(TimeDownType+"");
 				if(vert2==null)
 				{
 					vert2 = new SEMOSSVertex(TimeDownType);
 					filterData.addVertex(vert2);
 				}
 				
-				vertStore.put(TimeDownType, vert2);
+				myVertStore.put(TimeDownType, vert2);
 				predicate=predicate+vert1.getProperty(Constants.VERTEX_NAME)+":"+vert2.getProperty(Constants.VERTEX_NAME);
 				edge = new SEMOSSEdge(vert1, vert2, predicate);
-				edgeStore.put(predicate, edge);
+				myEdgeStore.put(predicate, edge);
 				this.forest.addEdge(edge,vert1,vert2);
-				genControlData(vert2);
-				genControlData(edge);
+//				genControlData(vert2);
+//				genControlData(edge);
 				}
 			}
 			
 		} 
 		}
-		genBaseConcepts();
-		genBaseGraph();
-		genAllData();	
+//		genBaseConcepts();
+//		genBaseGraph();
+//		genAllData();	
 	}
 	
 

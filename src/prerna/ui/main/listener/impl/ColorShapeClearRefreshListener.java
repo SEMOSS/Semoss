@@ -19,14 +19,21 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.util.Hashtable;
 
 import javax.swing.JComponent;
+import javax.swing.JTable;
 
 import org.apache.log4j.Logger;
 
+import prerna.om.SEMOSSVertex;
+import prerna.ui.components.ShapeColorTableModel;
+import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 /**
@@ -45,8 +52,16 @@ public class ColorShapeClearRefreshListener implements IChakraListener {
 		logger.info("Calling action performed - refine view");	
 		GraphPlaySheet playSheet = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
 		TypeColorShapeTable.getInstance().clearAll();
+		
+		Hashtable<String, SEMOSSVertex> vertStore = playSheet.getGraphData().getVertStore();
+		for(SEMOSSVertex vert : vertStore.values())
+			vert.resetColor();
 		playSheet.getVertexLabelFontTransformer().clearSizeData();
 		playSheet.getEdgeLabelFontTransformer().clearSizeData();
+		
+		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);
+		table.repaint();
+		
 		playSheet.repaint();
 		playSheet.genAllData();
 		playSheet.showAll();

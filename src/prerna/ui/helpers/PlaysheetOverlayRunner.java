@@ -45,7 +45,7 @@ public class PlaysheetOverlayRunner implements Runnable{
 	@Override
 	public void run() {
 		if(playSheet instanceof AbstractRDFPlaySheet)
-			((AbstractRDFPlaySheet)playSheet).overlay = true;
+			((AbstractRDFPlaySheet)playSheet).setAppend(true);
 		playSheet.createData();
 		playSheet.runAnalytics();
 		playSheet.overlayView();

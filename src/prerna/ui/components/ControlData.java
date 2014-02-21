@@ -69,6 +69,9 @@ public class ControlData{
 	// these are the properties that are always on
 	Hashtable <String, String> propOn = new Hashtable<String, String>();
 
+	// these are the properties that are always hidden
+	Hashtable <String, String> propHide = new Hashtable<String, String>();
+	
 	// these are the properties that are always on
 	Hashtable <String, String> propOnT = new Hashtable<String, String>();
 	
@@ -86,6 +89,7 @@ public class ControlData{
 		propOnT.put(Constants.URI, Constants.URI);
 		propOnT.put(Constants.VERTEX_NAME, Constants.VERTEX_NAME);
 		propOnT.put(Constants.VERTEX_TYPE, Constants.VERTEX_TYPE);
+		propHide.put(Constants.VERTEX_COLOR, Constants.VERTEX_COLOR);
 	}
 
 	/**
@@ -99,7 +103,7 @@ public class ControlData{
 		Hashtable <String, String> typeProp = new Hashtable<String,String>();
 		if(properties.containsKey(type))
 			typeProp = properties.get(type);
-		if(!typeProp.containsKey(property))
+		if(!typeProp.containsKey(property) && !propHide.containsKey(property))
 		{
 			typeProp.put(property, property);
 			rowCount++;
@@ -160,56 +164,58 @@ public class ControlData{
 			for(int propIndex=0;propIndex<props.size();propIndex++)	
 			{
 				String prop = props.get(propIndex);
-				if(propIndex == 0)
-					toolTipRows[rowIndex][0] = type;
-				else
-					toolTipRows[rowIndex][0] = "";
-
-				toolTipRows[rowIndex][1] = prop;
-				
-				boolean preSelectedT = typePropertyUnSelectedListTT.containsKey(type);
-				
-				boolean foundPropT = findIfPropSelected(typePropertySelectedListTT,type, prop);
-				toolTipRows[rowIndex][2] = new Boolean(foundPropT);
-				
-				if((propOnT.containsKey(prop) && !preSelectedT) && !foundPropT)
-				{
-					toolTipRows[rowIndex][2] = new Boolean(true);
-					Vector <String> typePropList = new Vector<String>();
-					if(typePropertySelectedListTT.containsKey(type))
-						typePropList = typePropertySelectedListTT.get(type);
-					typePropList.addElement(toolTipRows[rowIndex][1]+"");
-					typePropertySelectedListTT.put(type, typePropList);
+				if(!propHide.containsKey(prop)){
+					if(propIndex == 0)
+						toolTipRows[rowIndex][0] = type;
+					else
+						toolTipRows[rowIndex][0] = "";
+	
+					toolTipRows[rowIndex][1] = prop;
+					
+					boolean preSelectedT = typePropertyUnSelectedListTT.containsKey(type);
+					
+					boolean foundPropT = findIfPropSelected(typePropertySelectedListTT,type, prop);
+					toolTipRows[rowIndex][2] = new Boolean(foundPropT);
+					
+					if((propOnT.containsKey(prop) && !preSelectedT) && !foundPropT)
+					{
+						toolTipRows[rowIndex][2] = new Boolean(true);
+						Vector <String> typePropList = new Vector<String>();
+						if(typePropertySelectedListTT.containsKey(type))
+							typePropList = typePropertySelectedListTT.get(type);
+						typePropList.addElement(toolTipRows[rowIndex][1]+"");
+						typePropertySelectedListTT.put(type, typePropList);
+					}
+					toolTipRows[rowIndex][3] = type;
+					
+	
+					if(propIndex == 0)
+						labelRows[rowIndex][0] = type;
+					else
+						labelRows[rowIndex][0] = "";
+					
+					labelRows[rowIndex][1] = prop;
+					
+					boolean foundProp = findIfPropSelected(typePropertySelectedList,type, prop);
+					
+					labelRows[rowIndex][2] = new Boolean(foundProp);
+					
+					boolean preSelected = typePropertyUnSelectedList.containsKey(type);
+					
+					if((propOn.containsKey(prop) && !preSelected) && !foundProp)
+					{
+						labelRows[rowIndex][2] = new Boolean(true);
+						Vector <String> typePropList2 = new Vector<String>();
+						if(typePropertySelectedList.containsKey(type))
+							typePropList2 = typePropertySelectedList.get(type);
+						typePropList2.add(prop);
+						typePropertySelectedList.put(type, typePropList2);
+					}
+					
+					labelRows[rowIndex][3] = type;
+					logger.debug("Adding Rows -- " + rowIndex + "<>" + type + "<>" + prop);
+					rowIndex++;
 				}
-				toolTipRows[rowIndex][3] = type;
-				
-
-				if(propIndex == 0)
-					labelRows[rowIndex][0] = type;
-				else
-					labelRows[rowIndex][0] = "";
-				
-				labelRows[rowIndex][1] = prop;
-				
-				boolean foundProp = findIfPropSelected(typePropertySelectedList,type, prop);
-				
-				labelRows[rowIndex][2] = new Boolean(foundProp);
-				
-				boolean preSelected = typePropertyUnSelectedList.containsKey(type);
-				
-				if((propOn.containsKey(prop) && !preSelected) && !foundProp)
-				{
-					labelRows[rowIndex][2] = new Boolean(true);
-					Vector <String> typePropList2 = new Vector<String>();
-					if(typePropertySelectedList.containsKey(type))
-						typePropList2 = typePropertySelectedList.get(type);
-					typePropList2.add(prop);
-					typePropertySelectedList.put(type, typePropList2);
-				}
-				
-				labelRows[rowIndex][3] = type;
-				logger.debug("Adding Rows -- " + rowIndex + "<>" + type + "<>" + prop);
-				rowIndex++;
 			}
 		}
 		//propOn.clear();

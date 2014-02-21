@@ -93,7 +93,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		IEngine engine = playSheet.getRDFEngine();
 		
 		InMemoryJenaEngine jenaEng = new InMemoryJenaEngine();
-		Model jenaModel = playSheet.getJenaModel();
+		Model jenaModel = playSheet.getGraphData().getJenaModel();
 		jenaEng.setModel(jenaModel);
 		
 		

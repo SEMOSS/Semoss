@@ -155,7 +155,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			//newPlaySheet.setQuery(query);
 			newPlaySheet.setRDFEngine((IEngine)engine);
 			newPlaySheet.setQuestionID(question);
-			newPlaySheet.setRC(oldPlaySheet.rc);
+			newPlaySheet.setRC(oldPlaySheet.getGraphData().rc);
 			//newPlaySheet.setJenaModel(jenaModel);
 			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 			QuestionPlaySheetStore.getInstance().put(question, newPlaySheet);

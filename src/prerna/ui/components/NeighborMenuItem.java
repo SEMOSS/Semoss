@@ -25,7 +25,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.helpers.PlaysheetExtendRunner;
+import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
@@ -70,7 +70,7 @@ public class NeighborMenuItem extends JMenuItem{
 		// use the @filter@ to get this done / some of the 			
 
 		// need to create playsheet extend runner
-		playRunner = new PlaysheetExtendRunner(playSheet);
+		playRunner = new PlaysheetOverlayRunner(playSheet);
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();

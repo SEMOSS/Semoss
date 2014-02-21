@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components;
 
+import java.awt.Color;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
@@ -27,6 +28,7 @@ import org.apache.log4j.Logger;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 
 /**
@@ -160,8 +162,8 @@ public class VertexColorShapeData {
 		
 		if(nodeType != null && nodeType.length() > 0)
 		{
+			Vector <SEMOSSVertex> vertVector = typeHash.get(nodeType);	
 			// get this nodetype and make all of them negative				
-			Vector <SEMOSSVertex> vertVector = typeHash.get(nodeType);		
 			for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 			{
 				SEMOSSVertex vert = vertVector.elementAt(vertIndex);
@@ -169,7 +171,7 @@ public class VertexColorShapeData {
 				
 				shapeColorRows[row + vertIndex+1][column] = value+"";
 				logger.debug("Creating shape " + value + "   For Vertex Name " + vertName);
-				addColorShape(column, vertName, value+"");
+				addColorShape(column, vert, value+"");
 			}		
 			// also add the node type to the store
 			//addColorShape(column, nodeType, value+"");
@@ -177,10 +179,19 @@ public class VertexColorShapeData {
 		else
 		{
 			// only that node
+			//see what the first type above the selected row is (it will be the type of that node)
+			int i = 0;
+			while(nodeType == null){
+				i++;
+				nodeType = shapeColorRows[row - i][0];
+			}
+			//get that node
+			Vector <SEMOSSVertex> vertVector = typeHash.get(nodeType);	
+			SEMOSSVertex vert = vertVector.elementAt(i-1);
 			shapeColorRows[row][column] = value+"";
 			String vertName = shapeColorRows[row][1];
 			logger.debug("Creating shape " + value + "   For Vertex Name " + vertName);
-			addColorShape(column, vertName, value+"");
+			addColorShape(column, vert, value+"");
 		}
 	}
 	
@@ -190,11 +201,13 @@ public class VertexColorShapeData {
 	 * @param vertName 	Name of the vertex, in string form.
 	 * @param value 	Value associated with the vertex name, in string form.
 	 */
-	private void addColorShape(int column, String vertName, String value)
+	private void addColorShape(int column, SEMOSSVertex vert, String value)
 	{
 		if(column == 2) // this is shape
-			TypeColorShapeTable.getInstance().addShape(vertName, value);
-		else if (column == 3)
-			TypeColorShapeTable.getInstance().addColor(vertName, value);
+			TypeColorShapeTable.getInstance().addShape(vert.getProperty(Constants.VERTEX_NAME)+"", value);
+		else if (column == 3){
+			vert.setProperty(Constants.VERTEX_COLOR, ((Color)DIHelper.getInstance().getLocalProp(value)).getRGB());
+			TypeColorShapeTable.getInstance().addColor(vert.getProperty(Constants.VERTEX_NAME)+"", value);
+		}
 	}
 }

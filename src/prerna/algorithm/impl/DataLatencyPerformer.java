@@ -54,7 +54,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	Vector<SEMOSSEdge> currentPathEdges = new Vector<SEMOSSEdge>();
 	double currentPathLate;
 	Hashtable validEdges = new Hashtable();
-	Hashtable<String, SEMOSSVertex> validVerts = new Hashtable<String, SEMOSSVertex>();
+	Hashtable<String, String> validVerts = new Hashtable<String, String>();
 	String selectedNodes = "";
 	double naFrequencyFraction = 0;
 	double notInterfaceFraction = 1;
@@ -141,7 +141,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 			int count = 0;
 			for(SEMOSSVertex selectedVert : pickedVertex) {
 				forestRoots.add(selectedVert);
-				validVerts.put((String) selectedVert.getProperty(Constants.URI), selectedVert);
+				validVerts.put((String) selectedVert.getProperty(Constants.URI), (String) selectedVert.getProperty(Constants.URI));
 				finalVertScores.put(selectedVert, 0.0);
 				if(count > 0) selectedNodes = selectedNodes +", ";
 				selectedNodes = selectedNodes + selectedVert.getProperty(Constants.VERTEX_NAME);
@@ -153,7 +153,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 			Collection<SEMOSSVertex> forestRootsCollection = forest.getRoots();
 			for(SEMOSSVertex v : forestRootsCollection) {
 				forestRoots.add(v);
-				validVerts.put((String) v.getProperty(Constants.URI), v);
+				validVerts.put((String) v.getProperty(Constants.URI), (String) v.getProperty(Constants.URI));
 				finalVertScores.put(v, 0.0);
 			}
 		}
@@ -296,7 +296,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 */
 	private void addPathAsValid(Vector<SEMOSSEdge> edges, Vector<SEMOSSVertex> verts){
 		for(SEMOSSVertex vertex: verts){
-			validVerts.put((String) vertex.getProperty(Constants.URI), vertex);
+			validVerts.put((String) vertex.getProperty(Constants.URI), (String) vertex.getProperty(Constants.URI));
 		}
 		
 		for(SEMOSSEdge edge : edges){

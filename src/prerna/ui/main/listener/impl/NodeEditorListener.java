@@ -61,7 +61,7 @@ public class NodeEditorListener implements ActionListener {
 		tabS.setFileName(fullAddress);
 		NodeEditorNavigationListener navListener = new NodeEditorNavigationListener();
 		navListener.setNode(node);
-		navListener.setFilterHash(playSheet.baseFilterHash);
+		navListener.setFilterHash(playSheet.getGraphData().baseFilterHash);
 		navListener.setBrowser(tabS.browser);
 		navListener.setEngine(engine);
 		navListener.setGps(gps);

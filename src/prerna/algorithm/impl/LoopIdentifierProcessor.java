@@ -50,7 +50,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	Hashtable<String, SEMOSSEdge> nonLoopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSEdge> loopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSVertex> nonLoopVerts = new Hashtable<String, SEMOSSVertex>();
-	Hashtable<String, Object> loopVerts = new Hashtable<String, Object>();
+	Hashtable<String, String> loopVerts = new Hashtable<String, String>();
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
@@ -254,7 +254,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 */
 	private void addPathAsLoop(Vector<SEMOSSEdge> edges, Vector<SEMOSSVertex> verts){
 		for(SEMOSSVertex vertex: verts){
-			loopVerts.put((String) vertex.getProperty(Constants.URI), vertex);
+			loopVerts.put((String) vertex.getProperty(Constants.URI), (String) vertex.getProperty(Constants.URI));
 		}
 		
 		for(SEMOSSEdge edge : edges){

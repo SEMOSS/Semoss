@@ -126,7 +126,7 @@ public class D3CSVLoader extends CSVReader{
 	 * User must specify location of all files manually inside the method
 	 * @param args String[]
 	 */
-	public static void main(String[] args) throws Exception
+	public void main(String[] args) throws Exception
 	{
 		D3CSVLoader reader = new D3CSVLoader();
 		String workingDir = System.getProperty("user.dir");
