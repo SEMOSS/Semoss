@@ -39,6 +39,7 @@ import org.apache.log4j.Logger;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.RAMDirectory;
 
+import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
@@ -114,10 +115,11 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			oldVLF.setVertHash(resHash);
 			target.repaint();
 			//if the search vertex state has been cleared, we need to refill it with what is in the res hash
+			Hashtable<String, SEMOSSVertex> vertStore = gps.getGraphData().getVertStore();
 			if(tempState.getPicked().size()==0 && !resHash.isEmpty()){
 				Iterator resIt = resHash.keySet().iterator();
 				while(resIt.hasNext())
-					liveState.pick(gps.vertStore.get(resIt.next()), true);
+					liveState.pick(vertStore.get(resIt.next()), true);
 			}
 			//if there are vertices in the temp state, need to pick them in the live state and clear tempState
 			if(tempState.getPicked().size()>0){
@@ -169,6 +171,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 		tempState.clear();
 		menu.setSize(new Dimension(410, 60));
 		menu.add("Results to be highlighted......");
+		Hashtable<String, SEMOSSVertex> vertStore = gps.getGraphData().getVertStore();
 		synchronized(menu)
 		{
 			while(rs.hasNext())
@@ -179,7 +182,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 				resHash.put(doc, doc);
 				cleanResHash.put(doc, doc);
 
-				tempState.pick(gps.vertStore.get(doc), true);
+				tempState.pick(vertStore.get(doc), true);
 				menu.add(doc);
 			}
 		}
@@ -203,7 +206,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 				resHash.put(doc, doc);
 				cleanResHash.put(doc, doc);
 
-				tempState.pick(gps.vertStore.get(doc), true);
+				tempState.pick(vertStore.get(doc), true);
 				menu.add(doc);
 			}
 		}

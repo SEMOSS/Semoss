@@ -57,11 +57,11 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	{
 		super();
 		
-		vertStore = new Hashtable<String, SEMOSSVertex>();
-		edgeStore =new Hashtable<String, SEMOSSEdge>();
-
-		rdfMap = DIHelper.getInstance().getRdfMap();
-		createBaseURIs();
+//		vertStore = new Hashtable<String, SEMOSSVertex>();
+//		edgeStore =new Hashtable<String, SEMOSSEdge>();
+//
+//		rdfMap = DIHelper.getInstance().getRdfMap();
+//		createBaseURIs();
 		logger.info("Graph PlaySheet " + query);
 		//addInitialPanel();
 		//addPanel();
@@ -101,7 +101,7 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	{
 		updateProgressBar("50%...Extending Services", 50);
 		createData();
-		extendView();
+		overlayView();
 	}
 	/**
 	 * Generates the data and recreates the legend for a refined SOA view.
@@ -110,7 +110,7 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 		// need to include the relation vs. prop logic
 
 		getForest();
-		genBaseGraph();
+//		genBaseGraph();
 		genAllData();
 		legendPanel.data = filterData;
 		// create the specified layout
@@ -127,7 +127,7 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	public void recreateSOAView() {
 		this.setPreferredSize(new Dimension(1000,750));
 
-		searchPanel=new ControlPanel(search);
+//		searchPanel=new ControlPanel(search);
 
 		try {
 			// get the graph query result and paint it
@@ -137,7 +137,6 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 			// addInitialPanel();
 			// execute the query now
 			setAppend(false);
-			setExtend(false);
 			
 			getForest();
 			
@@ -149,9 +148,9 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 			
 			logger.debug("Executed the select");
 			logger.info("Creating the base Graph");
-			genBaseConcepts();
+//			genBaseConcepts();
 			logger.info("Loaded Orphan");
-			genBaseGraph();//subjects2, predicates2, subjects2);
+//			genBaseGraph();//subjects2, predicates2, subjects2);
 			logger.info("Loaded Graph");
 			genAllData();
 
@@ -165,7 +164,7 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 				}
 			};
 			thread.start();
-			modelCounter++;
+//			modelCounter++;
 			logger.info("Creating Forest Complete >>>>>> ");	
 			createLayout();
 			processView();
@@ -186,57 +185,57 @@ public class SOATransitionAllSheet extends GraphPlaySheet{
 	/**
 	 * Removes the SOA interface from the view.
 	 */
-	public void removeSOAView()
-	{
-		showAll();
-		// this will extend it
-		// i.e. Checks to see if the node is available
-		// if the node is not already there then this predicate wont be added
-
-		logger.info("Removing Data from Forest >>>>>");
-		
-		if(query.toUpperCase().contains("CONSTRUCT"))
-			sjw = new SesameJenaConstructWrapper();
-		else
-			sjw = new SesameJenaSelectCheater();
-
-		updateProgressBar("70%...Removing Interfaces", 70);
-		sjw.setEngine(engine);
-		sjw.setQuery(query);
-		sjw.execute();
-
-		edgeVector = new Vector();
-
-		Model curModel = ModelFactory.createDefaultModel();
-		
-		while (sjw.hasNext()) {
-			String delQuery = "DELETE {?s ?p ?o} WHERE{";
-			// logger.info("Iterating ...");
-			SesameJenaConstructStatement st = sjw.next();
-			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
-			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
-			
-			// figure out if this is an object later
-			Object obj = st.getObject();
-			delQuery=delQuery+"BIND(<"+subject+">AS ?s) BIND(<"+predicate+"> AS ?p) BIND(<"+obj+"> AS ?o){?s ?p ?o}}";
-	
-			logger.debug(subject+","+predicate+","+obj);
-			Update up;
-			try {
-				up = rc.prepareUpdate(QueryLanguage.SPARQL, delQuery);
-				rc.setAutoCommit(false);
-				up.execute();
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			} catch (MalformedQueryException e) {
-				e.printStackTrace();
-			} catch (UpdateExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		refineSOAView();
-		finalizeVisualizer();
-		logger.debug("Removing Forest Complete >>>>>> ");
-	}
+//	public void removeSOAView()
+//	{
+//		showAll();
+//		// this will extend it
+//		// i.e. Checks to see if the node is available
+//		// if the node is not already there then this predicate wont be added
+//
+//		logger.info("Removing Data from Forest >>>>>");
+//		
+//		if(query.toUpperCase().contains("CONSTRUCT"))
+//			sjw = new SesameJenaConstructWrapper();
+//		else
+//			sjw = new SesameJenaSelectCheater();
+//
+//		updateProgressBar("70%...Removing Interfaces", 70);
+//		sjw.setEngine(engine);
+//		sjw.setQuery(query);
+//		sjw.execute();
+//
+//		edgeVector = new Vector();
+//
+//		Model curModel = ModelFactory.createDefaultModel();
+//		
+//		while (sjw.hasNext()) {
+//			String delQuery = "DELETE {?s ?p ?o} WHERE{";
+//			// logger.info("Iterating ...");
+//			SesameJenaConstructStatement st = sjw.next();
+//			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
+//			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
+//			
+//			// figure out if this is an object later
+//			Object obj = st.getObject();
+//			delQuery=delQuery+"BIND(<"+subject+">AS ?s) BIND(<"+predicate+"> AS ?p) BIND(<"+obj+"> AS ?o){?s ?p ?o}}";
+//	
+//			logger.debug(subject+","+predicate+","+obj);
+//			Update up;
+//			try {
+//				up = rc.prepareUpdate(QueryLanguage.SPARQL, delQuery);
+//				rc.setAutoCommit(false);
+//				up.execute();
+//			} catch (RepositoryException e) {
+//				e.printStackTrace();
+//			} catch (MalformedQueryException e) {
+//				e.printStackTrace();
+//			} catch (UpdateExecutionException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		refineSOAView();
+//		finalizeVisualizer();
+//		logger.debug("Removing Forest Complete >>>>>> ");
+//	}
 }
