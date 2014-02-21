@@ -149,7 +149,7 @@ public class LegendPanel2 extends JPanel {
 				Method method2 = PaintLabel.class.getMethod("setColor", Color.class);
 				Method method3 = JLabel.class.getMethod("setToolTipText", String.class);
 				Shape shape = TypeColorShapeTable.getInstance().getShapeL(vert.getProperty(Constants.VERTEX_TYPE)+"", vert.getProperty(Constants.VERTEX_NAME) +"");
-				Color color = new Color(Integer.parseInt(vert.getProperty(Constants.VERTEX_COLOR)+""));
+				Color color = vert.getColor();
 				method.invoke(pl, shape);
 				method2.invoke(pl, color);
 				method3.invoke(pl, nodeType+"("+typeSize+")");

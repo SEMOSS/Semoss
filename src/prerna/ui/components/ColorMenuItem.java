@@ -65,7 +65,7 @@ public class ColorMenuItem extends JMenuItem{
 		TypeColorShapeTable tcst = TypeColorShapeTable.getInstance();
 		for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 		{
-			pickedVertex[vertIndex].setProperty(Constants.VERTEX_COLOR, ((Color)DIHelper.getInstance().getLocalProp(color)).getRGB());
+			pickedVertex[vertIndex].setColor((Color)DIHelper.getInstance().getLocalProp(color));
 			tcst.addColor(""+pickedVertex[vertIndex].getProperty(Constants.VERTEX_NAME), color);
 		}
 		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();

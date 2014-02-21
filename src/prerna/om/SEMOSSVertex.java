@@ -90,7 +90,7 @@ public class SEMOSSVertex{
 		logger.debug("Name is " + instanceName);
 
 		Color color = TypeColorShapeTable.getInstance().getColor(className, instanceName);
-		putProperty(Constants.VERTEX_COLOR, color.getRGB()+"");
+		setColor(color);
 		logger.debug("Color is " + color);
 	}
 	
@@ -128,6 +128,9 @@ public class SEMOSSVertex{
 		putProperty(Constants.VERTEX_NAME, value);
 		logger.debug("Name is " + value);
 
+		Color color = TypeColorShapeTable.getInstance().getColor(className, value);
+		setColor(color);
+		logger.debug("Color is " + color);
 	}
 
 	
@@ -143,7 +146,24 @@ public class SEMOSSVertex{
 	// refresh the color with what is in TypeColorShapeTable
 	public void resetColor()
 	{
-		this.setProperty(Constants.VERTEX_COLOR, TypeColorShapeTable.getInstance().getColor(this.getProperty(Constants.VERTEX_TYPE)+"", this.getProperty(Constants.VERTEX_NAME)+"").getRGB()+"");
+		this.setColor(TypeColorShapeTable.getInstance().getColor(this.getProperty(Constants.VERTEX_TYPE)+"", this.getProperty(Constants.VERTEX_NAME)+""));
+	}
+	
+	public void setColor(Color c){
+		String rgb = "";
+		if(c != null){
+			rgb = c.getRed() + "," + c.getGreen() + "," +c.getBlue();
+		}
+		this.putProperty(Constants.VERTEX_COLOR, rgb);
+	}
+	
+	public Color getColor(){
+		String color = this.getProperty(Constants.VERTEX_COLOR) + "";
+		if(!color.isEmpty()){
+			StringTokenizer tokenizer = new StringTokenizer(color, ",");
+			return new Color(Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()), Integer.parseInt(tokenizer.nextToken()));
+		}
+		else return null;
 	}
 	
 	// this is the out vertex

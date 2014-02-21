@@ -206,7 +206,7 @@ public class VertexColorShapeData {
 		if(column == 2) // this is shape
 			TypeColorShapeTable.getInstance().addShape(vert.getProperty(Constants.VERTEX_NAME)+"", value);
 		else if (column == 3){
-			vert.setProperty(Constants.VERTEX_COLOR, ((Color)DIHelper.getInstance().getLocalProp(value)).getRGB());
+			vert.setColor((Color)DIHelper.getInstance().getLocalProp(value));
 			TypeColorShapeTable.getInstance().addColor(vert.getProperty(Constants.VERTEX_NAME)+"", value);
 		}
 	}

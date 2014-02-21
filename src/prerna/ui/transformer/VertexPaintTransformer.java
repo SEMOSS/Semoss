@@ -21,6 +21,7 @@ package prerna.ui.transformer;
 import java.awt.Color;
 import java.awt.Paint;
 import java.util.Hashtable;
+import java.util.StringTokenizer;
 
 import org.apache.commons.collections15.Transformer;
 import org.apache.log4j.Logger;
@@ -73,7 +74,7 @@ public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint>
 		Paint type = null;
 		
 		if(verticeURI2Show == null){
-			type = new Color(Integer.parseInt(arg0.getProperty(Constants.VERTEX_COLOR)+""));
+			type = arg0.getColor();
 		}
 		else if(verticeURI2Show != null)
 		{
@@ -81,7 +82,7 @@ public class VertexPaintTransformer implements Transformer <SEMOSSVertex, Paint>
 			logger.debug("URI " + URI);
 			if(verticeURI2Show.containsKey(URI))
 			{
-				type = new Color(Integer.parseInt(arg0.getProperty(Constants.VERTEX_COLOR)+""));
+				type = arg0.getColor();
 //				String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
 //				String vertName = (String)arg0.getProperty(Constants.VERTEX_NAME);
 //				logger.debug("Found the URI");
