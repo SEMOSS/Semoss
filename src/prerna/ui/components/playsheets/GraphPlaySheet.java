@@ -192,6 +192,10 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		return gdm;
 	}
 	
+	public void setGraphData(GraphDataModel gdm){
+		this.gdm = gdm;
+	}
+	
 	private void setPropSudowlSearch(){
 		sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
 		prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));

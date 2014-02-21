@@ -53,7 +53,7 @@ import prerna.util.Utility;
 public class SOAAnalysisPerformer implements Runnable {
 	//IPlaySheet playSheet = null;
 	Logger logger = Logger.getLogger(getClass());
-	GraphPlaySheet newPlaySheet = null;
+	GraphPlaySheet newPlaySheet;
 	Hashtable retValues = new Hashtable();
 	GraphPlaySheet oldPlaySheet = null;
 	String sysName="";
@@ -111,57 +111,34 @@ public class SOAAnalysisPerformer implements Runnable {
 	 */
 	public void recreateOldSheet()
 	{
-
-		
-		newPlaySheet= null;
 		//oldGSheet.setVisible(false);
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
 
 		JComboBox questionList = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD);
-		String id = DIHelper.getInstance().getIDForQuestion(questionList.getSelectedItem() + "");
-		String question = QuestionPlaySheetStore.getInstance().getIDCount() +". "+ id;
-		
-		JPanel panel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
+		QuestionPlaySheetStore.getInstance().idCount++;
+		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ "SOATransition";
 		DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN, false);
-		// get the currently visible panel
-		Component [] comps = panel.getComponents();
-		JComponent curPanel = null;
-		for(int compIndex = 0;compIndex < comps.length && curPanel == null;compIndex++)
-			if(comps[compIndex].isVisible())
-				curPanel = (JComponent)comps[compIndex];
-		
-		// get all the param field
-		Component [] fields = curPanel.getComponents();
-		
+		newPlaySheet = new GraphPlaySheet();
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			
-			IPlaySheet newIPlaySheet = null;
-			try
-			{
-				newIPlaySheet = (IPlaySheet)Class.forName("prerna.ui.components.specific.tap.SOATransitionAllSheet").getConstructor(null).newInstance(null);
-			}catch(Exception ex)
-			{
-				ex.printStackTrace();
-				logger.fatal(ex);
-			}
-			
-			newPlaySheet = (SOATransitionAllSheet) newIPlaySheet;
 			//newPlaySheet = oldPlaySheet;
-			newPlaySheet.setTitle("Service-Oriented Architecture Transition All");
+			newPlaySheet.setTitle("SOA Transition All: "+oldPlaySheet.getTitle());
 			//newPlaySheet.setQuery(query);
 			newPlaySheet.setRDFEngine((IEngine)engine);
-			newPlaySheet.setQuestionID(question);
-			newPlaySheet.setRC(oldPlaySheet.getGraphData().rc);
+			newPlaySheet.setQuestionID(insightID);
+			newPlaySheet.setGraphData(oldPlaySheet.getGraphData());
 			//newPlaySheet.setJenaModel(jenaModel);
 			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-			QuestionPlaySheetStore.getInstance().put(question, newPlaySheet);
+			QuestionPlaySheetStore.getInstance().put(insightID, newPlaySheet);
 			newPlaySheet.setJDesktopPane(pane);
-			((SOATransitionAllSheet)newPlaySheet).recreateSOAView();
+			newPlaySheet.createView();
 		}
+		
+		newPlaySheet.updateProgressBar("100%...Recreate Old Graph playsheet", 100);
 	}
 	
 	
@@ -173,25 +150,21 @@ public class SOAAnalysisPerformer implements Runnable {
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
-		
+		newPlaySheet.updateProgressBar("20%...Extending Services", 20);
 		logger.info("Repository is " + repos);
-		Runnable playRunner = null;
 		
 		String extendQuery = "CONSTRUCT {?system1 ?build ?service.?build ?subprop ?relation. ?system2 ?build2 ?service.?build2 ?subprop ?relation.  ?system3 ?build3 ?service2. ?build3 ?subprop ?relation. ?service ?exposes ?data. ?service2 ?exposes2 ?blu} WHERE {BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation){{?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?replace <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Replaces> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type><http://semoss.org/ontologies/Concept/System>;} BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system1), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build) BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system2), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build2){?service ?replace ?icd;}{?system1 ?upstream ?icd;}{?icd ?downstream ?system2;}{?service ?exposes ?data;}{?icd <http://www.w3.org/2000/01/rdf-schema#label> ?name;} {?data ?label ?name1;}Filter (?name1 in (FILTER_VALUES))}UNION{{?system3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?provide3 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?service2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?exposes2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf><http://semoss.org/ontologies/Relation/Exposes>;}BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system3), 45), \":\", SUBSTR(STR(?service2), 46))) AS ?build3){?system3 ?provide3 ?blu}{?service2 ?exposes2 ?blu}.BIND( <http://health.mil/ontologies/Concept/System/@System@> AS ?system3)}}BINDINGS ?name {BINDINGS_VALUE}";
 		
+		//replacing alot of params into the query
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			// use the layout to load the sheet later
 			// see if the append is on
-	
-			//newPlaySheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
-			
 			VertexFilterData vfd = newPlaySheet.getFilterData();
 			Vector  nodeList = (Vector) retValues.get("InterfaceControlDocument");
 			Vector  nodeList2 = (Vector) retValues.get("DataObject");
 			Vector  nodeList3 = (Vector) retValues.get("BusinessLogicUnit");
-			Vector  nodeList4 = (Vector) retValues.get("System");
 			// convert this into a filter list
 			// just get the filter string completely
 			String filter = "";
@@ -207,7 +180,6 @@ public class SOAAnalysisPerformer implements Runnable {
 				filter = filter + "\"" + nodeList2.get(nodeIndex)+"\"";
 				if(nodeIndex + 1 < nodeList2.size())
 					filter = filter + ",";
-					
 			}
 			extendQuery = extendQuery.replace("FILTER_VALUES", filter);
 			filter = "";
@@ -216,65 +188,43 @@ public class SOAAnalysisPerformer implements Runnable {
 				filter = filter + "\"" + nodeList3.get(nodeIndex)+"\"";
 				if(nodeIndex + 1 < nodeList3.size())
 					filter = filter + ",";
-					
 			}
 			extendQuery = extendQuery.replace("FILTER2_VALUES", filter);
 			extendQuery = extendQuery.replace("@System@", sysName);
 			
-			
-			// need to create a playsheet append runner
-			//playRunner = new PlaysheetExtendRunner(newPlaySheet);
+			//extend query set, create data, then overlay
 			newPlaySheet.setQuery(extendQuery);
-			// thread
-			((SOATransitionAllSheet)newPlaySheet).extendSOAView();
+			newPlaySheet.createData();
+			newPlaySheet.overlayView();
 		}
+		
+		newPlaySheet.updateProgressBar("100%...Extending Services Done", 100);
 	}
-	
-	
 	
 	/**
 	 * Removes ICDs from the selected repository.
 	 */
 	public void removeICDs() {
+		//get database listed
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
-		
-		logger.info("Repository is " + repos);
-		Runnable playRunner = null;
-		
+		newPlaySheet.updateProgressBar("20%...Removing SOA Replaced Interfaces", 20);
 		String removeQuery = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data. ?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>.?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>.} WHERE {{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?system1 ?upstream ?icd;}{?icd ?downstream ?system2;}{?icd ?carries ?data;}{?icd ?label ?name;} }BINDINGS ?name {FILTER_VALUES}";
-		
-		
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
-			// use the layout to load the sheet later
-			// see if the append is on
-			logger.debug("Toggle is selected");
-	
-			logger.debug("Appending ");
-			//newPlaySheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
-			
 
 			Vector nodeList = (Vector) retValues.get("InterfaceControlDocument");
-			
-
 			String filter = "";
 			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 			{
 				filter = filter + "(\"" + nodeList.get(nodeIndex)+"\")";
 					
 			}
-			
 			removeQuery = removeQuery.replace("FILTER_VALUES", filter);
 			
-			
-			// need to create a playsheet append runner
-			//playRunner = new PlaysheetRemoveRunner(newPlaySheet);
 			newPlaySheet.setQuery(removeQuery);
 			// thread
-			((SOATransitionAllSheet)newPlaySheet).removeView();
+			newPlaySheet.removeView();
 		}
 		oldPlaySheet.setVisible(true);
 		try {
@@ -282,6 +232,8 @@ public class SOAAnalysisPerformer implements Runnable {
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
+		
+		newPlaySheet.updateProgressBar("100%...SOA Interface Removal Complete", 100);
 	}
 	
 	
@@ -392,11 +344,9 @@ public class SOAAnalysisPerformer implements Runnable {
 				break;
 			}
 		}
-		
 		Vector sysNameVec = new Vector();
 		Vector icdNameVec = new Vector();
 		Vector dataNameVec = new Vector();
-		
 		// convert this into a filter list
 		// just get the filter string completely
 		String filter = "";
@@ -418,7 +368,6 @@ public class SOAAnalysisPerformer implements Runnable {
 			dataNameVec.addElement(nodeList2.elementAt(nodeIndex).getProperty(Constants.VERTEX_NAME));
 		}
 		retValues.put("DataObject", dataNameVec);
-		
 
 	}
 	
@@ -428,7 +377,6 @@ public class SOAAnalysisPerformer implements Runnable {
 	public void getBLUEstimates()
 	{
 		Hashtable paramHash = new Hashtable();
-		
 		String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_BLU_QUERY);
 		paramHash.put("System",  sysName);
 		query = Utility.fillParam(query, paramHash);
@@ -443,7 +391,6 @@ public class SOAAnalysisPerformer implements Runnable {
 	public void getGenericEstimates()
 	{
 		Hashtable paramHash = new Hashtable();
-		
 		String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_GENERIC_DATA_QUERY);
 	    String valueFill="";
 	    GraphPlaySheet newSheet = (GraphPlaySheet) newPlaySheet;

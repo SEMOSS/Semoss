@@ -951,5 +951,9 @@ public class GraphDataModel {
 			//count++;
 			logger.debug(delQuery);
 		}
+		//need to reset this
+		vertStore = new Hashtable<String, SEMOSSVertex>();
+		edgeStore = new Hashtable<String, SEMOSSEdge>();
+		
 	}
 }
