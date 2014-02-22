@@ -12,7 +12,9 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.poi.main.AbstractFileReader;
 import prerna.poi.main.CSVReader;
+import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
@@ -106,6 +108,7 @@ public class ImportDataProcessor {
 	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
 		boolean success = true;
 		POIReader reader = new POIReader();
+		NLPReader nlpreader = new NLPReader();
 		//first write the prop file for the new engine
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseDirectory);
@@ -174,6 +177,36 @@ public class ImportDataProcessor {
 					logger.warn("SC IS OPEN:" + csvReader.sc.isOpen());
 				} catch(Exception exe){
 
+				}
+				File propFile = new File(propWriter.propFileName);
+				deleteFile(propFile);
+				File propFile2 = propWriter.engineDirectory;
+				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
+			}
+		}
+		else if(importType == IMPORT_TYPE.NLP){
+			System.out.println("HERE3");
+			try{
+				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+
+				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+				ontologyWriter.runAugment(ontoPath, nlpreader.conceptURIHash, nlpreader.baseConceptURIHash, 
+						nlpreader.relationURIHash, nlpreader.baseRelationURIHash,
+						nlpreader.basePropURI);
+
+				File propFile = new File(propWriter.propFileName);
+				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+				FileUtils.copyFile(propFile, newProp);
+				propFile.delete();
+			}catch(Exception ex)
+			{
+				success = false;
+				try {
+					nlpreader.closeDB();
+					logger.warn("SC IS OPEN2:" + nlpreader.sc.isOpen());
+					ex.printStackTrace();
+				} catch(Exception exe){
+					exe.printStackTrace();
 				}
 				File propFile = new File(propWriter.propFileName);
 				deleteFile(propFile);

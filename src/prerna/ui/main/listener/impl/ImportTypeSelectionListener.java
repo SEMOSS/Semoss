@@ -101,7 +101,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		else if (selection.equals("Create new database engine"))
 		{
 			typeBox.setVisible(true);
-			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel loading sheet format", "CSV format"}));
+			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel loading sheet format", "CSV format", "Natural Language Proessing"}));
 			typeLbl.setVisible(true);
 			panel.setVisible(true);
 			lbl1.setVisible(true);
