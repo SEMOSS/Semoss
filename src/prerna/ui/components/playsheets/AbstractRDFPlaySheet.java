@@ -18,6 +18,8 @@
  ******************************************************************************/
 package prerna.ui.components.playsheets;
 
+import java.util.Hashtable;
+
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenuItem;
@@ -61,6 +63,13 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	@Override
 	public void run() {
 		createView();		
+	}
+	
+	public Object getData(){
+		Hashtable retHash = new Hashtable();
+		retHash.put("id", this.title==null? "": this.title);
+		
+		return retHash;
 	}
 	
 	public void setAppend(boolean overlay) {

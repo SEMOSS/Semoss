@@ -1172,7 +1172,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 
 	@Override
 	public Object getData() {
-		Hashtable returnHash = new Hashtable();
+		Hashtable returnHash = (Hashtable) super.getData();
 		returnHash.put("nodes", gdm.getVertStore());
 		returnHash.put("edges", gdm.getEdgeStore().values());
 		
