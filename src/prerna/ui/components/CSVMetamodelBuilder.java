@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,25 +39,18 @@ import org.supercsv.prefs.CsvPreference;
 public class CSVMetamodelBuilder {
 
 	private ArrayList<File> files;
-	private Hashtable<String, Hashtable<String, Set<String>>> dataType = new Hashtable<String, Hashtable<String, Set<String>>>();
+	private Hashtable<String, Hashtable<String, LinkedHashSet<String>>> dataType = new Hashtable<String, Hashtable<String, LinkedHashSet<String>>>();
 	private String[] header;
-
-	public String[] getHeader() {
-		return header;
-	}
 
 	public void setFiles(ArrayList<File> files) {
 		this.files = files;
 	}
 
-	public Hashtable<String, Hashtable<String, Set<String>>> returnDataTypes(){
-
+	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes()
+	{
 		//TODO: loop through multiple files?
-
 		File fileName = files.get(0);
-
 		CsvListReader listReader = null;
-		String[] header = null;
 		try {
 			listReader = new CsvListReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
 			this.header = listReader.getHeader(true);
@@ -77,13 +71,19 @@ public class CSVMetamodelBuilder {
 	}
 
 	private void initiateDataTypeHash() {
+		LinkedHashSet<String> headerSet = new LinkedHashSet<String>();
 		for(int i = 0; i < header.length; i++)
 		{
-			Hashtable<String, Set<String>> innerHash = new Hashtable<String, Set<String>>();
-			innerHash.put("AllDataTypes", new HashSet<String>());
-			innerHash.put("AllowedDataTypes", new HashSet<String>());
+			headerSet.add(header[i]);
+			Hashtable<String, LinkedHashSet<String>> innerHash = new Hashtable<String, LinkedHashSet<String>>();
+			innerHash.put("AllDataTypes", new LinkedHashSet<String>());
+			innerHash.put("AllowedDataTypes", new LinkedHashSet<String>());
 			dataType.put(header[i], innerHash);
 		}
+		
+		Hashtable<String, LinkedHashSet<String>> headerHash = new Hashtable<String, LinkedHashSet<String>>();
+		headerHash.put("AllHeaders", headerSet);
+		dataType.put("AllHeaders", headerHash);
 
 	}
 
