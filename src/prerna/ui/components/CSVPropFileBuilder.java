@@ -1,20 +1,8 @@
 package prerna.ui.components;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
-
-import org.supercsv.io.CsvListReader;
-import org.supercsv.io.ICsvListReader;
-import org.supercsv.prefs.CsvPreference;
 
 public class CSVPropFileBuilder{
 
@@ -60,18 +48,21 @@ public class CSVPropFileBuilder{
 		relationships.append(subject.substring(0, subject.length()-1)+"@"+pred+"@"+object.substring(0, object.length()-1)+";");
 	}
 
-	public void columnTypes(String[] header){
-		for(int i = 0; i < header.length; i++)
+	public void columnTypes(ArrayList<String> header){
+		for(int i = 0; i < header.size(); i++)
 		{
-			if(dataTypeHash.containsKey(header[i]))
+			if(dataTypeHash.containsKey(header.get(i)))
 			{
-				propHash.put(Integer.toString(i+1), dataTypeHash.get(header[i]));
+				propHash.put(Integer.toString(i+1), dataTypeHash.get(header.get(i)));
+				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ":" + dataTypeHash.get(header.get(i)));
 			}
 			else
 			{
 				propHash.put(Integer.toString(i+1), "STRING");
+				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ": STRING");
 			}
 		}
+		propHash.put("NUM_COLUMNS", Integer.toString(header.size()));
 	}
 
 	public void constructPropHash(){
