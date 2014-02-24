@@ -60,20 +60,7 @@ public class CSVPropFileBuilder{
 		relationships.append(subject.substring(0, subject.length()-1)+"@"+pred+"@"+object.substring(0, object.length()-1)+";");
 	}
 
-	public void columnTypes(String file){
-		String[] header = null;
-		try {
-			ICsvListReader listReader = new CsvListReader(new FileReader(file), CsvPreference.STANDARD_PREFERENCE);
-			header = listReader.getHeader(true);
-			propHash.put("NUM_COLUMNS",String.valueOf(header.length));			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+	public void columnTypes(String[] header){
 		for(int i = 0; i < header.length; i++)
 		{
 			if(dataTypeHash.containsKey(header[i]))
