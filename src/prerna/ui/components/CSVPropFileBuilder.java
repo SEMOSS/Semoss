@@ -22,8 +22,9 @@ public class CSVPropFileBuilder{
 	private StringBuilder node_properties = new StringBuilder();
 
 	private Hashtable<String, String> propHash = new Hashtable<String, String>();
-
-	public void addProperty(ArrayList<String> sub, ArrayList<String> obj) {
+	private Hashtable<String, String> dataTypeHash = new Hashtable<String, String>();
+	
+	public void addProperty(ArrayList<String> sub, ArrayList<String> obj, String dataType) {
 		String subject = "";
 		String object = "";
 
@@ -31,13 +32,15 @@ public class CSVPropFileBuilder{
 		while(subIt.hasNext()){
 			subject = subject + subIt.next() + "+";
 		}
-
+		subject = subject.substring(0, subject.length()-1);
 		Iterator<String> objIt = obj.iterator();
 		while(objIt.hasNext()){
 			object = object + objIt.next() + "+";
 		}
-
-		node_properties.append(subject.substring(0, subject.length()-1)+"%"+object.substring(0, object.length()-1)+";");
+		object = object.substring(0, object.length()-1);
+		
+		dataTypeHash.put(object, dataType);
+		node_properties.append(subject+"%"+object+";");
 	}
 
 	public void addRelationship(ArrayList<String> sub, String pred, ArrayList<String> obj) {
@@ -57,135 +60,31 @@ public class CSVPropFileBuilder{
 		relationships.append(subject.substring(0, subject.length()-1)+"@"+pred+"@"+object.substring(0, object.length()-1)+";");
 	}
 
-	public void columnDecomp(String file){
+	public void columnTypes(String file){
+		String[] header = null;
 		try {
 			ICsvListReader listReader = new CsvListReader(new FileReader(file), CsvPreference.STANDARD_PREFERENCE);
-			String[] header = listReader.getHeader(true);
-			propHash.put("NUM_COLUMNS",String.valueOf(header.length));
-
-			// exception handling to determine type of input
-			String[] colInstance = new String[header.length];
-			List<String> instances = listReader.read();
-			Boolean needMoreInstanceData = true;
-			while((instances = listReader.read()) != null && needMoreInstanceData){
-				for(int i = 0; i < header.length; i++){
-					if(instances.get(i) != null && colInstance[i] == null){
-						colInstance[i] = instances.get(i).toString();
-					}
-				}
-				if(!Arrays.asList(colInstance).contains(null)){
-					needMoreInstanceData = false;
-				}
-			}
-
-			for(int i = 0; i < colInstance.length; i++){
-				//Boolean isInt = isInteger(colInstance[i]);
-				String processor = determineProcessor(colInstance[i]);
-				propHash.put(String.valueOf(i+1), processor);
-			}
+			header = listReader.getHeader(true);
+			propHash.put("NUM_COLUMNS",String.valueOf(header.length));			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}		
-	}
-
-
-	public String determineProcessor(String s) {
-		String processor = "";
-		
-		// if column is left blank
-		if(s == null){
-			return (processor = "STRING");
 		}
 		
-		boolean isInt = true;
-		try { 
-			Integer.parseInt(s); 
-		} catch(NumberFormatException e) { 
-			isInt = false;
+		for(int i = 0; i < header.length; i++)
+		{
+			if(dataTypeHash.containsKey(header[i]))
+			{
+				propHash.put(Integer.toString(i+1), dataTypeHash.get(header[i]));
+			}
+			else
+			{
+				propHash.put(Integer.toString(i+1), "STRING");
+			}
 		}
-
-		if(isInt){
-			return (processor = "NUMBER");
-		}
-
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return (processor = "DECIMAL");
-		}
-
-		//TODO: combine determining long date vs. simple date into a loop
-
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
-		Date longdate = null;
-		try {
-			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-
-		if(isLongDate){
-			return (processor = "DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy");
-		Date simpleDate = null;
-		try {
-			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-
-		if(isSimpleDate){
-			return (processor = "SIMPLEDATE");
-		}
-
-		if(Boolean.parseBoolean(s)){
-			return (processor = "BOOLEAN");
-		}
-
-		return (processor = "STRING");
-	}
-
-	public static boolean isDate(String s) {
-		Boolean isDate = false;
-		SimpleDateFormat format = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
-		Date date = null;
-		try {
-			format.setLenient(false);
-			date  = format.parse(s);
-		} catch (ParseException e) {
-		}
-
-		if(date != null){
-			isDate = true;
-		}
-
-		return isDate;
-	}
-
-
-	public void writeProp(){
-		String propFile = "";
-
-		propFile += propFile + 
-				"RELATION\t" + relationships.toString() + "\n\n" +
-				"NODE_PROP\t" + node_properties.toString() + "\n\n";
-
-		System.out.println(propFile);
 	}
 
 	public void constructPropHash(){
