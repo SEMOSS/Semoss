@@ -20,6 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.util.DIHelper;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
@@ -70,7 +71,7 @@ public class WebsiteNLP {
     Hashtable<String, Vector<String>> VNFNhash = new Hashtable<String,Vector<String>>();
     static List<RelationSheet> excelfiller = new ArrayList();
     static boolean SentenceParsable = true;
-    static LexicalizedParser lp = LexicalizedParser.loadModel("C:\\Users\\sabidi\\Desktop\\FirmInitiatives\\Semoss\\StanfordCode\\englishPCFG.ser"); //<--TODO path to grammar goes here
+    static LexicalizedParser lp = LexicalizedParser.loadModel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\englishPCFG.ser"); //<--TODO path to grammar goes here
     StanfordCoreNLP pipeline = new StanfordCoreNLP();
     static XSSFWorkbook wb = new XSSFWorkbook();
 	XSSFSheet sheetToWriteOver;
@@ -86,7 +87,7 @@ public class WebsiteNLP {
 						wb = new XSSFWorkbook();
 						excelfiller = new ArrayList();
 						String docin = files[ArticleNUM];
-						String docout = "PKrequestexcel\\PKuseCase"+ ArticleNUM+".xlsx"; //excel sheet that is made
+						String docout = "Future path for output files related to the doc"; //excel sheet that is made
 						System.out.println("MMC "+docin);
 						NLP(docin,docout);
 						
@@ -94,7 +95,7 @@ public class WebsiteNLP {
 				System.out.println("MMC DONE PROCESSING FILES");
 					test.TrimTriples();
 					test.SetupSheet();
-					test.Fillexcel("C:\\Users\\sabidi\\workspace\\SEMOSS\\LastRun.xlsx");
+					test.Fillexcel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\AllArticles.xlsx");
 					System.out.println("BIG DONE");
 					return Triples;
 	}
@@ -255,7 +256,7 @@ public class WebsiteNLP {
 		String[] names = null;
 		// read in text file
 		@SuppressWarnings("resource")
-		Scanner scan = new Scanner(new File("C:\\Users\\sabidi\\Desktop\\FirmInitiatives\\Semoss\\NLPTest1\\VNC-FNF.txt"));
+		Scanner scan = new Scanner(new File(DIHelper.getInstance().getProperty("BaseFolder")+"//NLPartifacts//VNC-FNF.txt"));
 		while (scan.hasNextLine()){
 			verbNet.add(scan.nextLine());
 		}

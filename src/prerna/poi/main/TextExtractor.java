@@ -58,8 +58,8 @@ class TextExtractor {
         extractedText = extractedText.replace("\n", " ").replace("\r", " ");
         //Do whatever you want with this String object.
         System.out.println(extractedText);
-        String docname = "PKrequest\\PKuseCase.txt";
-		System.out.println(docname);
+  //      String docname = "PKrequest\\PKuseCase.txt";
+	//	System.out.println(docname);
 	//	FileOutputStream out = new FileOutputStream(docname);
 	//	extractedText = extractedText.replace("\t",".");
 	//	out.write(extractedText.getBytes());
@@ -77,9 +77,9 @@ class TextExtractor {
     }
     public static void main(String[] args) throws Exception {
     //    if (args.length == 1) {
-            TextExtractor textExtractor = new TextExtractor();
-            textExtractor.process("PKrequest\\PKuseCase.docx");
-            textExtractor.getString();
+       //     TextExtractor textExtractor = new TextExtractor();
+       //     textExtractor.process("PKrequest\\PKuseCase.docx");
+       //     textExtractor.getString();
    //     } else { 
    //         throw new Exception();
    //     }
