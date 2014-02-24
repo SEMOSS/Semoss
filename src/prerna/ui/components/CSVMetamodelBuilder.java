@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -34,8 +33,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.supercsv.io.CsvListReader;
-import org.supercsv.io.CsvMapReader;
-import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 public class CSVMetamodelBuilder {
@@ -43,6 +40,10 @@ public class CSVMetamodelBuilder {
 	private ArrayList<File> files;
 	private Hashtable<String, Hashtable<String, Set<String>>> dataType = new Hashtable<String, Hashtable<String, Set<String>>>();
 	private String[] header;
+
+	public String[] getHeader() {
+		return header;
+	}
 
 	public void setFiles(ArrayList<File> files) {
 		this.files = files;
