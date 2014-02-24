@@ -46,13 +46,13 @@ public class NLPReader extends AbstractFileReader {
 			createRelationship("predicate","object", Triples.get(i).getPred(), Triples.get(i).getObj2(),"predicateofobject", temp);
 			createRelationship("object", "subject", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"objectofsubject", temp);
 			
-			createRelationship("subject", "subjectexpanded", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"subjectexpanded", temp);
-			createRelationship("predicate", "predicateexpanded", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"predicateexpanded", temp);
-			createRelationship("object", "objectexpanded", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"objectexpanded", temp);
+			createRelationship("subject", "subjectexpanded", Triples.get(i).getObj1(), Triples.get(i).getObj1exp(),"subjectexpanded", temp);
+			createRelationship("predicate", "predicateexpanded", Triples.get(i).getPred(), Triples.get(i).getPredexp(),"predicateexpanded", temp);
+			createRelationship("object", "objectexpanded", Triples.get(i).getObj2(), Triples.get(i).getObj2exp(),"objectexpanded", temp);
 			
-			createRelationship("subject", "articlenum", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"articleofsubject", temp);
-			createRelationship("predicate", "articlenum", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"articleofpredicate", temp);
-			createRelationship("object", "articlenum", Triples.get(i).getObj2(), Triples.get(i).getObj1(),"articleofobject", temp);
+			createRelationship("subject", "articlenum", Triples.get(i).getObj1(), Triples.get(i).getArticleNum(),"articleofsubject", temp);
+			createRelationship("predicate", "articlenum", Triples.get(i).getPred(), Triples.get(i).getArticleNum(),"articleofpredicate", temp);
+			createRelationship("object", "articlenum", Triples.get(i).getObj2(), Triples.get(i).getArticleNum(),"articleofobject", temp);
 			
 		}
 	}
