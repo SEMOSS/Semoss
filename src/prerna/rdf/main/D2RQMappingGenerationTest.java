@@ -5,7 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.Set;
@@ -32,6 +34,9 @@ public class D2RQMappingGenerationTest {
 
 	private Set<String> propertyList = new HashSet<String>();
 	private Set<String> relationshipList = new HashSet<String>();
+	private Set<String> baseConcepts = new HashSet<String>();
+	private Set<String> baseRels = new HashSet<String>();
+	private Hashtable<String, ArrayList<String>> baseRelationships = new Hashtable<String, ArrayList<String>>();
 	
 	public void createMappingFile()
 	{
@@ -99,6 +104,7 @@ public class D2RQMappingGenerationTest {
 		String tableInstanceColumn = "";
 		String propertyName = "";
 		String dataType = "";
+		String nodeType = "";
 		
 		int propRows = propSheet.getLastRowNum();
 		for(int i = 1; i < propRows; i++){
@@ -106,8 +112,11 @@ public class D2RQMappingGenerationTest {
 			tableInput = dataRow.getCell(0).toString();
 			tableInstanceColumn = dataRow.getCell(1).toString();
 			propertyName = dataRow.getCell(2).toString();
-			dataType = dataRow.getCell(3).toString();
 			
+			dataType = dataRow.getCell(3).toString();
+			nodeType = dataRow.getCell(4).toString();
+			baseConcepts.add(nodeType);
+						
 			ProcessTable(tableInput, tableInstanceColumn);
 			
 			if(propertyName != null && !propertyName.equals("") && dataType != null && !dataType.equals(""))
@@ -133,6 +142,9 @@ public class D2RQMappingGenerationTest {
 		String objectInstance = "";
 		String subjectID = "";
 		String objectID = "";
+		String subjectNodeType = "";
+		String objectNodeType = "";
+		
 		
 		int relRows = relSheet.getLastRowNum();
 		for(int i = 1; i < relRows; i++){
@@ -141,12 +153,24 @@ public class D2RQMappingGenerationTest {
 			relSubjectColumn = dataRow.getCell(1).toString();
 			relObjectColumn = dataRow.getCell(2).toString();
 			subjectTable = dataRow.getCell(3).toString();
-			objectTable = dataRow.getCell(4).toString();
-			relation = dataRow.getCell(5).toString();
-			subjectInstance = dataRow.getCell(6).toString();
+			subjectInstance = dataRow.getCell(4).toString();
+			subjectID = dataRow.getCell(5).toString();
+
+			objectTable = dataRow.getCell(6).toString();
 			objectInstance = dataRow.getCell(7).toString();
-			subjectID = dataRow.getCell(8).toString();
-			objectID = dataRow.getCell(9).toString();
+			objectID = dataRow.getCell(8).toString();
+			
+			relation = dataRow.getCell(9).toString();
+			subjectNodeType = dataRow.getCell(10).toString();
+			objectNodeType = dataRow.getCell(11).toString();
+			baseConcepts.add(subjectNodeType);
+			baseConcepts.add(objectNodeType);
+			baseRels.add(relation);
+			ArrayList<String> baseRel = new ArrayList<String>();
+			baseRel.add(subjectNodeType);
+			baseRel.add(relation);
+			baseRel.add(objectNodeType);
+			baseRelationships.put(String.valueOf(i), baseRel);
 			
 			ProcessRelationships(relTable, relSubjectColumn, relObjectColumn, subjectTable, objectTable, relation, subjectInstance, objectInstance, subjectID, objectID);
 		}
@@ -299,5 +323,49 @@ public class D2RQMappingGenerationTest {
 			e.printStackTrace();
 		}
 		return requiredMapping;
+	}
+	
+	private void writeOWL(Set<String> baseConcepts, Set<String> baseRels, Hashtable<String, ArrayList<String>> baseRelationships, String path)
+	{
+		StringBuilder owlFile = new StringBuilder();
+		owlFile.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?> \n" +
+				"<rdf:RDF \n" +
+					"\txmlns=\"http://semoss.org/ontologies/Relation\" \n" +
+					"\txmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\" \n" +
+					"\txmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> \n" +
+				"<rdfs:Class rdf:about=\"http://semoss.org/ontologies/Concept\"/> \n" +
+				"<rdf:Property rdf:about=\"http://semoss.org/ontologies/Relation\"/>) \n");
+		
+		for(String conceptName : baseConcepts)
+		{
+			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Concept/" + conceptName + "\"> \n" + 
+				"\trdfs:subClassOf rdf:resource=\"http://semoss.org/ontologies/Concept\"/> \n");
+		}
+		
+		for(String relName : baseRels)
+		{
+			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Relation/" + relName + "\"> \n" +
+				"\t<rdfs:subPropertyOf rdf:resource=\"http://semoss.org/ontologies/Relation\"/> \n");
+		}
+		
+		for(String key: baseRelationships.keySet())
+		{
+			ArrayList<String> relation = baseRelationships.get(key);
+			String sub = relation.get(0);
+			String rel = relation.get(1);
+			String obj = relation.get(2);
+			
+			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Concept/" + sub + "\"> +"
+					+ "<" + rel + " rdf:resource=\"http://semoss.org/ontologies/Concept/" + obj + "\"/> \n");
+		}
+		
+		try{
+			FileWriter owlWriter = new FileWriter(path);
+			owlWriter.write(owlFile.toString());
+			owlWriter.close();
+		} catch (IOException e) {
+			Utility.showError("Could not create owl file!");
+			e.printStackTrace();
+		}
 	}
 }
