@@ -112,6 +112,8 @@ public class ImportDataProcessor {
 		//first write the prop file for the new engine
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseDirectory);
+		if(importType == IMPORT_TYPE.NLP)
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;

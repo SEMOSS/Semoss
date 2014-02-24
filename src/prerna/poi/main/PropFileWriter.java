@@ -51,9 +51,18 @@ public class PropFileWriter {
 	public File engineDirectory;
 	String engineDirectoryName;
 	public String owlFile;
+	String defaultDBPropName;
+	String defaultQuestionProp;
+	String defaultOntologyProp;
 
 	public PropFileWriter (){
-		
+		defaultDBPropName = "db/Default/Default.properties";
+		defaultQuestionProp = "db/Default/Default_Questions.properties";
+		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
+	}
+	
+	public void setDefaultQuestionSheet(String defaultQuestionSheet){
+		this.defaultQuestionProp = defaultQuestionSheet;
 	}
 	
 	public void setBaseDir(String baseDir){
@@ -71,9 +80,6 @@ public class PropFileWriter {
 	 * @param questionFile 		String that contains the path to a user specified question sheet
 	 */
 	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile){
-		String defaultDBPropName = "db/Default/Default.properties";
-		String defaultQuestionProp = "db/Default/Default_Questions.properties";
-		String defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 		this.engineName = dbName;
 		engineDirectoryName = "db/" +dbName;
 		engineDirectory = new File(baseDirectory +"/"+ engineDirectoryName);
