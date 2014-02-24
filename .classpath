@@ -83,11 +83,10 @@
 	<classpathentry kind="lib" path="RDFGraphLib/jet-regression-1.0-beta-4.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/mvel2-2.1.3.Final.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/d2rq-0.8.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/sesame-sail-inferencer-2.6.6.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/stanford-corenlp-3.3.0.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/stanford-corenlp-3.3.0-sources.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/stanford-corenlp-3.3.0-javadoc.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/stanford-corenlp-3.3.0-models.jar"/>
-	<classpathentry kind="lib" path="C:/Users/sabidi/workspace/SEMOSS/RDFGraphLib/tika-app-1.2.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-javadoc.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-models.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-sources.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/tika-app-1.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
