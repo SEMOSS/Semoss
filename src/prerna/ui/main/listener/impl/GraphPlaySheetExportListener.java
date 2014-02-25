@@ -32,6 +32,7 @@ import prerna.rdf.engine.impl.InMemoryJenaEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
@@ -114,7 +115,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		QuestionPlaySheetStore.getInstance().put(question, playSheet);
 		
 		// thread
-		Thread playThread = new Thread(NewplaySheet);
+		PlaysheetCreateRunner playThread = new PlaysheetCreateRunner(NewplaySheet);
 		playThread.run();
 			
 		playSheet.jTab.add("Graph Export", NewplaySheet);
