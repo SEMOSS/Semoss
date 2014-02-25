@@ -200,7 +200,7 @@ btnClearAll_CONTROLLER	LoadSheetExportClearAllListener
 btnUpdateCostDB_CONTROLLER	CostDBUpdateListener
 saveSudowl_CONTROLLER	OWLSaveListener
 btnUpdateActiveSystems_CONTROLLER	UpdateActiveSystemsListener
-btnTestRDBMSConnection	RDBMSTestConnectionBtnListener
+btnTestRDBMSConnection_CONTROLLER	RDBMSTestConnectionBtnListener
 
 # Right Views
 RIGHT_VIEW	prerna.ui.components.RightView
