@@ -10,6 +10,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URL; 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -55,15 +58,16 @@ class TextExtractor {
     public String getString() throws IOException {
         //Get the text into a String object
         extractedText = outputstream.toString();
-        extractedText = extractedText.replace("\n", " ").replace("\r", " ");
+        extractedText = extractedText.replace("\n", " @ ").replace("\r", " ");
         //Do whatever you want with this String object.
-        System.out.println(extractedText);
+        System.out.println("Extractedtext "+extractedText);
   //      String docname = "PKrequest\\PKuseCase.txt";
 	//	System.out.println(docname);
 	//	FileOutputStream out = new FileOutputStream(docname);
 	//	extractedText = extractedText.replace("\t",".");
 	//	out.write(extractedText.getBytes());
 	//	out.close();
+        
 		return extractedText;
     }
 
@@ -74,6 +78,20 @@ class TextExtractor {
         String extractedText = textExtractor.getString();
         return extractedText;
     	
+    }
+    private String Resumeprocessing(String extractedText2) {
+    	Scanner scan;
+    	scan = new Scanner(extractedText2);
+		return null;
+	}
+
+	public String MasterResumeExtractor(String docin) throws Exception{
+    	TextExtractor textExtractor = new TextExtractor();
+        textExtractor.process(docin);
+       String extractedText = textExtractor.getString();
+       
+       return extractedText;
+   	
     }
     public static void main(String[] args) throws Exception {
     //    if (args.length == 1) {

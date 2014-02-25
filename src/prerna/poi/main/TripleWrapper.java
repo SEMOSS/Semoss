@@ -26,6 +26,28 @@ public class TripleWrapper {
 	Tree TreePred;
 	Tree TreeObj2;
 	String ArticleNum;
+	double Obj1num;
+	double Prednum;
+	double Obj2num;
+	public double getObj1num() {
+		return Obj1num;
+	}
+	public void setObj1num(double obj1num) {
+		Obj1num = obj1num;
+	}
+	public double getPrednum() {
+		return Prednum;
+	}
+	public void setPrednum(double prednum) {
+		Prednum = prednum;
+	}
+	public double getObj2num() {
+		return Obj2num;
+	}
+	public void setObj2num(double obj2num) {
+		Obj2num = obj2num;
+	}
+	
 	
 	public String getArticleNum() {
 		return ArticleNum;
@@ -33,6 +55,8 @@ public class TripleWrapper {
 	public void setArticleNum(String articleNum) {
 		ArticleNum = articleNum;
 	}
+	
+	
 	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder();
