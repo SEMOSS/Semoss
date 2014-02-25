@@ -239,7 +239,6 @@ public abstract class AbstractFileReader {
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relations URIs to OWL
 			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.commit();
 		}
 		baseHashIt = baseRelationURIHash.keySet().iterator();
 		while(baseHashIt.hasNext()){
@@ -252,7 +251,6 @@ public abstract class AbstractFileReader {
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relationship URIs to OWL
 			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.commit();
 		}
 		for(String[] relArray : baseRelations.values()){
 			String subject = relArray[0];
@@ -263,7 +261,8 @@ public abstract class AbstractFileReader {
 			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
-
+		
+		scOWL.commit();
 		// create the OWL File
 		FileWriter fWrite = new FileWriter(owlFile);
 		RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
