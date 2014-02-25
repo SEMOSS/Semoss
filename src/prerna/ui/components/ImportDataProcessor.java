@@ -18,6 +18,7 @@ import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
+import prerna.rdf.main.D2RQMappingGenerationTest;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -25,7 +26,7 @@ public class ImportDataProcessor {
 
 	Logger logger = Logger.getLogger(getClass());
 
-	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE};
+	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, RDBMS};
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL};
 
 	String baseDirectory;
@@ -379,6 +380,15 @@ public class ImportDataProcessor {
 			file.delete();
 			logger.info("File is deleted : " + file.getAbsolutePath());
 		}
+	}
+	
+	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String url, String username, String password) {
+		boolean success = false;
+		
+		D2RQMappingGenerationTest mapper = new D2RQMappingGenerationTest(customBaseURI, fileNames, repoName, url, username, password);
+//		mapper.createMappingFile();
+		
+		return success;
 	}
 
 	public void setPropHash(Hashtable<String, String> propHash) {

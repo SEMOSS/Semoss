@@ -51,6 +51,12 @@ public class Constants {
 	public static String QUESTION_TEXT_FIELD = "questionFileNameField";
 	public static String ADVANCED_IMPORT_OPTIONS_PANEL = "advancedImportOptionsPanel";
 	public static String ADVANCED_IMPORT_OPTIONS_BUTTON = "btnShowAdvancedImportFeatures";
+	public static String IMPORT_RDBMS_URL_LABEL = "lblDBImportURL";
+	public static String IMPORT_RDBMS_URL_FIELD = "dbImportURLField";
+	public static String IMPORT_RDBMS_USERNAME_LABEL = "lblDBImportUsername";
+	public static String IMPORT_RDBMS_USERNAME_FIELD = "dbImportUsernameField";
+	public static String IMPORT_RDBMS_PW_LABEL = "lblDBImportPW";
+	public static String IMPORT_RDBMS_PW_FIELD = "dbImportPWField";
 	public static String IMPORT_MAP_LABEL = "lblselectCustomMap";
 	public static String DBCM_Prop = "DBCM_Prop";
 	public static String EMPTY = "@@";
@@ -219,11 +225,13 @@ public class Constants {
 
 	//Traverse Freely Queries
 	public static String NEIGHBORHOOD_TYPE_QUERY = "NEIGHBORHOOD_TYPE_QUERY";
+	public static String NEIGHBORHOOD_TYPE_QUERY_JENA = "NEIGHBORHOOD_TYPE_QUERY_JENA";
 	public static String NEIGHBORHOOD_OBJECT_QUERY = "NEIGHBORHOOD_OBJECT_QUERY";
 	public static String NEIGHBORHOOD_PREDICATE_FINDER_QUERY = "NEIGHBORHOOD_PREDICATE_FINDER_QUERY";
 	public static String NEIGHBORHOOD_PREDICATE_ALT2_FINDER_QUERY = "NEIGHBORHOOD_PREDICATE_ALT2_FINDER_QUERY";
 	public static String NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY = "NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY";
 	public static String TRAVERSE_FREELY_QUERY = "TRAVERSE_FREELY_QUERY";
+	public static String TRAVERSE_FREELY_QUERY_JENA = "TRAVERSE_FREELY_QUERY_JENA";
 	public static String TRAVERSE_INSTANCE_FREELY_QUERY = "TRAVERSE_INSTANCE_FREELY_QUERY";
 	public static String SUBJECT_TYPE_QUERY = "SUBJECT_TYPE_QUERY";
 	public static String PREDICATE = "PREDICATE";
