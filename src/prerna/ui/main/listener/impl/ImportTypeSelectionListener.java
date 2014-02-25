@@ -61,15 +61,18 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		JLabel lblDBName = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_ENTERDB_LABEL);
 		JLabel lblFileImport = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_LABEL);
 		JLabel lblDBImportURL = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_LABEL);
+		JLabel lblDBImportDriverType = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_LABEL);
 		JLabel lblDBImportUsername = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_LABEL);
 		JLabel lblDBImportPW = (JLabel)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_LABEL);
 		JTextField dbImportURLField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD);
+		JComboBox dbImportRDBMSDriverComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX);
 		JTextField dbImportUsernameField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD);
 		JTextField dbImportPWField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD);
 		JTextField dbNameField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD);
 		JTextField fileImportField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_FIELD);
 		JButton btnFileBrowse = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON_BROWSE);
 		JButton btnImport = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON);
+		JButton btnTestRDBMSConnection = (JButton)DIHelper.getInstance().getLocalProp(Constants.TEST_RDBMS_CONNECTION);
 		JTextField mapText = (JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD);
 		JButton advancedButton = (JButton)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_BUTTON);
 		JPanel advancedPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
@@ -88,11 +91,14 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			advancedButton.setVisible(false);
 			advancedPanel.setVisible(false);
 			lblDBImportURL.setVisible(false);
+			lblDBImportDriverType.setVisible(false);
 			lblDBImportUsername.setVisible(false);
 			lblDBImportPW.setVisible(false);
 			dbImportURLField.setVisible(false);
+			dbImportRDBMSDriverComboBox.setVisible(false);
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
+			btnTestRDBMSConnection.setVisible(false);
 		}
 		else if(selection.equals("Modify/Replace data in existing engine"))
 		{
@@ -110,11 +116,14 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			advancedButton.setVisible(false);
 			advancedPanel.setVisible(false);
 			lblDBImportURL.setVisible(false);
+			lblDBImportDriverType.setVisible(false);
 			lblDBImportUsername.setVisible(false);
 			lblDBImportPW.setVisible(false);
 			dbImportURLField.setVisible(false);
+			dbImportRDBMSDriverComboBox.setVisible(false);
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
+			btnTestRDBMSConnection.setVisible(false);
 		}
 		else if (selection.equals("Create new database engine"))
 		{
@@ -131,11 +140,14 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			if(!advancedPanel.isVisible() && advancedButton.getText().contains("Hide")) 
 				advancedButton.setText(advancedButton.getText().replace("Hide", "Show"));
 			lblDBImportURL.setVisible(false);
+			lblDBImportDriverType.setVisible(false);
 			lblDBImportUsername.setVisible(false);
 			lblDBImportPW.setVisible(false);
 			dbImportURLField.setVisible(false);
+			dbImportRDBMSDriverComboBox.setVisible(false);
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
+			btnTestRDBMSConnection.setVisible(false);
 		}
 		else if (selection.equals("Create new RDBMS connection")) {
 			typeBox.setVisible(true);
@@ -151,11 +163,14 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			advancedButton.setVisible(false);
 			advancedPanel.setVisible(false);
 			lblDBImportURL.setVisible(true);
+			lblDBImportDriverType.setVisible(true);
 			lblDBImportUsername.setVisible(true);
 			lblDBImportPW.setVisible(true);
 			dbImportURLField.setVisible(true);
+			dbImportRDBMSDriverComboBox.setVisible(true);
 			dbImportUsernameField.setVisible(true);
 			dbImportPWField.setVisible(true);
+			btnTestRDBMSConnection.setVisible(true);
 		}
 		else if (selection.equals("Select a database import method"))
 		{
