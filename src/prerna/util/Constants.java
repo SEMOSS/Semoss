@@ -53,10 +53,13 @@ public class Constants {
 	public static String ADVANCED_IMPORT_OPTIONS_BUTTON = "btnShowAdvancedImportFeatures";
 	public static String IMPORT_RDBMS_URL_LABEL = "lblDBImportURL";
 	public static String IMPORT_RDBMS_URL_FIELD = "dbImportURLField";
+	public static String IMPORT_RDBMS_DRIVER_LABEL = "lblDBImportDriverType";
+	public static String IMPORT_RDBMS_DRIVER_COMBOBOX = "dbImportRDBMSDriverComboBox";
 	public static String IMPORT_RDBMS_USERNAME_LABEL = "lblDBImportUsername";
 	public static String IMPORT_RDBMS_USERNAME_FIELD = "dbImportUsernameField";
 	public static String IMPORT_RDBMS_PW_LABEL = "lblDBImportPW";
 	public static String IMPORT_RDBMS_PW_FIELD = "dbImportPWField";
+	public static String TEST_RDBMS_CONNECTION = "btnTestRDBMSConnection";
 	public static String IMPORT_MAP_LABEL = "lblselectCustomMap";
 	public static String DBCM_Prop = "DBCM_Prop";
 	public static String EMPTY = "@@";
