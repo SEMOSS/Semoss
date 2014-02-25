@@ -193,10 +193,10 @@ public class PlayPane extends JFrame {
 	public JPanel advancedImportOptionsPanel, dbImportPanel;
 	public JTextField importFileNameField, customBaseURItextField,
 			importMapFileNameField, dbPropFileNameField, questionFileNameField,
-			dbSelectorField;
+			dbSelectorField, dbImportURLField, dbImportUsernameField, dbImportPWField;
 	public JButton mapBrowseBtn, dbPropBrowseButton, questionBrowseButton,
 			btnShowAdvancedImportFeatures, importButton, fileBrowseBtn;
-	public JLabel selectionFileLbl, dbNameLbl, lblDataInputFormat;
+	public JLabel selectionFileLbl, dbNameLbl, lblDataInputFormat, lblDBImportURL, lblDBImportUsername, lblDBImportPW;
 
 	// Export Components
 	public JLabel lblMaxExportLimit;
@@ -584,7 +584,7 @@ public class PlayPane extends JFrame {
 		dbImportTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dbImportTypeComboBox.setBackground(Color.GRAY);
 		dbImportTypeComboBox.setPreferredSize(new Dimension(400, 25));
-		dbImportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select a database import method",	"Add to existing database engine","Modify/Replace data in existing engine","Create new database engine" }));
+		dbImportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select a database import method",	"Add to existing database engine","Modify/Replace data in existing engine","Create new database engine","Create new RDBMS connection" }));
 		GridBagConstraints gbc_dbImportTypeComboBox = new GridBagConstraints();
 		gbc_dbImportTypeComboBox.anchor = GridBagConstraints.NORTHWEST;
 		gbc_dbImportTypeComboBox.insets = new Insets(0, 0, 5, 5);
@@ -626,9 +626,9 @@ public class PlayPane extends JFrame {
 		importPanel.add(dbImportPanel, gbc_dbImportPanel);
 		GridBagLayout gbl_dbImportPanel = new GridBagLayout();
 		gbl_dbImportPanel.columnWidths = new int[] { 160, 0, 0, 0 };
-		gbl_dbImportPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		gbl_dbImportPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_dbImportPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
-		gbl_dbImportPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_dbImportPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		dbImportPanel.setLayout(gbl_dbImportPanel);
 
 		dbNameLbl = new JLabel("Create Database Name");
@@ -650,13 +650,73 @@ public class PlayPane extends JFrame {
 		gbc_dbSelectorField.gridy = 0;
 		dbImportPanel.add(dbSelectorField, gbc_dbSelectorField);
 		dbSelectorField.setColumns(10);
+		
+		lblDBImportURL = new JLabel("Enter Database URL");
+		lblDBImportURL.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblDBImportURL = new GridBagConstraints();
+		gbc_lblDBImportURL.anchor = GridBagConstraints.WEST;
+		gbc_lblDBImportURL.insets = new Insets(0, 0, 5, 5);
+		gbc_lblDBImportURL.gridx = 0;
+		gbc_lblDBImportURL.gridy = 1;
+		dbImportPanel.add(lblDBImportURL, gbc_lblDBImportURL);
+		
+		dbImportURLField = new JTextField();
+		dbImportURLField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		dbImportURLField.setColumns(10);
+		GridBagConstraints gbc_dbImportURLField = new GridBagConstraints();
+		gbc_dbImportURLField.insets = new Insets(0, 0, 5, 0);
+		gbc_dbImportURLField.gridwidth = 3;
+		gbc_dbImportURLField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dbImportURLField.gridx = 1;
+		gbc_dbImportURLField.gridy = 1;
+		dbImportPanel.add(dbImportURLField, gbc_dbImportURLField);
+		
+		lblDBImportUsername = new JLabel("Enter Database Username");
+		lblDBImportUsername.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblDBImportUsername = new GridBagConstraints();
+		gbc_lblDBImportUsername.anchor = GridBagConstraints.WEST;
+		gbc_lblDBImportUsername.insets = new Insets(0, 0, 5, 5);
+		gbc_lblDBImportUsername.gridx = 0;
+		gbc_lblDBImportUsername.gridy = 2;
+		dbImportPanel.add(lblDBImportUsername, gbc_lblDBImportUsername);
+		
+		dbImportUsernameField = new JTextField();
+		dbImportUsernameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		dbImportUsernameField.setColumns(10);
+		GridBagConstraints gbc_dbImportUsernameField = new GridBagConstraints();
+		gbc_dbImportUsernameField.insets = new Insets(0, 0, 5, 0);
+		gbc_dbImportUsernameField.gridwidth = 2;
+		gbc_dbImportUsernameField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dbImportUsernameField.gridx = 1;
+		gbc_dbImportUsernameField.gridy = 2;
+		dbImportPanel.add(dbImportUsernameField, gbc_dbImportUsernameField);
+		
+		lblDBImportPW = new JLabel("Enter Database Password");
+		lblDBImportPW.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblDBImportPW = new GridBagConstraints();
+		gbc_lblDBImportPW.anchor = GridBagConstraints.WEST;
+		gbc_lblDBImportPW.insets = new Insets(0, 0, 5, 5);
+		gbc_lblDBImportPW.gridx = 0;
+		gbc_lblDBImportPW.gridy = 3;
+		dbImportPanel.add(lblDBImportPW, gbc_lblDBImportPW);
+		
+		dbImportPWField = new JTextField();
+		dbImportPWField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		dbImportPWField.setColumns(10);
+		GridBagConstraints gbc_dbImportPWField = new GridBagConstraints();
+		gbc_dbImportPWField.insets = new Insets(0, 0, 5, 0);
+		gbc_dbImportPWField.gridwidth = 2;
+		gbc_dbImportPWField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dbImportPWField.gridx = 1;
+		gbc_dbImportPWField.gridy = 3;
+		dbImportPanel.add(dbImportPWField, gbc_dbImportPWField);
 
 		selectionFileLbl = new JLabel("Select File(s) to Import");
 		GridBagConstraints gbc_selectionFileLbl = new GridBagConstraints();
 		gbc_selectionFileLbl.anchor = GridBagConstraints.WEST;
 		gbc_selectionFileLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_selectionFileLbl.gridx = 0;
-		gbc_selectionFileLbl.gridy = 1;
+		gbc_selectionFileLbl.gridy = 4;
 		dbImportPanel.add(selectionFileLbl, gbc_selectionFileLbl);
 		selectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
 
@@ -667,7 +727,7 @@ public class PlayPane extends JFrame {
 		gbc_fileBrowseBtn.anchor = GridBagConstraints.EAST;
 		gbc_fileBrowseBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_fileBrowseBtn.gridx = 1;
-		gbc_fileBrowseBtn.gridy = 1;
+		gbc_fileBrowseBtn.gridy = 4;
 		dbImportPanel.add(fileBrowseBtn, gbc_fileBrowseBtn);
 
 		importFileNameField = new JTextField();
@@ -677,7 +737,7 @@ public class PlayPane extends JFrame {
 		gbc_importFileNameField.gridwidth = 2;
 		gbc_importFileNameField.insets = new Insets(0, 0, 5, 0);
 		gbc_importFileNameField.gridx = 2;
-		gbc_importFileNameField.gridy = 1;
+		gbc_importFileNameField.gridy = 4;
 		dbImportPanel.add(importFileNameField, gbc_importFileNameField);
 		importFileNameField.setColumns(10);
 
@@ -688,7 +748,7 @@ public class PlayPane extends JFrame {
 		gbc_lblDesignateBaseUri.anchor = GridBagConstraints.WEST;
 		gbc_lblDesignateBaseUri.insets = new Insets(0, 0, 5, 5);
 		gbc_lblDesignateBaseUri.gridx = 0;
-		gbc_lblDesignateBaseUri.gridy = 2;
+		gbc_lblDesignateBaseUri.gridy = 5;
 		dbImportPanel.add(lblDesignateBaseUri, gbc_lblDesignateBaseUri);
 
 		customBaseURItextField = new JTextField();
@@ -700,7 +760,7 @@ public class PlayPane extends JFrame {
 		gbc_customBaseURItextField.insets = new Insets(0, 0, 5, 0);
 		gbc_customBaseURItextField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_customBaseURItextField.gridx = 1;
-		gbc_customBaseURItextField.gridy = 2;
+		gbc_customBaseURItextField.gridy = 5;
 		dbImportPanel.add(customBaseURItextField, gbc_customBaseURItextField);
 
 		btnShowAdvancedImportFeatures = new CustomButton("Show Advanced Features");
@@ -710,7 +770,7 @@ public class PlayPane extends JFrame {
 		gbc_btnShowAdvancedImportFeatures.gridwidth = 3;
 		gbc_btnShowAdvancedImportFeatures.insets = new Insets(0, 0, 5, 5);
 		gbc_btnShowAdvancedImportFeatures.gridx = 0;
-		gbc_btnShowAdvancedImportFeatures.gridy = 3;
+		gbc_btnShowAdvancedImportFeatures.gridy = 6;
 		dbImportPanel.add(btnShowAdvancedImportFeatures, gbc_btnShowAdvancedImportFeatures);
 
 		advancedImportOptionsPanel = new JPanel();
@@ -720,7 +780,7 @@ public class PlayPane extends JFrame {
 		gbc_advancedImportOptionsPanel.insets = new Insets(0, 0, 5, 0);
 		gbc_advancedImportOptionsPanel.fill = GridBagConstraints.BOTH;
 		gbc_advancedImportOptionsPanel.gridx = 0;
-		gbc_advancedImportOptionsPanel.gridy = 4;
+		gbc_advancedImportOptionsPanel.gridy = 6;
 		dbImportPanel.add(advancedImportOptionsPanel,	gbc_advancedImportOptionsPanel);
 		GridBagLayout gbl_advancedImportOptionsPanel = new GridBagLayout();
 		gbl_advancedImportOptionsPanel.columnWidths = new int[] { 210, 0, 0, 0 };
@@ -820,7 +880,7 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_importButton = new GridBagConstraints();
 		gbc_importButton.anchor = GridBagConstraints.EAST;
 		gbc_importButton.gridx = 3;
-		gbc_importButton.gridy = 5;
+		gbc_importButton.gridy = 7;
 		dbImportPanel.add(importButton, gbc_importButton);
 
 		GridBagConstraints gbc_importPanel = new GridBagConstraints();

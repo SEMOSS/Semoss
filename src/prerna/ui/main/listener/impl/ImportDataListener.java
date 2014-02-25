@@ -82,11 +82,13 @@ public class ImportDataListener implements IChakraListener {
 			importMethod = ImportDataProcessor.IMPORT_METHOD.OVERRIDE;
 		else if(selection.equals("Create new database engine"))
 			importMethod = ImportDataProcessor.IMPORT_METHOD.CREATE_NEW;
+		else if(selection.equals("Create new RDBMS connection"))
+			importMethod = ImportDataProcessor.IMPORT_METHOD.RDBMS;
 		
 		String typeSelection = typeBox.getSelectedItem() +"";
 		if(typeSelection.equals("CSV format"))
 			importType = ImportDataProcessor.IMPORT_TYPE.CSV;
-		else if(typeSelection.equals("Microsoft Excel loading sheet format"))
+		else if(typeSelection.equals("Microsoft Excel format"))
 			importType = ImportDataProcessor.IMPORT_TYPE.EXCEL;
 		else if(typeSelection.equals("Natural Language Proessing"))
 			importType = ImportDataProcessor.IMPORT_TYPE.NLP;
@@ -123,6 +125,12 @@ public class ImportDataListener implements IChakraListener {
 			String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
 			String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
 			successfulImport = processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile);
+		}
+		else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
+			String dbImportURL = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD)).getText();
+			String dbImportUsername = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD)).getText();
+			String dbImportPW = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getText();
+			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, repo, dbImportURL, dbImportUsername, dbImportPW);
 		}
 		
 		//finally, show whether or not successful
