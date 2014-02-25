@@ -94,12 +94,74 @@ public class WebsiteNLP {
 					}
 				System.out.println("MMC DONE PROCESSING FILES");
 					test.TrimTriples();
+					test.createOccuranceCount();
 					test.SetupSheet();
 					test.Fillexcel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\AllArticles.xlsx");
 					System.out.println("BIG DONE");
 					return Triples;
 	}
 	
+
+	private void createOccuranceCount() {
+		System.out.println("COUNT TABLE PRINTED ");
+		// TODO Auto-generated method stub
+		
+		// Hashtable <String, Integer> OccurCount = new Hashtable<String, Integer>();
+		 ArrayList <String> term = new ArrayList();
+		 ArrayList <Integer> termcount = new ArrayList();
+		 int count=0;
+		 int indexofcount = 0;
+		for(int i = 0; i<Triples.size(); i++){
+	
+			if(term.contains(Triples.get(i).getObj1())){
+				indexofcount = term.indexOf(Triples.get(i).getObj1());
+				termcount.set(indexofcount, termcount.get(indexofcount)+1);}
+			else{
+				term.add(Triples.get(i).getObj1());
+				termcount.add(1);}
+			if(term.contains(Triples.get(i).getPred())){
+				indexofcount = term.indexOf(Triples.get(i).getPred());
+				termcount.set(indexofcount, termcount.get(indexofcount)+1);}
+			else{
+				term.add(Triples.get(i).getPred());
+				termcount.add(1);}
+			if(term.contains(Triples.get(i).getObj2())){
+				indexofcount = term.indexOf(Triples.get(i).getObj2());
+				termcount.set(indexofcount, termcount.get(indexofcount)+1);}
+			else{
+				term.add(Triples.get(i).getObj2());
+				termcount.add(1);}
+			
+			
+		}
+		System.out.println("COUNT TABLE PRINTED "+ term);
+		System.out.println("COUNT TABLE PRINTED "+ termcount);
+		
+		for(int i = 0; i<Triples.size(); i++){
+			if(term.contains(Triples.get(i).getObj1())){
+				indexofcount = term.indexOf(Triples.get(i).getObj1());
+				Triples.get(i).setObj1num(termcount.get(indexofcount));   
+			}
+			if(term.contains(Triples.get(i).getPred())){
+				indexofcount = term.indexOf(Triples.get(i).getPred());
+				Triples.get(i).setPrednum(termcount.get(indexofcount));   
+			}
+			if(term.contains(Triples.get(i).getObj2())){
+				indexofcount = term.indexOf(Triples.get(i).getObj2());
+				Triples.get(i).setObj2num(termcount.get(indexofcount));   
+			}
+		}
+		System.out.println("TriplesNum");
+		for(int i = 0; i <Triples.size();i++){
+			System.out.println(Triples.get(i).getObj1num());
+			System.out.println(Triples.get(i).getPrednum());
+			System.out.println(Triples.get(i).getObj2num());
+		}
+		
+		
+		
+	}
+
 
 	private static void NLP(String docin, String docout) throws Exception{
 		
@@ -228,10 +290,22 @@ public class WebsiteNLP {
 		Scanner scan;
 		TextExtractor textExtractor = new TextExtractor();
 		String extractedText = textExtractor.MasterTextExtractor(docin);
-		
+		String ResumeName = "NotResumeDoc";
+		if(extractedText.contains("Deloitte Consulting LLP")){
+		ResumeName = extractedText.substring(0, extractedText.indexOf("Deloitte Consulting LLP"));
+		System.out.println("ResumeName "+ResumeName);
+		ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
+		System.out.println("ResumeName "+ResumeName);
+		ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
+		System.out.println("ResumeName "+ResumeName);
+		ResumeName = ResumeName.substring(ResumeName.lastIndexOf("@")+1,ResumeName.length()).trim();
+		System.out.println("ResumeName "+ResumeName);
+		ResumeName = ResumeName.substring(0, ResumeName.indexOf(" "));
+		}
+		//System.out.println("Readdoc "+extractedText);
 			scan = new Scanner(extractedText);
 			//scan = new Scanner(new File("C:\\Users\\sabidi\\workspace\\NLPTest1\\TestText.txt"));
-			
+			System.out.println("PreResumeProcessing sentences");
 			int j = 0;
 			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s");
 			//scan.useDelimiter(". ");
@@ -242,9 +316,39 @@ public class WebsiteNLP {
 				System.out.println(DocSentences2.get(j));
 				j++;
 			}
+			if(extractedText.contains("Deloitte Consulting LLP")){
+			ResumeProcessing(DocSentences2, ResumeName);
+			}
 		
 	
 		System.out.println("done");
+		scan.close();
+	}
+	public void ResumeProcessing(List<String> DocSentences3, String resumeName){
+		Scanner scan;
+		for(int i =0; i<DocSentences3.size(); i++)
+		{
+			if(DocSentences3.get(i).contains("Role:"))
+			{
+				DocSentences3.set(i, DocSentences3.get(i).replace("Role:", ""));
+				System.out.println("FOUND ROLE");
+				scan = new Scanner(DocSentences3.get(i));
+				scan.useDelimiter("\\@ ");
+				while (scan.hasNext()){
+    				DocSentences3.add(resumeName +" "+scan.next()+". ");
+				}
+				System.out.println("DELETED HOPE "+DocSentences3.get(i));
+				DocSentences3.remove(i);
+				
+			}
+			else{
+				DocSentences3.set(i, DocSentences3.get(i).replace("@", ""));
+			}
+		}
+		System.out.println("PostResumeProcessing Sentences");
+		
+		for(int i = 0; i<DocSentences3.size(); i++)
+			System.out.println(DocSentences3.get(i));
 	}
 	public void createVNFN() throws FileNotFoundException
 	{
@@ -1131,8 +1235,7 @@ public class WebsiteNLP {
 		  }
 		  //create other sheets
 		  for(int i = 0; i<excelfiller.size();i++){
-			  System.out.println("SHEEEEEEEEEEET4");
-			  System.out.println(wb.getNumberOfSheets());
+			 //System.out.println(wb.getNumberOfSheets());
 			  sheetToWriteOver = wb.createSheet(excelfiller.get(i).getRelation());
 			  //create approximate number of needed cells
 			 
@@ -1154,7 +1257,7 @@ public class WebsiteNLP {
 	 public void FillRow(String Sheetname, String col1, String col2){
 		// sheetToWriteOver;// = wb.getSheet(Sheetname);
 		 int i = 1;
-		 System.out.println(Sheetname);
+		// System.out.println(Sheetname);
 		 	sheetToWriteOver = wb.getSheet(Sheetname);
 		 	rowToWriteOn = sheetToWriteOver.getRow(1);
 		 		if(rowToWriteOn.getCell(1) == null)
