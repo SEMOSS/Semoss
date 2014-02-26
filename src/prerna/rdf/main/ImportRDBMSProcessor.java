@@ -468,7 +468,7 @@ public class ImportRDBMSProcessor {
 				e.printStackTrace();
 			}
 		} else if(type.equals("MS SQL Server")) {
-			try {jdbc:sqlserver://server\instance;database=dbname;username=username;password=password
+			try {//jdbc:sqlserver://server\instance;database=dbname;username=username;password=password
 				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 				String connectionUrl = "jdbc:sqlserver://" + url + ";" + "user=" + username + ";" + "password=" + new String(password);
 				con = DriverManager
