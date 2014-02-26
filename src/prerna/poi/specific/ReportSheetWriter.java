@@ -147,7 +147,7 @@ public class ReportSheetWriter {
 					}
 					else
 					{
-						cell.setCellValue(sheetVector.get(row)[col].replace("\"", ""));
+						cell.setCellValue(sheetVector.get(row)[col].replace("\"", "").replace("_", " "));
 						cell.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 					}
 				}
