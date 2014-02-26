@@ -2,6 +2,7 @@ package prerna.ui.components;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -18,7 +19,7 @@ import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
-import prerna.rdf.main.D2RQMappingGenerationTest;
+import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -188,7 +189,6 @@ public class ImportDataProcessor {
 			}
 		}
 		else if(importType == IMPORT_TYPE.NLP){
-			System.out.println("HERE3");
 			try{
 				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
@@ -382,11 +382,25 @@ public class ImportDataProcessor {
 		}
 	}
 	
-	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String url, String username, String password) {
+	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) {
 		boolean success = false;
 		
-		D2RQMappingGenerationTest mapper = new D2RQMappingGenerationTest(customBaseURI, fileNames, repoName, url, username, password);
-//		mapper.createMappingFile();
+		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
+		if(proc.checkConnection(type, url, username, password)) {
+			success = proc.setUpRDBMS();
+		} else {
+			return false;
+		}
+		
+		File propFile = new File(proc.propWriter.propFileName);
+		File newProp = new File(proc.propWriter.propFileName.replace("temp", "smss"));
+		try {
+			FileUtils.copyFile(propFile, newProp);
+			success = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		propFile.delete();
 		
 		return success;
 	}
