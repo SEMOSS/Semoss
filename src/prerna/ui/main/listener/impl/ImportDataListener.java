@@ -27,6 +27,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
@@ -127,10 +128,12 @@ public class ImportDataListener implements IChakraListener {
 			successfulImport = processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile);
 		}
 		else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
+			String dbType = ((JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX)).getSelectedItem().toString();
 			String dbImportURL = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD)).getText();
 			String dbImportUsername = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD)).getText();
-			String dbImportPW = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getText();
-			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, repo, dbImportURL, dbImportUsername, dbImportPW);
+			char[] dbImportPW = ((JPasswordField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getPassword();
+			String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+//			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, dbName, dbType, dbImportURL, dbImportUsername, dbImportPW);
 		}
 		
 		//finally, show whether or not successful
