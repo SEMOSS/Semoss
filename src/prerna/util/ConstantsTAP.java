@@ -31,6 +31,7 @@ public class ConstantsTAP {
 	public static final String FUNCTIONAL_AREA_CHECKBOX_1 = "HSDCheckBox";
 	public static final String FUNCTIONAL_AREA_CHECKBOX_2 = "HSSCheckBox";
 	public static final String FUNCTIONAL_AREA_CHECKBOX_3 = "FHPCheckBox";
+	public static final String FUNCTIONAL_AREA_CHECKBOX_4 = "EHRCheckBox";
 	public static final String SOURCE_SELECT_PANEL = "sourceSelectPanel";
 	public static final String SOURCE_SELECT_REPORT_QUERY="SOURCE_SELECT_REPORT_QUERY";
 	public static final String SOURCE_SELECT_REPORT_QUERY_HSD="SOURCE_SELECT_REPORT_QUERY_HSD";
