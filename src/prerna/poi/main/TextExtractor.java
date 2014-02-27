@@ -22,6 +22,8 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.xml.sax.ContentHandler;
 
 class TextExtractor { 
@@ -70,8 +72,35 @@ class TextExtractor {
         
 		return extractedText;
     }
+    
+    public String WebsiteTextExtractor(String docin) throws Exception{
+		
+    	final String url = docin;
+    	boolean knownwebsite = false;
+		org.jsoup.nodes.Document doc = Jsoup.connect(url).get();
+		String extractedtext = "";
+		
+		if(url.contains("nytimes.com")){
+		knownwebsite = true;
+			for( Element element : doc.select("p.story-body-text") )
+		{
+		    if( element.hasText() ) // Skip those tags without text
+		    {
+		        System.out.println("This is element text"+element.text());
+		        extractedtext = extractedtext.concat(element.text().toString());
+		    }
+		}
+		}
+		if(!knownwebsite){
+			extractedtext = doc.text();
+		}
+		extractedtext = extractedtext.replace("\n", " @ ").replace("\r", " ");
+		System.out.println("extracted text being sent back"+extractedtext);
+    	return extractedtext;
+    	
+    }
 
-    public String MasterTextExtractor(String docin) throws Exception{
+    public String WorddocTextExtractor(String docin) throws Exception{
     	
     	TextExtractor textExtractor = new TextExtractor();
          textExtractor.process(docin);
