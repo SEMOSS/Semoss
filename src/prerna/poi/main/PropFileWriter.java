@@ -46,7 +46,7 @@ public class PropFileWriter {
 	private String baseDirectory;
 	public String propFileName;
 	public String engineName;
-	String questionFileName;
+	public String questionFileName;
 	public String ontologyFileName;
 	public File engineDirectory;
 	String engineDirectoryName;
@@ -54,6 +54,8 @@ public class PropFileWriter {
 	String defaultDBPropName;
 	String defaultQuestionProp;
 	String defaultOntologyProp;
+	public String defaultEngine = "prerna.rdf.engine.impl.BigDataEngine";
+	public boolean hasMap = false;
 
 	public PropFileWriter (){
 		defaultDBPropName = "db/Default/Default.properties";
@@ -187,10 +189,13 @@ public class PropFileWriter {
 		pw.write("Base Properties \n");
 		//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
 		pw.write(Constants.ENGINE + "\t" + dbname + "\n");
-		pw.write(Constants.ENGINE_TYPE + "\t" + "prerna.rdf.engine.impl.BigDataEngine" + "\n");
+		pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 		pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
 		pw.write(Constants.OWL + "\t" + owlFile + "\n");
 		pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
+		if(this.hasMap) {
+			pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
+		}
 
 		while((currentLine = read.readLine()) != null){
 			if(currentLine.contains("@FileName@")){
