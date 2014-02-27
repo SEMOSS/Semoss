@@ -777,7 +777,8 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				//add to simple graph
 				graph.addVertex(outVert);
 				graph.addVertex(inVert);
-				graph.addEdge(outVert, inVert, edge);
+				if(outVert != inVert)
+					graph.addEdge(outVert, inVert, edge);
 			}
 		}
 		logger.info("Done with edges... checking for isolated nodes");
