@@ -88,5 +88,6 @@
 	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-javadoc.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-models.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/tika-app-1.2.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/jsoup-1.7.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
