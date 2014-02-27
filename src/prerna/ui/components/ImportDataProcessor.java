@@ -108,13 +108,9 @@ public class ImportDataProcessor {
 
 	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
 		boolean success = true;
-		POIReader reader = new POIReader();
-		NLPReader nlpreader = new NLPReader();
 		//first write the prop file for the new engine
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseDirectory);
-		if(importType == IMPORT_TYPE.NLP)
-			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
@@ -123,6 +119,7 @@ public class ImportDataProcessor {
 		//then process based on what type of file
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
+			POIReader reader = new POIReader();
 			try{
 				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
@@ -188,6 +185,8 @@ public class ImportDataProcessor {
 			}
 		}
 		else if(importType == IMPORT_TYPE.NLP){
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
+			NLPReader nlpreader = new NLPReader();
 			try{
 				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
