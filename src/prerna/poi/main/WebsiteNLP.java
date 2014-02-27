@@ -287,29 +287,47 @@ public class WebsiteNLP {
 	}
 	public void ReadDoc(List<String> DocSentences2, String docin) throws Exception{
 		//need to deal with return carriage!!!
-		Scanner scan;
-		TextExtractor textExtractor = new TextExtractor();
-		String extractedText = textExtractor.MasterTextExtractor(docin);
-		String ResumeName = "NotResumeDoc";
-		if(extractedText.contains("Deloitte Consulting LLP")){
-		ResumeName = extractedText.substring(0, extractedText.indexOf("Deloitte Consulting LLP"));
-		System.out.println("ResumeName "+ResumeName);
-		ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
-		System.out.println("ResumeName "+ResumeName);
-		ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
-		System.out.println("ResumeName "+ResumeName);
-		ResumeName = ResumeName.substring(ResumeName.lastIndexOf("@")+1,ResumeName.length()).trim();
-		System.out.println("ResumeName "+ResumeName);
-		ResumeName = ResumeName.substring(0, ResumeName.indexOf(" "));
-		}
-		//System.out.println("Readdoc "+extractedText);
+		//logic for website, .docx .doc branch resume
+		if(docin.contains("http")){
+			//source is website
+			Scanner scan;
+			TextExtractor textExtractor = new TextExtractor();
+			String extractedText = textExtractor.WebsiteTextExtractor(docin);
 			scan = new Scanner(extractedText);
-			//scan = new Scanner(new File("C:\\Users\\sabidi\\workspace\\NLPTest1\\TestText.txt"));
-			System.out.println("PreResumeProcessing sentences");
+			System.out.println("Processing Website");
 			int j = 0;
 			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s");
-			//scan.useDelimiter(". ");
-			//Loads the entire document as sentences
+			while (scan.hasNext()){
+				DocSentences2.add(scan.next()+".");
+				DocSentences2.get(j).replaceAll("\\r\\n|\\r|\\n", " ").replace("\n","").replace("\r", "");
+				System.out.println(DocSentences2.get(j));
+				j++;
+			}
+			System.out.println("done");
+			scan.close();
+		}
+		if(docin.contains(".doc")){
+			//source is a wordocument
+			Scanner scan;
+			TextExtractor textExtractor = new TextExtractor();
+			String extractedText = textExtractor.WorddocTextExtractor(docin);
+			String ResumeName = "NotResumeDoc";
+			System.out.println("Processing generic document");
+			if(extractedText.contains("Deloitte Consulting LLP")){
+				ResumeName = extractedText.substring(0, extractedText.indexOf("Deloitte Consulting LLP"));
+				System.out.println("ResumeName "+ResumeName);
+				ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
+				System.out.println("ResumeName "+ResumeName);
+				ResumeName = ResumeName.substring(0, ResumeName.lastIndexOf("@")-4);
+				System.out.println("ResumeName "+ResumeName);
+				ResumeName = ResumeName.substring(ResumeName.lastIndexOf("@")+1,ResumeName.length()).trim();
+				System.out.println("ResumeName "+ResumeName);
+				ResumeName = ResumeName.substring(0, ResumeName.indexOf(" "));
+				}
+			scan = new Scanner(extractedText);
+			System.out.println("Processing resume document");
+			int j = 0;
+			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s");
 			while (scan.hasNext()){
 				DocSentences2.add(scan.next()+".");
 				DocSentences2.get(j).replaceAll("\\r\\n|\\r|\\n", " ").replace("\n","").replace("\r", "");
@@ -319,10 +337,12 @@ public class WebsiteNLP {
 			if(extractedText.contains("Deloitte Consulting LLP")){
 			ResumeProcessing(DocSentences2, ResumeName);
 			}
+		}
+		if(docin.contains(".txt"))
+		{
+			//source is a .txt file
+		}
 		
-	
-		System.out.println("done");
-		scan.close();
 	}
 	public void ResumeProcessing(List<String> DocSentences3, String resumeName){
 		Scanner scan;
