@@ -777,7 +777,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				//add to simple graph
 				graph.addVertex(outVert);
 				graph.addVertex(inVert);
-				if(outVert != inVert)
+				if(outVert != inVert) // loops not allowed in simple graph... can we get rid of this simple grpah entirely?
 					graph.addEdge(outVert, inVert, edge);
 			}
 		}
