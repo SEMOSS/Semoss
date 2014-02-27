@@ -20,6 +20,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareModule">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RDFElement">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -278,6 +281,9 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessProcess">
 	<Consists rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RDF">
+	<Has rdf:resource="http://semoss.org/ontologies/Concept/RDFElement"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<Connected rdf:resource="http://semoss.org/ontologies/Concept/CDR"/>
