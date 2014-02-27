@@ -2,6 +2,7 @@ package prerna.ui.components;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -12,13 +13,12 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.poi.main.AbstractFileReader;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
-import prerna.rdf.main.D2RQMappingGenerationTest;
+import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -108,9 +108,13 @@ public class ImportDataProcessor {
 
 	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
 		boolean success = true;
+		POIReader reader = new POIReader();
+		NLPReader nlpreader = new NLPReader();
 		//first write the prop file for the new engine
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseDirectory);
+		if(importType == IMPORT_TYPE.NLP)
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
@@ -119,7 +123,6 @@ public class ImportDataProcessor {
 		//then process based on what type of file
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
-			POIReader reader = new POIReader();
 			try{
 				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
@@ -185,9 +188,6 @@ public class ImportDataProcessor {
 			}
 		}
 		else if(importType == IMPORT_TYPE.NLP){
-			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
-			NLPReader nlpreader = new NLPReader();
-			System.out.println("HERE3");
 			try{
 				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
@@ -381,11 +381,25 @@ public class ImportDataProcessor {
 		}
 	}
 	
-	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String url, String username, String password) {
+	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) {
 		boolean success = false;
 		
-		D2RQMappingGenerationTest mapper = new D2RQMappingGenerationTest(customBaseURI, fileNames, repoName, url, username, password);
-//		mapper.createMappingFile();
+		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
+		if(proc.checkConnection(type, url, username, password)) {
+			success = proc.setUpRDBMS();
+		} else {
+			return false;
+		}
+		
+		File propFile = new File(proc.propWriter.propFileName);
+		File newProp = new File(proc.propWriter.propFileName.replace("temp", "smss"));
+		try {
+			FileUtils.copyFile(propFile, newProp);
+			success = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		propFile.delete();
 		
 		return success;
 	}
