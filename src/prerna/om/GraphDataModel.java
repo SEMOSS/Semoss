@@ -62,6 +62,7 @@ public class GraphDataModel {
 	Model curModel = null;
 	public int modelCounter = 0;
 	Vector <Model> modelStore = new Vector<Model>();
+	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	
 	boolean extend, overlay;
@@ -97,7 +98,16 @@ public class GraphDataModel {
 			processData(query, engine);
 	}
 	
+	//this function requires the rc to be completely full
+	//it will use the rc to create edge and node properties
+	//and then nodes and edges
 	public void fillStoresFromModel(){
+		if(containsRelation == null)
+			containsRelation = findContainsRelation();
+		if(containsRelation == null)
+			containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
+		RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this);
+		RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 		genBaseConcepts();
 		logger.info("Loaded Orphans");
 		genBaseGraph();//subjects2, predicates2, subjects2);
@@ -262,7 +272,7 @@ public class GraphDataModel {
 					ex.printStackTrace();
 				}
 			}
-			String containsRelation = findContainsRelation();
+			containsRelation = findContainsRelation();
 			if(containsRelation == null)
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 
@@ -283,8 +293,6 @@ public class GraphDataModel {
 					// now that this is done, we can query for concepts						
 					//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
 					RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
-					RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this);
-					RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 					logger.info("Loaded Properties");
 				}catch(Exception ex)
 				{
