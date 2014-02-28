@@ -53,6 +53,8 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 			Object[] listElement = list.get(i);			
 			String methodName = (String) listElement[0];
 			String groupName = (String) listElement[1];
+			methodName = methodName.replaceAll("\"", "");
+			groupName = groupName.replaceAll("\"", "");
 			String key = methodName +"-"+groupName;
 			double count = (Double) listElement[2];
 			elementHash.put(xName, methodName);
