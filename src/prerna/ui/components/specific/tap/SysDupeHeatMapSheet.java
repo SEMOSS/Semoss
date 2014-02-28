@@ -58,94 +58,6 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 	@Override
 	public void createView()
 	{
-		SysDupeFunctions sdf = new SysDupeFunctions();
-		
-		
-		/*Hashtable dataHash = new Hashtable();
-		Hashtable overallHash;
-		//get list of systems first
-		updateProgressBar("10%...Getting all systems for evaluation", 10);
-		query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		sysList = sdf.createSystemList(tapCoreDB, query);
-		sdf.setSysList(sysList);
-		
-		//first get databack from the 
-		updateProgressBar("20%...Evaluating Data/BLU Score", 20);
-		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?provide ?BLU }}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, SysDupeFunctions.VALUE);
-		dataHash = processHashForCharting(dataBLUHash);
-		
-		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("30%...Evaluating Deployment Score", 30);
-		Hashtable theaterHash = sdf.stringCompareBinaryResultGetter(tapCoreDB, theaterQuery, "Theater", "Garrison", "Both");
-		theaterHash = processHashForCharting(theaterHash);
-		//dataHash = processOverallScore(dataHash, theaterHash);
-		
-		String dwQuery = "SELECT DISTINCT ?System ?Trans WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?System <http://semoss.org/ontologies/Relation/Contains/Transactional> ?Trans}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("40%...Evaluating System Transactional Score", 40);
-		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(tapCoreDB, dwQuery, "Yes", "No", "Both");
-		dwHash = processHashForCharting(dwHash);
-		//dataHash = processOverallScore(dataHash, dwHash);
-		
-		//BP
-		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System ?Supports ?BusinessProcess}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("50%...Evaluating System Supporting Business Processes", 50);
-		Hashtable bpHash = sdf.compareSystemParameterScore(tapCoreDB, bpQuery, SysDupeFunctions.VALUE);
-		bpHash = processHashForCharting(bpHash);
-		
-		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System ?Supports ?Activity}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("55%...Evaluating System Supporting Activity", 55);
-		Hashtable actHash = sdf.compareSystemParameterScore(tapCoreDB, actQuery, SysDupeFunctions.VALUE);
-		actHash = processHashForCharting(actHash);
-		
-		String userQuery ="SELECT DISTINCT ?System ?User WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;} {?User <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/User> ;} {?System ?UsedBy ?User}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("60%...Evaluating System Users", 60);
-		Hashtable userHash = sdf.compareSystemParameterScore(tapCoreDB, userQuery, SysDupeFunctions.VALUE);
-		userHash = processHashForCharting(userHash);
-		
-		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System ?Utilizes ?UserInterface}}BINDINGS ?SystemCategory {(<http://health.mil/ontologies/Concept/SystemCategory/Central>)(<http://health.mil/ontologies/Concept/SystemCategory/Army>)(<http://health.mil/ontologies/Concept/SystemCategory/Navy>)(<http://health.mil/ontologies/Concept/SystemCategory/Air_Force>)}";
-		updateProgressBar("70%...Evaluating User Interface", 70);
-		Hashtable uiHash = sdf.compareSystemParameterScore(tapCoreDB, uiQuery, SysDupeFunctions.VALUE);
-		uiHash = processHashForCharting(uiHash);
-		
-		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
-		//hashArray.add(bpHash);
-		//hashArray.add(actHash);
-		//hashArray.add(userHash);
-		//dataHash = processOverallScoreByAverage(dataHash,hashArray);
-		
-		updateProgressBar("80%...Creating Heat Map Visualization", 80);
-		Hashtable testDataHash = new Hashtable();
-		testDataHash.put("Process_Supported", bpHash);
-		testDataHash.put("Activities_Supported", actHash);
-		testDataHash.put("Data_and_Business_Logic_Supported", dataHash);
-		testDataHash.put("Deployment_(Theater/Garrison)",  theaterHash);
-		testDataHash.put("Transactional_(Yes/No)", dwHash);
-		testDataHash.put("User_Types", userHash);
-		testDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
-		
-		final Hashtable allHash = new Hashtable();
-		allHash.put("dataSeries", testDataHash);
-		allHash.put("title",  "System Duplication");
-		allHash.put("xAxisTitle", "System1");
-		allHash.put("yAxisTitle", "System2");
-		allHash.put("value", "Score");
-		*/
-//		Hashtable dataHash = dataHash = calculateDataAndBLUScore();
-//		Hashtable allDataHash = new Hashtable();
-//		Hashtable allHash = new Hashtable();
-//		allHash.put("dataSeries", allDataHash);
-//		allDataHash.put("DataObject", dataHash);
-//		allDataHash.put("BLU", dataHash);
-//		String[] var = wrapper.getVariables();
-//		allHash.put("title",  "System Duplication");
-//		allHash.put("xAxisTitle", "System1");
-//		allHash.put("yAxisTitle", "System2");
-//		allHash.put("value", "Score");
-//		
-		//FactSheetSysDupeCalculator fs = new FactSheetSysDupeCalculator();
-		
 		String workingDir = System.getProperty("user.dir");
 		browser.addNavigationListener(new NavigationListener() {
     	    public void navigationStarted(NavigationEvent event) {
@@ -160,9 +72,6 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
     	});
 	       
 		browser.navigate("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		//browser.waitReady();
-		//browser.registerFunction("healthGrid",  healthGridCall);
-		//callIt(allHash);
 		
 	}
 	
@@ -196,100 +105,6 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		return dataRetHash;
 	}
 
-	/**
-	 * Generic function that can compare a given property of a system given three choices where doubleOverlap fulfills the first two.
-	 * 
-	 * @param scoreTable Hashtable<String,Hashtable>	Table of scores assigned
-	 * @param updateTable Hashtable<String,Hashtable>	Table of update values corresponding to data
-	
-	 * @return Hashtable	All overall scores, system -> new score values
-	 */
-	private Hashtable processOverallScore(Hashtable<String,Hashtable> scoreTable, Hashtable<String,Hashtable> updateTable)
-	{
-		//TODO: Comments, var name refactoring
-		
-		//iterate through original table, if update doesn't exist, then we dont have data, and if we don't have data we cannot show any duplication
-		Hashtable newTable = new Hashtable();
-		for(Entry<String,Hashtable> e : scoreTable.entrySet()) 
-		{
-			String heatKey = e.getKey();
-			Hashtable valueHash = e.getValue();
-			double score = (Double) valueHash.get("Score");
-			
-			if(updateTable.get(heatKey)!=null)
-			{
-				Hashtable valueHash2 = updateTable.get(heatKey);
-				double score2 = (Double) valueHash2.get("Score");
-				double newScore = score*score2/100;
-				String sysName1 = (String) valueHash2.get("System1");
-				String sysName2 = (String) valueHash2.get("System2");
-				valueHash.put("Score",  score*score2/100);
-				if(newScore>=0)
-				{
-					newTable.put(heatKey,  valueHash);
-				}
-				if(sysName1.equals(sysName2))
-				{
-					newTable.remove(sysName1 +"-"+sysName2);
-				}
-			}
-		}
-		return newTable;
-	}
-	
-	/**
-	 * Function to compute overall scores by computing averages.
-	 * 
-	 * @param startHash Hashtable<String,Hashtable>	Table of base data
-	 * @param hashArray ArrayList<Hashtable>		Table of update values corresponding to data
-	
-	 * @return Hashtable	All overall scores, system -> new score values
-	 */
-	private Hashtable processOverallScoreByAverage(Hashtable<String,Hashtable> startHash, ArrayList<Hashtable> hashArray)
-	{
-		//TODO: Comments, var names refactoring
-		
-		//iterate through original table, if update doesn't exist, then we dont have data, and if we don't have data we cannot show any duplication
-		Hashtable newTable = new Hashtable();
-		
-		for(Entry<String,Hashtable> e : startHash.entrySet()) 
-		{
-			String heatKey = e.getKey();
-			Hashtable valueHash = e.getValue();
-			double score = (Double) valueHash.get("Score")/100;
-			String sysName1 = (String) valueHash.get("System1");
-			String sysName2 = (String) valueHash.get("System2");
-			boolean includeValue = true;
-			
-			for (int hashIdx = 0; hashIdx <hashArray.size();hashIdx++)
-			{
-				Hashtable<String, Hashtable> multHash = hashArray.get(hashIdx);
-				if(multHash.containsKey(heatKey))
-				{
-					Hashtable valueHash2 = multHash.get(heatKey);
-					double newScore = (Double) valueHash2.get("Score");
-					score = score+newScore/100;
-				}
-				else
-				{
-					includeValue = false;
-					break;
-				}
-			}
-			if(includeValue)
-			{
-				valueHash.put("Score",  score/(hashArray.size()+1)*100);
-				newTable.put(heatKey,  valueHash);
-			}
-			if(sysName1.equals(sysName2))
-			{
-				newTable.remove(heatKey);
-			}
-		}
-		
-		return newTable;
-	}
-	
 	public void createData()
 	{
 		SysDupeFunctions sdf = new SysDupeFunctions();
@@ -363,20 +178,6 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		allHash.put("xAxisTitle", "System1");
 		allHash.put("yAxisTitle", "System2");
 		allHash.put("value", "Score");
-		
-//		Hashtable dataHash = dataHash = calculateDataAndBLUScore();
-//		Hashtable allDataHash = new Hashtable();
-//		Hashtable allHash = new Hashtable();
-//		allHash.put("dataSeries", allDataHash);
-//		allDataHash.put("DataObject", dataHash);
-//		allDataHash.put("BLU", dataHash);
-//		String[] var = wrapper.getVariables();
-//		allHash.put("title",  "System Duplication");
-//		allHash.put("xAxisTitle", "System1");
-//		allHash.put("yAxisTitle", "System2");
-//		allHash.put("value", "Score");
-//		
-		//FactSheetSysDupeCalculator fs = new FactSheetSysDupeCalculator();
 
 	}
 	
