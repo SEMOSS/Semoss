@@ -31,12 +31,13 @@ public class ConstantsTAP {
 	public static final String FUNCTIONAL_AREA_CHECKBOX_1 = "HSDCheckBox";
 	public static final String FUNCTIONAL_AREA_CHECKBOX_2 = "HSSCheckBox";
 	public static final String FUNCTIONAL_AREA_CHECKBOX_3 = "FHPCheckBox";
-	public static final String FUNCTIONAL_AREA_CHECKBOX_4 = "EHRCheckBox";
+	public static final String FUNCTIONAL_AREA_CHECKBOX_4 = "DHMSMCheckBox";
 	public static final String SOURCE_SELECT_PANEL = "sourceSelectPanel";
 	public static final String SOURCE_SELECT_REPORT_QUERY="SOURCE_SELECT_REPORT_QUERY";
 	public static final String SOURCE_SELECT_REPORT_QUERY_HSD="SOURCE_SELECT_REPORT_QUERY_HSD";
 	public static final String SOURCE_SELECT_REPORT_QUERY_HSS="SOURCE_SELECT_REPORT_QUERY_HSS";
 	public static final String SOURCE_SELECT_REPORT_QUERY_FHP="SOURCE_SELECT_REPORT_QUERY_FHP";
+	public static final String SOURCE_SELECT_REPORT_QUERY_DHMSM="SOURCE_SELECT_REPORT_QUERY_DHMSM";
 	public static final String SOURCE_SELECT_REPORT_NAME="SOURCE_SELECT_REPORT_NAME";
 	public static final String SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY = "SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY";	
 	
@@ -82,6 +83,28 @@ public class ConstantsTAP {
 	public static final String BLU_QUERY = "BLU_QUERY";
 	public static final String DATA_QUERY = "DATA_QUERY";
 	public static final String TERROR_QUERY = "TERROR_QUERY";
+	
+	//Capability Fact Sheet Generation Constants
+	public static String CAPABILITY_FACT_SHEET_CAP_COMBO_BOX="capabilityFactSheetCapComboBox";
+	
+	//Capability Fact Sheet Constants
+	public static final String CAPABILITY_GROUP_QUERY = "CAPABILITY_GROUP_QUERY";
+	public static final String MISSION_OUTCOME_QUERY = "MISSION_OUTCOME_QUERY";
+	public static final String CONOPS_SOURCE_QUERY = "CONOPS_SOURCE_QUERY";
+	public static final String TASK_COUNT_QUERY = "TASK_COUNT_QUERY";
+	public static final String BP_COUNT_QUERY = "BP_COUNT_QUERY";
+	public static final String BR_COUNT_QUERY = "BR_COUNT_QUERY";
+	public static final String BS_COUNT_QUERY = "BS_COUNT_QUERY";
+	public static final String TR_COUNT_QUERY = "TR_COUNT_QUERY";
+	public static final String TS_COUNT_QUERY = "TS_COUNT_QUERY";
+	public static final String DATA_COUNT_QUERY = "DATA_COUNT_QUERY";
+	public static final String BLU_COUNT_QUERY = "BLU_COUNT_QUERY";	
+	public static final String SYSTEM_COUNT_QUERY = "SYSTEM_COUNT_QUERY";	
+	public static final String PARTICIPANT_QUERY = "PARTICIPANT_QUERY";
+	public static final String DATE_GENERATED_QUERY = "DATE_GENERATED_QUERY";
+	
+	public static final String DATE_OBJECT_QUERY = "DATE_OBJECT_QUERY";
+	public static final String FUNCTIONAL_GAP_QUERY = "FUNCTIONAL_GAP_QUERY";
 	
 	//Update Active Systems Constants
 	public static final String GET_ALL_SYSTEMS_QUERY = "GET_ALL_SYSTEMS_QUERY";

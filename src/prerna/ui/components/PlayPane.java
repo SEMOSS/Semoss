@@ -243,9 +243,8 @@ public class PlayPane extends JFrame {
 	public JButton btnUpdateVendorDB;
 	private JSeparator separator_6;
 	private Panel functionalAreaPanel;
-	public JCheckBox HSDCheckBox, HSSCheckBox, FHPCheckBox;
-	public JButton btnCalculateVendorBVAlone, btnCalculateVendorTMAlone,
-			btnCalculateVendorBVTM;
+	public JCheckBox HSDCheckBox, HSSCheckBox, FHPCheckBox, DHMSMCheckBox;
+	public JButton btnCalculateVendorTMAlone;
 	public JButton btnDeconflictingReport;
 
 	// Fact Sheet Report Generator Panel
@@ -260,6 +259,10 @@ public class PlayPane extends JFrame {
 	private JSeparator separator_8;
 	public JButton btnTaskerGeneration;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
+	
+	//Capability Fact Sheet Panel
+	public JButton btnCapabilityFactSheetGeneration;
+	public FactSheetReportComboBox capabilityFactSheetCapComboBox;
 	
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
@@ -2149,6 +2152,9 @@ public class PlayPane extends JFrame {
 
 		FHPCheckBox = new JCheckBox("FHP");
 		functionalAreaPanel.add(FHPCheckBox);
+		
+		DHMSMCheckBox = new JCheckBox("DHMSM");
+		functionalAreaPanel.add(DHMSMCheckBox);
 
 		JLabel lblCapabilityName = new JLabel("Capabilities:");
 		lblCapabilityName.setMinimumSize(new Dimension(155, 32));
@@ -2218,8 +2224,7 @@ public class PlayPane extends JFrame {
 		updateTaskWeightPanel.add(updateTaskWeightTitleLabel, gbc_updateTaskWeightTitleLabel);
 		updateTaskWeightTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 
-		btnUpdateVendorDB = new CustomButton("Update Vendor DB Weight");
-		btnUpdateVendorDB.setText("Calculate Business and Tech Standard Fulfillment");
+		btnUpdateVendorDB = new CustomButton("Calculate Business and Tech Standard Fulfillment");
 		btnUpdateVendorDB.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnUpdateVendorDB = new GridBagConstraints();
 		gbc_btnUpdateVendorDB.fill = GridBagConstraints.HORIZONTAL;
@@ -2230,41 +2235,17 @@ public class PlayPane extends JFrame {
 		updateTaskWeightPanel.add(btnUpdateVendorDB, gbc_btnUpdateVendorDB);
 		btnUpdateVendorDB.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(btnUpdateVendorDB, ".standardButton");
-
-		btnCalculateVendorBVAlone = new CustomButton("Calculate BV Alone");
-		btnCalculateVendorBVAlone.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-			}
-		});
-		btnCalculateVendorBVAlone.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnCalculateVendorBVAlone = new GridBagConstraints();
-		gbc_btnCalculateVendorBVAlone.anchor = GridBagConstraints.WEST;
-		gbc_btnCalculateVendorBVAlone.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCalculateVendorBVAlone.gridx = 2;
-		gbc_btnCalculateVendorBVAlone.gridy = 3;
-		updateTaskWeightPanel.add(btnCalculateVendorBVAlone,gbc_btnCalculateVendorBVAlone);
-		Style.registerTargetClassName(btnCalculateVendorBVAlone,".standardButton");
-
-		btnCalculateVendorTMAlone = new CustomButton("Calculate TM Alone");
+		
+		btnCalculateVendorTMAlone = new CustomButton("Calculate External Stability");
 		btnCalculateVendorTMAlone.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnCalculateVendorTMAlone = new GridBagConstraints();
+		gbc_btnCalculateVendorTMAlone.gridwidth = 2;
 		gbc_btnCalculateVendorTMAlone.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCalculateVendorTMAlone.gridx = 3;
-		gbc_btnCalculateVendorTMAlone.gridy = 3;
+		gbc_btnCalculateVendorTMAlone.gridx = 2;
+		gbc_btnCalculateVendorTMAlone.gridy = 2;
+		gbc_btnCalculateVendorTMAlone.fill = GridBagConstraints.HORIZONTAL;
 		updateTaskWeightPanel.add(btnCalculateVendorTMAlone,gbc_btnCalculateVendorTMAlone);
 		Style.registerTargetClassName(btnCalculateVendorTMAlone,".standardButton");
-
-		btnCalculateVendorBVTM = new CustomButton("Calculate BV and TM");
-		btnCalculateVendorBVTM.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnCalculateVendorBVTM = new GridBagConstraints();
-		gbc_btnCalculateVendorBVTM.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnCalculateVendorBVTM.gridwidth = 2;
-		gbc_btnCalculateVendorBVTM.insets = new Insets(0, 0, 0, 5);
-		gbc_btnCalculateVendorBVTM.gridx = 2;
-		gbc_btnCalculateVendorBVTM.gridy = 4;
-		updateTaskWeightPanel.add(btnCalculateVendorBVTM, gbc_btnCalculateVendorBVTM);
-		Style.registerTargetClassName(btnCalculateVendorBVTM, ".standardButton");
 
 		JPanel deconflictingPanel = new JPanel();
 		deconflictingPanel.setBackground(SystemColor.control);
@@ -2285,7 +2266,7 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_deconflictingTitleLabel = new GridBagConstraints();
 		gbc_deconflictingTitleLabel.gridwidth = 3;
 		gbc_deconflictingTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_deconflictingTitleLabel.insets = new Insets(5, 0, 10, 5);
+		gbc_deconflictingTitleLabel.insets = new Insets(5, 0, 10, 0);
 		gbc_deconflictingTitleLabel.gridx = 5;
 		gbc_deconflictingTitleLabel.gridy = 0;
 		updateTaskWeightPanel.add(deconflictingTitleLabel,	gbc_deconflictingTitleLabel);
@@ -2467,7 +2448,7 @@ public class PlayPane extends JFrame {
 		tapReportPanel.add(TaskerGenerationPanel, gbc_TaskerGenerationPanel);
 		
 		GridBagLayout gbl_TaskerGenerationPanel = new GridBagLayout();
-		gbl_TaskerGenerationPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_TaskerGenerationPanel.columnWidths = new int[] {30, 0, 30, 30, 60, 30, 30, 30, 30, 30, 0};
 		gbl_TaskerGenerationPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_TaskerGenerationPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, Double.MIN_VALUE };
@@ -2483,22 +2464,12 @@ public class PlayPane extends JFrame {
 		gbc_TaskerGenerationTitleLabel.gridy = 0;
 		TaskerGenerationPanel.add(TaskerGenerationTitleLabel, gbc_TaskerGenerationTitleLabel);
 
-		JLabel lblTaskerGenerator = new JLabel("Tasker Generator:");
-		lblTaskerGenerator.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblTaskerGenerator = new GridBagConstraints();
-		gbc_lblTaskerGenerator.gridwidth = 6;
-		gbc_lblTaskerGenerator.anchor = GridBagConstraints.NORTHWEST;
-		gbc_lblTaskerGenerator.insets = new Insets(5, 20, 10, 5);
-		gbc_lblTaskerGenerator.gridx = 1;
-		gbc_lblTaskerGenerator.gridy = 1;
-		TaskerGenerationPanel.add(lblTaskerGenerator, gbc_lblTaskerGenerator);
-
 		JLabel lblTaskerGenerationSelectSystem = new JLabel("Select System");
 		lblTaskerGenerationSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblTaskerGenerationSelectSystem = new GridBagConstraints();
 		gbc_lblTaskerGenerationSelectSystem.insets = new Insets(0, 0, 5, 0);
 		gbc_lblTaskerGenerationSelectSystem.gridx = 1;
-		gbc_lblTaskerGenerationSelectSystem.gridy = 2;
+		gbc_lblTaskerGenerationSelectSystem.gridy = 1;
 		TaskerGenerationPanel.add(lblTaskerGenerationSelectSystem,gbc_lblTaskerGenerationSelectSystem);
 
 		TaskerGenerationSyscomboBox = new FactSheetReportComboBox(fetching);
@@ -2508,7 +2479,7 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_TaskerGenerationSyscomboBox = new GridBagConstraints();
 		gbc_TaskerGenerationSyscomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_TaskerGenerationSyscomboBox.gridx = 1;
-		gbc_TaskerGenerationSyscomboBox.gridy = 3;
+		gbc_TaskerGenerationSyscomboBox.gridy = 2;
 		TaskerGenerationPanel.add(TaskerGenerationSyscomboBox,	gbc_TaskerGenerationSyscomboBox);		
 		
 		btnTaskerGeneration = new CustomButton("Generate Tasker Report");
@@ -2518,10 +2489,49 @@ public class PlayPane extends JFrame {
 		gbc_btnTaskerGeneration.gridwidth = 2;
 		gbc_btnTaskerGeneration.insets = new Insets(0, 0, 5, 5);
 		gbc_btnTaskerGeneration.gridx = 1;
-		gbc_btnTaskerGeneration.gridy = 4;
+		gbc_btnTaskerGeneration.gridy = 3;
 		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
 		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
 		
+//		JLabel CapabilityFactSheetTitleLabel = new JLabel("Capability Fact Sheet Generation");
+//		CapabilityFactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+//		GridBagConstraints gbc_CapabilityFactSheetTitleLabel = new GridBagConstraints();
+//		gbc_CapabilityFactSheetTitleLabel.gridwidth = 3;
+//		gbc_CapabilityFactSheetTitleLabel.fill = GridBagConstraints.BOTH;
+//		gbc_CapabilityFactSheetTitleLabel.insets = new Insets(10, 10, 5, 5);
+//		gbc_CapabilityFactSheetTitleLabel.gridx = 4;
+//		gbc_CapabilityFactSheetTitleLabel.gridy = 0;
+//		TaskerGenerationPanel.add(CapabilityFactSheetTitleLabel, gbc_CapabilityFactSheetTitleLabel);
+//
+//		JLabel lblCapabilityFactSheetSelectCapability = new JLabel("Select Capability");
+//		lblCapabilityFactSheetSelectCapability.setFont(new Font("Tahoma", Font.PLAIN, 12));
+//		GridBagConstraints gbc_lblCapabilityFactSheetSelectCapability = new GridBagConstraints();
+//		gbc_lblCapabilityFactSheetSelectCapability.insets = new Insets(0, 0, 5, 0);
+//		gbc_lblCapabilityFactSheetSelectCapability.gridx = 4;
+//		gbc_lblCapabilityFactSheetSelectCapability.gridy = 1;
+//		TaskerGenerationPanel.add(lblCapabilityFactSheetSelectCapability,gbc_lblCapabilityFactSheetSelectCapability);
+//
+//		capabilityFactSheetCapComboBox = new FactSheetReportComboBox(fetching);
+//		capabilityFactSheetCapComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		capabilityFactSheetCapComboBox.setBackground(Color.GRAY);
+//		capabilityFactSheetCapComboBox.setPreferredSize(new Dimension(200, 25));
+//		GridBagConstraints gbc_capabilityFactSheetCapComboBox = new GridBagConstraints();
+//		gbc_capabilityFactSheetCapComboBox.fill = GridBagConstraints.HORIZONTAL;
+//		gbc_capabilityFactSheetCapComboBox.gridx = 4;
+//		gbc_capabilityFactSheetCapComboBox.gridy = 2;
+//		TaskerGenerationPanel.add(capabilityFactSheetCapComboBox,	gbc_capabilityFactSheetCapComboBox);		
+//		
+//		btnCapabilityFactSheetGeneration = new CustomButton("Generate Capability Fact Sheet");
+//		btnCapabilityFactSheetGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_btnCapabilityFactSheetGeneration = new GridBagConstraints();
+//		gbc_btnCapabilityFactSheetGeneration.fill = GridBagConstraints.HORIZONTAL;
+//		gbc_btnCapabilityFactSheetGeneration.gridwidth = 2;
+//		gbc_btnCapabilityFactSheetGeneration.insets = new Insets(0, 0, 5, 5);
+//		gbc_btnCapabilityFactSheetGeneration.gridx = 4;
+//		gbc_btnCapabilityFactSheetGeneration.gridy = 3;
+//		TaskerGenerationPanel.add(btnCapabilityFactSheetGeneration, gbc_btnCapabilityFactSheetGeneration);
+//		Style.registerTargetClassName(btnCapabilityFactSheetGeneration, ".standardButton");
+	
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
