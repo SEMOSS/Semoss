@@ -104,6 +104,8 @@
         colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"], // alternatively colorbrewer.YlGnBu[9]
         colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
 	colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
+	colorsTraffic = ["#ae0e06","#e92e10","#fb741e","#fdc63f","#ffff57","#5cba24","#1e8b1f","#1e8b1f","#005715"];
+	colorsTrafficReverse = ["#005715","#1e8b1f","#1e8b1f","#5cba24","#ffff57","#fdc63f","#fb741e","#e92e10","#ae0e06"];
 	
 	
 	//color selection
@@ -264,9 +266,10 @@
 	  // Color Changer  
 	    d3.select("#nav").append("select")
 	      .attr("id", "select2DropDown")
+	      .style("width", "130px")
 	      .attr("class", "mySelect2")
 	      .selectAll("option")
-	      .data(["Red","Blue","Green"])
+	      .data(["Red","Blue","Green","Traffic", "Traffic Reverse"])
 	      .enter()
 	      .append("option")
 	      .attr("value", function(d){ return d; }) /* This gives me the value */
@@ -283,6 +286,11 @@
 		colors.push(colorsGreen);
 	      } else if (this.options[this.selectedIndex].value == 'Blue') {
 		colors.push(colorsBlue);
+	      }else if (this.options[this.selectedIndex].value == 'Traffic') {
+		colors.push(colorsTraffic);
+		
+	      }else if (this.options[this.selectedIndex].value == 'Traffic Reverse') {
+		colors.push(colorsTrafficReverse);
 		
 	      }else {
 		colors.push(colorsRed);
