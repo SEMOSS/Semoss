@@ -2493,44 +2493,44 @@ public class PlayPane extends JFrame {
 		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
 		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
 		
-		JLabel CapabilityFactSheetTitleLabel = new JLabel("Capability Fact Sheet Generation");
-		CapabilityFactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_CapabilityFactSheetTitleLabel = new GridBagConstraints();
-		gbc_CapabilityFactSheetTitleLabel.gridwidth = 3;
-		gbc_CapabilityFactSheetTitleLabel.fill = GridBagConstraints.BOTH;
-		gbc_CapabilityFactSheetTitleLabel.insets = new Insets(10, 10, 5, 5);
-		gbc_CapabilityFactSheetTitleLabel.gridx = 4;
-		gbc_CapabilityFactSheetTitleLabel.gridy = 0;
-		TaskerGenerationPanel.add(CapabilityFactSheetTitleLabel, gbc_CapabilityFactSheetTitleLabel);
-
-		JLabel lblCapabilityFactSheetSelectCapability = new JLabel("Select Capability");
-		lblCapabilityFactSheetSelectCapability.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblCapabilityFactSheetSelectCapability = new GridBagConstraints();
-		gbc_lblCapabilityFactSheetSelectCapability.insets = new Insets(0, 0, 5, 0);
-		gbc_lblCapabilityFactSheetSelectCapability.gridx = 4;
-		gbc_lblCapabilityFactSheetSelectCapability.gridy = 1;
-		TaskerGenerationPanel.add(lblCapabilityFactSheetSelectCapability,gbc_lblCapabilityFactSheetSelectCapability);
-
-		capabilityFactSheetCapComboBox = new FactSheetReportComboBox(fetching);
-		capabilityFactSheetCapComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		capabilityFactSheetCapComboBox.setBackground(Color.GRAY);
-		capabilityFactSheetCapComboBox.setPreferredSize(new Dimension(200, 25));
-		GridBagConstraints gbc_capabilityFactSheetCapComboBox = new GridBagConstraints();
-		gbc_capabilityFactSheetCapComboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_capabilityFactSheetCapComboBox.gridx = 4;
-		gbc_capabilityFactSheetCapComboBox.gridy = 2;
-		TaskerGenerationPanel.add(capabilityFactSheetCapComboBox,	gbc_capabilityFactSheetCapComboBox);		
-		
-		btnCapabilityFactSheetGeneration = new CustomButton("Generate Capability Fact Sheet");
-		btnCapabilityFactSheetGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnCapabilityFactSheetGeneration = new GridBagConstraints();
-		gbc_btnCapabilityFactSheetGeneration.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnCapabilityFactSheetGeneration.gridwidth = 2;
-		gbc_btnCapabilityFactSheetGeneration.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCapabilityFactSheetGeneration.gridx = 4;
-		gbc_btnCapabilityFactSheetGeneration.gridy = 3;
-		TaskerGenerationPanel.add(btnCapabilityFactSheetGeneration, gbc_btnCapabilityFactSheetGeneration);
-		Style.registerTargetClassName(btnCapabilityFactSheetGeneration, ".standardButton");
+//		JLabel CapabilityFactSheetTitleLabel = new JLabel("Capability Fact Sheet Generation");
+//		CapabilityFactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+//		GridBagConstraints gbc_CapabilityFactSheetTitleLabel = new GridBagConstraints();
+//		gbc_CapabilityFactSheetTitleLabel.gridwidth = 3;
+//		gbc_CapabilityFactSheetTitleLabel.fill = GridBagConstraints.BOTH;
+//		gbc_CapabilityFactSheetTitleLabel.insets = new Insets(10, 10, 5, 5);
+//		gbc_CapabilityFactSheetTitleLabel.gridx = 4;
+//		gbc_CapabilityFactSheetTitleLabel.gridy = 0;
+//		TaskerGenerationPanel.add(CapabilityFactSheetTitleLabel, gbc_CapabilityFactSheetTitleLabel);
+//
+//		JLabel lblCapabilityFactSheetSelectCapability = new JLabel("Select Capability");
+//		lblCapabilityFactSheetSelectCapability.setFont(new Font("Tahoma", Font.PLAIN, 12));
+//		GridBagConstraints gbc_lblCapabilityFactSheetSelectCapability = new GridBagConstraints();
+//		gbc_lblCapabilityFactSheetSelectCapability.insets = new Insets(0, 0, 5, 0);
+//		gbc_lblCapabilityFactSheetSelectCapability.gridx = 4;
+//		gbc_lblCapabilityFactSheetSelectCapability.gridy = 1;
+//		TaskerGenerationPanel.add(lblCapabilityFactSheetSelectCapability,gbc_lblCapabilityFactSheetSelectCapability);
+//
+//		capabilityFactSheetCapComboBox = new FactSheetReportComboBox(fetching);
+//		capabilityFactSheetCapComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		capabilityFactSheetCapComboBox.setBackground(Color.GRAY);
+//		capabilityFactSheetCapComboBox.setPreferredSize(new Dimension(200, 25));
+//		GridBagConstraints gbc_capabilityFactSheetCapComboBox = new GridBagConstraints();
+//		gbc_capabilityFactSheetCapComboBox.fill = GridBagConstraints.HORIZONTAL;
+//		gbc_capabilityFactSheetCapComboBox.gridx = 4;
+//		gbc_capabilityFactSheetCapComboBox.gridy = 2;
+//		TaskerGenerationPanel.add(capabilityFactSheetCapComboBox,	gbc_capabilityFactSheetCapComboBox);		
+//		
+//		btnCapabilityFactSheetGeneration = new CustomButton("Generate Capability Fact Sheet");
+//		btnCapabilityFactSheetGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_btnCapabilityFactSheetGeneration = new GridBagConstraints();
+//		gbc_btnCapabilityFactSheetGeneration.fill = GridBagConstraints.HORIZONTAL;
+//		gbc_btnCapabilityFactSheetGeneration.gridwidth = 2;
+//		gbc_btnCapabilityFactSheetGeneration.insets = new Insets(0, 0, 5, 5);
+//		gbc_btnCapabilityFactSheetGeneration.gridx = 4;
+//		gbc_btnCapabilityFactSheetGeneration.gridy = 3;
+//		TaskerGenerationPanel.add(btnCapabilityFactSheetGeneration, gbc_btnCapabilityFactSheetGeneration);
+//		Style.registerTargetClassName(btnCapabilityFactSheetGeneration, ".standardButton");
 	
 		
 		JSeparator separator_5 = new JSeparator();
