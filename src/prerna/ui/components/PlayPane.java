@@ -223,7 +223,7 @@ public class PlayPane extends JFrame {
 	private Component rigidArea;
 	public JButton btnClearAll;
 	private JLabel lblChangedDB;
-	public CustomButton btnUpdateCostDB, btnUpdateActiveSystems;
+	public CustomButton btnUpdateCostDB;
 	private JLabel lblCostDBBaseURI;
 	public JTextField costDBBaseURIField;
 	private JLabel lblCostDB;
@@ -231,6 +231,14 @@ public class PlayPane extends JFrame {
 	public JButton saveSudowl;
 	private ButtonMenuDropDown comboBox;
 
+	// Active Systems
+	public CustomButton btnUpdateActiveSystems;
+	
+	// Aggregate TAP Services into TAP Core
+	public CustomButton btnAggregateTapServicesIntoTapCore;
+	public JComboBox<String> selectTapServicesComboBox, selectTapCoreComboBox;
+	public JTextField inputAggregateTapServicesIntoTapCoreBaseURIField;
+	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck,
 			highQualityExportCheck;
@@ -370,10 +378,12 @@ public class PlayPane extends JFrame {
 							((JTextArea) obj).addFocusListener((FocusListener) listener);
 						else
 							((JInternalFrame) obj).addInternalFrameListener((InternalFrameListener) listener);
-							DIHelper.getInstance().setLocalProperty(ctrlName, listener);
+						System.out.println(ctrlName + ":" + listener);	
+						DIHelper.getInstance().setLocalProperty(ctrlName, listener);
 					}
 				}
 			}
+			System.out.println(fieldName + ":" + obj);	
 			logger.debug("Loading <" + fieldName + "> <> " + obj);
 			DIHelper.getInstance().setLocalProperty(fieldName, obj);
 		}
@@ -690,7 +700,8 @@ public class PlayPane extends JFrame {
 		dbImportRDBMSDriverComboBox = new JComboBox();
 		dbImportRDBMSDriverComboBox.setBackground(Color.GRAY);
 		dbImportRDBMSDriverComboBox.setVisible(false);
-		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] {"MySQL","Oracle","MS SQL Server"}));
+		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select Relational Database Type", "MySQL","Oracle","MS SQL Server"}));
+		dbImportRDBMSDriverComboBox.setPreferredSize(new Dimension(225, 25));
 		GridBagConstraints gbc_dbImportRDBMSDriverComboBox = new GridBagConstraints();
 		gbc_dbImportRDBMSDriverComboBox.gridwidth = 2;
 		gbc_dbImportRDBMSDriverComboBox.anchor = GridBagConstraints.WEST;
@@ -1763,40 +1774,6 @@ public class PlayPane extends JFrame {
 		gbc_separator_3.gridy = 7;
 		financialsPanel.add(separator_3, gbc_separator_3);
 
-		JLabel lblUpdateActiveSystem = new JLabel("Update TAP Core Active Systems");
-		lblUpdateActiveSystem.setFont(new Font("Tahoma", Font.BOLD, 12));
-		lblUpdateActiveSystem.setBackground(Color.WHITE);
-		GridBagConstraints gbc_lblUpdateActiveSystem = new GridBagConstraints();
-		gbc_lblUpdateActiveSystem.anchor = GridBagConstraints.WEST;
-		gbc_lblUpdateActiveSystem.gridwidth = 4;
-		gbc_lblUpdateActiveSystem.insets = new Insets(10, 10, 5, 5);
-		gbc_lblUpdateActiveSystem.gridx = 0;
-		gbc_lblUpdateActiveSystem.gridy = 8;
-		financialsPanel.add(lblUpdateActiveSystem, gbc_lblUpdateActiveSystem);
-		
-		btnUpdateActiveSystems = new CustomButton("Update TAP Core Active Systems");
-		btnUpdateActiveSystems.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-			}
-		});
-		btnUpdateActiveSystems.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnUpdateActiveSystems = new GridBagConstraints();
-		gbc_btnUpdateActiveSystems.anchor = GridBagConstraints.NORTHWEST;
-		gbc_btnUpdateActiveSystems.insets = new Insets(10, 10, 10, 5);
-		gbc_btnUpdateActiveSystems.gridx = 0;
-		gbc_btnUpdateActiveSystems.gridy = 9;
-		financialsPanel.add(btnUpdateActiveSystems, gbc_btnUpdateActiveSystems);
-		Style.registerTargetClassName(btnUpdateActiveSystems, ".standardButton");
-		
-		separator = new JSeparator();
-		GridBagConstraints gbc_separator = new GridBagConstraints();
-		gbc_separator.fill = GridBagConstraints.HORIZONTAL;
-		gbc_separator.gridwidth = 6;
-		gbc_separator.insets = new Insets(0, 0, 5, 5);
-		gbc_separator.gridx = 0;
-		gbc_separator.gridy = 10;
-		financialsPanel.add(separator, gbc_separator);
-		
 		JLabel lblUpdateCostDB = new JLabel("Update Cost DB");
 		lblUpdateCostDB.setFont(new Font("Tahoma", Font.BOLD, 12));
 		lblUpdateCostDB.setBackground(Color.WHITE);
@@ -1805,7 +1782,7 @@ public class PlayPane extends JFrame {
 		gbc_lblUpdateCostDB.gridwidth = 4;
 		gbc_lblUpdateCostDB.insets = new Insets(10, 10, 5, 5);
 		gbc_lblUpdateCostDB.gridx = 0;
-		gbc_lblUpdateCostDB.gridy = 11;
+		gbc_lblUpdateCostDB.gridy = 8;
 		financialsPanel.add(lblUpdateCostDB, gbc_lblUpdateCostDB);
 
 		JPanel updateCostDBPanel = new JPanel();
@@ -1815,7 +1792,7 @@ public class PlayPane extends JFrame {
 		gbc_updateCostDBPanel.gridwidth = 6;
 		gbc_updateCostDBPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_updateCostDBPanel.gridx = 0;
-		gbc_updateCostDBPanel.gridy = 12;
+		gbc_updateCostDBPanel.gridy = 9;
 		financialsPanel.add(updateCostDBPanel, gbc_updateCostDBPanel);
 		GridBagLayout gbl_updateCostDBPanel = new GridBagLayout();
 		gbl_updateCostDBPanel.columnWidths = new int[] { 0, 75, 75, 300 };
@@ -1894,12 +1871,12 @@ public class PlayPane extends JFrame {
 		JPanel tapCalcPanel = new JPanel();
 		tapCalcPanel.setBackground(SystemColor.control);
 		JScrollPane tapCalcScroll = new JScrollPane(tapCalcPanel);
-		tapTabPane.addTab("Health Grid Calculations", null, tapCalcScroll, null);
+		tapTabPane.addTab("Additional Calculations", null, tapCalcScroll, null);
 		GridBagLayout tapCalcPanelLayout = new GridBagLayout();
-		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0 };
-		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-		tapCalcPanelLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-		tapCalcPanelLayout.columnWidths = new int[] { 10, 10, 0, 0, 0, 0, 0, 0 };
+		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		tapCalcPanelLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		tapCalcPanelLayout.columnWidths = new int[] { 10, 10, 0, 0, 0, 0, 0, 0, 0};
 		tapCalcPanel.setLayout(tapCalcPanelLayout);
 
 		JLabel healthGridTitleLabel = new JLabel("Business Value and Technical Maturity Calculations");
@@ -2077,6 +2054,142 @@ public class PlayPane extends JFrame {
 		gbc_btnRunCapabilityBV.gridy = 12;
 		tapCalcPanel.add(btnRunCapabilityBV, gbc_btnRunCapabilityBV);
 		Style.registerTargetClassName(btnRunCapabilityBV, ".standardButton");
+		
+		separator = new JSeparator();
+		GridBagConstraints gbc_separator = new GridBagConstraints();
+		gbc_separator.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator.gridwidth = 6;
+		gbc_separator.insets = new Insets(5, 0, 5, 5);
+		gbc_separator.gridx = 0;
+		gbc_separator.gridy = 13;
+		tapCalcPanel.add(separator, gbc_separator);
+		
+		JLabel lblUpdateActiveSystem = new JLabel("Update TAP Core Active Systems");
+		lblUpdateActiveSystem.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblUpdateActiveSystem.setBackground(Color.WHITE);
+		GridBagConstraints gbc_lblUpdateActiveSystem = new GridBagConstraints();
+		gbc_lblUpdateActiveSystem.anchor = GridBagConstraints.WEST;
+		gbc_lblUpdateActiveSystem.gridwidth = 4;
+		gbc_lblUpdateActiveSystem.insets = new Insets(10, 10, 5, 5);
+		gbc_lblUpdateActiveSystem.gridx = 0;
+		gbc_lblUpdateActiveSystem.gridy = 14;
+		tapCalcPanel.add(lblUpdateActiveSystem, gbc_lblUpdateActiveSystem);
+		
+		btnUpdateActiveSystems = new CustomButton("Update TAP Core Active Systems");
+		btnUpdateActiveSystems.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnUpdateActiveSystems = new GridBagConstraints();
+		gbc_btnUpdateActiveSystems.anchor = GridBagConstraints.NORTHWEST;
+		gbc_btnUpdateActiveSystems.gridwidth = 4;
+		gbc_btnUpdateActiveSystems.insets = new Insets(10, 10, 10, 5);
+		gbc_btnUpdateActiveSystems.gridx = 1;
+		gbc_btnUpdateActiveSystems.gridy = 15;
+		tapCalcPanel.add(btnUpdateActiveSystems, gbc_btnUpdateActiveSystems);
+		Style.registerTargetClassName(btnUpdateActiveSystems, ".standardButton");
+		
+		JSeparator separateActiveSystems_AggregateTapServiceIntoTapCore = new JSeparator();
+		GridBagConstraints gbc_separateActiveSystems_AggregateTapServiceIntoTapCore = new GridBagConstraints();
+		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.gridwidth = 6;
+		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.insets = new Insets(5, 0, 5, 5);
+		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.gridx = 0;
+		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.gridy = 16;
+		tapCalcPanel.add(separateActiveSystems_AggregateTapServiceIntoTapCore, gbc_separateActiveSystems_AggregateTapServiceIntoTapCore);
+		
+		JPanel aggregateTapServicesIntoTapCorePanel = new JPanel();
+		aggregateTapServicesIntoTapCorePanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_aggregateTapServicesIntoTapCorePanel = new GridBagConstraints();
+		gbc_aggregateTapServicesIntoTapCorePanel.anchor = GridBagConstraints.WEST;
+		gbc_aggregateTapServicesIntoTapCorePanel.gridwidth = 6;
+		gbc_aggregateTapServicesIntoTapCorePanel.insets = new Insets(0, 0, 5, 5);
+		gbc_aggregateTapServicesIntoTapCorePanel.gridx = 0;
+		gbc_aggregateTapServicesIntoTapCorePanel.gridy = 17;
+		tapCalcPanel.add(aggregateTapServicesIntoTapCorePanel, gbc_aggregateTapServicesIntoTapCorePanel);
+		GridBagLayout gbl_aggregateTapServicesIntoTapCorePanel = new GridBagLayout();
+		gbl_aggregateTapServicesIntoTapCorePanel.columnWidths = new int[] { 0, 75, 100, 75 };
+		gbl_aggregateTapServicesIntoTapCorePanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		gbl_aggregateTapServicesIntoTapCorePanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		gbl_aggregateTapServicesIntoTapCorePanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		aggregateTapServicesIntoTapCorePanel.setLayout(gbl_aggregateTapServicesIntoTapCorePanel);
+
+		JLabel lblAggregateTapServiceIntoTapCore = new JLabel("Aggregate TAP Services into TAP Core");
+		lblAggregateTapServiceIntoTapCore.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblAggregateTapServiceIntoTapCore.setBackground(Color.WHITE);
+		GridBagConstraints gbc_lblAggregateTapServiceIntoTapCore = new GridBagConstraints();
+		gbc_lblAggregateTapServiceIntoTapCore.anchor = GridBagConstraints.WEST;
+		gbc_lblAggregateTapServiceIntoTapCore.gridwidth = 3;
+		gbc_lblAggregateTapServiceIntoTapCore.insets = new Insets(10, 10, 5, 5);
+		gbc_lblAggregateTapServiceIntoTapCore.gridx = 0;
+		gbc_lblAggregateTapServiceIntoTapCore.gridy = 0;
+		aggregateTapServicesIntoTapCorePanel.add(lblAggregateTapServiceIntoTapCore, gbc_lblAggregateTapServiceIntoTapCore);
+		
+		JLabel lblSelectTapServicesToInsertIntoTapCore = new JLabel("Select TAP Services Database:");
+		GridBagConstraints gbc_lblSelectTapServicesToInsertIntoTapCore = new GridBagConstraints();
+		gbc_lblSelectTapServicesToInsertIntoTapCore.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectTapServicesToInsertIntoTapCore.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectTapServicesToInsertIntoTapCore.gridx = 1;
+		gbc_lblSelectTapServicesToInsertIntoTapCore.gridy = 1;
+		aggregateTapServicesIntoTapCorePanel.add(lblSelectTapServicesToInsertIntoTapCore, gbc_lblSelectTapServicesToInsertIntoTapCore);
+
+		selectTapServicesComboBox = new JComboBox<String>();
+		selectTapServicesComboBox.setEditable(false);
+		GridBagConstraints gbc_selectTapServicesComboBox = new GridBagConstraints();
+		gbc_selectTapServicesComboBox.gridwidth = 2;
+		gbc_selectTapServicesComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectTapServicesComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectTapServicesComboBox.gridx = 2;
+		gbc_selectTapServicesComboBox.gridy = 1;
+		aggregateTapServicesIntoTapCorePanel.add(selectTapServicesComboBox, gbc_selectTapServicesComboBox);
+		
+		JLabel lblAggregateTapServicesIntoTapCoreURI = new JLabel("Designate Base URI:");
+		lblAggregateTapServicesIntoTapCoreURI.setMinimumSize(new Dimension(155, 32));
+		lblAggregateTapServicesIntoTapCoreURI.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblAggregateTapServicesIntoTapCoreURI = new GridBagConstraints();
+		gbc_lblAggregateTapServicesIntoTapCoreURI.anchor = GridBagConstraints.WEST;
+		gbc_lblAggregateTapServicesIntoTapCoreURI.insets = new Insets(0, 20, 5, 5);
+		gbc_lblAggregateTapServicesIntoTapCoreURI.gridx = 1;
+		gbc_lblAggregateTapServicesIntoTapCoreURI.gridy = 2;
+		aggregateTapServicesIntoTapCorePanel.add(lblAggregateTapServicesIntoTapCoreURI, gbc_lblAggregateTapServicesIntoTapCoreURI);
+		
+		inputAggregateTapServicesIntoTapCoreBaseURIField = new JTextField();
+		inputAggregateTapServicesIntoTapCoreBaseURIField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		inputAggregateTapServicesIntoTapCoreBaseURIField.setText("http://semoss.org/ontologies");
+		inputAggregateTapServicesIntoTapCoreBaseURIField.setColumns(10);
+		GridBagConstraints gbc_inputAggregateTapServicesIntoTapCoreBaseURIField = new GridBagConstraints();
+		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridwidth = 2;
+		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.insets = new Insets(0, 0, 5, 0);
+		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridx = 2;
+		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridy = 2;
+		aggregateTapServicesIntoTapCorePanel.add(inputAggregateTapServicesIntoTapCoreBaseURIField, gbc_inputAggregateTapServicesIntoTapCoreBaseURIField);
+		
+		JLabel lblSelectTapCoreToInsertTapServices = new JLabel("Select TAP Core Database:");
+		GridBagConstraints gbc_lblSelectTapCoreToInsertTapServices = new GridBagConstraints();
+		gbc_lblSelectTapCoreToInsertTapServices.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectTapCoreToInsertTapServices.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectTapCoreToInsertTapServices.gridx = 1;
+		gbc_lblSelectTapCoreToInsertTapServices.gridy = 3;
+		aggregateTapServicesIntoTapCorePanel.add(lblSelectTapCoreToInsertTapServices, gbc_lblSelectTapCoreToInsertTapServices);
+		
+		selectTapCoreComboBox = new JComboBox<String>();
+		selectTapCoreComboBox.setEditable(false);
+		GridBagConstraints gbc_selectTapCoreComboBox = new GridBagConstraints();
+		gbc_selectTapCoreComboBox.gridwidth = 2;
+		gbc_selectTapCoreComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectTapCoreComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectTapCoreComboBox.gridx = 2;
+		gbc_selectTapCoreComboBox.gridy = 3;
+		aggregateTapServicesIntoTapCorePanel.add(selectTapCoreComboBox, gbc_selectTapCoreComboBox);
+
+		btnAggregateTapServicesIntoTapCore = new CustomButton("Aggregate TAP Services into TAP Core");
+		btnAggregateTapServicesIntoTapCore.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnAggregateTapServicesIntoTapCore = new GridBagConstraints();
+		gbc_btnAggregateTapServicesIntoTapCore.anchor = GridBagConstraints.NORTHWEST;
+		gbc_btnAggregateTapServicesIntoTapCore.gridwidth = 4;
+		gbc_btnAggregateTapServicesIntoTapCore.insets = new Insets(10, 20, 10, 5);
+		gbc_btnAggregateTapServicesIntoTapCore.gridx = 1;
+		gbc_btnAggregateTapServicesIntoTapCore.gridy = 4;
+		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
+		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);

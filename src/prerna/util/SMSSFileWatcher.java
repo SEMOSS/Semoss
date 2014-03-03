@@ -89,6 +89,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		list.setSelectedIndex(0);
 		list.repaint();
 		
+		// initialize combo box for cost db update
 		JComboBox changedDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
 		DefaultComboBoxModel changedDBComboBoxModel = (DefaultComboBoxModel) changedDBComboBox.getModel();
 		changedDBComboBoxModel.addElement(engineName);
@@ -99,6 +100,18 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		costDBComboBoxModel.addElement(engineName);
 		costDBComboBox.repaint();
 		
+		// initialize combo box for aggregating tap services into tap cost
+		JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.SELECT_CORE_TO_ADD_SERVICES_COMBOBOX);
+		DefaultComboBoxModel selectTapCoreComboBoxModel = (DefaultComboBoxModel) selectTapCoreComboBox.getModel();
+		selectTapCoreComboBoxModel.addElement(engineName);
+		selectTapCoreComboBox.repaint();
+		
+		JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.SELECT_SERVICES_TO_ADD_CORE_COMBOBOX);
+		DefaultComboBoxModel selectTapServicesComboBoxModel = (DefaultComboBoxModel) selectTapServicesComboBox.getModel();
+		selectTapServicesComboBoxModel.addElement(engineName);
+		selectTapServicesComboBox.repaint();
+		
+		// initialize combo box for export db information
 		JComboBox exportDataDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
 		DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
 		exportDataDBComboBoxModel.addElement(engineName);
