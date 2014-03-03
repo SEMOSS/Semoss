@@ -173,6 +173,17 @@ var parcoords = d3.parcoords()("#example")
   });
 
   // fill grid with data
+      //rounding grid data values to have 3 sig figs
+        for(var key in data){
+            for(var secondKey in data[key]){
+              if(typeof data[key][secondKey] === 'number' && secondKey !== 'id'){
+                data[key][secondKey] = data[key][secondKey].toPrecision(3);
+                console.log(data[key][secondKey]);
+              }
+            }
+          };
+
+
   gridUpdate(data);
 
   // update grid on brush
