@@ -10,7 +10,7 @@ app.controller('IndexCtrl', ['$scope', function($scope) {
 		
         $scope.$apply(function () {
             
-            $scope.data = jQuery.parseJSON(data);
+            $scope.data = jQuery.parseJSON("/data.json");
             
         });
     };
