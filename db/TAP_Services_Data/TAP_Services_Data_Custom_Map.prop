@@ -1,0 +1,114 @@
+
+##Base Objects##
+
+SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
+UserInterface http://health.mil/ontologies/Concept/UserInterface
+System http://health.mil/ontologies/Concept/System
+InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+TError http://health.mil/ontologies/Concept/TError
+Activity http://health.mil/ontologies/Concept/Activity
+SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
+DProt http://health.mil/ontologies/Concept/DProt
+DForm http://health.mil/ontologies/Concept/DForm
+BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
+Software http://health.mil/ontologies/Concept/Software
+DFreq http://health.mil/ontologies/Concept/DFreq
+LifeCycle http://health.mil/ontologies/Concept/LifeCycle
+DataObject http://health.mil/ontologies/Concept/DataObject
+BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
+HardwareVersion http://health.mil/ontologies/Concept/HardwareVersion
+SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
+Hardware http://health.mil/ontologies/Concept/Hardware
+SystemService http://health.mil/ontologies/Concept/SystemService
+HardwareModule http://health.mil/ontologies/Concept/HardwareModule
+Personnel http://health.mil/ontologies/Concept/Personnel
+
+##Base Predicates##
+
+SystemService_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
+SystemService_Has_TError http://health.mil/ontologies/Relation/Has
+SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
+HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
+InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
+InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
+System_ConsistsOf_SystemService http://health.mil/ontologies/Relation/ConsistsOf
+InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
+HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
+SystemService_Supports_Activity http://health.mil/ontologies/Relation/Supports
+SystemService_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
+SystemService_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
+InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
+Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
+SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+SystemService_Consists_SoftwareModule http://health.mil/ontologies/Relation/Consists
+Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
+SystemService_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
+System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
+SystemService_Has_HardwareModule http://health.mil/ontologies/Relation/Has
+HardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
+SystemService_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+SystemService_Provide_DataObject http://health.mil/ontologies/Relation/Provide
+InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
+SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
+SystemService_Implemented_At_InterfaceControlDocument http://health.mil/ontologies/Relation/Implemented_At
+
+##Base Objects Class##
+
+DForm_CLASS http://semoss.org/ontologies/Concept/DForm
+HardwareModule_CLASS http://semoss.org/ontologies/Concept/HardwareModule
+LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
+DProt_CLASS http://semoss.org/ontologies/Concept/DProt
+BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
+BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
+SoftwareVersion_CLASS http://semoss.org/ontologies/Concept/SoftwareVersion
+UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
+Software_CLASS http://semoss.org/ontologies/Concept/Software
+SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
+InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
+SoftwareModule_CLASS http://semoss.org/ontologies/Concept/SoftwareModule
+Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
+Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
+DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
+SystemService_CLASS http://semoss.org/ontologies/Concept/SystemService
+Activity_CLASS http://semoss.org/ontologies/Concept/Activity
+TError_CLASS http://semoss.org/ontologies/Concept/TError
+DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+System_CLASS http://semoss.org/ontologies/Concept/System
+HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
+
+##Base Predicates Class##
+
+InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
+SystemService_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
+System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Provide
+SystemService_Provide_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Provide
+SystemService_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
+HardwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+SystemService_Implemented_At_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Implemented_At
+System_ConsistsOf_SystemService_CLASS http://semoss.org/ontologies/Relation/ConsistsOf
+SoftwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
+SystemService_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
+InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+SystemService_Has_HardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
+InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
+SystemService_Consists_SoftwareModule_CLASS http://semoss.org/ontologies/Relation/Consists
+Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
+SystemService_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
+SystemService_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
+SoftwareVersion_Has_SoftwareVCategory_CLASS http://semoss.org/ontologies/Relation/Has
+HardwareModule_TypeOf_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
+InterfaceControlDocument_Has_DForm_CLASS http://semoss.org/ontologies/Relation/Has
+SoftwareVersion_Upgrade_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Upgrade
+SoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
+Hardware_Has_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
+InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
+HardwareVersion_Upgrade_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/Upgrade
+SystemService_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
+SystemService_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;
