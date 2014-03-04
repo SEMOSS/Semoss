@@ -102,7 +102,8 @@ public class ConstantsTAP {
 	public static final String SYSTEM_COUNT_QUERY = "SYSTEM_COUNT_QUERY";	
 	public static final String PARTICIPANT_QUERY = "PARTICIPANT_QUERY";
 	public static final String DATE_GENERATED_QUERY = "DATE_GENERATED_QUERY";
-	
+	public static final String CAPABILITY_DUPE_QUERY = "CAPABILITY_DUPE_QUERY";
+	public static final String CAPABILITY_QUERY = "CAPABILITY_QUERY";
 	public static final String DATE_OBJECT_QUERY = "DATE_OBJECT_QUERY";
 	public static final String FUNCTIONAL_GAP_QUERY = "FUNCTIONAL_GAP_QUERY";
 	
