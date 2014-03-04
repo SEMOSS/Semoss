@@ -179,7 +179,7 @@ public class SEMOSSVertex{
 		// adding the edge
 		edgeHash.put(edge.inVertex.getProperty(Constants.VERTEX_NAME) + "", edge.inVertex);
 		
-		addVertexCounter(edge.inVertex);
+		addVertexCounter(edge.outVertex);
 		//loadEdge(edge);
 	}
 	
@@ -220,7 +220,7 @@ public class SEMOSSVertex{
 		// add the out vertex
 		edgeHash.put(edge.outVertex.getProperty(Constants.VERTEX_NAME) + "", edge.outVertex);
 		
-		addVertexCounter(edge.outVertex);
+		addVertexCounter(edge.inVertex);
 	}
 	
 	/**
