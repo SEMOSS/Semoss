@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.net.URL; 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,17 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
+
+import de.l3s.boilerpipe.extractors.ArticleExtractor;
+import de.l3s.boilerpipe.BoilerpipeExtractor;
+import de.l3s.boilerpipe.document.TextDocument;
+import de.l3s.boilerpipe.extractors.ArticleExtractor;
+import de.l3s.boilerpipe.extractors.CommonExtractors;
+import de.l3s.boilerpipe.sax.BoilerpipeSAXInput;
+import de.l3s.boilerpipe.sax.HTMLDocument;
+import de.l3s.boilerpipe.sax.HTMLFetcher;
+
 
 class TextExtractor { 
     private OutputStream outputstream;
@@ -80,7 +92,7 @@ class TextExtractor {
 		org.jsoup.nodes.Document doc = Jsoup.connect(url).get();
 		String extractedtext = "";
 		
-		if(url.contains("nytimes.com")){
+		if(url.contains("nytimes.com") && false){
 		knownwebsite = true;
 			for( Element element : doc.select("p.story-body-text") )
 		{
@@ -91,12 +103,24 @@ class TextExtractor {
 		    }
 		}
 		}
-		if(!knownwebsite){
+		if(knownwebsite){
+			System.out.println("NON USED WEB READER");
 			extractedtext = doc.text();
 		}
+		if(!knownwebsite){
+			System.out.println("USED WEB READER");
+			URL urlobj = new URL(url);
+			// NOTE: Use ArticleExtractor unless DefaultExtractor gives better results for you   
+		   String text = ArticleExtractor.INSTANCE.getText(urlobj);
+		 	extractedtext = text;   
+		   System.out.println(text);
+					}
+    //	}
 		extractedtext = extractedtext.replace("\n", " @ ").replace("\r", " ");
 		System.out.println("extracted text being sent back"+extractedtext);
     	return extractedtext;
+    	
+    	
     	
     }
 
@@ -130,5 +154,9 @@ class TextExtractor {
    //     } else { 
    //         throw new Exception();
    //     }
+    	URL url = new URL("http://www.washingtonpost.com/world/currencies-of-russia-ukraine-fall-monday/2014/03/03/5f3af2c2-a2c9-11e3-a5fa-55f0c77bf39c_story.html?hpid=z1");  
+ 	   // NOTE: Use ArticleExtractor unless DefaultExtractor gives better results for you   
+   String text = ArticleExtractor.INSTANCE.getText(url);
+ 	   System.out.println(text);
     }
 }
