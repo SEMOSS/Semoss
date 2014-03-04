@@ -110,6 +110,12 @@ public class ConstantsTAP {
 	public static final String GET_ALL_SYSTEMS_QUERY = "GET_ALL_SYSTEMS_QUERY";
 	public static final String GET_DECOMMISSIONED_SYSTEMS_QUERY = "GET_ALL_DECOMMISSIONED_SYSTEMS_QUERY";
 	
+	//TAP Service Aggregation to Core
+	public static final String TAP_SERVICES_AGGREGATION_BUTTON = "btnAggregateTapServicesIntoTapCore";
+	public static final String TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX = "selectTapServicesComboBox";
+	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreComboBox";
+	public static final String TAP_SERVICES_AGGREGATION_BASE_URI = "inputAggregateTapServicesIntoTapCoreBaseURIField";
+	
 	//Aggregate TAP Services into TAP Core Constants
 	public static final String SELECT_CORE_TO_ADD_SERVICES_COMBOBOX = "selectTapCoreComboBox";
 	public static final String SELECT_SERVICES_TO_ADD_CORE_COMBOBOX  = "selectTapServicesComboBox";
