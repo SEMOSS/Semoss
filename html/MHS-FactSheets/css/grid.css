@@ -9,6 +9,10 @@ h4 {
 .row {
   margin-bottom: 20px;
 }
+
+.row.equalColumns {
+  background-color: #eee;
+} 
 .row .row {
   margin-top: 10px;
   margin-bottom: 0;
@@ -22,7 +26,24 @@ h4 {
   border: 1px solid rgba(86,61,124,.2);
 }
 
+.equalColumns [class*="col-md-2"] {
+  background-color: #eee;
+  border-bottom: none;
+} 
+
 hr {
   margin-top: 40px;
   margin-bottom: 40px;
+}
+
+#floater {
+  float:left; 
+  height:50%; 
+  margin-bottom:-120px;
+}
+
+#content  {
+  clear:both; 
+  height:240px; 
+  position:relative;
 }
