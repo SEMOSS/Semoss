@@ -237,7 +237,6 @@ public class PlayPane extends JFrame {
 	// Aggregate TAP Services into TAP Core
 	public CustomButton btnAggregateTapServicesIntoTapCore;
 	public JComboBox<String> selectTapServicesComboBox, selectTapCoreComboBox;
-	public JTextField inputAggregateTapServicesIntoTapCoreBaseURIField;
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck,
@@ -2106,9 +2105,9 @@ public class PlayPane extends JFrame {
 		tapCalcPanel.add(aggregateTapServicesIntoTapCorePanel, gbc_aggregateTapServicesIntoTapCorePanel);
 		GridBagLayout gbl_aggregateTapServicesIntoTapCorePanel = new GridBagLayout();
 		gbl_aggregateTapServicesIntoTapCorePanel.columnWidths = new int[] { 0, 75, 100, 75 };
-		gbl_aggregateTapServicesIntoTapCorePanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		gbl_aggregateTapServicesIntoTapCorePanel.rowHeights = new int[] { 0, 0, 0, 0, 0 };
 		gbl_aggregateTapServicesIntoTapCorePanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
-		gbl_aggregateTapServicesIntoTapCorePanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		gbl_aggregateTapServicesIntoTapCorePanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
 		aggregateTapServicesIntoTapCorePanel.setLayout(gbl_aggregateTapServicesIntoTapCorePanel);
 
 		JLabel lblAggregateTapServiceIntoTapCore = new JLabel("Aggregate TAP Services into TAP Core");
@@ -2140,34 +2139,12 @@ public class PlayPane extends JFrame {
 		gbc_selectTapServicesComboBox.gridy = 1;
 		aggregateTapServicesIntoTapCorePanel.add(selectTapServicesComboBox, gbc_selectTapServicesComboBox);
 		
-		JLabel lblAggregateTapServicesIntoTapCoreURI = new JLabel("Designate Base URI:");
-		lblAggregateTapServicesIntoTapCoreURI.setMinimumSize(new Dimension(155, 32));
-		lblAggregateTapServicesIntoTapCoreURI.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblAggregateTapServicesIntoTapCoreURI = new GridBagConstraints();
-		gbc_lblAggregateTapServicesIntoTapCoreURI.anchor = GridBagConstraints.WEST;
-		gbc_lblAggregateTapServicesIntoTapCoreURI.insets = new Insets(0, 20, 5, 5);
-		gbc_lblAggregateTapServicesIntoTapCoreURI.gridx = 1;
-		gbc_lblAggregateTapServicesIntoTapCoreURI.gridy = 2;
-		aggregateTapServicesIntoTapCorePanel.add(lblAggregateTapServicesIntoTapCoreURI, gbc_lblAggregateTapServicesIntoTapCoreURI);
-		
-		inputAggregateTapServicesIntoTapCoreBaseURIField = new JTextField();
-		inputAggregateTapServicesIntoTapCoreBaseURIField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		inputAggregateTapServicesIntoTapCoreBaseURIField.setText("http://semoss.org/ontologies");
-		inputAggregateTapServicesIntoTapCoreBaseURIField.setColumns(10);
-		GridBagConstraints gbc_inputAggregateTapServicesIntoTapCoreBaseURIField = new GridBagConstraints();
-		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridwidth = 2;
-		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.insets = new Insets(0, 0, 5, 0);
-		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridx = 2;
-		gbc_inputAggregateTapServicesIntoTapCoreBaseURIField.gridy = 2;
-		aggregateTapServicesIntoTapCorePanel.add(inputAggregateTapServicesIntoTapCoreBaseURIField, gbc_inputAggregateTapServicesIntoTapCoreBaseURIField);
-		
 		JLabel lblSelectTapCoreToInsertTapServices = new JLabel("Select TAP Core Database:");
 		GridBagConstraints gbc_lblSelectTapCoreToInsertTapServices = new GridBagConstraints();
 		gbc_lblSelectTapCoreToInsertTapServices.anchor = GridBagConstraints.WEST;
 		gbc_lblSelectTapCoreToInsertTapServices.insets = new Insets(0, 20, 5, 5);
 		gbc_lblSelectTapCoreToInsertTapServices.gridx = 1;
-		gbc_lblSelectTapCoreToInsertTapServices.gridy = 3;
+		gbc_lblSelectTapCoreToInsertTapServices.gridy = 2;
 		aggregateTapServicesIntoTapCorePanel.add(lblSelectTapCoreToInsertTapServices, gbc_lblSelectTapCoreToInsertTapServices);
 		
 		selectTapCoreComboBox = new JComboBox<String>();
@@ -2177,7 +2154,7 @@ public class PlayPane extends JFrame {
 		gbc_selectTapCoreComboBox.insets = new Insets(0, 0, 5, 5);
 		gbc_selectTapCoreComboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_selectTapCoreComboBox.gridx = 2;
-		gbc_selectTapCoreComboBox.gridy = 3;
+		gbc_selectTapCoreComboBox.gridy = 2;
 		aggregateTapServicesIntoTapCorePanel.add(selectTapCoreComboBox, gbc_selectTapCoreComboBox);
 
 		btnAggregateTapServicesIntoTapCore = new CustomButton("Aggregate TAP Services into TAP Core");
@@ -2185,9 +2162,9 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_btnAggregateTapServicesIntoTapCore = new GridBagConstraints();
 		gbc_btnAggregateTapServicesIntoTapCore.anchor = GridBagConstraints.NORTHWEST;
 		gbc_btnAggregateTapServicesIntoTapCore.gridwidth = 4;
-		gbc_btnAggregateTapServicesIntoTapCore.insets = new Insets(10, 20, 10, 5);
+		gbc_btnAggregateTapServicesIntoTapCore.insets = new Insets(10, 20, 10, 0);
 		gbc_btnAggregateTapServicesIntoTapCore.gridx = 1;
-		gbc_btnAggregateTapServicesIntoTapCore.gridy = 4;
+		gbc_btnAggregateTapServicesIntoTapCore.gridy = 3;
 		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
 		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
 		
