@@ -11,7 +11,7 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
 
-    <title>Capability Fact Sheets</title>
+    <title>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] }}</title>
 
     <!-- Bootstrap core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -26,7 +26,6 @@
 
   <body>
     <div class="container" ng-controller="IndexCtrl">
-
       <div class="navbar navbar-default">
         <div class="container">
           <div class="navbar-header">
@@ -44,58 +43,73 @@
         </div>
       </div>
 
-      <h3>Capability Overview</h3>
+      <div class="page-header"></div> <!-- creates a pretty page break line -->
+
+      <h3>Capability Overview: {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
       <br>
 
       <div class="row">
-        <div class="col-md-2"><center><b>Capability Name</b></center></div>
-        <div class="col-md-10">Description of capability.</div>
+        <div class="col-md-2" style="word-wrap: break-word">
+          <center><b>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
+        </div>
+        <div class="col-md-10" style="word-wrap: break-word">
+          {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
+        </div>
       </div> <!--row-->
       <div class="row">
-        <div class="col-md-2"><center><b>Capability Group Name</b></center></div>
-        <div class="col-md-10">Description of capability group.</div>
+        <div class="col-md-2" style="word-wrap: break-word">
+          <center><b>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }}</b></center>
+        </div>
+        <div class="col-md-10" style="word-wrap: break-word">
+          {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[3] | replaceUnderscores }}
+        </div>
       </div> <!--row-->
       <div class="row">
         <div class="col-md-2"><center><b>Mission Outcomes</b></center></div>
-        <div class="col-md-10">List of capability group mission outcomes.</div>
+        <div class="col-md-10" style="word-wrap: break-word">
+          {{ data.dataSeries.Capability.CapabilityOverviewSheet.MISSION_OUTCOME_QUERY | replaceUnderscores }}
+        </div>
       </div> <!--row-->
       <div class="row">
         <div class="col-md-2"><center><b>Participants</b></center></div>
-        <div class="col-md-10">List of participants required to carry out a given capability.</div>
+        <div class="col-md-10" style="word-wrap: break-word">
+          {{ data.dataSeries.Capability.CapabilityOverviewSheet.PARTICIPANT_QUERY | replaceUnderscores }}
+        </div>
       </div> <!--row-->
       <br>
 
       <div class="row">
         <div class="col-md-2 col-md-offset-1"><center><b>CONOPS Source</b></center></div>
-        <div class="col-md-2"><center>HSD, HSS, FHP</center></div>
+        <div class="col-md-2"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CONOPS_SOURCE_QUERY[0] }}</center></div>
         <div class="col-md-2 col-md-offset-1"><center><b>Date Generated</b></center></div>
-        <div class="col-md-2"><center>2/27/2014</center></div>
+        <div class="col-md-2"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.DATE_GENERATED_QUERY[0] }}</center></div>
       </div> <!--row-->
 
-      <br>
+      <div class="page-header"></div> <!-- creates a pretty page break line -->
+
       <h3>Capability Highlights</h3>
       <br>
 
       <div class="row">
         <div class="col-md-1"><center><b>Tasks</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.TASK_COUNT_QUERY[0] }}</center></div>
         <div class="col-md-1"><center><b>Business Processes</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.BP_COUNT_QUERY[0] }}</center></div>
         <div class="col-md-1"><center><b>Business Rules</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.BR_COUNT_QUERY[0] }}</center></div>
         <div class="col-md-1"><center><b>Business Standards</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
-        <div class="col-md-1"><center><b>Technical Requirements</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.BS_COUNT_QUERY[0] }}</center></div>
+        <div class="col-md-1"><center><b>Technical Reqs</b></center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.TR_COUNT_QUERY[0] }}</center></div>
         <div class="col-md-1"><center><b>Technical Standards</b></center></div>
-        <div class="col-md-1"><center>#</center></div>
+        <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.TS_COUNT_QUERY[0] }}</center></div>
       </div> <!--row-->
 
     <div class="row">
       <div class="col-md-1 col-md-offset-1"><center><b>BLUs</b></center></div>
-      <div class="col-md-1"><center>#</center></div>
+      <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.BLU_COUNT_QUERY[0] }}</center></div>
       <div class="col-md-1"><center><b>Systems</b></center></div>
-      <div class="col-md-1"><center>{{sysCount}}</center></div>
+      <div class="col-md-1"><center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.SYSTEM_COUNT_QUERY[0] }}</center></div>
 
         <div class="col-md-4 col-md-offset-2"><center><strong>Data Objects</strong></center>
           <div class="row">
@@ -103,13 +117,13 @@
               <center><i>Provide</i></center>
             </div>
             <div class="col-md-3">
-              <center>#</center>
+              <center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.DATA_COUNT_QUERY[2] }}</center>
             </div>
             <div class="col-md-3">
               <center><i>Consume</i></center>
             </div>
             <div class="col-md-3">
-              <center>#</center>
+              <center>{{ data.dataSeries.Capability.CapabilityOverviewSheet.DATA_COUNT_QUERY[1] }}</center>
             </div>
           </div> <!-- row -->
         </div>
@@ -168,17 +182,13 @@
       <thead>
         <tr>
           <th>Data Object</th>
-          <th>CRM</th>
+          <th>CRM</th> 
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Appointment</td>
-          <td>C</td>
-        </tr>
-        <tr>
-          <td>Patient Demographics</td>
-          <td>R</td>
+        <tr ng-repeat="data in data.dataSeries.Capability.DataSheet.DATE_OBJECT_QUERY">
+          <td>{{ data[0] | replaceUnderscores }}</td>
+          <td>{{ data[1] }}</td>
         </tr>
       </tbody>
     </table>
@@ -192,15 +202,12 @@
     <table class="table table-bordered">
       <thead>
         <tr>
-          <th>BLU</th>
+          <th>BLU</th> 
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Alert Notification</td>
-        </tr>
-        <tr>
-          <td>Claim Validation</td>
+        <tr ng-repeat="BLU in data.dataSeries.Capability.BLUSheet.BLU_QUERY">
+          <td>{{ BLU[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
     </table>
@@ -214,18 +221,12 @@
     <table class="table table-bordered">
       <thead>
         <tr>
-          <th>Functional Gap</th>
+          <th>Functional Gap</th> 
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Billing Errors</td>
-        </tr>
-        <tr>
-          <td>Lost equipment</td>
-        </tr>
-        <tr>
-          <td>System Downtime</td>
+        <tr ng-repeat="FG in data.dataSeries.Capability.FunctionalGapSheet.FUNCTIONAL_GAP_QUERY">
+          <td>{{ FG[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
     </table>
@@ -233,6 +234,7 @@
   </div>
 
 </div> <!-- /container -->
+
 
     <!-- AngularJS -->  
     <script src="lib/angular.min.js"></script>  
@@ -245,7 +247,7 @@
     
     <script>
       function start(data) {
-        var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+        var ctrlScope = angular.element(jQuery('IndexCtrl')).scope();
         ctrlScope.setJSONData(data);
       };
     </script>
