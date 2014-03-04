@@ -11,7 +11,7 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
 
-    <title>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] }}</title>
+    <title>Capability Fact Sheets</title>
 
     <!-- Bootstrap core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -38,7 +38,7 @@
             <a class="navbar-brand" href="#">Capability Fact Sheets</a>
           </div>
             <ul class="nav navbar-nav">
-              <li class="active"><a href="#">Home</a></li>
+              <li class="active"><a href="landing.html">Home</a></li>
             </ul>
         </div>
       </div>
@@ -48,15 +48,16 @@
       <h3>Capability Overview: {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
       <br>
 
-      <div class="row">
-        <div class="col-md-2" style="word-wrap: break-word">
+      <div class="row equalColumns">
+
+        <div class="col-md-2"  style="word-wrap: break-word">
           <center><b>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
         </div>
         <div class="col-md-10" style="word-wrap: break-word">
           {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
         </div>
       </div> <!--row-->
-      <div class="row">
+      <div class="row equalColumns">
         <div class="col-md-2" style="word-wrap: break-word">
           <center><b>{{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }}</b></center>
         </div>
@@ -64,16 +65,24 @@
           {{ data.dataSeries.Capability.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[3] | replaceUnderscores }}
         </div>
       </div> <!--row-->
-      <div class="row">
+      <div class="row equalColumns">
         <div class="col-md-2"><center><b>Mission Outcomes</b></center></div>
         <div class="col-md-10" style="word-wrap: break-word">
-          {{ data.dataSeries.Capability.CapabilityOverviewSheet.MISSION_OUTCOME_QUERY | replaceUnderscores }}
+          <ul>
+            <li ng-repeat="outcome in data.dataSeries.Capability.CapabilityOverviewSheet.MISSION_OUTCOME_QUERY">
+              {{outcome | replaceUnderscores}}
+            </li>
+          </ul>
         </div>
       </div> <!--row-->
-      <div class="row">
+      <div class="row equalColumns">
         <div class="col-md-2"><center><b>Participants</b></center></div>
         <div class="col-md-10" style="word-wrap: break-word">
-          {{ data.dataSeries.Capability.CapabilityOverviewSheet.PARTICIPANT_QUERY | replaceUnderscores }}
+          <ul>
+            <li ng-repeat="part in data.dataSeries.Capability.CapabilityOverviewSheet.PARTICIPANT_QUERY">
+              {{part | replaceUnderscores}}
+            </li>
+          </ul>
         </div>
       </div> <!--row-->
       <br>
@@ -186,10 +195,12 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="data in data.dataSeries.Capability.DataSheet.DATE_OBJECT_QUERY">
-          <td>{{ data[0] | replaceUnderscores }}</td>
-          <td>{{ data[1] }}</td>
-        </tr>
+        <div class="scrollit">
+          <tr ng-repeat="data in data.dataSeries.Capability.DataSheet.DATE_OBJECT_QUERY">
+            <td>{{ data[0] | replaceUnderscores }}</td>
+            <td>{{ data[1] }}</td>
+          </tr>
+        </div>
       </tbody>
     </table>
     </table>
