@@ -5,7 +5,7 @@ var app = angular.module('app', []);
 
 app.controller('IndexCtrl', ['$scope', '$http', function($scope, $http) {
 
-    /* $http.get("data.json").success(function(jsonData) {
+    /* $http.get("data2.json").success(function(jsonData) {
         $scope.data = jsonData;
     }); */
 
