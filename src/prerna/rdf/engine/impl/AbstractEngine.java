@@ -117,6 +117,22 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
 					+ "}";
 
+	public static final String fromSparqlWithVerbs = "SELECT DISTINCT ?rel ?entity WHERE { "
+			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+			+ "{?x ?rel  ?y} "
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
+			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
+					+ "}";
+
+	public static final String toSparqlWithVerbs = "SELECT DISTINCT ?rel ?entity WHERE { "
+			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+			+ "{?x ?rel ?y} "
+			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
+			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
+					+ "}";
+	
 	public static final String typeSparql = "SELECT ?insight WHERE {"
 			+ "{<@type@> <" + Constants.INSIGHT + ":" + Constants.TYPE
 			+ "> ?insightURI;}" + "{?insightURI <" + Constants.INSIGHT + ":"
@@ -1071,6 +1087,46 @@ public abstract class AbstractEngine implements IEngine {
 		return baseDataEngine.getEntityOfType(Utility.fillParam(toSparql, paramHash));
 	}
 
+	// gets the from neighborhood for a given node
+	public Hashtable<String, Vector<String>> getFromNeighborsWithVerbs(String nodeType, int neighborHood) {
+		// this is where this node is the from node
+		Hashtable paramHash = new Hashtable();
+		paramHash.put("nodeType", nodeType);
+		String query = Utility.fillParam(fromSparqlWithVerbs, paramHash);
+		
+		return fillNeighborsWithVerbsHash(query, baseDataEngine);
+	}
+
+	// gets the to nodes
+	public Hashtable<String, Vector<String>> getToNeighborsWithVerbs(String nodeType, int neighborHood) {
+		// this is where this node is the to node
+		Hashtable paramHash = new Hashtable();
+		paramHash.put("nodeType", nodeType);
+		String query = Utility.fillParam(toSparqlWithVerbs, paramHash);
+		
+		return fillNeighborsWithVerbsHash(query, baseDataEngine);
+	}
+	
+	private Hashtable<String, Vector<String>> fillNeighborsWithVerbsHash(String query, IEngine engine){
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();
+		String[] var = sjsw.getVariables();
+		Hashtable<String, Vector<String>> retHash = new Hashtable<String, Vector<String>>();
+		while(sjsw.hasNext()){
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String verb = sjss.getVar(var[0]) + "";
+			String node = sjss.getVar(var[1]) + "";
+			Vector<String> verbVect = new Vector<String>();
+			if(retHash.containsKey(verb))
+				verbVect = retHash.get(verb);
+			verbVect.add(node);
+			retHash.put(verb, verbVect);
+		}
+		return retHash;
+	}
+	
 	// gets the from and to nodes
 	public Vector<String> getNeighbors(String nodeType, int neighborHood) {
 		Vector<String> from = getFromNeighbors(nodeType, 0);
