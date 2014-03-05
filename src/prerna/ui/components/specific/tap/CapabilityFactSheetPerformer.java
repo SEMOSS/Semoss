@@ -261,13 +261,47 @@ public class CapabilityFactSheetPerformer {
 		
 		ArrayList<ArrayList<Object>> capDupeList = capDupe.priorityAllDataHash.get(capabilityName);
 		ArrayList<String> capList = capDupe.priorityCapHash.get(capabilityName);
-		ArrayList<Double> valueList = capDupe.priorityValueHash.get(capabilityName);			
+		ArrayList<Double> valueList = capDupe.priorityValueHash.get(capabilityName);
+		ArrayList<String> criteriaList = capDupe.criteriaList;
 
-		if (capDupeList != null) {
-			returnHash.put(ConstantsTAP.CAPABILITY_DUPE_QUERY, capDupeList);
-			returnHash.put(ConstantsTAP.CAPABILITY_QUERY, capList);
-			returnHash.put(ConstantsTAP.VALUE_QUERY, valueList);
-		}	
+//		if (capDupeList != null) {
+//			returnHash.put(ConstantsTAP.CAPABILITY_DUPE_QUERY, capDupeList);
+//			returnHash.put(ConstantsTAP.CAPABILITY_QUERY, capList);
+//			returnHash.put(ConstantsTAP.VALUE_QUERY, valueList);
+//		}
+
+		Hashtable dataSeries = new Hashtable();
+		for(int i=0;i<capList.size();i++)
+		{
+			String capability = capList.get(i);
+			for(int j=0;j<criteriaList.size();j++)
+			{
+				String criteria =criteriaList.get(j);
+				Hashtable elementHash = new Hashtable();
+				elementHash.put("Capability", capability);
+				elementHash.put("Criteria", criteria);
+				elementHash.put("val",capDupeList.get(i).get(j));
+//				Object value = capDupeList.get(i).get(j);
+//				if(value instanceof Double)
+//					elementHash.put("val",(Double)value);
+//				else
+//					elementHash.put("val",(String)
+				dataSeries.put(capability+"-"+criteria,elementHash);
+			}
+			String criteria ="Overall";
+			Hashtable elementHash = new Hashtable();
+			elementHash.put("Capability", capability);
+			elementHash.put("Criteria", criteria);
+			elementHash.put("val",(valueList.get(i)));
+			dataSeries.put(capability+"-"+criteria,elementHash);
+		}
+		
+		returnHash.put("dataSeries",dataSeries);
+		returnHash.put("value", "val");
+		returnHash.put("xAxisTitle", "Capability");
+		returnHash.put("yAxisTitle", "Criteria");
+		returnHash.put("title", "Capability Similarity / Duplication Scores");
+
 		return returnHash;
 	}
 	
