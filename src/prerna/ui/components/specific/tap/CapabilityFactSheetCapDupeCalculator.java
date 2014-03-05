@@ -39,6 +39,7 @@ public class CapabilityFactSheetCapDupeCalculator {
 	public Hashtable<String, ArrayList<String>> priorityCapHash = new Hashtable<String, ArrayList<String>>();
 	public Hashtable<String, ArrayList<Double>> priorityValueHash = new Hashtable<String, ArrayList<Double>>();
 	int comparisonSysNum = 5;
+	int numCriteria = 4;
 	/**
 	 * Constructor for FactSheetSysDupeCalculator.
 	 */
@@ -47,7 +48,7 @@ public class CapabilityFactSheetCapDupeCalculator {
 		performAnalysis();
 		prioritizeValues();
 		organizeFinalPriorityHash();
-		printValues2();
+//		printValues2();
 	}
 	
 	/**
@@ -124,10 +125,11 @@ public class CapabilityFactSheetCapDupeCalculator {
 			    if(!dataSysHash.containsKey(sysName2))
 			    {
 			    	ArrayList<Object> sysValueList = new ArrayList<Object>(){{
+			    		for(int i=0;i<numCriteria;i++)
 			    		  add("N/A");
-			    		  add("N/A");
-			    		  add("N/A");
-			    		  add("N/A");
+//			    		  add("N/A");
+//			    		  add("N/A");
+//			    		  add("N/A");
 			    		}};;
 			    	sysValueList.remove(idx);
 			    	sysValueList.add(idx, value);
