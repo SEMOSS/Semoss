@@ -1116,8 +1116,8 @@ public abstract class AbstractEngine implements IEngine {
 		Hashtable<String, Vector<String>> retHash = new Hashtable<String, Vector<String>>();
 		while(sjsw.hasNext()){
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String verb = sjss.getVar(var[0]) + "";
-			String node = sjss.getVar(var[1]) + "";
+			String verb = sjss.getRawVar(var[0]) + "";
+			String node = sjss.getRawVar(var[1]) + "";
 			Vector<String> verbVect = new Vector<String>();
 			if(retHash.containsKey(verb))
 				verbVect = retHash.get(verb);
