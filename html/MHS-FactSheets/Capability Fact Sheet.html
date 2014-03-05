@@ -25,7 +25,7 @@
   </head>
 
   <body>
-    <div class="container" id="IndexCtrl" ng-controller="IndexCtrl">
+    <div class="container" id="IndexCtrl" ng-controller="IndexCtrl" ng-show="data">
       <div class="navbar navbar-default">
         <div class="container">
           <div class="navbar-header">
@@ -35,7 +35,7 @@
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="#">{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</a>
+            <a class="navbar-brand" href="#">Capability: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</a>
           </div>
             <ul class="nav navbar-nav">
               <li class="active"><a href="index.html">Home</a></li>
@@ -250,8 +250,10 @@
     <!-- AngularJS -->  
     <script src="lib/angular.min.js"></script>  
 
-    <!-- Angular Module -->
+    <!-- Angular Modules -->
     <script src="js/app.js"></script>
+    <script src="js/controllers.js"></script>
+    <script src="js/filters.js"></script>
 
     <!-- jQuery library --> 
     <script src="lib/jquery-1.11.0.min.js"></script> 
