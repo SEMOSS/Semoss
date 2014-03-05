@@ -101,12 +101,12 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		costDBComboBox.repaint();
 		
 		// initialize combo box for aggregating tap services into tap cost
-		JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.SELECT_CORE_TO_ADD_SERVICES_COMBOBOX);
+		JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX);
 		DefaultComboBoxModel selectTapCoreComboBoxModel = (DefaultComboBoxModel) selectTapCoreComboBox.getModel();
 		selectTapCoreComboBoxModel.addElement(engineName);
 		selectTapCoreComboBox.repaint();
 		
-		JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.SELECT_SERVICES_TO_ADD_CORE_COMBOBOX);
+		JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX);
 		DefaultComboBoxModel selectTapServicesComboBoxModel = (DefaultComboBoxModel) selectTapServicesComboBox.getModel();
 		selectTapServicesComboBoxModel.addElement(engineName);
 		selectTapServicesComboBox.repaint();
