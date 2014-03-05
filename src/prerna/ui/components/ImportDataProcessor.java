@@ -105,13 +105,11 @@ public class ImportDataProcessor {
 		}
 		return success;
 	}
-
+	
 	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
 		boolean success = true;
 		//first write the prop file for the new engine
-		PropFileWriter propWriter = new PropFileWriter();
-		propWriter.setBaseDir(baseDirectory);
-		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
+		PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType);
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
 		String owlPath = baseDirectory + "/" + propWriter.owlFile;
@@ -185,7 +183,6 @@ public class ImportDataProcessor {
 			}
 		}
 		else if(importType == IMPORT_TYPE.NLP){
-			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
 			NLPReader nlpreader = new NLPReader();
 			try{
 				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
@@ -406,5 +403,17 @@ public class ImportDataProcessor {
 	public void setPropHash(Hashtable<String, String> propHash) {
 		this.propHash = propHash;
 	}
+
+	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType){
+		PropFileWriter propWriter = new PropFileWriter();
+		
+		if(importType == IMPORT_TYPE.NLP)
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
+			
+		propWriter.setBaseDir(baseDirectory);
+		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
+		return propWriter;
+	}
+
 
 }
