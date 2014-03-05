@@ -112,11 +112,34 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	public void processNewCapability(String capability)
 	{		
 		CapabilityFactSheetPerformer performer = new CapabilityFactSheetPerformer();
-		Hashtable<String,Object> dataSeries = performer.processQueries(capability);
+		Hashtable<String,Object> dataSeries = new Hashtable<String,Object>();
+
+		updateProgressBar("10%...Processing Capability Overview", 10);
+		Hashtable<String, Object> firstSheetHash = performer.processFirstSheetQueries(capability);
+		dataSeries.put("CapabilityOverviewSheet", firstSheetHash);
+		
+		updateProgressBar("40%...Processing Capability Dupe", 40);
+		Hashtable<String, Object> capabilityDupeSheetHash = performer.processCapabilityDupeSheet(capability);
+		dataSeries.put("CapabilityDupeSheet", capabilityDupeSheetHash);
+
+		updateProgressBar("60%...Processing Data Objects", 60);
+		Hashtable<String, Object> dataSheet = performer.processDataSheetQueries(capability);
+		dataSeries.put("DataSheet", dataSheet);
+		
+		updateProgressBar("70%...Processing BLUs", 70);
+		Hashtable<String, Object> bluSheet = performer.processBLUSheetQueries(capability);
+		dataSeries.put("BLUSheet", bluSheet);
+		
+		updateProgressBar("80%...Processing FunctionalGaps", 80);
+		Hashtable<String, Object> funtionalGapSheet = performer.processFunctionalGapSheetQueries(capability);
+		dataSeries.put("FunctionalGapSheet", funtionalGapSheet);
+
 		allHash.put("dataSeries", dataSeries);
 		allHash.put("capability", capability);
 
 		callItAllHash();
+		updateProgressBar("100%...Capability Fact Sheet Generation Complete", 100);
+		
 	}
 	
 	public void callIt()
