@@ -115,9 +115,6 @@ public class ConstantsTAP {
 	public static final String TAP_SERVICES_AGGREGATION_BUTTON = "btnAggregateTapServicesIntoTapCore";
 	public static final String TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX = "selectTapServicesComboBox";
 	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreComboBox";
-	public static final String TAP_SERVICES_AGGREGATION_BASE_URI = "inputAggregateTapServicesIntoTapCoreBaseURIField";
+	public static final String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY";
 	
-	//Aggregate TAP Services into TAP Core Constants
-	public static final String SELECT_CORE_TO_ADD_SERVICES_COMBOBOX = "selectTapCoreComboBox";
-	public static final String SELECT_SERVICES_TO_ADD_CORE_COMBOBOX  = "selectTapServicesComboBox";
 }
