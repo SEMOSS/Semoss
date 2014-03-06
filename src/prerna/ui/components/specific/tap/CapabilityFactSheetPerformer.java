@@ -177,7 +177,7 @@ public class CapabilityFactSheetPerformer {
 		taskCountQuery = taskCountQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 
 		//BP Count
-		String bpCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?BusinessProcess)) AS ?BusinessProcessCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ) {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Capability ?Supports ?BusinessProcess.} }";		
+		String bpCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?BusinessProcess)) AS ?BusinessProcessCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>; }{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?Consists ?Task.} {?Task ?Needs ?BusinessProcess}}";		
 		bpCountQuery = bpCountQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 		
 		//BR Count
@@ -209,7 +209,7 @@ public class CapabilityFactSheetPerformer {
 		participantQuery = participantQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 		
 		//System Count
-		String systemCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?System)) AS ?SystemCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Provides <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Provides <http://semoss.org/ontologies/Relation/Contains/CRM> 'C';}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.}{?System ?Provides ?Data}}";		
+		String systemCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?System)) AS ?SystemCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>; }{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?Capability ?Consists ?Task.} {?Task ?Needs ?BusinessProcess}{?System ?Supports ?BusinessProcess.} }";		
 		systemCountQuery = systemCountQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
 		ArrayList<Object> capabilityGroupResultsList = runListQuery(HRCoreEngine, capabilityGroupQuery);
@@ -264,12 +264,6 @@ public class CapabilityFactSheetPerformer {
 		ArrayList<Double> valueList = capDupe.priorityValueHash.get(capabilityName);
 		ArrayList<String> criteriaList = capDupe.criteriaList;
 
-//		if (capDupeList != null) {
-//			returnHash.put(ConstantsTAP.CAPABILITY_DUPE_QUERY, capDupeList);
-//			returnHash.put(ConstantsTAP.CAPABILITY_QUERY, capList);
-//			returnHash.put(ConstantsTAP.VALUE_QUERY, valueList);
-//		}
-
 		Hashtable dataSeries = new Hashtable();
 		for(int i=0;i<capList.size();i++)
 		{
@@ -281,11 +275,6 @@ public class CapabilityFactSheetPerformer {
 				elementHash.put("Capability", capability);
 				elementHash.put("Criteria", criteria);
 				elementHash.put("val",capDupeList.get(i).get(j));
-//				Object value = capDupeList.get(i).get(j);
-//				if(value instanceof Double)
-//					elementHash.put("val",(Double)value);
-//				else
-//					elementHash.put("val",(String)
 				dataSeries.put(capability+"-"+criteria,elementHash);
 			}
 			String criteria ="Overall";
