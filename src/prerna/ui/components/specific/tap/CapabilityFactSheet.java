@@ -322,6 +322,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
 		browser.executeScript("start('" + gson.toJson(capabilityHash) + "');");
+		System.out.println(gson.toJson(capabilityHash));
 	}
 	
 	public void callItAllHash()
