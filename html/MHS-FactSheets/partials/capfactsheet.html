@@ -1,60 +1,19 @@
+<div class="container" id="IndexCtrl" ng-show="data">
 
-<!DOCTYPE html>
-<html lang="en" ng-app="app">
+  <div class="page-header"></div> <!-- creates a pretty page break line -->
 
-  <head>
-    
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+  <h3>Capability Overview: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
+  <br>
 
-    <title>Capability Fact Sheets</title>
+  <div class="row equalColumns">
 
-    <!-- Bootstrap core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap theme -->
-    <link href="css/bootstrap-theme.min.css" rel="stylesheet">
-
-    <!-- Custom styles for this template -->
-    <link href="css/grid.css" rel="stylesheet">
-    <link href="css/theme.css" rel="stylesheet">
-
-  </head>
-
-  <body>
-    <div class="container" id="IndexCtrl" ng-controller="IndexCtrl" ng-show="data">
-      <div class="navbar navbar-default">
-        <div class="container">
-          <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-              <span class="sr-only">Toggle navigation</span>
-              <span class="icon-bar"></span>
-              <span class="icon-bar"></span>
-              <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="#">Capability: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</a>
-          </div>
-            <ul class="nav navbar-nav">
-              <li class="active"><a href="index.html">Home</a></li>
-            </ul>
-        </div>
-      </div>
-
-      <div class="page-header"></div> <!-- creates a pretty page break line -->
-
-      <h3>Capability Overview</h3>
-      <br>
-
-      <div class="row equalColumns">
-
-        <div class="col-md-2"  style="word-wrap: break-word">
-          <center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
-        </div>
-        <div class="col-md-10" style="word-wrap: break-word">
-          {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
-        </div>
-      </div> <!--row-->
+  <div class="col-md-2"  style="word-wrap: break-word">
+      <center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
+    </div>
+    <div class="col-md-10" style="word-wrap: break-word">
+      {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
+    </div>
+  </div> <!--row-->
       <div class="row equalColumns">
         <div class="col-md-2" style="word-wrap: break-word">
           <center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }}</b></center>
@@ -243,32 +202,3 @@
   </div>
 
 </div> <!-- /container -->
-
-
-    <!-- AngularJS -->  
-    <script src="lib/angular.min.js"></script> 
-    <script src="lib/angular-route.js"></script>  
-
-    <!-- Angular Modules -->
-    <script src="js/app.js"></script>
-    <script src="js/controllers.js"></script>
-    <script src="js/directives.js"></script>
-    <script src="js/filters.js"></script>
-
-    <!-- jQuery library --> 
-    <script src="lib/jquery-1.11.0.min.js"></script> 
-    <script src="lib/underscore-min.js"></script>
-
-    <!-- d3 library -->
-    <script src="lib/d3.js"></script>
-    
-    <script>
-      function start(data) {
-        var ctrlScope = angular.element(jQuery('#IndexCtrl')).scope();
-        ctrlScope.setJSONData(data);
-      };
-    </script>
-
-  </body>
-
-</html>
