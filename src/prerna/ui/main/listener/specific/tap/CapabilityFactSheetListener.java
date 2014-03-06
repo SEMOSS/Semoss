@@ -57,13 +57,12 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 	 */
 	@Override
 	public Object invoke(Object... arg0) {
-//		Gson gson = new Gson();
-//		String sysArrayString = (String) arg0[0];
-//		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
-//		
-//		String capability = sysArray[0];
-		String capability = "Access_a_Healthy_and_Fit_Force";
-//		String capability = "Aeromedical_Evacuation_(AE)";
+		Gson gson = new Gson();
+		String sysArrayString = (String) arg0[0];
+		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
+		
+		String capability = sysArray[0];
+	//	String capability = "Access_a_Healthy_and_Fit_Force";
 		System.out.println("Capability chosen is "+capability);
 
 		//add in new capability

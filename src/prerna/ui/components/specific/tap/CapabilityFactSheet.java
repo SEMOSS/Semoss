@@ -19,16 +19,43 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
+import java.io.File;
+import java.io.OutputStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.stream.StreamSource;
+
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.events.NavigationEvent;
 import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
 import com.teamdev.jxbrowser.events.NavigationListener;
+import com.teamdev.jxbrowser.dom.DOMDocument;
+
+import org.apache.fop.apps.FOUserAgent;
+import org.apache.fop.apps.Fop;
+import org.apache.fop.apps.FopFactory;
+import org.apache.fop.apps.MimeConstants;
 
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -42,6 +69,8 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
 	Hashtable allHash = new Hashtable();
 	Hashtable capabilityHash = new Hashtable();
+	
+
 	
 	CapabilityFactSheetListener singleCapFactSheetCall = new CapabilityFactSheetListener();
 	
@@ -62,8 +91,8 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		String workingDir = System.getProperty("user.dir");
 		
 		singleCapFactSheetCall.setCapabilityFactSheet(this);
-		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/Capability Fact Sheet.html");
-		singleCapFactSheetCall.invoke(null);
+		//browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/Capability Fact Sheet.html");
+		//singleCapFactSheetCall.invoke(null);
 		
 		browser.addNavigationListener(new NavigationListener() {
     	    public void navigationStarted(NavigationEvent event) {
@@ -72,13 +101,163 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
     	    public void navigationFinished(NavigationFinishedEvent event) {
    	    	browser.registerFunction("singleCapFactSheet",  singleCapFactSheetCall);
-  //  			callIt();
+    			callIt();
     	    }
     	});
 	       
-//		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/Capability Fact Sheet.html");
-		
+		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/index.html");
+	//		createPDF();
 	}
+	
+
+	
+    public void convertDOM2PDF(Document xslfoDoc, File pdf) {
+        // configure fopFactory as desired
+    	FopFactory fopFactory = FopFactory.newInstance();
+    	
+        try {
+            FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
+            // configure foUserAgent as desired
+
+            // Setup output
+            OutputStream out = new java.io.FileOutputStream(pdf);
+            out = new java.io.BufferedOutputStream(out);
+
+            try {
+                // Construct fop with desired output format and output stream
+                Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, out);
+
+                // Setup Identity Transformer
+                TransformerFactory factory = TransformerFactory.newInstance();
+                //Transformer transformer = factory.newTransformer(); // identity transformer
+                Transformer transformer = factory.newTransformer(); // identity transformer
+
+                // Setup input for XSLT transformation
+                Source src = new DOMSource(xslfoDoc);
+
+                // Resulting SAX events (the generated FO) must be piped through to FOP
+                Result res = new SAXResult(fop.getDefaultHandler());
+
+                // Start XSLT transformation and FOP processing
+                transformer.transform(src, res);
+            } finally {
+                out.close();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            System.exit(-1);
+        }
+
+    }
+
+	
+    
+    
+	public void createPDF()
+	{
+        DOMDocument domDocument = (DOMDocument)browser.getDocument();
+        Document document = browser.getDocument();
+        NodeList children = document.getChildNodes();
+        DOMImplementation domImple = domDocument.getImplementation();
+        
+        String workingDir = System.getProperty("user.dir");
+        String filePath =  workingDir + "/export";
+        File baseDir = new File(filePath);
+        File outDir = new File(baseDir, "out");
+
+        outDir.mkdirs();
+
+        //Setup output file
+        File pdffile = new File(outDir, "ResultDOM2PDF.pdf");
+        System.out.println("PDF Output File: " + pdffile);
+        System.out.println();
+
+        Document foDoc;
+        Document foDoc2;
+		try {
+			foDoc = buildDOMDocument();
+			//foDoc2 = (Document)(browser.getDocument().getImplementation());
+
+			for(int i=0;i<children.getLength();i++)
+			{
+				foDoc.adoptNode(children.item(i));
+			}
+	        convertDOM2PDF(foDoc, pdffile);
+
+	        System.out.println("Success!"); 
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+   
+        
+	}
+	
+    /** xsl-fo namespace URI */
+    protected static String foNS = "http://www.w3.org/1999/XSL/Format";
+
+	
+    /**
+     * Builds the example FO document as a DOM in memory.
+     * @return the FO document
+     * @throws ParserConfigurationException In case there is a problem creating a DOM document
+     */
+    private static Document buildDOMDocument() throws ParserConfigurationException {
+        // Create a sample XSL-FO DOM document
+    	
+        Document foDoc = null;
+        Element root = null, ele1 = null, ele2 = null, ele3 = null;
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setNamespaceAware(true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        foDoc = db.newDocument();
+
+        root = foDoc.createElementNS(foNS, "fo:root");
+        foDoc.appendChild(root);
+
+        ele1 = foDoc.createElementNS(foNS, "fo:layout-master-set");
+        root.appendChild(ele1);
+        ele2 = foDoc.createElementNS(foNS, "fo:simple-page-master");
+        ele1.appendChild(ele2);
+        ele2.setAttributeNS(null, "master-name", "letter");
+        ele2.setAttributeNS(null, "page-height", "11in");
+        ele2.setAttributeNS(null, "page-width", "8.5in");
+        ele2.setAttributeNS(null, "margin-top", "1in");
+        ele2.setAttributeNS(null, "margin-bottom", "1in");
+        ele2.setAttributeNS(null, "margin-left", "1in");
+        ele2.setAttributeNS(null, "margin-right", "1in");
+        ele3 = foDoc.createElementNS(foNS, "fo:region-body");
+        ele2.appendChild(ele3);
+        ele1 = foDoc.createElementNS(foNS, "fo:page-sequence");
+        root.appendChild(ele1);
+        ele1.setAttributeNS(null, "master-reference", "letter");
+        ele2 = foDoc.createElementNS(foNS, "fo:flow");
+        ele1.appendChild(ele2);
+        ele2.setAttributeNS(null, "flow-name", "xsl-region-body");
+        addElement(ele2, "fo:block", "Hello World!");
+        return foDoc;
+    }
+
+    /**
+     * Adds an element to the DOM.
+     * @param parent parent node to attach the new element to
+     * @param newNodeName name of the new node
+     * @param textVal content of the element
+     */
+    protected static void addElement(Node parent, String newNodeName,
+                                String textVal) {
+        if (textVal == null) {
+            return;
+        }  // use only with text nodes
+        Element newElement = parent.getOwnerDocument().createElementNS(
+                                        foNS, newNodeName);
+        Text elementText = parent.getOwnerDocument().createTextNode(textVal);
+        newElement.appendChild(elementText);
+        parent.appendChild(newElement);
+    }
+
 	
 	/**
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
@@ -95,18 +274,14 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 			for (int j = 0; j < var.length; j++) 
 			{	
 					String text = (String) listElement[j];
-					text = text.replaceAll("^\"|\"$", "");
-					if (text.length() >= 30) {
-					text = text.substring(0, Math.min(text.length(), 30));  //temporary
-					text = text + "...";
-					}
+					text = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "");
 					dataArrayList.add(text);
 			}			
 		}
 
 		capabilityHash.put("dataSeries", dataArrayList);
 		
-		return allHash;
+		return capabilityHash;
 	}
 	
 	public void processNewCapability(String capability)
@@ -145,14 +320,16 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	public void callIt()
 	{
 		Gson gson = new Gson();
-		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
-		browser.executeScript("start();");
+//		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
+		browser.executeScript("start('" + gson.toJson(capabilityHash) + "');");
 	}
 	
 	public void callItAllHash()
 	{
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityData('" + gson.toJson(allHash) + "');");
+		String workingDir = System.getProperty("user.dir");
+		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/index.html#/cap");
 		browser.executeScript("start('" + gson.toJson(allHash) + "');");
 	}
 	
