@@ -1,3 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app">
+
+  <head>
+    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+
+    <title>Capability Fact Sheets</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/theme.css" rel="stylesheet">
+    <link href="css/grid.css" rel="stylesheet">
+
+  </head>
+
+  <body>
+    <div class="container" id="IndexCtrl" ng-controller="IndexCtrl">
+      <div class="navbar navbar-default">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Capability Fact Sheets</a>
+          </div>
+            <ul class="nav navbar-nav">
+              <li class="active"><a href="index.html">Home</a></li>
+            </ul>
+        </div>
+      </div>
+
+<div class="container" id="IndexCtrl" ng-controller="IndexCtrl">
+
+  <div class="container">
+
+  <div class="page-header">
+    <h1>Capability Fact Sheets</h1>
+    <p class="lead">[Insert filler text that describes purpose of fact sheets]</p>
+  </div>
+
+  <input type="text" ng-model="query"><br><br>
+
+  <ul>
+    <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
+  </ul>
+
+</div> <!-- /container -->
+
 <div class="container" ng-show="data">
 
   <div class="page-header"></div> <!-- creates a pretty page break line -->
@@ -202,3 +261,35 @@
   </div>
 
 </div> <!-- /container -->
+
+</div> <!-- /container -->
+
+    <!-- AngularJS -->  
+    <script src="lib/angular.min.js"></script> 
+    <script src="lib/angular-route.js"></script> 
+
+    <!-- Angular Modules -->
+    <script src="js/app.js"></script>
+    <script src="js/controllers.js"></script>
+    <script src="js/directives.js"></script>
+    <script src="js/filters.js"></script>
+
+    <!-- jQuery library --> 
+    <script src="lib/jquery-1.11.0.min.js"></script> 
+
+    <!-- UnderscoreJS library -->
+    <script src="lib/underscore-min.js"></script>
+
+    <!-- d3 library -->
+    <script src="lib/d3.js"></script>
+
+    <script>
+      function start(data) {
+        var ctrlScope = angular.element(jQuery('#IndexCtrl')).scope();
+        ctrlScope.setJSONData(data);
+      };
+    </script>
+
+  </body>
+
+</html>
