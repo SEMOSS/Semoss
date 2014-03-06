@@ -284,7 +284,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		return capabilityHash;
 	}
 	
-	public void processNewCapability(String capability)
+	public Hashtable processNewCapability(String capability)
 	{		
 		CapabilityFactSheetPerformer performer = new CapabilityFactSheetPerformer();
 		Hashtable<String,Object> dataSeries = new Hashtable<String,Object>();
@@ -312,9 +312,9 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", dataSeries);
 		allHash.put("capability", capability);
 
-		callItAllHash();
+	//	callItAllHash();
 		updateProgressBar("100%...Capability Fact Sheet Generation Complete", 100);
-		
+		return allHash;
 	}
 	
 	public void callIt()
