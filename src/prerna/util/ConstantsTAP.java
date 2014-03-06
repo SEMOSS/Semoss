@@ -106,6 +106,8 @@ public class ConstantsTAP {
 	public static final String CAPABILITY_QUERY = "CAPABILITY_QUERY";
 	public static final String DATE_OBJECT_QUERY = "DATE_OBJECT_QUERY";
 	public static final String FUNCTIONAL_GAP_QUERY = "FUNCTIONAL_GAP_QUERY";
+	public static final String SYSTEM_PROVIDE_DATA_QUERY = "SYSTEM_PROVIDE_DATA_QUERY";
+	public static final String SYSTEM_CONSUME_DATA_QUERY = "SYSTEM_CONSUME_DATA_QUERY";
 	
 	//Update Active Systems Constants
 	public static final String GET_ALL_SYSTEMS_QUERY = "GET_ALL_SYSTEMS_QUERY";
