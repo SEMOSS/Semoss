@@ -45,11 +45,10 @@
   <div class="container" ng-hide="data">
 
   <div class="page-header">
-    <h1>Capability Fact Sheets</h1>
-    <p class="lead">[Insert filler text that describes purpose of fact sheets]</p>
+    <h1>Capability List</h1>
   </div>
 
-  <input type="text" ng-model="query" width="400" value="Type here to filter by capability name"><br><br>
+  <input type="text" ng-model="query" size="100" placeholder="Search for a capability"><br><br>
 
   <ul>
     <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
@@ -194,6 +193,8 @@
       </div> <!-- panel-primary -->
     </div> <!-- col-md-6 -->
   </div> <!-- row -->
+
+  <h4><a href="" onClick="window.location.reload()">Go back to capability list</a></h4>
 
 <div class="page-header"></div> <!-- creates a pretty page break line -->
 
