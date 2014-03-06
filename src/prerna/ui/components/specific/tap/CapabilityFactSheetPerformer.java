@@ -70,7 +70,10 @@ public class CapabilityFactSheetPerformer {
 						if (sjss.getVar(names[colIndex]) instanceof Double) {
 							list.add(colIndex, (Double) sjss.getVar(names[colIndex]));
 						}
-						else list.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"",""));						
+						else if(((String)sjss.getVar(names[colIndex])).length()>0)
+							list.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"",""));
+						else
+							list.add(colIndex, "N/A");
 					}
 				}
 			}
