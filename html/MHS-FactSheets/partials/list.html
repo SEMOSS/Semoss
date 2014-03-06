@@ -8,7 +8,7 @@
   <input type="text" ng-model="query"><br><br>
 
   <ul>
-    <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
+    <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-click="">{{cap | replaceUnderscores }}</a></li>
   </ul>
 
 </div> <!-- /container -->
