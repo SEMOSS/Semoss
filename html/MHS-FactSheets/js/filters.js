@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('app.filters', [])
-	.filter('replaceUnderscores', function() {
+var filters = angular.module('app.filters', [])
+	filters.filter('replaceUnderscores', function() {
     	// Takes the string after the last slash and replaces underscores with spaces
     	return function(str) {
         	str = String(str);

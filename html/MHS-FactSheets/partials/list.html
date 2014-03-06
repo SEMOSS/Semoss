@@ -1,0 +1,14 @@
+<div class="container">
+
+  <div class="page-header">
+    <h1>Capability Fact Sheets</h1>
+    <p class="lead">[Insert filler text that describes purpose of fact sheets]</p>
+  </div>
+
+  <input type="text" ng-model="query"><br><br>
+
+  <ul>
+    <li ng-repeat="cap in data.dataSeries"><a href="#/cap">{{cap | replaceUnderscores | filter:query }}</a></li>
+  </ul>
+
+</div> <!-- /container -->
