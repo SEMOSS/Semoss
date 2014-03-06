@@ -274,7 +274,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 			for (int j = 0; j < var.length; j++) 
 			{	
 					String text = (String) listElement[j];
-					text = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "");
+					text = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "");
 					dataArrayList.add(text);
 			}			
 		}
