@@ -1,6 +1,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
@@ -24,6 +25,7 @@ public class ServicesAggregationProcessor {
 	private String semossRelBaseURI = "http://semoss.org/ontologies/Relation/";
 	private String propURI = "http://semoss.org/ontologies/Relation/Contains/";
 
+	private Hashtable<String, Hashtable<String, String>> dataHash = new Hashtable<String, Hashtable<String, String>>();
 
 	private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
 	private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
@@ -46,9 +48,6 @@ public class ServicesAggregationProcessor {
 			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/POC> as ?prop10) {?systemService ?prop10 ?POC} }"
 			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Transactional> as ?prop11) {?systemService ?prop11 ?transactional} } } "
 			+ "GROUP BY ?system";
-
-	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareVersion ?has ?hardware WHERE { {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} "
-			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has ?hardwareVersion} }";
 
 	private String TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY = "SELECT DISTINCT ?system ?usedBy ?personnel WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}"
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>}"
@@ -81,25 +80,47 @@ public class ServicesAggregationProcessor {
 			+ "{?system ?consistsOf ?systemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
 			+ "{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?systemService ?provide ?BLU}}";
 
-	private String TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+	private String TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY = "SELECT DISTINCT ?system (SAMPLE(?provide) AS ?pred) ?data (GROUP_CONCAT(DISTINCT ?crm ; SEPARATOR = \";\") AS ?overallCRM) "
+			+ "WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
 			+ "{?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} "
 			+ "{?system ?consistsOf ?SystemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
-			+ "{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} "
-			+ "{?SystemService ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
+			+ "{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemService ?provide ?data} "
+			+ "{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}} GROUP BY ?system ?data";
 
-	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system (SAMPLE(?has) AS ?pred) ?TError (SUM(?weight/(COUNT(?systemService))) AS ?adjustedWeight) "
+			+ "WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
 			+ "{?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} "
 			+ "{?system ?consistsOf ?systemService} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
 			+ "{?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} "
-			+ "{?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}";
+			+ "{?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}} GROUP BY ?system ?TError";
 
 	private String TAP_SERVICES_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} "
 			+ "{?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} "
 			+ "{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} "
 			+ "{?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value}}";
-	
+
+	private String TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
+			+ "{?system a <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
+			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
+			+ "{?system ?consistsOf ?systemService} {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} "
+			+ "{?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>} "
+			+ "{?systemService ?consists ?softwareModule} OPTIONAL { {?consists <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
+			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
+
+	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
+			+ "{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
+			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consistsOf ?systemService} "
+			+ "{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
+			+ "{?systemService ?has ?softwareModule} OPTIONAL { {?has <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
+			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
+
+	//	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareVersion ?has ?hardware WHERE { {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} "
+	//			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has ?hardwareVersion} }";
+
+
 	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
 		this.servicesDB = servicesDB;
 		this.coreDB = coreDB;
@@ -107,15 +128,16 @@ public class ServicesAggregationProcessor {
 
 	public void runFullAggregation(){
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY);
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY, "", "");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY, "", "");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY, "", "");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, "", "");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY, "", "");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM", "RELATION");
-		runGenericRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, "weight", "RELATION");
-		runICDAggregation(TAP_SERVICES_AGGREGATE_ICD_QUERY);
-		
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY, "", "");
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY, "", "");
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY, "", "");
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, "", "");
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY, "", "");
+		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, "weight", "RELATION");
+		runPropertiesOnNode(TAP_SERVICES_AGGREGATE_ICD_QUERY);
+		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
+		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
+		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
 		System.out.println("success");
 	}
 
@@ -134,7 +156,6 @@ public class ServicesAggregationProcessor {
 	 */
 	private void runSystemServicePropertyAggregation(String propQuery)
 	{
-		Hashtable<String, Hashtable<String, String>> propHash = new Hashtable<String, Hashtable<String, String>>();
 
 		SesameJenaSelectWrapper sjsw = processQuery(propQuery, servicesDB);
 		while(sjsw.hasNext())
@@ -150,12 +171,41 @@ public class ServicesAggregationProcessor {
 			properties.put(propURI + "Availability-Actual", sjss.getRawVar("actualAvailability") + "");
 			properties.put(propURI + "Transaction_Count", sjss.getRawVar("totalTransactions") + "");
 			properties.put(propURI + "ATO_Date", sjss.getRawVar("earliestATODate") + "");
-			properties.put(propURI + "GarrisonTheater", sjss.getRawVar("GarrisonTheater") + "");
+
+			// logic to process garrison theater
+			String gt = sjss.getRawVar("GarrisonTheater") + "";
+			if(gt.contains("****"))
+			{
+				String[] parts = gt.split("\\*\\*\\*\\*");
+				if(parts[0].equals("\"NA") && !parts[1].equals("NA\""))
+				{
+					gt = "\"" + parts[1];
+				}
+				else if(!parts[0].equals("\"NA") && parts[1].equals("NA\""))
+				{
+					gt = parts[0] + "\"";
+				}
+				else if(!parts[0].equals("Garrison") && parts[1].equals("Theater"))
+				{
+					gt = "Both";
+				}
+			}
+			properties.put(propURI + "GarrisonTheater", gt);
 			properties.put(propURI + "End_of_Support_Date", sjss.getRawVar("latestEndOfSupportDate") + "");
 			properties.put(propURI + "POC", sjss.getRawVar("allPOCs") + "");
-			properties.put(propURI + "Transactional", sjss.getRawVar("Transactional") + "");
 
-			propHash = addToHashtable(System, properties, propHash);
+			// logic to process transactional
+			// TODO: NEED TO BREAK THE LOAD AND SHOW POP UP
+			String transactional = sjss.getRawVar("Transactional") + "";
+			if(transactional.contains("****"))
+			{
+				transactional = "CONFLICTING REPORTS!";
+				//TODO: NEED TO GET THIS OUT OF PROCESSOR
+				Utility.showError("ERROR WITH INCONSISTENT REPORTING FOR TRANSACTIONAL PROPERTY!\n Look at System: " + System);
+			}
+			properties.put(propURI + "Transactional", transactional);
+
+			dataHash = addToHashtable(System, properties, dataHash);
 
 			// add instance system to list
 			addToAllConcepts(System);
@@ -193,41 +243,15 @@ public class ServicesAggregationProcessor {
 				}
 			}
 		}	
-
 		return propHash;
 	}
-
-//	private void runGenericRelationshipAggregation(String query)
-//	{
-//		Hashtable<String, Hashtable<String, String>> dataHash = new Hashtable<String, Hashtable<String, String>>();
-//		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
-//		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
-//		String[] vars = sjsw.getVariables();
-//		while(sjsw.hasNext())
-//		{
-//			SesameJenaSelectStatement sjss = sjsw.next();
-//			// get the next row and see how it must be added to the insert query
-//			String subject = sjss.getRawVar(vars[0]) + "";
-//			String pred = sjss.getRawVar(vars[1]) + "";
-//			String object = sjss.getRawVar(vars[2]) + "";
-//			//if(!baseFilterHash.containsKey(pred))
-//			{
-//				pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject) +":" + getTextAfterFinalDelimeter(object);
-//				dataHash = addToHashtable(subject, pred, object, dataHash);
-//
-//				addToAllConcepts(subject);
-//				addToAllConcepts(object);
-//				addToAllRelationships(pred);
-//			}
-//		}
-//	}
 
 	/*
 	 * -DataObject – Aggregate, and “C” takes precedence over “M” or "R"
 	 */
-	private void runGenericRelationshipWithOnePropAggregation(String query, String propType, String type)
+	private void runRelationshipWithOnePropAggregation(String query, String propType, String type)
 	{
-		Hashtable<String, Hashtable<String, String>> dataHash = new Hashtable<String, Hashtable<String, String>>();
+
 		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
@@ -244,11 +268,11 @@ public class ServicesAggregationProcessor {
 			{
 				prop = sjss.getRawVar(vars[3]) + "";
 			}
-			
+
 			System.out.println("ADDING RELATIONSHIP");
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject) +":" + getTextAfterFinalDelimeter(object);
 			dataHash = addToHashtable(subject, pred, object, dataHash);
-			if(!prop.equals(""))
+			if(!prop.equals("") || prop == null)
 			{
 				String propertyURI = propURI + propType;
 				if(type.equals("RELATION"))
@@ -274,16 +298,16 @@ public class ServicesAggregationProcessor {
 
 		}
 	}
-	
+
 	/*
 	 * -InterfaceControlDocument – Copy over to TAP Core
 		-DFreq – Keep the highest frequency (e.g. daily takes precedence over weekly, if we receive both)
 		-DProt, DForm – Concatenate
 		-Concatenate all properties
 	 */
-	private void runICDAggregation(String query)
+	private void runPropertiesOnNode(String query)
 	{
-		Hashtable<String, Hashtable<String, String>> dataHash = new Hashtable<String, Hashtable<String, String>>();
+
 		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
@@ -294,13 +318,76 @@ public class ServicesAggregationProcessor {
 			String subject = sjss.getRawVar(vars[0]) + "";
 			String prop = sjss.getRawVar(vars[1]) + "";
 			String value = sjss.getRawVar(vars[2]) + "";
-		
+
 			System.out.println("ADDING NODE PROPERTY");
 			dataHash = addToHashtable(subject, prop, value, dataHash);
-		
+
 			addToAllConcepts(subject);
 		}
 	}
+
+	private void runCreateNewNodeProperty(String query, String propType)
+	{
+		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
+		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			// get the next row and see how it must be added to the insert query
+			String subject = sjss.getRawVar(vars[0]) + "";
+			String pred = propURI + propType;
+			String prop = sjss.getRawVar(vars[1]) + "";
+
+			System.out.println("ADDING PROPERTY");
+			dataHash = addToHashtable(subject, pred, prop, dataHash);
+			addToAllConcepts(subject);
+		}
+	}
+
+	private void runDataObjectAggregation(String query, String propType)
+	{
+		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			// get the next row and see how it must be added to the insert query
+			String subject = sjss.getRawVar(vars[0]) + "";
+			String pred = sjss.getRawVar(vars[1]) + "";
+			String object = sjss.getRawVar(vars[2]) + "";
+			String prop = sjss.getRawVar(vars[3]) + "";
+			// process multiple CRM types giving precedence to C over M over R
+			if(prop.contains(";"))
+			{
+				ArrayList<String> parts = new ArrayList<String>(Arrays.asList(prop.split(":")));
+				if(parts.contains("C"))
+				{
+					prop = "\"C\"";
+				}
+				else if(parts.contains("M"))
+				{
+					prop = "\"M\"";
+				}
+				else
+				{
+					prop = "\"R\"";
+				}
+
+			}
+			System.out.println("ADDING RELATIONSHIP");
+			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject) +":" + getTextAfterFinalDelimeter(object);
+			dataHash = addToHashtable(subject, pred, object, dataHash);
+			String propertyURI = propURI + propType;
+			System.out.println("ADDING PROPERTY");
+			dataHash = addToHashtable(pred, propertyURI, prop, dataHash);
+
+			addToAllConcepts(subject);
+			addToAllConcepts(object);
+			addToAllRelationships(pred);
+		}
+	}
+
 
 	//this function will add a value to a hashtable in format {subject : {predicate : object}} which is what will be needed for the prepareInsertQuery function
 	//need to think through how the aggregation will work if the s p o is already present in the hash... separate functions?
@@ -323,7 +410,22 @@ public class ServicesAggregationProcessor {
 
 		return dataHash;
 	}
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	private String getTextAfterFinalDelimeter(String uri)
 	{
@@ -358,26 +460,6 @@ public class ServicesAggregationProcessor {
 			allRelations.get(relationBaseURI).add(uri);
 		}
 	}
-
-	/*
-	 * -HardwareModule, HardwareVersion, Hardware – Roll up from service to enterprise level
-		-Add quantities
-	 */
-	private void runHardwareAggregation()
-	{
-
-	}
-
-	/*
-	 * -SoftwareModule, SoftwareVersion, Software – Roll up from service to enterprise level
-		-Add quantities
-	 */
-	private void runSoftwareAggregation(){
-
-	}
-
-
-
 
 	//process the query
 	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
