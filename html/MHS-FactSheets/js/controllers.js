@@ -1,8 +1,8 @@
 'use strict';
 
-angular.module('app.controllers', [])
+var controllers = angular.module('app.controllers', [])
 
-	.controller('IndexCtrl', ['$scope', '$http', function($scope, $http) {
+	controllers.controller('IndexCtrl', ['$scope', '$http', function($scope, $http) {
 
     	/* // Uncomment this part of the code to test JSON data locally
     	$http.get("data2.json").success(function(jsonData) {
@@ -10,13 +10,9 @@ angular.module('app.controllers', [])
     	}); */
 
 		$scope.setJSONData = function (data) {
-		
         	$scope.$apply(function () {
-            
             	$scope.data = jQuery.parseJSON(data);
-
         	});
-
     	}; 
 
 	}]);
