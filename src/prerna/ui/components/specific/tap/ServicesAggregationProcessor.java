@@ -9,6 +9,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
@@ -116,6 +117,10 @@ public class ServicesAggregationProcessor {
 			+ "{?systemService ?has ?softwareModule} OPTIONAL { {?has <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
 			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
 
+	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE { {?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter( regex(str(?relations),\"^http://semoss\") ) }";
+	
+	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE { {?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }";
+	
 	//	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareVersion ?has ?hardware WHERE { {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} "
 	//			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has ?hardwareVersion} }";
 
@@ -137,10 +142,10 @@ public class ServicesAggregationProcessor {
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
 		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
 		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
-		processData();
 		processNewConcepts();
 		processNewRelationships();
 		System.out.println("success");
+		((BigDataEngine) coreDB).infer();
 	}
 
 	/*
@@ -158,7 +163,7 @@ public class ServicesAggregationProcessor {
 	 */
 	private void runSystemServicePropertyAggregation(String propQuery)
 	{
-
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(propQuery, servicesDB);
 		while(sjsw.hasNext())
 		{
@@ -212,11 +217,10 @@ public class ServicesAggregationProcessor {
 			// add instance system to list
 			addToAllConcepts(System);
 		}
-
-		//String insertSystemServicePropertiesQuery = prepareInsertQuery(propHash);
-		//runInsert(insertQuery, coreDB);
+		processData(dataHash);
 	}
 
+	
 	private Hashtable<String, Hashtable<String, String>> addToHashtable(String system, Hashtable<String, String> properties, Hashtable<String, Hashtable<String, String>> propHash) 
 	{
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
@@ -248,13 +252,10 @@ public class ServicesAggregationProcessor {
 		return propHash;
 	}
 
-	/*
-	 * -DataObject – Aggregate, and “C” takes precedence over “M” or "R"
-	 */
+
 	private void runRelationshipWithOnePropAggregation(String query, String propType, String type)
 	{
-
-		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -293,12 +294,13 @@ public class ServicesAggregationProcessor {
 					dataHash = addToHashtable(subject, propertyURI, prop, dataHash);
 				}
 			}
-
+			
+			// add instances to master list
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
-
 		}
+		processData(dataHash);
 	}
 
 	/*
@@ -309,8 +311,7 @@ public class ServicesAggregationProcessor {
 	 */
 	private void runPropertiesOnNode(String query)
 	{
-
-		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -324,13 +325,15 @@ public class ServicesAggregationProcessor {
 			System.out.println("ADDING NODE PROPERTY");
 			dataHash = addToHashtable(subject, prop, value, dataHash);
 
+			// add instances to master list
 			addToAllConcepts(subject);
 		}
+		processData(dataHash);
 	}
 
 	private void runCreateNewNodeProperty(String query, String propType)
 	{
-		//Hashtable<String, String> baseFilterHash = ((AbstractEngine) servicesDB).getBaseHash();
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -343,12 +346,16 @@ public class ServicesAggregationProcessor {
 
 			System.out.println("ADDING PROPERTY");
 			dataHash = addToHashtable(subject, pred, prop, dataHash);
+			
+			// add instances to master list
 			addToAllConcepts(subject);
 		}
+		processData(dataHash);
 	}
 
 	private void runDataObjectAggregation(String query, String propType)
 	{
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -384,10 +391,12 @@ public class ServicesAggregationProcessor {
 			System.out.println("ADDING PROPERTY");
 			dataHash = addToHashtable(pred, propertyURI, prop, dataHash);
 
+			// add instances to master list
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
 		}
+		processData(dataHash);
 	}
 
 
@@ -435,6 +444,17 @@ public class ServicesAggregationProcessor {
 		return uri;
 	}
 
+	//process the query
+	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//run the query against the engine provided
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();		
+		sjsw.getVariables();
+		return sjsw;
+	}
+	
 	private void addToAllConcepts(String uri)
 	{
 		String conceptBaseURI = semossBaseURI + Utility.getClassName(uri);
@@ -463,25 +483,13 @@ public class ServicesAggregationProcessor {
 		}
 	}
 
-	//process the query
-	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();		
-		sjsw.getVariables();
-		return sjsw;
-	}
-
-	
-	private void processData()
+	private void processData(Hashtable<String, Hashtable<String, String>> data)
 	{
-		for( String sub : dataHash.keySet())
+		for( String sub : data.keySet())
 		{
-			for ( String pred : dataHash.get(sub).keySet())
+			for ( String pred : data.get(sub).keySet())
 			{
-				String obj = dataHash.get(sub).get(pred);
+				String obj = data.get(sub).get(pred);
 				boolean concept_triple = true;
 				if( pred.contains("Relation/Contains"))
 				{
@@ -489,7 +497,8 @@ public class ServicesAggregationProcessor {
 				}
 				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
 				//look at console output to see what would be added
-				//coreDB.addStatement(sub, pred, objbject, node_prop);
+				
+				//( (BigDataEngine) coreDB).addStatement(sub, pred, objbject, concept_triple);
 				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
@@ -497,49 +506,68 @@ public class ServicesAggregationProcessor {
 	
 	private void processNewConcepts()
 	{
+		// get list of all concepts from tap core
+		HashSet<String> conceptList = new HashSet<String>();
+		SesameJenaSelectWrapper sjsw = processQuery(TAP_CORE_CONCEPTS_LIST_QUERY, coreDB);
+		String[] var = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			conceptList.add(sjss.getRawVar(var[0]) + "");
+		}
+		
 		String pred = "http://www.w3.org/2000/01/rdf-schema#type";
+		String concept = "http://semoss.org/ontologies/Concept";
+		String subclassOf = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>";
 		for ( String obj : allConcepts.keySet())
 		{
 			for (String sub : allConcepts.get(obj) )
 			{
 				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
 				//look at console output to see what would be added
-				//coreDB.addStatement(sub, pred, obj, true);
+				
+				//( (BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
 				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+			// add concepts that are not already in db
+			if(!conceptList.contains(obj))
+			{
+				//( (BigDataEngine) coreDB).addStatement(obj, subclassOf, concept, true);
+				System.out.println(obj + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
 			}
 		}
 	}
 	
 	private void processNewRelationships()
 	{
-		String pred = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
-		for ( String obj : allConcepts.keySet())
+		// get list of all relationships from tap core
+		HashSet<String> relationshipList = new HashSet<String>();
+		SesameJenaSelectWrapper sjsw = processQuery(TAP_CORE_RELATIONS_LIST_QUERY, coreDB);
+		String[] var = sjsw.getVariables();
+		while(sjsw.hasNext())
 		{
-			for (String sub : allConcepts.get(obj) )
+			SesameJenaSelectStatement sjss = sjsw.next();
+			relationshipList.add(sjss.getRawVar(var[0]) + "");
+		}
+		
+		String pred = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
+		String relation = "http://semoss.org/ontologies/Relation";
+		String subpropertyOf = "<http://www.w3.org/2000/01/rdf-schema#subPropertyOf>";
+		for ( String obj : allRelations.keySet())
+		{
+			for (String sub : allRelations.get(obj) )
 			{
 				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
 				//look at console output to see what would be added
-				//coreDB.addStatement(sub, pred, obj, true);
+				
+				//( (BigDataEngine) coreDB).addStatement(sub, pred, obj, false);
 				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+			if(!relationshipList.contains(obj))
+			{
+				//( (BigDataEngine) coreDB).addStatement(sub, pred, obj, false);
+				System.out.println(obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 			}
 		}	
 	}
-	
-//	WILL MOST LIKELY NOT USE INSERT QUERY
-//	
-//	//this function will take a hashtable in the format {subject : {predicate : object}} to create an insert query
-//	private String prepareInsertQuery(Hashtable<String, Hashtable<String, String>> table){
-//		String insertQuery = "INSERT DATA { " ;
-//
-//		return insertQuery;
-//	}
-//
-//	// simply run the insert query
-//	private void runInsert(String query, IEngine engine){
-//		logger.info("Running update query into " + engine.getEngineName() + "::: " + query);
-//		UpdateProcessor upProc = new UpdateProcessor();
-//		upProc.setEngine(engine);
-//		upProc.setQuery(query);
-//		upProc.processQuery();
-//	}
 }
