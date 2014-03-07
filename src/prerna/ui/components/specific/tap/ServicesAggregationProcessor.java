@@ -9,7 +9,6 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
@@ -138,6 +137,9 @@ public class ServicesAggregationProcessor {
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
 		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
 		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
+		processData();
+		processNewConcepts();
+		processNewRelationships();
 		System.out.println("success");
 	}
 
@@ -472,19 +474,72 @@ public class ServicesAggregationProcessor {
 		return sjsw;
 	}
 
-	//this function will take a hashtable in the format {subject : {predicate : object}} to create an insert query
-	private String prepareInsertQuery(Hashtable<String, Hashtable<String, String>> table){
-		String insertQuery = "INSERT DATA { " ;
-
-		return insertQuery;
+	
+	private void processData()
+	{
+		for( String sub : dataHash.keySet())
+		{
+			for ( String pred : dataHash.get(sub).keySet())
+			{
+				String obj = dataHash.get(sub).get(pred);
+				boolean concept_triple = true;
+				if( pred.contains("Relation/Contains"))
+				{
+					concept_triple = false;
+				}
+				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
+				//look at console output to see what would be added
+				//coreDB.addStatement(sub, pred, objbject, node_prop);
+				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+		}
 	}
-
-	// simply run the insert query
-	private void runInsert(String query, IEngine engine){
-		logger.info("Running update query into " + engine.getEngineName() + "::: " + query);
-		UpdateProcessor upProc = new UpdateProcessor();
-		upProc.setEngine(engine);
-		upProc.setQuery(query);
-		upProc.processQuery();
+	
+	private void processNewConcepts()
+	{
+		String pred = "http://www.w3.org/2000/01/rdf-schema#type";
+		for ( String obj : allConcepts.keySet())
+		{
+			for (String sub : allConcepts.get(obj) )
+			{
+				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
+				//look at console output to see what would be added
+				//coreDB.addStatement(sub, pred, obj, true);
+				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+		}
 	}
+	
+	private void processNewRelationships()
+	{
+		String pred = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
+		for ( String obj : allConcepts.keySet())
+		{
+			for (String sub : allConcepts.get(obj) )
+			{
+				//TODO: uncomment below once testing is done since it will add triples into db selected while testing
+				//look at console output to see what would be added
+				//coreDB.addStatement(sub, pred, obj, true);
+				System.out.println(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+		}	
+	}
+	
+//	WILL MOST LIKELY NOT USE INSERT QUERY
+//	
+//	//this function will take a hashtable in the format {subject : {predicate : object}} to create an insert query
+//	private String prepareInsertQuery(Hashtable<String, Hashtable<String, String>> table){
+//		String insertQuery = "INSERT DATA { " ;
+//
+//		return insertQuery;
+//	}
+//
+//	// simply run the insert query
+//	private void runInsert(String query, IEngine engine){
+//		logger.info("Running update query into " + engine.getEngineName() + "::: " + query);
+//		UpdateProcessor upProc = new UpdateProcessor();
+//		upProc.setEngine(engine);
+//		upProc.setQuery(query);
+//		upProc.processQuery();
+//	}
 }
