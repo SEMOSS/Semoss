@@ -18,6 +18,7 @@
     <!-- Custom styles for this template -->
     <link href="css/theme.css" rel="stylesheet">
     <link href="css/grid.css" rel="stylesheet">
+    <link href="css/nvd3.css" rel="stylesheet">
 
   </head>
 
@@ -134,7 +135,7 @@
       <div class="col-md-1 col-md-offset-1"><center><b><a ng-click="scrollTo('BLU')">BLUs</a></b></center></div>
       <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BLU_COUNT_QUERY[0] }}</center></div>
       <div class="col-md-1"><center><b><a ng-click="scrollTo('fgaps')">Functional Gaps</a></b></center></div>
-      <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.SYSTEM_COUNT_QUERY[0] }}</center></div>
+      <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.FUNCTIONAL_GAP_COUNT_QUERY[0] }}</center></div>
 
         <div class="col-md-4 col-md-offset-2"><center><strong><a ng-click="scrollTo('data')">Data Objects</a></strong></center>
           <div class="row">
@@ -213,7 +214,7 @@
         </tr>
       </thead>
       <tbody>
-          <tr ng-repeat="data in data.dataSeries.DataSheet.DATE_OBJECT_QUERY">
+          <tr ng-repeat="data in data.dataSeries.DataSheet.DATA_OBJECT_QUERY">
             <td>{{ data[0] | replaceUnderscores }}</td>
             <td>{{ data[1] }}</td>
           </tr>
@@ -254,7 +255,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="task in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="task in data.dataSeries.TaskAndBPSheet.TASK_QUERY">
           <td>{{ task[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -274,7 +275,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="BP in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="BP in data.dataSeries.TaskAndBPSheet.BP_QUERY">
           <td>{{ BP[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -294,7 +295,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="BR in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="BR in data.dataSeries.ReqAndStandardSheet.BR_QUERY">
           <td>{{ BR[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -314,7 +315,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="BS in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="BS in data.dataSeries.ReqAndStandardSheet.BS_QUERY">
           <td>{{ BS[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -334,7 +335,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="TR in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="TR in data.dataSeries.ReqAndStandardSheet.TR_QUERY">
           <td>{{ TR[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -354,7 +355,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="TS in data.dataSeries.BLUSheet.BLU_QUERY">
+        <tr ng-repeat="TS in data.dataSeries.ReqAndStandardSheet.TS_QUERY">
           <td>{{ TS[0] | replaceUnderscores }}</td>
         </tr>
       </tbody>
@@ -406,6 +407,9 @@
 
     <!-- d3 library -->
     <script src="lib/d3.js"></script>
+
+    <!-- AngularJS-NVD3 directives for pie chart -->
+    <script src="lib/angularjs-nvd3-directives.js"></script>
 
     <script>
       function start(data) {
