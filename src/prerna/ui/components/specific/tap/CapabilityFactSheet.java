@@ -291,14 +291,14 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	{		
 		CapabilityFactSheetPerformer performer = new CapabilityFactSheetPerformer();
 		Hashtable<String,Object> dataSeries = new Hashtable<String,Object>();
-		
-//		updateProgressBar("50%...Processing Systems", 50);
-//		Hashtable<String, Object> systemSheet = performer.processSystemQueries(capability);
-//		dataSeries.put("SystemSheet", systemSheet);
-//
+
 		updateProgressBar("10%...Processing Capability Dupe", 10);
 		Hashtable<String, Object> capabilityDupeSheetHash = performer.processCapabilityDupeSheet(capability);
 		dataSeries.put("CapabilityDupeSheet", capabilityDupeSheetHash);
+		
+		updateProgressBar("20%...Processing Systems", 20);
+		Hashtable<String, Object> systemSheet = performer.processSystemQueries(capability);
+		dataSeries.put("SystemSheet", systemSheet);
 		
 		updateProgressBar("30%...Processing Tasks and BPs", 30);
 		Hashtable<String, Object> taskAndBPSheetHash = performer.processTaskandBPQueries(capability);
