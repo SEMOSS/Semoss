@@ -29,7 +29,11 @@ public class ExecuteQueryProcessor {
 	{
 		this.append = append;
 	}
-	
+
+	public void setPlaySheet(IPlaySheet playSheet){
+		this.playSheet = playSheet;
+	}
+
 	public IPlaySheet getPlaySheet()
 	{
 		return playSheet;
@@ -102,7 +106,8 @@ public class ExecuteQueryProcessor {
 		//if append, dont need to set all the other playsheet stuff besides query
 		if (append) {
 			logger.debug("Appending ");
-			playSheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
+			if(playSheet==null)
+				playSheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
 			playSheet.setQuery(sparql);
 		}
 		else
@@ -122,5 +127,5 @@ public class ExecuteQueryProcessor {
 
 
 	}
-
+	
 }

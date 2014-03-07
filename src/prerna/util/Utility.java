@@ -651,4 +651,40 @@ public class Utility {
 			e.printStackTrace();
 		}
 	}
+	
+	public static Hashtable<String, Object> getParamsFromString(String params){
+		Hashtable <String, Object> paramHash = new Hashtable<String, Object>();
+		if(params != null)
+		{
+			StringTokenizer tokenz = new StringTokenizer(params,"~");
+			while(tokenz.hasMoreTokens())
+			{
+				String thisToken = tokenz.nextToken();
+				int index = thisToken.indexOf("$");
+				String key = thisToken.substring(0, index);
+				String value = thisToken.substring(index+1);
+				// attempt to see if 
+				boolean found = false;
+				try{
+					double dub = Double.parseDouble(value);
+					paramHash.put(key, dub);
+					found = true;
+				}catch (Exception ignored)
+				{
+				}
+				if(!found){
+					try{
+						int dub = Integer.parseInt(value);
+						paramHash.put(key, dub);
+						found = true;
+					}catch (Exception ignored)
+					{
+					}
+				}
+				//if(!found)
+					paramHash.put(key, value);
+			}
+		}
+		return paramHash;
+	}
 }
