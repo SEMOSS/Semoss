@@ -7,207 +7,1332 @@
                "DoD_Accession_Standards"
             ]
          ],
-         "TR_QUERY":[
-            [
-               "Shall_provide_attribute-based_access_control_(ABAC)_enforcement_at_the_endpoint_level,__and_at_the_message_level."
-            ],
-            [
-               "Ability_to_facilitate_multiple_levels_of_logging_that_can_be_adjusted_without_restart_of_the_system"
-            ],
-            [
-               "Ability_to_provide_end_to_end_view_of_a_user_operation_from_the_point_the_user_entered_the_system_to_the_point_where_the_user_left_the_system"
-            ],
-            [
-               "Ability_to_view_user_logs_through_a_common_front_end"
-            ],
-            [
-               "Reporting_capabilities_on_Rule_Usage"
-            ],
-            [
-               "Provide_Online_Analytical_Processing_(OLAP)_capabilities_to_support_the_analysis_of_information_that_has_been_summarized_into_multidimensional_views_and_hierarchies"
-            ],
-            [
-               "Provide_support_for_Extensible_Business_Reporting_Language_(XBRL)"
-            ],
-            [
-               "Ability_to_support_database-level_encryption_of_certain_fields"
-            ],
-            [
-               "Ability_to_support_field_level_security_utilizing_a_certificate"
-            ],
-            [
-               "Ability_to_support_message_level_security_utilizing_a_certificate"
-            ],
-            [
-               "Maintain_consistency_of_distributed_data"
-            ],
-            [
-               "Ability_to_support_on_the_fly_data_cleansing_and_master_data_management_through_industry_known_rules"
-            ],
-            [
-               "Ability_to_support_SSL_and_consume_certificate_from_a_CA"
-            ],
-            [
-               "Ability_to_support_data_persistence_in_RDF_stores"
-            ],
-            [
-               "Support_balanced_scorecard_reporting_by_assisiting_in_the_listing_and_analyzing_of_both_positive_and_negative_impacts_associated_with_a_decision"
-            ],
-            [
-               "Support_knowledge_discovery_by_identify_useful_information_from_data_by_means_of_data_mining,_modeling_and-or_simulation"
-            ],
-            [
-               "Ability_for_decision_support_and_planning_by_analyzing_information_and_predicting_the_impact_of_decisions_before_they_are_made"
-            ],
-            [
-               "Ability_for_demand_forecasting_and_management_to_facilitate_efficient_allocation_and_management_of_resources"
-            ],
-            [
-               "Ability_to_analyze_and_resport_statistics_on_business_issues,_problems_and_solutions"
-            ],
-            [
-               "Ability_to_embed_other_master_data_management_tools_through_a_pluggable_architecture"
-            ],
-            [
-               "Ability_to_incorporate_custom_rules_for_data_quality_management"
-            ],
-            [
-               "Ability_to_migrate_data_from-and-to_different_databases"
-            ],
-            [
-               "Ability_to_backup_log_files_to_a_local_file_media_-_remote_file_media_through_HTTP_type_protocol"
-            ],
-            [
-               "Ability_to_capture_users_performing_operations_on_the_system_including_and_not_limited_to_CRUD"
-            ],
-            [
-               "Ability_to_create_custom_reports_that_show_the_user_access_patterns"
-            ],
-            [
-               "Ability_to_present_data-information_in_a_graphical_or_picture_form"
-            ],
-            [
-               "Ability_to_support_data_persistence_in_RDBMS"
-            ],
-            [
-               "Ability_to_analyze_and_query_data_using_natural_language_processing_(NLP)"
-            ],
-            [
-               "Ability_to_do_shallow_validations_through_javascript_while_offline"
-            ],
-            [
-               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards"
-            ],
-            [
-               "Ability_to_express_domain_models_using_Web_Ontology_Language_(OWL)"
-            ],
-            [
-               "Ability_to_provide_industry_specific_rules_for_data_quality_management"
-            ],
-            [
-               "Ability_to_create_reports_based_on_workflow_usage"
-            ],
-            [
-               "Supports_ODBC-JDBC_and_native_connectivity_standards_for_Oracle,_SQL_Server,_UDB"
-            ],
-            [
-               "Ability_to_resync_the_data"
-            ],
-            [
-               "Ability_to_support_roles_based_field_encryption"
-            ],
-            [
-               "System_shall_provide_validation_for_commonly_used_regular_expressions_such_as_SSN_etc."
-            ]
-         ],
          "TS_QUERY":[
             [
-               "RDF_Vocabulary_Description_Language_1.0:_RDF_Schema_RDF_VDL_1.0:_RDF_Schema"
+               "Supports_ODBC-JDBC_and_native_connectivity_standards_for_Oracle,_SQL_Server,_UDB",
+               "None",
+               "Business_Analytics",
+               "Reporting"
             ],
             [
-               "SPARQL_Query_Language_for_RDF:2008"
+               "Ability_to_support_roles_based_field_encryption",
+               "None",
+               "Common_User_Interface_-_Presentation_Tier",
+               "Front_end"
             ],
             [
-               "OASIS_WS-Federation_1.1"
+               "Ability_to_do_shallow_validations_through_javascript_while_offline",
+               "None",
+               "Common_User_Interface_-_Presentation_Tier",
+               "Offline-Online"
             ],
             [
-               "OASIS_WS-Trust_1.3"
+               "Ability_to_resync_the_data",
+               "None",
+               "Common_User_Interface_-_Presentation_Tier",
+               "Offline-Online"
             ],
             [
-               "PKI_XKMS"
+               "System_shall_provide_validation_for_commonly_used_regular_expressions_such_as_SSN_etc.",
+               "None",
+               "Common_User_Interface_-_Presentation_Tier",
+               "Usability"
             ],
             [
-               "OWL"
+               "Ability_to_analyze_and_resport_statistics_on_business_issues,_problems_and_solutions",
+               "None",
+               "Data_Management",
+               "Business_Analytics"
             ],
             [
-               "SAML_2.0_OASIS"
+               "Ability_to_present_data-information_in_a_graphical_or_picture_form",
+               "None",
+               "Data_Management",
+               "Business_Analytics"
             ],
             [
-               "WS-I_Basic_Profile_1.1"
+               "Provide_Online_Analytical_Processing_(OLAP)_capabilities_to_support_the_analysis_of_information_that_has_been_summarized_into_multidimensional_views_and_hierarchies",
+               "None",
+               "Data_Management",
+               "Business_Analytics"
             ],
             [
-               "WS-Security_1.1"
+               "Provide_support_for_Extensible_Business_Reporting_Language_(XBRL)",
+               "None",
+               "Data_Management",
+               "Business_Analytics"
             ],
             [
-               "XACML_2.0_OASIS"
+               "Support_knowledge_discovery_by_identify_useful_information_from_data_by_means_of_data_mining,_modeling_and-or_simulation",
+               "None",
+               "Data_Management",
+               "Business_Analytics"
             ],
             [
-               "FIPS_Pub_198-1"
+               "Ability_for_decision_support_and_planning_by_analyzing_information_and_predicting_the_impact_of_decisions_before_they_are_made",
+               "None",
+               "Data_Management",
+               "Business_Intelligence"
             ],
             [
-               "OASIS_WS-SecurityPolicy_1.2"
+               "Ability_for_demand_forecasting_and_management_to_facilitate_efficient_allocation_and_management_of_resources",
+               "None",
+               "Data_Management",
+               "Business_Intelligence"
             ],
             [
-               "XML_Signature"
+               "Support_balanced_scorecard_reporting_by_assisiting_in_the_listing_and_analyzing_of_both_positive_and_negative_impacts_associated_with_a_decision",
+               "None",
+               "Data_Management",
+               "Business_Intelligence"
             ],
             [
-               "XML-Encryption_W3C"
+               "Maintain_consistency_of_distributed_data",
+               "None",
+               "Data_Management",
+               "Data_Federation"
             ],
             [
-               "ISO-IEC_9075"
+               "Ability_to_migrate_data_from-and-to_different_databases",
+               "None",
+               "Data_Management",
+               "Data_Maintenance"
             ],
             [
-               "OASIS_UIMA_1.0"
+               "Ability_to_embed_other_master_data_management_tools_through_a_pluggable_architecture",
+               "None",
+               "Data_Management",
+               "Data_Quality_Management"
             ],
             [
-               "UMLS"
+               "Ability_to_incorporate_custom_rules_for_data_quality_management",
+               "None",
+               "Data_Management",
+               "Data_Quality_Management"
+            ],
+            [
+               "Ability_to_provide_industry_specific_rules_for_data_quality_management",
+               "None",
+               "Data_Management",
+               "Data_Quality_Management"
+            ],
+            [
+               "Ability_to_support_on_the_fly_data_cleansing_and_master_data_management_through_industry_known_rules",
+               "None",
+               "Data_Management",
+               "Data_Quality_Management"
+            ],
+            [
+               "Ability_to_support_data_persistence_in_RDBMS",
+               "ISO-IEC_9075",
+               "Data_Management",
+               "Database"
+            ],
+            [
+               "Ability_to_support_data_persistence_in_RDF_stores",
+               "SPARQL_Query_Language_for_RDF:2008",
+               "Data_Management",
+               "Database"
+            ],
+            [
+               "Ability_to_support_data_persistence_in_RDF_stores",
+               "RDF_Vocabulary_Description_Language_1.0:_RDF_Schema_RDF_VDL_1.0:_RDF_Schema",
+               "Data_Management",
+               "Database"
+            ],
+            [
+               "Ability_to_do_shallow_validations_through_javascript_while_offline",
+               "None",
+               "Data_Management",
+               "Offline-Online"
+            ],
+            [
+               "Ability_to_resync_the_data",
+               "None",
+               "Data_Management",
+               "Offline-Online"
+            ],
+            [
+               "Ability_to_analyze_and_query_data_using_natural_language_processing_(NLP)",
+               "OASIS_UIMA_1.0",
+               "Data_Management",
+               "Semantic_Management"
+            ],
+            [
+               "Ability_to_analyze_and_query_data_using_natural_language_processing_(NLP)",
+               "UMLS",
+               "Data_Management",
+               "Semantic_Management"
+            ],
+            [
+               "Ability_to_express_domain_models_using_Web_Ontology_Language_(OWL)",
+               "OWL",
+               "Data_Management",
+               "Semantic_Management"
+            ],
+            [
+               "Reporting_capabilities_on_Rule_Usage",
+               "None",
+               "SDLC",
+               "Business_Rules_-_Business_Logic"
+            ],
+            [
+               "Ability_to_create_reports_based_on_workflow_usage",
+               "None",
+               "SDLC",
+               "Workflow"
+            ],
+            [
+               "Shall_provide_attribute-based_access_control_(ABAC)_enforcement_at_the_endpoint_level,__and_at_the_message_level.",
+               "OASIS_WS-Federation_1.1",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_provide_attribute-based_access_control_(ABAC)_enforcement_at_the_endpoint_level,__and_at_the_message_level.",
+               "OASIS_WS-Trust_1.3",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_provide_attribute-based_access_control_(ABAC)_enforcement_at_the_endpoint_level,__and_at_the_message_level.",
+               "PKI_XKMS",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "FIPS_Pub_198-1",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "OASIS_WS-SecurityPolicy_1.2",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "OASIS_WS-Trust_1.3",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "SAML_2.0_OASIS",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "WS-I_Basic_Profile_1.1",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "WS-Security_1.1",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "XACML_2.0_OASIS",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "XML_Signature",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Shall_support_message_level_security_in_accordance_with_the_applicable__standards",
+               "XML-Encryption_W3C",
+               "SOA-ESB",
+               "Application_Integration"
+            ],
+            [
+               "Maintain_consistency_of_distributed_data",
+               "None",
+               "SOA-ESB",
+               "Data_Federation"
+            ],
+            [
+               "Ability_to_create_reports_based_on_workflow_usage",
+               "None",
+               "SOA-ESB",
+               "Workflow"
+            ],
+            [
+               "Ability_to_backup_log_files_to_a_local_file_media_-_remote_file_media_through_HTTP_type_protocol",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_capture_users_performing_operations_on_the_system_including_and_not_limited_to_CRUD",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_create_custom_reports_that_show_the_user_access_patterns",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_facilitate_multiple_levels_of_logging_that_can_be_adjusted_without_restart_of_the_system",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_provide_end_to_end_view_of_a_user_operation_from_the_point_the_user_entered_the_system_to_the_point_where_the_user_left_the_system",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_view_user_logs_through_a_common_front_end",
+               "None",
+               "Security",
+               "Audit_Trail"
+            ],
+            [
+               "Ability_to_support_SSL_and_consume_certificate_from_a_CA",
+               "None",
+               "Security",
+               "Encryption-Decryption"
+            ],
+            [
+               "Ability_to_support_database-level_encryption_of_certain_fields",
+               "None",
+               "Security",
+               "Encryption-Decryption"
+            ],
+            [
+               "Ability_to_support_field_level_security_utilizing_a_certificate",
+               "None",
+               "Security",
+               "Encryption-Decryption"
+            ],
+            [
+               "Ability_to_support_message_level_security_utilizing_a_certificate",
+               "None",
+               "Security",
+               "Encryption-Decryption"
             ]
          ],
          "BR_QUERY":[
-            [
-               "Meet_95%_of_accession_standards."
-            ],
             [
                "Collect_reliable-verified_historical_mental_acuity,_physical,_psychomotor_and_intelligence_records."
             ],
             [
                "Maintain_all_available_mental,_physical,_psychomotor_and_intelligence_data."
+            ],
+            [
+               "Meet_95%_of_accession_standards."
+            ]
+         ]
+      },
+      "SystemSheet":{
+         "CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY":[
+            [
+               "AERO",
+               "Duty-Specific_Physical_Information_and_Status"
+            ],
+            [
+               "SAMS",
+               "Allergy_Information"
+            ],
+            [
+               "AHLTA-M",
+               "Allergy_Information"
+            ],
+            [
+               "MMM",
+               "Allergy_Information"
+            ],
+            [
+               "HSDW",
+               "Medical_Intelligence"
+            ],
+            [
+               "CHCS",
+               "Medical_Intelligence"
+            ],
+            [
+               "TC2",
+               "Patient_Health_Record"
+            ],
+            [
+               "TOL",
+               "Patient_Health_Record"
+            ],
+            [
+               "AERO",
+               "Patient_ID"
+            ],
+            [
+               "BHIE",
+               "Nutrition_Management"
+            ],
+            [
+               "CIS-Essentris",
+               "Nutrition_Management"
+            ],
+            [
+               "TC2",
+               "Nutrition_Management"
+            ],
+            [
+               "AUDBase",
+               "Patient_Health_Record"
+            ],
+            [
+               "CDS",
+               "Patient_Health_Record"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Health_Record"
+            ],
+            [
+               "MMM",
+               "Patient_Health_Record"
+            ],
+            [
+               "COHORT",
+               "Patient_Health_Record"
+            ],
+            [
+               "HSDW",
+               "Patient_Health_Record"
+            ],
+            [
+               "iAS",
+               "Patient_Health_Record"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "MMM",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Procedures"
+            ],
+            [
+               "SAMS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AUDIOCARE",
+               "Patient_Test_Results"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Health_Record"
+            ],
+            [
+               "MMM",
+               "Patient_ID"
+            ],
+            [
+               "COHORT",
+               "Patient_ID"
+            ],
+            [
+               "iAS",
+               "Patient_ID"
+            ],
+            [
+               "DOEHRS-HC",
+               "Patient_ID"
+            ],
+            [
+               "eForms",
+               "Patient_ID"
+            ],
+            [
+               "SAMS9",
+               "Patient_Test_Results"
+            ],
+            [
+               "COHORT",
+               "Patient_Test_Results"
+            ],
+            [
+               "TC2",
+               "Patient_Immunization"
+            ],
+            [
+               "TC2",
+               "Patient_Procedures"
+            ],
+            [
+               "TOL",
+               "Patient_Procedures"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Test_Results"
+            ],
+            [
+               "SAMS",
+               "Patient_Immunization"
+            ],
+            [
+               "MMM",
+               "Patient_Immunization"
+            ],
+            [
+               "BHIE",
+               "Patient_Implant_Information"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Immunization"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "MMM",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "MMM",
+               "Patient_Test_Results"
+            ],
+            [
+               "TOL",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "HSDW",
+               "Risk_Management,_Quality_and_Utilization_Information"
+            ],
+            [
+               "CHCS",
+               "Risk_Management,_Quality_and_Utilization_Information"
+            ]
+         ],
+         "CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY":[
+            [
+               "BHIE",
+               "Allergy_Information"
+            ],
+            [
+               "ICDB",
+               "Allergy_Information"
+            ],
+            [
+               "NMIS",
+               "Allergy_Information"
+            ],
+            [
+               "NMO",
+               "Allergy_Information"
+            ],
+            [
+               "AHLTA",
+               "Allergy_Information"
+            ],
+            [
+               "AHLTA-T",
+               "Allergy_Information"
+            ],
+            [
+               "CHCS",
+               "Allergy_Information"
+            ],
+            [
+               "CIS-Essentris",
+               "Allergy_Information"
+            ],
+            [
+               "MSAT",
+               "Allergy_Information"
+            ],
+            [
+               "TC2",
+               "Allergy_Information"
+            ],
+            [
+               "TMDS",
+               "Allergy_Information"
+            ],
+            [
+               "TOL",
+               "Allergy_Information"
+            ],
+            [
+               "TRAC2ES",
+               "Allergy_Information"
+            ],
+            [
+               "ABACUS",
+               "Patient_ID"
+            ],
+            [
+               "AFIFHCT",
+               "Patient_ID"
+            ],
+            [
+               "AWCTS",
+               "Patient_ID"
+            ],
+            [
+               "BHIE",
+               "Patient_ID"
+            ],
+            [
+               "CDS",
+               "Patient_ID"
+            ],
+            [
+               "DMSS",
+               "Patient_ID"
+            ],
+            [
+               "ICDB",
+               "Patient_ID"
+            ],
+            [
+               "MODS",
+               "Patient_ID"
+            ],
+            [
+               "MRS",
+               "Patient_ID"
+            ],
+            [
+               "NMIS",
+               "Patient_ID"
+            ],
+            [
+               "NMO",
+               "Patient_ID"
+            ],
+            [
+               "OptiFill",
+               "Patient_ID"
+            ],
+            [
+               "SAMS",
+               "Patient_ID"
+            ],
+            [
+               "AHLTA",
+               "Patient_ID"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_ID"
+            ],
+            [
+               "CHCS",
+               "Patient_ID"
+            ],
+            [
+               "ESSENCE",
+               "Patient_ID"
+            ],
+            [
+               "FHIE",
+               "Patient_ID"
+            ],
+            [
+               "MDR",
+               "Patient_ID"
+            ],
+            [
+               "MSAT",
+               "Patient_ID"
+            ],
+            [
+               "TC2",
+               "Patient_ID"
+            ],
+            [
+               "TED",
+               "Patient_ID"
+            ],
+            [
+               "TMDS",
+               "Patient_ID"
+            ],
+            [
+               "TOL",
+               "Patient_ID"
+            ],
+            [
+               "DMHRSi",
+               "Patient_ID"
+            ],
+            [
+               "ARMD",
+               "Patient_Test_Results"
+            ],
+            [
+               "BHIE",
+               "Patient_Test_Results"
+            ],
+            [
+               "DMSS",
+               "Patient_Test_Results"
+            ],
+            [
+               "MEDWEB-DTRS",
+               "Patient_Test_Results"
+            ],
+            [
+               "NMO",
+               "Patient_Test_Results"
+            ],
+            [
+               "SAMS",
+               "Patient_Test_Results"
+            ],
+            [
+               "AHLTA",
+               "Patient_Test_Results"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Test_Results"
+            ],
+            [
+               "CHCS",
+               "Patient_Test_Results"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Test_Results"
+            ],
+            [
+               "DOEHRS-HC",
+               "Patient_Test_Results"
+            ],
+            [
+               "ESSENCE",
+               "Patient_Test_Results"
+            ],
+            [
+               "MDR",
+               "Patient_Test_Results"
+            ],
+            [
+               "MSAT",
+               "Patient_Test_Results"
+            ],
+            [
+               "TC2",
+               "Patient_Test_Results"
+            ],
+            [
+               "TMDS",
+               "Patient_Test_Results"
+            ],
+            [
+               "SAMS",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "AHLTA",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "CHCS",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "DOEHRS-HC",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "MDR",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "MSAT",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "TMDS",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "TOL",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "BHIE",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "HSDW",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "NMIS",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "NMO",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "SAMS",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "AHLTA",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "CHCS",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "ESSENCE",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "MDR",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "TMDS",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "AFIFHCT",
+               "Patient_Health_Record"
+            ],
+            [
+               "BHIE",
+               "Patient_Health_Record"
+            ],
+            [
+               "NMO",
+               "Patient_Health_Record"
+            ],
+            [
+               "NOAH",
+               "Patient_Health_Record"
+            ],
+            [
+               "AHLTA",
+               "Patient_Health_Record"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Health_Record"
+            ],
+            [
+               "CHCS",
+               "Patient_Health_Record"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Health_Record"
+            ],
+            [
+               "ESSENCE",
+               "Patient_Health_Record"
+            ],
+            [
+               "FHIE",
+               "Patient_Health_Record"
+            ],
+            [
+               "MDR",
+               "Patient_Health_Record"
+            ],
+            [
+               "MSAT",
+               "Patient_Health_Record"
+            ],
+            [
+               "TMDS",
+               "Patient_Health_Record"
+            ],
+            [
+               "TRAC2ES",
+               "Patient_Health_Record"
+            ],
+            [
+               "ABACUS",
+               "Patient_Procedures"
+            ],
+            [
+               "CDS",
+               "Patient_Procedures"
+            ],
+            [
+               "AHLTA",
+               "Patient_Procedures"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Procedures"
+            ],
+            [
+               "CHCS",
+               "Patient_Procedures"
+            ],
+            [
+               "MDR",
+               "Patient_Procedures"
+            ],
+            [
+               "TMDS",
+               "Patient_Procedures"
+            ],
+            [
+               "MODS",
+               "Patient_Safety_Issue"
+            ],
+            [
+               "DOEHRS-IH",
+               "Patient_Safety_Issue"
+            ],
+            [
+               "AUDIOCARE",
+               "Patient_ID"
+            ],
+            [
+               "CHDR",
+               "Patient_ID"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Immunization"
+            ],
+            [
+               "ASIMS",
+               "Patient_Immunization"
+            ],
+            [
+               "BHIE",
+               "Patient_Immunization"
+            ],
+            [
+               "BHIE",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AUDBase",
+               "Patient_Test_Results"
+            ],
+            [
+               "DIN-PACS",
+               "Patient_Test_Results"
+            ],
+            [
+               "HSDW",
+               "Patient_Test_Results"
+            ],
+            [
+               "ICDB",
+               "Patient_Test_Results"
+            ],
+            [
+               "MRS",
+               "Patient_Test_Results"
+            ],
+            [
+               "NOAH",
+               "Patient_Test_Results"
+            ],
+            [
+               "TOL",
+               "Patient_Test_Results"
+            ],
+            [
+               "TRAC2ES",
+               "Patient_Test_Results"
+            ],
+            [
+               "SAMS",
+               "Patient_Health_Record"
+            ],
+            [
+               "MEDWEB-DTRS",
+               "Patient_ID"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_ID"
+            ],
+            [
+               "HAIMS",
+               "Patient_ID"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_ID"
+            ],
+            [
+               "CCE",
+               "Patient_ID"
+            ],
+            [
+               "DENCAS",
+               "Patient_ID"
+            ],
+            [
+               "DIN-PACS",
+               "Patient_ID"
+            ],
+            [
+               "HSDW",
+               "Patient_ID"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_ID"
+            ],
+            [
+               "DMSS",
+               "Patient_Immunization"
+            ],
+            [
+               "HSDW",
+               "Patient_Immunization"
+            ],
+            [
+               "ITS",
+               "Patient_Immunization"
+            ],
+            [
+               "MODS",
+               "Patient_Immunization"
+            ],
+            [
+               "NMO",
+               "Patient_Immunization"
+            ],
+            [
+               "AHLTA",
+               "Patient_Immunization"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Immunization"
+            ],
+            [
+               "CHCS",
+               "Patient_Immunization"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Immunization"
+            ],
+            [
+               "TMDS",
+               "Patient_Immunization"
+            ],
+            [
+               "TRAC2ES",
+               "Patient_Immunization"
+            ],
+            [
+               "CHCS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AWCTS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "MSAT",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "TC2",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "TMDS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "TOL",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "TRAC2ES",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "ICDB",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "MEDWEB-DTRS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "NMO",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AHLTA",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "ESSENCE",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "MDR",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "CCE",
+               "Patient_Procedures"
+            ],
+            [
+               "ICDB",
+               "Patient_Procedures"
+            ],
+            [
+               "MRS",
+               "Patient_Procedures"
+            ],
+            [
+               "AHLTA-T",
+               "Patient_Procedures"
+            ],
+            [
+               "CIS-Essentris",
+               "Patient_Procedures"
+            ],
+            [
+               "EAS_IV",
+               "Patient_Procedures"
+            ]
+         ],
+         "CAP_PROVIDE_SYSTEM_PROVIDE_DATA_QUERY":[
+            [
+               "SAMS",
+               "Allergy_Information"
+            ],
+            [
+               "AHLTA-M",
+               "Allergy_Information"
+            ],
+            [
+               "MMM",
+               "Allergy_Information"
+            ],
+            [
+               "MMM",
+               "Patient_Test_Results"
+            ],
+            [
+               "SAMS9",
+               "Patient_Test_Results"
+            ],
+            [
+               "MMM",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Treatment_Plan"
+            ],
+            [
+               "SAMS",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "TOL",
+               "Patient_Vital_Signs"
+            ],
+            [
+               "CDS",
+               "Patient_Health_Record"
+            ],
+            [
+               "COHORT",
+               "Patient_Health_Record"
+            ],
+            [
+               "HSDW",
+               "Patient_Health_Record"
+            ],
+            [
+               "iAS",
+               "Patient_Health_Record"
+            ],
+            [
+               "AUDBase",
+               "Patient_Health_Record"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Health_Record"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Health_Record"
+            ],
+            [
+               "MMM",
+               "Patient_Notes_(Doctor-Nurse-Procedure-Dental_Exam)"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Procedures"
+            ],
+            [
+               "AERO",
+               "Patient_ID"
+            ],
+            [
+               "TC2",
+               "Patient_Health_Record"
+            ],
+            [
+               "COHORT",
+               "Patient_ID"
+            ],
+            [
+               "MMM",
+               "Patient_Health_Record"
+            ],
+            [
+               "iAS",
+               "Patient_ID"
+            ],
+            [
+               "eForms",
+               "Patient_ID"
+            ],
+            [
+               "TOL",
+               "Patient_Health_Record"
+            ],
+            [
+               "BHIE",
+               "Patient_Implant_Information"
+            ],
+            [
+               "SAMS",
+               "Patient_Immunization"
+            ],
+            [
+               "AHLTA-M",
+               "Patient_Immunization"
+            ],
+            [
+               "TC2",
+               "Patient_Procedures"
+            ],
+            [
+               "TOL",
+               "Patient_Procedures"
+            ],
+            [
+               "MMM",
+               "Patient_Immunization"
+            ],
+            [
+               "TC2",
+               "Patient_Immunization"
+            ],
+            [
+               "COHORT",
+               "Patient_Test_Results"
+            ],
+            [
+               "AFCHIPS",
+               "Patient_Test_Results"
+            ],
+            [
+               "AUDIOCARE",
+               "Patient_Test_Results"
+            ],
+            [
+               "MMM",
+               "Patient_ID"
+            ],
+            [
+               "DOEHRS-HC",
+               "Patient_ID"
             ]
          ]
       },
       "FunctionalGapSheet":{
          "FUNCTIONAL_GAP_QUERY":[
             [
-               "Patient_information_availability"
-            ],
-            [
                "Allergy_defense"
             ],
             [
-               "Standardization_of_procedures"
+               "Patient_information_availability"
             ],
             [
                "Dose_and_identity_checking"
             ],
             [
+               "Feedback_about_adverse_drug_events"
+            ],
+            [
                "Physician_Ordering_CPOE"
             ],
             [
-               "Feedback_about_adverse_drug_events"
+               "Standardization_of_procedures"
             ]
          ]
       },
       "CapabilityOverviewSheet":{
+         "CAP_PROVIDE_SYSTEM_PROVIDE_DATA_COUNT_QUERY":[
+            39
+         ],
          "CONOPS_SOURCE_QUERY":[
             "FHP"
          ],
@@ -220,10 +1345,16 @@
             1
          ],
          "TS_COUNT_QUERY":[
-            17
+            53
+         ],
+         "CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY":[
+            47
          ],
          "DATE_GENERATED_QUERY":[
             "3/7/14"
+         ],
+         "CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY":[
+            154
          ],
          "CAPABILITY_GROUP_QUERY":[
             "Access_a_Healthy_and_Fit_Force",
@@ -232,12 +1363,12 @@
             "The_ability_to_provide_and_enhance_a_healthy_and_fit_force_from_accession_to_veteran_includes_optimizing_health-fitness_of_peacetime_forces,_maintaining_health-fitness_of_deployed_forces,_and_restoring_the_physical_and_mental_health_of_redeployed_service_members."
          ],
          "PARTICIPANT_QUERY":[
-            "MD-Allopath",
-            "Military_Leadership",
-            "Commander-Unit_Leader",
-            "Information_Management_Personnel",
             "Medical_Evaluation_Board",
+            "Military_Leadership",
+            "MD-Allopath",
+            "Information_Management_Personnel",
             "Health_Records_(Medical_Records)-Health_Information_Management_Department",
+            "Commander-Unit_Leader",
             "Health_Records_(Medical_Records)_Health_Information_Management_Department",
             "File_Clerks",
             "DO-Osteopath",
@@ -250,31 +1381,31 @@
             3
          ],
          "TR_COUNT_QUERY":[
-            37
+            0
          ],
          "BP_COUNT_QUERY":[
             5
          ],
          "MISSION_OUTCOME_QUERY":[
-            "Improved_Rehabilitation_and_Reintegration",
-            "Perception_of_MHS_Quality_by_Recruitment_Pool",
-            "Increased_Interoperability-Allies,_Governments,_NGOs",
-            "Optimize_Human_Performance",
-            "Improve_Mission_Readiness",
-            "Healthy_Communities-Healthy_Behaviors",
-            "Advancement_of_Global_Public_Health",
-            "Access_to_Care",
             "Reconstitution_of_Host_Nation_Medical_Capability",
             "Performance-Based_Management_and_Efficient_Operations",
+            "Performance-Based_Focus_for_Joint_Medical_Education_and_Training",
+            "Optimize_Human_Performance",
+            "Perception_of_MHS_Quality_by_Recruitment_Pool",
+            "Increased_Interoperability-Allies,_Governments,_NGOs",
+            "Healthy_Communities-Healthy_Behaviors",
+            "Improve_Mission_Readiness",
+            "Improved_Rehabilitation_and_Reintegration",
+            "Healthcare_Quality",
             "Reduce_Combat_Losses",
             "Reduce_Medical_Non-Combat_Loss",
-            "Healthcare_Quality",
-            "Effective_Medical_Transition_from_Service-Battlefield_to_VA_or_Other",
-            "Performance-Based_Focus_for_Joint_Medical_Education_and_Training",
+            "Beneficiary_Satisfaction-Perception_of_MHS_Quality",
             "Capable_Medical_Workforce",
+            "Effective_Medical_Transition_from_Service-Battlefield_to_VA_or_Other",
             "Create-Sustain_the_Healing_Environment",
-            "Advancement_of_Medical_Science",
-            "Beneficiary_Satisfaction-Perception_of_MHS_Quality"
+            "Access_to_Care",
+            "Advancement_of_Global_Public_Health",
+            "Advancement_of_Medical_Science"
          ],
          "BLU_COUNT_QUERY":[
             2
@@ -314,22 +1445,6 @@
                "C"
             ],
             [
-               "Patient_ID",
-               "R"
-            ],
-            [
-               "Patient_ID",
-               "C"
-            ],
-            [
-               "Patient_Immunization",
-               "R"
-            ],
-            [
-               "Patient_Immunization",
-               "C"
-            ],
-            [
                "Patient_Implant_Information",
                "R"
             ],
@@ -346,8 +1461,28 @@
                "C"
             ],
             [
+               "Patient_Immunization",
+               "R"
+            ],
+            [
+               "Patient_Immunization",
+               "C"
+            ],
+            [
+               "Patient_ID",
+               "R"
+            ],
+            [
+               "Patient_ID",
+               "C"
+            ],
+            [
                "Patient_Procedures",
                "R"
+            ],
+            [
+               "Patient_Procedures",
+               "C"
             ],
             [
                "Patient_Safety_Issue",
@@ -358,7 +1493,19 @@
                "C"
             ],
             [
-               "Patient_Procedures",
+               "Patient_Treatment_Plan",
+               "R"
+            ],
+            [
+               "Patient_Treatment_Plan",
+               "C"
+            ],
+            [
+               "Patient_Test_Results",
+               "R"
+            ],
+            [
+               "Patient_Test_Results",
                "C"
             ],
             [
@@ -367,27 +1514,11 @@
             ],
             [
                "Patient_Vital_Signs",
-               "C"
-            ],
-            [
-               "Patient_Treatment_Plan",
-               "R"
-            ],
-            [
-               "Patient_Treatment_Plan",
                "C"
             ],
             [
                "Risk_Management,_Quality_and_Utilization_Information",
                "R"
-            ],
-            [
-               "Patient_Test_Results",
-               "R"
-            ],
-            [
-               "Patient_Test_Results",
-               "C"
             ],
             [
                "Warfighter_Credentials-Training",
@@ -402,19 +1533,19 @@
       "TaskAndBPSheet":{
          "BP_QUERY":[
             [
-               "Pharmacy_(Outpatient)"
+               "Register_Patient"
             ],
             [
                "Readiness"
-            ],
-            [
-               "Register_Patient"
             ],
             [
                "Theater_-_Primary_Care_Outpatient"
             ],
             [
                "DIDFR_Readiness_reporting"
+            ],
+            [
+               "Pharmacy_(Outpatient)"
             ]
          ],
          "TASK_QUERY":[
@@ -434,9 +1565,19 @@
       },
       "CapabilityDupeSheet":{
          "dataSeries":{
+            "Routine_Ambulatory_Care_(Medical):_Specialty_Care-Attribute":{
+               "Criteria":"Attribute",
+               "val":0.6,
+               "Capability":"Routine_Ambulatory_Care_(Medical):_Specialty_Care"
+            },
             "Optimize_Health_and_Fitness_of_the_Peacetime_Force-Attribute":{
                "Criteria":"Attribute",
                "val":0.6,
+               "Capability":"Optimize_Health_and_Fitness_of_the_Peacetime_Force"
+            },
+            "Optimize_Health_and_Fitness_of_the_Peacetime_Force-Participant":{
+               "Criteria":"Participant",
+               "val":0.3,
                "Capability":"Optimize_Health_and_Fitness_of_the_Peacetime_Force"
             },
             "Routine_Ambulatory_Care_(Medical):_Primary_Care-Attribute":{
@@ -444,25 +1585,15 @@
                "val":0.6,
                "Capability":"Routine_Ambulatory_Care_(Medical):_Primary_Care"
             },
-            "Optimize_Health_and_Fitness_of_the_Peacetime_Force-Participant":{
-               "Criteria":"Participant",
-               "val":0.3,
-               "Capability":"Optimize_Health_and_Fitness_of_the_Peacetime_Force"
-            },
             "Optimize_Health_and_Fitness_of_the_Peacetime_Force-Total Score":{
                "Criteria":"Total Score",
-               "val":0.4861111111111111,
+               "val":0.47222222222222227,
                "Capability":"Optimize_Health_and_Fitness_of_the_Peacetime_Force"
             },
-            "Monitor_Execution,_Assess_Effects_and_Adapt_Operations-BusinessProcess":{
-               "Criteria":"BusinessProcess",
-               "val":0.4,
-               "Capability":"Monitor_Execution,_Assess_Effects_and_Adapt_Operations"
-            },
-            "Monitor_Execution,_Assess_Effects_and_Adapt_Operations-Participant":{
-               "Criteria":"Participant",
-               "val":0.3,
-               "Capability":"Monitor_Execution,_Assess_Effects_and_Adapt_Operations"
+            "Routine_Ambulatory_Care_(Medical):_Specialty_Care-Data/BLU":{
+               "Criteria":"Data/BLU",
+               "val":0.7777777777777778,
+               "Capability":"Routine_Ambulatory_Care_(Medical):_Specialty_Care"
             },
             "Preventive_Dentistry_Services-Data/BLU":{
                "Criteria":"Data/BLU",
@@ -474,15 +1605,10 @@
                "val":0.1,
                "Capability":"Preventive_Dentistry_Services"
             },
-            "Monitor_Execution,_Assess_Effects_and_Adapt_Operations-Total Score":{
+            "Routine_Ambulatory_Care_(Medical):_Specialty_Care-Total Score":{
                "Criteria":"Total Score",
-               "val":0.4444444444444445,
-               "Capability":"Monitor_Execution,_Assess_Effects_and_Adapt_Operations"
-            },
-            "Monitor_Execution,_Assess_Effects_and_Adapt_Operations-Attribute":{
-               "Criteria":"Attribute",
-               "val":0.8,
-               "Capability":"Monitor_Execution,_Assess_Effects_and_Adapt_Operations"
+               "val":0.49444444444444446,
+               "Capability":"Routine_Ambulatory_Care_(Medical):_Specialty_Care"
             },
             "Preventive_Dentistry_Services-Total Score":{
                "Criteria":"Total Score",
@@ -496,7 +1622,7 @@
             },
             "Optimize_Health_and_Fitness_of_the_Peacetime_Force-Data/BLU":{
                "Criteria":"Data/BLU",
-               "val":0.4444444444444444,
+               "val":0.3888888888888889,
                "Capability":"Optimize_Health_and_Fitness_of_the_Peacetime_Force"
             },
             "Optimize_Health_and_Fitness_of_the_Peacetime_Force-BusinessProcess":{
@@ -519,35 +1645,40 @@
                "val":0.3333333333333333,
                "Capability":"Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force"
             },
-            "Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force-Total Score":{
-               "Criteria":"Total Score",
-               "val":0.5333333333333333,
-               "Capability":"Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force"
-            },
             "Preventive_Dentistry_Services-BusinessProcess":{
                "Criteria":"BusinessProcess",
                "val":0.2,
                "Capability":"Preventive_Dentistry_Services"
             },
+            "Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force-Total Score":{
+               "Criteria":"Total Score",
+               "val":0.5333333333333333,
+               "Capability":"Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force"
+            },
             "Routine_Ambulatory_Care_(Medical):_Primary_Care-Total Score":{
                "Criteria":"Total Score",
-               "val":0.4666666666666667,
+               "val":0.49444444444444446,
                "Capability":"Routine_Ambulatory_Care_(Medical):_Primary_Care"
+            },
+            "Routine_Ambulatory_Care_(Medical):_Specialty_Care-Participant":{
+               "Criteria":"Participant",
+               "val":0.4,
+               "Capability":"Routine_Ambulatory_Care_(Medical):_Specialty_Care"
+            },
+            "Routine_Ambulatory_Care_(Medical):_Specialty_Care-BusinessProcess":{
+               "Criteria":"BusinessProcess",
+               "val":0.2,
+               "Capability":"Routine_Ambulatory_Care_(Medical):_Specialty_Care"
             },
             "Routine_Ambulatory_Care_(Medical):_Primary_Care-Data/BLU":{
                "Criteria":"Data/BLU",
-               "val":0.6666666666666666,
+               "val":0.7777777777777778,
                "Capability":"Routine_Ambulatory_Care_(Medical):_Primary_Care"
             },
             "Preventive_Dentistry_Services-Attribute":{
                "Criteria":"Attribute",
                "val":0.8,
                "Capability":"Preventive_Dentistry_Services"
-            },
-            "Monitor_Execution,_Assess_Effects_and_Adapt_Operations-Data/BLU":{
-               "Criteria":"Data/BLU",
-               "val":0.2777777777777778,
-               "Capability":"Monitor_Execution,_Assess_Effects_and_Adapt_Operations"
             },
             "Ensure_the_Physical_and_Mental_Health_of_the_Redeployed_Force-BusinessProcess":{
                "Criteria":"BusinessProcess",
@@ -568,10 +1699,10 @@
       "BLUSheet":{
          "BLU_QUERY":[
             [
-               "Patient_Record_Management"
+               "Regulation_Compliance_Validation"
             ],
             [
-               "Regulation_Compliance_Validation"
+               "Patient_Record_Management"
             ]
          ]
       }
