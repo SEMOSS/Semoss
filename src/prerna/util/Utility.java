@@ -618,6 +618,10 @@ public class Utility {
 		String retString = original;
 		
 		retString = retString.trim();
+		retString = retString.replaceAll("\t", " ");//replace tabs with spaces
+		while (retString.contains("  ")){
+			retString = retString.replace("  ", " ");
+		}
 		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
 		retString = retString.replaceAll("\\{", "(");
 		retString = retString.replaceAll("\\}", ")");
@@ -630,8 +634,6 @@ public class Utility {
 		retString = retString.replaceAll("\n", " ");
 		retString = retString.replaceAll("<", "(");
 		retString = retString.replaceAll(">", ")");
-
-		retString = retString.replace("  ", " ");
 
 		return retString;
 	}
