@@ -3,6 +3,7 @@
 var app = angular.module('app', ['app.controllers',
                                 'app.filters',
                              	'app.directives',
+                             	'nvd3ChartDirectives',
                              	'ngRoute'
                                 ]);
 
