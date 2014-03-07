@@ -208,6 +208,7 @@ public class CapabilityFactSheetPerformer {
 			functionalGapCountResultsList.add(functionalGapResultsList.size());
 		else
 			functionalGapCountResultsList.add(0);
+		
 		ArrayList<Object> capProvideSystemProvideResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.CAP_PROVIDE_SYSTEM_PROVIDE_DATA_QUERY);
 		ArrayList<Object> capProvideSystemProvideCountResultsList = new ArrayList<Object>();
 		if(capProvideSystemProvideResultsList!=null)
@@ -309,7 +310,7 @@ public class CapabilityFactSheetPerformer {
 		
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 
-		String dataObjectQuery = "SELECT DISTINCT ?Data ?CRM WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.}}";		
+		String dataObjectQuery = "SELECT DISTINCT ?Data (IF((COUNT(DISTINCT(?CRM)) = 2),'C','R') AS ?CRMCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.}} GROUP BY ?Data";		
 		dataObjectQuery = dataObjectQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
 		ArrayList<Object> dataObjectResultsList = runQuery(HRCoreEngine, dataObjectQuery);
