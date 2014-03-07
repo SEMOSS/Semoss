@@ -439,13 +439,19 @@ public class ImportRDBMSProcessor {
 	public boolean checkConnection(String type, String url, String username, char[] password) {
 		boolean isValid = false;
 		
+		if(!url.contains("jdbc") || url.contains("<") || url.contains(">") || url.contains("[") || url.contains("]")) {
+			return isValid;
+		}
+		
 		Connection con;
 		
 		if(type.equals("MySQL")) {
-			try { //jdbc:mysql://localhost/test?user=username&password=pw
+			try {
 				Class.forName("com.mysql.jdbc.Driver");
+				
+				//Connection URL format: jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
 				con = DriverManager
-						.getConnection("jdbc:mysql://" + url + "?user=" + username + "&password=" + new String(password));
+						.getConnection(url + "?user=" + username + "&password=" + new String(password));
 				if(con.isValid(10)) {
 					isValid = true;
 				}
@@ -455,10 +461,12 @@ public class ImportRDBMSProcessor {
 				e.printStackTrace();
 			}
 		} else if(type.equals("Oracle")) {
-			try {//jdbc:oracle:thin@localhost:port:sid
+			try {
 				Class.forName("oracle.jdbc.driver.OracleDriver");
+				
+				//Connection URL format: jdbc:oracle:thin:@<hostname>[:port]/<service or sid>
 				con = DriverManager
-						.getConnection("jdbc:oracle:thin@" + url, username, new String(password));
+						.getConnection(url, username, new String(password));
 				if(con.isValid(10)) {
 					isValid = true;
 				}
@@ -468,11 +476,12 @@ public class ImportRDBMSProcessor {
 				e.printStackTrace();
 			}
 		} else if(type.equals("MS SQL Server")) {
-			try {//jdbc:sqlserver://server\instance;database=dbname;username=username;password=password
+			try {
 				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-				String connectionUrl = "jdbc:sqlserver://" + url + ";" + "user=" + username + ";" + "password=" + new String(password);
+				
+				//Connection URL format: jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>;username=username;password=password				
 				con = DriverManager
-						.getConnection(connectionUrl);
+						.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));
 				if(con.isValid(10)) {
 					isValid = true;
 				}
