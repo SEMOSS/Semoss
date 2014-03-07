@@ -100,14 +100,23 @@ public class ConstantsTAP {
 	public static final String DATA_COUNT_QUERY = "DATA_COUNT_QUERY";
 	public static final String BLU_COUNT_QUERY = "BLU_COUNT_QUERY";	
 	public static final String SYSTEM_COUNT_QUERY = "SYSTEM_COUNT_QUERY";	
+	public static final String FUNCTIONAL_GAP_COUNT_QUERY = "FUNCTIONAL_GAP_COUNT_QUERY";	
 	public static final String PARTICIPANT_QUERY = "PARTICIPANT_QUERY";
 	public static final String DATE_GENERATED_QUERY = "DATE_GENERATED_QUERY";
 	public static final String CAPABILITY_DUPE_QUERY = "CAPABILITY_DUPE_QUERY";
 	public static final String CAPABILITY_QUERY = "CAPABILITY_QUERY";
-	public static final String DATE_OBJECT_QUERY = "DATE_OBJECT_QUERY";
+	public static final String DATA_OBJECT_QUERY = "DATA_OBJECT_QUERY";
 	public static final String FUNCTIONAL_GAP_QUERY = "FUNCTIONAL_GAP_QUERY";
-	public static final String SYSTEM_PROVIDE_DATA_QUERY = "SYSTEM_PROVIDE_DATA_QUERY";
-	public static final String SYSTEM_CONSUME_DATA_QUERY = "SYSTEM_CONSUME_DATA_QUERY";
+	public static final String TASK_QUERY = "TASK_QUERY";
+	public static final String BP_QUERY = "BP_QUERY";
+	public static final String BR_QUERY = "BR_QUERY";
+	public static final String BS_QUERY = "BS_QUERY";
+	public static final String TR_QUERY = "TR_QUERY";
+	public static final String TS_QUERY = "TS_QUERY";
+	
+	public static final String CAP_PROVIDE_SYSTEM_PROVIDE_DATA_QUERY = "CAP_PROVIDE_SYSTEM_PROVIDE_DATA_QUERY";
+	public static final String CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY = "CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY";
+	public static final String CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY = "CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY";
 	
 	//Update Active Systems Constants
 	public static final String GET_ALL_SYSTEMS_QUERY = "GET_ALL_SYSTEMS_QUERY";

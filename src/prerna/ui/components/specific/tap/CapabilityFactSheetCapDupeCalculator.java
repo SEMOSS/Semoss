@@ -74,7 +74,7 @@ public class CapabilityFactSheetCapDupeCalculator {
 		
 		//BP
 		criteriaList.add("BusinessProcess");
-		String bpQuery ="SELECT DISTINCT ?Capability ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Capability ?Supports ?BusinessProcess.} }";
+		String bpQuery ="SELECT DISTINCT ?Capability ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>; }{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?Consists ?Task.} {?Task ?Needs ?BusinessProcess}}";
 		Hashtable bpHash = sdf.compareSystemParameterScore(hrCoreDB, bpQuery, SysDupeFunctions.VALUE);
 		processHashForScoring(bpHash,1);
 	

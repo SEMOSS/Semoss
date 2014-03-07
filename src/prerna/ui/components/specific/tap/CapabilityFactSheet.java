@@ -69,6 +69,8 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
 	Hashtable allHash = new Hashtable();
 	Hashtable capabilityHash = new Hashtable();
+	//keys are processed capabilities and values are semoss stored capabilities
+	public Hashtable capabilityProcessed = new Hashtable();
 	
 
 	
@@ -274,8 +276,9 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 			for (int j = 0; j < var.length; j++) 
 			{	
 					String text = (String) listElement[j];
-					text = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "");
-					dataArrayList.add(text);
+					String processedText = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "").replaceAll("\'","").replaceAll("’", "");
+					capabilityProcessed.put(processedText,text);
+					dataArrayList.add(processedText);
 			}			
 		}
 
@@ -288,16 +291,24 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	{		
 		CapabilityFactSheetPerformer performer = new CapabilityFactSheetPerformer();
 		Hashtable<String,Object> dataSeries = new Hashtable<String,Object>();
-
-		updateProgressBar("10%...Processing Capability Overview", 10);
-		Hashtable<String, Object> firstSheetHash = performer.processFirstSheetQueries(capability);
-		dataSeries.put("CapabilityOverviewSheet", firstSheetHash);
 		
-		updateProgressBar("40%...Processing Capability Dupe", 40);
+//		updateProgressBar("50%...Processing Systems", 50);
+//		Hashtable<String, Object> systemSheet = performer.processSystemQueries(capability);
+//		dataSeries.put("SystemSheet", systemSheet);
+//
+		updateProgressBar("10%...Processing Capability Dupe", 10);
 		Hashtable<String, Object> capabilityDupeSheetHash = performer.processCapabilityDupeSheet(capability);
 		dataSeries.put("CapabilityDupeSheet", capabilityDupeSheetHash);
+		
+		updateProgressBar("30%...Processing Tasks and BPs", 30);
+		Hashtable<String, Object> taskAndBPSheetHash = performer.processTaskandBPQueries(capability);
+		dataSeries.put("TaskAndBPSheet", taskAndBPSheetHash);
+		
+		updateProgressBar("40%...Processing Requirements and Standards", 40);
+		Hashtable<String, Object> reqAndStandardSheet = performer.processRequirementsAndStandardsQueries(capability);
+		dataSeries.put("ReqAndStandardSheet", reqAndStandardSheet);
 
-		updateProgressBar("60%...Processing Data Objects", 60);
+		updateProgressBar("65%...Processing Data Objects", 65);
 		Hashtable<String, Object> dataSheet = performer.processDataSheetQueries(capability);
 		dataSeries.put("DataSheet", dataSheet);
 		
@@ -305,9 +316,13 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		Hashtable<String, Object> bluSheet = performer.processBLUSheetQueries(capability);
 		dataSeries.put("BLUSheet", bluSheet);
 		
-		updateProgressBar("80%...Processing FunctionalGaps", 80);
+		updateProgressBar("75%...Processing FunctionalGaps", 75);
 		Hashtable<String, Object> funtionalGapSheet = performer.processFunctionalGapSheetQueries(capability);
 		dataSeries.put("FunctionalGapSheet", funtionalGapSheet);
+		
+		updateProgressBar("80%...Processing Capability Overview", 80);
+		Hashtable<String, Object> firstSheetHash = performer.processFirstSheetQueries(capability);
+		dataSeries.put("CapabilityOverviewSheet", firstSheetHash);
 
 		allHash.put("dataSeries", dataSeries);
 		allHash.put("capability", capability);
