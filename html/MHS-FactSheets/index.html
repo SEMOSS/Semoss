@@ -111,31 +111,32 @@
 
       <div class="page-header"></div> <!-- creates a pretty page break line -->
 
-      <h3>Capability Highlights</h3>
+      <h3 id="highlights">Capability Highlights</h3>
+      <p>Click on a highlight to see more detailed information.</p>
       <br>
 
       <div class="row">
-        <div class="col-md-1"><center><b>Tasks</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('tasks')">Tasks</b></a></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.TASK_COUNT_QUERY[0] }}</center></div>
-        <div class="col-md-1"><center><b>Business Processes</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('BP')">Business Processes</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BP_COUNT_QUERY[0] }}</center></div>
-        <div class="col-md-1"><center><b>Business Rules</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('BR')">Business Rules</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BR_COUNT_QUERY[0] }}</center></div>
-        <div class="col-md-1"><center><b>Business Standards</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('BS')">Business Standards</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BS_COUNT_QUERY[0] }}</center></div>
-        <div class="col-md-1"><center><b>Technical Reqs</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('TR')">Technical Reqs</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.TR_COUNT_QUERY[0] }}</center></div>
-        <div class="col-md-1"><center><b>Technical Standards</b></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('TS')">Technical Standards</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.TS_COUNT_QUERY[0] }}</center></div>
       </div> <!--row-->
 
     <div class="row">
-      <div class="col-md-1 col-md-offset-1"><center><b>BLUs</b></center></div>
+      <div class="col-md-1 col-md-offset-1"><center><b><a ng-click="scrollTo('BLU')">BLUs</a></b></center></div>
       <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BLU_COUNT_QUERY[0] }}</center></div>
-      <div class="col-md-1"><center><b>Systems</b></center></div>
+      <div class="col-md-1"><center><b><a ng-click="scrollTo('fgaps')">Functional Gaps</a></b></center></div>
       <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.SYSTEM_COUNT_QUERY[0] }}</center></div>
 
-        <div class="col-md-4 col-md-offset-2"><center><strong>Data Objects</strong></center>
+        <div class="col-md-4 col-md-offset-2"><center><strong><a ng-click="scrollTo('data')">Data Objects</a></strong></center>
           <div class="row">
             <div class="col-md-3">
               <center><i>Provide</i></center>
@@ -200,7 +201,7 @@
 
   <h3>Appendix</h3>
 
-  <h4>Data Objects</h4>
+  <h4 id="data">Data Objects</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -212,18 +213,17 @@
         </tr>
       </thead>
       <tbody>
-        <div class="scrollit">
           <tr ng-repeat="data in data.dataSeries.DataSheet.DATE_OBJECT_QUERY">
             <td>{{ data[0] | replaceUnderscores }}</td>
             <td>{{ data[1] }}</td>
           </tr>
-        </div>
       </tbody>
     </table>
     </table>
   </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
 
-  <h4>Business Logic Units (BLUs)</h4>
+  <h4 id="BLU">Business Logic Units (BLUs)</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -241,8 +241,129 @@
     </table>
     </table>
   </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
 
-    <h4>Functional Gaps</h4>
+  <h4 id="tasks">Tasks</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Task</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="task in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ task[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="BP">Business Processes</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Business Process</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="BP in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ BP[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="BR">Business Rules</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Business Rule</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="BR in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ BR[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="BS">Business Standards</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Business Standard</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="BS in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ BS[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="TR">Technical Requirements</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Technical Requirement</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="TR in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ TR[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="TS">Technical Standards</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Technical Standard</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="TS in data.dataSeries.BLUSheet.BLU_QUERY">
+          <td>{{ TS[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
+
+  <h4 id="fgaps">Functional Gaps</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
