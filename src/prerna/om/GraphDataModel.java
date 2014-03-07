@@ -41,6 +41,7 @@ import prerna.ui.components.VertexFilterData;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.JenaSesameUtils;
+import prerna.util.Utility;
 
 public class GraphDataModel {
 	/*
@@ -65,15 +66,15 @@ public class GraphDataModel {
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	
-	boolean extend, overlay;
+	boolean overlay;
 	boolean search, prop, sudowl;
 	
-	// references to main vertstore
 	Hashtable<String, SEMOSSVertex> vertStore = null;
-	// references to the main edgeStore
 	Hashtable<String, SEMOSSEdge> edgeStore = null;
-	// checks to see if we already added a particular set of vertifces
-	// if so tracks it as the same edge
+
+	//these are used for keeping track of only what was added or subtracted and will only be populated when overlay is true
+	Hashtable<String, SEMOSSVertex> incrementalVertStore = null;
+	Hashtable<String, SEMOSSEdge> incrementalEdgeStore = null;
 	
 	public GraphDataModel(){
 		vertStore = new Hashtable<String, SEMOSSVertex>();
@@ -82,17 +83,34 @@ public class GraphDataModel {
 		createBaseURIs();
 	}
 	
-	public void extendData(String query, IEngine engine){
+	public void overlayData(String query, IEngine engine){
 		curModel = null;
 		curRC = null;
+		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
+		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
+		
+		logger.info("Creating the new model");
+		try {
+				Repository myRepository2 = new SailRepository(
+			            new ForwardChainingRDFSInferencer(
+			            new MemoryStore()));
+					myRepository2.initialize();
+				
+				curRC = myRepository2.getConnection();
+				curModel = ModelFactory.createDefaultModel();
+				
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
+		
 		processData(query, engine);
 		modelStore.addElement(curModel);
 		rcStore.addElement(curRC);
 	}
 	
 	public void createModel(String query, IEngine engine){
-		if(extend){
-			extendData(query, engine);
+		if(overlay){
+			overlayData(query, engine);
 		}
 		else
 			processData(query, engine);
@@ -173,17 +191,7 @@ public class GraphDataModel {
 		
 		try {
 			boolean isError = false;
-			if(rc != null && (extend || overlay))
-			{
-				logger.info("Creating the new model");
-				Repository myRepository2 = new SailRepository(
-			            new ForwardChainingRDFSInferencer(
-			            new MemoryStore()));
-				myRepository2.initialize();
-				
-				curRC = myRepository2.getConnection();
-				curModel = ModelFactory.createDefaultModel();
-			}
+			
 			StringBuffer subjects = new StringBuffer("");
 			StringBuffer predicates = new StringBuffer("");
 			StringBuffer objects = new StringBuffer("");
@@ -301,9 +309,6 @@ public class GraphDataModel {
 				//genProperties(propertyQuery + predicates + " } ");
 			}
 
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -354,7 +359,7 @@ public class GraphDataModel {
 				else 
 					object = new URIImpl(st.getObject()+"");
 				
-				if(extend || overlay)
+				if(overlay)
 				{
 					//logger.info("Adding to the new model");
 					if (!rc.hasStatement(subject,predicate,object, true))
@@ -388,7 +393,7 @@ public class GraphDataModel {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), obj, false);
 				}*/
 				
-				if(extend || overlay)
+				if(overlay)
 				{
 					//logger.info("Adding to the new model");
 					if (!rc.hasStatement(subject,predicate,(Literal)obj, true))
@@ -410,7 +415,7 @@ public class GraphDataModel {
 				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
 				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
 				
-				if(extend || overlay)
+				if(overlay)
 				{
 					//logger.info("Adding to the new model");
 					if (!rc.hasStatement(subject,predicate,(Literal)obj, true))
@@ -474,7 +479,7 @@ public class GraphDataModel {
 		if (!jenaModel.contains(jenaSt))
 		{
 			jenaModel.add(jenaSt);
-			if(extend || overlay)
+			if(overlay)
 			{
 			
 				//logger.info("Adding to the new model");
@@ -496,21 +501,34 @@ public class GraphDataModel {
 	 */
 	public void addNodeProperty(String subject, Object object, String predicate) {
 		
-		
-		// need to see here again if the subject is also a type of predicate
-		// if it is then I need to get edge
-		// else I need to get vertex
 			logger.debug("Creating property for a vertex" );
 			SEMOSSVertex vert1 = vertStore.get(subject);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(subject);
 			}
-			vert1.setProperty(predicate, object);
-			vertStore.put(subject, vert1);
+			//only set property and store vertex if the property does not already exist on the node
+			String propName = Utility.getInstanceName(predicate);
+			if (vert1.getProperty(propName)==null)
+			{
+				vert1.setProperty(propName, object);
+				storeVert(vert1);
+			}
 //			genControlData(vert1);
 			//controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"", Utility.getClassName(predicate));
 	}
-		
+	
+	private void storeVert(SEMOSSVertex vert){
+		vertStore.put(vert.getProperty(Constants.URI) + "", vert);
+		if(overlay && incrementalVertStore != null)
+			incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
+	}
+
+	private void storeEdge(SEMOSSEdge edge){
+		edgeStore.put(edge.getProperty(Constants.URI) + "", edge);
+		if(overlay && incrementalEdgeStore != null)
+			incrementalEdgeStore.put(edge.getProperty(Constants.URI) + "", edge);
+	}
+			
 	/**
 	 * Method addEdgeProperty.
 	 * @param subject String
@@ -526,17 +544,22 @@ public class GraphDataModel {
 			SEMOSSVertex vert1 = vertStore.get(outNode);
 			if (vert1 == null) {
 				vert1 = new SEMOSSVertex(outNode);
-				vertStore.put(outNode, vert1);
+				storeVert(vert1);
 			}
 			SEMOSSVertex vert2 = vertStore.get(inNode);
 			if (vert2 == null) {
 				vert2 = new SEMOSSVertex(inNode + "");
-				vertStore.put(inNode + "", vert2);
+				storeVert(vert2);
 			}
 			 edge = new SEMOSSEdge(vert1, vert2, edgeName);
 		}
-		edge.setProperty(propName, value);
-		edgeStore.put(edgeName, edge);
+		//only set property and store edge if the property does not already exist on the edge
+		String propNameInstance = Utility.getInstanceName(propName);
+		if (edge.getProperty(propNameInstance)==null)
+		{
+			edge.setProperty(propNameInstance, value);
+			storeEdge(edge);
+		}
 //			genControlData(edge);
 		//controlData.addProperty(edge.getProperty(Constants.EDGE_TYPE)+"", Utility.getClassName(predicate));
 	}
@@ -689,7 +712,7 @@ public class GraphDataModel {
 						if(vert1 == null)
 						{
 							vert1 = new SEMOSSVertex(sct.getSubject());
-							vertStore.put(sct.getSubject()+"", vert1);
+							storeVert(vert1);
 						}
 						// add my friend
 //						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
@@ -754,7 +777,7 @@ public class GraphDataModel {
 					if(vert1 == null)
 					{
 						vert1 = new SEMOSSVertex(sct.getSubject());
-						vertStore.put(sct.getSubject()+"", vert1);
+						storeVert(vert1);
 					}
 					SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
 					if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
@@ -763,7 +786,7 @@ public class GraphDataModel {
 							vert2 = new SEMOSSVertex(sct.getObject()+"");
 						else // ok this is a literal
 							vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
-						vertStore.put(sct.getObject()+"", vert2);
+						storeVert(vert2);
 					}
 					// create the edge now
 					SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
@@ -781,7 +804,7 @@ public class GraphDataModel {
 	
 						// the logic works only when the predicates dont have the vertices on it.. 
 						edge = new SEMOSSEdge(vert1, vert2, predicateName);
-						edgeStore.put(predicateName, edge);
+						storeEdge(edge);
 					}
 					//logger.warn("Found Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
 	
@@ -862,10 +885,6 @@ public class GraphDataModel {
 		this.overlay = overlay;
 	}
 
-	public void setExtend(boolean extend){
-		this.extend = extend;
-	}
-	
 	public void setPropSudowlSearch(boolean prop, boolean sudowl, boolean search){
 		this.prop = prop;
 		this.sudowl = sudowl;
@@ -900,6 +919,14 @@ public class GraphDataModel {
 
 	public Hashtable<String, SEMOSSEdge> getEdgeStore(){
 		return this.edgeStore;
+	}
+
+	public Hashtable<String, SEMOSSVertex> getIncrementalVertStore(){
+		return this.incrementalVertStore;
+	}
+
+	public Hashtable<String, SEMOSSEdge> getIncrementalEdgeStore(){
+		return this.incrementalEdgeStore;
 	}
 	
 	public Model getJenaModel(){
