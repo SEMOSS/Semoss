@@ -174,11 +174,11 @@
         <tr>
           <th>Capability Provide</th>
           <td><a ng-click="scrollTo('PSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
-          <td><a ng-click="scrollTo('CSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY[0] }}</a></td>
+          <td><a ng-click="scrollTo('CSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
         </tr>
         <tr>
           <th>Capability Consume</th>
-          <td><a ng-click="scrollTo('PSCD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
+          <td><a ng-click="scrollTo('PSCD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY[0] }}</a></td>
           <td></td>
         </tr>
       </tbody>
@@ -197,7 +197,7 @@
               <h3 class="panel-title">Capability Similarity Heatmap</h3>
             </div>
             <div class="panel-body">
-              <div d3-heatmap d3-width="855" d3-height="600" data="data.dataSeries.CapabilityDupeSheet"></div>
+              <div d3-heatmap d3-width="550" d3-height="350" data="data.dataSeries.CapabilityDupeSheet"></div>
             </div>
         </div> <!-- panel-primary -->
     </div> <!-- col-md-6 -->
@@ -208,7 +208,13 @@
               <h3 class="panel-title">Data Overview (CRM)</h3>
             </div>
             <div class="panel-body">
-              pie chart
+              <nvd3-pie-chart
+                data="pieChartData"
+                width="550"
+                height="350"
+                showLabels="true">
+                <svg></svg>
+              </nvd3-pie-chart>
             </div>
       </div> <!-- panel-primary -->
     </div> <!-- col-md-6 -->
@@ -349,18 +355,18 @@
     <table class="table table-bordered">
       <thead>
         <tr>
-          <th>Technical Requirement</th> 
-          <th>Technical Standard</th>
           <th>Category</th>
           <th>Subcategory</th>
+          <th>Technical Requirement</th> 
+          <th>Technical Standard</th>
         </tr>
       </thead>
       <tbody>
         <tr ng-repeat="TS in data.dataSeries.ReqAndStandardSheet.TS_QUERY">
-          <td>{{ TS[0] | replaceUnderscores }}</td>
-          <td>{{ TS[1] | replaceUnderscores }}</td>
           <td>{{ TS[2] | replaceUnderscores }}</td>
           <td>{{ TS[3] | replaceUnderscores }}</td>
+          <td>{{ TS[0] | replaceUnderscores }}</td>
+          <td>{{ TS[1] | replaceUnderscores }}</td>
         </tr>
       </tbody>
     </table>
