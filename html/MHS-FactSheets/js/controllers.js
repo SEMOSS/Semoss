@@ -14,7 +14,7 @@ var controllers = angular.module('app.controllers', [])
             $anchorScroll();
         }
 
-		$scope.setJSONData = function (data) {
+		$scope.setJSONData = function(data) {
         	$scope.$apply(function () {
             	$scope.list = jQuery.parseJSON(data);
         	});
@@ -22,7 +22,17 @@ var controllers = angular.module('app.controllers', [])
 
         $scope.getFactSheet = function(capName) {
             $scope.data = jQuery.parseJSON(singleCapFactSheet(capName));
+
+            /* generate data for pie charts
+             $scope.pieChartData = [
+                {"key":"Create",
+                "y":"data.dataSeries.CapabilityOverviewSheet.DATA_COUNT_QUERY[2]"},
+                {"key":"Read",
+                "y":"data.dataSeries.CapabilityOverviewSheet.DATA_COUNT_QUERY[1]"}
+            ];
+            alert(pieChartData); */
+            
             //$location.url("cap");
-        }
+        };
 
 	}]);
