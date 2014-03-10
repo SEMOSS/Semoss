@@ -71,7 +71,14 @@ directives.directive('d3Pie', function() {
                     .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
                     .attr("dy", ".35em")
                     .style("text-anchor", "middle")
-                    .text(function(d) { return d.value; })
+                    .text(function(d) {
+                        if(d.value>=1){
+                            return d.value
+                        } else {
+                            return "";
+                        }
+                        
+                        })
                     .attr("fill", "white");
                     
                 // add legend   
