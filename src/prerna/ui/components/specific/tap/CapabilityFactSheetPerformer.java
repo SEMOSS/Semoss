@@ -517,14 +517,25 @@ public class CapabilityFactSheetPerformer {
 		masterHash.put(ConstantsTAP.CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY, capProvideSysConsumeResultsList);
 		masterHash.put(ConstantsTAP.CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY, capConsumeSysProvideResultsList);
 	
-		ArrayList<Object> capProvideSysProvideMissingDataResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.DATA_OBJECT_QUERY);
+		
+		ArrayList<Object> capProvideSysProvideMissingDataResultsList = new ArrayList<Object>();
+		ArrayList<Object> capConsumeSysProvideMissingDataResultsList = new ArrayList<Object>();
+		ArrayList<Object> allDataObjects = (ArrayList<Object>)masterHash.get(ConstantsTAP.DATA_OBJECT_QUERY);
+		for(Object dataRow : allDataObjects)
+		{
+			ArrayList row = (ArrayList)dataRow;
+			String val = (String) row.get(1);
+			if(val.equals("C"))
+				capProvideSysProvideMissingDataResultsList.add(row.get(0));
+			else
+				capConsumeSysProvideMissingDataResultsList.add(row.get(0));
+		}
 		for(Object sysDataRow : capProvideSysProvideResultsList)
 		{
 			ArrayList row = (ArrayList) sysDataRow;
 			String data = (String)row.get(1);
 			capProvideSysProvideMissingDataResultsList.remove(data);
 		}
-		ArrayList<Object> capConsumeSysProvideMissingDataResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.DATA_OBJECT_QUERY);
 		for(Object sysDataRow : capConsumeSysProvideResultsList)
 		{
 			ArrayList row = (ArrayList) sysDataRow;
