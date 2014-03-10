@@ -3,22 +3,22 @@
 
   <head>
     
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+    <meta charset="utf-8"></meta>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+    <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+    <link rel="shortcut icon" href="../../assets/ico/favicon.ico"></link>
 
     <title>Capability Fact Sheets</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet"></link>
     <!-- Bootstrap theme -->
-    <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet"></link>
 
     <!-- Custom styles for this template -->
-    <link href="css/theme.css" rel="stylesheet">
-    <link href="css/grid.css" rel="stylesheet">
-    <link href="css/nvd3.css" rel="stylesheet">
+    <link href="css/theme.css" rel="stylesheet"></link>
+    <link href="css/grid.css" rel="stylesheet"></link>
+    <link href="css/nvd3.css" rel="stylesheet"></link>
 
   </head>
 
@@ -49,7 +49,7 @@
     <h1>Capability List</h1>
   </div>
 
-  <input type="text" ng-model="query" size="100" placeholder="Search for a capability"><br><br>
+  <input type="text" ng-model="query" size="100" placeholder="Search for a capability"></input><br/><br/>
 
   <ul>
     <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
@@ -62,7 +62,7 @@
   <div class="page-header"></div> <!-- creates a pretty page break line -->
 
   <h3>Capability Overview: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
-  <br>
+  <br/>
 
   <div class="row equalColumns">
 
@@ -75,9 +75,10 @@
   </div> <!--row-->
       <div class="row equalColumns">
         <div class="col-md-2" style="word-wrap: break-word">
-          <center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }}</b></center>
+          <center><b>Capability Group</b></center>
         </div>
         <div class="col-md-10" style="word-wrap: break-word">
+			{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }} -
           {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[3] | replaceUnderscores}}
         </div>
       </div> <!--row-->
@@ -101,7 +102,7 @@
           </ul>
         </div>
       </div> <!--row-->
-      <br>
+      <br/>
 
       <div class="row">
         <div class="col-md-2 col-md-offset-1"><center><b>CONOPS Source</b></center></div>
@@ -114,10 +115,10 @@
 
       <h3 id="highlights">Capability Highlights</h3>
       <p>Click on a highlight to see more detailed information.</p>
-      <br>
+      <br/>
 
       <div class="row">
-        <div class="col-md-1"><center><b><a ng-click="scrollTo('tasks')">Tasks</b></a></center></div>
+        <div class="col-md-1"><center><b><a ng-click="scrollTo('tasks')">Tasks</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.TASK_COUNT_QUERY[0] }}</center></div>
         <div class="col-md-1"><center><b><a ng-click="scrollTo('BP')">Business Processes</a></b></center></div>
         <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BP_COUNT_QUERY[0] }}</center></div>
@@ -174,21 +175,46 @@
         <tr>
           <th>Capability Provide</th>
           <td><a ng-click="scrollTo('PSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
-          <td><a ng-click="scrollTo('CSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
+          <td><a ng-click="scrollTo('CSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY[0] }}</a></td>
         </tr>
         <tr>
           <th>Capability Consume</th>
-          <td><a ng-click="scrollTo('PSCD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY[0] }}</a></td>
+          <td><a ng-click="scrollTo('PSCD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
           <td></td>
         </tr>
       </tbody>
     </table>
   </div> <!-- system table -->
 
+  <!--data objects with no providing/consuming systems table-->
+      <h4 id="sysinfo">Data objects not provided by systems</h4>
+      <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th></th>
+          <th>
+            System Provide
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Capability Provide</th>
+          <td><a ng-click="scrollTo('PSPDMD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY[0] }}</a></td>
+        </tr>
+        <tr>
+          <th>Capability Consume</th>
+          <td><a ng-click="scrollTo('PSCDMD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY[0] }}</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div> <!-- data objects with no providing/consuming systems table -->
+  
     <div class="page-header"></div> <!-- creates a pretty page break line -->
 
     <h3>Derived Calculations</h3>
-    <br>
+    <br/>
 
   <div class="row">
     <div class="col-md-6">
@@ -197,7 +223,7 @@
               <h3 class="panel-title">Capability Similarity Heatmap</h3>
             </div>
             <div class="panel-body">
-              <div d3-heatmap d3-width="550" d3-height="350" data="data.dataSeries.CapabilityDupeSheet"></div>
+              <div d3-heatmap="" d3-width="550" d3-height="350" data="data.dataSeries.CapabilityDupeSheet"></div>
             </div>
         </div> <!-- panel-primary -->
     </div> <!-- col-md-6 -->
@@ -386,7 +412,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="PSCD in data.dataSeries.SystemSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY">
+        <tr ng-repeat="PSCD in data.dataSeries.SystemSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY">
           <td>{{ PSCD[0] | replaceUnderscores }}</td>
           <td>{{ PSCD[1] | replaceUnderscores }}</td>
         </tr>
@@ -396,7 +422,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
-    <h4 id="CSPD">System Information: Consume System, Provide Data</h4>
+  <h4 id="CSPD">System Information: Consume System, Provide Data</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -408,7 +434,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="CSPD in data.dataSeries.SystemSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY">
+        <tr ng-repeat="CSPD in data.dataSeries.SystemSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY">
           <td>{{ CSPD[0] | replaceUnderscores }}</td>
           <td>{{ CSPD[1] | replaceUnderscores }}</td>
         </tr>
@@ -418,7 +444,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
-      <h4 id="PSPD">System Information: Provide System, Provide Data</h4>
+  <h4 id="PSPD">System Information: Provide System, Provide Data</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -440,6 +466,46 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
+  <h4 id="PSPDMD">Data objects not provided by systems: Capability provides data</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Data Consumed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="PSPDMD in data.dataSeries.SystemSheet.CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_QUERY">
+          <td>{{ PSPDMD[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
+  
+    <h4 id="PSCDMD">Data objects not provided by systems: Capability consumes data</h4>
+
+  <div class="bs-example">
+    <table class="table table-striped">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Data Provided</th> 
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="PSCDMD in data.dataSeries.SystemSheet.CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_QUERY">
+          <td>{{ PSCDMD[0] | replaceUnderscores }}</td>
+        </tr>
+      </tbody>
+    </table>
+    </table>
+  </div>
+  <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
+ 
   <h4 id="fgaps">Functional Gaps</h4>
 
   <div class="bs-example">
