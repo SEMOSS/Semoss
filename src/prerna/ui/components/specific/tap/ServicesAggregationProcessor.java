@@ -32,6 +32,8 @@ public class ServicesAggregationProcessor {
 	private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
 	private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
 
+	private HashSet<String> allSystems = new HashSet<String>();
+
 	//	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system (GROUP_CONCAT(DISTINCT ?description ; SEPARATOR = \";\") AS ?fullDescription) "
 	//			+ "(SUM(?numUsers) AS ?totalUsers) (SUM(?userConsoles) AS ?totalUserConsoles) (MAX(?availabilityReq) AS ?maxAvailability) (MIN(?availabilityAct) AS ?actualAvailability)"
 	//			+ " (SUM(?transactions) AS ?totalTransactions) (MIN(?ato) AS ?earliestATODate) (GROUP_CONCAT(DISTINCT ?gt ; SEPARATOR = \"****\") AS ?GarrisonTheater) (MAX(?supportDate)"
@@ -51,13 +53,15 @@ public class ServicesAggregationProcessor {
 	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Transactional> as ?prop11) {?systemService ?prop11 ?transactional} } } "
 	//			+ "GROUP BY ?system";
 
+	private String TAP_SYSTEM_SERVICES_SYSTEM_LIST = "SELECT DISTINCT ?system ?prop ?value WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} }";
+
 	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
 			+ "{?system ?consists ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} "
 			+ "{?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } }";
 
-	private String TAP_CORE_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
-			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
+	private String TAP_CORE_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
 
 	private String TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY = "SELECT DISTINCT ?system ?usedBy ?personnel WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}"
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>}"
@@ -141,26 +145,37 @@ public class ServicesAggregationProcessor {
 	}
 
 	public void runFullAggregation(){
-		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY);
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY, "", "");
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY, "", "");
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY, "", "");
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, "", "");
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY, "", "");
-//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, "weight", "RELATION");
-//		runPropertiesOnNode(TAP_SERVICES_AGGREGATE_ICD_QUERY);
-//		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
-//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
-//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
-//		processNewConcepts();
-//		processNewRelationships();
-//		System.out.println("success");
+		runSystemServiceSystemList(TAP_SYSTEM_SERVICES_SYSTEM_LIST);
+		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY, "", "");
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY, "", "");
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY, "", "");
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, "", "");
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY, "", "");
+		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, "weight", "RELATION");
+		//		runPropertiesOnNode(TAP_SERVICES_AGGREGATE_ICD_QUERY);
+		//		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
+		//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
+		//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
+		//		processNewConcepts();
+		//		processNewRelationships();
+		//		System.out.println("success");
 		//((BigDataEngine) coreDB).infer();
 	}
 
+	private void runSystemServiceSystemList(String query)
+	{
+		logger.info("PROCESSING QUERY: " + query);
+		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			allSystems.add(sjss.getRawVar("system").toString());
+			logger.info("ADDING SYSTEM:     " + sjss.getRawVar("system").toString());
+		}
+	}
 
-
-	private void runSystemServicePropertyAggregation(String propQuery)
+	private void runSystemServicePropertyAggregation(String propSystemServiceQuery, String propTAPCoreQuery)
 	{
 		//		/*
 		//		 * Adding the following Properties onto System
@@ -234,14 +249,18 @@ public class ServicesAggregationProcessor {
 		//		}
 		//		processData(dataHash);
 
-		logger.info("PROCESSING QUERY: " + propQuery);
+		logger.info("PROCESSING QUERY: " + propSystemServiceQuery);
 		dataHash.clear();
-		SesameJenaSelectWrapper sjswServices = processQuery(propQuery, servicesDB);
+		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
 		processServiceSystemProperties(sjswServices,  "System Services");
-		SesameJenaSelectWrapper sjswCore = processQuery(propQuery, coreDB);
+		logger.info("PROCESSING QUERY: " + propTAPCoreQuery);
+		SesameJenaSelectWrapper sjswCore = processQuery(propTAPCoreQuery, coreDB);
 		processServiceSystemProperties(sjswCore, "TAP Core");
 	}
-	
+
+
+
+
 	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, String engineName)
 	{
 		String[] vars = sjsw.getVariables();
@@ -258,63 +277,65 @@ public class ServicesAggregationProcessor {
 			}
 			else if(engineName.equals("TAP Core"))
 			{
-				user = "\"Central\"";
+				user = "/Other";
 			}
-			
+
 			//TODO: remove "Unk" once data is clean
-			if(!value.equals("\"NA\"") && !value.equals("\"TBD\"") && !value.equals("\"Unk\""))
+			if(allSystems.contains(sub))
 			{
-				if(prop.equals(propURI + "ATO_Date"))
+				if(!value.equals("\"NA\"") && !value.equals("\"TBD\"") && !value.equals("\"Unk\""))
 				{
-					processMinMaxDate(sub, prop, value, "Earliest");
+					if(prop.equals(propURI + "ATO_Date"))
+					{
+						processMinMaxDate(sub, prop, value, "Earliest");
+					}
+					else if(prop.equals(propURI + "Availability-Actual"))
+					{
+						processMaxMinDouble(sub, prop, value, "Minimum");
+					}
+					else if(prop.equals(propURI + "Availability-Required"))
+					{
+						processMaxMinDouble(sub, prop, value, "Maximum");
+					}
+					else if(prop.equals(propURI + "End_of_Support_Date"))
+					{
+						processMinMaxDate(sub, prop, value, "Latest");
+					}
+					else if(prop.equals(propURI + "Description"))
+					{
+						processConcatString(sub, prop, value, user);
+					}
+					else if(prop.equals(propURI + "POC"))
+					{
+						processConcatString(sub, prop, value, user);
+					}
+					else if(prop.equals(propURI + "Full_System_Name"))
+					{
+						processConcatString(sub, prop, value, user);
+					}
+					else if(prop.equals(propURI + "Number_of_Users"))
+					{
+						processSumValues(sub, prop, value);
+					}
+					else if(prop.equals(propURI + "Transaction_Count"))
+					{
+						processSumValues(sub, prop, value);
+					}
+					else if(prop.equals(propURI + "User_Consoles"))
+					{
+						processSumValues(sub, prop, value);
+					}
+					else if(prop.equals(propURI + "GarrisonTheater"))
+					{
+						processGarrisonTheater(sub, prop, value);
+					}
+					else if(prop.equals(propURI + "Transactional"))
+					{
+						processTransactional(sub, prop, value);
+					}
 				}
-				else if(prop.equals(propURI + "Availability-Actual"))
-				{
-					processMaxMinDouble(sub, prop, value, "Minimum");
-				}
-				else if(prop.equals(propURI + "Availability-Required"))
-				{
-					processMaxMinDouble(sub, prop, value, "Maximum");
-				}
-				else if(prop.equals(propURI + "End_of_Support_Date"))
-				{
-					processMinMaxDate(sub, prop, value, "Latest");
-				}
-				else if(prop.equals(propURI + "Description"))
-				{
-					processConcatString(sub, prop, value, user);
-				}
-				else if(prop.equals(propURI + "POC"))
-				{
-					processConcatString(sub, prop, value, user);
-				}
-				else if(prop.equals(propURI + "Full_System_Name"))
-				{
-					processConcatString(sub, prop, value, user);
-				}
-				else if(prop.equals(propURI + "Number_of_Users"))
-				{
-					processSumValues(sub, prop, value);
-				}
-				else if(prop.equals(propURI + "Transaction_Count"))
-				{
-					processSumValues(sub, prop, value);
-				}
-				else if(prop.equals(propURI + "User_Consoles"))
-				{
-					processSumValues(sub, prop, value);
-				}
-				else if(prop.equals(propURI + "GarrisonTheater"))
-				{
-					processGarrisonTheater(sub, prop, value);
-				}
-				else if(prop.equals(propURI + "Transactional"))
-				{
-					processTransactional(sub, prop, value);
-				}
+				addToAllConcepts(sub);
 			}
-			
-			addToAllConcepts(sub);
 		}
 	}
 
@@ -381,7 +402,7 @@ public class ServicesAggregationProcessor {
 			}
 		}
 	}
-	
+
 	private void processSumValues(String sub, String prop, String value)
 	{
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
@@ -539,14 +560,14 @@ public class ServicesAggregationProcessor {
 
 
 
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
 
 
 
