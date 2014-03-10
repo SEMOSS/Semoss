@@ -478,7 +478,7 @@
       </thead>
       <tbody>
         <tr ng-repeat="PSPDMD in data.dataSeries.SystemSheet.CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_QUERY">
-          <td>{{ PSPDMD[0] | replaceUnderscores }}</td>
+          <td>{{ PSPDMD | replaceUnderscores }}</td>
         </tr>
       </tbody>
     </table>
@@ -498,7 +498,7 @@
       </thead>
       <tbody>
         <tr ng-repeat="PSCDMD in data.dataSeries.SystemSheet.CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_QUERY">
-          <td>{{ PSCDMD[0] | replaceUnderscores }}</td>
+          <td>{{ PSCDMD | replaceUnderscores }}</td>
         </tr>
       </tbody>
     </table>
