@@ -2,6 +2,117 @@
 
 var directives = angular.module('app.directives', [])
 
+directives.directive('d3Pie', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            data: '=',
+            d3Width: '=',
+            d3Height: '=',
+            onClick: '&'
+        },
+        link: function(scope, ele, attrs) {
+            var dataString = {};
+            scope.$watch('data', function() {
+                if (!(scope.data == undefined || scope.data == null || scope.data == {} || scope.data == '')) {
+                    dataString = {};
+                    dataString = scope.data;
+                    update(dataString);
+                }
+            }, true);
+                
+            function update(dataString) {
+                var data = [{"label": "Provide", "value":dataString.DATA_COUNT_QUERY[2]}, {"label": "Consume", "value": dataString.DATA_COUNT_QUERY[1]}];
+                
+                var width = 400,
+                    height = 353,
+                    radius = Math.min(width, height) / 2;
+                 
+                
+                
+                
+                //var color = d3.scale.category20();
+                var color = function(iterator) {
+                    if (iterator === 0) {
+                        return ("#FD8D3C")
+                    } else {
+                        return ("#E31A1C");
+                    }
+                }
+                
+                
+                var pie = d3.layout.pie()
+                  .value(function(d){return d.value})
+                  .sort(null);
+                
+                var arc = d3.svg.arc()
+                  .innerRadius(0)
+                  .outerRadius(100);
+                
+                var svg = d3.select(ele[0]).append("svg")
+                  .attr("width", width)
+                  .attr("height", height)
+                  .append("g")
+                  .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+              
+                  
+                 var g = svg.selectAll(".arc")
+                  .data(pie(data))
+                  .enter().append("g")
+                  .attr("x", 50)
+                  .attr("y", 100)
+                  .attr("class", "arc");
+            
+                  g.append("path")
+                    .attr("d", arc)
+                    .attr("fill", function(d, i) { return color(i); });
+            
+                  g.append("text")
+                    .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "middle")
+                    .text(function(d) { return d.value; })
+                    .attr("fill", "white");
+                    
+                // add legend   
+                var legend = svg.append("g")
+                  .attr("class", "legend")
+                  .attr("height", 100)
+                  .attr("width", 100)
+                  .attr('transform', 'translate(-20,50)')    
+                  
+                
+                legend.selectAll('rect')
+                  .data(data)
+                  .enter()
+                  .append("rect")
+                  .attr("x", -120)
+                  .attr("y", function(d, i){return i * 20 - 210})
+                  .attr("width", 10)
+                  .attr("height", 10)
+                  .style("fill", function(d,i) { 
+                    return color(i);
+                  })
+                  
+                legend.selectAll('text')
+                  .data(data)
+                  .enter()
+                  .append("text")
+                  .attr("x", -100)
+                  .attr("y", function(d, i){ return i *  20 - 200;})
+                  .text(function(d) {
+                    return d.label;
+                  });
+           
+
+            }
+        }
+    }
+    
+    
+    
+});
+
 directives.directive('d3Heatmap', function() {
     return {
         restrict: 'A',
