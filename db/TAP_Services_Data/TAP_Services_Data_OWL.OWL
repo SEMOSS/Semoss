@@ -13,25 +13,25 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareModule">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessLogicUnit">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/LifeCycle">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DProt">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessLogicUnit">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessProcess">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemUser">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SoftwareVersion">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/UserInterface">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ServiceSoftwareModule">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Software">
@@ -64,6 +64,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TError">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ServiceHardwareModule">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -85,9 +88,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Phase">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Implemented_At">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -97,23 +97,23 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Payload">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consume">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TypeOf">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Phase">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consume">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Supports">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TypeOf">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Upgrade">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
-	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SoftwareModule"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DFreq"/>
@@ -122,7 +122,6 @@
 	<Implemented_At xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareVersion">
-	<Phase xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/LifeCycle"/>
 	<Upgrade xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/HardwareVersion"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
@@ -131,8 +130,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SoftwareVersion">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SoftwareVCategory"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ServiceSoftwareModule">
+	<TypeOf xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SoftwareModule"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
-	<UsedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SystemUser"/>
 	<Provide xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BusinessLogicUnit"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
@@ -143,25 +144,24 @@
 		</rdf:Description>
 	</Provide>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
-	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/HardwareModule"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SoftwareModule">
 	<TypeOf xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SoftwareVersion"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Consume xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ServiceHardwareModule">
+	<TypeOf xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/HardwareModule"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
+	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ServiceSoftwareModule"/>
 	<UsedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Personnel"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareModule">
 	<TypeOf xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/HardwareVersion"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SoftwareVersion">
-	<Phase xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/LifeCycle"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
+	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ServiceHardwareModule"/>
 	<Phase xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/LifeCycle"/>
 	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
 </rdf:Description>
