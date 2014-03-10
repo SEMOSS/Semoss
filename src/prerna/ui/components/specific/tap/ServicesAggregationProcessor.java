@@ -56,6 +56,8 @@ public class ServicesAggregationProcessor {
 			+ "{?system ?consists ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} "
 			+ "{?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } }";
 
+	private String TAP_CORE_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
 
 	private String TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY = "SELECT DISTINCT ?system ?usedBy ?personnel WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}"
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>}"
@@ -234,7 +236,14 @@ public class ServicesAggregationProcessor {
 
 		logger.info("PROCESSING QUERY: " + propQuery);
 		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(propQuery, servicesDB);
+		SesameJenaSelectWrapper sjswServices = processQuery(propQuery, servicesDB);
+		processServiceSystemProperties(sjswServices,  "System Services");
+		SesameJenaSelectWrapper sjswCore = processQuery(propQuery, coreDB);
+		processServiceSystemProperties(sjswCore, "TAP Core");
+	}
+	
+	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, String engineName)
+	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -242,7 +251,15 @@ public class ServicesAggregationProcessor {
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
 			String value = sjss.getRawVar(vars[2]).toString();
-			String user = sjss.getRawVar(vars[3]).toString();
+			String user = "";
+			if(engineName.equals("System Services"))
+			{
+				user = sjss.getRawVar(vars[3]).toString();
+			}
+			else if(engineName.equals("TAP Core"))
+			{
+				user = "\"Central\"";
+			}
 			
 			//TODO: remove "Unk" once data is clean
 			if(!value.equals("\"NA\"") && !value.equals("\"TBD\"") && !value.equals("\"Unk\""))
