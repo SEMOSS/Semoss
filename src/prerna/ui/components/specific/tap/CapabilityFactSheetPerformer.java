@@ -74,7 +74,7 @@ public class CapabilityFactSheetPerformer {
 						else if(((String)sjss.getVar(names[colIndex])).length()>0)
 							list.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"",""));
 						else
-							list.add(colIndex, "N/A");
+							list.add(colIndex, "Not Applicable");
 					}
 				}
 			}
@@ -124,7 +124,19 @@ public class CapabilityFactSheetPerformer {
 
 		return list;
 	}
-	
+	public int getUniqueNumberOfSystems(ArrayList resultsList)
+	{
+		ArrayList<String> uniqueSystems = new ArrayList<String>();
+		for(Object systemRow : resultsList)
+		{
+			ArrayList row = (ArrayList)systemRow;
+			String system = (String)row.get(0);
+			if(!uniqueSystems.contains(system))
+				uniqueSystems.add(system);
+		}
+		
+		return uniqueSystems.size();
+	}
 	/**
 	 * Contains all the queries required to return the necessary data for the capability fact sheet reports
 	 * @param capabilityName	String containing the capability name to run the queries on
@@ -150,15 +162,15 @@ public class CapabilityFactSheetPerformer {
 		String participantQuery = "SELECT DISTINCT ?Participant WHERE { BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;}{?Participant <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Participant>;}{?Capability ?Consists ?Task.} {?Task ?Requires ?Participant.}}";
 		participantQuery = participantQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 			
-		//Data Count --> Assuming R means Consume and C means provide
-		String dataCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?Data)) AS ?DataCount) (SUM(IF(?CRM = 'R', 1, 0)) AS ?ConsumeCount)(SUM(IF(?CRM = 'C', 1, 0)) AS ?ProvideCount) WHERE {SELECT DISTINCT ?Data ?CRM WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.} }}";		
-		dataCountQuery = dataCountQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
+//		//Data Count --> Assuming R means Consume and C means provide
+//		String dataCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?Data)) AS ?DataCount) (SUM(IF(?CRM = 'R', 1, 0)) AS ?ConsumeCount)(SUM(IF(?CRM = 'C', 1, 0)) AS ?ProvideCount) WHERE {SELECT DISTINCT ?Data ?CRM WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.} }}";		
+//		dataCountQuery = dataCountQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
 		ArrayList<Object> capabilityGroupResultsList = runListQuery(HRCoreEngine, capabilityGroupQuery);
 		ArrayList<Object> missionOutcomeResultsList = runListQuery(HRCoreEngine, missionOutcomeQuery);
 		ArrayList<Object> conopsSourceResultsList = runListQuery(HRCoreEngine, conopsSourceQuery);
 		ArrayList<Object> participantResultsList = runListQuery(HRCoreEngine, participantQuery);
-		ArrayList<Object> dataCountResultsList = runListQuery(HRCoreEngine, dataCountQuery);
+//		ArrayList<Object> dataCountResultsList = runListQuery(HRCoreEngine, dataCountQuery);
 
 		ArrayList<Object> taskResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.TASK_QUERY);
 		ArrayList<Object> taskCountResultsList = new ArrayList<Object>();
@@ -212,21 +224,53 @@ public class CapabilityFactSheetPerformer {
 		ArrayList<Object> capProvideSystemProvideResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.CAP_PROVIDE_SYSTEM_PROVIDE_DATA_QUERY);
 		ArrayList<Object> capProvideSystemProvideCountResultsList = new ArrayList<Object>();
 		if(capProvideSystemProvideResultsList!=null)
-			capProvideSystemProvideCountResultsList.add(capProvideSystemProvideResultsList.size());
+		{
+			capProvideSystemProvideCountResultsList.add(getUniqueNumberOfSystems(capProvideSystemProvideResultsList));
+	//		capProvideSystemProvideCountResultsList.add(capProvideSystemProvideResultsList.size());
+		}
 		else
 			capProvideSystemProvideCountResultsList.add(0);
 		ArrayList<Object> capProvideSystemConsumeResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.CAP_PROVIDE_SYSTEM_CONSUME_DATA_QUERY);
 		ArrayList<Object> capProvideSystemConsumeCountResultsList = new ArrayList<Object>();
 		if(capProvideSystemConsumeResultsList!=null)
-			capProvideSystemConsumeCountResultsList.add(capProvideSystemConsumeResultsList.size());
+			capProvideSystemConsumeCountResultsList.add(getUniqueNumberOfSystems(capProvideSystemConsumeResultsList));		
+//			capProvideSystemConsumeCountResultsList.add(capProvideSystemConsumeResultsList.size());
 		else
 			capProvideSystemConsumeCountResultsList.add(0);
 		ArrayList<Object> capConsumeSystemProvideResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.CAP_CONSUME_SYSTEM_PROVIDE_DATA_QUERY);
 		ArrayList<Object> capConsumeSystemProvideCountResultsList = new ArrayList<Object>();
 		if(capConsumeSystemProvideResultsList!=null)
-			capConsumeSystemProvideCountResultsList.add(capConsumeSystemProvideResultsList.size());
+			capConsumeSystemProvideCountResultsList.add(getUniqueNumberOfSystems(capConsumeSystemProvideResultsList));		
+//			capConsumeSystemProvideCountResultsList.add(capConsumeSystemProvideResultsList.size());
 		else
 			capConsumeSystemProvideCountResultsList.add(0);
+		
+		
+		ArrayList<Object> dataResultsList = (ArrayList<Object>)masterHash.get(ConstantsTAP.DATA_OBJECT_QUERY);
+		ArrayList<Object> dataCountResultsList = new ArrayList<Object>();
+		if(dataResultsList!=null)
+		{
+			int numRs = 0;
+			int numCs = 0;
+			for(Object dataRow : dataResultsList)
+			{
+				ArrayList row = (ArrayList)dataRow;
+				String crm = (String) row.get(1);
+				if(crm.equals("R"))
+					numRs++;
+				else
+					numCs++;
+			}
+			dataCountResultsList.add(dataResultsList.size());
+			dataCountResultsList.add(numRs);
+			dataCountResultsList.add(numCs);
+		}
+		else
+		{
+			dataCountResultsList.add(0);
+			dataCountResultsList.add(0);
+			dataCountResultsList.add(0);
+		}
 	
 		returnHash.put(ConstantsTAP.CAPABILITY_GROUP_QUERY, capabilityGroupResultsList);
 		returnHash.put(ConstantsTAP.MISSION_OUTCOME_QUERY, missionOutcomeResultsList);
@@ -281,14 +325,14 @@ public class CapabilityFactSheetPerformer {
 				Hashtable elementHash = new Hashtable();
 				elementHash.put("Capability", capability);
 				elementHash.put("Criteria", criteria);
-				elementHash.put("val",capDupeList.get(i).get(j));
+				elementHash.put("val",((Double) capDupeList.get(i).get(j))*100);
 				dataSeries.put(capability+"-"+criteria,elementHash);
 			}
 			String criteria ="Total Score";
 			Hashtable elementHash = new Hashtable();
 			elementHash.put("Capability", capability);
 			elementHash.put("Criteria", criteria);
-			elementHash.put("val",(valueList.get(i)));
+			elementHash.put("val",((Double) valueList.get(i))*100);
 			dataSeries.put(capability+"-"+criteria,elementHash);
 		}
 		
@@ -300,6 +344,7 @@ public class CapabilityFactSheetPerformer {
 
 		return returnHash;
 	}
+	
 	
 	/**
 	 * Contains all the queries required to return the necessary data for the capability fact sheet reports
@@ -440,13 +485,13 @@ public class CapabilityFactSheetPerformer {
 		
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 
-		String capProvideSysProvideQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) }";		
+		String capProvideSysProvideQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";		
 		capProvideSysProvideQuery = capProvideSysProvideQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 		
-		String capProvideSysConsumeQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) }";		
+		String capProvideSysConsumeQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";		
 		capProvideSysConsumeQuery = capProvideSysConsumeQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 		
-		String capConsumeSysProvideQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.} {?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?System ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}}";		
+		String capConsumeSysProvideQuery = "SELECT DISTINCT ?System ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.} {?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?System ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}} ORDER BY ?System";		
 		capConsumeSysProvideQuery = capConsumeSysProvideQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
 		ArrayList<Object> capProvideSysProvideResultsList = runQuery(HRCoreEngine, capProvideSysProvideQuery);
