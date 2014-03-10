@@ -258,40 +258,46 @@ public class TMCalculationPerformer implements IAlgorithm{
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("Standards");
 
-		String queryCounter = "SELECT DISTINCT ?StandardIdentifier WHERE {{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;}}";
-		String query = "SELECT DISTINCT ?System ?StandardIdentifier WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?MapsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/MapsTo>;} {?PPI ?MapsTo ?System.}{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;} {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?StandardIdentifier ?UsedBy ?PPI.}}";
-		wrapper.setQuery(queryCounter);
-		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-		int numStandards=0;
-		String[] names = wrapper.getVariables();
-
-		if(!wrapper.hasNext())
+		if(engine!=null)
 		{
+			String queryCounter = "SELECT DISTINCT ?StandardIdentifier WHERE {{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;}}";
+			String query = "SELECT DISTINCT ?System ?StandardIdentifier WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?MapsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/MapsTo>;} {?PPI ?MapsTo ?System.}{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;} {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?StandardIdentifier ?UsedBy ?PPI.}}";
+			wrapper.setQuery(queryCounter);
+			wrapper.setEngine(engine);
+			wrapper.executeQuery();
+			int numStandards=0;
+			String[] names = wrapper.getVariables();
+	
+			if(!wrapper.hasNext())
+			{
+				runStandardFailPopup();
+				return false;
+			}
+			while(wrapper.hasNext())
+			{
+				SesameJenaSelectStatement sjss= wrapper.next();
+				numStandards++;
+			}
+			
+			wrapper = new SesameJenaSelectWrapper();
+			wrapper.setQuery(query);
+			wrapper.setEngine(engine);
+			wrapper.executeQuery();
+			names = wrapper.getVariables();
+			while(wrapper.hasNext()) {
+				SesameJenaSelectStatement sjss = wrapper.BVnext();
+				String key = (String) Utility.getInstanceName(sjss.getVar(names[0])+""); 
+				Double counter = 1.0;
+				if (systemCount.containsKey(key))
+					counter += systemCount.get(key);
+				systemCount.put(key, counter);
+			}
+			for (String key: systemCount.keySet()) {
+				systemCount.put(key, systemCount.get(key)*10.0/numStandards);
+			}
+		}
+		else {
 			runStandardFailPopup();
-			return false;
-		}
-		while(wrapper.hasNext())
-		{
-			SesameJenaSelectStatement sjss= wrapper.next();
-			numStandards++;
-		}
-		
-		wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-		names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			SesameJenaSelectStatement sjss = wrapper.BVnext();
-			String key = (String) Utility.getInstanceName(sjss.getVar(names[0])+""); 
-			Double counter = 1.0;
-			if (systemCount.containsKey(key))
-				counter += systemCount.get(key);
-			systemCount.put(key, counter);
-		}
-		for (String key: systemCount.keySet()) {
-			systemCount.put(key, systemCount.get(key)*10.0/numStandards);
 		}
 		return true;
 	}
