@@ -262,9 +262,10 @@ public class PlayPane extends JFrame {
 	public FactSheetReportComboBox factSheetReportSyscomboBox;
 	public JComboBox FactSheetReportTypecomboBox;
 
-	//Tasker Generation Panel
+	//Tasker Generation and System Info Panel
 	private JSeparator separator_8;
 	public JButton btnTaskerGeneration;
+	public JButton btnSystemInfoGenButton;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
 	
 //	//Capability Fact Sheet Panel
@@ -2544,7 +2545,7 @@ public class PlayPane extends JFrame {
 		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, Double.MIN_VALUE };
 		TaskerGenerationPanel.setLayout(gbl_TaskerGenerationPanel);
 
-		JLabel TaskerGenerationTitleLabel = new JLabel("Tasker Generation");
+		JLabel TaskerGenerationTitleLabel = new JLabel("Tasker and System Info Report Generation");
 		TaskerGenerationTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_TaskerGenerationTitleLabel = new GridBagConstraints();
 		gbc_TaskerGenerationTitleLabel.gridwidth = 3;
@@ -2582,6 +2583,17 @@ public class PlayPane extends JFrame {
 		gbc_btnTaskerGeneration.gridy = 3;
 		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
 		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
+		
+		btnSystemInfoGenButton = new CustomButton("Generate System Info Report");
+		btnSystemInfoGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnSystemInfoGenerator = new GridBagConstraints();
+		gbc_btnSystemInfoGenerator.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnSystemInfoGenerator.gridwidth = 2;
+		gbc_btnSystemInfoGenerator.insets = new Insets(0, 0, 5, 5);
+		gbc_btnSystemInfoGenerator.gridx = 1;
+		gbc_btnSystemInfoGenerator.gridy = 4;
+		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
+		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
 		
 //		JLabel CapabilityFactSheetTitleLabel = new JLabel("Capability Fact Sheet Generation");
 //		CapabilityFactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
