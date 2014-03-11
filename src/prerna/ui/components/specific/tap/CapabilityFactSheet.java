@@ -18,16 +18,24 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.Desktop;
 import java.awt.Dimension;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Hashtable;
+
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
+import prerna.util.DIHelper;
+
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.events.NavigationEvent;
 import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
 import com.teamdev.jxbrowser.events.NavigationListener;
-
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
+import com.teamdev.jxbrowser.print.PrintAdapter;
 
 /**
  * This class creates the capability fact sheet.
@@ -54,7 +62,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	 */
 	@Override
 	public void createView()
-	{
+	{		
 		String workingDir = System.getProperty("user.dir");
 		
 		singleCapFactSheetCall.setCapabilityFactSheet(this);
@@ -68,6 +76,11 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
     	    public void navigationFinished(NavigationFinishedEvent event) {
    	    	browser.registerFunction("singleCapFactSheet",  singleCapFactSheetCall);
+	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/data2.json");
+	   			if(file.exists()) {
+	   				file.delete();
+	   				browser.executeScript("window.location.reload()");
+	   			}
     			callIt();
     	    }
     	});
@@ -149,14 +162,17 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	
 	public void callIt()
 	{
+		System.err.println(">>> callIt");
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
+		String json = gson.toJson(capabilityHash);
 		browser.executeScript("start('" + gson.toJson(capabilityHash) + "');");
 		System.out.println(gson.toJson(capabilityHash));
 	}
 	
 	public void callItAllHash()
 	{
+		System.err.println(">>> callItAllHash");
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityData('" + gson.toJson(allHash) + "');");
 		String workingDir = System.getProperty("user.dir");
