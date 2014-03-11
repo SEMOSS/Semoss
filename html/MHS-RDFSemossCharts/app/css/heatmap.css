@@ -7,7 +7,7 @@
       
       #chart {
 	background-color: #fff;
-	margin-left: 10px;
+	margin-left: 320px;
 	margin-right: auto;
       }
       
@@ -39,14 +39,6 @@
 	font-size: 9px;
 	width: 4px;
 	
-      }
-      
-      .yAxisTitle {
-	font-weight: bold;
-      }
-      
-      .xAxisTitle {
-	font-weight: bold;
       }
       
       .row-hide {
