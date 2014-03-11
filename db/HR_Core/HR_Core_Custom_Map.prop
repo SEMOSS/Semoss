@@ -10,6 +10,7 @@ DataElement http://health.mil/ontologies/Concept/DataElement
 Complexity http://health.mil/ontologies/Concept/Complexity
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
 SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
+DHMSM http://health.mil/ontologies/Concept/DHMSM
 Capability http://health.mil/ontologies/Concept/Capability
 CapabilityTag http://health.mil/ontologies/Concept/CapabilityTag
 CapabilityFunctionalArea http://health.mil/ontologies/Concept/CapabilityFunctionalArea
@@ -43,6 +44,7 @@ Task http://health.mil/ontologies/Concept/Task
 Activity http://health.mil/ontologies/Concept/Activity
 MissionOutcome http://health.mil/ontologies/Concept/MissionOutcome
 TError http://health.mil/ontologies/Concept/TError
+RDFElement http://health.mil/ontologies/Concept/RDFElement
 Hardware http://health.mil/ontologies/Concept/Hardware
 VISTA http://health.mil/ontologies/Concept/VISTA
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
@@ -86,6 +88,7 @@ FError_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 System_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 SystemTasker_BeingIn_TaskerLifecycleSystemPhase http://health.mil/ontologies/Relation/BeingIn
 DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
+DHMSM_TaggedBy_Capability http://health.mil/ontologies/Relation/TaggedBy
 Attribute_Has_Gap http://health.mil/ontologies/Relation/Has
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
@@ -139,6 +142,7 @@ Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySpl
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
+RDF_Has_RDFElement http://health.mil/ontologies/Relation/Has
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
 HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
@@ -159,6 +163,7 @@ TError_CLASS http://semoss.org/ontologies/Concept/TError
 Service_CLASS http://semoss.org/ontologies/Concept/Service
 Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
 HardwareModule_CLASS http://semoss.org/ontologies/Concept/HardwareModule
+RDFElement_CLASS http://semoss.org/ontologies/Concept/RDFElement
 BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
@@ -192,6 +197,7 @@ BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 TaskerLifecyclePhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecyclePhase
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 Gap_CLASS http://semoss.org/ontologies/Concept/Gap
+DHMSM_CLASS http://semoss.org/ontologies/Concept/DHMSM
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
@@ -239,6 +245,7 @@ MissionOutcome_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relat
 Task_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Supports_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Supports
 FError_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
+DHMSM_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
 CapabilityGroup_Consists_Capability_CLASS http://semoss.org/ontologies/Relation/Consists
 BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
 TechSubCategory_Has_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Has
