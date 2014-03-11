@@ -31,6 +31,7 @@ import prerna.util.DIHelper;
 public class FactSheetReportComboBox extends ParamComboBox implements Runnable {
 	
 	Logger logger = Logger.getLogger(getClass());
+	String key = "System";
 	
 	Object[] repos = new Object[1];
 
@@ -57,15 +58,23 @@ public class FactSheetReportComboBox extends ParamComboBox implements Runnable {
 	public void setEngine(String repo){
 		repos[0] = repo;
 	}
-	
+
+	/**
+	 * Sets the key to look for.
+	 * @param key 	Key to be set.
+	 */
+	public void setKey(String key){
+		this.key = key;
+	}
 	/**
 	 * Sets the name of the parameter to system.
 	 * Gets access to the engine and runs a query given certain parameters.
 	 */
 	public void fillParam(){
-		String key = "System";
+//		String key = "System";
 		// execute the logic for filling the information here
-		String entityType = "http://semoss.org/ontologies/Concept/System";
+//		String entityType = "http://semoss.org/ontologies/Concept/System";
+		String entityType = "http://semoss.org/ontologies/Concept/"+key;
 		setParamName(key);
 		
 		setEditable(false);

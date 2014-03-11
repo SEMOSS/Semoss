@@ -373,7 +373,8 @@ public class FactSheetWriter {
 			pict.resize(); //Reset the image to the original size			
 		}
 		catch (FileNotFoundException e){
-			e.printStackTrace();
+			logger.error("Health Grid image not found for this system");
+	//		e.printStackTrace();
 		}
 		catch (Exception ex){
 			ex.printStackTrace();
@@ -925,7 +926,7 @@ public class FactSheetWriter {
 				cellToWriteOn.setCellStyle(redStyle);
 
 			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
+				logger.error("CONUS and OCONUS map images not found for this system");
 			} //FileInputStream obtains input bytes from the image file
 			catch (IOException e1) {
 				e1.printStackTrace();
