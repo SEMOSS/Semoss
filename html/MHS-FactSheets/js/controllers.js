@@ -5,9 +5,9 @@ var controllers = angular.module('app.controllers', [])
 	controllers.controller('IndexCtrl', ['$scope', '$http', '$location', '$anchorScroll', function($scope, $http, $location, $anchorScroll) {
 
     	// Uncomment this part of the code to test JSON data locally
-    	$http.get("capabilitylist.json").success(function(jsonData) {
+    	/**$http.get("capabilitylist.json").success(function(jsonData) {
         	$scope.list = jsonData;
-    	});
+    	});*/
     	
     	$http.get("export.json").success(function(jsonData) {
         	$scope.data = (jsonData);
