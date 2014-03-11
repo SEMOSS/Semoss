@@ -76,7 +76,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
     	    public void navigationFinished(NavigationFinishedEvent event) {
    	    	browser.registerFunction("singleCapFactSheet",  singleCapFactSheetCall);
-	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/data2.json");
+	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/export.json");
 	   			if(file.exists()) {
 	   				file.delete();
 	   				browser.executeScript("window.location.reload()");
