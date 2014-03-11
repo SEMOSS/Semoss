@@ -18,35 +18,28 @@
  ******************************************************************************/
 package prerna.poi.specific;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
-import org.apache.poi.hssf.usermodel.DVConstraint;
 import org.apache.poi.hssf.util.CellReference;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.CellRangeAddressList;
+
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
-import org.apache.poi.xssf.usermodel.XSSFDataValidation;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationConstraint;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.util.ConstantsTAP;
 import prerna.util.Utility;
 
 /**
- *This will take the information from the tasker generation processor and write a fact sheet report to an excel file for a given system name
+ *This will take the information from the SystemInfoGenProcessor and write a system info report to an excel file
  */
 public class SystemInfoGenWriter {
 
@@ -54,17 +47,15 @@ public class SystemInfoGenWriter {
 	public Hashtable<String,XSSFCellStyle> myStyles;
 
 	/**
-	 * Retrieves the query results for a given system from the tasker generation processor and creates the tasker
-	 * @param systemName		String containing the name of the system to create the tasker for
-	 * @param fileLoc			String containing the file location to write the tasker to
-	 * @param templateFileLoc	String containing the location of the tasker template
-	 * @param systemDataHash	Hashtable containing all the query results from the tasker generation processor for a given system
+	 * Retrieves the query results from the SystemInfoGenProcessor and creates the System Info Report
+	 * @param fileLoc			String containing the file location to write the report to
+	 * @param sysList			List containing all the systems in alphabetical order
+	 * @param headersList		List containing all the names of variables to put in the report
+	 * @param systemInfoHash	Hashtable containing all the query results from the SystemInfoGenProcessor
 	 */
-	public void exportSystemInfoReport(String fileLoc, ArrayList<String> sysList,ArrayList<String> headersList,Hashtable systemDataHash) {
+	public void exportSystemInfoReport(String fileLoc, ArrayList<String> sysList,ArrayList<String> headersList, Hashtable systemInfoHash) {
 		XSSFWorkbook wb =new XSSFWorkbook();
-
-		writeListSheet(wb,sysList,headersList,systemDataHash);
-
+		writeListSheet(wb,sysList,headersList,systemInfoHash);
 		wb.setForceFormulaRecalculation(true);
 		Utility.writeWorkbook(wb, fileLoc);
 
@@ -72,31 +63,30 @@ public class SystemInfoGenWriter {
 
 	/**
 	 * Writes the data from the queries to the sheet specified in list format
-	 * @param wb		XSSFWorkbook containing the sheet to populate
-	 * @param sheetName	String containing the name of the sheet to populate
-	 * @param result	ArrayList containing the output of the query
+	 * @param wb				XSSFWorkbook containing the sheet to populate
+	 * @param sysList			List containing all the systems in alphabetical order
+	 * @param headersList		List containing all the names of variables to put in the report
+	 * @param result			ArrayList containing the output of the query
 	 */
-	public void writeListSheet(XSSFWorkbook wb, ArrayList<String> sysList,ArrayList<String> headersList, Hashtable result){
+	public void writeListSheet(XSSFWorkbook wb, ArrayList<String> sysList, ArrayList<String> headersList, Hashtable result){
 		
 		makeStyles(wb);
-		
+		//make the header rows with special format
 		XSSFSheet worksheet = wb.createSheet("System Info");
 		XSSFRow row0 = worksheet.createRow(0);
 		for (int col=0; col<headersList.size();col++){
 
 			XSSFCell cell = row0.createCell(col);
-			cell.setCellValue(headersList.get(col));
+			cell.setCellValue(headersList.get(col).replaceAll("_", " "));
 			cell.setCellStyle((XSSFCellStyle)myStyles.get("headerStyle"));
 		}
-
+		//fill in data
 		for (int row=0; row<sysList.size();row++){
 			XSSFRow row1 = worksheet.createRow(row+1);
 			String sys = sysList.get(row);
 			XSSFCell cell0 = row1.createCell(0);
 			cell0.setCellValue(sys);
 			cell0.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
-
-			
 			if(result.containsKey(sys)){
 				Hashtable sysHash = (Hashtable) result.get(sys);
 				for (int col=1; col<headersList.size();col++) {
@@ -107,20 +97,16 @@ public class SystemInfoGenWriter {
 					{
 						Object val = sysHash.get(varName);
 						if(val instanceof Double)
-						{
 							cell.setCellValue((Double)val);
-						}
 						else
-						{
 							cell.setCellValue(((String)val).replace("\"", "").replace("_", " "));
-						}
 					}
 				}
 			
 			}
 			
 		}
-
+		//resize the columns
 		if(headersList.size()>0)
 			for(int col=0; col<headersList.size();col++)
 				worksheet.setColumnWidth(col, 256*35);
