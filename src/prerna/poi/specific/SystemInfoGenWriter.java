@@ -24,6 +24,7 @@ import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.DVConstraint;
+import org.apache.poi.hssf.util.CellReference;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -123,9 +124,14 @@ public class SystemInfoGenWriter {
 		if(headersList.size()>0)
 			for(int col=0; col<headersList.size();col++)
 				worksheet.setColumnWidth(col, 256*35);
+		
+		worksheet.createFreezePane(0, 1);
+		String columnLetter = CellReference.convertNumToColString(headersList.size());
+		worksheet.setAutoFilter(CellRangeAddress.valueOf("A1:"+columnLetter+ result.size()+1 ));
 
 	}
-
+	
+	
 	/**
 	 * Creates a cell boarder style in an Excel workbook
 	 * @param wb 		Workbook to create the style
