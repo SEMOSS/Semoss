@@ -105,7 +105,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		//	{	
 					String text = (String) listElement[0];
 					String source = (String) listElement[1];
-					String processedText = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "").replaceAll("\'","").replaceAll("’", "")+" ("+source+")";
+					String processedText = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "").replaceAll("\'","").replaceAll("’", "")+"_("+source+")";
 					capabilityProcessed.put(processedText,text);
 					dataArrayList.add(processedText);
 		//	}			
