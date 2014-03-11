@@ -3,11 +3,11 @@ package prerna.ui.components.specific.tap;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -31,29 +31,6 @@ public class ServicesAggregationProcessor {
 
 	private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
 	private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
-
-	private HashSet<String> allSystems = new HashSet<String>();
-
-	//	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system (GROUP_CONCAT(DISTINCT ?description ; SEPARATOR = \";\") AS ?fullDescription) "
-	//			+ "(SUM(?numUsers) AS ?totalUsers) (SUM(?userConsoles) AS ?totalUserConsoles) (MAX(?availabilityReq) AS ?maxAvailability) (MIN(?availabilityAct) AS ?actualAvailability)"
-	//			+ " (SUM(?transactions) AS ?totalTransactions) (MIN(?ato) AS ?earliestATODate) (GROUP_CONCAT(DISTINCT ?gt ; SEPARATOR = \"****\") AS ?GarrisonTheater) (MAX(?supportDate)"
-	//			+ " AS ?latestEndOfSupportDate) (GROUP_CONCAT(DISTINCT ?POC ;  SEPARATOR = \",\") AS ?allPOCs) (GROUP_CONCAT(DISTINCT ?transactional ;  SEPARATOR = \"****\") AS ?Transactional)"
-	//			+ " WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>}"
-	//			+ " {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consists ?systemService}"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Description> AS ?prop1) {?systemService ?prop1 ?description} }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Number_of_Users> as ?prop2) {?systemService ?prop2 ?numUsers} FILTER( datatype(?numUsers) = xsd:double || datatype(?numUsers) = xsd:integer) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/User_Consoles> as ?prop3) {?systemService ?prop3 ?userConsoles} FILTER(  datatype(?userConsoles) = xsd:double || datatype(?userConsoles) = xsd:integer) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Availability-Required> as ?prop4) {?systemService ?prop4 ?availabilityReq} FILTER(  datatype(?availabilityReq) = xsd:double || datatype(?availabilityReq) = xsd:integer) }"
-	//			+ " OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Contains/Availability-Actual> as ?prop5) {?systemService ?prop5 ?availabilityAct} FILTER(  datatype(?availabilityAct) = xsd:double || datatype(?availabilityAct) = xsd:integer) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Transaction_Count> as ?prop6) {?systemService ?prop6 ?transactions} FILTER(  datatype(?transactions) = xsd:double || datatype(?transactions) = xsd:integer) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/ATO_Date> as ?prop7) {?systemService ?prop7 ?ato} FILTER( datatype(?ato) = xsd:dateTime ) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> as ?prop8) {?systemService ?prop8 ?gt} }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> as ?prop9) {?systemService ?prop9 ?supportDate} FILTER(  datatype(?supportDate) = xsd:dateTime ) }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/POC> as ?prop10) {?systemService ?prop10 ?POC} }"
-	//			+ " OPTIONAL { BIND(<http://semoss.org/ontologies/Relation/Contains/Transactional> as ?prop11) {?systemService ?prop11 ?transactional} } } "
-	//			+ "GROUP BY ?system";
-
-	private String TAP_SYSTEM_SERVICES_SYSTEM_LIST = "SELECT DISTINCT ?system ?prop ?value WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} }";
 
 	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
@@ -94,43 +71,56 @@ public class ServicesAggregationProcessor {
 			+ "{?system ?consistsOf ?systemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
 			+ "{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?systemService ?provide ?BLU}}";
 
-	private String TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY = "SELECT DISTINCT ?system (SAMPLE(?provide) AS ?pred) ?data (GROUP_CONCAT(DISTINCT ?crm ; SEPARATOR = \";\") AS ?overallCRM) "
-			+ "WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
-			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
-			+ "{?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} "
-			+ "{?system ?consistsOf ?SystemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
-			+ "{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemService ?provide ?data} "
-			+ "{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}} GROUP BY ?system ?data";
-
-	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system (SAMPLE(?has) AS ?pred) ?TError (SUM(?weight/(COUNT(?systemService))) AS ?adjustedWeight) "
-			+ "WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ "
+			+ "{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
 			+ "{?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} "
 			+ "{?system ?consistsOf ?systemService} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
-			+ "{?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} "
-			+ "{?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}} GROUP BY ?system ?TError";
+			+ "{?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?systemService ?has ?TError} "
+			+ "{?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
 
-	private String TAP_SERVICES_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} "
+	private String TAP_CORE_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ "
+			+ "{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
+			+ "{?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} "
+			+ "{?system ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
+
+	private String TAP_CORE_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} "
 			+ "{?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} "
 			+ "{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} "
 			+ "{?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value}}";
 
-	private String TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
-			+ "{?system a <http://semoss.org/ontologies/Concept/System>} "
-			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
-			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
-			+ "{?system ?consistsOf ?systemService} {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} "
-			+ "{?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>} "
-			+ "{?systemService ?consists ?softwareModule} OPTIONAL { {?consists <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
-			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
-
-	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
-			+ "{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
-			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consistsOf ?systemService} "
-			+ "{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
-			+ "{?systemService ?has ?softwareModule} OPTIONAL { {?has <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
-			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
-
+	private String TAP_SERVICES_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value ?user WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} "
+			+ "{?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} "
+			+ "{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} "
+			+ "{?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} "
+			+ "{?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } }";
+	
+	private String TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} "
+			+ "{?system ?consistsOf ?SystemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
+			+ "{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemService ?provide ?data}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
+	
+	private String TAP_CORE_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+			+ "{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} "
+			+ "{?system ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
+	
+	//	private String TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
+	//			+ "{?system a <http://semoss.org/ontologies/Concept/System>} "
+	//			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
+	//			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
+	//			+ "{?system ?consistsOf ?systemService} {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} "
+	//			+ "{?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>} "
+	//			+ "{?systemService ?consists ?softwareModule} OPTIONAL { {?consists <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
+	//			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
+	//
+	//	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY = "SELECT DISTINCT ?system (SUM(DISTINCT ?systemServiceQuantity) AS ?totalQuantity) WHERE { "
+	//			+ "{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} "
+	//			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consistsOf ?systemService} "
+	//			+ "{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} "
+	//			+ "{?systemService ?has ?softwareModule} OPTIONAL { {?has <http://semoss.org/ontologies/Relation/Contains/SystemService_Quantity> ?systemServiceQuantity} "
+	//			+ "FILTER(  datatype(?systemServiceQuantity) = xsd:double || datatype(?systemServiceQuantity) = xsd:integer ) } } GROUP BY ?system";
+	
 	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE { {?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter( regex(str(?relations),\"^http://semoss\") ) }";
 
 	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE { {?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }";
@@ -138,130 +128,70 @@ public class ServicesAggregationProcessor {
 	//	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareVersion ?has ?hardware WHERE { {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} "
 	//			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has ?hardwareVersion} }";
 
-
 	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
 		this.servicesDB = servicesDB;
 		this.coreDB = coreDB;
 	}
 
-	public void runFullAggregation(){
-		runSystemServiceSystemList(TAP_SYSTEM_SERVICES_SYSTEM_LIST);
+	public void runFullAggregation()
+	{
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY, "", "");
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY, "", "");
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY, "", "");
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, "", "");
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY, "", "");
-		//		runRelationshipWithOnePropAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, "weight", "RELATION");
-		//		runPropertiesOnNode(TAP_SERVICES_AGGREGATE_ICD_QUERY);
-		//		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATA_OBJECT_QUERY, "CRM");
+		runICDAggregation(TAP_SERVICES_AGGREGATE_ICD_QUERY, TAP_CORE_AGGREGATE_ICD_QUERY);
+		runTErrorAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, TAP_CORE_AGGREGATE_TERROR_QUERY);
+		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_QUERY);
 		//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_SOFTWARE_QUANTITY_QUERY, "Quantity");
 		//		runCreateNewNodeProperty(TAP_SERVICES_AGGREGATE_HARDWARE_QUANTITY_QUERY, "Quantity");
-		//		processNewConcepts();
-		//		processNewRelationships();
-		//		System.out.println("success");
+		processNewConcepts();
+		processNewRelationships();
 		//((BigDataEngine) coreDB).infer();
 	}
-
-	private void runSystemServiceSystemList(String query)
+	
+	private void runRelationshipAggregation(String query)
 	{
-		logger.info("PROCESSING QUERY: " + query);
+		logger.info(query);
+		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			allSystems.add(sjss.getRawVar("system").toString());
-			logger.info("ADDING SYSTEM:     " + sjss.getRawVar("system").toString());
+			// get the next row and see how it must be added to the insert query
+			String subject = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String object = sjss.getRawVar(vars[2]).toString();
+			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
+			logger.info("ADDING:     " + subject + " -----> {" + pred + " --- " + object + "}");
+			addToHash(new String[]{subject, pred, object}, true);
+			// add instances to master list
+			addToAllConcepts(subject);
+			addToAllConcepts(object);
+			addToAllRelationships(pred);
 		}
+		processData(dataHash);
 	}
 
 	private void runSystemServicePropertyAggregation(String propSystemServiceQuery, String propTAPCoreQuery)
 	{
-		//		/*
-		//		 * Adding the following Properties onto System
-		//		 	-Description – Concatenate service entries if different
-		//			-Number of Users - Add
-		//			-User Consoles – Add
-		//			-Availability-Required – Use highest
-		//			-Availability-Actual – Use lowest
-		//			-Transaction Count - Add
-		//			-ATO Date – Use earliest
-		//			-GarrisonTheater – If both Garrison and Theater, label, “Both”
-		//			-End of Support Date – Take latest
-		//			-POC - Concatenate
-		//			-Transactional – Flag and check with POCs
-		//		 */
-		//		
-		//		logger.info("PROCESSING QUERY: " + propQuery);
-		//		dataHash.clear();
-		//		SesameJenaSelectWrapper sjsw = processQuery(propQuery, servicesDB);
-		//		while(sjsw.hasNext())
-		//		{
-		//			SesameJenaSelectStatement sjss = sjsw.next();
-		//			// get the next row and see how it must be added to the insert query
-		//			String System = sjss.getRawVar("system") + "";
-		//			Hashtable<String, String> properties = new Hashtable<String, String>();
-		//			properties.put(propURI + "Description", sjss.getRawVar("fullDescription") + "");
-		//			properties.put(propURI + "Number_of_Users", sjss.getRawVar("totalUsers") + "");
-		//			properties.put(propURI + "User_Consoles", sjss.getRawVar("totalUserConsoles") + "");
-		//			properties.put(propURI + "Availability-Required", sjss.getRawVar("maxAvailability") + "");
-		//			properties.put(propURI + "Availability-Actual", sjss.getRawVar("actualAvailability") + "");
-		//			properties.put(propURI + "Transaction_Count", sjss.getRawVar("totalTransactions") + "");
-		//			properties.put(propURI + "ATO_Date", sjss.getRawVar("earliestATODate") + "");
-		//
-		//			// logic to process garrison theater
-		//			String gt = sjss.getRawVar("GarrisonTheater") + "";
-		//			if(gt.contains("****"))
-		//			{
-		//				String[] parts = gt.split("\\*\\*\\*\\*");
-		//				if(parts[0].equals("\"NA") && !parts[1].equals("NA\""))
-		//				{
-		//					gt = "\"" + parts[1];
-		//				}
-		//				else if(!parts[0].equals("\"NA") && parts[1].equals("NA\""))
-		//				{
-		//					gt = parts[0] + "\"";
-		//				}
-		//				else if(!parts[0].equals("Garrison") && parts[1].equals("Theater"))
-		//				{
-		//					gt = "Both";
-		//				}
-		//			}
-		//			properties.put(propURI + "GarrisonTheater", gt);
-		//			properties.put(propURI + "End_of_Support_Date", sjss.getRawVar("latestEndOfSupportDate") + "");
-		//			properties.put(propURI + "POC", sjss.getRawVar("allPOCs") + "");
-		//
-		//			// logic to process transactional
-		//			// TODO: NEED TO BREAK THE LOAD AND SHOW POP UP
-		//			String transactional = sjss.getRawVar("Transactional") + "";
-		//			if(transactional.contains("****"))
-		//			{
-		//				transactional = "CONFLICTING REPORTS!";
-		//				//TODO: NEED TO GET THIS OUT OF PROCESSOR
-		//				Utility.showError("ERROR WITH INCONSISTENT REPORTING FOR TRANSACTIONAL PROPERTY!\n Look at System: " + System);
-		//			}
-		//			properties.put(propURI + "Transactional", transactional);
-		//
-		//			dataHash = addToHashtable(System, properties, dataHash);
-		//
-		//			// add instance system to list
-		//			addToAllConcepts(System);
-		//		}
-		//		processData(dataHash);
+		dataHash.clear();
 
 		logger.info("PROCESSING QUERY: " + propSystemServiceQuery);
-		dataHash.clear();
 		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
-		processServiceSystemProperties(sjswServices,  "System Services");
+		processServiceSystemProperties(sjswServices,  false);
+
 		logger.info("PROCESSING QUERY: " + propTAPCoreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(propTAPCoreQuery, coreDB);
-		processServiceSystemProperties(sjswCore, "TAP Core");
+		processServiceSystemProperties(sjswCore, true);
+
+		// processing modifies class variable dataHash directly
+		processData(dataHash);
 	}
 
-
-
-
-	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, String engineName)
+	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, boolean TAP_Core)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -271,546 +201,332 @@ public class ServicesAggregationProcessor {
 			String prop = sjss.getRawVar(vars[1]).toString();
 			String value = sjss.getRawVar(vars[2]).toString();
 			String user = "";
-			if(engineName.equals("System Services"))
+			if(!TAP_Core)
 			{
 				user = sjss.getRawVar(vars[3]).toString();
 			}
-			else if(engineName.equals("TAP Core"))
+			else
 			{
-				user = "/Other";
+				user = "";
 			}
 
-			//TODO: remove "Unk" once data is clean
-			if(allSystems.contains(sub))
+			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
-				if(!value.equals("\"NA\"") && !value.equals("\"TBD\"") && !value.equals("\"Unk\""))
+				String[] returnTriple = new String[3];
+				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
 				{
 					if(prop.equals(propURI + "ATO_Date"))
 					{
-						processMinMaxDate(sub, prop, value, "Earliest");
-					}
-					else if(prop.equals(propURI + "Availability-Actual"))
-					{
-						processMaxMinDouble(sub, prop, value, "Minimum");
-					}
-					else if(prop.equals(propURI + "Availability-Required"))
-					{
-						processMaxMinDouble(sub, prop, value, "Maximum");
+						boolean earliest = false;
+						returnTriple = processMinMaxDate(sub, prop, value, earliest);
 					}
 					else if(prop.equals(propURI + "End_of_Support_Date"))
 					{
-						processMinMaxDate(sub, prop, value, "Latest");
+						boolean latest = true;
+						returnTriple = processMinMaxDate(sub, prop, value, latest);
+					}
+					else if(prop.equals(propURI + "Availability-Actual"))
+					{
+						boolean min = false;
+						returnTriple = processMaxMinDouble(sub, prop, value, min);
+					}
+					else if(prop.equals(propURI + "Availability-Required"))
+					{
+						boolean max = true;
+						returnTriple = processMaxMinDouble(sub, prop, value, max);
 					}
 					else if(prop.equals(propURI + "Description"))
 					{
-						processConcatString(sub, prop, value, user);
+						returnTriple = processConcatString(sub, prop, value, user);
 					}
 					else if(prop.equals(propURI + "POC"))
 					{
-						processConcatString(sub, prop, value, user);
+						returnTriple = processConcatString(sub, prop, value, user);
 					}
 					else if(prop.equals(propURI + "Full_System_Name"))
 					{
-						processConcatString(sub, prop, value, user);
+						returnTriple = processConcatString(sub, prop, value, user);
 					}
 					else if(prop.equals(propURI + "Number_of_Users"))
 					{
-						processSumValues(sub, prop, value);
+						returnTriple = processSumValues(sub, prop, value);
 					}
 					else if(prop.equals(propURI + "Transaction_Count"))
 					{
-						processSumValues(sub, prop, value);
+						returnTriple = processSumValues(sub, prop, value);
 					}
 					else if(prop.equals(propURI + "User_Consoles"))
 					{
-						processSumValues(sub, prop, value);
+						returnTriple = processSumValues(sub, prop, value);
 					}
 					else if(prop.equals(propURI + "GarrisonTheater"))
 					{
-						processGarrisonTheater(sub, prop, value);
+						returnTriple = processGarrisonTheater(sub, prop, value);
 					}
 					else if(prop.equals(propURI + "Transactional"))
 					{
-						processTransactional(sub, prop, value);
+						returnTriple = processTransactional(sub, prop, value);
 					}
-				}
-				addToAllConcepts(sub);
-			}
-		}
-	}
 
-	private void processGarrisonTheater(String sub, String prop, String value)
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, value);
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-			}
-			else
-			{
-				innerHash = dataHash.get(sub);
-				String oldGT = innerHash.get(prop);
-				if(!oldGT.equalsIgnoreCase(value))
-				{
-					innerHash.put(prop, "\"Both\"");
-					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
-				}
-			}
-		}
-
-	}
-
-	private void processTransactional(String sub, String prop, String value)
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, value);
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-			}
-			//Different SystemServices should not be sending different transactional value
-			//perform check to make sure data is correct
-			else
-			{
-				innerHash = dataHash.get(sub);
-				String currentTransactional = innerHash.get(prop);
-				if(!currentTransactional.equalsIgnoreCase(value))
-				{
-					//TODO: add appropriate user information and need to break code
-					System.out.println(">>>>>>>>>>>>>>>>>> DIFFERENT TRANSACTIONAL VALUE");
-				}
-			}
-		}
-	}
-
-	private void processSumValues(String sub, String prop, String value)
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, value);
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-			}
-			else
-			{
-				innerHash = dataHash.get(sub);
-				String[] newSumAsString = value.split("\"");
-				String[] currentSum = innerHash.get(prop).split("\"");
-				Double newSum = Double.parseDouble(newSumAsString[1]) + Double.parseDouble(currentSum[1]); 
-				innerHash.put(prop, "\"" + newSum + "\"" + newSumAsString[2]);
-				logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newSum + "\"" + newSumAsString[2] + "}");
-			}
-		}
-	}
-
-	private void processConcatString(String sub, String prop, String value, String user) 
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1));
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1) + "}");
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1));
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1) + "}");
-			}
-			else
-			{
-				innerHash = dataHash.get(sub);
-				String currentString = innerHash.get(prop);
-				String concatString = currentString.substring(0, currentString.length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1);
-				innerHash.put(prop, concatString);
-				logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + concatString + "}");
-			}
-		}
-	}
-
-	private void processMaxMinDouble(String sub, String prop, String value, String maxOrMin)
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, value);
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-			}
-			else
-			{
-				innerHash = dataHash.get(sub);
-				String[] oldDoubleAsString = innerHash.get(prop).split("\"");
-				String[] newDoubleAsString = value.split("\"");
-				Double oldDouble = null;
-				Double newDouble = null;
-				oldDouble = Double.parseDouble(oldDoubleAsString[1]);
-				newDouble = Double.parseDouble(newDoubleAsString[1]);
-				if(maxOrMin.equalsIgnoreCase("Minimum"))
-				{
-					if(newDouble < oldDouble)
+					// returnTriple never gets a value when the property being passed in isn't in the defined list above
+					if(returnTriple[0] != null)
 					{
-						innerHash.put(prop, "\"" + newDouble + "\"" + newDoubleAsString[2]);
-						logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newDouble + "\"" + newDoubleAsString[2] + "}");
+						addToHash(returnTriple, true);
 					}
-				}
-				else if(maxOrMin.equalsIgnoreCase("Maximum"))
-				{
-					if(newDouble > oldDouble)
+
+					// sub already exists when going through TAP Core db
+					if(!TAP_Core)
 					{
-						innerHash.put(prop, "\"" + newDouble + "\"" + newDoubleAsString[2]);
-						logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newDouble + "\"" + newDoubleAsString[2] + "}");
+						addToAllConcepts(sub);
+					}
+
+					// must remove existing triple in TAP Core prior to adding
+					if(TAP_Core)
+					{
+						addToHash(new String[]{sub, prop, value}, false);
 					}
 				}
 			}
 		}
 	}
-
-	private void processMinMaxDate(String sub, String prop, String value, String latestOrEarliestDate) 
+	
+	private void runICDAggregation(String servicesQuery, String coreQuery)
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub))
-		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			if(!dataHash.get(sub).containsKey(prop))
-			{
-				innerHash = dataHash.get(sub);
-				innerHash.put(prop, value);
-				logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-			}
-			else
-			{
-				DateFormat formatter = new SimpleDateFormat("yyyyy-mm-dd'T'hh:mm:ss.sss'Z'");
-				innerHash = dataHash.get(sub);
-				String[] oldDateAsString = innerHash.get(prop).split("\"");
-				String[] newDateAsString = value.split("\"");
-				Date oldDate = null;
-				Date newDate = null;
-				try {
-					oldDate = formatter.parse(oldDateAsString[1]);
-					newDate = formatter.parse(newDateAsString[1]);
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				if(latestOrEarliestDate.equalsIgnoreCase("Earliest"))
-				{
-					if(newDate.before(oldDate))
-					{
-						innerHash.put(prop, "\"" + formatter.format(newDate) + "\"" + newDateAsString[2]);
-						logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + formatter.format(newDate) + "\"" + newDateAsString[2] + "}");
-					}
-				}
-				else if(latestOrEarliestDate.equalsIgnoreCase("Latest"))
-				{
-					if(newDate.after(oldDate))
-					{
-						innerHash.put(prop, "\"" + formatter.format(newDate) + "\"" + newDateAsString[2]);
-						logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + formatter.format(newDate) + "\"" + newDateAsString[2] + "}");
-					}
-				}
-			}
-		}
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// used to add a series of properties onto a property
-	// used when processing of properties is performed on the properties which requires them to be sent in multiple columns
-	private Hashtable<String, Hashtable<String, String>> addToHashtable(String system, Hashtable<String, String> properties, Hashtable<String, Hashtable<String, String>> propHash) 
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!propHash.containsKey(system))
-		{
-			propHash.put(system, innerHash);
-			for(String key : properties.keySet())
-			{
-				// properties are optional so null can be returned
-				if(properties.get(key) != null)
-				{
-					logger.info("ADDING NODE PROP");
-					propHash.get(system).put(key, properties.get(key).toString());
-					logger.info(system + ">>>>>" + key + ">>>>>" + properties.get(key));
-				}
-			}
-		}
-		else
-		{
-			for(String key : properties.keySet())
-			{
-				// properties are optional so null can be returned
-				if(properties.get(key) != null)
-				{
-					logger.info("ADDING NODE PROP");
-					propHash.get(system).put(key, properties.get(key).toString());
-					logger.info(system + ">>>>>" + key + ">>>>>" + properties.get(key));
-				}
-			}
-		}	
-		return propHash;
-	}
-
-
-	private void runRelationshipWithOnePropAggregation(String query, String propType, String type)
-	{
-		logger.info(query);
 		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+
+		logger.info(servicesQuery);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		processICDAggregation(sjswService, false);
+
+		logger.info(coreQuery);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		processICDAggregation(sjswCore , true);
+
+		// processing modifies class variable dataHash directly
+		processData(dataHash);
+	}
+
+	private void processICDAggregation(SesameJenaSelectWrapper sjsw, boolean TAP_Core) 
+	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			// get the next row and see how it must be added to the insert query
-			String subject = sjss.getRawVar(vars[0]) + "";
-			String pred = sjss.getRawVar(vars[1]) + "";
-			String object = sjss.getRawVar(vars[2]) + "";
-			String prop = "";
-			// check in case property is null
-			if(vars.length > 3)
+			String sub = sjss.getRawVar(vars[0]).toString();
+			String prop = sjss.getRawVar(vars[1]).toString();
+			String value = sjss.getRawVar(vars[2]).toString();
+			String user = "";
+			if(!TAP_Core)
 			{
-				prop = sjss.getRawVar(vars[3]) + "";
+				user = sjss.getRawVar(vars[3]).toString();
 			}
-
-			logger.info("ADDING RELATIONSHIP");
-			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
-			dataHash = addToHashtable(subject, pred, object, dataHash);
-			if(!prop.equals("") || prop == null)
+			else
 			{
-				String propertyURI = propURI + propType;
-				if(type.equals("RELATION"))
-				{
-					System.out.println("ADDING PROPERTY TO RELATIONSHIP");
-					dataHash = addToHashtable(pred, propertyURI, prop, dataHash);
-				}
-				if(type.equals("NODE-SUBJECT"))
-				{
-					System.out.println("ADDING PROPERTY TO SUBJECT NODE");
-					dataHash = addToHashtable(subject, propertyURI, prop, dataHash);
-				}
-				if(type.equals("NODE-OBJECT"))
-				{
-					System.out.println("ADDING PROPERTY TO OBJECT NODE");
-					dataHash = addToHashtable(subject, propertyURI, prop, dataHash);
-				}
+				user = "";
 			}
-
-			// add instances to master list
-			addToAllConcepts(subject);
-			addToAllConcepts(object);
-			addToAllRelationships(pred);
-		}
-		processData(dataHash);
-	}
-
-	/*
-	 * -InterfaceControlDocument – Copy over to TAP Core
-		-DFreq – Keep the highest frequency (e.g. daily takes precedence over weekly, if we receive both)
-		-DProt, DForm – Concatenate
-		-Concatenate all properties
-	 */
-	private void runPropertiesOnNode(String query)
-	{
-		logger.info(query);
-		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
-		String[] vars = sjsw.getVariables();
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw.next();
-			// get the next row and see how it must be added to the insert query
-			String subject = sjss.getRawVar(vars[0]) + "";
-			String prop = sjss.getRawVar(vars[1]) + "";
-			String value = sjss.getRawVar(vars[2]) + "";
-
-			logger.info("ADDING NODE PROPERTY");
-			dataHash = addToHashtable(subject, prop, value, dataHash);
-
-			// add instances to master list
-			addToAllConcepts(subject);
-		}
-		processData(dataHash);
-	}
-
-	private void runCreateNewNodeProperty(String query, String propType)
-	{
-		logger.info(query);
-		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
-		String[] vars = sjsw.getVariables();
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw.next();
-			// get the next row and see how it must be added to the insert query
-			String subject = sjss.getRawVar(vars[0]) + "";
-			String pred = propURI + propType;
-			String prop = sjss.getRawVar(vars[1]) + "";
-
-			logger.info("ADDING PROPERTY");
-			dataHash = addToHashtable(subject, pred, prop, dataHash);
-
-			// add instances to master list
-			addToAllConcepts(subject);
-		}
-		processData(dataHash);
-	}
-
-	private void runDataObjectAggregation(String query, String propType)
-	{
-		logger.info(query);
-		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
-		String[] vars = sjsw.getVariables();
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw.next();
-			// get the next row and see how it must be added to the insert query
-			String subject = sjss.getRawVar(vars[0]) + "";
-			String pred = sjss.getRawVar(vars[1]) + "";
-			String object = sjss.getRawVar(vars[2]) + "";
-			String prop = sjss.getRawVar(vars[3]) + "";
-			// process multiple CRM types giving precedence to C over M over R
-			if(prop.contains(";"))
+			
+			// variables to define relationship
+			String edgeType = "";
+			
+			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
-				ArrayList<String> parts = new ArrayList<String>(Arrays.asList(prop.split(":")));
-				if(parts.contains("C"))
+				String[] returnTriple = new String[3];
+				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
 				{
-					prop = "\"C\"";
+					if(prop.equals(propURI + "Data"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+						edgeType = "Has";
+					}
+					else if(prop.equals(propURI + "Format"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+						edgeType = "Has";
+					}
+					else if(prop.equals(propURI + "Frequency"))
+					{
+						returnTriple = processDFreq(sub, prop, value);
+						edgeType = "Has";
+					}
+					else if(prop.equals(propURI + "Interface_Name"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+					}
+					else if(prop.equals(propURI + "Protocol"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+						edgeType = "Has";
+					}
+					else if(prop.equals(propURI + "Source"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+					}
+					else if(prop.equals(propURI + "Type"))
+					{
+						returnTriple = processConcatString(sub, prop, value, user);
+					}
+					// returnTriple never gets a value when the property being passed in isn't in the defined list above
+					if(returnTriple[0] != null)
+					{
+						addToHash(returnTriple, true);
+						if(!edgeType.equals(""))
+						{
+							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.replaceAll("\"", ""), "/");
+							String newObj = sub.substring(0, sub.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(value.replaceAll("\"", ""), "/");
+							logger.info("ADDING:     " + sub + " -----> {" + newRel + " --- " + newObj + "}");
+							addToHash(new String[]{sub, newRel, newObj}, true);
+							
+							addToAllRelationships(newRel);
+							addToAllConcepts(newObj);
+						}
+					}
+					// sub already exists when going through TAP Core db
+					if(!TAP_Core)
+					{
+						addToAllConcepts(sub);
+					}
+					// must remove existing triple in TAP Core prior to adding
+					if(TAP_Core)
+					{
+						addToHash(new String[]{sub, prop, value}, false);
+					}
 				}
-				else if(parts.contains("M"))
-				{
-					prop = "\"M\"";
-				}
-				else
-				{
-					prop = "\"R\"";
-				}
-
 			}
-			logger.info("ADDING RELATIONSHIP");
-			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
-			dataHash = addToHashtable(subject, pred, object, dataHash);
-			String propertyURI = propURI + propType;
-			logger.info("ADDING PROPERTY");
-			dataHash = addToHashtable(pred, propertyURI, prop, dataHash);
-
-			// add instances to master list
-			addToAllConcepts(subject);
-			addToAllConcepts(object);
-			addToAllRelationships(pred);
 		}
+	}
+
+	private void runTErrorAggregation(String servicesQuery, String coreQuery) 
+	{
+		Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError = new Hashtable<String, Hashtable<String, LinkedList<String>>>();
+		dataHash.clear();
+
+		logger.info(servicesQuery);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		aggregatedTError = runAggregateAllData(sjswService, aggregatedTError, "weight", false);
+
+		logger.info(coreQuery);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
+
+		// processing modifies class variable dataHash directly
+		processTError(aggregatedTError, "weight");
+
 		processData(dataHash);
 	}
 
+	private void processTError(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError, String propType) 
+	{
+		String propertyURI = propURI + propType;
+		for( String sub : aggregatedTError.keySet() )
+		{
+			Hashtable<String, LinkedList<String>> innerHash = aggregatedTError.get(sub);
+			for ( String obj : innerHash.keySet() )
+			{
+				LinkedList<String> tErrList = innerHash.get(obj);
+				Iterator<String> tErrIt = tErrList.listIterator();
+				int counter = 0;
+				double totalTErr = 0;
+				String pred = "";
+				while(tErrIt.hasNext())
+				{
+					if(counter == 0)
+					{
+						pred  = tErrIt.next();
+						counter++;
+					}
+					else 
+					{
+						String[] valueAsString = tErrIt.next().split("\"");
+						totalTErr += Double.parseDouble(valueAsString[1]);
+						counter++;
+					}
+				}
 
-	//this function will add a value to a hashtable in format {subject : {predicate : object}} which is what will be needed for the prepareInsertQuery function
-	//need to think through how the aggregation will work if the s p o is already present in the hash... separate functions?
-	private Hashtable<String, Hashtable<String, String>> addToHashtable(String subject, String predicate, String object, Hashtable<String, Hashtable<String, String>> dataHash)
+				Double TError = totalTErr/(counter-1);
+				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
+				addToHash(new String[]{sub, pred, obj}, true);
+				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  String.valueOf(TError) + "}");
+				addToHash(new String[]{pred, propertyURI, String.valueOf(TError)}, true);
+			}
+		}
+	}
+	
+	private void runDataObjectAggregation(String servicesQuery, String coreQuery)
+	{
+		Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedDataObjects = new Hashtable<String, Hashtable<String, LinkedList<String>>>();
+		dataHash.clear();
+
+		logger.info(servicesQuery);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		aggregatedDataObjects = runAggregateAllData(sjswService , aggregatedDataObjects, "CRM", false);
+
+		logger.info(coreQuery);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		aggregatedDataObjects = runAggregateAllData(sjswCore, aggregatedDataObjects, "CRM", true);
+
+		// processing modifies class variable dataHash directly
+		processDataObjects(aggregatedDataObjects, "CRM");
+		
+		processData(dataHash);
+	}
+	
+	private void processDataObjects(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedDataObjects, String propType) 
+	{
+		String propertyURI = propURI + propType;
+		for( String sub : aggregatedDataObjects.keySet() )
+		{
+			Hashtable<String, LinkedList<String>> innerHash = aggregatedDataObjects.get(sub);
+			for ( String obj : innerHash.keySet() )
+			{
+				LinkedList<String> crmList = innerHash.get(obj);
+				String pred  = crmList.get(0);
+				String CRM = "";
+				if(crmList.contains("\"C\""))
+				{
+					CRM = "\"C\"";
+				}
+				else if(crmList.contains("\"M\""))
+				{
+					CRM = "\"M\"";
+				}
+				else 
+				{
+					CRM = "\"R\"";
+				}
+
+				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
+				addToHash(new String[]{sub, pred, obj}, true);
+				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
+				addToHash(new String[]{pred, propertyURI, CRM}, true);
+			}
+		}
+	}
+	
+	private void addToHash(String[] returnTriple, boolean add) 
 	{
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(subject))
+		innerHash.put(returnTriple[1], returnTriple[2]);
+		if(add)
 		{
-			logger.info("ADDING:     " + subject + " -----> {" + predicate + " --- " + object + "}");
-			innerHash.put(predicate, object);
-			dataHash.put(subject, innerHash);
+			if(dataHash.containsKey(returnTriple[0]))
+			{
+				dataHash.get(returnTriple[0]).putAll(innerHash);
+			}
+			else{
+				dataHash.put(returnTriple[0], innerHash);
+			}
 		}
 		else
 		{
-			logger.info("ADDING:     " + subject + " -----> {" + predicate + " --- " + object + "}");
-			innerHash = dataHash.get(subject);
-			innerHash.put(predicate, object);
-			dataHash.get(subject).put(predicate, object);
+			removeDataHash.put(returnTriple[0], innerHash);
+			if(removeDataHash.containsKey(returnTriple[0]))
+			{
+				removeDataHash.get(returnTriple[0]).putAll(innerHash);
+			}
+			else{
+				removeDataHash.put(returnTriple[0], innerHash);
+			}
 		}
-
-		return dataHash;
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	private String getTextAfterFinalDelimeter(String uri, String delimeter)
-	{
-		uri = uri.substring(uri.lastIndexOf(delimeter)+1);
-		return uri;
-	}
-
-	//process the query
-	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();		
-		sjsw.getVariables();
-		return sjsw;
 	}
 
 	private void addToAllConcepts(String uri)
@@ -931,6 +647,382 @@ public class ServicesAggregationProcessor {
 		}	
 	}
 
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// general methods for properties
+	
+	private String[] processSumValues(String sub, String prop, String value)
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String[] newSumAsString = value.split("\"");
+			String[] currentSum = innerHash.get(prop).split("\"");
+			Double newSum = Double.parseDouble(newSumAsString[1]) + Double.parseDouble(currentSum[1]); 
+			value = "\"" + newSum + "\"" + newSumAsString[2];
+			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newSum + "\"" + newSumAsString[2] + "}");
+		}
+		return new String[]{sub, prop, value};
+	}
+
+	private String[] processConcatString(String sub, String prop, String value, String user) 
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			if(!user.equals(""))
+			{
+				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1);
+			}
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String currentString = innerHash.get(prop);
+			if(!user.equals(""))
+			{
+				value = currentString.substring(0, currentString.length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1);
+			}
+			else
+			{
+				value = currentString.substring(0, currentString.length()-1) + ";" + value.substring(1);
+			}
+			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		return new String[]{sub, prop, value};
+	}
 
 
+	private String[] processMaxMinDouble(String sub, String prop, String value, boolean max)
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String[] oldDoubleAsString = innerHash.get(prop).split("\"");
+			String[] newDoubleAsString = value.split("\"");
+			Double oldDouble = null;
+			Double newDouble = null;
+			oldDouble = Double.parseDouble(oldDoubleAsString[1]);
+			newDouble = Double.parseDouble(newDoubleAsString[1]);
+			if(!max)
+			{
+				if(newDouble < oldDouble)
+				{
+					value =  "\"" + newDouble + "\"" + newDoubleAsString[2];
+					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+				}
+				// if the new value is not to be used, return the originally value already in dataHash
+				else
+				{
+					value = innerHash.get(prop);
+				}
+			}
+			else
+			{
+				if(newDouble > oldDouble)
+				{
+					value = "\"" + newDouble + "\"" + newDoubleAsString[2];
+					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+				}
+				// if the new value is not to be used, return the originally value already in dataHash
+				else
+				{
+					value = innerHash.get(prop);
+				}
+			}
+		}
+		return new String[]{sub, prop, value};
+
+	}
+
+	private String[] processMinMaxDate(String sub, String prop, String value, Boolean latest) 
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			innerHash.put(prop, value);
+			dataHash.put(sub, innerHash);
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			DateFormat formatter = new SimpleDateFormat("yyyyy-mm-dd'T'hh:mm:ss.sss'Z'");
+			innerHash = dataHash.get(sub);
+			String[] oldDateAsString = innerHash.get(prop).split("\"");
+			String[] newDateAsString = value.split("\"");
+			Date oldDate = null;
+			Date newDate = null;
+			try {
+				oldDate = formatter.parse(oldDateAsString[1]);
+				newDate = formatter.parse(newDateAsString[1]);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if(!latest)
+			{
+				if(newDate.before(oldDate))
+				{
+					value = "\"" + formatter.format(newDate) + "\"" + newDateAsString[2];
+					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+				}
+				// if the new value is not to be used, return the originally value already in dataHash
+				else
+				{
+					value = innerHash.get(prop);
+				}
+			}
+			else
+			{
+				if(newDate.after(oldDate))
+				{
+					value = "\"" + formatter.format(newDate) + "\"" + newDateAsString[2];
+					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+				}
+				// if the new value is not to be used, return the originally value already in dataHash
+				else
+				{
+					value = innerHash.get(prop);
+				}
+			}
+		}
+		return new String[]{sub, prop, value};
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Unique methods for properties
+	
+	private String[] processGarrisonTheater(String sub, String prop, String value)
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String oldGT = innerHash.get(prop);
+			if(!oldGT.equalsIgnoreCase(value))
+			{
+				value = "\"Both\"";
+				logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
+			}
+		}
+		return new String[]{sub, prop, value};
+	}
+
+	private String[] processTransactional(String sub, String prop, String value)
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		//Different SystemServices should not be sending different transactional value
+		//perform check to make sure data is correct
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String currentTransactional = innerHash.get(prop);
+			if(!currentTransactional.equalsIgnoreCase(value))
+			{
+				//TODO: add appropriate user information and need to break code
+				System.out.println(">>>>>>>>>>>>>>>>>> DIFFERENT TRANSACTIONAL VALUE");
+			}
+		}
+		return new String[]{sub, prop, value};
+	}
+	
+	private String[] processDFreq(String sub, String prop, String value) 
+	{
+		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			String[] frequencies = new String[]{value.replaceAll("\"", ""), innerHash.get(prop).replaceAll("\"", "")};
+			Integer[] currentFreqValue = new Integer[2];
+
+			for(int i = 0; i < frequencies.length; i++)
+			{
+				switch(frequencies[i])
+				{
+				case "Real-time (user-initiated)" : currentFreqValue[i] = 0; break;
+				case "Batch (monthly)" : currentFreqValue[i] = 720; break;
+				case "Weekly" : currentFreqValue[i] = 168; break;
+				case "Monthly" : currentFreqValue[i] = 720; break;
+				case "Batch (daily)" : currentFreqValue[i] = 24; break;
+				case "Batch(Daily)" : currentFreqValue[i] = 24; break;
+				case "Real-time" : currentFreqValue[i] = 0; break;
+				case "Transactional" : currentFreqValue[i] = 0; break;
+				case "On Demand" : currentFreqValue[i] = 0; break;
+				case "Event Driven (seconds-minutes)" : currentFreqValue[i] = 0; break;
+				case "TheaterFramework" : currentFreqValue[i] = 0; break;
+				case "Event Driven (Seconds)" : currentFreqValue[i] = 0; break;
+				case "Web services" : currentFreqValue[i] = 0; break;
+				case "TF" : currentFreqValue[i] = 0; break;
+				case "Batch (12/day)" : currentFreqValue[i] = 2; break;
+				case "SFTP" : currentFreqValue[i] = 0; break;
+				case "Batch (twice monthly)" : currentFreqValue[i] = 360; break;
+				case "Daily" : currentFreqValue[i] = 24; break;
+				case "Daily " : currentFreqValue[i] = 24; break;
+				case "Hourly" : currentFreqValue[i] = 1; break;
+				case "Near Real-time (transaction initiated)" : currentFreqValue[i] = 0; break;
+				case "Batch (three times a week)" : currentFreqValue[i] = 56; break;
+				case "Batch (weekly)" : currentFreqValue[i] = 168; break;
+				case "Near Real-time" : currentFreqValue[i] = 0; break;
+				case "Real Time" : currentFreqValue[i] = 0; break;
+				case "Batch" : currentFreqValue[i] = 0; break;
+				case "Batch (bi-monthly)" : currentFreqValue[i] = 1440; break;
+				case "Batch (semiannually)" : currentFreqValue[i] = 4392; break;
+				case "Event Driven (Minutes-hours)" : currentFreqValue[i] = 1; break;
+				case "Annually" : currentFreqValue[i] = 8760; break;
+				case "Batch(Monthly)" : currentFreqValue[i] = 720; break;
+				case "Bi-Weekly" : currentFreqValue[i] = 336; break;
+				case "Daily at end of day" : currentFreqValue[i] = 24; break;
+				case "TCP" : currentFreqValue[i] = 0; break;
+				case "event-driven (Minutes-hours)" : currentFreqValue[i] = 1; break;
+				case "Interactive" : currentFreqValue[i] = 0; break;
+				case "Weekly Quarterly" : currentFreqValue[i] = 0; break;
+				case "Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily" : currentFreqValue[i] = 168; break;
+				case "Weekly Daily" : currentFreqValue[i] = 168; break;
+				case "Periodic" : currentFreqValue[i] = 0; break;
+				case "Batch (4/day)" : currentFreqValue[i] = 6; break;
+				case "Batch(Daily/Monthly)" : currentFreqValue[i] = 720; break;
+				case "Weekly; Interactive; Interactive" : currentFreqValue[i] = 168; break;
+				case "interactive" : currentFreqValue[i] = 0; break;
+				case "Batch (quarterly)" : currentFreqValue[i] = 2184; break;
+				case "Every 8 hours (KML)/On demand (HTML)" : currentFreqValue[i] = 8; break;
+				case "Monthly at beginning of month, or as user initiated" : currentFreqValue[i] = 720; break;
+				case "On demad" : currentFreqValue[i] = 0; break;
+				case "Monthly Bi-Monthly Weekly Weekly" : currentFreqValue[i] = 720; break;
+				case "Quarterly" : currentFreqValue[i] = 2184; break;
+				case "On-demand" : currentFreqValue[i] = 0; break;
+				case "user upload" : currentFreqValue[i] = 0; break;
+				case "1/hour (KML)/On demand (HTML)" : currentFreqValue[i] = 1; break;
+				case "DVD" : currentFreqValue[i] = 0; break;
+				case "Weekly " : currentFreqValue[i] = 168; break;
+				case "Annual" : currentFreqValue[i] = 8760; break;
+				case "Daily Interactive" : currentFreqValue[i] = 24; break;
+				case "NFS, Oracle connection" : currentFreqValue[i] = 0; break;
+				case "Batch(Weekly)" : currentFreqValue[i] = 168; break;
+				case "Batch(Quarterly)" : currentFreqValue[i] = 2184; break;
+				case "Batch (yearly)" : currentFreqValue[i] = 8760; break;
+				case "Each user login instance" : currentFreqValue[i] = 0; break;
+				}
+			}
+			if(currentFreqValue[0] > currentFreqValue[1])
+			{
+				value = innerHash.get(prop);
+			}
+			// else, do not change the value to keep the one being inputed
+			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		return new String[]{sub, prop, value};
+	}
+
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Utility methods 
+	
+	private String getTextAfterFinalDelimeter(String uri, String delimeter)
+	{
+		if(!uri.equals(""))
+		{
+			uri = uri.substring(uri.lastIndexOf(delimeter)+1);
+		}
+		return uri;
+	}
+	
+	private String getBaseURI(String uri)
+	{
+		return uri.substring(0, uri.substring(0, uri.substring(0, uri.lastIndexOf("/")).lastIndexOf("/")).lastIndexOf("/"));
+	}
+
+	//process the query
+	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//run the query against the engine provided
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();		
+		sjsw.getVariables();
+		return sjsw;
+	}
+	
+	private Hashtable<String, Hashtable<String, LinkedList<String>>> runAggregateAllData(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedData, String propType, boolean TAP_Core)
+	{
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			// get the next row and see how it must be added to the insert query
+			String sys = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String obj = sjss.getRawVar(vars[2]).toString();
+			String prop = sjss.getRawVar(vars[3]).toString();
+
+			if(!TAP_Core)
+			{
+				pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(obj, "/");
+			}
+
+			if(aggregatedData.containsKey(sys) || !TAP_Core)
+			{
+				LinkedList<String> dataList = new LinkedList<String>();
+				Hashtable<String, LinkedList<String>> innerHash = new Hashtable<String, LinkedList<String>>();
+				if(!aggregatedData.containsKey(sys))
+				{
+					dataList.add(pred);
+					dataList.add(prop);
+					innerHash.put(obj, dataList);
+					aggregatedData.put(sys, innerHash);
+					logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+				}
+				else
+				{
+					if(!aggregatedData.get(sys).containsKey(obj))
+					{
+						innerHash = aggregatedData.get(sys);
+						dataList.add(pred);
+						dataList.add(prop);
+						innerHash.put(obj, dataList);
+						logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+					}
+					else
+					{
+						innerHash = aggregatedData.get(sys);
+						dataList = innerHash.get(obj);
+						dataList.add(prop);
+						logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+					}
+				}
+
+				// add instances to master list
+				addToAllConcepts(sys);
+				addToAllConcepts(obj);
+
+				if(TAP_Core)
+				{
+					addToHash(new String[]{pred, propURI + propType, prop}, false);
+				}
+				addToAllRelationships(pred);
+			}
+		}
+		return aggregatedData;
+	}
 }
