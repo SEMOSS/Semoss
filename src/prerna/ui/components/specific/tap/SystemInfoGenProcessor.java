@@ -130,8 +130,17 @@ public class SystemInfoGenProcessor {
 		sysList = new ArrayList<String>();
 		headersList = new ArrayList<String>();
 		processQueries();
-		writeToFile();
-		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\");
+		
+		SystemInfoGenWriter writer = new SystemInfoGenWriter();
+		String folder = "\\export\\Reports\\";
+		String writeFileName = "System_Info_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
+
+		String fileLoc = workingDir + folder + writeFileName;
+		logger.info(fileLoc);	
+
+		writer.exportSystemInfoReport(fileLoc, sysList,headersList,masterHash);
+		
+		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\"+writeFileName);
 	}
 
 	/**
@@ -140,7 +149,6 @@ public class SystemInfoGenProcessor {
 	 * @return returnHash	Hashtable containing the results for all the queries
 	 */
 	public void processQueries() {
-		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 
 		//System Names
 		String sysNameQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}} ORDER BY ?System";
@@ -151,6 +159,9 @@ public class SystemInfoGenProcessor {
 		//System Users
 		String sysUsersQuery = "SELECT DISTINCT ?System ?SystemUser WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>;}{?System ?UsedBy ?SystemUser}}";
 
+		//System Users
+		String sysGarrisonTheaterQuery = "SELECT DISTINCT ?System ?GarrisonTheater WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GarrisonTheater}}";
+		
 		//Num of Deployment Sites
 		String sysNumDeploymentQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?DCSite)) as ?NumDeploymentSites) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite ?DeployedAt ?DCSite;} {?System ?DeployedAt1 ?SystemDCSite;} } GROUP BY ?System";
 		
@@ -161,10 +172,12 @@ public class SystemInfoGenProcessor {
 		String sysNumDownstreamSystemsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?DownstreamSys)) AS ?NumDownstreamSystems) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;}} GROUP BY ?System";
 		
 		//Num of Upstream ICDS
-		String sysNumUpstreamICDsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Interface)) AS ?NumDownstreamInterfaces) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Interface ?Downstream ?System;}} GROUP BY ?System";
+		String sysNumUpstreamICDsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Interface)) AS ?NumUpstreamInterfaces) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Interface ?Downstream ?System;}} GROUP BY ?System";
 		
 		//Num of Upstream Systems
 		String sysNumUpstreamSystemsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?UpstreamSys)) AS ?NumUpstreamSystems) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?System ;}} GROUP BY ?System";
+		
+		String sysNumDataObjectsRecordQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Data)) AS ?NumOfDataObjectsSystemIsSourceFor) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } GROUP BY ?System";
 		
 		//System Complexity
 		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
@@ -175,29 +188,15 @@ public class SystemInfoGenProcessor {
 		runSystemListQuery(tapCoreEngine, sysNameQuery);
 		runQuery(tapCoreEngine,sysOwnersQuery);
 		runQuery(tapCoreEngine,sysUsersQuery);
+		runQuery(tapCoreEngine,sysGarrisonTheaterQuery);
 		runQuery(tapSiteEngine,sysNumDeploymentQuery);
 		runQuery(tapCoreEngine,sysNumDownstreamICDsQuery);
 		runQuery(tapCoreEngine,sysNumDownstreamSystemsQuery);
 		runQuery(tapCoreEngine,sysNumUpstreamICDsQuery);
 		runQuery(tapCoreEngine,sysNumUpstreamSystemsQuery);
+		runQuery(tapCoreEngine,sysNumDataObjectsRecordQuery);
+		runQuery(tapCoreEngine,complexityQuery);
 		runQuery(tapCoreEngine,BVAndTMQuery);
 	}
 
-	/**
-	 * Create the report file name and location, and call the writer to write the report for the specified system
-	 * Create the location for the fact sheet report template
-	 * @param service			String containing the service category of the system
-	 * @param systemName		String containing the system name to produce the fact sheet
-	 * @param systemDataHash 	Hashtable containing the results for the query for the specified system
-	 */
-	public void writeToFile() {
-		SystemInfoGenWriter writer = new SystemInfoGenWriter();
-		String folder = "\\export\\Reports\\";
-		String writeFileName = "System_Info_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
-
-		String fileLoc = workingDir + folder + writeFileName;
-		logger.info(fileLoc);	
-
-		writer.exportSystemInfoReport(fileLoc, sysList,headersList,masterHash);
-	}
 }
