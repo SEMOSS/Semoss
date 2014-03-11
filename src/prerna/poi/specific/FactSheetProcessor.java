@@ -45,7 +45,7 @@ public class FactSheetProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	String tapCoreEngine = "TAP_Core_Data";
 	String tapSiteEngine = "TAP_Site_Data";
-	String tapCostEngine = "TAP_Cost_Data";
+	String tapCostEngine = "TAP_Portfolio";
 	String workingDir = System.getProperty("user.dir");
 	FactSheetSysDupeCalculator sysDupe;
 
@@ -268,7 +268,8 @@ public class FactSheetProcessor {
 		businessLogicQuery = businessLogicQuery.replaceAll("AHLTA", systemName);
 
 		//Site List Query
-		String siteListQuery = "SELECT DISTINCT ?SiteName ?Agency ?Director ?FacType ?Address WHERE { BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System) {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System ?DeployedAt1 ?SystemDCSite} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SiteName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Facility>} {?SystemDCSite ?DeployedAt ?SiteName}  {?SiteName <http://semoss.org/ontologies/Relation/Contains/Agency> ?Agency} {?SiteName <http://semoss.org/ontologies/Relation/Contains/Director> ?Director} {?SiteName <http://semoss.org/ontologies/Relation/Contains/FacType> ?FacType} {?SiteName <http://semoss.org/ontologies/Relation/Contains/Address> ?Address} }";		
+		//String siteListQuery = "SELECT DISTINCT ?SiteName ?Agency ?Director ?FacType ?Address WHERE { BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System) {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System ?DeployedAt1 ?SystemDCSite} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SiteName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Facility>} {?SystemDCSite ?DeployedAt ?SiteName}  {?SiteName <http://semoss.org/ontologies/Relation/Contains/Agency> ?Agency} {?SiteName <http://semoss.org/ontologies/Relation/Contains/Director> ?Director} {?SiteName <http://semoss.org/ontologies/Relation/Contains/FacType> ?FacType} {?SiteName <http://semoss.org/ontologies/Relation/Contains/Address> ?Address} }";	
+		String siteListQuery = "SELECT DISTINCT ?DCSite WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;} {?System ?DeployedAt1 ?SystemDCSite;} }";
 		siteListQuery = siteListQuery.replaceAll("AHLTA", systemName);		
 
 		//Budget Query
