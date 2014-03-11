@@ -205,5 +205,7 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		}
 		browser.executeScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
+		allHash.clear();
+		paramDataHash.clear();
 	}
 }
