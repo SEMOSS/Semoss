@@ -101,13 +101,14 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		for (int i=0; i<list.size(); i++)
 		{	
 			Object[] listElement = list.get(i);
-			for (int j = 0; j < var.length; j++) 
-			{	
-					String text = (String) listElement[j];
-					String processedText = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "").replaceAll("\'","").replaceAll("’", "");
+		//	for (int j = 0; j < var.length; j++) 
+		//	{	
+					String text = (String) listElement[0];
+					String source = (String) listElement[1];
+					String processedText = text.replaceAll("\\[", "(").replaceAll("\\]", ")").replaceAll(",", "").replaceAll("&", "").replaceAll("\'","").replaceAll("’", "")+" ("+source+")";
 					capabilityProcessed.put(processedText,text);
 					dataArrayList.add(processedText);
-			}			
+		//	}			
 		}
 
 		capabilityHash.put("dataSeries", dataArrayList);
