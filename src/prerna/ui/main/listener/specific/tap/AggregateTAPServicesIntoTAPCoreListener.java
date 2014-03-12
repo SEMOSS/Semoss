@@ -12,6 +12,7 @@ import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 
@@ -34,6 +35,7 @@ public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 		ServicesAggregationProcessor sap = new ServicesAggregationProcessor(servicesDB, coreDB);
 		sap.runFullAggregation();
 		
+		Utility.showMessage("Finished Aggregation!");
 	}
 
 	@Override
