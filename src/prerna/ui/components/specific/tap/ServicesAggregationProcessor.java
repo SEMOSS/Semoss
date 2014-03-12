@@ -12,8 +12,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.rdf.sparql.ast.DeleteData;
-
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -38,6 +36,13 @@ public class ServicesAggregationProcessor {
 
 	private HashSet<String> allSoftwareModules = new HashSet<String>();
 	private HashSet<String> allHardwareModules = new HashSet<String>();
+
+	public String errorMessage = "";
+	
+	public String getErrorMessage()
+	{
+		return this.errorMessage;
+	}
 
 	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
@@ -157,24 +162,53 @@ public class ServicesAggregationProcessor {
 		this.coreDB = coreDB;
 	}
 
-	public void runFullAggregation()
+	public boolean runFullAggregation()
 	{
+		boolean success = true;
+		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
+		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
+		
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		runICDAggregation(TAP_SERVICES_AGGREGATE_ICD_QUERY, TAP_CORE_AGGREGATE_ICD_QUERY);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		runTErrorAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, TAP_CORE_AGGREGATE_TERROR_QUERY);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_QUERY);
-		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
-		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY, TAP_CORE_AGGREGATION_SOFTWARE_QUERY, true);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATE_HARDWARE_QUERY, TAP_CORE_AGGREGATION_HARDWARE_QUERY, false);
+		if(!errorMessage.isEmpty())
+		{
+			return (success = false);
+		}
 		processNewConcepts();
 		processNewRelationships();
 		((BigDataEngine) coreDB).infer();
+
+		return success;
 	}
 
 	private void runRelationshipAggregation(String query)
@@ -207,7 +241,6 @@ public class ServicesAggregationProcessor {
 	private void runSystemServicePropertyAggregation(String propSystemServiceQuery, String propTAPCoreQuery)
 	{
 		dataHash.clear();
-
 		logger.info("PROCESSING QUERY: " + propSystemServiceQuery);
 		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
 		processServiceSystemProperties(sjswServices,  false);
@@ -294,6 +327,12 @@ public class ServicesAggregationProcessor {
 						returnTriple = processTransactional(sub, prop, value);
 					}
 
+					// if error occurs
+					if(returnTriple.equals(new String[]{""}))
+					{
+						return;
+					}
+					
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
@@ -395,6 +434,13 @@ public class ServicesAggregationProcessor {
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
+					
+					// if error occurs
+					if(returnTriple.equals(new String[]{""}))
+					{
+						return;
+					}
+					
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
@@ -442,14 +488,19 @@ public class ServicesAggregationProcessor {
 		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
 
 		// processing modifies class variable dataHash directly
-		processTError(aggregatedTError, "weight");
-
+		boolean success = processTError(aggregatedTError, "weight");
+		if(!success)
+		{
+			return;
+		}
+		
 		processData(dataHash);
 		deleteData(removeDataHash);
 	}
 
-	private void processTError(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError, String propType) 
+	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError, String propType) 
 	{
+		boolean success = true;
 		String propertyURI = propURI + propType;
 		for( String sub : aggregatedTError.keySet() )
 		{
@@ -471,8 +522,24 @@ public class ServicesAggregationProcessor {
 					else 
 					{
 						String[] valueAsString = tErrIt.next().split("\"");
-						totalTErr += Double.parseDouble(valueAsString[1]);
-						counter++;
+						if(valueAsString.length != 3)
+						{
+							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
+									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsString[1] + "\n"				
+									+ "Check that value is correctly stored";
+							return (success = false);
+						}
+
+						try{
+							totalTErr += Double.parseDouble(valueAsString[1]);
+						} catch(NumberFormatException e)
+						{
+							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
+									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsString[1] + "\n"				
+									+ "Check that value is parsable as a double";
+							return (success = false);
+						}
+							counter++;
 					}
 				}
 
@@ -483,6 +550,7 @@ public class ServicesAggregationProcessor {
 				addToHash(new String[]{pred, propertyURI, String.valueOf(TError)}, true);
 			}
 		}
+		return success;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -527,11 +595,11 @@ public class ServicesAggregationProcessor {
 				{
 					CRM = "\"M\"";
 				}
-				else 
+				else if(crmList.contains("\"R\""))
 				{
 					CRM = "\"R\"";
 				}
-
+				
 				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
 				addToHash(new String[]{sub, pred, obj}, true);
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
@@ -638,6 +706,12 @@ public class ServicesAggregationProcessor {
 						returnTriple = processConcatString(module, prop, value, user);
 					}
 
+					// if error occurs
+					if(returnTriple.equals(new String[]{""}))
+					{
+						return;
+					}
+					
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
@@ -732,7 +806,8 @@ public class ServicesAggregationProcessor {
 			{
 				removeDataHash.get(returnTriple[0]).putAll(innerHash);
 			}
-			else{
+			else
+			{
 				removeDataHash.put(returnTriple[0], innerHash);
 			}
 		}
@@ -778,7 +853,6 @@ public class ServicesAggregationProcessor {
 				{
 					concept_triple = false;
 				}
-
 				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, concept_triple);
 				logger.info(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
@@ -876,6 +950,16 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
+			String[] doubleFormatCheck = innerHash.get(prop).split("\"");
+			if(doubleFormatCheck.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Sum of Values! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that value is formatted correctly";
+				return new String[]{""};
+			}
+			innerHash.put(prop, value);
+			dataHash.put(sub, innerHash);
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
@@ -883,7 +967,25 @@ public class ServicesAggregationProcessor {
 			innerHash = dataHash.get(sub);
 			String[] newSumAsString = value.split("\"");
 			String[] currentSum = innerHash.get(prop).split("\"");
-			Double newSum = Double.parseDouble(newSumAsString[1]) + Double.parseDouble(currentSum[1]); 
+			if(newSumAsString.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Sum of Values! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that value is parsable as a double";
+				return new String[]{""};
+			}
+			Double newSum = null;
+			try
+			{
+				newSum = Double.parseDouble(newSumAsString[1]) + Double.parseDouble(currentSum[1]); 
+			} catch(NumberFormatException e)
+			{
+				e.printStackTrace();
+				this.errorMessage = this.errorMessage + "Error Processing Sum Value! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"				
+						+ "Check that value is parsable as a double";
+				return new String[]{""};
+			}
 			value = "\"" + newSum + "\"" + newSumAsString[2];
 			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newSum + "\"" + newSumAsString[2] + "}");
 		}
@@ -924,6 +1026,16 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
+			String[] doubleFormatCheck = innerHash.get(prop).split("\"");
+			if(doubleFormatCheck.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Max/Min Double! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that value is formatted correctly";
+				return new String[]{""};
+			}
+			innerHash.put(prop, value);
+			dataHash.put(sub, innerHash);
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
@@ -931,10 +1043,26 @@ public class ServicesAggregationProcessor {
 			innerHash = dataHash.get(sub);
 			String[] oldDoubleAsString = innerHash.get(prop).split("\"");
 			String[] newDoubleAsString = value.split("\"");
+			if(newDoubleAsString.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Max/Min Double! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that value is formatted correctly";
+			}
 			Double oldDouble = null;
 			Double newDouble = null;
-			oldDouble = Double.parseDouble(oldDoubleAsString[1]);
-			newDouble = Double.parseDouble(newDoubleAsString[1]);
+			try{
+				oldDouble = Double.parseDouble(oldDoubleAsString[1]);
+				newDouble = Double.parseDouble(newDoubleAsString[1]);
+			}
+			catch(NumberFormatException e)
+			{
+				e.printStackTrace();
+				this.errorMessage = this.errorMessage + "Error Processing Max/Min Value! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"				
+						+ "Check that value is parsable as a double";
+				return new String[]{""};
+			}
 			if(!max)
 			{
 				if(newDouble < oldDouble)
@@ -971,6 +1099,14 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, String> innerHash = new Hashtable<String, String>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
+			String[] dateFormatCheck = innerHash.get(prop).split("\"");
+			if(dateFormatCheck.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that date is formatted correctly";
+				return new String[]{""};
+			}
 			innerHash.put(prop, value);
 			dataHash.put(sub, innerHash);
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
@@ -981,14 +1117,24 @@ public class ServicesAggregationProcessor {
 			innerHash = dataHash.get(sub);
 			String[] oldDateAsString = innerHash.get(prop).split("\"");
 			String[] newDateAsString = value.split("\"");
+			if(newDateAsString.length != 3)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that date is formatted correctly";
+				return new String[]{""};
+			}
 			Date oldDate = null;
 			Date newDate = null;
 			try {
 				oldDate = formatter.parse(oldDateAsString[1]);
 				newDate = formatter.parse(newDateAsString[1]);
 			} catch (ParseException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
+						+ "Check that date format is in form yyyyy-mm-dd'T'hh:mm:ss.sss'Z'";
+				return new String[]{""};
 			}
 			if(!latest)
 			{
@@ -1058,8 +1204,9 @@ public class ServicesAggregationProcessor {
 			String currentTransactional = innerHash.get(prop);
 			if(!currentTransactional.equalsIgnoreCase(value))
 			{
-				//TODO: add appropriate user information and need to break code
-				System.out.println(">>>>>>>>>>>>>>>>>> DIFFERENT TRANSACTIONAL VALUE");
+				this.errorMessage = this.errorMessage + "Error Processing Transactional!  Conflicting report from systems \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						;				
+				return new String[]{""};
 			}
 		}
 		return new String[]{sub, prop, value};
@@ -1146,6 +1293,13 @@ public class ServicesAggregationProcessor {
 				case "Each user login instance" : currentFreqValue[i] = 0; break;
 				}
 			}
+			if(currentFreqValue[0] == null || currentFreqValue[1] == null)
+			{
+				this.errorMessage = this.errorMessage + "Error Processing DFreq!  Check frequency is predefined in list. \n" 
+						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+				return new String[]{""};
+			}
+
 			if(currentFreqValue[0] > currentFreqValue[1])
 			{
 				value = innerHash.get(prop);

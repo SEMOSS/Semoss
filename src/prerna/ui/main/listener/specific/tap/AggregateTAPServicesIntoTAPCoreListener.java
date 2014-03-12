@@ -33,9 +33,16 @@ public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 		//send to processor
 		logger.info("Aggregating " + servicesDbName + " into " + coreDbName);
 		ServicesAggregationProcessor sap = new ServicesAggregationProcessor(servicesDB, coreDB);
-		sap.runFullAggregation();
-		
-		Utility.showMessage("Finished Aggregation!");
+		boolean success = sap.runFullAggregation();
+		if(success)
+		{
+			Utility.showMessage("Finished Aggregation!");
+		}
+		else
+		{
+			String errorMessage = sap.getErrorMessage();
+			Utility.showError(errorMessage);
+		}
 	}
 
 	@Override
