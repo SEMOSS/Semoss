@@ -20,6 +20,7 @@ DataObject http://health.mil/ontologies/Concept/DataObject
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
 HardwareVersion http://health.mil/ontologies/Concept/HardwareVersion
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
+SystemUser http://health.mil/ontologies/Concept/SystemUser
 Hardware http://health.mil/ontologies/Concept/Hardware
 SystemService http://health.mil/ontologies/Concept/SystemService
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
@@ -28,6 +29,7 @@ Personnel http://health.mil/ontologies/Concept/Personnel
 ##Base Predicates##
 
 SystemService_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
+SystemService_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 SystemService_Has_TError http://health.mil/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
@@ -64,6 +66,7 @@ BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
+SystemUser_CLASS http://semoss.org/ontologies/Concept/SystemUser
 SoftwareVersion_CLASS http://semoss.org/ontologies/Concept/SoftwareVersion
 UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 ServiceSoftwareModule_CLASS http://semoss.org/ontologies/Concept/ServiceSoftwareModule
@@ -88,6 +91,7 @@ InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/H
 SystemService_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Provide
 SystemService_Provide_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Provide
+SystemService_UsedBy_SystemUser_CLASS http://semoss.org/ontologies/Relation/UsedBy
 SystemService_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemService_Has_ServiceHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 SystemService_Implemented_At_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Implemented_At
