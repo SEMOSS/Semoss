@@ -199,7 +199,6 @@ public class ServicesAggregationProcessor {
 			addToAllRelationships(pred);
 		}
 		processData(dataHash);
-		deleteData(removeDataHash);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
