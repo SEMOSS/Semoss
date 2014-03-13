@@ -19,6 +19,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.event.ActionListener;
+import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -30,6 +31,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.CONUSMapPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
@@ -58,73 +60,42 @@ public class HealthGridExporter {
 	 * @param systemList 	List of systems.
 	 * @param catHash 		HashMap<String,String> of different categories.
 	 */
-	public void processData(ArrayList<String> systemList,HashMap<String,String> catHash)
-	{
-		String healthGridCat="";
-		Runnable playRunner = null;
-		IPlaySheet playSheet = null;
+	public void processData(ArrayList<String> systemList)
+	{	
+		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		String id = "Health_Grid";
+		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
+		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) ?SustainmentBudget ?SystemStatus ?highlight WHERE {BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} {?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus }BIND(1 AS ?SustainmentBudget) } BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";
 		
+		HealthGridSheet playSheet = new HealthGridSheet();					
+		playSheet.setQuery(query);
+		playSheet.setRDFEngine((IEngine) engine);
+		playSheet.setQuestionID(question);
+		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		playSheet.setJDesktopPane(pane);
+
+		QuestionPlaySheetStore.getInstance().put(question, playSheet);
+		
+		playSheet.setSystemHighlight(true);
+		playSheet.setSystemToHighlight("ABACUS");
+		playSheet.createData();
+		playSheet.runAnalytics();
+		playSheet.createView();
+				
 		for(String system: systemList)
 		{
-			String sysCat = catHash.get(system);
-			if(!sysCat.equals(healthGridCat))
-			{
-				//if we have a new category, create a new application health grid for that system category.
-				//if we already have this category loaded, then just resend the data with new system to highlight
-				healthGridCat = sysCat;
-				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-				
-				//set up id, layout, and query
-				String id = "Health_Grid";
-				String question = QuestionPlaySheetStore.getInstance().getIDCount() +". "+ id;
-				String layoutValue = "prerna.ui.components.specific.tap.HealthGridSheet";
-				String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) ?SystemStatus WHERE {BIND(<http://health.mil/ontologies/Concept/SystemOwner/Army> AS ?SystemOwner) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} {?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus } }";
-				query=query.replace("Army",sysCat);
+			query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) ?SustainmentBudget ?SystemStatus ?highlight WHERE {BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} {?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus }BIND(1 AS ?SustainmentBudget) } BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";
+			query = query.replace("ABACUS",system);
+			playSheet.setQuery(query);
+			playSheet.setSystemHighlight(true);
+			playSheet.setSystemToHighlight("ABACUS");	
+			playSheet.createData();
+			playSheet.runAnalytics();
+			playSheet.createView();
 
-				try {
-					playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					logger.fatal(ex);
-				}
-							
-				playSheet.setQuery(query);
-				playSheet.setRDFEngine((IEngine) engine);
-				playSheet.setQuestionID(question);
 
-				
-				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-				playSheet.setJDesktopPane(pane);
 
-				// need to create the playsheet create runner
-				playRunner = new PlaysheetCreateRunner(playSheet);
-
-				// put it into the store
-				QuestionPlaySheetStore.getInstance().put(question, playSheet);
-				
-				Thread playThread = new Thread(playRunner);
-				playThread.start();
-			
-				try {
-					Thread.sleep(4000);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
-				}
-				
-			}
-			//resending the data to the health grid so that it will highlight the current system
-			((HealthGridSheet)playSheet).setSystemHighlight(true);
-			((HealthGridSheet)playSheet).setSystemToHighlight(system);
-			((HealthGridSheet)playSheet).refreshView();
-			
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			
-
-			if(!((HealthGridSheet)playSheet).isEmpty())
+			if(!playSheet.isEmpty())
 			{
 				//location of export
 				String workingDir = System.getProperty("user.dir");
@@ -133,7 +104,7 @@ public class HealthGridExporter {
 				String fileLoc = workingDir + folder+writeFileName;
 				
 				//call chartimageexportlistener to export the app health grid.
-				ChartControlPanel chartControl= ((HealthGridSheet)playSheet).getControlPanel();
+				ChartControlPanel chartControl= playSheet.getControlPanel();
 				JButton btnImageExport = chartControl.getImageExportButton();
 				ActionListener[] actionList = btnImageExport.getActionListeners();
 				ChartImageExportListener chartList = (ChartImageExportListener)actionList[0];
@@ -144,8 +115,16 @@ public class HealthGridExporter {
 				chartList.setCropBool(true);
 				chartList.setCrop(27,100,435,295);
 				btnImageExport.doClick();
+				
+//				try {
+//					playSheet.setClosed(true);
+//				} catch (PropertyVetoException e) {
+//					e.printStackTrace();
+//				}
 
 			}
+			playSheet.clearTables();
+
 		}
 	}
 }

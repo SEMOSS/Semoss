@@ -39,14 +39,14 @@ import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 /**
- * Creates a map of systems outside the continental United States and allows the user to export the image for future use.
+ * Creates a map of systems in the continental United States and allows the user to export the image for future use.
  */
 public class OCONUSMapExporter {
 
 	Logger logger = Logger.getLogger(getClass());
 	
 	/**
-	 * Constructor for OCONUSMapExporter.
+	 * Constructor for CONUSMapExporter.
 	 */
 	public OCONUSMapExporter()
 	{
@@ -61,7 +61,7 @@ public class OCONUSMapExporter {
 	{
 		ArrayList<String> systemsInSite = new ArrayList<String>();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}}";		
+		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}} ORDER BY ?System";		
 		
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
@@ -82,10 +82,9 @@ public class OCONUSMapExporter {
 		return systemsInSite;
 	}
 	
-	
 	/**
 	 * Uses the list of systems in order to get additional information about facility, latitude, and longitude from a different query run on the TAP site data.
-	 * Creates a playsheet containing the map of sites outside of the continental United States with systems plotted on it.
+	 * Creates a playsheet containing the map of the continental United States with systems plotted on it.
 	 * Specifies a location for image export and closes the chart.
 	 * @param systemList 	ArrayList containing all of the system names, in string form.
 	 */
@@ -95,50 +94,45 @@ public class OCONUSMapExporter {
 		String id = "OCONUS_Map";
 		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 		String layoutValue = "prerna.ui.components.playsheets.OCONUSMapPlaySheet";
-		String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";		IPlaySheet playSheet = null;
-		try {
-			playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.fatal(ex);
-		}
-		
-		playSheet.setQuery(query);
-		playSheet.setRDFEngine((IEngine) engine);
-		playSheet.setQuestionID(question);
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		playSheet.setJDesktopPane(pane);
-
-		// put it into the store
-		QuestionPlaySheetStore.getInstance().put(question, playSheet);
-
-		playSheet.createData();
-		playSheet.runAnalytics();
-		playSheet.createView();
-		
+		String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
+				
 		ArrayList<String> systemsInSite = systemsInSiteDB();
 		for(String system: systemList)
 		{
 			if(systemsInSite.contains(system))
 			{
-				query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";				query=query.replace("AHLTA",system);
+				query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
+				query=query.replace("AHLTA",system);
+
+				IPlaySheet playSheet = null;
+				try {
+					playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					logger.fatal(ex);
+				}
 							
 				playSheet.setQuery(query);
 				playSheet.setRDFEngine((IEngine) engine);
+				playSheet.setQuestionID(question);
+				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+				playSheet.setJDesktopPane(pane);
 
-				((OCONUSMapPlaySheet)playSheet).createView();
-				((OCONUSMapPlaySheet)playSheet).browser.waitReady();
+				QuestionPlaySheetStore.getInstance().put(question, playSheet);
+				
+				playSheet.createData();
+				playSheet.runAnalytics();
+				playSheet.createView();
 				
 				if(!((OCONUSMapPlaySheet)playSheet).isEmpty())
 				{
-				
 					//location of export
 					String workingDir = System.getProperty("user.dir");
 					String folder = "\\export\\Images\\";
 					String writeFileName = system+"_OCONUS_Map_Export.png";
 					String fileLoc = workingDir + folder+writeFileName;
 					
-					//call chartimageexportlistener to export the oconusmap. and then close the chart.
+					//call chartimageexportlistener to export the conusmap. and then close the chart.
 					ChartControlPanel chartControl= ((OCONUSMapPlaySheet)playSheet).getControlPanel();
 					JButton btnImageExport = chartControl.getImageExportButton();
 					ActionListener[] actionList = btnImageExport.getActionListeners();
@@ -148,16 +142,15 @@ public class OCONUSMapExporter {
 					chartList.setScaleBool(true);
 					chartList.setScale(710,440);
 					btnImageExport.doClick();
-					
-				}	
+					try {
+						((OCONUSMapPlaySheet)playSheet).setClosed(true);
+					} catch (PropertyVetoException e) {
+						e.printStackTrace();
+					}
+				}
 
 			}
 		}
-		
-		try {
-			((OCONUSMapPlaySheet)playSheet).setClosed(true);
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
+
 	}
 }

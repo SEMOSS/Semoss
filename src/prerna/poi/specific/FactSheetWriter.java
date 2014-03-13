@@ -225,6 +225,10 @@ public class FactSheetWriter {
 					if ( (j==6 || j==7) && ( (highlight.length() >= 10) && (!highlight.equals("TBD")) && (!highlight.equals("")) && (!highlight.equals("NA")) ) ) {
 						cellToWriteOn.setCellValue(highlight.substring(0, 10));
 					}
+					else if(highlight.equals("NA")||highlight.equals("TBD"))
+					{
+						cellToWriteOn.setCellValue("Unknown");
+					}
 					else					
 						cellToWriteOn.setCellValue(highlight);
 				}
@@ -245,7 +249,7 @@ public class FactSheetWriter {
 				double value = (Double) maturity.get(j);
 				value = (double)Math.round(value * 100) / 100;
 				cellToWriteOn.setCellValue(value);
-				if (value == 0) cellToWriteOn.setCellValue("N/A");							
+				if (value == 0) cellToWriteOn.setCellValue("Unknown");							
 
 			}
 		}
@@ -469,11 +473,39 @@ public class FactSheetWriter {
 		defaultStyle.setBorderRight(CellStyle.BORDER_THIN);
 
 		for (int i=0; i<result.size(); i++) {
+			System.out.println("i "+i);
+			if(i==310)
+			{
+				String kylene = "kylene";}
 			ArrayList row = (ArrayList) result.get(i);
-			rowToWriteOn = sheetToWriteOver.getRow(i+10);
+			if(sheetToWriteOver.getLastRowNum()>=i+10)
+				rowToWriteOn = sheetToWriteOver.getRow(i+10);
+			else
+			{
+				rowToWriteOn = sheetToWriteOver.createRow(i+10);
+				rowToWriteOn.setRowStyle(sheetToWriteOver.getRow(i+9).getRowStyle());
+			}
+			
+			
 
 			for (int j=0; j<row.size(); j++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.getCell(j+1);
+				XSSFCell cellToWriteOn;
+				if(rowToWriteOn.getLastCellNum()>=j+1&&sheetToWriteOver.getLastRowNum()<320)
+					cellToWriteOn = rowToWriteOn.getCell(j+1);
+				else if(j<=6)
+				{
+//					if(j==0)
+//					{
+//						cellToWriteOn = rowToWriteOn.createCell(0);
+//						cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+9).getCell(0).getCellStyle());
+//					}
+					cellToWriteOn = rowToWriteOn.createCell(j+1);
+					cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+9).getCell(j+1).getCellStyle());
+				}
+				else
+				{
+					cellToWriteOn = rowToWriteOn.getCell(6);
+				}
 				if (j==0) {
 					String interfaceType = ((String) row.get(j) ).replaceAll("\"", "");
 					cellToWriteOn.setCellValue(interfaceType);
@@ -531,10 +563,11 @@ public class FactSheetWriter {
 				if (j==7)
 					uniqueProtocols.add(row.get(j));
 				if (j==1 || j==2 || j==3 || j==4 || j==6) {
+
 					cellToWriteOn = rowToWriteOn.getCell(j+1);
 					String value = ((String) row.get(j) ).replaceAll("\"", "");
 					cellToWriteOn.setCellValue(value.replaceAll("_", " ")  );
-					if (value.equals("")) cellToWriteOn.setCellValue("NA");
+					if (value.equals("")) cellToWriteOn.setCellValue("Unknown");
 				}
 				if (j==8) {
 					String upStreamFurther = ((String)row.get(j)).replaceAll("\"", "");
@@ -706,7 +739,13 @@ public class FactSheetWriter {
 		//Writes out List of Data Objects sorted by Create/Read/Modify
 		for (int i=0; i<result.size(); i++) {
 			ArrayList row = (ArrayList) result.get(i);
-			rowToWriteOn = sheetToWriteOver.getRow(i+6);
+			if(sheetToWriteOver.getLastRowNum()>=i+6)
+				rowToWriteOn = sheetToWriteOver.getRow(i+6);
+			else
+			{
+				rowToWriteOn = sheetToWriteOver.createRow(i+6);
+				rowToWriteOn.setRowStyle(sheetToWriteOver.getRow(i+5).getRowStyle());
+			}
 			String crm = (String) row.get(0);
 
 			if (crm.equals("\"C\"")) { countC++; indexC++; }					
@@ -718,8 +757,17 @@ public class FactSheetWriter {
 			cellToWriteOn.setCellValue("Modify"); indexM++; }
 			if (indexR==1) {cellToWriteOn = rowToWriteOn.getCell(1);
 			cellToWriteOn.setCellValue("Read"); indexR++; }
-
-			cellToWriteOn = rowToWriteOn.getCell(2);			
+			if(rowToWriteOn.getLastCellNum()>=2)
+				cellToWriteOn = rowToWriteOn.getCell(2);
+			else
+			{
+				cellToWriteOn = rowToWriteOn.createCell(2);
+				cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle());
+				sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+				XSSFCell cellOne = rowToWriteOn.createCell(1);
+				cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
+				sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+			}
 			int val = ((Double) row.get(2)).intValue();
 			String value = "-  " + (String) row.get(1) + " (" + val + ")";
 			cellToWriteOn.setCellValue(value.replaceAll("_"," ")); 
@@ -791,10 +839,27 @@ public class FactSheetWriter {
 
 		for (int i = 0; i<result.size(); i++) {
 			ArrayList row = (ArrayList) result.get(i);
-			rowToWriteOn = sheetToWriteOver.getRow(i+6);
-
+			if(sheetToWriteOver.getLastRowNum()>=i+6)
+				rowToWriteOn = sheetToWriteOver.getRow(i+6);
+			else
+			{
+				rowToWriteOn = sheetToWriteOver.createRow(i+6);
+				rowToWriteOn.setRowStyle(sheetToWriteOver.getRow(i+5).getRowStyle());
+			}
 			for (int j=0; j<row.size(); j++) {
-				XSSFCell cellToWrite = rowToWriteOn.getCell(2);
+				XSSFCell cellToWrite;
+				if(rowToWriteOn.getLastCellNum()>=2)
+					cellToWrite = rowToWriteOn.getCell(2);
+				else
+				{
+					cellToWrite = rowToWriteOn.createCell(2);
+					cellToWrite.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle());
+					sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					XSSFCell cellOne = rowToWriteOn.createCell(1);
+					cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					
+				}
 				String blu = (String) row.get(j);
 				String value = "-  " + blu;
 				cellToWrite.setCellValue(value.replaceAll("_", " "));

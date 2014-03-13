@@ -23,12 +23,16 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import com.google.gson.Gson;
+
 /**
  * The Play Sheet for Outside the Continental United States (OCONUS) geo-location data.  
  * Visualizes Latitude/Longitude coordinates on a map of OCONUS.
  */
 public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 
+	Hashtable allHash;
+	HashSet data;
 	/**
 	 * Constructor for OCONUSMapPlaySheet.
 	 */
@@ -47,7 +51,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	 */
 	public Hashtable processQueryData()
 	{
-		HashSet data = new HashSet();
+		data = new HashSet();
 		String[] var = wrapper.getVariables(); 	
 		
 		//Possibly filter out all US Facilities from the query?
@@ -77,7 +81,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 				data.add(elementHash);			
 		}
 
-		Hashtable allHash = new Hashtable();
+		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
 		
 		allHash.put("lat", "lat" );
@@ -90,5 +94,23 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		
 		
 		return allHash;
+	}
+	
+	@Override
+	/**
+	 * Method callIt.  Converts a given Hashtable to a Json and passes it to the browser.
+	 * @param table Hashtable - the correctly formatted data from the SPARQL query results.
+	 */
+	public void callIt(Hashtable table)
+	{
+		output = table;
+		Gson gson = new Gson();
+		//logger.info("Converted " + gson.toJson(table));
+		logger.info("Converted gson");
+
+		browser.executeScript("start('" + gson.toJson(table) + "');");
+		output.clear();
+		allHash.clear();
+		data.clear();
 	}
 }

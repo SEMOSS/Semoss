@@ -54,8 +54,7 @@ public class FactSheetListener implements IChakraListener {
 		String system = null;
 		if(type.contains("Specific")){
 			ParamComboBox systemComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
-			system = (String) systemComboBox.getSelectedItem();		
-
+			system = (String) systemComboBox.getSelectedItem();
 			processor.generateSystemReport(system);
 		}
 		else if (type.contains("All Systems")) {
