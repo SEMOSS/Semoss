@@ -21,6 +21,8 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.Hashtable;
 
+import com.google.gson.Gson;
+
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 
@@ -31,6 +33,8 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 	private Boolean highlight=false;
 	private String sysToHighlight="";
+	Hashtable<String,Object> allHash;// = new HashTable();
+	Hashtable<String,Object> dataHash;// = new HashTable();
 	/**
 	 * Constructor for HealthGridSheet.
 	 */
@@ -64,7 +68,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	@Override
 	public Hashtable<String,Object> processQueryData(){
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
-		Hashtable<String,Object> dataHash = new Hashtable<String,Object>();
+		dataHash = new Hashtable<String,Object>();
 		Object[][] dataSeries = new Object[list.size()][4];
 		String[] names = wrapper.getVariables();
 		String series = names[0];//System or Vendor
@@ -98,7 +102,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		dataHash.put(series, dataSeries);
 		
 
-		Hashtable<String,Object> allHash = new Hashtable<String,Object>();
+		 allHash = new Hashtable<String,Object>();
 		allHash.put("dataSeries", dataHash);
 		allHash.put("title", "Health Grid");
 		allHash.put("xAxisTitle", xName);
@@ -176,5 +180,17 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		wrapper.executeQuery();
 		wrapper.getVariables();
 		return wrapper;
+	}
+	
+	/**
+	 * Method callIt.  Converts a given Hashtable to a Json and passes it to the browser.
+	 * @param table Hashtable - the correctly formatted data from the SPARQL query results.
+	 */
+	public void clearTables()
+	{
+		output.clear();
+		allHash.clear();
+		dataHash.clear();
+		list.clear();
 	}
 }

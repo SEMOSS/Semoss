@@ -61,7 +61,7 @@ public class CONUSMapExporter {
 	{
 		ArrayList<String> systemsInSite = new ArrayList<String>();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}}";		
+		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}} ORDER BY ?System";		
 		
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
@@ -93,30 +93,14 @@ public class CONUSMapExporter {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "CONUS_Map";
 		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
-		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
+//		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
 		String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
-		IPlaySheet playSheet = null;
-		try {
-			playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			logger.fatal(ex);
-		}
-					
-		playSheet.setQuery(query);
-		playSheet.setRDFEngine((IEngine) engine);
-		playSheet.setQuestionID(question);
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		playSheet.setJDesktopPane(pane);
-
-		QuestionPlaySheetStore.getInstance().put(question, playSheet);
-		
-		playSheet.createData();
-		playSheet.runAnalytics();
-		playSheet.createView();
-		
-		
+				
 		ArrayList<String> systemsInSite = systemsInSiteDB();
+//		for(int i=0;i<systemList.size();i++)
+//		{
+//			String system = systemList.get(i);
+//		}
 		for(String system: systemList)
 		{
 			if(systemsInSite.contains(system))
@@ -124,11 +108,18 @@ public class CONUSMapExporter {
 				query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 				query=query.replace("AHLTA",system);
 
+				CONUSMapPlaySheet playSheet = new CONUSMapPlaySheet();					
 				playSheet.setQuery(query);
 				playSheet.setRDFEngine((IEngine) engine);
+				playSheet.setQuestionID(question);
+				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+				playSheet.setJDesktopPane(pane);
+
+				QuestionPlaySheetStore.getInstance().put(question, playSheet);
 				
-				((CONUSMapPlaySheet)playSheet).createView();
-				((CONUSMapPlaySheet)playSheet).browser.waitReady();
+				playSheet.createData();
+				playSheet.runAnalytics();
+				playSheet.createView();
 				
 				if(!((CONUSMapPlaySheet)playSheet).isEmpty())
 				{
@@ -148,15 +139,17 @@ public class CONUSMapExporter {
 					chartList.setScaleBool(true);
 					chartList.setScale(710,440);
 					btnImageExport.doClick();
+					
+					try {
+						((CONUSMapPlaySheet)playSheet).setClosed(true);
+					} catch (PropertyVetoException e) {
+						e.printStackTrace();
+					}
 	
 				}
 
 			}
 		}
-		try {
-					((CONUSMapPlaySheet)playSheet).setClosed(true);
-				} catch (PropertyVetoException e) {
-					e.printStackTrace();
-				}
+
 	}
 }

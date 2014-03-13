@@ -119,18 +119,23 @@ public class FactSheetProcessor {
 					String date = ((String) sjss.getVar(names[1])).replaceAll("\"", "");
 					if (!date.equals("TBD")) {	
 						String lifeCycleType;
-						int year=Integer.parseInt(date.substring(0,4));
-						int month=Integer.parseInt(date.substring(5,7));												
-
-						if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
-							lifeCycleType="Retired_(Not_Supported)";
-						else if(year<=currYear||(year==currYear+1&&month<=currMonth))
-							lifeCycleType="Sunset_(End_of_Life)";
-						else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
-							lifeCycleType="Supported";
-						else
-							lifeCycleType="GA_(Generally_Available)";
-
+						try{
+							int year=Integer.parseInt(date.substring(0,4));
+							int month=Integer.parseInt(date.substring(5,7));												
+	
+							if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
+								lifeCycleType="Retired_(Not_Supported)";
+							else if(year<=currYear||(year==currYear+1&&month<=currMonth))
+								lifeCycleType="Sunset_(End_of_Life)";
+							else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
+								lifeCycleType="Supported";
+							else
+								lifeCycleType="GA_(Generally_Available)";
+						}catch(NumberFormatException e)
+						{
+							lifeCycleType = "TBD";
+						}
+						
 						list.add(lifeCycleType);								
 					}
 					else list.add(date);						
@@ -165,7 +170,6 @@ public class FactSheetProcessor {
 			while (wrapper.hasNext()) {
 				SesameJenaSelectStatement sjss = wrapper.next();				
 				String sys = (String)sjss.getVar(names[0]);
-				String cat = (String)sjss.getVar(names[1]);
 				list.add(sys);
 			}
 		} catch (Exception e) {
@@ -180,7 +184,7 @@ public class FactSheetProcessor {
 	public void generateReports() {
 		sysDupe = new FactSheetSysDupeCalculator();		
 
-			ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System ?SystemUser WHERE{{?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}{?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?System ?Submits ?SystemTasker}{?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?SystemTasker ?TypeOf ?Tasker}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy> ;}{?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>;}{?SystemTasker ?UsedBy ?SystemUser}} ");
+		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?SystemTasker ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}");
 
 
 		for (int i=0; i<systemList.size(); i++) {
@@ -232,7 +236,7 @@ public class FactSheetProcessor {
 		systemDescriptionQuery = systemDescriptionQuery.replaceAll("AHLTA", systemName);
 
 		//System PPI Owner Query
-		String ppiQuery ="SELECT DISTINCT ?SystemUser WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?System ?UsedBy ?SystemUser} }";
+		String ppiQuery ="SELECT DISTINCT ?SystemOwner WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>} {?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>} {?System ?OwnedBy ?SystemOwner} }";
 		ppiQuery = ppiQuery.replaceAll("ASIMS", systemName);
 
 		//Business Processes Supported Query
@@ -244,7 +248,7 @@ public class FactSheetProcessor {
 		systemPOCQuery = systemPOCQuery.replaceAll("AHLTA", systemName);
 
 		//System Maturity Query
-		String systemMaturityQuery = "SELECT DISTINCT (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm .} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm .} } OPTIONAL { {?SystemUser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} } }";
+		String systemMaturityQuery = "SELECT DISTINCT (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) WHERE { BIND(<http://health.mil/ontologies/Concept/System/APEQS> AS ?System) OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm .} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm .} } }";
 		systemMaturityQuery = systemMaturityQuery.replaceAll("APEQS", systemName);
 
 		//System Software Query
@@ -287,7 +291,7 @@ public class FactSheetProcessor {
 		sysHighlightsQuery = sysHighlightsQuery.replaceAll("ASIMS", systemName);
 
 		//Types of Users Query
-		String userTypesQuery = "SELECT DISTINCT ?Users WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?System ?UsedBy ?Users} }";
+		String userTypesQuery = "SELECT DISTINCT ?Personnel WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>}{?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel>;} {?System ?UsedBy ?Personnel} }";
 		userTypesQuery = userTypesQuery.replaceAll("ASIMS", systemName);
 
 		//User Interface Query
@@ -352,12 +356,12 @@ public class FactSheetProcessor {
 		FactSheetWriter writer = new FactSheetWriter();
 		String folder = "\\export\\Reports\\FactSheets\\";
 		String writeFileName;
-		if (service != null) {
-			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
-		}
-		else{ 
+//		if (service != null) {
+//			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
+//		}
+//		else{ 
 			writeFileName = systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
-		}
+//		}
 
 		String fileLoc = workingDir + folder + writeFileName;
 		String templateFileName = "Fact_Sheet_Template.xlsx";

@@ -32,6 +32,7 @@ import javax.swing.JTable;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
+import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -50,7 +51,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	public Browser browser = null;
 	protected String fileName;
 	JSplitPane splitPane;
-	Hashtable output = null;
+	public Hashtable output = null;
 	ChartControlPanel controlPanel;
 	Hashtable dataHash = new Hashtable();
 	
@@ -92,6 +93,11 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	{
 		super.createView();
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
+		if(browser==null)
+		{
+			empty = true;
+			return;
+		}
 		browser.navigate(fileName);
 		browser.waitReady();
 		empty = false;
@@ -177,7 +183,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			splitPane.setLeftComponent(controlPanel);
 			splitPane.setRightComponent(mainPanel);
 
-			PlaySheetListener psListener = new PlaySheetListener();
+			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
 			this.addInternalFrameListener(psListener);
 			this.setContentPane(splitPane);
 			GridBagLayout gbl_mainPanel = new GridBagLayout();
