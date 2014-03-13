@@ -10,12 +10,14 @@ var controllers = angular.module('app.controllers', [])
     	});*/
     	
     	$http.get("export.json").success(function(jsonData) {
-        	$scope.data = (jsonData);
+        	$scope.data = jsonData;
     	});
 
         $scope.scrollTo = function(id) {
+			var old = $location.hash();
             $location.hash(id);
             $anchorScroll();
+			$location.hash(old);
         }
 
 		$scope.setJSONData = function(data) {
