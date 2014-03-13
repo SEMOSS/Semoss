@@ -14,7 +14,7 @@ public class DHMSMHelper {
 
 	private String GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM = "SELECT DISTINCT ?System ?Data ?CRM WHERE { BIND(\"C\" as ?CRM) {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";	
 
-	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"C\" as ?crm) FILTER NOT EXISTS{?icd <http://semoss.org/ontologies/Relation/Consume> ?system} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/Provide> ?data} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
+	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"R\" as ?crm) FILTER NOT EXISTS{?icd <http://semoss.org/ontologies/Relation/Consume> ?system} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/Provide> ?data} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
 
 	private String GET_ALL_CAPABILITIES_AND_CRM = "SELECT DISTINCT ?cap ?data ?crm WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?task ?needs ?data} {?needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
 
@@ -25,19 +25,21 @@ public class DHMSMHelper {
 	public void runData(IEngine engine)
 	{
 		SesameJenaSelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
-		processResults(sjswQuery1, dataListSystems);
+		processSysResults(sjswQuery1);
 
 		SesameJenaSelectWrapper sjswQuery2 = processQuery(GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM, engine);
-		processResults(sjswQuery2, dataListSystems);
+		processSysResults(sjswQuery2);
 
 		SesameJenaSelectWrapper sjswQuery3 = processQuery(GET_ALL_SYSTEM_WITH_UPSTREAM, engine);
-		processResults(sjswQuery3, dataListSystems);
+		processSysResults(sjswQuery3);
 
 		SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_CAPABILITIES_AND_CRM, engine);
-		processResults(sjswQuery4, dataListCapabilities);
+		processCapResults(sjswQuery4);
+
+		return;
 	}
 
-	private ArrayList<ArrayList<String>> getSysOrCapAndData(String cap, String capCRM, String sysCRM, boolean getSys) 
+	public ArrayList<ArrayList<String>> getSysOrCapAndData(String cap, String capCRM, String sysCRM, boolean getSys) 
 	{
 		ArrayList<ArrayList<String>> resultSet = new ArrayList<ArrayList<String>>();
 		ArrayList<String> capDataList = new ArrayList<String>();
@@ -61,16 +63,16 @@ public class DHMSMHelper {
 			if(innerHash.containsKey(cap))
 			{
 				String crm = innerHash.get(cap);
-				if(capCRM.equals("C"))
+				if(capCRM.contains("C"))
 				{
-					if(crm.equals(capCRM) || crm.equals("M"))
+					if(crm.contains(capCRM) || crm.contains("M"))
 					{
 						capDataList.add(data);
 					}
 				}
 				else
 				{
-					if(crm.equals(capCRM))
+					if(crm.contains(capCRM))
 					{
 						capDataList.add(data);
 					}
@@ -81,26 +83,29 @@ public class DHMSMHelper {
 		for( String data : capDataList)
 		{
 			Hashtable<String, String> innerHash = getList.get(data);
-			for( String sys : innerHash.keySet())
+			if(innerHash != null)
 			{
-				if(sysCRM.equals("C"))
-				{				
-					if(innerHash.get(sys).equals(sysCRM) || innerHash.get(sys).equals("M"))
-					{
-						ArrayList<String> innerArray = new ArrayList<String>();
-						innerArray.add(sys);
-						innerArray.add(data);
-						resultSet.add(innerArray);
-					}
-				}
-				else
+				for( String sys : innerHash.keySet())
 				{
-					if(innerHash.get(sys).equals(sysCRM))
+					if(sysCRM.contains("C"))
+					{				
+						if(innerHash.get(sys).contains(sysCRM) || innerHash.get(sys).contains("M"))
+						{
+							ArrayList<String> innerArray = new ArrayList<String>();
+							innerArray.add(sys);
+							innerArray.add(data);
+							resultSet.add(innerArray);
+						}
+					}
+					else
 					{
-						ArrayList<String> innerArray = new ArrayList<String>();
-						innerArray.add(sys);
-						innerArray.add(data);
-						resultSet.add(innerArray);
+						if(innerHash.get(sys).contains(sysCRM))
+						{
+							ArrayList<String> innerArray = new ArrayList<String>();
+							innerArray.add(sys);
+							innerArray.add(data);
+							resultSet.add(innerArray);
+						}
 					}
 				}
 			}
@@ -110,31 +115,63 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 
-	private void processResults(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> data )
+	private void processSysResults(SesameJenaSelectWrapper sjsw)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String sub = sjss.getRawVar(vars[0]).toString();
-			String obj = sjss.getRawVar(vars[1]).toString();
-			String crm = sjss.getRawVar(vars[2]).toString();
+			String sub = sjss.getVar(vars[0]).toString();
+			String obj = sjss.getVar(vars[1]).toString();
+			String crm = sjss.getVar(vars[2]).toString();
 
-			Hashtable<String, String> innerHash = new Hashtable<String, String>();
-			if(!data.containsKey(obj))
+			if(!dataListSystems.containsKey(obj))
 			{
+				Hashtable<String, String> innerHash = new Hashtable<String, String>();
 				innerHash.put(sub, crm);
-				data.put(obj, innerHash);
+				dataListSystems.put(obj, innerHash);
 			}
-			else if(!data.get(obj).containsKey(sub))
+			else if(!dataListSystems.get(obj).containsKey(sub))
 			{
-				innerHash = data.get(obj);
+				Hashtable<String, String> innerHash = dataListSystems.get(obj);
 				innerHash.put(sub,  crm);
 			}
 			else
 			{
-				innerHash = data.get(obj);
-				if((crm.equals("C") || crm.equals("M")) && innerHash.get(sub).equals("R"))
+				Hashtable<String, String> innerHash = dataListSystems.get(obj);
+				if((crm.equals("\"C\"") || crm.equals("\"M\"")) && innerHash.get(sub).equals("\"R\""))
+				{
+					innerHash.put(sub, crm);
+				}
+			}
+		}
+	}
+
+	private void processCapResults(SesameJenaSelectWrapper sjsw)
+	{
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String sub = sjss.getVar(vars[0]).toString();
+			String obj = sjss.getVar(vars[1]).toString();
+			String crm = sjss.getVar(vars[2]).toString();
+
+			if(!dataListCapabilities.containsKey(obj))
+			{
+				Hashtable<String, String> innerHash = new Hashtable<String, String>();
+				innerHash.put(sub, crm);
+				dataListCapabilities.put(obj, innerHash);
+			}
+			else if(!dataListCapabilities.get(obj).containsKey(sub))
+			{
+				Hashtable<String, String> innerHash = dataListCapabilities.get(obj);
+				innerHash.put(sub,  crm);
+			}
+			else
+			{
+				Hashtable<String, String> innerHash = dataListCapabilities.get(obj);
+				if((crm.equals("\"C\"") || crm.equals("\"M\"")) && innerHash.get(sub).equals("\"R\""))
 				{
 					innerHash.put(sub, crm);
 				}
