@@ -103,11 +103,13 @@
 						});
 				};
 
-				var buckets = 9,
-					colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
-					colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
-					colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
-					colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
+				var buckets = 33,
+				colors = ["#FFFFFF","#FCF7F7","#FAF0F0","#F8E8E9","#F6E1E2","#F3D9DB","#F1D2D4","#EFCACC","#EDC3C5","#EABBBE","#E8B4B7","#E6ACB0","#E4A5A9","#DF969A","#DD8E93","#DB878C","#D97F85","#D47077","#D26970","#D06168","#CD5A61","#CB525A","#C94B53","#C7434C","#C2343E","#C02D36","#BE252F","#BB1E28","#B91621","#B70F1A","#B50713","#B3000C"];
+//				var buckets = 9,
+//					colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+//					colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+//					colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
+//					colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
 				
 				var colorScale = d3.scale.quantile()
                 .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.value; })])

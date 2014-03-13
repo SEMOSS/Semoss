@@ -93,18 +93,29 @@
 					var data = jsonData.dataSeries  
 					var value = jsonData.value// "Value"
 					var locationName = jsonData.locationName// "fips" 
-					
+					var propertyNames = jsonData.propertyNames
+
 					var dataArray = [];
 
 				for (var key in data) {
-						dataArray.push({
-						locationName: data[key][locationName], 
-						value: data[key][value]			
-						});
+						dataElement = {
+							locationName: data[key][locationName], 
+							value: data[key][value]			
+						};
+						for(var propIndex in propertyNames)
+						{
+							currProperty = propertyNames[propIndex];
+							dataElement[currProperty] = data[key][currProperty];
+						}						
+						dataArray.push(dataElement);
+//						dataArray.push({
+//						locationName: data[key][locationName], 
+//						value: data[key][value]			
+//						});
 				};
 
-				var buckets = 36,
-				colors = ["#2600FF", "#2214FF", "#1F28FF", "#1B3DFF", "#1851FF", "#1466FF", "#117AFF", "#0D8FFF", "#0AA3FF", "#06B8FF", "#03CCFF", "#00E1FF", "#15E2E9", "#2AE3D4", "#3FE5BF", "#55E6AA", "#6AE894", "#7FE97F", "#94EA6A", "#AAEC55", "#BFED3F", "#D4EF2A", "#E9F015", "#FFF200", "#FFDD00", "#FFC900", "#FFB500", "#FFA100", "#FF8D00", "#FF7900", "#FF6400", "#FF5000", "#FF3C00", "#FF2800", "#FF1400","#FF0000"];
+				var buckets = 33,
+				colors = ["#FFFFFF","#FCF7F7","#FAF0F0","#F8E8E9","#F6E1E2","#F3D9DB","#F1D2D4","#EFCACC","#EDC3C5","#EABBBE","#E8B4B7","#E6ACB0","#E4A5A9","#DF969A","#DD8E93","#DB878C","#D97F85","#D47077","#D26970","#D06168","#CD5A61","#CB525A","#C94B53","#C7434C","#C2343E","#C02D36","#BE252F","#BB1E28","#B91621","#B70F1A","#B50713","#B3000C"];
 				//["#FFFFFF", "#F7EEFD", "#EFDDFB", "#E7CCF9", "#DFBBF8", "#D7AAF6", "#CF9AF4", "#C789F2", "#BF78F1", "#B767EF", "#AF56ED", "#A745EB", "#9F35EA", "#9D44E6", "#9B54E3", "#9A64E0", "#9874DD", "#9684DA", "#9594D7", "#93A3D3", "#91B3D0", "#90C3CD", "#8ED3CA", "#8CE3C7", "#8BF3C4", "#93DCB3", "#9BC6A2", "#A3B092", "#AB9A81", "#B38470", "#BC6E60", "#C4584F", "#CC423E", "#D42C2E", "#DC161D", "#E5000D"];
 	//				colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
 	//				colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
@@ -115,19 +126,49 @@
                 .domain([ d3.min(dataArray, function (d) { return d.value*100; }), buckets - 1, d3.max(dataArray, function (d) { return d.value*100; })])
                 .range(colors);
 				
+				var legendElementWidth = 15;
+				
+				var legend = svg.selectAll(".legend")
+				.data([0].concat(colorScale.quantiles()), function(d) { return d; })
+				.enter().append("g")
+				.attr("class", "legend");
+	  
+				legend.append("rect")
+					.attr("x", function(d, i) { return legendElementWidth * i; })
+					.attr("y",450)
+					.attr("width", legendElementWidth)
+					.attr("height", 20);
+            
+				legend.style("fill", function(d, i) { return colors[i]; });
 
+				legend.append("text")
+					.attr("class", "mono")
+					.text(function(d,i) { 
+					if(i%4 == 0)
+						return "" + Math.floor(d)/100; 
+					else
+						return "";
+					})
+					.attr("x", function(d, i) { return legendElementWidth * i; })
+					.attr("y", 450 + 50);	
+					
 				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
 				
 					var countryOn = d.id;
+					var retval = "<div> <span class='light'>" + locationName + ":</span> " + countryOn + "</div>";
+
 					for(var key in dataArray){
 						var currentLoc = dataArray[key].locationName;
 						if(countryOn == currentLoc)
 							{
-							
-							return "<div> <span class='light'>" + locationName + ":</span> " + dataArray[key].locationName + "</div>" + "<div><span class='light'>" + value + ":</span> " + dataArray[key].value + "</div>";
+							for(var propIndex in propertyNames)
+							{
+								retval = retval + "<div> <span class='light'>" + propertyNames[propIndex] + ":</span> " + dataArray[key][currProperty] + "</div>";
+							}
+							return retval + "<div><span class='light'>" + value + ":</span> " + dataArray[key].value + "</div>";
 							}
 					}
-						return "<div> <span class='light'>" + locationName + ":</span> " + countryOn + "</div>" + "<div><span class='light'>" + value + ":</span> undefined </div>";					
+						return retval + "<div><span class='light'>" + value + ":</span> undefined </div>";					
 					});
 							
 				//Load in GeoJSON data
