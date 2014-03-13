@@ -19,6 +19,7 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
@@ -59,10 +60,16 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 			for (int j = 0; j < var.length; j++) 
 			{	
 				colName = var[j];
-				if (listElement[j] instanceof String)
+				if (listElement[j] instanceof String && j==1)
 				{	
 					String text = (String) listElement[j];
 					elementHash.put(colName, Integer.parseInt(text.replaceAll("\"","")));
+				}
+				else if(listElement[j] instanceof String)
+				{
+					String text = (String) listElement[j];
+					elementHash.put(colName, text.replaceAll("\"",""));
+
 				}
 				else 
 				{	
@@ -71,18 +78,18 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 
 				}
 						
-			}	
+			}
 			data.add(elementHash);		
 		}
-
 		    
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", data);
-		
-
-		allHash.put("value", var[1]);
 		allHash.put("locationName", var[0]);
-		
+		allHash.put("value", var[1]);
+		ArrayList<String> propertyName = new ArrayList<String>();
+		for(int i=0;i<var.length-2;i++)
+			propertyName.add(var[i+2]);
+		allHash.put("propertyNames",propertyName);
 		
 		return allHash;
 	}
