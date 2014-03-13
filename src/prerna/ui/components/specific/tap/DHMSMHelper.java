@@ -6,7 +6,6 @@ import java.util.Hashtable;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.util.DIHelper;
 
 public class DHMSMHelper {
 
@@ -39,7 +38,7 @@ public class DHMSMHelper {
 		return;
 	}
 
-	public ArrayList<ArrayList<String>> getSysOrCapAndData(String cap, String capCRM, String sysCRM, boolean getSys) 
+	public ArrayList<ArrayList<String>> getSysOrCapAndData(String capOrSys, String capCRM, String sysCRM, boolean getSys) 
 	{
 		ArrayList<ArrayList<String>> resultSet = new ArrayList<ArrayList<String>>();
 		ArrayList<String> capDataList = new ArrayList<String>();
@@ -60,9 +59,9 @@ public class DHMSMHelper {
 		for( String data : searchList.keySet() )
 		{
 			Hashtable<String, String> innerHash = searchList.get(data);
-			if(innerHash.containsKey(cap))
+			if(innerHash.containsKey(capOrSys))
 			{
-				String crm = innerHash.get(cap);
+				String crm = innerHash.get(capOrSys);
 				if(capCRM.contains("C"))
 				{
 					if(crm.contains(capCRM) || crm.contains("M"))
@@ -112,6 +111,47 @@ public class DHMSMHelper {
 
 		}
 
+		return resultSet;
+	}
+	
+	public ArrayList<String> getAllDataFromSysOrCap(String capOrSys, String crm, boolean getSys)
+	{
+		ArrayList<String> resultSet = new ArrayList<String>();
+		Hashtable<String, Hashtable<String, String>> dataList = new Hashtable<String, Hashtable<String, String>>();
+		
+		if(getSys)
+		{	
+			dataList = dataListSystems;
+		}
+		else
+		{
+			dataList = dataListCapabilities;
+		}
+		
+		for( String data : dataList.keySet() )
+		{
+			Hashtable<String, String> innerHash = dataList.get(data);
+			if(innerHash.containsKey(capOrSys))
+			{			
+				if(crm.contains("C"))
+				{
+					String dataCRM = innerHash.get(capOrSys);
+					if(dataCRM.contains(crm) || dataCRM.contains("M"))
+					{
+						resultSet.add(data);
+					}
+				}
+				else
+				{
+					String dataCRM = innerHash.get(capOrSys);
+					if(dataCRM.contains(crm))
+					{
+						resultSet.add(data);
+					}
+				}
+			}
+		}
+		
 		return resultSet;
 	}
 
