@@ -79,7 +79,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/export.json");
 	   			if(file.exists()) {
 	   				file.delete();
-	   				browser.executeScript("window.location.reload()");
+	   				browser.executeScript("window.location.reload(true);");
 	   			}
     			callIt();
     	    }

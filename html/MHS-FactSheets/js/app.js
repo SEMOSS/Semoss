@@ -18,6 +18,9 @@ app.config(['$routeProvider', function($routeProvider) {
 		when('/cap', {
 			templateUrl: 'partials/capfactsheet.html',
 			controller: 'IndexCtrl'
+		}).
+		otherwise({
+			redirectTo: '/'
 		});
 
 }])  
