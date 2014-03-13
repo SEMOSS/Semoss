@@ -22,11 +22,8 @@ public class DHMSMHelper {
 	private Hashtable<String, Hashtable<String, String>> dataListCapabilities = new Hashtable<String, Hashtable<String, String>>();
 
 
-	public void runData()
+	public void runData(IEngine engine)
 	{
-		String engineName = "HR_Core";
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-
 		SesameJenaSelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
 		processResults(sjswQuery1, dataListSystems);
 
@@ -64,9 +61,19 @@ public class DHMSMHelper {
 			if(innerHash.containsKey(cap))
 			{
 				String crm = innerHash.get(cap);
-				if(crm.equals(capCRM))
+				if(capCRM.equals("C"))
 				{
-					capDataList.add(data);
+					if(crm.equals(capCRM) || crm.equals("M"))
+					{
+						capDataList.add(data);
+					}
+				}
+				else
+				{
+					if(crm.equals(capCRM))
+					{
+						capDataList.add(data);
+					}
 				}
 			}
 		}
@@ -76,12 +83,25 @@ public class DHMSMHelper {
 			Hashtable<String, String> innerHash = getList.get(data);
 			for( String sys : innerHash.keySet())
 			{
-				if(innerHash.get(sys).equals(sysCRM))
+				if(sysCRM.equals("C"))
+				{				
+					if(innerHash.get(sys).equals(sysCRM) || innerHash.get(sys).equals("M"))
+					{
+						ArrayList<String> innerArray = new ArrayList<String>();
+						innerArray.add(sys);
+						innerArray.add(data);
+						resultSet.add(innerArray);
+					}
+				}
+				else
 				{
-					ArrayList<String> innerArray = new ArrayList<String>();
-					innerArray.add(sys);
-					innerArray.add(data);
-					resultSet.add(innerArray);
+					if(innerHash.get(sys).equals(sysCRM))
+					{
+						ArrayList<String> innerArray = new ArrayList<String>();
+						innerArray.add(sys);
+						innerArray.add(data);
+						resultSet.add(innerArray);
+					}
 				}
 			}
 
@@ -113,7 +133,11 @@ public class DHMSMHelper {
 			}
 			else
 			{
-				System.err.println("SHOULD NEVER ENTER HERE");
+				innerHash = data.get(obj);
+				if((crm.equals("C") || crm.equals("M")) && innerHash.get(sub).equals("R"))
+				{
+					innerHash.put(sub, crm);
+				}
 			}
 		}
 	}
