@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -161,10 +162,11 @@ public class WeightDropDownButton  extends JButton {
 		c.insets = new Insets(5,5,0,5);
 		popupMenu.add(nodePropLblb, c);
 
-		//		nodePane.setViewportView(nodePropList);
-		//		nodePane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		//		nodePane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-		//		nodePane.setPreferredSize(new Dimension(width, height));
+		nodePane.setViewportView(nodePropList);
+		nodePane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		nodePane.getVerticalScrollBar().setVisible(true);
+		nodePane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
+		nodePane.setSize(new Dimension(this.getWidth(), 200));
 
 
 		c = new GridBagConstraints();
@@ -172,7 +174,7 @@ public class WeightDropDownButton  extends JButton {
 		c.gridx = 0;
 		c.gridy = 1;
 		c.insets = new Insets(5,5,0,5);
-		popupMenu.add(nodePropList, c);
+		popupMenu.add(nodePane, c);
 
 		//add edge property label and custom pane
 		JLabel edgePropLblb = new JLabel("Edge Properties");
@@ -183,18 +185,18 @@ public class WeightDropDownButton  extends JButton {
 		popupMenu.add(edgePropLblb, c);
 
 
-		//		edgePane.setViewportView(edgePropList);
-		//		edgePane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		//		edgePane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-		//		edgePane.setPreferredSize(new Dimension(width, height));
-		//		
+		edgePane.setViewportView(edgePropList);
+		edgePane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		edgePane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
+		edgePane.setPreferredSize(new Dimension(this.getWidth(), 200));
+		
 
 		c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 3;
 		c.insets = new Insets(5,5,0,5);
-		popupMenu.add(edgePropList, c);
+		popupMenu.add(edgePane, c);
 	}
 
 	public void setupLists(ArrayList nodePropArrayList, ArrayList edgePropArrayList)
@@ -305,33 +307,32 @@ public class WeightDropDownButton  extends JButton {
 	{
 		final JButton button = this;
 		this.addActionListener(new ActionListener() {
-			@Override  
-			public void actionPerformed(ActionEvent actionEvent) {  
-				popupMenu.show(button, 0, (button.getPreferredSize()).height);  
-				button.setEnabled(false);  
-			}  
+			@Override
+			public void actionPerformed(ActionEvent actionEvent) {
+				popupMenu.show(button, 0, (button.getPreferredSize()).height/2);
+				button.setEnabled(false);
+			}
 		});
-		popupMenu.addPopupMenuListener(new PopupMenuListener() {  
+		popupMenu.addPopupMenuListener(new PopupMenuListener() {
 
-			@Override  
-			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {  
-			}  
+			@Override
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+			}
 
-			@Override  
-			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {  
-				SwingUtilities.invokeLater(new Runnable() {  
+			@Override
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
 
-					@Override  
-					public void run() {  
-						button.setEnabled(true);  
-					}  
-				}); 
-			}  
+					@Override
+					public void run() {
+						button.setEnabled(true);
+					}
+				});
+			}
 
 			@Override  
 			public void popupMenuCanceled(PopupMenuEvent e) {  
-			}  
-		});  
+			}
+		});
 	}
-
-}  
+}
