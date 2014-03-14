@@ -44,7 +44,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 
 	protected ResultSet rs = null;
 	protected GridFilterData gfd = new GridFilterData();
-	String [] names = null;
+	protected String [] names = null;
 	public JTable table = null;
 	public ArrayList <Object []> list = null;
 	public SesameJenaSelectWrapper wrapper;
