@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.FactSheetSysDupeCalculator;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -48,7 +49,13 @@ public class FactSheetProcessor {
 	String tapCostEngine = "TAP_Portfolio";
 	String workingDir = System.getProperty("user.dir");
 	FactSheetSysDupeCalculator sysDupe;
-
+	DHMSMHelper dhelp;
+	
+	public void setDHMSMHelper(DHMSMHelper dhelp)
+	{
+		this.dhelp = dhelp;
+	}
+	
 	/**
 	 * Runs a query on a specific database and returns the result as an ArrayList
 	 * @param engineName 	String containing the name of the database engine to be queried
@@ -239,9 +246,9 @@ public class FactSheetProcessor {
 		String ppiQuery ="SELECT DISTINCT ?SystemOwner WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>} {?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>} {?System ?OwnedBy ?SystemOwner} }";
 		ppiQuery = ppiQuery.replaceAll("ASIMS", systemName);
 
-		//Business Processes Supported Query
-		String businessProcessQuery = "SELECT DISTINCT ?System ?BusinessProcess ?ProcessCategory WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?System ?Supports ?BusinessProcess} {?BusinessProcess <http://semoss.org/ontologies/Relation/Contains/ProcessCategory> ?ProcessCategory} }";
-		businessProcessQuery = businessProcessQuery.replaceAll("ASIMS", systemName);
+//		//Business Processes Supported Query
+//		String businessProcessQuery = "SELECT DISTINCT ?System ?BusinessProcess ?ProcessCategory WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?System ?Supports ?BusinessProcess} {?BusinessProcess <http://semoss.org/ontologies/Relation/Contains/ProcessCategory> ?ProcessCategory} }";
+//		businessProcessQuery = businessProcessQuery.replaceAll("ASIMS", systemName);
 
 		//System POC Query
 		String systemPOCQuery = "SELECT DISTINCT ?POC WHERE { BIND(<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/POC> ?POC ;} }";
@@ -316,8 +323,11 @@ public class FactSheetProcessor {
 		ArrayList<String> pocList = runQuery(tapCoreEngine, systemPOCQuery);
 		ArrayList<ArrayList<String>> userTypesList = runQuery(tapCoreEngine, userTypesQuery);
 		ArrayList<ArrayList<String>> userInterfacesList = runQuery(tapCoreEngine, userInterfaceQuery);
-		ArrayList<ArrayList<String>> businessProcessList = runQuery(tapCoreEngine, businessProcessQuery);
+//		ArrayList<ArrayList<String>> businessProcessList = runQuery(tapCoreEngine, businessProcessQuery);
 		ArrayList<String> ppiList = runQuery(tapCoreEngine, ppiQuery);
+		
+		ArrayList<Integer> capabilitiesSupportedResultsList = dhelp.getNumOfCapabilitiesSupported(systemName);
+		
 
 		returnHash.put(ConstantsTAP.SYSTEM_SW_QUERY, systemSWResultsList);
 		returnHash.put(ConstantsTAP.SYSTEM_HW_QUERY, systemHWResultsList);
@@ -339,7 +349,8 @@ public class FactSheetProcessor {
 		returnHash.put(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY, systemHighlightsList);
 		returnHash.put(ConstantsTAP.USER_TYPES_QUERY, userTypesList);
 		returnHash.put(ConstantsTAP.USER_INTERFACES_QUERY, userInterfacesList);
-		returnHash.put(ConstantsTAP.BUSINESS_PROCESS_QUERY, businessProcessList);
+//		returnHash.put(ConstantsTAP.BUSINESS_PROCESS_QUERY, businessProcessList);
+		returnHash.put(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY,capabilitiesSupportedResultsList);
 		returnHash.put(ConstantsTAP.PPI_QUERY, ppiList);
 
 		return returnHash;

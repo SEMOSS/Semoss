@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.DIHelper;
 
 public class DHMSMHelper {
 
@@ -36,6 +37,68 @@ public class DHMSMHelper {
 		processCapResults(sjswQuery4);
 
 		return;
+	}
+	
+	public ArrayList<Integer> getNumOfCapabilitiesSupported(String system)
+	{
+
+		String capabilityGroup = "SELECT DISTINCT ?CapabilityFunctionalArea ?Capability WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
+
+		SesameJenaSelectWrapper sjswQuery = processQuery(capabilityGroup, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
+		
+		ArrayList<String> allHSDCapabilities = new ArrayList<String>();
+		ArrayList<String> allHSSCapabilities = new ArrayList<String>();
+		ArrayList<String> allFHPCapabilities = new ArrayList<String>();
+		
+		String[] vars = sjswQuery.getVariables();
+		while(sjswQuery.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjswQuery.next();
+			String group = sjss.getVar(vars[0]).toString();
+			String cap = sjss.getVar(vars[1]).toString();
+			if(group.contains("HSD"))
+				allHSDCapabilities.add(cap);
+			else if(group.contains("HSS"))
+				allHSSCapabilities.add(cap);
+			else if(group.contains("FHP"))
+				allFHPCapabilities.add(cap);
+		}
+		
+		
+		ArrayList<ArrayList<String>> sysCreateCapCreate = getSysOrCapAndData(system,"C","C",false);
+		ArrayList<ArrayList<String>> sysCreateCapRead = getSysOrCapAndData(system, "C","R",false);
+		
+		ArrayList<String> HSDCapabilities = new ArrayList<String>();
+		ArrayList<String> HSSCapabilities = new ArrayList<String>();
+		ArrayList<String> FHPCapabilities = new ArrayList<String>();
+		
+		for(ArrayList<String> row : sysCreateCapCreate)
+		{
+			String capability = row.get(0);
+			if(!HSDCapabilities.contains(capability)&&allHSDCapabilities.contains(capability))
+				HSDCapabilities.add(capability);
+			else if(!HSSCapabilities.contains(capability)&&allHSSCapabilities.contains(capability))
+				HSSCapabilities.add(capability);
+			else if(!FHPCapabilities.contains(capability)&&allFHPCapabilities.contains(capability))
+				FHPCapabilities.add(capability);
+		}
+		for(ArrayList<String> row : sysCreateCapRead)
+		{
+			String capability = row.get(0);
+			if(!HSDCapabilities.contains(capability)&&allHSDCapabilities.contains(capability))
+				HSDCapabilities.add(capability);
+			else if(!HSSCapabilities.contains(capability)&&allHSSCapabilities.contains(capability))
+				HSSCapabilities.add(capability);
+			else if(!FHPCapabilities.contains(capability)&&allFHPCapabilities.contains(capability))
+				FHPCapabilities.add(capability);
+		}
+		
+		ArrayList<Integer> retVals = new ArrayList<Integer>();
+		retVals.add(HSDCapabilities.size());
+		retVals.add(HSSCapabilities.size());
+		retVals.add(FHPCapabilities.size());
+		
+		return retVals;
 	}
 
 	public ArrayList<ArrayList<String>> getSysOrCapAndData(String capOrSys, String capCRM, String sysCRM, boolean getSys) 
@@ -104,6 +167,78 @@ public class DHMSMHelper {
 							innerArray.add(sys);
 							innerArray.add(data);
 							resultSet.add(innerArray);
+						}
+					}
+				}
+			}
+
+		}
+
+		return resultSet;
+	}
+	
+	public ArrayList<String> getDataObjectList(String capOrSys, String capCRM, String sysCRM, boolean getSys) 
+	{
+		ArrayList<String> resultSet = new ArrayList<String>();
+		ArrayList<String> capDataList = new ArrayList<String>();
+		Hashtable<String, Hashtable<String, String>> searchList = new Hashtable<String, Hashtable<String, String>>();
+		Hashtable<String, Hashtable<String, String>> getList = new Hashtable<String, Hashtable<String, String>>();
+
+		if(getSys)
+		{	
+			searchList = dataListCapabilities;
+			getList = dataListSystems;
+		}
+		else
+		{
+			getList = dataListCapabilities;
+			searchList = dataListSystems;
+		}
+
+		for( String data : searchList.keySet() )
+		{
+			Hashtable<String, String> innerHash = searchList.get(data);
+			if(innerHash.containsKey(capOrSys))
+			{
+				String crm = innerHash.get(capOrSys);
+				if(capCRM.contains("C"))
+				{
+					if(crm.contains(capCRM) || crm.contains("M"))
+					{
+						capDataList.add(data);
+					}
+				}
+				else
+				{
+					if(crm.contains(capCRM))
+					{
+						capDataList.add(data);
+					}
+				}
+			}
+		}
+
+		for( String data : capDataList)
+		{
+			Hashtable<String, String> innerHash = getList.get(data);
+			if(innerHash != null)
+			{
+				for( String sys : innerHash.keySet())
+				{
+					if(sysCRM.contains("C"))
+					{				
+						if(innerHash.get(sys).contains(sysCRM) || innerHash.get(sys).contains("M"))
+						{
+							if(!resultSet.contains(data))
+								resultSet.add(data);
+						}
+					}
+					else
+					{
+						if(innerHash.get(sys).contains(sysCRM))
+						{
+							if(!resultSet.contains(data))
+								resultSet.add(data);
 						}
 					}
 				}
