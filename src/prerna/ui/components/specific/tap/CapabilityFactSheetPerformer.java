@@ -497,9 +497,9 @@ public class CapabilityFactSheetPerformer {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(HRCoreEngine);
 		dhelp.runData(engine);
 		
-		ArrayList capProvideSysProvideResultsList = dhelp.getSysOrCapAndData(capabilityName, "C", "C", true);
-		ArrayList capProvideSysConsumeResultsList = dhelp.getSysOrCapAndData(capabilityName, "C", "R", true);
-		ArrayList capConsumeSysProvideResultsList = dhelp.getSysOrCapAndData(capabilityName, "R", "C", true);
+		ArrayList<ArrayList<String>> capProvideSysProvideResultsList = dhelp.getSysAndData(capabilityName, "C", "C");
+		ArrayList<ArrayList<String>> capProvideSysConsumeResultsList = dhelp.getSysAndData(capabilityName, "C", "R");
+		ArrayList<ArrayList<String>> capConsumeSysProvideResultsList = dhelp.getSysAndData(capabilityName, "R", "C");
 		
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 

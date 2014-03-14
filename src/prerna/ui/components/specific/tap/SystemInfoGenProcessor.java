@@ -332,10 +332,10 @@ public class SystemInfoGenProcessor {
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of", dhelp.getAllDataFromSysOrCap(system, "C", true).size());
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", dhelp.getDataObjectList(system, "C", "C", false).size());
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectList(system, "C", "R", false).size());
-			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectList(system, "R", "C", false).size());
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of", dhelp.getAllDataFromSys(system, "C").size());
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", dhelp.getDataObjectListSupportedFromSystem(system, "C", "C").size());
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
+			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
 			masterHash.put(system,sysHash);
 		}
 		

@@ -25,16 +25,16 @@ public class DHMSMHelper {
 	public void runData(IEngine engine)
 	{
 		SesameJenaSelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
-		processSysResults(sjswQuery1);
+		processAllResults(sjswQuery1, true);
 
 		SesameJenaSelectWrapper sjswQuery2 = processQuery(GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM, engine);
-		processSysResults(sjswQuery2);
+		processAllResults(sjswQuery2, true);
 
 		SesameJenaSelectWrapper sjswQuery3 = processQuery(GET_ALL_SYSTEM_WITH_UPSTREAM, engine);
-		processSysResults(sjswQuery3);
+		processAllResults(sjswQuery3, true);
 
 		SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_CAPABILITIES_AND_CRM, engine);
-		processCapResults(sjswQuery4);
+		processAllResults(sjswQuery4, false);
 
 		return;
 	}
@@ -65,8 +65,8 @@ public class DHMSMHelper {
 		}
 		
 		
-		ArrayList<ArrayList<String>> sysCreateCapCreate = getSysOrCapAndData(system,"C","C",false);
-		ArrayList<ArrayList<String>> sysCreateCapRead = getSysOrCapAndData(system, "C","R",false);
+		ArrayList<ArrayList<String>> sysCreateCapCreate = getCapAndData(system,"C","C");
+		ArrayList<ArrayList<String>> sysCreateCapRead = getCapAndData(system, "C","R");
 		
 		ArrayList<String> HSDCapabilities = new ArrayList<String>();
 		ArrayList<String> HSSCapabilities = new ArrayList<String>();
@@ -101,23 +101,22 @@ public class DHMSMHelper {
 		return retVals;
 	}
 
-	public ArrayList<ArrayList<String>> getSysOrCapAndData(String capOrSys, String capCRM, String sysCRM, boolean getSys) 
+	public ArrayList<ArrayList<String>> getSysAndData(String cap, String capCRM, String sysCRM) 
+	{
+		return processSysOrCapAndData(cap, capCRM, sysCRM, dataListCapabilities, dataListSystems);
+	}
+	
+	public ArrayList<ArrayList<String>> getCapAndData(String sys, String capCRM, String sysCRM)
+	{
+		return processSysOrCapAndData(sys, capCRM, sysCRM, dataListSystems, dataListCapabilities);
+	}
+	
+	private ArrayList<ArrayList<String>> processSysOrCapAndData(String capOrSys, String capCRM, String sysCRM, 
+			Hashtable<String, Hashtable<String, String>> searchList, 
+			Hashtable<String, Hashtable<String, String>> getList ) 
 	{
 		ArrayList<ArrayList<String>> resultSet = new ArrayList<ArrayList<String>>();
 		ArrayList<String> capDataList = new ArrayList<String>();
-		Hashtable<String, Hashtable<String, String>> searchList = new Hashtable<String, Hashtable<String, String>>();
-		Hashtable<String, Hashtable<String, String>> getList = new Hashtable<String, Hashtable<String, String>>();
-
-		if(getSys)
-		{	
-			searchList = dataListCapabilities;
-			getList = dataListSystems;
-		}
-		else
-		{
-			getList = dataListCapabilities;
-			searchList = dataListSystems;
-		}
 
 		for( String data : searchList.keySet() )
 		{
@@ -177,23 +176,21 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 	
-	public ArrayList<String> getDataObjectList(String capOrSys, String capCRM, String sysCRM, boolean getSys) 
+	public ArrayList<String> getDataObjectListSupportedFromSystem(String sys, String capCRM, String sysCRM)
+	{
+		return processDataObjectList(sys, capCRM, sysCRM, dataListCapabilities, dataListSystems);
+	}
+	
+	public ArrayList<String> getDataObjectListSupportedFromCapabilities(String cap, String capCRM, String sysCRM)
+	{
+		return processDataObjectList(cap, capCRM, sysCRM, dataListSystems, dataListCapabilities);
+	}
+	
+	private ArrayList<String> processDataObjectList(String capOrSys, String capCRM, String sysCRM, 
+			Hashtable<String, Hashtable<String, String>> searchList, Hashtable<String, Hashtable<String, String>> getList) 
 	{
 		ArrayList<String> resultSet = new ArrayList<String>();
-		ArrayList<String> capDataList = new ArrayList<String>();
-		Hashtable<String, Hashtable<String, String>> searchList = new Hashtable<String, Hashtable<String, String>>();
-		Hashtable<String, Hashtable<String, String>> getList = new Hashtable<String, Hashtable<String, String>>();
-
-		if(getSys)
-		{	
-			searchList = dataListCapabilities;
-			getList = dataListSystems;
-		}
-		else
-		{
-			getList = dataListCapabilities;
-			searchList = dataListSystems;
-		}
+		ArrayList<String> capOrSysDataList = new ArrayList<String>();
 
 		for( String data : searchList.keySet() )
 		{
@@ -205,20 +202,20 @@ public class DHMSMHelper {
 				{
 					if(crm.contains(capCRM) || crm.contains("M"))
 					{
-						capDataList.add(data);
+						capOrSysDataList.add(data);
 					}
 				}
 				else
 				{
 					if(crm.contains(capCRM))
 					{
-						capDataList.add(data);
+						capOrSysDataList.add(data);
 					}
 				}
 			}
 		}
 
-		for( String data : capDataList)
+		for( String data : capOrSysDataList)
 		{
 			Hashtable<String, String> innerHash = getList.get(data);
 			if(innerHash != null)
@@ -249,19 +246,20 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 	
-	public ArrayList<String> getAllDataFromSysOrCap(String capOrSys, String crm, boolean getSys)
+	public ArrayList<String> getAllDataFromSys(String sys, String crm)
+	{
+		return processAllDataFromSysOrCap(sys, crm, dataListSystems);
+	}
+	
+	public ArrayList<String> getAllDataFromCap(String cap, String crm)
+	{
+		return processAllDataFromSysOrCap(cap, crm, dataListCapabilities);
+	}
+	
+	
+	private ArrayList<String> processAllDataFromSysOrCap(String capOrSys, String crm, Hashtable<String, Hashtable<String, String>> dataList)
 	{
 		ArrayList<String> resultSet = new ArrayList<String>();
-		Hashtable<String, Hashtable<String, String>> dataList = new Hashtable<String, Hashtable<String, String>>();
-		
-		if(getSys)
-		{	
-			dataList = dataListSystems;
-		}
-		else
-		{
-			dataList = dataListCapabilities;
-		}
 		
 		for( String data : dataList.keySet() )
 		{
@@ -290,39 +288,19 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 
-	private void processSysResults(SesameJenaSelectWrapper sjsw)
+	private void processAllResults(SesameJenaSelectWrapper sjsw, boolean sys)
 	{
-		String[] vars = sjsw.getVariables();
-		while(sjsw.hasNext())
+		if(sys)
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String sub = sjss.getVar(vars[0]).toString();
-			String obj = sjss.getVar(vars[1]).toString();
-			String crm = sjss.getVar(vars[2]).toString();
-
-			if(!dataListSystems.containsKey(obj))
-			{
-				Hashtable<String, String> innerHash = new Hashtable<String, String>();
-				innerHash.put(sub, crm);
-				dataListSystems.put(obj, innerHash);
-			}
-			else if(!dataListSystems.get(obj).containsKey(sub))
-			{
-				Hashtable<String, String> innerHash = dataListSystems.get(obj);
-				innerHash.put(sub,  crm);
-			}
-			else
-			{
-				Hashtable<String, String> innerHash = dataListSystems.get(obj);
-				if((crm.equals("\"C\"") || crm.equals("\"M\"")) && innerHash.get(sub).equals("\"R\""))
-				{
-					innerHash.put(sub, crm);
-				}
-			}
+			processResults(sjsw, dataListSystems);
+		}
+		else
+		{
+			processResults(sjsw, dataListCapabilities);
 		}
 	}
-
-	private void processCapResults(SesameJenaSelectWrapper sjsw)
+	
+	private void processResults(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> dataList)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -332,20 +310,20 @@ public class DHMSMHelper {
 			String obj = sjss.getVar(vars[1]).toString();
 			String crm = sjss.getVar(vars[2]).toString();
 
-			if(!dataListCapabilities.containsKey(obj))
+			if(!dataList.containsKey(obj))
 			{
 				Hashtable<String, String> innerHash = new Hashtable<String, String>();
 				innerHash.put(sub, crm);
-				dataListCapabilities.put(obj, innerHash);
+				dataList.put(obj, innerHash);
 			}
-			else if(!dataListCapabilities.get(obj).containsKey(sub))
+			else if(!dataList.get(obj).containsKey(sub))
 			{
-				Hashtable<String, String> innerHash = dataListCapabilities.get(obj);
+				Hashtable<String, String> innerHash = dataList.get(obj);
 				innerHash.put(sub,  crm);
 			}
 			else
 			{
-				Hashtable<String, String> innerHash = dataListCapabilities.get(obj);
+				Hashtable<String, String> innerHash = dataList.get(obj);
 				if((crm.equals("\"C\"") || crm.equals("\"M\"")) && innerHash.get(sub).equals("\"R\""))
 				{
 					innerHash.put(sub, crm);
