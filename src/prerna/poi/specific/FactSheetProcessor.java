@@ -46,7 +46,7 @@ public class FactSheetProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	String tapCoreEngine = "TAP_Core_Data";
 	String tapSiteEngine = "TAP_Site_Data";
-	String tapCostEngine = "TAP_Portfolio";
+	String tapCostEngine = "TAP_Cost_Data";
 	String workingDir = System.getProperty("user.dir");
 	FactSheetSysDupeCalculator sysDupe;
 	DHMSMHelper dhelp;
