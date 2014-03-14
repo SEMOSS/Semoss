@@ -165,6 +165,9 @@ public interface IEngine extends IExplorable{
 	// sets the owl
 	public void setOWL(String owl);
 
+	// sets the rdbms map, if it exists
+	public void setMap(String map);
+	
 	// get property
 	public String getProperty(String key);
 	

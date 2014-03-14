@@ -18,19 +18,24 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
-import java.util.Iterator;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
+import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.update.UpdateAction;
+import com.hp.hpl.jena.update.UpdateFactory;
+import com.hp.hpl.jena.update.UpdateRequest;
 
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 
@@ -39,7 +44,7 @@ import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
  */
 public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	
-	Model jenaModel = null;
+	Model d2rqModel = null;
 	Logger logger = Logger.getLogger(getClass());
 	String propFile = null;
 	boolean connected = false;
@@ -50,7 +55,7 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void closeDB() {
-		jenaModel.close();
+		d2rqModel.close();
 		logger.info("Closed the RDBMS Database " + propFile);		
 	}
 
@@ -63,12 +68,11 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 * @return the graph query results */
 	@Override
 	public Object execGraphQuery(String query) {
-	
-		com.hp.hpl.jena.query.Query queryVar = QueryFactory.create(query) ;
-		QueryExecution qexec = QueryExecutionFactory.create(queryVar, jenaModel) ;
+		logger.info("EXEC GRAPH QUERY: " + query);
+		Query q = QueryFactory.create(query) ;
+		QueryExecution qexec = QueryExecutionFactory.create(q, d2rqModel) ;
 		Model resultModel = qexec.execConstruct() ;
 		return resultModel;
-		//qexec.close() ;
 	}
 
 	/**
@@ -78,9 +82,11 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	
 	 * @return triple query results that can be displayed as a grid */
 	@Override
-	public Object execSelectQuery(String query) {
-		com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
-		com.hp.hpl.jena.query.ResultSet rs = QueryExecutionFactory.create(q2, jenaModel).execSelect();
+	public ResultSet execSelectQuery(String query) {
+		logger.info("EXEC SELECT QUERY: " + query);
+		Query q = QueryFactory.create(query); 
+		QueryExecution qexec = QueryExecutionFactory.create(q, d2rqModel);
+		ResultSet rs = qexec.execSelect();
 		return rs;
 	}
 
@@ -93,12 +99,13 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void execInsertQuery(String query) {
-		
+		UpdateRequest update = UpdateFactory.create(query);
+		UpdateAction.execute(update, d2rqModel);
 	}
 
 	/**
-	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
-	 * engine.
+	 * Gets the type of the engine. The engine type is often used to determine what API to use while running queries against the 
+	 * engine. D2RQ uses the JENA API so we return an engine type of JENA.
 	
 	 * @return the type of the engine */
 	@Override
@@ -114,19 +121,18 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 * @return the Vector of Strings representing the instance names of all of the query results */
 	@Override
 	public Vector<String> getEntityOfType(String sparqlQuery) {
-		// run the query 
-		// convert to string
+		logger.info("ENTITY OF TYPE QUERY: " + sparqlQuery);
+		
 		Vector <String> retString = new Vector<String>();
 		ResultSet rs = (ResultSet)execSelectQuery(sparqlQuery);
 		
-		// gets only the first variable
-		Iterator varIterator = rs.getResultVars().iterator();
-		String varName = (String)varIterator.next();
+		String varName = Constants.ENTITY;
 		while(rs.hasNext())
 		{
 			QuerySolution row = rs.next();
-			retString.addElement(row.get(varName)+"");
+			retString.add(row.get(varName)+"");
 		}
+		
 		return retString;
 	}
 
@@ -149,13 +155,12 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void openDB(String propFile) {
-		
-		try {
-			jenaModel = new ModelD2RQ("file:" + propFile);
-			this.connected = true;
-		} catch (Exception e) {
-			// TODO: Specify exception
-			e.printStackTrace();
+		if(this.map != null) {
+			d2rqModel = new ModelD2RQ(DIHelper.getInstance().getProperty("BaseFolder") + "/" + this.map);
+			if(d2rqModel != null) {
+				this.connected = true;
+			}
+			super.openDB(propFile);
 		}
 	}
 
@@ -169,7 +174,12 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 * if it does not. */
 	@Override
 	public Boolean execAskQuery(String query) {
-		// TODO: Don't return null
-		return null;
+		boolean response = false;
+		
+		Query q = QueryFactory.create(query);
+		QueryExecution qexec = QueryExecutionFactory.create(q, d2rqModel);
+		response = qexec.execAsk();
+		
+		return response;
 	}
 }

@@ -75,7 +75,8 @@ public abstract class AbstractEngine implements IEngine {
 	ValueFactory insightVF = null;
 	Resource engineURI2 = null;
 	Hashtable baseDataHash;
-
+	String map = null;
+	
 	public static final String perspectives = "SELECT ?perspective WHERE {{<@engine@> <"
 			+ Constants.PERSPECTIVE
 			+ ":"
@@ -1233,4 +1234,7 @@ public abstract class AbstractEngine implements IEngine {
 		return this.insightBase;
 	}
 	
+	public void setMap(String map) {
+		this.map = map;
+	}	
 }
