@@ -131,10 +131,8 @@ public class SystemTransitionOrganizer {
 	}
 	
 	public ArrayList <Object []> createData(String engineName, String query) {
-		// TODO Auto-generated method stub
-		// the create view needs to refactored to this
 		
-		ArrayList <Object []> list = null;
+		ArrayList <Object []> list = new ArrayList<Object[]>();
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		wrapper.setQuery(query);
