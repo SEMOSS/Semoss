@@ -332,8 +332,14 @@ NEIGHBORHOOD_OBJECT_QUERY_2	SELECT  DISTINCT ?subject WHERE { {?subject ?predica
 NEIGHBORHOOD_TYPE_QUERY	SELECT  DISTINCT ?type WHERE {{?subject ?predicate ?object} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}MINUS {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object} MINUS{ ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?object. } } ORDER BY ?type BINDINGS ?subject {@FILTER_VALUES@}
 NEIGHBORHOOD_TYPE_QUERY_2	SELECT  DISTINCT ?type WHERE { {?subject ?predicate ?object}{?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}} ORDER BY ?type BINDINGS ?object {@FILTER_VALUES@}
 
+NEIGHBORHOOD_TYPE_QUERY_JENA	SELECT  DISTINCT ?type WHERE { VALUES ?subject {@FILTER_VALUES@} {?subject ?predicate ?object} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} MINUS {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object} MINUS {?subject <http://www.w3.org/2000/01/rdf-schema#label> ?object} } ORDER BY ?type ?subject
+NEIGHBORHOOD_TYPE_QUERY_JENA_2	SELECT  DISTINCT ?type WHERE { VALUES ?object {@FILTER_VALUES@} {?subject ?predicate ?object}{?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}} ORDER BY ?type ?object
+
 TRAVERSE_FREELY_QUERY	SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>. ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>. ?subject ?predicate ?object. } BINDINGS ?subject {@FILTER_VALUES@}
 TRAVERSE_FREELY_QUERY_2	SELECT DISTINCT ?subject ?predicate ?object WHERE {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>. ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>. ?subject ?predicate ?object. } BINDINGS ?object {@FILTER_VALUES@}
+
+TRAVERSE_FREELY_QUERY_JENA	SELECT DISTINCT ?subject ?predicate ?object WHERE { VALUES ?subject {@FILTER_VALUES@} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>} {?subject ?predicate ?object} }
+TRAVERSE_FREELY_QUERY_JENA_2	SELECT DISTINCT ?subject ?predicate ?object WHERE { VALUES ?object {@FILTER_VALUES@} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OBJECT_TYPE@>} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@SUBJECT_TYPE@>} {?subject ?predicate ?object} }
 
 TRAVERSE_INSTANCE_FREELY_QUERY	SELECT DISTINCT ?subject ?predicate ?object WHERE {BIND(<@SUBJECT@> AS ?subject) BIND(<@OBJECT@> AS ?object). ?subject ?predicate ?object. } 
 TRAVERSE_INSTANCE_FREELY_QUERY_2	SELECT DISTINCT	?subject ?predicate ?object WHERE {BIND(<@OBJECT@> AS ?subject) BIND(<@SUBJECT@> AS ?object). ?subject ?predicate ?object. }

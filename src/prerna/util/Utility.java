@@ -497,6 +497,9 @@ public class Utility {
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineName(engineName);
+			if(prop.getProperty("MAP") != null) {
+				engine.setMap(prop.getProperty("MAP"));
+			}
 			engine.openDB(fileName);
 			engine.setDreamer(prop.getProperty(Constants.DREAMER));
 			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
