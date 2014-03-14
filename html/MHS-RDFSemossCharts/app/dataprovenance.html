@@ -99,13 +99,13 @@
 	var width = xAxisData.length * gridSize,
         height = yAxisData.length * gridSize,
         legendElementWidth = 60,
-        buckets = 9,
-	colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
-        colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"], // alternatively colorbrewer.YlGnBu[9]
-        colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
-	colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
-	colorsTraffic = ["#ae0e06","#e92e10","#fb741e","#fdc63f","#ffff57","#5cba24","#1e8b1f","#1e8b1f","#005715"];
-	colorsTrafficReverse = ["#005715","#1e8b1f","#1e8b1f","#5cba24","#ffff57","#fdc63f","#fb741e","#e92e10","#ae0e06"];
+        buckets = 2,
+	colors = ["#FED976","#BD0026"],
+        colorsRed = ["#FED976","#BD0026"], // alternatively colorbrewer.YlGnBu[9]
+        colorsBlue = ["#C6DBEF","#08519C"],
+	colorsGreen = ["#C7E9C0","#006D2C"];
+	colorsTraffic = ["#fb741e","#1e8b1f"];
+	colorsTrafficReverse = ["#1e8b1f","#e92e10"];
 	
 	
 	//color selection
@@ -181,10 +181,10 @@
 	    var tip = d3.tip()
 	      .attr('class', 'd3-tip')
 	      .html(function(d) { 
-	      	if (d.Value === 7.5) {
+	      	if (d.Value === 1) {
 	      	return "<div> <span class='light'>" + value + ":</span> " + "Create" + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; 
 	      	}
-	      	if (d.Value === 4) {
+	      	if (d.Value === 0) {
 	      	return "<div> <span class='light'>" + value + ":</span> " + "Read" + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; 
 	      	}
 	      })
@@ -266,7 +266,14 @@
 
           legend.append("text")
             .attr("class", "mono")
-            .text(function(d) { return "" + Math.round(d); })
+            .text(function(d) { 
+            	if (d === 0) {
+            		return "Read";
+            	}
+            	if (d === 1) {
+            		return "Create";
+            	}
+            	 })
             .attr("x", function(d, i) { return legendElementWidth * i; })
             .attr("y", yAxisData.length * gridSize + 75);
 	  
