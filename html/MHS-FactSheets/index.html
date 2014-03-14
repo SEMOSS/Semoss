@@ -107,7 +107,7 @@
       <div class="row">
         <div class="col-md-2 col-md-offset-1"><center><b>CONOPS Source</b></center></div>
         <div class="col-md-2"><center>{{ data.dataSeries.CapabilityOverviewSheet.CONOPS_SOURCE_QUERY[0] }}</center></div>
-        <div class="col-md-2 col-md-offset-1"><center><b>Date Generated</b></center></div>
+        <div class="col-md-2 col-md-offset-1"><center><b>Date Capability Fact Sheet Generated</b></center></div>
         <div class="col-md-2"><center>{{ data.dataSeries.CapabilityOverviewSheet.DATE_GENERATED_QUERY[0] }}</center></div>
       </div> <!--row-->
 
@@ -133,7 +133,7 @@
       </div> <!--row-->
 
     <div class="row">
-      <div class="col-md-1 col-md-offset-1"><center><b><a ng-click="scrollTo('BLU')">BLUs</a></b></center></div>
+      <div class="col-md-1 col-md-offset-1"><center><b><a ng-click="scrollTo('BLU')">Business Logic Units</a></b></center></div>
       <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.BLU_COUNT_QUERY[0] }}</center></div>
       <div class="col-md-1"><center><b><a ng-click="scrollTo('fgaps')">Functional Gaps</a></b></center></div>
       <div class="col-md-1"><center>{{ data.dataSeries.CapabilityOverviewSheet.FUNCTIONAL_GAP_COUNT_QUERY[0] }}</center></div>
@@ -156,7 +156,8 @@
         </div>
     </div> <!-- row -->
 
-    <h4 id="sysinfo">System Information</h4>
+    <h4 id="sysinfo">System Information: Number of systems providing and consuming the data that the capability will provide and/or consume 
+</h4>
 
     <div class="table-responsive">
     <table class="table table-bordered table-striped">
@@ -164,21 +165,21 @@
         <tr>
           <th></th>
           <th>
-            System Provide
+            Number of systems providing data
           </th>
           <th>
-            System Consume
+            Number of systems consuming data
           </th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <th>Capability Provide</th>
+          <th>Capability Provides</th>
           <td><a ng-click="scrollTo('PSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
           <td><a ng-click="scrollTo('CSPD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_PROVIDE_SYSTEM_CONSUME_DATA_COUNT_QUERY[0] }}</a></td>
         </tr>
         <tr>
-          <th>Capability Consume</th>
+          <th>Capability Consumes</th>
           <td><a ng-click="scrollTo('PSCD')">{{ data.dataSeries.CapabilityOverviewSheet.CAP_CONSUME_SYSTEM_PROVIDE_DATA_COUNT_QUERY[0] }}</a></td>
           <td></td>
         </tr>
@@ -220,7 +221,7 @@
     <div class="col-md-6">
         <div class="panel panel-primary">
             <div class="panel-heading">
-              <h3 class="panel-title">Capability Similarity Heatmap</h3>
+              <h3 class="panel-title">Capability Similarity Heatmap shows the five most similar capabilities based on their shared characteristics</h3>
             </div>
             <div class="panel-body">
               <div d3-heatmap="" d3-width="550" d3-height="350" data="data.dataSeries.CapabilityDupeSheet"></div>
@@ -231,7 +232,7 @@
     <div class="col-md-6">
       <div class="panel panel-primary">
             <div class="panel-heading">
-              <h3 class="panel-title">Data Overview (CRM)</h3>
+              <h3 class="panel-title">Data Object Overview shows the number of data objects the tasks supporting the capability need to provide or consume</h3>
             </div>
             <div class="panel-body">
               <div d3-pie d3-width="550" d3-height="350" data="data.dataSeries.CapabilityOverviewSheet"></div>
@@ -253,7 +254,7 @@
 
   <h3>Appendix</h3>
 
-  <h4 id="data">Data Objects</h4>
+  <h4 id="data">Data objects that are either created (C) or read (R) for the tasks supporting this capability. Also change CRM header to C or R vs CRM.</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -275,7 +276,7 @@
   </div>
   <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
 
-  <h4 id="BLU">Business Logic Units (BLUs)</h4>
+  <h4 id="BLU">Business Logic Units (BLU) needed for the tasks supporting this capability</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -401,7 +402,7 @@
   </div>
   <p><a ng-click="scrollTo('highlights')">Back to capability highlights</a></p>
 
-  <h4 id="PSCD">System Information: Provide System, Consume Data</h4>
+  <h4 id="PSCD">System Information: Existing systems that provide the data objects the capability needs.</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -409,7 +410,7 @@
       <thead>
         <tr>
           <th>Providing System</th> 
-          <th>Data Consumed</th>
+          <th>Data object needed</th>
         </tr>
       </thead>
       <tbody>
@@ -423,7 +424,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
-  <h4 id="CSPD">System Information: Consume System, Provide Data</h4>
+  <h4 id="CSPD">System Information: Existing systems that consume the data objects the capability  will provide</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -431,7 +432,7 @@
       <thead>
         <tr>
           <th>Consuming System</th> 
-          <th>Data Provided</th>
+          <th>Data object provided</th>
         </tr>
       </thead>
       <tbody>
@@ -445,7 +446,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
-  <h4 id="PSPD">System Information: Provide System, Provide Data</h4>
+  <h4 id="PSPD">System Information: Existing systems that provide the data objects the capability will provide</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -453,7 +454,7 @@
       <thead>
         <tr>
           <th>Providing System</th> 
-          <th>Data Provided</th>
+          <th>Data object provided</th>
         </tr>
       </thead>
       <tbody>
@@ -467,14 +468,14 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
 
-  <h4 id="PSPDMD">Data objects not provided by systems: Capability provides data</h4>
+  <h4 id="PSPDMD">Data objects that are not provided by existing systems that the capability needs to create</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
     <table class="table table-bordered">
       <thead>
         <tr>
-          <th>Data Object</th>
+          <th>Data object provided</th>
         </tr>
       </thead>
       <tbody>
@@ -487,7 +488,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
   
-    <h4 id="PSCDMD">Data objects not provided by systems: Capability consumes data</h4>
+    <h4 id="PSCDMD">Data objects that are not provided by existing systems that the capability needs to consume</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -507,7 +508,7 @@
   </div>
   <p><a ng-click="scrollTo('sysinfo')">Back to capability highlights</a></p>
  
-  <h4 id="fgaps">Functional Gaps</h4>
+  <h4 id="fgaps">Functional Gaps that are affecting the capability</h4>
 
   <div class="bs-example">
     <table class="table table-striped">
@@ -524,6 +525,37 @@
       </tbody>
     </table>
     </table>
+  </div>
+  
+  <div class="bs-example">
+    <b>Reference Page:</b>
+    <ul>
+      <li>Capability Description: This information is directly stated within the respective CONOPS document</li>
+      
+      <li>Capability Group:  This information is directly stated within the respective CONOPS document</li>
+      
+      <li>Mission Outcomes: This information is directly stated within the respective CONOPS document</li>
+    
+      <li>Participants: The participants for the capabilities are mapped through the associated tasks using the HL7 Healthcare Scenario Roadmap as a reference</li>
+      
+      <li>CONOPS Source: Identifies whether this capability is defined within the Health Services Delivery (HSD), Health Systems Support (HSS) or Force Health Protection (FHP) CONOPS</li>
+      
+      <li>Tasks: This information is directly stated within the respective CONOPS document</li>
+      
+      <li>Business Processes: This information is mapped from the capability to the respective supporting business processes that are comprised of clinical, logistical and business bps.</li>
+      
+      <li>Business Rule: This information is directly stated within the respective CONOPS document</li>
+      
+      <li>Business Standards: This information is directly stated within the respective CONOPS document</li>
+      
+      <li>Technical Requirements and Standards: This information is derived from mapping the capability attributes within the CONOPS to the Health Standards Profile (HSP)</li>
+      
+      <li>Business Logic Units: These are the algorithms that are needed to complete the tasks that support the capability and were mapped by subject matter experts</li>
+      
+      <li>Functional Gaps: This depicts the functional gaps that are affecting the capability</li>
+      
+      <li>Data Objects (Provide and Consume): These are the data objects that are needed to complete the tasks that support the capability and were mapped by subject matter experts</li>
+    </ul>
   </div>
 
   <h4><a href="" onClick="window.location.reload(true)">Go back to capability list</a></h4>
