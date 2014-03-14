@@ -14,7 +14,7 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = System.getProperty("user.dir");
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/dataprovenancetest.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/dataprovenance.html";
 	}
 	
 	/**
@@ -43,11 +43,9 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 			elementHash.put(xName, methodName);
 			elementHash.put(yName, groupName);
 			if (crm.equals("C")) {
-				//count = 7;
 				count = 1;
 			}
 			else if (crm.equals("R")) {
-				//count = 4;
 				count = 0;
 			}			
 			elementHash.put(var[2], count);
