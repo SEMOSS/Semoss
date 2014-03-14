@@ -25,11 +25,13 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
+import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.memory.MemoryStore;
@@ -43,7 +45,6 @@ import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
 /**
@@ -83,6 +84,7 @@ public class RDFEngineHelper {
 					"{?Subject ?Predicate ?Object}" + 
 					"}";
 		}
+		
 		addResultsToRC(fromEngine, conceptHierarchyForSubject, ps);
 	}
 
@@ -115,6 +117,7 @@ public class RDFEngineHelper {
 					"{?Subject <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?Object}" +
 					"}";// relation hierarchy					
 		}
+		
 		addResultsToRC(fromEngine, relationHierarchy, ps);
 
 	}	
@@ -148,6 +151,7 @@ public class RDFEngineHelper {
 					"{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " + containsRelation + " }" +
 					"}";// relation hierarchy					
 		}
+		
 		addResultsToRC(fromEngine, relationHierarchy, ps);
 
 	}
@@ -175,7 +179,7 @@ public class RDFEngineHelper {
 					"{?Subject ?Predicate ?Object}}" +
 					"BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects + " }";
 		}
-		else
+		else if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object. ?Predicate ?type ?contains} WHERE {" +
 					"VALUES ?Subject {" + subjects + " " + predicates + " " + objects + "}" +
@@ -185,6 +189,7 @@ public class RDFEngineHelper {
 					//"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 					"{?Subject ?Predicate ?Object}}";			
 		}
+		
 		addResultsToRC(fromEngine, propertyQuery, ps);
 
 	}
@@ -324,7 +329,7 @@ public class RDFEngineHelper {
 	 * @param query 		Query to be run.
 	 * @param ps 			Graph playsheet where sesame construct statement is stored.
 	 */
-	private static void addResultsToRC(IEngine fromEngine, String query, GraphDataModel ps){
+	private static void addResultsToRC(IEngine fromEngine, String query, GraphDataModel ps) {
 		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
 		sjsc.setQuery(query);
@@ -336,39 +341,23 @@ public class RDFEngineHelper {
 			{
 				SesameJenaConstructStatement st = sjsc.next();
 				ps.addToSesame(st, false, false);
-			}	
-//		try {
-//			ps.rc.add(sjsc.gqr);
-//			if (ps.extend || ps.overlay)
-//			{
-//			sjsc.execute();
-//			ps.curRC.add(sjsc.gqr);
-//			}
-//			logger.debug("cur model size: " + ps.curRC.size())
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
+			}
 			
 		}
 		else if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 		{	
 			while(sjsc.hasNext())
 			{
-				// read the subject predicate object
-				// add it to the in memory jena model
-				// get the properties
-				// add it to the in memory jena model
 				SesameJenaConstructStatement st = sjsc.next();
+				//TODO: Keep this addition to PropertySpecData?
 //				PropertySpecData psd = ps.getPredicateData();
 //				psd.addConcept(st.getObject()+"", st.getSubject()+"");
-
-				// I have to have some logic which will add the type name 
-				// basically the object is the main type
-				// subject is the subtype
-				//addToJenaModel(st);
-				ps.addToJenaModel3(st);
+				
+				//TODO: Need this?
+//				ps.addToJenaModel3(st);
+				ps.addToSesame(st, false, false);
 			}
-		}		
+		}
 	}
 
 	/**
@@ -382,7 +371,7 @@ public class RDFEngineHelper {
 		String constructAllQuery = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 				"{" +
 				"{?Subject ?Predicate ?Object} }" + 
-				"";// relation hierarchy
+				"";
 
 		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
@@ -393,21 +382,16 @@ public class RDFEngineHelper {
 		{			
 			try {
 				toRC.add(sjsc.gqr);
+				//TODO: Delete? Engine type is Sesame
 //				while(sjsc.hasNext())
 //				{
-//					// read the subject predicate object
-//					// add it to the in memory jena model
-//					// get the properties
-//					// add it to the in memory jena model
 //					SesameJenaConstructStatement st = sjsc.next();
 //					logger.debug(st.getSubject() + st.getPredicate() + st.getObject());
-//					// I have to have some logic which will add the type name 
-//					// basically the object is the main type
-//					// subject is the subtype
-//					//addToJenaModel(st);
+//					addToJenaModel(st);
 //				}
-			} catch (Exception e) {
-				// TODO: Specify exception
+			} catch (QueryEvaluationException e) {
+				e.printStackTrace();
+			} catch (RepositoryException e) {
 				e.printStackTrace();
 			}
 		}
@@ -435,8 +419,9 @@ public class RDFEngineHelper {
 		{			
 			try {
 				toRC.remove(sjsc.gqr);
-			} catch (Exception e) {
-				// TODO: Specify exception
+			} catch (QueryEvaluationException e) {
+				e.printStackTrace();
+			} catch (RepositoryException e) {
 				e.printStackTrace();
 			}
 		}

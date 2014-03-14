@@ -133,7 +133,6 @@ public class GraphDataModel {
 	}
 	
 	public void processData(String query, IEngine engine) {
-		
 		// open up the engine
 		String queryCap = query.toUpperCase();
 		
@@ -143,17 +142,12 @@ public class GraphDataModel {
 		else
 			sjw = new SesameJenaSelectCheater();
 
-		//writeStatus(" Created the queries ");
-
 		sjw.setEngine(engine);
-//		updateProgressBar("10%...Querying RDF Repository", 10);
 		sjw.setQuery(query);
-//		updateProgressBar("30%...Querying RDF Repository", 30);
+		
 		try{
 			sjw.execute();	
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
@@ -213,25 +207,23 @@ public class GraphDataModel {
 				//predData.addConceptAvailable(st.getSubject());//, st.getSubject());
 				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
 
-				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0)
-				{
+				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
 						subjects.append("(<").append(st.getSubject()).append(">)");
 					else
 						subjects.append("<").append(st.getSubject()).append(">");
 				}
-				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0)
-				{
+				
+				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
 					else
 						predicates.append("<").append(st.getPredicate()).append(">");
 				}
-				// need to find a way to do this for jena too
-				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
-				{			
-					if(objects.indexOf("(<" + obj +">)") < 0)
-					{
+				
+				//TODO: need to find a way to do this for jena too
+				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
+					if(objects.indexOf("(<" + obj +">)") < 0) {
 						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
 							objects.append("(<" + obj +">)");
 						else
@@ -249,12 +241,10 @@ public class GraphDataModel {
 			// this links the hierarchy that tool needs to the metamodel being queried
 			// eventually this could be a SPIN
 			// need to get the engine name and jam it - Done Baby
-			if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine)
-			{
+			if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine) {
 				if(this.baseRelEngine == null){
 					this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-				}
-				else {
+				} else {
 					RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
 				}
 
@@ -267,16 +257,13 @@ public class GraphDataModel {
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
 			boolean loadHierarchy = !(subjects.equals("") && predicates.equals("") && objects.equals("")); 
-			if(loadHierarchy)
-			{
-				try
-				{
+			if(loadHierarchy) {
+				try {
 					RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
 					logger.debug("Loaded Concept");
 					RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), this);
 					logger.debug("Loaded Relation");
-				}catch(Exception ex)
-				{
+				} catch(Exception ex) {
 					ex.printStackTrace();
 				}
 			}
@@ -284,14 +271,14 @@ public class GraphDataModel {
 			if(containsRelation == null)
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 
-			if(sudowl){
+			if(sudowl) {
 				logger.info("Starting to load OWL");
 //				GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
 //				GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
 //				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
 				logger.info("Finished loading OWL");
 			}
-			if(prop){
+			if(prop) {
 				logger.info("Starting to load properties");
 				// load local property hierarchy
 				try
@@ -302,15 +289,12 @@ public class GraphDataModel {
 					//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
 					RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
 					logger.info("Loaded Properties");
-				}catch(Exception ex)
-				{
+				} catch(Exception ex) {
 					ex.printStackTrace();
 				}
 				//genProperties(propertyQuery + predicates + " } ");
 			}
-
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
 		modelCounter++;
@@ -323,11 +307,7 @@ public class GraphDataModel {
 	 * @param add2Base boolean
 	 */
 	public void addToSesame(SesameJenaConstructStatement st, boolean overrideURI, boolean add2Base) {
-		// if the jena model is not null
-		// then add to the new jenaModel and the old one
-		// TODO based on the base relations add to base
 		try {
-			
 			// initialization routine...
 			if(rc == null)
 			{
@@ -339,40 +319,31 @@ public class GraphDataModel {
 				rc = myRepository.getConnection();	
 				rc.setAutoCommit(false);
 			}
-			// undo
-
-			
-			// done Initialization
 			
 			// Create the subject and predicate
-			
 			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
 			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
 			
 			// figure out if this is an object later
+			//TODO: Need a way to figure out if obj from RDBMS is URI or Literal
 			Object obj = st.getObject();
-			if((overrideURI || obj instanceof URI) && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
+			if((overrideURI || obj instanceof URI || obj.toString().startsWith("http://")) && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
 			{
 				org.openrdf.model.Resource object = null;
+				
 				if(obj instanceof org.openrdf.model.Resource)
 				 object = (org.openrdf.model.Resource) obj;
 				else 
 					object = new URIImpl(st.getObject()+"");
 				
-				if(overlay)
-				{
-					//logger.info("Adding to the new model");
-					if (!rc.hasStatement(subject,predicate,object, true))
-					{
+				if(overlay) {
+					if (!rc.hasStatement(subject,predicate,object, true)) {
 						curRC.add(subject,predicate,object);
-					}
-					else
-					{
+					} else {
 						return;
 					}
 				}
-				if(add2Base)
-				{
+				if(add2Base) {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), true);
 				}
 				rc.add(subject,predicate,object);
@@ -393,40 +364,33 @@ public class GraphDataModel {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), obj, false);
 				}*/
 				
-				if(overlay)
-				{
+				if(overlay) {
 					//logger.info("Adding to the new model");
-					if (!rc.hasStatement(subject,predicate,(Literal)obj, true))
-					curRC.add(subject,predicate,(Literal)obj);
-					else
-					{
+					if (!rc.hasStatement(subject,predicate,(Literal)obj, true)) {
+						curRC.add(subject,predicate,(Literal)obj);
+					} else {
 						return;
 					}
 				}
-				if(add2Base)
-				{
+				if(add2Base) {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
 				}
 				rc.add(subject, predicate, (Literal)obj);
 			}
-			else if(obj instanceof com.hp.hpl.jena.rdf.model.Literal)
+			else if(obj instanceof com.hp.hpl.jena.rdf.model.Literal || !obj.toString().startsWith("http://"))
 			{
 				// I need to figure out a way to convert this into sesame literal
 				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
 				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
 				
-				if(overlay)
-				{
-					//logger.info("Adding to the new model");
-					if (!rc.hasStatement(subject,predicate,(Literal)obj, true))
-					curRC.add(subject,predicate,(Literal)newObj);
-					else
-					{
+				if(overlay) {
+					if (!rc.hasStatement(subject,predicate,newObj, true)) {
+						curRC.add(subject,predicate,(Literal)newObj);
+					} else {
 						return;
 					}
 				}
-				if(add2Base)
-				{
+				if(add2Base) {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
 				}
 				rc.add(subject, predicate, (Literal)newObj);
@@ -434,7 +398,6 @@ public class GraphDataModel {
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		}
-
 		/*jenaModel.add(jenaSt);*/
 		// just so that we can remove it later
 	}
@@ -467,12 +430,9 @@ public class GraphDataModel {
 			com.hp.hpl.jena.rdf.model.Literal l = ModelFactory.createDefaultModel().createTypedLiteral(val);
 			jenaSt = jenaModel.createLiteralStatement(subject, prop, l);
 			jenaModel.add(jenaSt);
-			
 		}
 		else
 		{
-		
-			
 			jenaModel.add(jenaSt);
 		}
 		*/
@@ -481,17 +441,12 @@ public class GraphDataModel {
 			jenaModel.add(jenaSt);
 			if(overlay)
 			{
-			
-				//logger.info("Adding to the new model");
 				curModel.add(jenaSt);
 			}
 		}
 		//jenaModel.add(jenaSt);
 		// just so that we can remove it later
-
-
 	}
-
 
 	/**
 	 * Method addNodeProperty.
@@ -500,7 +455,6 @@ public class GraphDataModel {
 	 * @param predicate String
 	 */
 	public void addNodeProperty(String subject, Object object, String predicate) {
-		
 			logger.debug("Creating property for a vertex" );
 			SEMOSSVertex vert1 = vertStore.get(subject);
 			if (vert1 == null) {
@@ -508,8 +462,7 @@ public class GraphDataModel {
 			}
 			//only set property and store vertex if the property does not already exist on the node
 			String propName = Utility.getInstanceName(predicate);
-			if (vert1.getProperty(propName)==null)
-			{
+			if (vert1.getProperty(propName)==null) {
 				vert1.setProperty(propName, object);
 				storeVert(vert1);
 			}
@@ -602,7 +555,6 @@ public class GraphDataModel {
 			count++;
 		}
 		
-		
 		return containsString;
 	}	
 	
@@ -615,7 +567,6 @@ public class GraphDataModel {
 				Constants.PREDICATE_URI);
 		PROP_URI = DIHelper.getInstance()
 				.getProperty(Constants.PROP_URI);
-
 	}
 	
 	public void undoView(){

@@ -19,11 +19,14 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.apache.log4j.Logger;
+
 import prerna.poi.main.PropFileWriter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ImportRDBMSProcessor {
+	Logger logger = Logger.getLogger(getClass());
 	
 	private StringBuilder tableMapping = new StringBuilder();
 	private StringBuilder propertyTypeMapping = new StringBuilder();
@@ -136,12 +139,12 @@ public class ImportRDBMSProcessor {
 			}
 
 			// process properties
-			XSSFSheet propSheet = workbook.getSheet("Properties");
+			XSSFSheet propSheet = workbook.getSheet("Nodes");
 
 			// check rows in correct order
 			XSSFRow headerPropRow = propSheet.getRow(0);
 			if(!headerPropRow.getCell(0).toString().equals("Table") && !headerPropRow.getCell(0).toString().equals("Subject") && !headerPropRow.getCell(0).toString().equals("Property") && !headerPropRow.getCell(0).toString().equals("DataType")){
-				Utility.showError("Headers are incorrect in property sheet! \nPlease correct your workbook format");
+				logger.error("Headers are incorrect in property sheet! \nPlease correct your workbook format");
 			}
 
 			String tableInput = "";
@@ -228,7 +231,7 @@ public class ImportRDBMSProcessor {
 	private String createDatabase(String url, String username, String password)
 	{
 		return dbConnection = "map:database a d2rq:Database;" + spacer + 
-				"d2rq:jdbcDSN \"jdbc:mysql://" + url + "\";" + spacer + 
+				"d2rq:jdbcDSN \"" + url + "\";" + spacer + 
 				"d2rq:jdbcDriver \"com.mysql.jdbc.Driver\";" + spacer + 
 				"d2rq:username \"" + username + "\";" + spacer + 
 				"d2rq:password \"" + password + "\";" + spacer + 

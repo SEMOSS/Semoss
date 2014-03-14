@@ -133,7 +133,7 @@ public class ImportDataListener implements IChakraListener {
 			String dbImportUsername = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD)).getText();
 			char[] dbImportPW = ((JPasswordField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getPassword();
 			String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
-//			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, dbName, dbType, dbImportURL, dbImportUsername, dbImportPW);
+			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, dbName, dbType, dbImportURL, dbImportUsername, dbImportPW);
 		}
 		
 		//finally, show whether or not successful
