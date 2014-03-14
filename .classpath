@@ -94,5 +94,6 @@
 	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-javadoc-1.2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-sources-1.2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/nekohtml.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/itextpdf-5.5.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
