@@ -52,7 +52,7 @@ public class GLItemGeneratorICDValidated {
 	public Vector sdlcV = new Vector();
 	ArrayList <String[]> genericDataList = new ArrayList();
 	ArrayList <String[]> genericBLUList	= new ArrayList();
-	ArrayList <String[]> providerDataList = new ArrayList();
+	ArrayList <String[]> providerDataList = new ArrayList<String[]>();
 	ArrayList <String[]> providerBLUList = new ArrayList();
 	ArrayList <String[]> consumerList = new ArrayList();
 	ArrayList <String[]> coreTaskList = new ArrayList();
@@ -775,7 +775,7 @@ public class GLItemGeneratorICDValidated {
 			inputDataV = (Vector) allDataHash.get("Data-"+sdlcV.get(sdlcIdx)+"GLItem");
 
 			//not going through all SDLC because datafed deploy does not exist
-			for (int i=0;i<retList.size();i++)
+			for (int i = 0; i < retList.size(); i++)
 			{
 				String[] retLine = retList.get(i);
 				String dataStr = retLine[1];
@@ -1118,6 +1118,10 @@ public class GLItemGeneratorICDValidated {
 		query = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm ;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} } BINDINGS ?crm {(\"C\")(\"M\")}";
 		providerDataList = retListFromQuery (query);
 		
+		//additional data necessary for provider data pieces due to redefinition of what it means for a system to be a creater of a piece of data
+		query = "SELECT DISTINCT ?Service ?Data  ?System WHERE { {?Service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}} {?Service <http://semoss.org/ontologies/Relation/Exposes> ?Data}  {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;} FILTER(!BOUND(?icd2)) } ORDER BY ?System";
+		providerDataList.addAll(retListForAdditionalInfoQuery(query, providerDataList));
+		
 		//get all data necessary for provider BLU pieces
 		query = "SELECT DISTINCT ?ser ?blu ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?blu ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?blu ;} }";
 		providerBLUList = retListFromQuery (query);
@@ -1411,7 +1415,6 @@ public class GLItemGeneratorICDValidated {
 		wrapper.executeQuery();
 		// get the bindings from it
 
-		int count = 0;
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
@@ -1433,8 +1436,7 @@ public class GLItemGeneratorICDValidated {
 					}
 				}
 				if(filledData) {
-					list.add(count, values);
-					count++;
+					list.add(values);
 				}
 			}
 		} 
@@ -1442,6 +1444,55 @@ public class GLItemGeneratorICDValidated {
 			e.printStackTrace();
 		}
 		return list;
+	}
+	
+	/**
+	 * Returns the list of data from running a query on an engine.
+	 * @param query String
+	 * @param originalList 
+	
+	 * @return ArrayList 	Returned data from query. */
+	public ArrayList retListForAdditionalInfoQuery (String query, ArrayList<String[]> originalList)
+	{
+		ArrayList <String []> newListItems = new ArrayList();
+		JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+		String changedDB = (String) changedDBComboBox.getSelectedItem();
+		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		wrapper.setQuery(query);
+		wrapper.setEngine(engine);
+		wrapper.executeQuery();
+		// get the bindings from it
+
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		try {
+			while(wrapper.hasNext())
+			{
+				SesameJenaSelectStatement sjss = wrapper.next();
+				String [] values = new String[names.length];
+				boolean filledData = true;
+				for(int colIndex = 0;colIndex < names.length; colIndex++)
+				{
+					if(sjss.getVar(names[colIndex]) != null)
+					{
+						values[colIndex] = sjss.getVar(names[colIndex])+"";
+					}
+					else {
+						filledData = false;
+						break;
+					}
+				}
+				if(filledData && !originalList.contains(values)) 
+				{
+					newListItems.add(values);
+				}
+			}
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return newListItems;
 	}
 	
 	/**
