@@ -632,6 +632,7 @@ public class PlayPane extends JFrame {
 		gbc_loadingFormatComboBox.gridx = 1;
 		gbc_loadingFormatComboBox.gridy = 2;
 		importPanel.add(loadingFormatComboBox, gbc_loadingFormatComboBox);
+		
 		GridBagConstraints gbc_dbImportPanel = new GridBagConstraints();
 		gbc_dbImportPanel.gridwidth = 2;
 		gbc_dbImportPanel.insets = new Insets(0, 0, 5, 5);
@@ -769,10 +770,6 @@ public class PlayPane extends JFrame {
 		selectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
 
 		fileBrowseBtn = new CustomButton("Browse");
-		fileBrowseBtn.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-			}
-		});
 		fileBrowseBtn.setName(Constants.IMPORT_BUTTON_BROWSE);
 		fileBrowseBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_fileBrowseBtn = new GridBagConstraints();
