@@ -115,7 +115,9 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			{
 				var = new String[rs.getResultVars().size()];
 				List <String> names = rs.getResultVars();
-				for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
+				for(int colIndex = 0;
+						colIndex < names.size();
+						var[colIndex] = names.get(colIndex), colIndex++);
 			}
 		}
 		return var;
@@ -160,15 +162,15 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		SesameJenaConstructStatement retSt = new SesameJenaConstructStatement();
 		try
 		{	
-			if(count==0)
-			{
-				bs = tqr.next();
-				//tqrCount++;
-				//logger.info(tqrCount);
-			}
 				
 			if(engineType == IEngine.ENGINE_TYPE.SESAME)
 			{
+				if(count==0)
+				{
+					bs = tqr.next();
+					//tqrCount++;
+					//logger.info(tqrCount);
+				}
 				logger.debug("Adding a sesame statement ");
 				
 				// there should only be three values

@@ -51,8 +51,8 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 	SEMOSSVertex [] pickedVertex = null;
 	Logger logger = Logger.getLogger(getClass());
 
-	String mainQuery = null;
-	String neighborQuery = null;
+	String mainQuery, mainQueryJENA, neighborQuery, neighborQueryJENA;
+	
 	boolean populated = false;
 	// core class for neighbor hoods etc.
 	/**
@@ -68,7 +68,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		this.ps = ps;
 		this.pickedVertex = pickedVertex;
 		this.mainQuery = Constants.NEIGHBORHOOD_TYPE_QUERY;
+		this.mainQueryJENA = Constants.NEIGHBORHOOD_TYPE_QUERY_JENA;
 		this.neighborQuery = Constants.TRAVERSE_FREELY_QUERY;
+		this.neighborQueryJENA = Constants.TRAVERSE_FREELY_QUERY_JENA;
 		addMouseListener(this);
 	}
 
@@ -92,7 +94,12 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		// and the predicate selected
 		// the listener should then trigger the graph play sheet possibly
 		// and for each relationship add the listener
-		String typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
+		String typeQuery = "";
+		if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+			typeQuery = DIHelper.getInstance().getProperty(this.neighborQueryJENA + prefix);
+		} else {
+			typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
+		}
 		Hashtable<String, String> hash = new Hashtable<String, String>();
 		String ignoreURI = DIHelper.getInstance().getProperty(Constants.IGNORE_URI);
 		int count = 0;
@@ -103,7 +110,12 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			SEMOSSVertex thisVert = pickedVertex[pi];
 			String uri = thisVert.getURI();
 
-			String query2 = DIHelper.getInstance().getProperty(this.mainQuery+ prefix);
+			String query2 = "";
+			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+				query2 = DIHelper.getInstance().getProperty(this.mainQueryJENA + prefix);
+			} else {
+				query2 = DIHelper.getInstance().getProperty(this.mainQuery + prefix);
+			}
 			String typeName = Utility.getConceptType(engine, thisVert.uri);
 			if(typeV.contains(typeName))
 			{
@@ -124,12 +136,23 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			String fileName = "";
 			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type);
 			logger.info("Vert vector size is " + vertVector.size());
-			for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
-			{
-				if(vertIndex == 0)
-					fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
-				else
-					fileName = fileName + "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+			
+			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+				for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+				{
+					if(vertIndex == 0)
+						fileName = "<" + vertVector.elementAt(vertIndex).getURI() + ">";
+					else
+						fileName = fileName + "<" + vertVector.elementAt(vertIndex).getURI() + ">";
+				}
+			} else {
+				for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+				{
+					if(vertIndex == 0)
+						fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+					else
+						fileName = fileName + "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+				}
 			}
 			
 			//put in param hash and fill  
@@ -161,7 +184,8 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				logger.debug("Trying predicate class name for " + objClassName );
 				if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
 						&& !objClassName.equals("http://semoss.org/ontologies/Concept")
-						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource"))
+						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource")
+						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class"))
 				{
 					//add the to: and from: labels
 					if(count == 0){
@@ -214,7 +238,6 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 	public void mouseEntered(MouseEvent arg0) {
 		if(!populated)
 		{
-
 			addRelations("");
 			addRelations("_2");
 		}

@@ -51,8 +51,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 	SEMOSSVertex [] pickedVertex = null;
 	Logger logger = Logger.getLogger(getClass());
 
-	String mainQuery = null;
-	String neighborQuery = null;
+	String mainQuery, mainQueryJENA, neighborQuery, neighborQueryJENA;
 	
 	boolean instance = false;
 	boolean populated = false;
@@ -70,7 +69,9 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 		this.ps = ps;
 		this.pickedVertex = pickedVertex;
 		this.mainQuery = Constants.NEIGHBORHOOD_TYPE_QUERY;
+		this.mainQueryJENA = Constants.NEIGHBORHOOD_TYPE_QUERY_JENA;
 		this.neighborQuery = Constants.TRAVERSE_FREELY_QUERY;
+		this.neighborQueryJENA = Constants.TRAVERSE_FREELY_QUERY_JENA;
 		addMouseListener(this);
 	}
 	
@@ -95,7 +96,12 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 				// and the predicate selected
 				// the listener should then trigger the graph play sheet possibly
 				// and for each relationship add the listener
-				String typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
+				String typeQuery = "";
+				if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+					typeQuery = DIHelper.getInstance().getProperty(this.neighborQueryJENA + prefix);
+				} else {
+					typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
+				}
 				Hashtable<String, String> hash = new Hashtable<String, String>();
 				String ignoreURI = DIHelper.getInstance().getProperty(Constants.IGNORE_URI);
 				int count = 0;
@@ -104,8 +110,13 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 				{		
 					SEMOSSVertex thisVert = pickedVertex[pi];
 					String uri = thisVert.getURI();
-
-					String query2 = DIHelper.getInstance().getProperty(this.mainQuery+ prefix);
+					
+					String query2 = "";
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						query2 = DIHelper.getInstance().getProperty(this.mainQueryJENA + prefix);
+					} else {
+						query2 = DIHelper.getInstance().getProperty(this.mainQuery + prefix);
+					}
 					String typeName = Utility.getConceptType(engine, thisVert.uri);
 					if(typeV.contains(typeName))
 					{
@@ -123,12 +134,20 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					
 					// get the filter values
 					String fileName = "";
-					for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
-					{
-						if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).equals(thisVert.getProperty(Constants.VERTEX_TYPE)))
-						fileName = fileName + "(<" + pickedVertex[vertIndex].getURI() + ">)";
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
+						{
+							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).equals(thisVert.getProperty(Constants.VERTEX_TYPE)))
+								fileName = fileName + "<" + pickedVertex[vertIndex].getURI() + ">";
+						}
+					} else {
+						for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
+						{
+							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).equals(thisVert.getProperty(Constants.VERTEX_TYPE)))
+								fileName = fileName + "(<" + pickedVertex[vertIndex].getURI() + ">)";
+						}
 					}
-					
+
 					//put in param hash and fill  
 					hash.put("FILTER_VALUES", fileName);
 					String filledQuery = Utility.fillParam(query2, hash);
@@ -158,7 +177,8 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						logger.debug("Trying predicate class name for " + objClassName );
 						if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
 								&& !objClassName.equals("http://semoss.org/ontologies/Concept")
-								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource"))
+								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource") 
+								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class"))
 						{
 							String instance = Utility.getInstanceName(objClassName);
 							//add the to: and from: labels
