@@ -27,8 +27,10 @@ import javax.swing.JComponent;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.FactSheetProcessor;
+import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -52,12 +54,17 @@ public class FactSheetListener implements IChakraListener {
 		JComboBox reportType = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_REPORT_TYPE_COMBO_BOX);
 		String type = (String) reportType.getSelectedItem();
 		String system = null;
+		DHMSMHelper dhelp = new DHMSMHelper();
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		dhelp.runData(engine);
 		if(type.contains("Specific")){
 			ParamComboBox systemComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
 			system = (String) systemComboBox.getSelectedItem();
+			processor.setDHMSMHelper(dhelp);
 			processor.generateSystemReport(system);
 		}
 		else if (type.contains("All Systems")) {
+			processor.setDHMSMHelper(dhelp);
 			processor.generateReports();	
 		}
 	}

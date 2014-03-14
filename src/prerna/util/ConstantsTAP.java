@@ -76,6 +76,7 @@ public class ConstantsTAP {
 	public static final String USER_INTERFACES_QUERY = "USER_INTERFACES_QUERY";
 	public static final String BUSINESS_PROCESS_QUERY = "BUSINESS_PROCESS_QUERY";
 	public static final String PPI_QUERY = "PPI_QUERY";
+	public static final String CAPABILITIES_SUPPORTED_QUERY = "CAPABILITIES_SUPPORTED_QUERY";
 	
 	//Tasker Generation Constants
 	public static String TASKER_GENERATION_SYSTEM_COMBO_BOX="TaskerGenerationSyscomboBox";

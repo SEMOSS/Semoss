@@ -97,9 +97,10 @@ public class FactSheetWriter {
 		ArrayList systemHighlightsResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY);
 		ArrayList userTypesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_TYPES_QUERY);
 		ArrayList userInterfacesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_INTERFACES_QUERY);
-		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
+//		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
 		ArrayList ppiResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
-
+		ArrayList capabilitiesSupportedResults = (ArrayList) systemDataHash.get(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY);
+		
 		//Find unique BLU/Data (for bolding)
 		ArrayList uniqueDataSystems = new ArrayList();
 		ArrayList uniqueData = new ArrayList();
@@ -120,7 +121,7 @@ public class FactSheetWriter {
 			}
 		}		
 
-		writeSystemOverviewSheet(wb, sysResults, valueResults, maturityResults, systemDescriptionResults, systemHighlightsResults, userTypesResults, userInterfacesResults, pocResults, businessProcessResults, ppiResults);
+		writeSystemOverviewSheet(wb, sysResults, valueResults, maturityResults, systemDescriptionResults, systemHighlightsResults, userTypesResults, userInterfacesResults, pocResults, capabilitiesSupportedResults, ppiResults);
 		writeListOfInterfacesSheet(wb, icdResults);
 		writeDataProvenanceSheet(wb, dataResults, uniqueDataSystems, uniqueData);
 		writeBusinessLogicSheet(wb, bluResults, uniqueBLUSystems, uniqueBLU);	
@@ -148,10 +149,10 @@ public class FactSheetWriter {
 	 * @param userTypesResults				ArrayList containing the type of users
 	 * @param userInterfacesResults			ArrayList containing the type of user interfaces
 	 * @param pocResults					ArrayList containing the system point of contact
-	 * @param businessProcessResults		ArrayList containing the business processes supported
+	 * @param capabilitiesSupportedResults	ArrayList containing the capabilities supported results
 	 * @param ppiResults					ArrayList containing the system owner
 	 */
-	public void writeSystemOverviewSheet(XSSFWorkbook wb, ArrayList sysResults, ArrayList valueResults, ArrayList maturityResults, ArrayList systemDescriptionResults, ArrayList systemHighlightsResults, ArrayList userTypesResults, ArrayList userInterfacesResults, ArrayList pocResults, ArrayList businessProcessResults, ArrayList ppiResults) {
+	public void writeSystemOverviewSheet(XSSFWorkbook wb, ArrayList sysResults, ArrayList valueResults, ArrayList maturityResults, ArrayList systemDescriptionResults, ArrayList systemHighlightsResults, ArrayList userTypesResults, ArrayList userInterfacesResults, ArrayList pocResults, ArrayList capabilitiesSupportedResults, ArrayList ppiResults) {
 		XSSFSheet sheetToWriteOver = wb.getSheet("System Overview");
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(2);
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
@@ -254,23 +255,14 @@ public class FactSheetWriter {
 			}
 		}
 
-
-		//Business Processes Supported
-		for (int i=0; i<businessProcessResults.size(); i++) {	
-			ArrayList businessProcess = (ArrayList) businessProcessResults.get(i);
-			String processCategory = ((String) (businessProcess.get(2))).replaceAll("\"", "");
-			if (processCategory.equals("Clinical")) clinicalCount++;
-			if (processCategory.equals("Business")) businessCount++;
-			if (processCategory.equals("Logistical")) logisticsCount++;
-
-		}			
+		
 		rowToWriteOn = sheetToWriteOver.getRow(20);
 		cellToWriteOn = rowToWriteOn.getCell(10);
-		cellToWriteOn.setCellValue(clinicalCount);
+		cellToWriteOn.setCellValue((Integer)capabilitiesSupportedResults.get(0));
 		cellToWriteOn = rowToWriteOn.getCell(13);
-		cellToWriteOn.setCellValue(logisticsCount);
+		cellToWriteOn.setCellValue((Integer)capabilitiesSupportedResults.get(1));
 		cellToWriteOn = rowToWriteOn.getCell(15);
-		cellToWriteOn.setCellValue(businessCount);
+		cellToWriteOn.setCellValue((Integer)capabilitiesSupportedResults.get(2));
 
 		//User Types
 		String userTypes = "";
@@ -473,10 +465,6 @@ public class FactSheetWriter {
 		defaultStyle.setBorderRight(CellStyle.BORDER_THIN);
 
 		for (int i=0; i<result.size(); i++) {
-			System.out.println("i "+i);
-			if(i==310)
-			{
-				String kylene = "kylene";}
 			ArrayList row = (ArrayList) result.get(i);
 			if(sheetToWriteOver.getLastRowNum()>=i+10)
 				rowToWriteOn = sheetToWriteOver.getRow(i+10);

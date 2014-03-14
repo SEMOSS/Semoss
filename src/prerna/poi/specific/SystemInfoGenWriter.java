@@ -98,6 +98,8 @@ public class SystemInfoGenWriter {
 						Object val = sysHash.get(varName);
 						if(val instanceof Double)
 							cell.setCellValue((Double)val);
+						else if(val instanceof Integer)
+							cell.setCellValue((Integer)val);
 						else
 							cell.setCellValue(((String)val).replace("\"", "").replace("_", " "));
 					}
