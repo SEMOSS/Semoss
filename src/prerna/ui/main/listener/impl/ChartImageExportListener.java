@@ -98,7 +98,7 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 					case 2: exportType = this.PDF_TYPE;
 										 break;
 				}
-			}	
+			}
 			
 			if(fileLoc.isEmpty())
 			{
@@ -121,7 +121,6 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 				}
 				fileLoc += writeFileName;
 			}
-			
 			
 			int imageWidth = i.getWidth(null);
 	        int imageHeight = i.getHeight(null);
@@ -166,9 +165,6 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 						document.open();
 
 						int pages = (int) Math.ceil((double)dest.getHeight() / this.MAX_DIM);
-						System.out.println(dest.getHeight());
-						System.out.println(dest.getHeight()/this.MAX_DIM);
-						System.out.println(Math.ceil(dest.getHeight() / this.MAX_DIM));
 						if(pages == 0)
 							pages = 1;
 						for(int j = 0; j < pages; j++) {
