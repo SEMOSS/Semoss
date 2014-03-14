@@ -9,6 +9,8 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class DeduplicationQueriesPlaySheet extends GridPlaySheet{
 
+	private ArrayList<String> listToCompare = new ArrayList<String>();
+	
 	@Override
 	public void createData() {
 		// TODO Auto-generated method stub
@@ -57,6 +59,8 @@ public class DeduplicationQueriesPlaySheet extends GridPlaySheet{
 				}
 				logger.debug("Creating new Value " + values);
 				addList.add(values);
+				//TODO: NEED TO MAKE THIS GENERIC
+				listToCompare.add(values[0].toString());
 			}
 		} catch (Exception e) {
 			logger.fatal(e);
@@ -101,11 +105,9 @@ public class DeduplicationQueriesPlaySheet extends GridPlaySheet{
 					logger.debug("Binding Name " + names[colIndex]);
 					logger.debug("Binding Value " + values[colIndex]);
 				}
-
-				if(list.contains(values))
+				//TODO: NEED TO MAKE THIS GENERIC
+				if(!listToCompare.contains(values[0].toString()))
 				{
-					System.out.println(list.get(0) + "::::" + list.get(0).getClass());
-					System.out.println(values[0] + ":::" + values.getClass());
 					logger.debug("Creating new Value " + values);
 					addList.add(values);
 				}
