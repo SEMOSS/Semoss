@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.FactSheetReportComboBox;
+import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.components.specific.tap.TransitionReportComboBox;
@@ -131,7 +132,16 @@ public class RepoSelectionListener implements ListSelectionListener {
 				
 			}
 			
-			
+			//Fill Capability Fact Sheet Report Select Capability Combo Box
+			try {
+				FactSheetReportComboBox capabilityFactSheetReportComboBox = (FactSheetReportComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.CAPABILITY_FACT_SHEET_CAP_COMBO_BOX);
+				capabilityFactSheetReportComboBox.setEngine(list.getSelectedValue()+"");
+				capabilityFactSheetReportComboBox.setKey("Capability");
+				capabilityFactSheetReportComboBox.run();
+			}
+			catch (Exception e1) {
+				
+			}
 			Object[] repos = new Object[1];
 			try{
 				ServiceSelectPanel transitionSerPanel = (ServiceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.TRANSITION_SERVICE_PANEL);
@@ -145,6 +155,12 @@ public class RepoSelectionListener implements ListSelectionListener {
 				SourceSelectPanel sourceSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.SOURCE_SELECT_PANEL);
 				sourceSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
 				sourceSelPanel.getServices();
+			}catch(Exception ex){}
+			
+			try{
+				SelectRadioButtonPanel radioSelPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
+				radioSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
+				radioSelPanel.getServices();
 			}catch(Exception ex){}
 		}
 	}

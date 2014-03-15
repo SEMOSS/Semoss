@@ -257,6 +257,7 @@ public class Constants {
 	public static String TRANSITION_NOT_APPLY_OVERHEAD_RADIO = "rdbtnDoNotApplyOverhead";
 	public static String TRANSITION_SERVICE_PANEL = "transitionServicePanel";
 	public static String SOURCE_SELECT_PANEL = "sourceSelectPanel";
+	public static String SELECT_RADIO_PANEL = "selectRadioPanel";
 	public static String TRANSITION_CHECK_BOX_DATA_FED="chckbxDataFederationTransReport";
 	public static String TRANSITION_CHECK_BOX_DATA_CONSUMER="chckbxDataConsumer";
 	public static String TRANSITION_ITEM_GEN_BUTTON = "loadGenBtn";

@@ -90,6 +90,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.FactSheetReportComboBox;
+import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.components.specific.tap.TransitionReportComboBox;
@@ -175,6 +176,13 @@ public class PlayPane extends JFrame {
 	public JScrollPane sourceSelectScrollPane;
 	public JPanel sourceSelectPanel;
 	public JButton sourceReportGenButton = new JButton();
+	
+	//DHMSM Report Panel
+	public JPanel dhmsmReportTopPanel;
+	public SelectRadioButtonPanel selectRadioPanel;
+	public JScrollPane selectRadioScrollPane;
+	public JButton dhmsmDecommissionReportButton = new JButton();
+	private JSeparator separator_9;
 
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -267,10 +275,6 @@ public class PlayPane extends JFrame {
 	public JButton btnTaskerGeneration;
 	public JButton btnSystemInfoGenButton;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
-	
-//	//Capability Fact Sheet Panel
-//	public JButton btnCapabilityFactSheetGeneration;
-//	public FactSheetReportComboBox capabilityFactSheetCapComboBox;
 	
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
@@ -2591,46 +2595,87 @@ public class PlayPane extends JFrame {
 		gbc_btnSystemInfoGenerator.gridy = 4;
 		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
 		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
+
 		
-//		JLabel CapabilityFactSheetTitleLabel = new JLabel("Capability Fact Sheet Generation");
-//		CapabilityFactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-//		GridBagConstraints gbc_CapabilityFactSheetTitleLabel = new GridBagConstraints();
-//		gbc_CapabilityFactSheetTitleLabel.gridwidth = 3;
-//		gbc_CapabilityFactSheetTitleLabel.fill = GridBagConstraints.BOTH;
-//		gbc_CapabilityFactSheetTitleLabel.insets = new Insets(10, 10, 5, 5);
-//		gbc_CapabilityFactSheetTitleLabel.gridx = 4;
-//		gbc_CapabilityFactSheetTitleLabel.gridy = 0;
-//		TaskerGenerationPanel.add(CapabilityFactSheetTitleLabel, gbc_CapabilityFactSheetTitleLabel);
-//
-//		JLabel lblCapabilityFactSheetSelectCapability = new JLabel("Select Capability");
-//		lblCapabilityFactSheetSelectCapability.setFont(new Font("Tahoma", Font.PLAIN, 12));
-//		GridBagConstraints gbc_lblCapabilityFactSheetSelectCapability = new GridBagConstraints();
-//		gbc_lblCapabilityFactSheetSelectCapability.insets = new Insets(0, 0, 5, 0);
-//		gbc_lblCapabilityFactSheetSelectCapability.gridx = 4;
-//		gbc_lblCapabilityFactSheetSelectCapability.gridy = 1;
-//		TaskerGenerationPanel.add(lblCapabilityFactSheetSelectCapability,gbc_lblCapabilityFactSheetSelectCapability);
-//
-//		capabilityFactSheetCapComboBox = new FactSheetReportComboBox(fetching);
-//		capabilityFactSheetCapComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-//		capabilityFactSheetCapComboBox.setBackground(Color.GRAY);
-//		capabilityFactSheetCapComboBox.setPreferredSize(new Dimension(200, 25));
-//		GridBagConstraints gbc_capabilityFactSheetCapComboBox = new GridBagConstraints();
-//		gbc_capabilityFactSheetCapComboBox.fill = GridBagConstraints.HORIZONTAL;
-//		gbc_capabilityFactSheetCapComboBox.gridx = 4;
-//		gbc_capabilityFactSheetCapComboBox.gridy = 2;
-//		TaskerGenerationPanel.add(capabilityFactSheetCapComboBox,	gbc_capabilityFactSheetCapComboBox);		
-//		
-//		btnCapabilityFactSheetGeneration = new CustomButton("Generate Capability Fact Sheet");
-//		btnCapabilityFactSheetGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
-//		GridBagConstraints gbc_btnCapabilityFactSheetGeneration = new GridBagConstraints();
-//		gbc_btnCapabilityFactSheetGeneration.fill = GridBagConstraints.HORIZONTAL;
-//		gbc_btnCapabilityFactSheetGeneration.gridwidth = 2;
-//		gbc_btnCapabilityFactSheetGeneration.insets = new Insets(0, 0, 5, 5);
-//		gbc_btnCapabilityFactSheetGeneration.gridx = 4;
-//		gbc_btnCapabilityFactSheetGeneration.gridy = 3;
-//		TaskerGenerationPanel.add(btnCapabilityFactSheetGeneration, gbc_btnCapabilityFactSheetGeneration);
-//		Style.registerTargetClassName(btnCapabilityFactSheetGeneration, ".standardButton");
-	
+		JPanel dhmsmReportPanel = new JPanel();
+		dhmsmReportPanel.setBackground(SystemColor.control);
+		JScrollPane dhmsmReportScroll = new JScrollPane(dhmsmReportPanel);
+		tapTabPane.addTab("DHMSM Reports", null, dhmsmReportScroll, null);
+		GridBagLayout dhmsmReportPanelLayout = new GridBagLayout();
+		dhmsmReportPanelLayout.rowHeights = new int[] { 30, 0, 0, 0, 0 };
+		dhmsmReportPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		dhmsmReportPanelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
+		dhmsmReportPanelLayout.columnWidths = new int[] { 0, 0, 0 };
+		dhmsmReportPanel.setLayout(dhmsmReportPanelLayout);
+
+		dhmsmReportTopPanel = new JPanel();
+		dhmsmReportTopPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_dhmsmReportTopPanel = new GridBagConstraints();
+		gbc_dhmsmReportTopPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dhmsmReportTopPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmReportTopPanel.anchor = GridBagConstraints.NORTH;
+		gbc_dhmsmReportTopPanel.gridx = 0;
+		gbc_dhmsmReportTopPanel.gridy = 0;
+		dhmsmReportPanel.add(dhmsmReportTopPanel, gbc_dhmsmReportTopPanel);
+		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
+		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
+		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
+
+		JLabel dhmsmDecommissionReportTitleLabel = new JLabel("Generate Decommission Report");
+		GridBagConstraints gbc_dhmsmDecommissionReportTitleLabel = new GridBagConstraints();
+		gbc_dhmsmDecommissionReportTitleLabel.gridwidth = 2;
+		gbc_dhmsmDecommissionReportTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmDecommissionReportTitleLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmDecommissionReportTitleLabel.gridx = 1;
+		gbc_dhmsmDecommissionReportTitleLabel.gridy = 1;
+		dhmsmReportTopPanel.add(dhmsmDecommissionReportTitleLabel, gbc_dhmsmDecommissionReportTitleLabel);
+		dhmsmDecommissionReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+
+		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
+		dhmsmLblDataName.setMinimumSize(new Dimension(155, 32));
+		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_dhmsmLblDataName = new GridBagConstraints();
+		gbc_dhmsmLblDataName.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmLblDataName.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmLblDataName.gridx = 2;
+		gbc_dhmsmLblDataName.gridy = 5;
+		dhmsmReportTopPanel.add(dhmsmLblDataName, gbc_dhmsmLblDataName);
+
+		selectRadioPanel = new SelectRadioButtonPanel();// change this
+		FlowLayout flowLayout2 = (FlowLayout) selectRadioPanel.getLayout();
+		flowLayout2.setAlignment(FlowLayout.LEFT);
+		selectRadioPanel.setBackground(SystemColor.control);
+
+		selectRadioScrollPane = new JScrollPane(selectRadioPanel);
+		GridBagConstraints gbc_selectRadioScrollPane = new GridBagConstraints();
+		gbc_selectRadioScrollPane.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 5);
+		gbc_selectRadioScrollPane.gridx = 2;
+		gbc_selectRadioScrollPane.gridy = 6;
+		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
+		selectRadioScrollPane.setPreferredSize(new Dimension(600, 300));
+
+		dhmsmDecommissionReportButton = new CustomButton("Generate DHMSM Decommission Report");
+		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();
+		gbc_dhmsmDecommissionReportButton.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmDecommissionReportButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmDecommissionReportButton.gridx = 2;
+		gbc_dhmsmDecommissionReportButton.gridy = 7;
+		dhmsmReportTopPanel.add(dhmsmDecommissionReportButton, gbc_dhmsmDecommissionReportButton);
+		dhmsmDecommissionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(dhmsmDecommissionReportButton, ".standardButton");
+
+		separator_9 = new JSeparator();
+		GridBagConstraints gbc_separator_9 = new GridBagConstraints();
+		gbc_separator_9.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator_9.gridwidth = 1;
+		gbc_separator_9.insets = new Insets(5, 5, 5, 5);
+		gbc_separator_9.gridx = 0;
+		gbc_separator_9.gridy = 3;
+		dhmsmReportPanel.add(separator_7, gbc_separator_7);
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
