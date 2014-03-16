@@ -94,6 +94,15 @@ public class DHMSMDecommissionReportListener implements IChakraListener {
 					dataAccessTypeHash.put(key, "Archive");
 				}
 		}
+		Enumeration<String> enumKey4 = selectRadioPanel.radioIgnoreBoxHash.keys();
+		while(enumKey4.hasMoreElements()) {
+			    String key = enumKey4.nextElement();
+				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioIgnoreBoxHash.get(key);
+				if (radioButton.isSelected())
+				{
+					dataAccessTypeHash.put(key, "Ignore");
+				}
+		}
 	
 		logger.info("Processed Data time Hash");
 		

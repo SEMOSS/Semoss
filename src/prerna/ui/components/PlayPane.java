@@ -2717,7 +2717,7 @@ public class PlayPane extends JFrame {
 		gbc_selectRadioScrollPane.gridx = 4;
 		gbc_selectRadioScrollPane.gridy = 6;
 		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
-		selectRadioScrollPane.setPreferredSize(new Dimension(600, 300));
+		selectRadioScrollPane.setPreferredSize(new Dimension(650, 300));
 
 		dhmsmDecommissionReportButton = new CustomButton("Generate DHMSM Decommission Report");
 		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();

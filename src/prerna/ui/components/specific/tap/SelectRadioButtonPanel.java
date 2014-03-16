@@ -51,7 +51,7 @@ public class SelectRadioButtonPanel extends JPanel {
 	public Hashtable radioRealBoxHash = new Hashtable();
 	public Hashtable radioNearBoxHash = new Hashtable();
 	public Hashtable radioArchiveBoxHash = new Hashtable();
-	
+	public Hashtable radioIgnoreBoxHash = new Hashtable();
 	/**
 	 * Constructor for SourceSelectPanel.
 	 */
@@ -121,6 +121,8 @@ public class SelectRadioButtonPanel extends JPanel {
 		labelNear.setFont(new Font("Tahoma", Font.BOLD, 12));
 		JLabel labelArchive= new JLabel("Archived");
 		labelArchive.setFont(new Font("Tahoma", Font.BOLD, 12));
+		JLabel labelIgnore= new JLabel("Ignore");
+		labelIgnore.setFont(new Font("Tahoma", Font.BOLD, 12));
 		
 		GridBagConstraints gbc_elementLabelData = new GridBagConstraints();	
 		gbc_elementLabelData.anchor = GridBagConstraints.WEST;
@@ -150,6 +152,12 @@ public class SelectRadioButtonPanel extends JPanel {
 		gbc_elementLabelArchive.gridy = 1;
 		this.add(labelArchive, gbc_elementLabelArchive);
 		
+		GridBagConstraints gbc_elementLabelIgnore = new GridBagConstraints();	
+		gbc_elementLabelIgnore.anchor = GridBagConstraints.WEST;
+		gbc_elementLabelIgnore.insets = new Insets(0, 5, 5, 5);
+		gbc_elementLabelIgnore.gridx = 4;
+		gbc_elementLabelIgnore.gridy = 1;
+		this.add(labelIgnore, gbc_elementLabelIgnore);
 		
 		Font f = new Font("Tahoma", Font.PLAIN, 12);
 		Font newF = new Font(f.getName(), Font.BOLD, f.getSize());
@@ -161,20 +169,25 @@ public class SelectRadioButtonPanel extends JPanel {
 			JRadioButton radioRealButton = new JRadioButton();//"Real Time");
 			JRadioButton radioNearButton = new JRadioButton();//"Near Real Time");
 			JRadioButton radioArchiveButton = new JRadioButton();//"Archived");
+			JRadioButton radioIgnoreButton = new JRadioButton();//"Ignore");
 			radioRealButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioRealButton.setSelected(false);
+			radioRealButton.setSelected(true);
 			radioNearButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			radioNearButton.setSelected(false);
 			radioArchiveButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			radioArchiveButton.setSelected(false);
+			radioIgnoreButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
+			radioIgnoreButton.setSelected(false);
 			
 			buttonGroup.add(radioRealButton);
 			buttonGroup.add(radioNearButton);
 			buttonGroup.add(radioArchiveButton);
+			buttonGroup.add(radioIgnoreButton);
 			
 			radioRealBoxHash.put((String)dataV.get(i),radioRealButton);
 			radioNearBoxHash.put((String)dataV.get(i),radioNearButton);
 			radioArchiveBoxHash.put((String)dataV.get(i),radioArchiveButton);
+			radioIgnoreBoxHash.put((String)dataV.get(i),radioIgnoreButton);
 			
 			GridBagConstraints gbc_elementLabel = new GridBagConstraints();	
 			gbc_elementLabel.anchor = GridBagConstraints.WEST;
@@ -203,6 +216,13 @@ public class SelectRadioButtonPanel extends JPanel {
 			gbc_elementRadioArchive.gridx = 3;
 			gbc_elementRadioArchive.gridy = i+2;
 			this.add(radioArchiveButton, gbc_elementRadioArchive);
+			
+			GridBagConstraints gbc_elementRadioIgnore = new GridBagConstraints();	
+			gbc_elementRadioIgnore.anchor = GridBagConstraints.CENTER;
+			gbc_elementRadioIgnore.insets = new Insets(0, 5, 5, 5);
+			gbc_elementRadioIgnore.gridx = 4;
+			gbc_elementRadioIgnore.gridy = i+2;
+			this.add(radioIgnoreButton, gbc_elementRadioIgnore);
 		}
 		
 	}
