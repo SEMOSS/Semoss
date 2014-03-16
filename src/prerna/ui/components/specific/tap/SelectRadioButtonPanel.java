@@ -22,6 +22,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Set;
@@ -58,21 +59,31 @@ public class SelectRadioButtonPanel extends JPanel {
 
 	}
 	
+	public void clear()
+	{
+		removeAll();
+	}
 	/**
 	 * Gets the list of services via SPARQL query.
 	 * Creates checkboxes for each service.
 	 */
-	public void getServices()
+	public void getDataObjects(ArrayList<String> capabilities)
 	{
 		removeAll();
+		String capabilityBindings = "";
+		for(String capability : capabilities)
+		{
+			capabilityBindings += "(<http://health.mil/ontologies/Concept/Capability/"+capability+">)";
+		}
 		Vector <String> names = new Vector<String>();
 		try{
-		String sparqlQuery = "Select DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
+		String sparqlQuery = "SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} } BINDINGS ?Capability {@CAPABILITY-BINDINGS@}";
+		sparqlQuery = sparqlQuery.replace("@CAPABILITY-BINDINGS@", capabilityBindings);
 		if(sparqlQuery==null)
 			return;
 		Hashtable paramTable = new Hashtable();
 		String entityNS = DIHelper.getInstance().getProperty("DataObject"+Constants.CLASS);
-		paramTable.put(Constants.ENTITY, entityNS );
+		paramTable.put(Constants.ENTITY, entityNS);
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 		
 		names = engine.getEntityOfType(sparqlQuery);
@@ -151,7 +162,7 @@ public class SelectRadioButtonPanel extends JPanel {
 			JRadioButton radioNearButton = new JRadioButton();//"Near Real Time");
 			JRadioButton radioArchiveButton = new JRadioButton();//"Archived");
 			radioRealButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioRealButton.setSelected(true);
+			radioRealButton.setSelected(false);
 			radioNearButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			radioNearButton.setSelected(false);
 			radioArchiveButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
