@@ -95,11 +95,15 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 			{
 				String sysName2 = sysCompEntry.getKey();
 			    double sysCompValue = sysCompEntry.getValue();
-				Hashtable elementHash = new Hashtable();
-				elementHash.put("System1", sysName);
-				elementHash.put("System2", sysName2);
-				elementHash.put("Score", sysCompValue*100);
-				dataRetHash.put(sysName +"-"+sysName2, elementHash);
+			    if (!sysName.equals(sysName2))
+			    {
+					Hashtable elementHash = new Hashtable();
+					elementHash.put("System1", sysName);
+					elementHash.put("System2", sysName2);
+					elementHash.put("Score", sysCompValue*100);
+					dataRetHash.put(sysName +"-"+sysName2, elementHash);
+			    }
+
 			}
 		}
 		return dataRetHash;
@@ -192,6 +196,7 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 			Gson gson = new Gson();
 			//.info("Converted " + gson.toJson(table));
 			browser.executeScript("dataBuilder('" + gson.toJson(value) + "', '"+key+"');");
+			//System.out.println("dataBuilder('" + gson.toJson(value) + "', '"+key+"');");
 		}
 		enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
@@ -202,6 +207,7 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 			Gson gson = new Gson();
 			//.info("Converted " + gson.toJson(table));
 			browser.executeScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
+			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 		}
 		browser.executeScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
