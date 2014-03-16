@@ -87,16 +87,17 @@ public class SystemTransitionOrganizer {
 			Object[] elementArray= list.get(i);
 			String system = (String) elementArray[0];
 			String data = (String) elementArray[1];
-			Double loe = (Double) elementArray[2];
+			String ser = (String) elementArray[2];
+			Double loe = (Double) elementArray[3];
 			if(sysToDataToCostHash.containsKey(system))
 			{
 				Hashtable<String, Double> dataCostHash = sysToDataToCostHash.get(system);
-				dataCostHash.put(data, loe);
+				dataCostHash.put(data+"$"+ser, loe);
 			}
 			else
 			{
 				Hashtable<String, Double> dataCostHash = new Hashtable<String, Double> ();
-				dataCostHash.put(data,  loe);
+				dataCostHash.put(data+"$"+ser,  loe);
 				sysToDataToCostHash.put(system, dataCostHash);
 			}
 		}
