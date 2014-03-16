@@ -154,13 +154,19 @@ public class RepoSelectionListener implements ListSelectionListener {
 			try{
 				SourceSelectPanel sourceSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.SOURCE_SELECT_PANEL);
 				sourceSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
-				sourceSelPanel.getServices();
+				sourceSelPanel.getCapabilities();
 			}catch(Exception ex){}
 			
 			try{
+				SourceSelectPanel dhmsmCapSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.DHMSM_CAPABILITY_SELECT_PANEL);
+				dhmsmCapSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
+				dhmsmCapSelPanel.getCapabilities();
+				
 				SelectRadioButtonPanel radioSelPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
-				radioSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
-				radioSelPanel.getServices();
+				radioSelPanel.engine=dhmsmCapSelPanel.engine;
+				radioSelPanel.clear();
+
+				
 			}catch(Exception ex){}
 		}
 	}

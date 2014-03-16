@@ -179,6 +179,12 @@ public class PlayPane extends JFrame {
 	
 	//DHMSM Report Panel
 	public JPanel dhmsmReportTopPanel;
+	public Panel dhmsmFunctionalAreaPanel;
+	public JCheckBox HSDCheckBoxDHMSM, HSSCheckBoxDHMSM, FHPCheckBoxDHMSM, DHMSMCheckBoxDHMSM;
+	public SourceSelectPanel dhmsmCapabilitySelectPanel;
+	public JScrollPane dhmsmCapabilitySelectScrollPane;
+	public JButton dhmsmUpdateDataButton = new JButton();
+	
 	public SelectRadioButtonPanel selectRadioPanel;
 	public JScrollPane selectRadioScrollPane;
 	public JButton dhmsmDecommissionReportButton = new JButton();
@@ -2633,27 +2639,82 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmDecommissionReportTitleLabel.gridy = 1;
 		dhmsmReportTopPanel.add(dhmsmDecommissionReportTitleLabel, gbc_dhmsmDecommissionReportTitleLabel);
 		dhmsmDecommissionReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		
 
+		dhmsmFunctionalAreaPanel = new Panel();
+		GridBagConstraints gbc_functionalAreaDHMSMPanel = new GridBagConstraints();
+		gbc_functionalAreaDHMSMPanel.anchor = GridBagConstraints.WEST;
+		gbc_functionalAreaDHMSMPanel.gridx = 2;
+		gbc_functionalAreaDHMSMPanel.gridy = 2;
+		dhmsmReportTopPanel.add(dhmsmFunctionalAreaPanel, gbc_functionalAreaDHMSMPanel);
+		dhmsmFunctionalAreaPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+		
+		HSDCheckBoxDHMSM = new JCheckBox("HSD");
+		dhmsmFunctionalAreaPanel.add(HSDCheckBoxDHMSM);
+
+		HSSCheckBoxDHMSM = new JCheckBox("HSS");
+		dhmsmFunctionalAreaPanel.add(HSSCheckBoxDHMSM);
+
+		FHPCheckBoxDHMSM = new JCheckBox("FHP");
+		dhmsmFunctionalAreaPanel.add(FHPCheckBoxDHMSM);
+		
+		DHMSMCheckBoxDHMSM = new JCheckBox("DHMSM");
+		dhmsmFunctionalAreaPanel.add(DHMSMCheckBoxDHMSM);
+		
+		JLabel dhmsmlblCapName = new JLabel("Capabilities:");
+		dhmsmlblCapName.setMinimumSize(new Dimension(155, 32));
+		dhmsmlblCapName.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_dhmsmlblCapName = new GridBagConstraints();
+		gbc_dhmsmlblCapName.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmlblCapName.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmlblCapName.gridx = 2;
+		gbc_dhmsmlblCapName.gridy = 5;
+		dhmsmReportTopPanel.add(dhmsmlblCapName, gbc_dhmsmlblCapName);
+
+		dhmsmCapabilitySelectPanel = new SourceSelectPanel();// change this
+		FlowLayout flowLayout2 = (FlowLayout) dhmsmCapabilitySelectPanel.getLayout();
+		flowLayout2.setAlignment(FlowLayout.LEFT);
+		dhmsmCapabilitySelectPanel.setBackground(SystemColor.control);
+
+		dhmsmCapabilitySelectScrollPane = new JScrollPane(dhmsmCapabilitySelectPanel);
+		GridBagConstraints gbc_dhmsmCapabilitySelectScrollPane = new GridBagConstraints();
+		gbc_dhmsmCapabilitySelectScrollPane.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dhmsmCapabilitySelectScrollPane.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmCapabilitySelectScrollPane.gridx = 2;
+		gbc_dhmsmCapabilitySelectScrollPane.gridy = 6;
+		dhmsmReportTopPanel.add(dhmsmCapabilitySelectScrollPane, gbc_dhmsmCapabilitySelectScrollPane);
+		dhmsmCapabilitySelectScrollPane.setPreferredSize(new Dimension(300, 300));
+
+		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List");
+		GridBagConstraints gbc_dhmsmUpdateDataButton = new GridBagConstraints();
+		gbc_dhmsmUpdateDataButton.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmUpdateDataButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmUpdateDataButton.gridx = 2;
+		gbc_dhmsmUpdateDataButton.gridy = 7;
+		dhmsmReportTopPanel.add(dhmsmUpdateDataButton, gbc_dhmsmUpdateDataButton);
+		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
+	
 		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
 		dhmsmLblDataName.setMinimumSize(new Dimension(155, 32));
 		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_dhmsmLblDataName = new GridBagConstraints();
 		gbc_dhmsmLblDataName.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmLblDataName.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmLblDataName.gridx = 2;
+		gbc_dhmsmLblDataName.gridx = 4;
 		gbc_dhmsmLblDataName.gridy = 5;
 		dhmsmReportTopPanel.add(dhmsmLblDataName, gbc_dhmsmLblDataName);
 
 		selectRadioPanel = new SelectRadioButtonPanel();// change this
-		FlowLayout flowLayout2 = (FlowLayout) selectRadioPanel.getLayout();
-		flowLayout2.setAlignment(FlowLayout.LEFT);
+		FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
+		flowLayout3.setAlignment(FlowLayout.LEFT);
 		selectRadioPanel.setBackground(SystemColor.control);
 
 		selectRadioScrollPane = new JScrollPane(selectRadioPanel);
 		GridBagConstraints gbc_selectRadioScrollPane = new GridBagConstraints();
 		gbc_selectRadioScrollPane.fill = GridBagConstraints.HORIZONTAL;
 		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 5);
-		gbc_selectRadioScrollPane.gridx = 2;
+		gbc_selectRadioScrollPane.gridx = 4;
 		gbc_selectRadioScrollPane.gridy = 6;
 		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
 		selectRadioScrollPane.setPreferredSize(new Dimension(600, 300));
@@ -2662,7 +2723,7 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();
 		gbc_dhmsmDecommissionReportButton.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmDecommissionReportButton.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDecommissionReportButton.gridx = 2;
+		gbc_dhmsmDecommissionReportButton.gridx = 4;
 		gbc_dhmsmDecommissionReportButton.gridy = 7;
 		dhmsmReportTopPanel.add(dhmsmDecommissionReportButton, gbc_dhmsmDecommissionReportButton);
 		dhmsmDecommissionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -2675,7 +2736,7 @@ public class PlayPane extends JFrame {
 		gbc_separator_9.insets = new Insets(5, 5, 5, 5);
 		gbc_separator_9.gridx = 0;
 		gbc_separator_9.gridy = 3;
-		dhmsmReportPanel.add(separator_7, gbc_separator_7);
+		dhmsmReportPanel.add(separator_9, gbc_separator_9);
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
+import javax.swing.JList;
 import javax.swing.JPanel;
 
 import prerna.rdf.engine.api.IEngine;
@@ -46,6 +47,7 @@ public class SourceSelectPanel extends JPanel {
 	public IEngine engine;
 	public Hashtable checkBoxHash = new Hashtable();
 	public JCheckBox selectAllCheck = new JCheckBox();
+//	public boolean shouldPopulateData = false;
 	
 	/**
 	 * Constructor for SourceSelectPanel.
@@ -55,10 +57,19 @@ public class SourceSelectPanel extends JPanel {
 	}
 	
 	/**
+	 * Boolean to see if this capability list should populate a data object list.
+	 * If true, used for DHMSM page, otherwise used on the Report Generator Source Selector.
+	 */
+//	public void setShouldPopulateData(boolean shouldPopulateData)
+//	{
+//		this.shouldPopulateData = shouldPopulateData;
+//	}
+	
+	/**
 	 * Gets the list of services via SPARQL query.
 	 * Creates checkboxes for each service.
 	 */
-	public void getServices()
+	public void getCapabilities()
 	{
 		removeAll();
 		Vector <String> names = new Vector<String>();
@@ -84,10 +95,10 @@ public class SourceSelectPanel extends JPanel {
 	}
 	
 	/**
-	 * Creates check boxes for all of the services.
-	 * @param serviceV 	Vector containing all of the services.
+	 * Creates check boxes for all of the capabilities.
+	 * @param capabilityV 	Vector containing all of the capabilities.
 	 */
-	public void createCheckBoxes(Vector serviceV)
+	public void createCheckBoxes(Vector capabilityV)
 	{
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		this.setLayout(gridBagLayout);
@@ -113,13 +124,13 @@ public class SourceSelectPanel extends JPanel {
 		SourceSelectListener ssListener = new SourceSelectListener();
 		ssListener.setSelectAllCheck(selectAllCheck);
 		
-		for (int i=0; i < serviceV.size(); i++)
+		for (int i=0; i < capabilityV.size(); i++)
 		{
-			JCheckBox checkBox= new JCheckBox((String)serviceV.get(i));
+			JCheckBox checkBox= new JCheckBox((String)capabilityV.get(i));
 			checkBox.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			checkBox.setSelected(true);
 			checkBox.addActionListener(ssListener);
-			checkBoxHash.put((String)serviceV.get(i), checkBox);
+			checkBoxHash.put((String)capabilityV.get(i), checkBox);
 			gbc_element = new GridBagConstraints();	
 			gbc_element.anchor = GridBagConstraints.WEST;
 			//gbc_element.fill = GridBagConstraints.BOTH;
@@ -132,6 +143,7 @@ public class SourceSelectPanel extends JPanel {
 		SourceSelectAllListener ssaListener = new SourceSelectAllListener();
 		ssaListener.setCheckHash(checkBoxHash);
 		selectAllCheck.addActionListener(ssaListener);
+
 	}
 
 	
