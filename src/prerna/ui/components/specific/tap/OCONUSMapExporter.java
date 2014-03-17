@@ -31,7 +31,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.ChartControlPanel;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
@@ -93,62 +92,64 @@ public class OCONUSMapExporter {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "OCONUS_Map";
 		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
-		String layoutValue = "prerna.ui.components.playsheets.OCONUSMapPlaySheet";
 		String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 				
+		boolean shouldStart = true;
 		ArrayList<String> systemsInSite = systemsInSiteDB();
 		for(String system: systemList)
 		{
-			if(systemsInSite.contains(system))
+			//set shouldStart to true in line 97 to run all systems.
+			//if crashes on export, set shouldStart in line 97 to false.
+			//Then put system equals to name of system it ended on and rerun.
+			//will continue with the export for this system, and any after it.
+			if(system.equals("MEDBOLTS"))
+				shouldStart = true;
+			if(shouldStart)
 			{
-				query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
-				query=query.replace("AHLTA",system);
-
-				IPlaySheet playSheet = null;
-				try {
-					playSheet = (IPlaySheet) Class.forName(layoutValue).getConstructor(null).newInstance(null);
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					logger.fatal(ex);
-				}
-							
-				playSheet.setQuery(query);
-				playSheet.setRDFEngine((IEngine) engine);
-				playSheet.setQuestionID(question);
-				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-				playSheet.setJDesktopPane(pane);
-
-				QuestionPlaySheetStore.getInstance().put(question, playSheet);
-				
-				playSheet.createData();
-				playSheet.runAnalytics();
-				playSheet.createView();
-				
-				if(!((OCONUSMapPlaySheet)playSheet).isEmpty())
+				if(systemsInSite.contains(system))
 				{
-					//location of export
-					String workingDir = System.getProperty("user.dir");
-					String folder = "\\export\\Images\\";
-					String writeFileName = system+"_OCONUS_Map_Export.png";
-					String fileLoc = workingDir + folder+writeFileName;
+					query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
+					query=query.replace("AHLTA",system);
+	
+					OCONUSMapPlaySheet playSheet = new OCONUSMapPlaySheet();					
+					playSheet.setQuery(query);
+					playSheet.setRDFEngine((IEngine) engine);
+					playSheet.setQuestionID(question);
+					JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+					playSheet.setJDesktopPane(pane);
+	
+					QuestionPlaySheetStore.getInstance().put(question, playSheet);
 					
-					//call chartimageexportlistener to export the conusmap. and then close the chart.
-					ChartControlPanel chartControl= ((OCONUSMapPlaySheet)playSheet).getControlPanel();
-					JButton btnImageExport = chartControl.getImageExportButton();
-					ActionListener[] actionList = btnImageExport.getActionListeners();
-					ChartImageExportListener chartList = (ChartImageExportListener)actionList[0];
-					chartList.setAutoExport(true);
-					chartList.setFileLoc(fileLoc);
-					chartList.setScaleBool(true);
-					chartList.setScale(710,440);
-					btnImageExport.doClick();
-					try {
-						((OCONUSMapPlaySheet)playSheet).setClosed(true);
-					} catch (PropertyVetoException e) {
-						e.printStackTrace();
+					playSheet.createData();
+					playSheet.runAnalytics();
+					playSheet.createView();
+					
+					if(!((OCONUSMapPlaySheet)playSheet).isEmpty())
+					{
+						//location of export
+						String workingDir = System.getProperty("user.dir");
+						String folder = "\\export\\Images\\";
+						String writeFileName = system+"_OCONUS_Map_Export.png";
+						String fileLoc = workingDir + folder+writeFileName;
+						
+						//call chartimageexportlistener to export the conusmap. and then close the chart.
+						ChartControlPanel chartControl= ((OCONUSMapPlaySheet)playSheet).getControlPanel();
+						JButton btnImageExport = chartControl.getImageExportButton();
+						ActionListener[] actionList = btnImageExport.getActionListeners();
+						ChartImageExportListener chartList = (ChartImageExportListener)actionList[0];
+						chartList.setAutoExport(true);
+						chartList.setFileLoc(fileLoc);
+						chartList.setScaleBool(true);
+						chartList.setScale(710,440);
+						btnImageExport.doClick();
+						try {
+							((OCONUSMapPlaySheet)playSheet).setClosed(true);
+						} catch (PropertyVetoException e) {
+							e.printStackTrace();
+						}
 					}
+	
 				}
-
 			}
 		}
 

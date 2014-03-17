@@ -187,15 +187,16 @@ public class FactSheetWriter {
 		}
 
 		//PPI Owner
-		for (int i=0; i<ppiResults.size(); i++) {	
-			ArrayList ppi = (ArrayList) ppiResults.get(i);
-			for(int j = 0; j < ppi.size(); j++) {
-				rowToWriteOn = sheetToWriteOver.getRow(4);
-				cellToWriteOn = rowToWriteOn.getCell(3);
-				String value = (String) ppi.get(j);
-				cellToWriteOn.setCellValue((value.replaceAll("_", " ")).replaceAll("\"",""));
-			}
+		String ppiConcat = "";
+		if(ppiResults.size()>0)
+			ppiConcat = (String)((ArrayList)ppiResults.get(0)).get(0);
+		for(int i=1;i<ppiResults.size();i++)
+		{
+			ppiConcat +=", "+(String)((ArrayList)ppiResults.get(i)).get(0);
 		}
+		rowToWriteOn = sheetToWriteOver.getRow(4);
+		cellToWriteOn = rowToWriteOn.getCell(3);
+		cellToWriteOn.setCellValue((ppiConcat.replaceAll("_", " ")).replaceAll("\"",""));
 
 		//System Highlights
 		for (int i=0; i<systemHighlightsResults.size(); i++) {	

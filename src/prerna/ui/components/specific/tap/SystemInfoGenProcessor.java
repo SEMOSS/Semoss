@@ -54,6 +54,7 @@ public class SystemInfoGenProcessor {
 	ArrayList<String> headersList;
 	ArrayList<String> dataObjectList;
 	String dataObjectBindings;
+	FactSheetSysDupeCalculator sysDupe;
 	/**
 	 * Runs a query on a specific database and puts the results in the masterHash for a system
 	 * @param engineName 	String containing the name of the database engine to be queried
@@ -129,33 +130,6 @@ public class SystemInfoGenProcessor {
 		}
 	}
 	
-//	/**
-//	 * Runs a query on a specific engine to make a list of systems to report on
-//	 * @param engineName 	String containing the name of the database engine to be queried
-//	 * @param query 		String containing the SPARQL query to run
-//	 */
-//	public void runDataObjectListQuery(String engineName, String query) {
-//		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-//		Object[] repo = (Object[]) repoList.getSelectedValues();
-//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-//
-//		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-//		wrapper.setQuery(query);
-//		wrapper.setEngine(engine);
-//		wrapper.executeQuery();
-//
-//		String[] names = wrapper.getVariables();
-//		try {
-//			while (wrapper.hasNext()) {
-//				SesameJenaSelectStatement sjss = wrapper.next();
-//				String data = (String) sjss.getVar(names[0]);
-//				dataObjectList.add(data);
-//				dataObjectBindings += "(<http://health.mil/ontologies/Concept/DataObject/"+data+">)";
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
 	
 	/**
 	 * Runs a query on a specific engine to make a list of systems to report on
@@ -210,6 +184,8 @@ public class SystemInfoGenProcessor {
 		headersList = new ArrayList<String>();
 		dataObjectList = new ArrayList<String>();
 		dataObjectBindings = "";
+		sysDupe = new FactSheetSysDupeCalculator();		
+		
 		processQueries();
 		
 		SystemInfoGenWriter writer = new SystemInfoGenWriter();
@@ -329,6 +305,7 @@ public class SystemInfoGenProcessor {
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
+		headersList.add("Top_Five_Duplicating_Systems");
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
@@ -336,6 +313,17 @@ public class SystemInfoGenProcessor {
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", dhelp.getDataObjectListSupportedFromSystem(system, "C", "C").size());
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
 			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
+			ArrayList<String> sysDupeList = sysDupe.prioritySysHash.get(system);
+			ArrayList<Double> sysDupeValueList = sysDupe.priorityValueHash.get(system);
+			String sysDupeConcat = "";
+			if(sysDupeList!=null)
+			{
+				if(sysDupeList.size()>0)
+					sysDupeConcat = sysDupeList.get(0)+": "+sysDupeValueList.get(0)*100+"%";
+				for(int i=1;i<sysDupeList.size();i++)
+					sysDupeConcat +=", "+sysDupeList.get(i)+": "+sysDupeValueList.get(i)*100+"%";
+			}
+			sysHash.put("Top_Five_Duplicating_Systems",sysDupeConcat);
 			masterHash.put(system,sysHash);
 		}
 		
@@ -345,6 +333,8 @@ public class SystemInfoGenProcessor {
 		runCostQueries(tapCostEngine,costQueries);
 		logger.info("Completed Transistion Cost queries");
 		
+		
+
 
 
 	}
