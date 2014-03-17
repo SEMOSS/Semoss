@@ -39,15 +39,15 @@ public class TaskerReportColumnPlaySheet extends BrowserPlaySheet{
 		Hashtable seriesHash = new Hashtable();
 		
 		double[] series = new double[1];
-		series[0]=(double) listElement[1];
+		series[0]=(Double) listElement[1];
 		seriesHash.put(var[1], series);
 		colorHash.put(var[1], "#44e378");
 		series = new double[1];
-		series[0]=(double) listElement[2];
+		series[0]=(Double) listElement[2];
 		seriesHash.put(var[2], series);
 		colorHash.put(var[2], "#3e9cec ");
 		series = new double[1];
-		series[0]=(double) listElement[3];
+		series[0]=(Double) listElement[3];
 		seriesHash.put(var[3], series);
 		colorHash.put(var[3], "#ec3e3e");
 
