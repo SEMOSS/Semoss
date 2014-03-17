@@ -38,6 +38,9 @@ public class DHMSMSysDecommissionReport {
 	//hashtable storing all results by site, system, and then specific piece
 	Hashtable<String,Hashtable<String,Hashtable<String,Hashtable<String,Object>>>> masterHash = new Hashtable<String,Hashtable<String,Hashtable<String,Hashtable<String,Object>>>> ();
 	
+	//hashtable store system recommendation
+	Hashtable<String, String> sysToRecHash = new Hashtable<String, String>();
+	
 	//starting year
 	Date startingDate;
 	public static final int startYear = 2015;
@@ -52,10 +55,17 @@ public class DHMSMSysDecommissionReport {
 	public static String resourceKey = "Resource";
 	public static String accessTypeKey = "AccessType";
 	public static String pilotKey = "Pilot";
+	public static String sunset = "Sunset";
+	public static String interim = "Interim";
+	public static String modernize = "Modernize";
+	public static String real = "Real";
+	public static String nearReal = "NearReal";
+	public static String archive = "Archive";
+	public static String deployment = "Deployment$Deployment";
 	
-	public static final double realDeployOfPilotPer = .50;
-	public static final double nearDeployOfPilotPer = .33;
-	public static final double archiveDeployOfPilotPer = .67;
+	public static final double realDeployOfPilotPer = .25;
+	public static final double nearDeployOfPilotPer = .25;
+	public static final double archiveDeployOfPilotPer = .20;
 	
 	public DHMSMSysDecommissionReport()
 	{
@@ -124,8 +134,8 @@ public class DHMSMSysDecommissionReport {
  				processSiteChunk(siteChunkToProcess,i);
 			}
 		}
-		//convertToArrayList();
-		convertToArrayListSmaller();
+		convertToArrayList();
+		//convertToArrayListSmaller();
 		
 	}
 	private void processSiteChunk(ArrayList<String> siteChunkToProcess,int chunkIndex)
@@ -143,11 +153,14 @@ public class DHMSMSysDecommissionReport {
 				for(String system : sysAtSiteList)
 				{
 					Hashtable<String,Double> dataAndLOEForSys = sysToDataToCostHash.get(system);
-					if(dataAndLOEForSys!=null)
+					if(dataAndLOEForSys!=null && !sysToRecHash.containsKey(system))
 					{
 						//getting the total LOE and longest LOE for the given site-system combination				
 						double dataSum=0.0;
 						double dataMax=0.0;
+						double deployDataSum = 0.0;
+						//assume archive unless proven other wise
+						String sysAccessType = archive;
 						String dataMaxType="";
 						Hashtable<String,Double> pilotLOEHash = new Hashtable<String,Double>();
 	
@@ -157,6 +170,7 @@ public class DHMSMSysDecommissionReport {
 							String data = dataService.substring(0, dataService.indexOf("$"));
 							String accessType = dataAccessTypeHash.get(data);
 							double pilotLOE = getPilotLOEForData(accessType,loe);
+							deployDataSum += getDeploymentLOEForData(accessType,pilotLOE);
 							dataSum +=pilotLOE;
 							if(dataMax<pilotLOE)
 							{
@@ -164,46 +178,62 @@ public class DHMSMSysDecommissionReport {
 								dataMaxType = accessType;
 							}
 							pilotLOEHash.put(dataService,pilotLOE);
-
+							sysAccessType = updateCurrentSysAccesstype(sysAccessType, accessType);
 						}
+						
+						if(sysAccessType.equals(real))
+							sysToRecHash.put(system,  modernize);
+						else if (sysAccessType.equals(nearReal))
+							sysToRecHash.put(system, interim);
+						else if (sysAccessType.equals(archive))
+							sysToRecHash.put(system,  sunset);
+						
 						int resources = (int) Math.ceil(dataSum/dataMax);
 						Date systemPilotStartDate = chunkStartDate; //start of the chunk for system
 						Date systemPilotEndDate = getNewEndDate(systemPilotStartDate,dataMax); //when the whole system ends the pilot
-						double deployDataMax = getDeploymentLOEForData(dataMaxType,dataMax); //gets the loe for the max data object
 
-						ArrayList<String> orderedSitesForSystem = orderSitesForSystem(system);		
+	
 						for(String dataService : pilotLOEHash.keySet())
 						{
 							String data = dataService.substring(0, dataService.indexOf("$"));
 							String accessType = dataAccessTypeHash.get(data);
 							double pilotLOE = pilotLOEHash.get(dataService);
-							double deployLOE = getDeploymentLOEForData(accessType,pilotLOE);
 							//adding in the pilot LOE first, then will add a separate element for each specific site this system is deployed at
 							
-							Date systemDeployStartDate = systemPilotEndDate;
-							Date dataDeployEndDate = getNewEndDate(systemDeployStartDate, deployLOE);
-							
-							addDataToMasterHash(site,system,dataService,pilotLOE+deployLOE,systemPilotStartDate,dataDeployEndDate,resources,accessType, true);
-							systemDeployStartDate = getNewEndDate(systemDeployStartDate,deployDataMax);
-							dataDeployEndDate = getNewEndDate(systemDeployStartDate, deployLOE);
-
-							orderedSitesForSystem.remove(site);
-							for(String siteForSystem : orderedSitesForSystem)
-							{
-								
-								systemDeployStartDate = getNewEndDate(systemDeployStartDate,deployDataMax);
-								dataDeployEndDate = getNewEndDate(systemDeployStartDate, deployLOE);
-
-								Date siteStartDate = getStartDateForSite(siteForSystem);
-								Date siteEndDate = getNewEndDate(siteStartDate, deployLOE);
-								if(siteStartDate.before(systemDeployStartDate)) //site has already started
-									addDataToMasterHash(siteForSystem,system,dataService,deployLOE,siteStartDate,siteEndDate,resources,accessType, false);
-								else
-									addDataToMasterHash(siteForSystem,system,dataService,deployLOE,systemDeployStartDate,dataDeployEndDate,resources,accessType, false);
-
-							}
-							
+							addDataToMasterHash(site,system,dataService,pilotLOE,systemPilotStartDate,systemPilotEndDate,resources,accessType, true);
 						}
+						//person hours for 4 months
+						double deployFixedSum = resources * 16* 5*8;
+						//total LOE is either what was calculated, or maximum fixed sum
+						double deployTotalLOE = Math.min(deployDataSum,  deployFixedSum);
+						double deployDataMax = getDeploymentLOEForData(dataMaxType,dataMax); //gets the loe for the max data object
+						Date systemDeployStartDate = systemPilotEndDate;
+						ArrayList<String> orderedSitesForSystem = orderSitesForSystem(system);	
+						orderedSitesForSystem.remove(site);
+						for(String siteForSystem : orderedSitesForSystem)
+						{
+							Date dataDeployEndDate;
+							Date siteStartDate = getStartDateForSite(siteForSystem);
+							Date siteEndDate;
+							if(deployDataSum<deployFixedSum)
+							{
+								dataDeployEndDate = getNewEndDate(systemDeployStartDate, deployDataMax);
+								siteEndDate = getNewEndDate(siteStartDate, deployDataMax);
+							}
+							else
+							{
+								dataDeployEndDate = addDaysToDate(systemDeployStartDate, 122); 
+								siteEndDate = addDaysToDate(siteStartDate, 122);
+							}
+
+							if(siteStartDate.before(systemDeployStartDate)) //site has already started
+								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,siteStartDate,siteEndDate,resources,sysAccessType, false);
+							else
+								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,systemDeployStartDate,dataDeployEndDate,resources,sysAccessType, false);
+							systemDeployStartDate = dataDeployEndDate;
+						}
+						
+						//remove from site and sys lists so we dont have to process again
 						for(String siteForSystem : orderedSitesForSystem)
 						{
 							ArrayList<String> sysList = siteToSysHash.get(siteForSystem);
@@ -260,28 +290,58 @@ public class DHMSMSysDecommissionReport {
 		Date retDate = cal.getTime();
 		return retDate;
 	}
+	
+	private Date addDaysToDate(Date date, int days)
+	{
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+		cal.add(Calendar.DATE, days);
+		Date retDate = cal.getTime();
+		return retDate;
+	}
 	//these calculations are arbitrary and based off of data federation estimates for now.
 	private double getPilotLOEForData(String accessType, double loe)
 	{
-		if(accessType.equals("Real"))
+		if(accessType.equals(real))
 			return loe;
-		else if(accessType.equals("NearReal"))
+		else if(accessType.equals(nearReal))
 			loe = loe*.6;
-		else if(accessType.equals("Archive"))
+		else if(accessType.equals(archive))
 			loe = loe*.3;
 		else
 			logger.info("Didn't find an access type");
 		return loe;
 
 	}
+	
+	private String updateCurrentSysAccesstype(String sysAccessType, String accessType)
+	{
+		if(sysAccessType.equals(real))
+			return sysAccessType;
+		else if(sysAccessType.equals(nearReal))
+		{
+			if (accessType.equals(real))
+				return real;
+		}
+		else if(sysAccessType.equals(archive))
+		{
+			if (accessType.equals(real))
+				return real;
+			else if (accessType.equals(nearReal))
+				return nearReal;
+		}
+		
+		return sysAccessType;
+
+	}
 	//these calculations are arbitrary and based off of data federation estimates for now.
 	private double getDeploymentLOEForData(String accessType, double pilotLOE)
 	{
-		if(accessType.equals("Real"))
+		if(accessType.equals(real))
 			pilotLOE = realDeployOfPilotPer*pilotLOE;
-		else if(accessType.equals("NearReal"))
+		else if(accessType.equals(nearReal))
 			pilotLOE = nearDeployOfPilotPer*pilotLOE;
-		else if(accessType.equals("Archive"))
+		else if(accessType.equals(archive))
 			pilotLOE = archiveDeployOfPilotPer*pilotLOE;
 		else
 			logger.info("Didn't find an access type");
@@ -369,8 +429,9 @@ public class DHMSMSysDecommissionReport {
 					String startDateString = df.format(startDate);
 					Date endDate = ((Date)propHash.get(endKey));      
 					String endDateString = df.format(endDate);
+					String sysToRec = sysToRecHash.get(system);
 					String siteStartDateString = df.format(getStartDateForSite(site));
-					System.out.println(site + "$" + system + "$" + data + "$" + propHash.get(loeKey) + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + propHash.get(resourceKey) + "$" + propHash.get(accessTypeKey) + "$" + propHash.get(pilotKey));
+					System.out.println(site + "$" + system + "$" + sysToRec + "$" + data + "$" + propHash.get(loeKey) + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + propHash.get(resourceKey) + "$" + propHash.get(accessTypeKey) + "$" + propHash.get(pilotKey));
 					masterList.add(siteSystemDataPropRow);
 				}
 			}
@@ -391,6 +452,7 @@ public class DHMSMSysDecommissionReport {
 				Date startDate = null;
 				Date latestEndDate = null;
 				double totalLOE = 0.0;
+				int resources = 0;
 				for(String data : dataHash.keySet())
 				{
 					Hashtable<String,Object> propHash = dataHash.get(data);
@@ -401,16 +463,17 @@ public class DHMSMSysDecommissionReport {
 						latestEndDate = currDate;
 					}
 					totalLOE = totalLOE + (Double)propHash.get(loeKey);
+					resources = (Integer) propHash.get(resourceKey);
 				}
 
 				DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 				String startDateString = df.format(startDate);
 				Date endDate = latestEndDate;      
 				String endDateString = df.format(endDate);
-				
+				String sysToRec = sysToRecHash.get(system);
 				String siteStartDateString = df.format(getStartDateForSite(site));
 				
-				System.out.println(site + "$" + system + "$" + startDateString + "$" + endDateString + "$" + siteStartDateString + "$" + totalLOE);
+				System.out.println(system + "$" + site + "$" + sysToRec + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + totalLOE + "$" + resources);
 
 			}
 		}
