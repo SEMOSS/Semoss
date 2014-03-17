@@ -107,7 +107,7 @@ public class DHMSMDecommissionReportListener implements IChakraListener {
 		logger.info("Processed Data time Hash");
 		
 		DHMSMSysDecommissionReport sysRep = new DHMSMSysDecommissionReport();
-		sysRep.setDataAccessTypeHash(dataAccessTypeHash);
+		sysRep.setDataLatencyTypeHash(dataAccessTypeHash);
 		sysRep.runCalculation();
 	}
 	
