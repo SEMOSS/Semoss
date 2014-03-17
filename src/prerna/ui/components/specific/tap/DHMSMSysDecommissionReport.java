@@ -16,7 +16,11 @@ import org.apache.log4j.Logger;
 public class DHMSMSysDecommissionReport {
 	Logger logger = Logger.getLogger(getClass());
 	//hashtable storing all the data objects and the time they are needed: real, near-real, or archive
+	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
+	
+	//hashtable storing all the data objects and the time they are needed: manual, hybrid, or integrated
 	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
+
 	
 	//arrayList storing prioritizied site list
 	ArrayList<String> sitePriorityList = new ArrayList<String>();
@@ -54,18 +58,30 @@ public class DHMSMSysDecommissionReport {
 	public static String endKey = "EndDate";
 	public static String resourceKey = "Resource";
 	public static String accessTypeKey = "AccessType";
+	public static String latencyTypeKey = "LatencyType";
 	public static String pilotKey = "Pilot";
 	public static String sunset = "Sunset";
 	public static String interim = "Interim";
 	public static String modernize = "Modernize";
+	
 	public static String real = "Real";
 	public static String nearReal = "NearReal";
 	public static String archive = "Archive";
+	public static String integrated = "Integrated";
+	public static String hybrid = "Hybrid";
+	public static String manual = "Manual";
+	
 	public static String deployment = "Deployment$Deployment";
 	
-	public static final double realDeployOfPilotPer = .25;
-	public static final double nearDeployOfPilotPer = .25;
-	public static final double archiveDeployOfPilotPer = .20;
+	double realDeployOfPilotPer = .25;
+	double nearDeployOfPilotPer = .25;
+	double archiveDeployOfPilotPer = .20;
+	double archivePer = .3;
+	double nearRealPer = .6;
+	double hybridPer = 1.0;
+	double manualPer = 0.0;
+	
+	
 	
 	public DHMSMSysDecommissionReport()
 	{
@@ -74,9 +90,9 @@ public class DHMSMSysDecommissionReport {
 	private ArrayList<String> getDataObjectList()
 	{
 		ArrayList<String> dataList = new ArrayList<String>();
-		for(String data : dataAccessTypeHash.keySet())
+		for(String data : dataLatencyTypeHash.keySet())
 		{
-			String accessType = dataAccessTypeHash.get(data);
+			String accessType = dataLatencyTypeHash.get(data);
 			if (!accessType.equals("Ignore"))
 			{
 				dataList.add(data);
@@ -86,10 +102,17 @@ public class DHMSMSysDecommissionReport {
 	}
 	
 	
+	public void setDataLatencyTypeHash(Hashtable<String,String> dataLatencyTypeHash)
+	{
+		this.dataLatencyTypeHash = dataLatencyTypeHash;
+	}
+	
 	public void setDataAccessTypeHash(Hashtable<String,String> dataAccessTypeHash)
 	{
 		this.dataAccessTypeHash = dataAccessTypeHash;
 	}
+	
+	
 	
 	public void runCalculation()
 	{
@@ -160,7 +183,8 @@ public class DHMSMSysDecommissionReport {
 						double dataMax=0.0;
 						double deployDataSum = 0.0;
 						//assume archive unless proven other wise
-						String sysAccessType = archive;
+						String sysLatencyType = archive;
+						String sysAccessType = manual;
 						String dataMaxType="";
 						Hashtable<String,Double> pilotLOEHash = new Hashtable<String,Double>();
 	
@@ -168,24 +192,34 @@ public class DHMSMSysDecommissionReport {
 						{
 							double loe = dataAndLOEForSys.get(dataService);
 							String data = dataService.substring(0, dataService.indexOf("$"));
+							String latencyType = dataLatencyTypeHash.get(data);
 							String accessType = dataAccessTypeHash.get(data);
-							double pilotLOE = getPilotLOEForData(accessType,loe);
-							deployDataSum += getDeploymentLOEForData(accessType,pilotLOE);
+							double pilotLOE = getPilotLOEForDataFromLatency(latencyType,loe);
+							pilotLOE = getPilotLOEForDataFromAccess(accessType,pilotLOE);
+							deployDataSum += getDeploymentLOEForData(latencyType,pilotLOE);
 							dataSum +=pilotLOE;
 							if(dataMax<pilotLOE)
 							{
 								dataMax = pilotLOE;
-								dataMaxType = accessType;
+								dataMaxType = latencyType;
 							}
 							pilotLOEHash.put(dataService,pilotLOE);
-							sysAccessType = updateCurrentSysAccesstype(sysAccessType, accessType);
+							sysAccessType = updateCurrentAccessType(sysAccessType, accessType);
+							sysLatencyType = updateCurrentLatencyType(sysLatencyType, latencyType);
 						}
+						
+						if(sysLatencyType.equals(real))
+							sysToRecHash.put(system,  modernize);
+						else if (sysLatencyType.equals(nearReal))
+							sysToRecHash.put(system, interim);
+						else if (sysLatencyType.equals(archive))
+							sysToRecHash.put(system,  sunset);
 						
 						if(sysAccessType.equals(real))
 							sysToRecHash.put(system,  modernize);
-						else if (sysAccessType.equals(nearReal))
+						else if (sysLatencyType.equals(nearReal))
 							sysToRecHash.put(system, interim);
-						else if (sysAccessType.equals(archive))
+						else if (sysLatencyType.equals(archive))
 							sysToRecHash.put(system,  sunset);
 						
 						int resources = (int) Math.ceil(dataSum/dataMax);
@@ -196,17 +230,21 @@ public class DHMSMSysDecommissionReport {
 						for(String dataService : pilotLOEHash.keySet())
 						{
 							String data = dataService.substring(0, dataService.indexOf("$"));
+							String latencyType = dataLatencyTypeHash.get(data);
 							String accessType = dataAccessTypeHash.get(data);
 							double pilotLOE = pilotLOEHash.get(dataService);
 							//adding in the pilot LOE first, then will add a separate element for each specific site this system is deployed at
 							
-							addDataToMasterHash(site,system,dataService,pilotLOE,systemPilotStartDate,systemPilotEndDate,resources,accessType, true);
+							addDataToMasterHash(site,system,dataService,pilotLOE,systemPilotStartDate,systemPilotEndDate,resources,accessType, latencyType, true);
 						}
 						//person hours for 4 months
 						double deployFixedSum = resources * 16* 5*8;
 						//total LOE is either what was calculated, or maximum fixed sum
 						double deployTotalLOE = Math.min(deployDataSum,  deployFixedSum);
-						double deployDataMax = getDeploymentLOEForData(dataMaxType,dataMax); //gets the loe for the max data object
+						
+						//gets the loe for the max data object
+						double deployDataMax = getDeploymentLOEForData(dataMaxType,dataMax);
+						
 						Date systemDeployStartDate = systemPilotEndDate;
 						ArrayList<String> orderedSitesForSystem = orderSitesForSystem(system);	
 						orderedSitesForSystem.remove(site);
@@ -227,9 +265,9 @@ public class DHMSMSysDecommissionReport {
 							}
 
 							if(siteStartDate.before(systemDeployStartDate)) //site has already started
-								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,siteStartDate,siteEndDate,resources,sysAccessType, false);
+								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,siteStartDate,siteEndDate,resources,sysAccessType, sysLatencyType, false);
 							else
-								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,systemDeployStartDate,dataDeployEndDate,resources,sysAccessType, false);
+								addDataToMasterHash(siteForSystem,system,deployment,deployTotalLOE,systemDeployStartDate,dataDeployEndDate,resources, sysAccessType, sysLatencyType, false);
 							systemDeployStartDate = dataDeployEndDate;
 						}
 						
@@ -248,7 +286,7 @@ public class DHMSMSysDecommissionReport {
 		}
 	}
 	//add site-system-data object to masterhash
-	private void addDataToMasterHash(String site,String system,String data,double loe,Date startDate,Date endDate,int resources,String accessType,boolean pilot)
+	private void addDataToMasterHash(String site,String system,String data,double loe,Date startDate,Date endDate,int resources,String accessType, String latencyType, boolean pilot)
 	{
 		Hashtable<String, Hashtable<String, Hashtable<String,Object>>> systemHash;
 		if(masterHash.containsKey(site))
@@ -273,6 +311,7 @@ public class DHMSMSysDecommissionReport {
 		propHash.put(endKey, endDate);
 		propHash.put(resourceKey,resources);
 		propHash.put(accessTypeKey,accessType);
+		propHash.put(latencyTypeKey, latencyType);
 		propHash.put(pilotKey,pilot);
 		
 		dataHash.put(data,propHash);
@@ -300,21 +339,55 @@ public class DHMSMSysDecommissionReport {
 		return retDate;
 	}
 	//these calculations are arbitrary and based off of data federation estimates for now.
-	private double getPilotLOEForData(String accessType, double loe)
+	private double getPilotLOEForDataFromLatency(String latencyType, double loe)
 	{
-		if(accessType.equals(real))
+		if(latencyType.equals(real))
 			return loe;
-		else if(accessType.equals(nearReal))
-			loe = loe*.6;
-		else if(accessType.equals(archive))
-			loe = loe*.3;
+		else if(latencyType.equals(nearReal))
+			loe = loe*nearRealPer;
+		else if(latencyType.equals(archive))
+			loe = loe*archivePer;
+		else
+			logger.info("Didn't find an latency type");
+		return loe;
+
+	}
+	
+	private double getPilotLOEForDataFromAccess(String accessType, double loe)
+	{
+		if(accessType.equals(integrated))
+			return loe;
+		else if(accessType.equals(hybrid))
+			loe = loe*hybridPer;
+		else if(accessType.equals(manual))
+			loe = loe*manualPer;
 		else
 			logger.info("Didn't find an access type");
 		return loe;
 
 	}
 	
-	private String updateCurrentSysAccesstype(String sysAccessType, String accessType)
+	private String updateCurrentLatencyType(String sysLatencyType, String latencyType)
+	{
+		if(sysLatencyType.equals(integrated))
+			return sysLatencyType;
+		else if(sysLatencyType.equals(hybrid))
+		{
+			if (latencyType.equals(integrated))
+				return integrated;
+		}
+		else if(sysLatencyType.equals(manual))
+		{
+			if (latencyType.equals(integrated))
+				return integrated;
+			else if (latencyType.equals(hybrid))
+				return hybrid;
+		}
+		
+		return sysLatencyType;
+	}
+	
+	private String updateCurrentAccessType(String sysAccessType, String accessType)
 	{
 		if(sysAccessType.equals(real))
 			return sysAccessType;
@@ -332,8 +405,8 @@ public class DHMSMSysDecommissionReport {
 		}
 		
 		return sysAccessType;
-
 	}
+	
 	//these calculations are arbitrary and based off of data federation estimates for now.
 	private double getDeploymentLOEForData(String accessType, double pilotLOE)
 	{
