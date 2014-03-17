@@ -45,7 +45,7 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 			if (crm.equals("C")) {
 				count = 1;
 			}
-			else if (crm.equals("R") && !elementHash.containsKey(var[2])) {
+			else if (crm.equals("R") && !dataHash.containsKey(key)) {
 				count = 0;
 			}			
 			elementHash.put(var[2], count);
