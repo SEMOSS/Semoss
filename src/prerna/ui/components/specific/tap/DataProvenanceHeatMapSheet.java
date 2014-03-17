@@ -39,13 +39,13 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 			String key = methodName +"-"+groupName;
 			String crm = (String) listElement[2];
 			crm = crm.replaceAll("\"", "");
-			double count = 0;
+			double count = 1;
 			elementHash.put(xName, methodName);
 			elementHash.put(yName, groupName);
 			if (crm.equals("C")) {
 				count = 1;
 			}
-			else if (crm.equals("R")) {
+			else if (crm.equals("R") && !elementHash.containsKey(var[2])) {
 				count = 0;
 			}			
 			elementHash.put(var[2], count);
