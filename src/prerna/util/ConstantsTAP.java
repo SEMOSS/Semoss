@@ -18,6 +18,8 @@
  ******************************************************************************/
 package prerna.util;
 
+import javax.swing.JCheckBox;
+
 
 /**
  * This class contains the constants referenced elsewhere in the code that are TAP specific.
@@ -39,7 +41,12 @@ public class ConstantsTAP {
 	public static final String SOURCE_SELECT_REPORT_QUERY_FHP="SOURCE_SELECT_REPORT_QUERY_FHP";
 	public static final String SOURCE_SELECT_REPORT_QUERY_DHMSM="SOURCE_SELECT_REPORT_QUERY_DHMSM";
 	public static final String SOURCE_SELECT_REPORT_NAME="SOURCE_SELECT_REPORT_NAME";
-	public static final String SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY = "SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY";	
+	public static final String SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY = "SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY";
+	
+	public static final String DHMSM_ACCESS_REAL_BUTTON = "realAccessButton";
+	public static final String DHMSM_ACCESS_NEAR_BUTTON = "nearAccessButton";
+	public static final String DHMSM_ACCESS_ARCHIVE_BUTTON = "archiveAccessButton";
+	public static final String DHMSM_ACCESS_IGNORE_BUTTON = "ignoreAccessButton";
 	
 	//Analysis of Vendors' Response to RFP
 	public static final String VENDOR_BV_TV_QUERY="VENDOR_BV_TV_QUERY";
