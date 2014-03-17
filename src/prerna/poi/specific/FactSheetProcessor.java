@@ -191,11 +191,20 @@ public class FactSheetProcessor {
 	public void generateReports() {
 		sysDupe = new FactSheetSysDupeCalculator();		
 
-		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?SystemTasker ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}");
+		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}");
 
-
+	//	ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}");
+		
+		boolean shouldStart = true;
 		for (int i=0; i<systemList.size(); i++) {
 			String systemName = systemList.get(i);
+			//to start at a specific system,
+			//set shouldStart equal to false before the forloop
+			//then set systemName = to the one to start at 
+			if(systemName.equals("LDM"))
+				shouldStart = true;
+			if(shouldStart)
+			{
 			Hashtable queryResults = processQueries(systemName);
 			ArrayList serviceResults = (ArrayList) queryResults.get(ConstantsTAP.PPI_QUERY);
 			String service = null;
@@ -206,6 +215,7 @@ public class FactSheetProcessor {
 				}
 			}
 			writeToFile(service, systemName, queryResults);
+			}
 		}		
 		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\FactSheets\\");		
 	}

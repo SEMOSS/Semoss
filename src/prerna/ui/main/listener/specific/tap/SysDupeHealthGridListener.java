@@ -50,9 +50,12 @@ public class SysDupeHealthGridListener extends AbstractBrowserSPARQLFunction {
 		String sysArrayString = (String) arg0[0];
 		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
 		
+		String sysOfInterest = sysArray[0];
+		
 		HealthGridSheet hgs = new HealthGridSheet();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(coreDb);
-		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Phase> ?status } } } BINDINGS ?System {@SystemList@}";
+		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) ?highlight WHERE { BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm} } OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Phase> ?status } } } BINDINGS ?System {@SystemList@}";
+		query = query.replace("ABACUS",sysOfInterest);
 		String sysBindingList= "";
 		
 		for (int i=0; i<sysArray.length;i++)
@@ -61,7 +64,7 @@ public class SysDupeHealthGridListener extends AbstractBrowserSPARQLFunction {
 		}
 		query = query.replaceAll("@SystemList@", sysBindingList);	
 		
-		String sysOfInterest = sysArray[0];
+		
 		
 		String question ="System Duplication HealthGrid Custom";
 		hgs.setTitle("System Duplication HealthGrid for "+ sysOfInterest);
