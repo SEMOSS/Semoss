@@ -51,16 +51,18 @@ public class DeduplicationQueriesPlaySheet extends GridPlaySheet{
 				SesameJenaSelectStatement sjss = wrapper.next();
 
 				Object [] values = new Object[names.length];
+				String valuesString = "";
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
 					values[colIndex] = getVariable(names[colIndex], sjss);
 					logger.debug("Binding Name " + names[colIndex]);
 					logger.debug("Binding Value " + values[colIndex]);
+					valuesString+="$"+values[colIndex];
 				}
 				logger.debug("Creating new Value " + values);
 				addList.add(values);
-				//TODO: NEED TO MAKE THIS GENERIC
-				listToCompare.add(values[0].toString());
+				listToCompare.add(valuesString);
+
 			}
 		} catch (Exception e) {
 			logger.fatal(e);
@@ -105,12 +107,17 @@ public class DeduplicationQueriesPlaySheet extends GridPlaySheet{
 					logger.debug("Binding Name " + names[colIndex]);
 					logger.debug("Binding Value " + values[colIndex]);
 				}
-				//TODO: NEED TO MAKE THIS GENERIC
-				if(!listToCompare.contains(values[0].toString()))
+				String valuesString = "";
+				for(int i=0;i<values.length;i++)
+				{
+					valuesString+="$"+values[i];
+				}
+				if(!listToCompare.contains(valuesString))
 				{
 					logger.debug("Creating new Value " + values);
 					addList.add(values);
 				}
+						
 			}
 		} catch (Exception e) {
 			logger.fatal(e);
