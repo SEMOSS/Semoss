@@ -10,16 +10,20 @@ import prerna.util.DIHelper;
 
 public class DHMSMHelper {
 
-	private String GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY = "SELECT DISTINCT ?system ?data ?crm WHERE { filter( !regex(str(?crm),\"R\")) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system ?provideData ?data} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
+	private String GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY = "SELECT DISTINCT ?system ?data ?crm WHERE { filter( !regex(str(?crm),\"R\")) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system ?provideData ?data} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
 
-	private String GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM = "SELECT DISTINCT ?System ?Data ?CRM WHERE { BIND(\"C\" as ?CRM) {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";	
+	private String GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM = "SELECT DISTINCT ?System ?Data ?CRM WHERE { BIND(\"C\" as ?CRM) {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";	
 
-	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"R\" as ?crm) FILTER NOT EXISTS{?icd <http://semoss.org/ontologies/Relation/Consume> ?system} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/Provide> ?data} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
+	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"R\" as ?crm) FILTER NOT EXISTS{{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data}} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/Provide> ?data} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd}{?system <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
 
-	private String GET_ALL_CAPABILITIES_AND_CRM = "SELECT DISTINCT ?cap ?data ?crm WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?task ?needs ?data} {?needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
+	private String GET_ALL_DHMSM_CAPABILITIES_AND_CRM = "SELECT DISTINCT ?cap ?data ?crm WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?task ?needs ?data} {?needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
+	
+	private String GET_ALL_HR_CAPABILITIES_AND_CRM = "SELECT DISTINCT ?cap ?data ?crm WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?CapabilityGroup ?ConsistsOfCapability ?cap;} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?task ?needs ?data} {?needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSD>)(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSS>)(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/FHP>)}";
 
 	private Hashtable<String, Hashtable<String, String>> dataListSystems = new Hashtable<String, Hashtable<String, String>>();
 	private Hashtable<String, Hashtable<String, String>> dataListCapabilities = new Hashtable<String, Hashtable<String, String>>();
+	
+	private boolean useDHMSMOnly = true;
 
 
 	public void runData(IEngine engine)
@@ -33,10 +37,21 @@ public class DHMSMHelper {
 		SesameJenaSelectWrapper sjswQuery3 = processQuery(GET_ALL_SYSTEM_WITH_UPSTREAM, engine);
 		processAllResults(sjswQuery3, true);
 
-		SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_CAPABILITIES_AND_CRM, engine);
-		processAllResults(sjswQuery4, false);
-
+		if(useDHMSMOnly)
+		{
+			SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_DHMSM_CAPABILITIES_AND_CRM, engine);
+			processAllResults(sjswQuery4, false);
+		}
+		else
+		{
+			SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_HR_CAPABILITIES_AND_CRM, engine);
+			processAllResults(sjswQuery4, false);
+		}
 		return;
+	}
+	public void setUseDHMSMOnly(boolean useDHMSMOnly)
+	{
+		this.useDHMSMOnly = useDHMSMOnly;
 	}
 	
 	public ArrayList<Integer> getNumOfCapabilitiesSupported(String system)
