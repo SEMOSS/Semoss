@@ -739,22 +739,38 @@ public class FactSheetWriter {
 			if (crm.equals("\"C\"")) { countC++; indexC++; }					
 			if (crm.equals("\"M\"")) { countM++; indexM++; }
 			if (crm.equals("\"R\"")) { countR++; indexR++; }
+			if(indexC==1 || indexM == 1 ||indexR == 1)
+			{
+				if(rowToWriteOn.getLastCellNum()>=1)
+					cellToWriteOn = rowToWriteOn.getCell(1);
+				else
+				{
+					cellToWriteOn = rowToWriteOn.createCell(1);
+					cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+				}
+			}
 			if (indexC==1) {cellToWriteOn = rowToWriteOn.getCell(1);
 			cellToWriteOn.setCellValue("Create"); indexC++; }
 			if (indexM==1) {cellToWriteOn = rowToWriteOn.getCell(1);
 			cellToWriteOn.setCellValue("Modify"); indexM++; }
 			if (indexR==1) {cellToWriteOn = rowToWriteOn.getCell(1);
 			cellToWriteOn.setCellValue("Read"); indexR++; }
-			if(rowToWriteOn.getLastCellNum()>=2)
+			if(rowToWriteOn.getLastCellNum()>=2&&((indexC!=2 && indexM != 2 && indexR != 2)))
 				cellToWriteOn = rowToWriteOn.getCell(2);
 			else
 			{
+
 				cellToWriteOn = rowToWriteOn.createCell(2);
 				cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle());
 				sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
-				XSSFCell cellOne = rowToWriteOn.createCell(1);
-				cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
-				sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+				if(indexC!=2 && indexM != 2 && indexR != 2)
+				{
+					XSSFCell cellOne = rowToWriteOn.createCell(1);
+					cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+				}
+
 			}
 			int val = ((Double) row.get(2)).intValue();
 			String value = "-  " + (String) row.get(1) + " (" + val + ")";
