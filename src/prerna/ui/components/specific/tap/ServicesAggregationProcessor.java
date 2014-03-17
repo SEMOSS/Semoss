@@ -10,7 +10,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
 import org.apache.log4j.Logger;
+import org.openrdf.model.Literal;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
@@ -28,8 +31,8 @@ public class ServicesAggregationProcessor {
 	private String semossRelBaseURI = "http://semoss.org/ontologies/Relation/";
 	private String propURI = "http://semoss.org/ontologies/Relation/Contains/";
 
-	private Hashtable<String, Hashtable<String, String>> dataHash = new Hashtable<String, Hashtable<String, String>>();
-	private Hashtable<String, Hashtable<String, String>> removeDataHash = new Hashtable<String, Hashtable<String, String>>();
+	private Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
+	private Hashtable<String, Hashtable<String, Object>> removeDataHash = new Hashtable<String, Hashtable<String, Object>>();
 
 	private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
 	private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
@@ -262,7 +265,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
-			String value = sjss.getRawVar(vars[2]).toString();
+			Object value = sjss.getRawVar(vars[2]);
 			String user = "";
 			if(!TAP_Core)
 			{
@@ -271,8 +274,8 @@ public class ServicesAggregationProcessor {
 
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
-				String[] returnTriple = new String[3];
-				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
+				Object[] returnTriple = new Object[3];
+				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
 				{
 					if(prop.equals(propURI + "ATO_Date"))
 					{
@@ -348,7 +351,7 @@ public class ServicesAggregationProcessor {
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new String[]{sub, prop, value}, false);
+						addToHash(new String[]{sub, prop, value.toString()}, false);
 					}
 				}
 			}
@@ -383,7 +386,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
-			String value = sjss.getRawVar(vars[2]).toString();
+			Object value = sjss.getRawVar(vars[2]).toString();
 			String user = "";
 			if(!TAP_Core)
 			{
@@ -399,7 +402,7 @@ public class ServicesAggregationProcessor {
 
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
-				String[] returnTriple = new String[3];
+				Object[] returnTriple = new Object[3];
 				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
 				{
 					if(prop.equals(propURI + "Data"))
@@ -447,10 +450,10 @@ public class ServicesAggregationProcessor {
 						addToHash(returnTriple, true);
 						if(!edgeType.equals(""))
 						{
-							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.replaceAll("\"", ""), "/");
-							String newObj = sub.substring(0, sub.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(value.replaceAll("\"", ""), "/");
+							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
+							String newObj = sub.substring(0, sub.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
 							logger.info("ADDING:     " + sub + " -----> {" + newRel + " --- " + newObj + "}");
-							addToHash(new String[]{sub, newRel, newObj}, true);
+							addToHash(new Object[]{sub, newRel, newObj}, true);
 
 							addToAllRelationships(newRel);
 							addToAllConcepts(newObj);
@@ -464,7 +467,7 @@ public class ServicesAggregationProcessor {
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new String[]{sub, prop, value}, false);
+						addToHash(new Object[]{sub, prop, value}, false);
 					}
 				}
 			}
@@ -476,7 +479,7 @@ public class ServicesAggregationProcessor {
 
 	private void runTErrorAggregation(String servicesQuery, String coreQuery) 
 	{
-		Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError = new Hashtable<String, Hashtable<String, LinkedList<String>>>();
+		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
 
 		logger.info(servicesQuery);
@@ -498,17 +501,17 @@ public class ServicesAggregationProcessor {
 		deleteData(removeDataHash);
 	}
 
-	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedTError, String propType) 
+	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
 	{
 		boolean success = true;
 		String propertyURI = propURI + propType;
 		for( String sub : aggregatedTError.keySet() )
 		{
-			Hashtable<String, LinkedList<String>> innerHash = aggregatedTError.get(sub);
+			Hashtable<String, LinkedList<Object>> innerHash = aggregatedTError.get(sub);
 			for ( String obj : innerHash.keySet() )
 			{
-				LinkedList<String> tErrList = innerHash.get(obj);
-				Iterator<String> tErrIt = tErrList.listIterator();
+				LinkedList<Object> tErrList = innerHash.get(obj);
+				Iterator<Object> tErrIt = tErrList.listIterator();
 				int counter = 0;
 				double totalTErr = 0;
 				String pred = "";
@@ -516,38 +519,31 @@ public class ServicesAggregationProcessor {
 				{
 					if(counter == 0)
 					{
-						pred  = tErrIt.next();
+						pred  = tErrIt.next().toString();
 						counter++;
 					}
 					else 
 					{
-						String[] valueAsString = tErrIt.next().split("\"");
-						if(valueAsString.length != 3)
-						{
-							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
-									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsString[1] + "\n"				
-									+ "Check that value is correctly stored";
-							return (success = false);
-						}
-
-						try{
-							totalTErr += Double.parseDouble(valueAsString[1]);
-						} catch(NumberFormatException e)
-						{
-							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
-									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsString[1] + "\n"				
-									+ "Check that value is parsable as a double";
-							return (success = false);
-						}
-							counter++;
+						Object valueAsObject = tErrIt.next();
+//						if (!(valueAsObject instanceof Double))
+//						{
+//							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
+//									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsObject + "\n"				
+//									+ "Check that value is parsable as a double";
+//							return (success = false);
+//						}
+						
+						Double value = ( (Literal) tErrIt.next()).doubleValue();
+						totalTErr += value;
+						counter++;
 					}
 				}
 
 				Double TError = totalTErr/(counter-1);
 				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new String[]{sub, pred, obj}, true);
-				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  String.valueOf(TError) + "}");
-				addToHash(new String[]{pred, propertyURI, String.valueOf(TError)}, true);
+				addToHash(new Object[]{sub, pred, obj}, true);
+				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
+				addToHash(new Object[]{pred, propertyURI, TError}, true);
 			}
 		}
 		return success;
@@ -558,7 +554,7 @@ public class ServicesAggregationProcessor {
 
 	private void runDataObjectAggregation(String servicesQuery, String coreQuery)
 	{
-		Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedDataObjects = new Hashtable<String, Hashtable<String, LinkedList<String>>>();
+		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
 
 		logger.info(servicesQuery);
@@ -576,16 +572,16 @@ public class ServicesAggregationProcessor {
 		deleteData(removeDataHash);
 	}
 
-	private void processDataObjects(Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedDataObjects, String propType) 
+	private void processDataObjects(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects, String propType) 
 	{
 		String propertyURI = propURI + propType;
 		for( String sub : aggregatedDataObjects.keySet() )
 		{
-			Hashtable<String, LinkedList<String>> innerHash = aggregatedDataObjects.get(sub);
+			Hashtable<String, LinkedList<Object>> innerHash = aggregatedDataObjects.get(sub);
 			for ( String obj : innerHash.keySet() )
 			{
-				LinkedList<String> crmList = innerHash.get(obj);
-				String pred  = crmList.get(0);
+				LinkedList<Object> crmList = innerHash.get(obj);
+				String pred  = crmList.get(0).toString();
 				String CRM = "";
 				if(crmList.contains("\"C\""))
 				{
@@ -601,9 +597,9 @@ public class ServicesAggregationProcessor {
 				}
 				
 				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new String[]{sub, pred, obj}, true);
+				addToHash(new Object[]{sub, pred, obj}, true);
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
-				addToHash(new String[]{pred, propertyURI, CRM}, true);
+				addToHash(new Object[]{pred, propertyURI, CRM}, true);
 			}
 		}
 	}
@@ -665,7 +661,7 @@ public class ServicesAggregationProcessor {
 
 			if(dataHash.containsKey(module) || !TAP_Core)
 			{
-				String[] returnTriple = new String[3];
+				Object[] returnTriple = new Object[3];
 				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
 				{
 					if(prop.equals(propURI + "Quantity"))
@@ -721,7 +717,7 @@ public class ServicesAggregationProcessor {
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new String[]{module, prop, value}, false);
+						addToHash(new Object[]{module, prop, value}, false);
 					}
 
 					// perform check to see if must add software/hardware version is software/hardware Module does not exist in TAP Core
@@ -785,30 +781,30 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// methods used by all aggregation methods
 
-	private void addToHash(String[] returnTriple, boolean add) 
+	private void addToHash(Object[] returnTriple, boolean add) 
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		innerHash.put(returnTriple[1], returnTriple[2]);
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
 		if(add)
 		{
-			if(dataHash.containsKey(returnTriple[0]))
+			if(dataHash.containsKey(returnTriple[0].toString()))
 			{
-				dataHash.get(returnTriple[0]).putAll(innerHash);
+				dataHash.get(returnTriple[0].toString()).putAll(innerHash);
 			}
-			else{
-				dataHash.put(returnTriple[0], innerHash);
+			else
+			{
+				dataHash.put(returnTriple[0].toString(), innerHash);
 			}
 		}
 		else
 		{
-			removeDataHash.put(returnTriple[0], innerHash);
-			if(removeDataHash.containsKey(returnTriple[0]))
+			if(removeDataHash.containsKey(returnTriple[0].toString()))
 			{
 				removeDataHash.get(returnTriple[0]).putAll(innerHash);
 			}
 			else
 			{
-				removeDataHash.put(returnTriple[0], innerHash);
+				removeDataHash.put(returnTriple[0].toString(), innerHash);
 			}
 		}
 	}
@@ -841,13 +837,13 @@ public class ServicesAggregationProcessor {
 		}
 	}
 
-	private void processData(Hashtable<String, Hashtable<String, String>> data)
+	private void processData(Hashtable<String, Hashtable<String, Object>> data)
 	{
 		for( String sub : data.keySet())
 		{
 			for ( String pred : data.get(sub).keySet())
 			{
-				String obj = data.get(sub).get(pred);
+				Object obj = data.get(sub).get(pred);
 				boolean concept_triple = true;
 				if( pred.contains("Relation/Contains"))
 				{
@@ -859,14 +855,14 @@ public class ServicesAggregationProcessor {
 		}
 	}
 
-	private void deleteData(Hashtable<String, Hashtable<String, String>> data)
+	private void deleteData(Hashtable<String, Hashtable<String, Object>> data)
 	{
 		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
 		for ( String sub : data.keySet())
 		{
 			for (String pred : data.get(sub).keySet())
 			{
-				String obj = data.get(sub).get(pred);
+				Object obj = data.get(sub).get(pred);
 				deleteQuery.append("<" + sub + ">" + "<" + pred + ">" + "<" + obj + ">. ");
 			}
 		}
@@ -890,7 +886,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			conceptList.add(sjss.getRawVar(var[0]) + "");
 		}
-
+		
 		String pred = "http://www.w3.org/2000/01/rdf-schema#type";
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>";
@@ -945,129 +941,94 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// general methods for properties
 
-	private String[] processSumValues(String sub, String prop, String value)
+	private Object[] processSumValues(String sub, String prop, Object value)
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			String[] doubleFormatCheck = innerHash.get(prop).split("\"");
-			if(doubleFormatCheck.length != 3)
-			{
-				this.errorMessage = this.errorMessage + "Error Processing Sum of Values! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that value is formatted correctly";
-				return new String[]{""};
-			}
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}" + value.getClass());
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
-			String[] newSumAsString = value.split("\"");
-			String[] currentSum = innerHash.get(prop).split("\"");
-			if(newSumAsString.length != 3)
+			Double addValue = ( (Literal) value).doubleValue();
+			Double currentValue = null;
+			if(innerHash.get(prop) instanceof Literal)
 			{
-				this.errorMessage = this.errorMessage + "Error Processing Sum of Values! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that value is parsable as a double";
-				return new String[]{""};
-			}
-			Double newSum = null;
-			try
-			{
-				newSum = Double.parseDouble(newSumAsString[1]) + Double.parseDouble(currentSum[1]); 
-			} catch(NumberFormatException e)
-			{
-				e.printStackTrace();
-				this.errorMessage = this.errorMessage + "Error Processing Sum Value! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"				
-						+ "Check that value is parsable as a double";
-				return new String[]{""};
-			}
-			value = "\"" + newSum + "\"" + newSumAsString[2];
-			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"" + newSum + "\"" + newSumAsString[2] + "}");
-		}
-		return new String[]{sub, prop, value};
-	}
-
-	private String[] processConcatString(String sub, String prop, String value, String user) 
-	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
-		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
-		{
-			if(!user.equals(""))
-			{
-				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1);
-			}
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			innerHash = dataHash.get(sub);
-			String currentString = innerHash.get(prop);
-			if(!user.equals(""))
-			{
-				value = currentString.substring(0, currentString.length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.substring(1);
+				currentValue = ( (Literal) innerHash.get(prop)).doubleValue();
 			}
 			else
 			{
-				value = currentString.substring(0, currentString.length()-1) + ";" + value.substring(1);
+				currentValue = (Double) innerHash.get(prop);
 			}
-			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			value = addValue + currentValue;
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}" + value.getClass());
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 	}
 
-
-	private String[] processMaxMinDouble(String sub, String prop, String value, boolean max)
+	private Object[] processConcatString(String sub, String prop, Object value, String user) 
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			String[] doubleFormatCheck = innerHash.get(prop).split("\"");
-			if(doubleFormatCheck.length != 3)
+			if(!user.equals(""))
 			{
-				this.errorMessage = this.errorMessage + "Error Processing Max/Min Double! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that value is formatted correctly";
-				return new String[]{""};
+				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
 			}
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
-			String[] oldDoubleAsString = innerHash.get(prop).split("\"");
-			String[] newDoubleAsString = value.split("\"");
-			if(newDoubleAsString.length != 3)
+			Object currentString = innerHash.get(prop);
+			if(!user.equals(""))
 			{
-				this.errorMessage = this.errorMessage + "Error Processing Max/Min Double! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that value is formatted correctly";
+				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
 			}
+			else
+			{
+				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
+			}
+			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		return new Object[]{sub, prop, value};
+	}
+
+
+	private Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max)
+	{
+//		if(!(value instanceof Double))
+//		{
+//			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
+//					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+//			return new String[]{""};
+//		}
+		
+		
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
 			Double oldDouble = null;
-			Double newDouble = null;
-			try{
-				oldDouble = Double.parseDouble(oldDoubleAsString[1]);
-				newDouble = Double.parseDouble(newDoubleAsString[1]);
-			}
-			catch(NumberFormatException e)
+			if(innerHash.get(prop) instanceof Literal)
 			{
-				e.printStackTrace();
-				this.errorMessage = this.errorMessage + "Error Processing Max/Min Value! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"				
-						+ "Check that value is parsable as a double";
-				return new String[]{""};
+				oldDouble = ( (Literal) innerHash.get(prop)).doubleValue();
 			}
+			else
+			{
+				oldDouble = (Double) innerHash.get(prop);
+			}
+			Double newDouble = ( (Literal) value).doubleValue();
 			if(!max)
 			{
 				if(newDouble < oldDouble)
 				{
-					value =  "\"" + newDouble + "\"" + newDoubleAsString[2];
+					// return the value being passed in
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1080,7 +1041,7 @@ public class ServicesAggregationProcessor {
 			{
 				if(newDouble > oldDouble)
 				{
-					value = "\"" + newDouble + "\"" + newDoubleAsString[2];
+					// return the value being passed in
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1090,57 +1051,45 @@ public class ServicesAggregationProcessor {
 				}
 			}
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 
 	}
 
-	private String[] processMinMaxDate(String sub, String prop, String value, Boolean latest) 
+	private Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest) 
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+//		if(!(value instanceof XMLGregorianCalendar))
+//		{
+//			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
+//					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+//			return new String[]{""};
+//		}
+		
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			String[] dateFormatCheck = innerHash.get(prop).split("\"");
-			if(dateFormatCheck.length != 3)
-			{
-				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that date is formatted correctly";
-				return new String[]{""};
-			}
 			innerHash.put(prop, value);
 			dataHash.put(sub, innerHash);
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
-			DateFormat formatter = new SimpleDateFormat("yyyyy-mm-dd'T'hh:mm:ss.sss'Z'");
 			innerHash = dataHash.get(sub);
-			String[] oldDateAsString = innerHash.get(prop).split("\"");
-			String[] newDateAsString = value.split("\"");
-			if(newDateAsString.length != 3)
+			XMLGregorianCalendar oldDate = null;
+			if(innerHash.get(prop) instanceof Literal)
 			{
-				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that date is formatted correctly";
-				return new String[]{""};
+				oldDate = ((Literal) innerHash.get(prop)).calendarValue();
 			}
-			Date oldDate = null;
-			Date newDate = null;
-			try {
-				oldDate = formatter.parse(oldDateAsString[1]);
-				newDate = formatter.parse(newDateAsString[1]);
-			} catch (ParseException e) {
-				e.printStackTrace();
-				this.errorMessage = this.errorMessage + "Error Processing Date! \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						
-						+ "Check that date format is in form yyyyy-mm-dd'T'hh:mm:ss.sss'Z'";
-				return new String[]{""};
-			}
-			if(!latest)
+			else
 			{
-				if(newDate.before(oldDate))
+				oldDate = (XMLGregorianCalendar) innerHash.get(prop);
+			}
+				XMLGregorianCalendar newDate = ((Literal) value).calendarValue();
+			
+				if(!latest)
+			{
+				if(newDate.toGregorianCalendar().getTime().before(oldDate.toGregorianCalendar().getTime()))
 				{
-					value = "\"" + formatter.format(newDate) + "\"" + newDateAsString[2];
+					// return the value being passed in
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1151,9 +1100,9 @@ public class ServicesAggregationProcessor {
 			}
 			else
 			{
-				if(newDate.after(oldDate))
+				if(newDate.toGregorianCalendar().getTime().after(oldDate.toGregorianCalendar().getTime()))
 				{
-					value = "\"" + formatter.format(newDate) + "\"" + newDateAsString[2];
+					// return the value being passed in
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1163,15 +1112,15 @@ public class ServicesAggregationProcessor {
 				}
 			}
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Unique methods for properties
 
-	private String[] processGarrisonTheater(String sub, String prop, String value)
+	private Object[] processGarrisonTheater(String sub, String prop, Object value)
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
@@ -1179,19 +1128,19 @@ public class ServicesAggregationProcessor {
 		else
 		{
 			innerHash = dataHash.get(sub);
-			String oldGT = innerHash.get(prop);
-			if(!oldGT.equalsIgnoreCase(value))
+			Object oldGT = innerHash.get(prop);
+			if(!oldGT.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				value = "\"Both\"";
 				logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
 			}
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 	}
 
-	private String[] processTransactional(String sub, String prop, String value)
+	private Object[] processTransactional(String sub, String prop, Object value)
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
@@ -1201,20 +1150,20 @@ public class ServicesAggregationProcessor {
 		else
 		{
 			innerHash = dataHash.get(sub);
-			String currentTransactional = innerHash.get(prop);
-			if(!currentTransactional.equalsIgnoreCase(value))
+			Object currentTransactional = innerHash.get(prop);
+			if(!currentTransactional.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				this.errorMessage = this.errorMessage + "Error Processing Transactional!  Conflicting report from systems \n" 
 						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						;				
-				return new String[]{""};
+				return new Object[]{""};
 			}
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 	}
 
-	private String[] processDFreq(String sub, String prop, String value) 
+	private Object[] processDFreq(String sub, String prop, Object value) 
 	{
-		Hashtable<String, String> innerHash = new Hashtable<String, String>();
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
@@ -1222,77 +1171,75 @@ public class ServicesAggregationProcessor {
 		else
 		{
 			innerHash = dataHash.get(sub);
-			String[] frequencies = new String[]{value.replaceAll("\"", ""), innerHash.get(prop).replaceAll("\"", "")};
+			String[] frequencies = new String[]{value.toString().replaceAll("\"", ""), innerHash.get(prop).toString().replaceAll("\"", "")};
 			Integer[] currentFreqValue = new Integer[2];
 
 			for(int i = 0; i < frequencies.length; i++)
 			{
-				switch(frequencies[i])
-				{
-				case "Real-time (user-initiated)" : currentFreqValue[i] = 0; break;
-				case "Batch (monthly)" : currentFreqValue[i] = 720; break;
-				case "Weekly" : currentFreqValue[i] = 168; break;
-				case "Monthly" : currentFreqValue[i] = 720; break;
-				case "Batch (daily)" : currentFreqValue[i] = 24; break;
-				case "Batch(Daily)" : currentFreqValue[i] = 24; break;
-				case "Real-time" : currentFreqValue[i] = 0; break;
-				case "Transactional" : currentFreqValue[i] = 0; break;
-				case "On Demand" : currentFreqValue[i] = 0; break;
-				case "Event Driven (seconds-minutes)" : currentFreqValue[i] = 0; break;
-				case "TheaterFramework" : currentFreqValue[i] = 0; break;
-				case "Event Driven (Seconds)" : currentFreqValue[i] = 0; break;
-				case "Web services" : currentFreqValue[i] = 0; break;
-				case "TF" : currentFreqValue[i] = 0; break;
-				case "Batch (12/day)" : currentFreqValue[i] = 2; break;
-				case "SFTP" : currentFreqValue[i] = 0; break;
-				case "Batch (twice monthly)" : currentFreqValue[i] = 360; break;
-				case "Daily" : currentFreqValue[i] = 24; break;
-				case "Daily " : currentFreqValue[i] = 24; break;
-				case "Hourly" : currentFreqValue[i] = 1; break;
-				case "Near Real-time (transaction initiated)" : currentFreqValue[i] = 0; break;
-				case "Batch (three times a week)" : currentFreqValue[i] = 56; break;
-				case "Batch (weekly)" : currentFreqValue[i] = 168; break;
-				case "Near Real-time" : currentFreqValue[i] = 0; break;
-				case "Real Time" : currentFreqValue[i] = 0; break;
-				case "Batch" : currentFreqValue[i] = 0; break;
-				case "Batch (bi-monthly)" : currentFreqValue[i] = 1440; break;
-				case "Batch (semiannually)" : currentFreqValue[i] = 4392; break;
-				case "Event Driven (Minutes-hours)" : currentFreqValue[i] = 1; break;
-				case "Annually" : currentFreqValue[i] = 8760; break;
-				case "Batch(Monthly)" : currentFreqValue[i] = 720; break;
-				case "Bi-Weekly" : currentFreqValue[i] = 336; break;
-				case "Daily at end of day" : currentFreqValue[i] = 24; break;
-				case "TCP" : currentFreqValue[i] = 0; break;
-				case "event-driven (Minutes-hours)" : currentFreqValue[i] = 1; break;
-				case "Interactive" : currentFreqValue[i] = 0; break;
-				case "Weekly Quarterly" : currentFreqValue[i] = 0; break;
-				case "Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily" : currentFreqValue[i] = 168; break;
-				case "Weekly Daily" : currentFreqValue[i] = 168; break;
-				case "Periodic" : currentFreqValue[i] = 0; break;
-				case "Batch (4/day)" : currentFreqValue[i] = 6; break;
-				case "Batch(Daily/Monthly)" : currentFreqValue[i] = 720; break;
-				case "Weekly; Interactive; Interactive" : currentFreqValue[i] = 168; break;
-				case "interactive" : currentFreqValue[i] = 0; break;
-				case "Batch (quarterly)" : currentFreqValue[i] = 2184; break;
-				case "Every 8 hours (KML)/On demand (HTML)" : currentFreqValue[i] = 8; break;
-				case "Monthly at beginning of month, or as user initiated" : currentFreqValue[i] = 720; break;
-				case "On demad" : currentFreqValue[i] = 0; break;
-				case "Monthly Bi-Monthly Weekly Weekly" : currentFreqValue[i] = 720; break;
-				case "Quarterly" : currentFreqValue[i] = 2184; break;
-				case "On-demand" : currentFreqValue[i] = 0; break;
-				case "user upload" : currentFreqValue[i] = 0; break;
-				case "1/hour (KML)/On demand (HTML)" : currentFreqValue[i] = 1; break;
-				case "DVD" : currentFreqValue[i] = 0; break;
-				case "Weekly " : currentFreqValue[i] = 168; break;
-				case "Annual" : currentFreqValue[i] = 8760; break;
-				case "Daily Interactive" : currentFreqValue[i] = 24; break;
-				case "NFS, Oracle connection" : currentFreqValue[i] = 0; break;
-				case "Batch(Weekly)" : currentFreqValue[i] = 168; break;
-				case "Batch(Quarterly)" : currentFreqValue[i] = 2184; break;
-				case "Batch (yearly)" : currentFreqValue[i] = 8760; break;
-				case "Each user login instance" : currentFreqValue[i] = 0; break;
-				}
+				if(frequencies[i].equalsIgnoreCase("Real-time (user-initiated)")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (monthly)")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("Weekly")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Monthly")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("Batch (daily)")) currentFreqValue[i] = 24;
+				else if(frequencies[i].equalsIgnoreCase("Batch(Daily)")) currentFreqValue[i] = 24;
+				else if(frequencies[i].equalsIgnoreCase("Real-time")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Transactional")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("On Demand")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Event Driven (seconds-minutes)")) currentFreqValue[i] = 60;
+				else if(frequencies[i].equalsIgnoreCase("TheaterFramework")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Event Driven (Seconds)")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Web services")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("TF")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (12/day)")) currentFreqValue[i] = 2;
+				else if(frequencies[i].equalsIgnoreCase("SFTP")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (twice monthly)")) currentFreqValue[i] = 360;
+				else if(frequencies[i].equalsIgnoreCase("Daily")) currentFreqValue[i] = 24;
+				else if(frequencies[i].equalsIgnoreCase("Hourly")) currentFreqValue[i] = 1;
+				else if(frequencies[i].equalsIgnoreCase("Near Real-time (transaction initiated)")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (three times a week)")) currentFreqValue[i] = 56;
+				else if(frequencies[i].equalsIgnoreCase("Batch (weekly)")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Near Real-time")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Real Time")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (bi-monthly)")) currentFreqValue[i] = 1440;
+				else if(frequencies[i].equalsIgnoreCase("Batch (semiannually)")) currentFreqValue[i] = 4392;
+				else if(frequencies[i].equalsIgnoreCase("Event Driven (Minutes-hours)")) currentFreqValue[i] = 1;
+				else if(frequencies[i].equalsIgnoreCase("Annually")) currentFreqValue[i] = 8760;
+				else if(frequencies[i].equalsIgnoreCase("Batch(Monthly)")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("Bi-Weekly")) currentFreqValue[i] = 336;
+				else if(frequencies[i].equalsIgnoreCase("Daily at end of day")) currentFreqValue[i] = 24;
+				else if(frequencies[i].equalsIgnoreCase("TCP")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("event-driven (Minutes-hours)")) currentFreqValue[i] = 1;
+				else if(frequencies[i].equalsIgnoreCase("Interactive")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Weekly Quarterly")) currentFreqValue[i] = 2184;
+				else if(frequencies[i].equalsIgnoreCase("Weekly Daily Weekly Weekly Weekly Weekly Daily Daily Daily")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Weekly Daily")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Periodic")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (4/day)")) currentFreqValue[i] = 6;
+				else if(frequencies[i].equalsIgnoreCase("Batch(Daily/Monthly)")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("Weekly; Interactive; Interactive")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("interactive")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch (quarterly)")) currentFreqValue[i] = 2184;
+				else if(frequencies[i].equalsIgnoreCase("Every 8 hours (KML)/On demand (HTML)")) currentFreqValue[i] = 8;
+				else if(frequencies[i].equalsIgnoreCase("Monthly at beginning of month, or as user initiated")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("On demad")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Monthly Bi-Monthly Weekly Weekly")) currentFreqValue[i] = 720;
+				else if(frequencies[i].equalsIgnoreCase("Quarterly")) currentFreqValue[i] = 2184;
+				else if(frequencies[i].equalsIgnoreCase("On-demand")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("user upload")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("1/hour (KML)/On demand (HTML)")) currentFreqValue[i] = 1;
+				else if(frequencies[i].equalsIgnoreCase("DVD")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Real-time ")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Weekly ")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Annual")) currentFreqValue[i] = 8760;
+				else if(frequencies[i].equalsIgnoreCase("Daily Interactive")) currentFreqValue[i] = 24;
+				else if(frequencies[i].equalsIgnoreCase("NFS, Oracle connection")) currentFreqValue[i] = 0;
+				else if(frequencies[i].equalsIgnoreCase("Batch(Weekly)")) currentFreqValue[i] = 168;
+				else if(frequencies[i].equalsIgnoreCase("Batch(Quarterly)")) currentFreqValue[i] = 2184;
+				else if(frequencies[i].equalsIgnoreCase("Batch (yearly)")) currentFreqValue[i] = 8760;
+				else if(frequencies[i].equalsIgnoreCase("Each user login instance")) currentFreqValue[i] = 0;
 			}
+			
 			if(currentFreqValue[0] == null || currentFreqValue[1] == null)
 			{
 				this.errorMessage = this.errorMessage + "Error Processing DFreq!  Check frequency is predefined in list. \n" 
@@ -1307,7 +1254,7 @@ public class ServicesAggregationProcessor {
 			// else, do not change the value to keep the one being inputed
 			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
-		return new String[]{sub, prop, value};
+		return new Object[]{sub, prop, value};
 	}
 
 
@@ -1339,7 +1286,7 @@ public class ServicesAggregationProcessor {
 		return sjsw;
 	}
 
-	private Hashtable<String, Hashtable<String, LinkedList<String>>> runAggregateAllData(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, LinkedList<String>>> aggregatedData, String propType, boolean TAP_Core)
+	private Hashtable<String, Hashtable<String, LinkedList<Object>>> runAggregateAllData(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedData, String propType, boolean TAP_Core)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -1349,7 +1296,7 @@ public class ServicesAggregationProcessor {
 			String sys = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
 			String obj = sjss.getRawVar(vars[2]).toString();
-			String prop = sjss.getRawVar(vars[3]).toString();
+			Object prop = sjss.getRawVar(vars[3]).toString();
 
 			if(!TAP_Core)
 			{
@@ -1358,8 +1305,8 @@ public class ServicesAggregationProcessor {
 
 			if(aggregatedData.containsKey(sys) || !TAP_Core)
 			{
-				LinkedList<String> dataList = new LinkedList<String>();
-				Hashtable<String, LinkedList<String>> innerHash = new Hashtable<String, LinkedList<String>>();
+				LinkedList<Object> dataList = new LinkedList<Object>();
+				Hashtable<String, LinkedList<Object>> innerHash = new Hashtable<String, LinkedList<Object>>();
 				if(!aggregatedData.containsKey(sys))
 				{
 					dataList.add(pred);
@@ -1393,7 +1340,7 @@ public class ServicesAggregationProcessor {
 
 				if(TAP_Core)
 				{
-					addToHash(new String[]{pred, propURI + propType, prop}, false);
+					addToHash(new Object[]{pred, propURI + propType, prop}, false);
 				}
 				addToAllRelationships(pred);
 			}
