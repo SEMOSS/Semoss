@@ -50,6 +50,7 @@ import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.swing.Box;
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
@@ -185,9 +186,12 @@ public class PlayPane extends JFrame {
 	public JScrollPane dhmsmCapabilitySelectScrollPane;
 	public JButton dhmsmUpdateDataButton = new JButton();
 	
+	public Panel dhmsmSelectAllAccessTypePanel;
+	public JRadioButton realAccessButton, nearAccessButton, archiveAccessButton, ignoreAccessButton;
 	public SelectRadioButtonPanel selectRadioPanel;
 	public JScrollPane selectRadioScrollPane;
 	public JButton dhmsmDecommissionReportButton = new JButton();
+	public JButton dhmsmSystemSORAccessTypeReportButton = new JButton();
 	private JSeparator separator_9;
 
 	// Financial DB Mod Components
@@ -2695,6 +2699,32 @@ public class PlayPane extends JFrame {
 		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
 	
+		dhmsmSelectAllAccessTypePanel = new Panel();
+		GridBagConstraints gbc_dhmsmSelectAllAccessTypePanel = new GridBagConstraints();
+		gbc_dhmsmSelectAllAccessTypePanel.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmSelectAllAccessTypePanel.gridx = 4;
+		gbc_dhmsmSelectAllAccessTypePanel.gridy = 2;
+		dhmsmReportTopPanel.add(dhmsmSelectAllAccessTypePanel, gbc_dhmsmSelectAllAccessTypePanel);
+		dhmsmSelectAllAccessTypePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+
+		ButtonGroup selectAllAccessType = new ButtonGroup();
+		
+		realAccessButton = new JRadioButton("RealTime");
+		selectAllAccessType.add(realAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(realAccessButton);
+
+		nearAccessButton = new JRadioButton("Near RealTime");
+		selectAllAccessType.add(nearAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(nearAccessButton);
+
+		archiveAccessButton = new JRadioButton("Archive");
+		selectAllAccessType.add(archiveAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(archiveAccessButton);
+		
+		ignoreAccessButton = new JRadioButton("Ignore");
+		selectAllAccessType.add(ignoreAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(ignoreAccessButton);
+		
 		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
 		dhmsmLblDataName.setMinimumSize(new Dimension(155, 32));
 		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -2729,6 +2759,16 @@ public class PlayPane extends JFrame {
 		dhmsmDecommissionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmDecommissionReportButton, ".standardButton");
 
+		dhmsmSystemSORAccessTypeReportButton = new CustomButton("Generate DHMSM System SOR Access Type Report");
+		GridBagConstraints gbc_dhmsmSystemSORAccessTypeReportButton = new GridBagConstraints();
+		gbc_dhmsmSystemSORAccessTypeReportButton.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmSystemSORAccessTypeReportButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmSystemSORAccessTypeReportButton.gridx = 4;
+		gbc_dhmsmSystemSORAccessTypeReportButton.gridy = 8;
+		dhmsmReportTopPanel.add(dhmsmSystemSORAccessTypeReportButton, gbc_dhmsmSystemSORAccessTypeReportButton);
+		dhmsmSystemSORAccessTypeReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(dhmsmSystemSORAccessTypeReportButton, ".standardButton");
+		
 		separator_9 = new JSeparator();
 		GridBagConstraints gbc_separator_9 = new GridBagConstraints();
 		gbc_separator_9.fill = GridBagConstraints.HORIZONTAL;

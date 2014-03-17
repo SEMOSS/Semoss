@@ -119,7 +119,7 @@ public class SelectRadioButtonPanel extends JPanel {
 		labelReal.setFont(new Font("Tahoma", Font.BOLD, 12));
 		JLabel labelNear= new JLabel("Near RealTime");
 		labelNear.setFont(new Font("Tahoma", Font.BOLD, 12));
-		JLabel labelArchive= new JLabel("Archived");
+		JLabel labelArchive= new JLabel("Archive");
 		labelArchive.setFont(new Font("Tahoma", Font.BOLD, 12));
 		JLabel labelIgnore= new JLabel("Ignore");
 		labelIgnore.setFont(new Font("Tahoma", Font.BOLD, 12));
