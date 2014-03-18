@@ -52,6 +52,9 @@ public class DHMSMSysDecommissionReport {
 	//hashtable storing all the systems, and the data objects they read
 	Hashtable<String, Hashtable<String,String>>  sysToDataReadHash = new Hashtable<String, Hashtable<String,String>> ();
 	
+	//hashtable storing all the systems, and the data objects they read
+	Hashtable<String, Hashtable<String,Double>>  siteLatLongHash = new Hashtable<String, Hashtable<String,Double>> ();
+	
 	//hashtable storing all results by site, system, and then specific piece
 	Hashtable<String,Hashtable<String,Hashtable<String,Hashtable<String,Object>>>> masterHash = new Hashtable<String,Hashtable<String,Hashtable<String,Hashtable<String,Object>>>> ();
 	
@@ -623,5 +626,10 @@ public class DHMSMSysDecommissionReport {
 			}
 		}
 //		System.out.println(masterList);
+	}
+	
+	public Hashtable<String, Hashtable<String, Double>> getSiteLatLongHash() 
+	{
+		return siteLatLongHash;
 	}
 }
