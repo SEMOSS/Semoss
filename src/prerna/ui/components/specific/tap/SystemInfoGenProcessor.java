@@ -65,6 +65,7 @@ public class SystemInfoGenProcessor {
 		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
+		try{
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
@@ -74,7 +75,7 @@ public class SystemInfoGenProcessor {
 		for(String head : names)
 			if(!headersList.contains(head))
 				headersList.add(head);
-		try {
+
 			while (wrapper.hasNext()) {
 				SesameJenaSelectStatement sjss = wrapper.next();
 				String sys = (String)sjss.getVar(names[0]);
@@ -99,7 +100,7 @@ public class SystemInfoGenProcessor {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Utility.showError("Cannot find engine: "+engineName);
 		}
 	}
 	/**
@@ -108,6 +109,7 @@ public class SystemInfoGenProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runSystemListQuery(String engineName, String query) {
+		try {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -118,7 +120,7 @@ public class SystemInfoGenProcessor {
 		wrapper.executeQuery();
 
 		String[] names = wrapper.getVariables();
-		try {
+
 			while (wrapper.hasNext()) {
 				SesameJenaSelectStatement sjss = wrapper.next();
 				Hashtable<String,Object> sysHash = new Hashtable<String,Object>();
@@ -126,7 +128,7 @@ public class SystemInfoGenProcessor {
 				sysList.add((String) sjss.getVar(names[0]));
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Utility.showError("Cannot find engine: "+engineName);
 		}
 	}
 	
@@ -137,42 +139,47 @@ public class SystemInfoGenProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runCostQueries(String engineName, ArrayList<String> queryList) {
-		headersList.add("Transition_Cost");
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		
-		Hashtable<String,Double> sysAndCostHash = new Hashtable<String,Double>();
-		
-		for(String query : queryList)
-		{
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-			wrapper.setQuery(query);
-			wrapper.setEngine(engine);
-			wrapper.executeQuery();
-	
-			String[] names = wrapper.getVariables();
-			try {
-				while (wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
-					String sys = (String) sjss.getVar(names[0]);
-					Double cost = (Double) sjss.getVar(names[1]);
-					if(sysAndCostHash.containsKey(sys))
-						cost +=(Double)sysAndCostHash.get(sys);
-					sysAndCostHash.put(sys,cost);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		for(String sysKey : sysAndCostHash.keySet())
-		{
-			if(masterHash.containsKey(sysKey))
+		try{
+			headersList.add("Transition_Cost");
+			JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			Object[] repo = (Object[]) repoList.getSelectedValues();
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			
+			Hashtable<String,Double> sysAndCostHash = new Hashtable<String,Double>();
+			
+			for(String query : queryList)
 			{
-				Hashtable sysHash = masterHash.get(sysKey);
-				sysHash.put("Transition_Cost", sysAndCostHash.get(sysKey));
+				SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+				wrapper.setQuery(query);
+				wrapper.setEngine(engine);
+				wrapper.executeQuery();
+		
+				String[] names = wrapper.getVariables();
+				try {
+					while (wrapper.hasNext()) {
+						SesameJenaSelectStatement sjss = wrapper.next();
+						String sys = (String) sjss.getVar(names[0]);
+						Double cost = (Double) sjss.getVar(names[1]);
+						if(sysAndCostHash.containsKey(sys))
+							cost +=(Double)sysAndCostHash.get(sys);
+						sysAndCostHash.put(sys,cost);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
+			for(String sysKey : sysAndCostHash.keySet())
+			{
+				if(masterHash.containsKey(sysKey))
+				{
+					Hashtable sysHash = masterHash.get(sysKey);
+					sysHash.put("Transition_Cost", sysAndCostHash.get(sysKey));
+				}
+			}
+		} catch (Exception e) {
+			Utility.showError("Cannot find engine: "+engineName);
 		}
+			
 	}
 	
 	/**
@@ -184,7 +191,34 @@ public class SystemInfoGenProcessor {
 		headersList = new ArrayList<String>();
 		dataObjectList = new ArrayList<String>();
 		dataObjectBindings = "";
-		sysDupe = new FactSheetSysDupeCalculator();		
+	
+		
+		//checking to see if databases are loaded
+		String engineName = tapCoreEngine;
+		try
+		{
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			if(engine==null)
+				throw new Exception();
+			engineName = tapSiteEngine;
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			if(engine==null)
+				throw new Exception();
+			engineName = tapCostEngine;
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			if(engine==null)
+				throw new Exception();
+			engineName = hrCoreEngine;
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			if(engine==null)
+				throw new Exception();
+			
+		} catch (Exception e) {
+			Utility.showError("Cannot find engine: "+engineName);
+			return;
+		}
+		
+		sysDupe = new FactSheetSysDupeCalculator();	
 		
 		processQueries();
 		

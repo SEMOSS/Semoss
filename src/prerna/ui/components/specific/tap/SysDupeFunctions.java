@@ -29,6 +29,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Functions needed for System Duplication functionality.
@@ -64,7 +65,14 @@ public class SysDupeFunctions {
 		}
 
 		// get the bindings from it
-		String [] names = wrapper.getVariables();
+		String [] names;
+		try
+		{
+			names = wrapper.getVariables();
+		} catch (Exception e) {
+			Utility.showError("Cannot find engine: "+dbName);
+			return;
+		}
 
 		int count = 0;
 		// now get the bindings and generate the data
