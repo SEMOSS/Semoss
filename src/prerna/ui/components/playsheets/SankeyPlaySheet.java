@@ -26,6 +26,8 @@ import java.util.LinkedHashMap;
 import javax.swing.JDesktopPane;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  * The Play Sheet for creating a Sankey diagram using nodes and relationships.  
@@ -38,7 +40,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 	public SankeyPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sankey.html";
 	}
 	

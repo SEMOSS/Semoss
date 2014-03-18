@@ -33,6 +33,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -74,7 +75,7 @@ public class POIWriter {
 	 * @param formatData 	Boolean true when the information in the hashtable needs to be reorganized to look like a load sheet
 	 */
 	public void runExport(Hashtable hash, String writeFile, String readFile, boolean formatData){
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if(writeFile == null || writeFile.isEmpty()) {
 			writeFile = Constants.GLITEM_CORE_LOADING_SHEET;
 		}

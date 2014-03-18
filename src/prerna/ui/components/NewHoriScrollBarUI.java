@@ -32,6 +32,9 @@ import javax.swing.SwingConstants;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 /**
  * This class is used to paint the horizontal scrollbar UI.
  */
@@ -43,7 +46,7 @@ public class NewHoriScrollBarUI extends BasicScrollBarUI {
 	 */
 	public NewHoriScrollBarUI() {
 		try {
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String picFileURL = workingDir+"/pictures/rect2.png";
 			File picFile = new File(picFileURL);
 			thumb = ImageIO.read(picFile);

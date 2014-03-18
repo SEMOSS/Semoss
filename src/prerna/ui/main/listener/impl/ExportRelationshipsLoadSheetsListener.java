@@ -72,7 +72,7 @@ public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
 		Hashtable<String, Vector<String[]>> hash = new Hashtable<String, Vector<String[]>>();
 		RelationshipLoadingSheetWriter writer = new RelationshipLoadingSheetWriter();
 		String output = "";
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Relationships\\";
 		Date date = new Date();
 		String writeFileName = "Relationships_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";

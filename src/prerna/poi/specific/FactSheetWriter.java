@@ -46,7 +46,9 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xssf.usermodel.extensions.XSSFHeaderFooter;
 
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -346,7 +348,7 @@ public class FactSheetWriter {
 		}
 
 		//Application Health Grid
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Images\\";
 		String picFileName = systemName.replaceAll(":", "")+"_Health_Grid_Export.png";
 		String picFileLoc = workingDir + folder + picFileName;
@@ -928,7 +930,7 @@ public class FactSheetWriter {
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);	
 		XSSFCellStyle redStyle = wb.createCellStyle();
 		XSSFFont font = wb.createFont();
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Images\\";
 		String picFileName = systemName.replaceAll(":", "")+"_CONUS_Map_Export.png";
 		String picFileLoc = workingDir + folder + picFileName;

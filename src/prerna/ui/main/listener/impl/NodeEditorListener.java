@@ -28,6 +28,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BrowserTabSheetFullAddress;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 /**
@@ -53,7 +54,7 @@ public class NodeEditorListener implements ActionListener {
 		
 		String replacedURI = "<"+uri.replaceAll("/", "^") +">";
 		 
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		String address = "file://" + workingDir + htmlFileName;
 		String fullAddress = address+replacedURI;

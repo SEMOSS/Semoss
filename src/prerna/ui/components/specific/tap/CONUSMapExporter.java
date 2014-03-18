@@ -124,7 +124,7 @@ public class CONUSMapExporter {
 				if(!((CONUSMapPlaySheet)playSheet).isEmpty())
 				{
 					//location of export
-					String workingDir = System.getProperty("user.dir");
+					String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 					String folder = "\\export\\Images\\";
 					String writeFileName = system+"_CONUS_Map_Export.png";
 					String fileLoc = workingDir + folder+writeFileName;

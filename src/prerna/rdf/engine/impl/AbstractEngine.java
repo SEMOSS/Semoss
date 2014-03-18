@@ -205,7 +205,7 @@ public abstract class AbstractEngine implements IEngine {
 				// everything else
 				// get the questions sheet
 				// get to the working dir and load it up
-				String workingDir = System.getProperty("user.dir");
+				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				String questionPropFile = prop.getProperty(Constants.DREAMER);
 				if (questionPropFile != null) {
 					createInsightBase();
@@ -992,7 +992,7 @@ public abstract class AbstractEngine implements IEngine {
 		// String owlFileName =
 		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
 		// + "_" + Constants.OWL);
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String owlFileName = owl;
 		if (owl == null) {
 			String baseFolder = DIHelper.getInstance()

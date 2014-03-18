@@ -22,6 +22,9 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 /**
  * The GridScatterPlaySheet class creates the panel and table for a scatter plot view of data from a SPARQL query.
  */
@@ -33,7 +36,7 @@ public class GridScatterSheet extends BrowserPlaySheet{
 	public GridScatterSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html";
 	}
 	

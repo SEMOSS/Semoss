@@ -302,7 +302,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 //			oneSystemDataHash.put("TAB-L",mergedTabLData);
 							
 			DeconflictingReportSheetWriter writer = new DeconflictingReportSheetWriter();
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String folder = "\\export\\Reports\\Deconflicting\\";
 			String writeFileName = system+"_System Export_30102013.xlsx";
 			String fileLoc = workingDir + folder + writeFileName;

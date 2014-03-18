@@ -27,11 +27,14 @@ import java.io.IOException;
 import javax.swing.ImageIcon;
 import javax.swing.JDesktopPane;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 /**
  * This class extends JDesktopPane in order to create a custom desktop pane.
  */
 public class CustomDesktopPane extends JDesktopPane{
-	String workingDir = System.getProperty("user.dir");
+	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	final String fileString = workingDir +"/pictures/desktop.png";
 	ImageIcon icon = new ImageIcon(fileString);
     Image image = icon.getImage();

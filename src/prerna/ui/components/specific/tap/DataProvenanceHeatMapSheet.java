@@ -4,6 +4,8 @@ import java.awt.Dimension;
 import java.util.Hashtable;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 	
@@ -13,7 +15,7 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 	public DataProvenanceHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/dataprovenance.html";
 	}
 	

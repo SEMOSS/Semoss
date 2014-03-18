@@ -64,7 +64,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		super();
 
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/lifecycle.html";
 	}
 	

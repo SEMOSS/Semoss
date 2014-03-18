@@ -59,7 +59,7 @@ public class CostDBUpdateListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		String filePath = System.getProperty("user.dir") + "\\export\\";
+		String filePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\";
 		//Get changed and Cost DB params
 		JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
 		String changedDB = (String) changedDBComboBox.getSelectedItem();

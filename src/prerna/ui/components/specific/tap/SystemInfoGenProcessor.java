@@ -47,7 +47,7 @@ public class SystemInfoGenProcessor {
 	String tapCostEngine = "TAP_Cost_Data";
 	String tapSiteEngine = "TAP_Site_Data";
 	String hrCoreEngine = "HR_Core";
-	String workingDir = System.getProperty("user.dir");
+	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	Hashtable<String,Hashtable> masterHash;
 	ArrayList<String> sysList;
 	ArrayList<String> capList;

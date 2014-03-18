@@ -24,9 +24,14 @@ import il.ac.technion.cs.d2rqUpdate.ModelD2RQUpdate;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
@@ -57,7 +62,7 @@ public class D2RQTester {
 	public static void main(String [] args)
 	{
 		// Set up the ModelD2RQ using a mapping file
-		String workingDir = System.getProperty("user.dir");		
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);		
 		String propFile = workingDir + "/mapping-iswc2.ttl";
 		
 		String pckg = "de.fuberlin.wiwiss.d2rq.";
@@ -85,18 +90,18 @@ public class D2RQTester {
 			rdqlLogger.info(stmt.getSubject()+ "<<>>" + stmt.getPredicate() + "<<>>" + stmt.getObject());
 		}
 		
-		//String sparql = "SELECT ?s ?p ?o WHERE {?s <http://annotation.semanticweb.org/iswc/iswc.daml#FirstName> \"Yolanda\"^^<http://www.w3.org/2001/XMLSchema#string>}";
-		//String sparql = "SELECT ?s ?p ?o WHERE {?s <http://annotation.semanticweb.org/iswc/iswc.daml#phone> ?o}";
-		/*Query q2 = QueryFactory.create(sparql); 
+//		String sparql = "SELECT ?s ?p ?o WHERE {?s <http://annotation.semanticweb.org/iswc/iswc.daml#FirstName> \"Yolanda\"^^<http://www.w3.org/2001/XMLSchema#string>}";
+//		String sparql = "SELECT ?s ?p ?o WHERE {?s <http://annotation.semanticweb.org/iswc/iswc.daml#phone> ?o}";
+		Query q2 = QueryFactory.create(sparql); 
 		ResultSet rs = QueryExecutionFactory.create(q2, m).execSelect();
 		while (rs.hasNext()) {
 		    QuerySolution row = rs.nextSolution();
 		    
 		    rdqlLogger.debug("-->" + row.get("s") + "<<>>" + row.get("p") + "<<>>" +row.get("o"));
 		    
-		    //rdqlLogger.debug("Title: " + row.getLiteral("paperTitle").getString());
-		    //rdqlLogger.debug("Author: " + row.getLiteral("authorName").getString());
-		};*/
+		    rdqlLogger.debug("Title: " + row.getLiteral("paperTitle").getString());
+		    rdqlLogger.debug("Author: " + row.getLiteral("authorName").getString());
+		};
 		
 		// Trying sparql insert
 		rdqlLogger.debug("Trying insert ");
