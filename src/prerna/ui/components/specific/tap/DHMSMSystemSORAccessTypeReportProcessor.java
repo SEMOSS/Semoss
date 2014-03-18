@@ -43,16 +43,16 @@ import prerna.util.Utility;
  */
 public class DHMSMSystemSORAccessTypeReportProcessor {
 	Logger logger = Logger.getLogger(getClass());
-	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
+	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	String hrCoreEngine = "HR_Core";
 	String workingDir = System.getProperty("user.dir");
 	Hashtable<String,Hashtable> masterHash;
 	ArrayList<String> sysList;
 	ArrayList<String> headersList;
 	
-	public void setDataAccessTypeHash(Hashtable<String,String> dataAccessTypeHash)
+	public void setDataLatencyTypeHash(Hashtable<String,String> dataLatencyTypeHash)
 	{
-		this.dataAccessTypeHash = dataAccessTypeHash;
+		this.dataLatencyTypeHash = dataLatencyTypeHash;
 	}
 	
 	/**
@@ -183,16 +183,16 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 			String ignore="";
 			for(String data : dataObjectList)
 			{
-				String dataAccessType = dataAccessTypeHash.get(data);
-				if(dataAccessType!=null)
+				String dataLatencyType = dataLatencyTypeHash.get(data);
+				if(dataLatencyType!=null)
 				{
-					if(dataAccessType.equals("Real"))
+					if(dataLatencyType.equals("Real"))
 						real+=data+", ";
-					else if(dataAccessType.equals("NearReal"))
+					else if(dataLatencyType.equals("NearReal"))
 						near+=data+", ";
-					else if(dataAccessType.equals("Archive"))
+					else if(dataLatencyType.equals("Archive"))
 						archive+=data+", ";
-					else if(dataAccessType.equals("Ignore"))
+					else if(dataLatencyType.equals("Ignore"))
 						ignore+=data+", ";
 				}
 			}

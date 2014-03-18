@@ -57,7 +57,7 @@ public class DHMSMDecommissionReportListener implements IChakraListener {
 		Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 
 		JTextField dataAccessLatencyFileField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SELECT_DATA_ACCESS_FILE_JFIELD);
-		if(dataAccessLatencyFileField!=null)
+		if(dataAccessLatencyFileField.getText()!=null&&dataAccessLatencyFileField.getText().length()>0)
 		{
 			DHMSMDataAccessLatencyFileImporter dataAccessImporter = new DHMSMDataAccessLatencyFileImporter();
 			try {
@@ -137,6 +137,12 @@ public class DHMSMDecommissionReportListener implements IChakraListener {
 						dataLatencyTypeHash.put(key, "Ignore");
 					}
 			}
+		}
+		if(dataLatencyTypeHash.isEmpty()&&dataAccessTypeHash.isEmpty())
+		{
+				JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+				JOptionPane.showMessageDialog(playPane, "<html>Please select at least one data object.</html>");
+				return;
 		}
 	
 		logger.info("Processed Data time Hash");
