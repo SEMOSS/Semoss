@@ -181,6 +181,10 @@ public class PlayPane extends JFrame {
 	//DHMSM Report Panel
 	public JPanel dhmsmReportTopPanel;
 	public Panel dhmsmFunctionalAreaPanel;
+	public JLabel dhmsmDataAccessSelectionFileLbl;
+	public JButton dhmsmDataAccessFileBrowseBtn;
+	public JTextField dhmsmDataAccessImportFileNameField;
+
 	public JCheckBox HSDCheckBoxDHMSM, HSSCheckBoxDHMSM, FHPCheckBoxDHMSM, DHMSMCheckBoxDHMSM;
 	public SourceSelectPanel dhmsmCapabilitySelectPanel;
 	public JScrollPane dhmsmCapabilitySelectScrollPane;
@@ -2646,11 +2650,43 @@ public class PlayPane extends JFrame {
 		dhmsmDecommissionReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		
 
+		dhmsmDataAccessSelectionFileLbl = new JLabel("Select Data Access and Latency File to Import");
+		GridBagConstraints gbc_dhmsmDataAccessSelectionFileLbl = new GridBagConstraints();
+		gbc_dhmsmDataAccessSelectionFileLbl.gridwidth = 2;
+		gbc_dhmsmDataAccessSelectionFileLbl.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmDataAccessSelectionFileLbl.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmDataAccessSelectionFileLbl.gridx = 2;
+		gbc_dhmsmDataAccessSelectionFileLbl.gridy = 2;
+		dhmsmReportTopPanel.add(dhmsmDataAccessSelectionFileLbl, gbc_dhmsmDataAccessSelectionFileLbl);
+		dhmsmDataAccessSelectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
+
+		dhmsmDataAccessFileBrowseBtn = new CustomButton("Browse");
+		dhmsmDataAccessFileBrowseBtn.setName(Constants.IMPORT_BUTTON_BROWSE);
+		dhmsmDataAccessFileBrowseBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_dhmsmDataAccessFileBrowseBtn = new GridBagConstraints();
+		gbc_dhmsmDataAccessFileBrowseBtn.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmDataAccessFileBrowseBtn.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmDataAccessFileBrowseBtn.gridx = 3;
+		gbc_dhmsmDataAccessFileBrowseBtn.gridy = 2;
+		dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
+		Style.registerTargetClassName(dhmsmDataAccessFileBrowseBtn, ".standardButton");
+
+		dhmsmDataAccessImportFileNameField = new JTextField();
+		dhmsmDataAccessImportFileNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_dhmsmDataAccessImportFileNameField = new GridBagConstraints();
+		gbc_dhmsmDataAccessImportFileNameField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dhmsmDataAccessImportFileNameField.insets = new Insets(0, 0, 5, 0);
+		gbc_dhmsmDataAccessImportFileNameField.gridx = 4;
+		gbc_dhmsmDataAccessImportFileNameField.gridy = 2;
+		dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
+		dhmsmDataAccessImportFileNameField.setColumns(10);		
+		
 		dhmsmFunctionalAreaPanel = new Panel();
 		GridBagConstraints gbc_functionalAreaDHMSMPanel = new GridBagConstraints();
+		gbc_functionalAreaDHMSMPanel.gridwidth = 2;
 		gbc_functionalAreaDHMSMPanel.anchor = GridBagConstraints.WEST;
 		gbc_functionalAreaDHMSMPanel.gridx = 2;
-		gbc_functionalAreaDHMSMPanel.gridy = 2;
+		gbc_functionalAreaDHMSMPanel.gridy = 4;
 		dhmsmReportTopPanel.add(dhmsmFunctionalAreaPanel, gbc_functionalAreaDHMSMPanel);
 		dhmsmFunctionalAreaPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 		
@@ -2704,7 +2740,7 @@ public class PlayPane extends JFrame {
 		GridBagConstraints gbc_dhmsmSelectAllAccessTypePanel = new GridBagConstraints();
 		gbc_dhmsmSelectAllAccessTypePanel.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmSelectAllAccessTypePanel.gridx = 4;
-		gbc_dhmsmSelectAllAccessTypePanel.gridy = 2;
+		gbc_dhmsmSelectAllAccessTypePanel.gridy = 4;
 		dhmsmReportTopPanel.add(dhmsmSelectAllAccessTypePanel, gbc_dhmsmSelectAllAccessTypePanel);
 		dhmsmSelectAllAccessTypePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 

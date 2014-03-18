@@ -23,10 +23,14 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
+import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
+import prerna.poi.main.DHMSMDataAccessLatencyFileImporter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMSysDecommissionReport;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
@@ -51,70 +55,88 @@ public class DHMSMDecommissionReportListener implements IChakraListener {
 		//get data objects that are checked and put them in the data object hash
 		Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
 		Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
-		SelectRadioButtonPanel selectRadioPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
-		Enumeration<String> enumKey = selectRadioPanel.radioIntegratedBoxHash.keys();
-		while(enumKey.hasMoreElements()) {
-			    String key = enumKey.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioIntegratedBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataAccessTypeHash.put(key, "Integrated");
-				}
+
+		JTextField dataAccessLatencyFileField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SELECT_DATA_ACCESS_FILE_JFIELD);
+		if(dataAccessLatencyFileField!=null)
+		{
+			DHMSMDataAccessLatencyFileImporter dataAccessImporter = new DHMSMDataAccessLatencyFileImporter();
+			try {
+				dataAccessImporter.importFile(dataAccessLatencyFileField.getText());
+				dataAccessTypeHash = dataAccessImporter.getDataAccessTypeHash();
+				dataLatencyTypeHash = dataAccessImporter.getDataLatencyTypeHash();
+			} catch (Exception e) {
+				JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+				JOptionPane.showMessageDialog(playPane, "<html>Error with Selected File.</html>");
+				return;
+			}
 		}
-		Enumeration<String> enumKey2 = selectRadioPanel.radioHybridBoxHash.keys();
-		while(enumKey2.hasMoreElements()) {
-			    String key = enumKey2.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioHybridBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataAccessTypeHash.put(key, "Hybrid");
-				}
-		}
-		Enumeration<String> enumKey3 = selectRadioPanel.radioManualBoxHash.keys();
-		while(enumKey3.hasMoreElements()) {
-			    String key = enumKey3.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioManualBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataAccessTypeHash.put(key, "Manual");
-				}
-		}
-		
-		Enumeration<String> enumKey4 = selectRadioPanel.radioRealBoxHash.keys();
-		while(enumKey4.hasMoreElements()) {
-			    String key = enumKey4.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioRealBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataLatencyTypeHash.put(key, "Real");
-				}
-		}
-		Enumeration<String> enumKey5 = selectRadioPanel.radioNearBoxHash.keys();
-		while(enumKey5.hasMoreElements()) {
-			    String key = enumKey5.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioNearBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataLatencyTypeHash.put(key, "NearReal");
-				}
-		}
-		Enumeration<String> enumKey6 = selectRadioPanel.radioArchiveBoxHash.keys();
-		while(enumKey6.hasMoreElements()) {
-			    String key = enumKey6.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioArchiveBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataLatencyTypeHash.put(key, "Archive");
-				}
-		}
-		Enumeration<String> enumKey7 = selectRadioPanel.radioIgnoreBoxHash.keys();
-		while(enumKey7.hasMoreElements()) {
-			    String key = enumKey7.nextElement();
-				JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioIgnoreBoxHash.get(key);
-				if (radioButton.isSelected())
-				{
-					dataLatencyTypeHash.put(key, "Ignore");
-				}
+		else
+		{
+			SelectRadioButtonPanel selectRadioPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
+			Enumeration<String> enumKey = selectRadioPanel.radioIntegratedBoxHash.keys();
+			while(enumKey.hasMoreElements()) {
+				    String key = enumKey.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioIntegratedBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataAccessTypeHash.put(key, "Integrated");
+					}
+			}
+			Enumeration<String> enumKey2 = selectRadioPanel.radioHybridBoxHash.keys();
+			while(enumKey2.hasMoreElements()) {
+				    String key = enumKey2.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioHybridBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataAccessTypeHash.put(key, "Hybrid");
+					}
+			}
+			Enumeration<String> enumKey3 = selectRadioPanel.radioManualBoxHash.keys();
+			while(enumKey3.hasMoreElements()) {
+				    String key = enumKey3.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioManualBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataAccessTypeHash.put(key, "Manual");
+					}
+			}
+			
+			Enumeration<String> enumKey4 = selectRadioPanel.radioRealBoxHash.keys();
+			while(enumKey4.hasMoreElements()) {
+				    String key = enumKey4.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioRealBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataLatencyTypeHash.put(key, "Real");
+					}
+			}
+			Enumeration<String> enumKey5 = selectRadioPanel.radioNearBoxHash.keys();
+			while(enumKey5.hasMoreElements()) {
+				    String key = enumKey5.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioNearBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataLatencyTypeHash.put(key, "NearReal");
+					}
+			}
+			Enumeration<String> enumKey6 = selectRadioPanel.radioArchiveBoxHash.keys();
+			while(enumKey6.hasMoreElements()) {
+				    String key = enumKey6.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioArchiveBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataLatencyTypeHash.put(key, "Archive");
+					}
+			}
+			Enumeration<String> enumKey7 = selectRadioPanel.radioIgnoreBoxHash.keys();
+			while(enumKey7.hasMoreElements()) {
+				    String key = enumKey7.nextElement();
+					JRadioButton radioButton = (JRadioButton) selectRadioPanel.radioIgnoreBoxHash.get(key);
+					if (radioButton.isSelected())
+					{
+						dataLatencyTypeHash.put(key, "Ignore");
+					}
+			}
 		}
 	
 		logger.info("Processed Data time Hash");
