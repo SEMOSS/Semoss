@@ -3,6 +3,11 @@
 }
 .slider {
     width: 800px;
+    margin-top: 13px;
+}
+
+.slider-container {
+    width: 800px;
     margin: 0 auto;
 }
 
