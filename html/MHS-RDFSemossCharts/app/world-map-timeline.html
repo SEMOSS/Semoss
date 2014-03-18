@@ -27,7 +27,9 @@
     <div ng-controller="DemoCtrl">
         <div id="sidebarContainer">
             <div id="sidebarHeader">
-                <input type="text" class="slider" id="slider" value="">
+                <div class="slider-container">
+                    <input type="text" class="slider" id="slider" value="">
+                </div>
             </div>
             <div id="sidebarContentArea">
                 <div id="sidebarContentLeft">
@@ -57,8 +59,8 @@
 
     <script> 
 /////////////////////////////////////
-function start(dataString) {  
-    var dataString = jQuery.parseJSON(dataString);
+function start(dataPassed) {  
+    var dataString = jQuery.parseJSON(dataPassed);
 
         var app = angular.module('main', ['ngTable']).
         controller('DemoCtrl', function($scope, $filter, ngTableParams) {
