@@ -44,6 +44,7 @@ import prerna.util.Utility;
 public class DHMSMSystemSORAccessTypeReportProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
+	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
 	String hrCoreEngine = "HR_Core";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	Hashtable<String,Hashtable> masterHash;
@@ -53,6 +54,11 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	public void setDataLatencyTypeHash(Hashtable<String,String> dataLatencyTypeHash)
 	{
 		this.dataLatencyTypeHash = dataLatencyTypeHash;
+	}
+	
+	public void setDataAccessTypeHash(Hashtable<String,String> dataAccessTypeHash)
+	{
+		this.dataAccessTypeHash = dataAccessTypeHash;
 	}
 	
 	/**
@@ -169,20 +175,37 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 		dhelp.runData(engine);
 
 		headersList.add("System");
-		headersList.add("Num_Of_Realtime_Data_Objects_System_Is_Record_Of");
-		headersList.add("Num_Of_Near_Realtime_Data_Objects_System_Is_Record_Of");
-		headersList.add("Num_Of_Archived_Data_Objects_System_Is_Record_Of");
-		headersList.add("Num_Of_Ignored_Data_Objects_System_Is_Record_Of");
+		headersList.add("Integrated_Data_Objects_System_Is_Record_Of");
+		headersList.add("Hybrid_Data_Objects_System_Is_Record_Of");
+		headersList.add("Manual_Data_Objects_System_Is_Record_Of");
+		headersList.add("Realtime_Data_Objects_System_Is_Record_Of");
+		headersList.add("Near_Realtime_Data_Objects_System_Is_Record_Of");
+		headersList.add("Archived_Data_Objects_System_Is_Record_Of");
+		headersList.add("Ignored_Data_Objects_System_Is_Record_Of");
+
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
 			ArrayList<String> dataObjectList = dhelp.getAllDataFromSys(system, "C");
+			String integrated="";
+			String hybrid="";
+			String manual="";
 			String real="";
 			String near="";
 			String archive="";
 			String ignore="";
 			for(String data : dataObjectList)
 			{
+				String dataAccessType = dataAccessTypeHash.get(data);
+				if(dataAccessType!=null)
+				{
+					if(dataAccessType.equals("Integrated"))
+						integrated+=data+", ";
+					else if(dataAccessType.equals("Hybrid"))
+						hybrid+=data+", ";
+					else if(dataAccessType.equals("Manual"))
+						manual+=data+", ";
+				}
 				String dataLatencyType = dataLatencyTypeHash.get(data);
 				if(dataLatencyType!=null)
 				{
@@ -196,6 +219,12 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 						ignore+=data+", ";
 				}
 			}
+			if(integrated.length()>=2)
+				integrated=integrated.substring(0,integrated.length()-2);
+			if(hybrid.length()>=2)
+				hybrid=hybrid.substring(0,hybrid.length()-2);
+			if(manual.length()>=2)
+				manual=manual.substring(0,manual.length()-2);
 			if(real.length()>=2)
 				real=real.substring(0,real.length()-2);
 			if(near.length()>=2)
@@ -204,10 +233,13 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 				archive=archive.substring(0,archive.length()-2);
 			if(ignore.length()>=2)
 				ignore=ignore.substring(0,ignore.length()-2);
-			sysHash.put("Num_Of_Realtime_Data_Objects_System_Is_Record_Of",real);
-			sysHash.put("Num_Of_Near_Realtime_Data_Objects_System_Is_Record_Of",near);
-			sysHash.put("Num_Of_Archived_Data_Objects_System_Is_Record_Of",archive);
-			sysHash.put("Num_Of_Ignored_Data_Objects_System_Is_Record_Of",ignore);
+			sysHash.put("Integrated_Data_Objects_System_Is_Record_Of",integrated);
+			sysHash.put("Hybrid_Data_Objects_System_Is_Record_Of",hybrid);
+			sysHash.put("Manual_Data_Objects_System_Is_Record_Of",manual);
+			sysHash.put("Realtime_Data_Objects_System_Is_Record_Of",real);
+			sysHash.put("Near_Realtime_Data_Objects_System_Is_Record_Of",near);
+			sysHash.put("Archived_Data_Objects_System_Is_Record_Of",archive);
+			sysHash.put("Ignored_Data_Objects_System_Is_Record_Of",ignore);
 			masterHash.put(system,sysHash);
 		}		
 
