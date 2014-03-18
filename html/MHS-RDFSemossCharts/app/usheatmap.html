@@ -112,9 +112,35 @@
 //					colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
 				
 				var colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.value; })])
+                .domain([ d3.min(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100, buckets - 1, d3.max(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100])
                 .range(colors);
 				
+				var legendElementWidth = 15;
+				
+				var legend = svg.selectAll(".legend")
+				.data([0].concat(colorScale.quantiles()), function(d) { return d; })
+				.enter().append("g")
+				.attr("class", "legend");
+	  
+				legend.append("rect")
+					.attr("x", function(d, i) { return legendElementWidth * i; })
+					.attr("y",450)
+					.attr("width", legendElementWidth)
+					.attr("height", 20);
+            
+				legend.style("fill", function(d, i) { return colors[i]; });
+
+				legend.append("text")
+					.attr("class", "mono")
+					.text(function(d,i) { 
+					if(i%4 == 0)
+						return "" + Math.floor(d*d3.max(dataArray, function (d) { return d.value; })*1000)/100000; 
+					else
+						return "";
+					})
+					.attr("x", function(d, i) { return legendElementWidth * i; })
+					.attr("y", 450 + 50);	
+					
 
 				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
 				
@@ -149,7 +175,7 @@
 								var loc = dataArray[key].locationName;
 								if(country == loc)
 								{
-									colorToPut = colorScale(dataArray[key].value);
+									colorToPut = colorScale(dataArray[key].value/d3.max(dataArray, function (d) { return d.value; })*100);
 									return colorToPut;
 								}
 							}

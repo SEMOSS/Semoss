@@ -123,7 +123,7 @@
 	//				colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
 				
 				var colorScale = d3.scale.quantile()
-                .domain([ d3.min(dataArray, function (d) { return d.value*100; }), buckets - 1, d3.max(dataArray, function (d) { return d.value*100; })])
+                .domain([ d3.min(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100, buckets - 1, d3.max(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100])
                 .range(colors);
 				
 				var legendElementWidth = 15;
@@ -145,7 +145,7 @@
 					.attr("class", "mono")
 					.text(function(d,i) { 
 					if(i%4 == 0)
-						return "" + Math.floor(d)/100; 
+						return "" + Math.floor(d*d3.max(dataArray, function (d) { return d.value; })*1000)/100000; 
 					else
 						return "";
 					})
@@ -189,7 +189,7 @@
 								var loc = dataArray[key].locationName;
 								if(country == loc)
 								{
-									colorToPut = colorScale(dataArray[key].value*100);
+									colorToPut = colorScale(dataArray[key].value/d3.max(dataArray, function (d) { return d.value; })*100);
 									return colorToPut;
 								}
 							}
