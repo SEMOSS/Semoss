@@ -5,7 +5,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 
 import com.google.gson.Gson;
 
@@ -32,17 +34,17 @@ public class DHMSMSysDecommissionDataProcessing {
 	//	private Hashtable<String, Double> hssForSystem = new Hashtable<String, Double>();
 	//	private Hashtable<String, Double> hsdForSystem = new Hashtable<String, Double>();
 
-	private ArrayList<String> listOfSystems = new ArrayList<String>();
-	private ArrayList<String> listOfSites = new ArrayList<String>();
+	private Set<String> listOfSystems = new HashSet<String>();
+	private Set<String> listOfSites = new HashSet<String>();
 
 	private Hashtable<String, Double> systemCost = new Hashtable<String, Double>();
 	private Hashtable<String, Double> siteCost = new Hashtable<String, Double>();
-	private Hashtable<String, String> globalStatusForSys = new Hashtable<String, String>();
 
-   private Hashtable<String, Hashtable<String, Double>> siteLatLongHash = new Hashtable<String, Hashtable<String, Double>>();
-
+    private Hashtable<String, Hashtable<String, Double>> siteLatLongHash = new Hashtable<String, Hashtable<String, Double>>();
+    
+    private Double costPerHr = 150.0;
 	
-	public String constructHash()
+	public Hashtable<Integer, Object> constructHash()
 	{
 		siteLatLongHash = dataSource.getSiteLatLongHash();
 		Hashtable<Integer, Object> output = new Hashtable<Integer, Object>();
@@ -68,52 +70,54 @@ public class DHMSMSysDecommissionDataProcessing {
 			divergence.put("site", new Hashtable<String, Object>());
 
 			Hashtable<String, Object> siteHashList = (Hashtable<String, Object>) divergence.get("site");
+			Hashtable<String, ArrayList<String>> globalStatusForSys = new Hashtable<String, ArrayList<String>>();
 			for(String site : listOfSites)
 			{
 				siteHashList.put(site, new Hashtable<String, Object>());
 				Hashtable<String, Object> propHash = (Hashtable<String, Object>) siteHashList.get(site);
-				propHash.put("TCostSite", siteCost.get(site));
-				System.out.println(site);
-				propHash.put("Lat", siteLatLongHash.get(site).get("LAT"));
-				propHash.put("Long", siteLatLongHash.get(site).get("LONG"));
+				propHash.put("TCostSite", siteCost.get(site)*costPerHr);
+				if(siteLatLongHash.get(site) != null)
+				{
+					propHash.put("Lat", siteLatLongHash.get(site).get("LAT"));
+					propHash.put("Long", siteLatLongHash.get(site).get("LONG"));
+				}
 				propHash.put("SystemForSite", new Hashtable<String, Object>());
 				Hashtable<String, Object> sysAtSite = (Hashtable<String, Object>) propHash.get("SystemForSite");
 				for (String sys : systemsForSite.get(site))
 				{
 					sysAtSite.put(sys, new Hashtable<String, Object>());
 					Hashtable<String, Object> sysAtSitePropHash = (Hashtable<String, Object>) sysAtSite.get(sys);
-					sysAtSitePropHash.put("Cost", loeForSiteSystem.get(site).get(sys));
+					sysAtSitePropHash.put("Cost", loeForSiteSystem.get(site).get(sys)*costPerHr);
 					sysAtSitePropHash.put("Rescources", resourceForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("Pilot", pilotForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("AccessType", accessTypeForSiteSystem.get(site).get(sys));
 					// logic to determine status of system at given site
 					String status = "";
-					if(startDateForSiteSystem.get(site).get(sys).before(yearStart))
+					if(yearStart.before(startDateForSiteSystem.get(site).get(sys)))
 					{
 						status = "Not Started";
 					}
-					else if(startDateForSiteSystem.get(site).get(sys).after(yearStart) || startDateForSiteSystem.get(site).get(sys).before(yearEnd) )
+					else
 					{
 						status = "In Progress";
-					}
-					if(!endDateForSiteSystem.get(site).get(sys).after(yearStart))
-					{
-						status = "Decommissioned";
+						if(endDateForSiteSystem.get(site).get(sys).before(yearEnd))
+						{
+							status = "Decommissioned";
+						}
 					}
 					sysAtSitePropHash.put("Status", status);
 
 					// logic to determine global status of system
-					if(!globalStatusForSys.contains(sys))
+					if(!globalStatusForSys.containsKey(sys))
 					{
-						globalStatusForSys.put(sys, status);
+						ArrayList<String> statArr = new ArrayList<String>();
+						statArr.add(status);
+						globalStatusForSys.put(sys, statArr);
 					}
 					else
 					{
-						String curStatus = globalStatusForSys.get(sys);
-						if(!status.equals(curStatus))
-						{
-							globalStatusForSys.put(sys, "In Progress");
-						}
+						ArrayList<String> statArr = globalStatusForSys.get(sys);
+						statArr.add(status);
 					}
 				}
 			}
@@ -121,20 +125,33 @@ public class DHMSMSysDecommissionDataProcessing {
 			Hashtable<String, Object> sysHashList = (Hashtable<String, Object>) divergence.get("system");
 			for( String sys : listOfSystems)
 			{
-
+				System.out.println(sys);
 				sysHashList.put(sys, new Hashtable<String, Object>());
+				System.out.println(sysHashList.keySet().size());
 				Hashtable<String, Object> propHash = (Hashtable<String, Object>) sysHashList.get(sys);
-				propHash.put("TCostSystem", systemCost.get(sys));
-				propHash.put("AggregatedStatus", globalStatusForSys.get(sys));
+				propHash.put("TCostSystem", systemCost.get(sys)*costPerHr);
+				ArrayList<String> statArr = globalStatusForSys.get(sys);
+				if(statArr.contains("Not Started") && !statArr.contains("In Progress") && !statArr.contains("Decommissioned"))
+				{
+					propHash.put("AggregatedStatus", "Not Started");
+				}
+				else if(!statArr.contains("Not Started") && !statArr.contains("In Progress") && statArr.contains("Decommissioned"))
+				{
+					propHash.put("AggregatedStatus", "Decommissioned");
+				}
+				else
+				{
+					propHash.put("AggregatedStatus", "In Progress");
+				}
 			}
-
 			time++;
 		}
 		
 		Gson gson = new Gson();
 		String json = gson.toJson(output);
-		System.out.print(json);
-		return json;
+		System.out.println(json);
+		
+		return output;
 	}
 
 	private Date getLatestDate()
@@ -305,7 +322,7 @@ public class DHMSMSysDecommissionDataProcessing {
 							}
 
 							// determine overall system cost
-							if(!systemCost.contains(system))
+							if(!systemCost.containsKey(system))
 							{
 								systemCost.put(system, (Double) propHash.get(dataSource.loeKey));
 							}
@@ -317,13 +334,13 @@ public class DHMSMSysDecommissionDataProcessing {
 							}
 
 							// determine overall site cost
-							if(!siteCost.contains(site))
+							if(!siteCost.containsKey(site))
 							{
 								siteCost.put(site, (Double) propHash.get(dataSource.loeKey));
 							}
 							else
 							{
-								Double oldLOW = siteCost.get(system);
+								Double oldLOW = siteCost.get(site);
 								Double addLOE = (Double) propHash.get(dataSource.loeKey);
 								siteCost.put(site, oldLOW + addLOE);
 							}
