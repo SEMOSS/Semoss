@@ -19,6 +19,7 @@
 package prerna.util;
 
 import javax.swing.JCheckBox;
+import javax.swing.JRadioButton;
 
 
 /**
@@ -43,6 +44,9 @@ public class ConstantsTAP {
 	public static final String SOURCE_SELECT_REPORT_NAME="SOURCE_SELECT_REPORT_NAME";
 	public static final String SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY = "SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY";
 	
+	public static final String DHMSM_ACCESS_INTEGRATED_BUTTON = "integratedAccessButton";
+	public static final String DHMSM_ACCESS_HYBRID_BUTTON = "hybridAccessButton";
+	public static final String DHMSM_ACCESS_MANUAL_BUTTON = "manualAccessButton";
 	public static final String DHMSM_ACCESS_REAL_BUTTON = "realAccessButton";
 	public static final String DHMSM_ACCESS_NEAR_BUTTON = "nearAccessButton";
 	public static final String DHMSM_ACCESS_ARCHIVE_BUTTON = "archiveAccessButton";

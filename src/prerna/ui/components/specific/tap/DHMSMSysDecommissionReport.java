@@ -1,7 +1,7 @@
 package prerna.ui.components.specific.tap;
 
+import java.beans.PropertyVetoException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -11,10 +11,23 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+
 import org.apache.log4j.Logger;
+
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.GridTableModel;
+import prerna.ui.components.NewScrollBarUI;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class DHMSMSysDecommissionReport {
 	Logger logger = Logger.getLogger(getClass());
+
+	GridFilterData gfd = new GridFilterData();
 	//hashtable storing all the data objects and the time they are needed: real, near-real, or archive
 	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	
@@ -157,10 +170,14 @@ public class DHMSMSysDecommissionReport {
  				processSiteChunk(siteChunkToProcess,i);
 			}
 		}
-		convertToArrayList();
+		ArrayList<Object[]> outputArray = convertToArrayList();
 		//convertToArrayListSmaller();
 		
+		createGrid(outputArray);
+		
 	}
+	
+
 	private void processSiteChunk(ArrayList<String> siteChunkToProcess,int chunkIndex)
 	{
 		Calendar cal = Calendar.getInstance();
@@ -473,43 +490,98 @@ public class DHMSMSysDecommissionReport {
 		return retStartDate;
 	}
 
-	private void convertToArrayList()
+	private ArrayList<Object[]> convertToArrayList()
 	{
-		ArrayList<ArrayList<Object>> masterList = new ArrayList<ArrayList<Object>>();
+		ArrayList<Object[]> masterList = new ArrayList<Object[]>();
 		for(String site : masterHash.keySet())
 		{
 			Hashtable<String, Hashtable<String, Hashtable<String,Object>>> systemHash = masterHash.get(site);
 			for(String system : systemHash.keySet())
 			{
 				Hashtable<String, Hashtable<String,Object>> dataHash = systemHash.get(system);
+				Date startDate = new Date();
+				Date latestEndDate = new Date();
+				int resources=0;
+				double loe = 0.0;
+
 				for(String data : dataHash.keySet())
 				{
 					Hashtable<String,Object> propHash = dataHash.get(data);
-					ArrayList<Object> siteSystemDataPropRow = new ArrayList<Object>();
-					siteSystemDataPropRow.add(site);
-					siteSystemDataPropRow.add(system);
-					siteSystemDataPropRow.add(data);
-					siteSystemDataPropRow.add(propHash.get(loeKey));
-					siteSystemDataPropRow.add(propHash.get(startKey));
-					siteSystemDataPropRow.add(propHash.get(endKey));
-					siteSystemDataPropRow.add(propHash.get(resourceKey));
-					siteSystemDataPropRow.add(propHash.get(accessTypeKey));
-					siteSystemDataPropRow.add(propHash.get(pilotKey));
-					
-					DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-					// Get the date today using Calendar object.
-					Date startDate = ((Date)propHash.get(startKey));      
-					String startDateString = df.format(startDate);
-					Date endDate = ((Date)propHash.get(endKey));      
-					String endDateString = df.format(endDate);
-					String sysToRec = sysToRecHash.get(system);
-					String siteStartDateString = df.format(getStartDateForSite(site));
-					System.out.println(site + "$" + system + "$" + sysToRec + "$" + data + "$" + propHash.get(loeKey) + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + propHash.get(resourceKey) + "$" + propHash.get(accessTypeKey) + "$" + propHash.get(pilotKey));
-					masterList.add(siteSystemDataPropRow);
+					startDate = ((Date)propHash.get(startKey));
+					Date endDate = ((Date)propHash.get(endKey)); 
+					if(latestEndDate == null || latestEndDate.before(endDate))
+						latestEndDate = endDate;
+					if(resources == 0)
+						resources = (Integer)propHash.get(resourceKey);
+					loe+=(Double)propHash.get(loeKey);
 				}
+				
+
+				DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+	//			Date startDate = ((Date)propHash.get(startKey));
+				String startDateString = df.format(startDate);
+	//			Date endDate = ((Date)propHash.get(endKey));      
+				String endDateString = df.format(latestEndDate);
+				long systemDateDiff = Math.abs(latestEndDate.getTime() - startDate.getTime());
+				long systemDateDiffDays = systemDateDiff / (24 * 60 * 60 * 1000);
+				String sysToRec = sysToRecHash.get(system);
+				String siteStartDateString = df.format(getStartDateForSite(site));
+				
+				Object[] systemSiteDataPropRow = new Object[10];
+				systemSiteDataPropRow[0] = system;
+				systemSiteDataPropRow[1] = site;
+				systemSiteDataPropRow[2] = sysToRec;
+				systemSiteDataPropRow[3] = siteStartDateString;
+				systemSiteDataPropRow[4] = startDateString;
+				systemSiteDataPropRow[5] = endDateString;
+				systemSiteDataPropRow[6] = systemDateDiffDays;
+				systemSiteDataPropRow[7] = loe;
+				systemSiteDataPropRow[8] = resources;
+				systemSiteDataPropRow[9] = loe*150;
+				masterList.add(systemSiteDataPropRow);
+				
 			}
 		}
+		return masterList;
 //		System.out.println(masterList);
+	}
+	
+	/**
+	 * Creates grid of result data.
+	 * 
+	 * @param outputList ArrayList<Object[]>	List of data to be set
+	 */
+	public void createGrid(ArrayList<Object[]> outputList)
+	{
+		String [] names = new String[]{"System", "Site", "TAP Recommendation","Site Start Date", "System Start Date", "System End Date","Date Elapsed", "LOE", "Resources", "Total Cost"};
+		String title = "DHMSM System Decomission Report";
+		gfd.setColumnNames(names);
+		gfd.setDataList(outputList);
+		JTable table = new JTable();
+		
+		GridTableModel model = new GridTableModel(gfd);
+		table.setModel(model);
+		table.setAutoCreateRowSorter(true);
+		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+		JInternalFrame sysDecommissionSheet = new JInternalFrame();
+		sysDecommissionSheet.setContentPane(scrollPane);
+		pane.add(sysDecommissionSheet);
+		sysDecommissionSheet.setClosable(true);
+		sysDecommissionSheet.setMaximizable(true);
+		sysDecommissionSheet.setIconifiable(true);
+		sysDecommissionSheet.setTitle(title);
+		sysDecommissionSheet.setResizable(true);
+		sysDecommissionSheet.pack();
+		sysDecommissionSheet.setVisible(true);
+		try {
+			sysDecommissionSheet.setSelected(false);
+			sysDecommissionSheet.setSelected(true);
+		} catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	

@@ -37,6 +37,9 @@ import prerna.util.DIHelper;
  * Will populate sourceSelectPanel with all capabilities included in functional areas
  */
 public class DHMSMAccessTypeSelectorListener extends AbstractListener {
+	JRadioButton integratedAccessButton;
+	JRadioButton hybridAccessButton;
+	JRadioButton manualAccessButton;
 	JRadioButton realAccessButton;
 	JRadioButton nearAccessButton;
 	JRadioButton archiveAccessButton;
@@ -50,12 +53,44 @@ public class DHMSMAccessTypeSelectorListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		integratedAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_INTEGRATED_BUTTON);
+		hybridAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_HYBRID_BUTTON);
+		manualAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_MANUAL_BUTTON);
+
 		realAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_REAL_BUTTON);
 		nearAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_NEAR_BUTTON);
 		archiveAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_ARCHIVE_BUTTON);
 		ignoreAccessButton = (JRadioButton) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_ACCESS_IGNORE_BUTTON);
 
 		SelectRadioButtonPanel selectRadioPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
+		if (integratedAccessButton.isSelected())
+		{
+			Enumeration<String> enumKey = selectRadioPanel.radioIntegratedBoxHash.keys();
+			while(enumKey.hasMoreElements()) {
+			    String key = enumKey.nextElement();
+				JRadioButton radButton = (JRadioButton) selectRadioPanel.radioIntegratedBoxHash.get(key);
+				radButton.setSelected(true);
+			}
+		}
+		else if (hybridAccessButton.isSelected())
+		{
+			Enumeration<String> enumKey = selectRadioPanel.radioHybridBoxHash.keys();
+			while(enumKey.hasMoreElements()) {
+			    String key = enumKey.nextElement();
+				JRadioButton radButton = (JRadioButton) selectRadioPanel.radioHybridBoxHash.get(key);
+				radButton.setSelected(true);
+			}
+		}
+		else if (manualAccessButton.isSelected())
+		{
+			Enumeration<String> enumKey = selectRadioPanel.radioManualBoxHash.keys();
+			while(enumKey.hasMoreElements()) {
+			    String key = enumKey.nextElement();
+				JRadioButton radButton = (JRadioButton) selectRadioPanel.radioManualBoxHash.get(key);
+				radButton.setSelected(true);
+			}
+		}
+		
 		if (realAccessButton.isSelected())
 		{
 			Enumeration<String> enumKey = selectRadioPanel.radioRealBoxHash.keys();

@@ -187,6 +187,7 @@ public class PlayPane extends JFrame {
 	public JButton dhmsmUpdateDataButton = new JButton();
 	
 	public Panel dhmsmSelectAllAccessTypePanel;
+	public JRadioButton integratedAccessButton, hybridAccessButton, manualAccessButton;
 	public JRadioButton realAccessButton, nearAccessButton, archiveAccessButton, ignoreAccessButton;
 	public SelectRadioButtonPanel selectRadioPanel;
 	public JScrollPane selectRadioScrollPane;
@@ -2707,22 +2708,34 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmSelectAllAccessTypePanel, gbc_dhmsmSelectAllAccessTypePanel);
 		dhmsmSelectAllAccessTypePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
-		ButtonGroup selectAllAccessType = new ButtonGroup();
+		ButtonGroup selectAllDataAccessType = new ButtonGroup();
+		integratedAccessButton = new JRadioButton("Integrated");
+		selectAllDataAccessType.add(integratedAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(integratedAccessButton);
+
+		hybridAccessButton = new JRadioButton("Hybrid");
+		selectAllDataAccessType.add(hybridAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(hybridAccessButton);
+
+		manualAccessButton = new JRadioButton("Manual");
+		selectAllDataAccessType.add(manualAccessButton);
+		dhmsmSelectAllAccessTypePanel.add(manualAccessButton);
 		
+		ButtonGroup selectAllDataLatencyType = new ButtonGroup();		
 		realAccessButton = new JRadioButton("RealTime");
-		selectAllAccessType.add(realAccessButton);
+		selectAllDataLatencyType.add(realAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(realAccessButton);
 
 		nearAccessButton = new JRadioButton("Near RealTime");
-		selectAllAccessType.add(nearAccessButton);
+		selectAllDataLatencyType.add(nearAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(nearAccessButton);
 
 		archiveAccessButton = new JRadioButton("Archive");
-		selectAllAccessType.add(archiveAccessButton);
+		selectAllDataLatencyType.add(archiveAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(archiveAccessButton);
 		
 		ignoreAccessButton = new JRadioButton("Ignore");
-		selectAllAccessType.add(ignoreAccessButton);
+		selectAllDataLatencyType.add(ignoreAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(ignoreAccessButton);
 		
 		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
@@ -2747,7 +2760,7 @@ public class PlayPane extends JFrame {
 		gbc_selectRadioScrollPane.gridx = 4;
 		gbc_selectRadioScrollPane.gridy = 6;
 		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
-		selectRadioScrollPane.setPreferredSize(new Dimension(650, 300));
+		selectRadioScrollPane.setPreferredSize(new Dimension(750, 300));
 
 		dhmsmDecommissionReportButton = new CustomButton("Generate DHMSM Decommission Report");
 		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();

@@ -177,29 +177,37 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 		{
 			Hashtable sysHash = masterHash.get(system);
 			ArrayList<String> dataObjectList = dhelp.getAllDataFromSys(system, "C");
-			int realCount = 0;
-			int nearCount = 0;
-			int archivedCount = 0;
-			int ignoredCount = 0;
+			String real="";
+			String near="";
+			String archive="";
+			String ignore="";
 			for(String data : dataObjectList)
 			{
 				String dataAccessType = dataAccessTypeHash.get(data);
 				if(dataAccessType!=null)
 				{
-				if(dataAccessType.equals("Real"))
-					realCount++;
-				else if(dataAccessType.equals("NearReal"))
-					nearCount++;
-				else if(dataAccessType.equals("Archive"))
-					archivedCount++;
-				else if(dataAccessType.equals("Ignore"))
-					ignoredCount++;
+					if(dataAccessType.equals("Real"))
+						real+=data+", ";
+					else if(dataAccessType.equals("NearReal"))
+						near+=data+", ";
+					else if(dataAccessType.equals("Archive"))
+						archive+=data+", ";
+					else if(dataAccessType.equals("Ignore"))
+						ignore+=data+", ";
 				}
 			}
-			sysHash.put("Num_Of_Realtime_Data_Objects_System_Is_Record_Of",realCount);
-			sysHash.put("Num_Of_Near_Realtime_Data_Objects_System_Is_Record_Of",nearCount);
-			sysHash.put("Num_Of_Archived_Data_Objects_System_Is_Record_Of",archivedCount);
-			sysHash.put("Num_Of_Ignored_Data_Objects_System_Is_Record_Of",ignoredCount);
+			if(real.length()>=2)
+				real=real.substring(0,real.length()-2);
+			if(near.length()>=2)
+				near=near.substring(0,near.length()-2);
+			if(archive.length()>=2)
+				archive=archive.substring(0,archive.length()-2);
+			if(ignore.length()>=2)
+				ignore=ignore.substring(0,ignore.length()-2);
+			sysHash.put("Num_Of_Realtime_Data_Objects_System_Is_Record_Of",real);
+			sysHash.put("Num_Of_Near_Realtime_Data_Objects_System_Is_Record_Of",near);
+			sysHash.put("Num_Of_Archived_Data_Objects_System_Is_Record_Of",archive);
+			sysHash.put("Num_Of_Ignored_Data_Objects_System_Is_Record_Of",ignore);
 			masterHash.put(system,sysHash);
 		}		
 
