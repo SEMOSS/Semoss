@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.Level;
 import org.openrdf.model.vocabulary.RDF;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
@@ -39,6 +40,7 @@ import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -68,7 +70,7 @@ public class CSVReader extends AbstractFileReader {
 	 */
 	public void main(String[] args) throws Exception
 	{
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		this.customBaseURI = "http://health.mil/ontologies";
 		this.semossURI = "http://semoss.org/ontologies";
 		

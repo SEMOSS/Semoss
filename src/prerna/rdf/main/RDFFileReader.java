@@ -20,6 +20,9 @@ package prerna.rdf.main;
 
 import java.io.InputStream;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.rdf.model.Model;
@@ -37,7 +40,7 @@ public class RDFFileReader {
 	 */
 	public static void main(String [] args)
 	{
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String fileName = workingDir + "/Sample3.rdf";
 
 		System.out.println("Completed loading file ");

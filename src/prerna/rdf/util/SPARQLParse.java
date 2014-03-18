@@ -51,6 +51,7 @@ import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class SPARQLParse {
 
@@ -77,7 +78,7 @@ public class SPARQLParse {
 
 		SPARQLParse parse = new SPARQLParse();
 
-		String fileName = System.getProperty("user.dir")
+		String fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ "/db/TAP_Core_Data.smss";
 
 		parse.bdEngine = new BigDataEngine();
@@ -121,7 +122,7 @@ public class SPARQLParse {
 
 	public void exportToFile() {
 		try {
-			String output = System.getProperty("user.dir") + "/" + "output.xml";
+			String output = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "output.xml";
 			rc.export(new RDFXMLPrettyWriter(new FileWriter(output)));
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
@@ -143,7 +144,7 @@ public class SPARQLParse {
 			//prop.load(new FileInputStream(propFile));
 
 			// get the owl file
-			//String owler = System.getProperty("user.dir") + "/"
+			//String owler = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/"
 			//		+ prop.get(Constants.OWL) + "";
 			String owler = "C:\\Users\\pkapaleeswaran\\workspacej\\FoxHole4/db/TAP_Core_Data/TAP_Core_Data_OWL.OWL";
 			rc.add(new FileInputStream(owler), "http://semoss.org",

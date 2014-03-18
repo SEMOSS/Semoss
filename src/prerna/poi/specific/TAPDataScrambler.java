@@ -25,6 +25,9 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 //TODO: this class is never used
 
 /**
@@ -82,7 +85,7 @@ public class TAPDataScrambler{
 	 */
 	public Hashtable getScramblerProperties(String fileName){
 
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String propFile = workingDir + fileName;
 		Properties scrambleProperties = null;
 		try {

@@ -91,7 +91,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			// logger.info("ie forward chaining " + ie);
 			// need to convert to constants
 			String dbcmFile = prop.getProperty(Constants.DBCM_Prop);
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			
 			sc = ((SailRepositoryConnection) rc).getSailConnection();
 			dbcmFile = workingDir + "/" + dbcmFile;
