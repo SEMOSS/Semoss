@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 
-public class SystemSiteVisualizationProcessing {
+import com.google.gson.Gson;
+
+public class DHMSMSysDecommissionDataProcessing {
 
 	private Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>> allData = new Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>>();
 	public void setAllData(Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>> allData) {
@@ -37,8 +39,12 @@ public class SystemSiteVisualizationProcessing {
 	private Hashtable<String, Double> siteCost = new Hashtable<String, Double>();
 	private Hashtable<String, String> globalStatusForSys = new Hashtable<String, String>();
 
-	public void constructHash()
+   private Hashtable<String, Hashtable<String, Double>> siteLatLongHash = new Hashtable<String, Hashtable<String, Double>>();
+
+	
+	public String constructHash()
 	{
+		siteLatLongHash = dataSource.getSiteLatLongHash();
 		Hashtable<Integer, Object> output = new Hashtable<Integer, Object>();
 		Integer time = 2015;
 		Date endingDate = getLatestDate();
@@ -67,9 +73,9 @@ public class SystemSiteVisualizationProcessing {
 				siteHashList.put(site, new Hashtable<String, Object>());
 				Hashtable<String, Object> propHash = (Hashtable<String, Object>) siteHashList.get(site);
 				propHash.put("TCostSite", siteCost.get(site));
-				//TODO: ADD LAT/LONG
-				propHash.put("Lat", "x");
-				propHash.put("Long", "x");
+				System.out.println(site);
+				propHash.put("Lat", siteLatLongHash.get(site).get("LAT"));
+				propHash.put("Long", siteLatLongHash.get(site).get("LONG"));
 				propHash.put("SystemForSite", new Hashtable<String, Object>());
 				Hashtable<String, Object> sysAtSite = (Hashtable<String, Object>) propHash.get("SystemForSite");
 				for (String sys : systemsForSite.get(site))
@@ -124,6 +130,11 @@ public class SystemSiteVisualizationProcessing {
 
 			time++;
 		}
+		
+		Gson gson = new Gson();
+		String json = gson.toJson(output);
+		System.out.print(json);
+		return json;
 	}
 
 	private Date getLatestDate()
