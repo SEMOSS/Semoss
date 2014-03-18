@@ -21,6 +21,7 @@ public class SystemTransitionOrganizer {
 	private static String systemCostQuery = "SELECT DISTINCT ?sys ?data ?ser (SUM(?loe) AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data ?ser BINDINGS ?data {@DATABINDINGS@}";
 	private static String systemDataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} }BINDINGS ?Data {@DATABINDINGS@}";
 	private static String capDataQuery = "SELECT DISTINCT ?Capability ?Data ?Crm WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} {?Capability <http://semoss.org/ontologies/Relation/Contains/Source> \"HSD\"}}";
+    private static String siteLocationQuery = "SELECT DISTINCT ?dcSite ?lat ?long WHERE { {?dcSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?dcSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat }  {?dcSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?long } }";
     
     //hashtable storing all the sites and the systems they have
     //and the reverse, hashtable storing all the systems and their sites
@@ -33,6 +34,8 @@ public class SystemTransitionOrganizer {
     //hashtable storing all the systems, their data objects they read, and whether they claimed to be C or R
     Hashtable<String, Hashtable<String,String>> sysReadDataHash = new Hashtable<String, Hashtable<String,String>>();
 	
+    //hashtable storing lat and long for each site
+    Hashtable<String, Hashtable<String, Double>> siteLatLongHash = new Hashtable<String, Hashtable<String, Double>>();
 	
 	public SystemTransitionOrganizer(ArrayList<String> dataBindings)
 	{
@@ -59,8 +62,25 @@ public class SystemTransitionOrganizer {
 		processSystemDataLOE(list);
 		list = createData(coreDB, systemDataQuery);
 		processSystemReadData(list);
+		list = createData(siteDB, siteLocationQuery);
+		processSiteLocationData(list);
 	}
 	
+	private void processSiteLocationData(ArrayList<Object[]> list) 
+	{
+		for (int i=0; i<list.size(); i++)
+		{
+			Object[] elementArray = list.get(i);
+			String site = (String) elementArray[0];
+			Double lat = (Double) elementArray[1];
+			Double lon = (Double) elementArray[2];
+			Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
+			innerHash.put("LAT", lat);
+			innerHash.put("LONG", lon);
+			siteLatLongHash.put(site, innerHash);
+		}
+	}
+
 	private void processSystemSiteHashTables(ArrayList <Object []> list)
 	{
 		for (int i=0; i<list.size(); i++)
@@ -142,7 +162,6 @@ public class SystemTransitionOrganizer {
 					dataReadHash.put(data, crm);
 					sysReadDataHash.put(system,dataReadHash);
 				}
-
 			}
 		}
 	}
@@ -211,6 +230,11 @@ public class SystemTransitionOrganizer {
 	public Hashtable<String, Hashtable<String,String>> getSysReadDataHash()
 	{
 		return sysReadDataHash;
+	}
+	
+	public Hashtable<String, Hashtable<String, Double>> getSiteLatLongHash()
+	{
+		return siteLatLongHash;
 	}
 
 }
