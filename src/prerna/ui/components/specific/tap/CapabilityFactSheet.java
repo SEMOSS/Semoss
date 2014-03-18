@@ -29,6 +29,7 @@ import java.util.Hashtable;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
@@ -63,7 +64,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	@Override
 	public void createView()
 	{		
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		singleCapFactSheetCall.setCapabilityFactSheet(this);
 		//browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/Capability Fact Sheet.html");
@@ -176,7 +177,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		System.err.println(">>> callItAllHash");
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityData('" + gson.toJson(allHash) + "');");
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/index.html#/cap");
 		browser.executeScript("start('" + gson.toJson(allHash) + "');");
 	}

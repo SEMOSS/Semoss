@@ -37,6 +37,9 @@ import javax.swing.JProgressBar;
 import javax.swing.JWindow;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 
 /**
  * This generates a Splash Screen and progress bar when the SEMOSS application is initially opened.
@@ -56,7 +59,7 @@ public class SplashScreen extends JWindow {
 		BufferedImage image;
 		JLabel picLabel = new JLabel();
 		try {
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String picFileURL = workingDir + "\\pictures\\semosslogo.jpg";
 			image = ImageIO.read(new File(picFileURL));
 			picLabel = new JLabel(new ImageIcon(image));

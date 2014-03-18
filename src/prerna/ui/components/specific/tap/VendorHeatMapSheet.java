@@ -26,6 +26,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
@@ -42,7 +43,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 	public VendorHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir+"/html/MHS-RDFSemossCharts/app/capability.html";
 	}
 	

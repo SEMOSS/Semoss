@@ -45,7 +45,7 @@ public class TaskerGenerationProcessor {
 	String tapCoreEngine = "TAP_Core_Data";
 	String tapSiteEngine = "TAP_Site_Data";
 //	String tapPortfolioEngine = "TAP_Portfolio";
-	String workingDir = System.getProperty("user.dir");
+	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 	/**
 	 * Runs a query on a specific database and returns the result as an ArrayList

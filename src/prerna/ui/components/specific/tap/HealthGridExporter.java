@@ -109,7 +109,7 @@ public class HealthGridExporter {
 			if(!playSheet.isEmpty())
 			{
 				//location of export
-				String workingDir = System.getProperty("user.dir");
+				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				String folder = "\\export\\Images\\";
 				String writeFileName = system.replaceAll(":","")+"_Health_Grid_Export.png";
 				String fileLoc = workingDir + folder+writeFileName;

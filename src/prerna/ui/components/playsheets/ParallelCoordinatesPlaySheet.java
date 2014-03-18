@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 /**
  * The Play Sheet for creating a Parallel Coordinates diagram.
  */
@@ -34,7 +37,7 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 	public ParallelCoordinatesPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/parcoords.html";
 	}
 	

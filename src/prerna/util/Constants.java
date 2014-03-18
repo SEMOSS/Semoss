@@ -74,6 +74,7 @@ public class Constants {
 	public static String PROCESS_CURRENT_DATE = "PROCESS_CURRENT_DATE";
 	public static String PROCESS_CURRENT_USER = "PROCESS_CURRENT_USER";
 	public static String CURRENT_PLAYSHEET = "layoutValue";
+	public static final String BASE_FOLDER = "BaseFolder";
 	
 	//graphplaysheet option constants
 	// layouts

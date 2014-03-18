@@ -45,6 +45,8 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import prerna.ui.components.LegendPanel2;
 import prerna.ui.components.api.IChakraListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -89,7 +91,7 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 		}
 		
 		try {
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String folder = "\\export\\Images\\";
 			String writeFileName = "Graph_Export_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "");
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {

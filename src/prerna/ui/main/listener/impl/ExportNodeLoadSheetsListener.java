@@ -69,7 +69,7 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 		//Export file details
 		Hashtable<String, Vector<String[]>> hash = new Hashtable<String, Vector<String[]>>();
 		NodeLoadingSheetWriter writer = new NodeLoadingSheetWriter();
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Nodes\\";
 		String writeFileName = "Nodes_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;

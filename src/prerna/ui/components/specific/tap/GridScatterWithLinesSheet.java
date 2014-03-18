@@ -22,6 +22,8 @@ import java.awt.Dimension;
 import java.util.Hashtable;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  * This class is used to create a playsheet for a grid scatter with lines.
@@ -34,7 +36,7 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 	public GridScatterWithLinesSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html";
 	}
 	

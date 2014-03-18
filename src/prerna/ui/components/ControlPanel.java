@@ -58,6 +58,7 @@ import prerna.ui.transformer.EdgeLabelFontTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexShapeTransformer;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
@@ -131,7 +132,7 @@ public class ControlPanel extends JPanel {
 		searchText.addFocusListener(searchCon);
 		searchText.addKeyListener(searchCon);
 		
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		
 		// initialize keystroke and keys for buttons on control panel

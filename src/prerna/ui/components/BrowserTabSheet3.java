@@ -70,7 +70,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 			  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
 				  browser = BrowserFactory.createBrowser(BrowserType.Safari);
 			  
-	       String workingDir = System.getProperty("user.dir");
+	       String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	        //webBrowser.navigate("file://" + workingDir + "/SimpleTest.html");
 	       //browser.
 	       cp = new ChartPullDataListener();

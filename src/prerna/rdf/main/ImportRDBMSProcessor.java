@@ -18,11 +18,11 @@ import java.util.Set;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import org.apache.log4j.Logger;
 
 import prerna.poi.main.PropFileWriter;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ImportRDBMSProcessor {
@@ -81,7 +81,7 @@ public class ImportRDBMSProcessor {
 		processExcel(this.filePath);
 		
 		//Change path for where the template file is
-		String templatePath = System.getProperty("user.dir") + "/rdbms/MappingTemplate.ttl";
+		String templatePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/rdbms/MappingTemplate.ttl";
 		String requiredMapping = readRequiredMappings(templatePath);
 		
 		// Write the file
@@ -431,7 +431,7 @@ public class ImportRDBMSProcessor {
 	
 	private void writeSMSS(String dbDir) {	
 		propWriter = new PropFileWriter();
-		propWriter.setBaseDir(System.getProperty("user.dir"));
+		propWriter.setBaseDir(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
 		propWriter.defaultEngine = "prerna.rdf.engine.impl.RDBMSD2RQEngine";
 		propWriter.ontologyFileName = dbDir + "/" + this.dbName + "_Custom_Map.prop";
 		propWriter.owlFile = this.owlPath;

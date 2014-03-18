@@ -40,6 +40,8 @@ import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.itextpdf.text.Document;
@@ -102,7 +104,7 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 			
 			if(fileLoc.isEmpty())
 			{
-				String workingDir = System.getProperty("user.dir");
+				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				String folder = "\\export\\Images\\";
 				String writeFileName = "Graph_Export_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "");
 				if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {

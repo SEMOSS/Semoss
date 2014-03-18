@@ -127,7 +127,7 @@ public class OCONUSMapExporter {
 					if(!((OCONUSMapPlaySheet)playSheet).isEmpty())
 					{
 						//location of export
-						String workingDir = System.getProperty("user.dir");
+						String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 						String folder = "\\export\\Images\\";
 						String writeFileName = system+"_OCONUS_Map_Export.png";
 						String fileLoc = workingDir + folder+writeFileName;

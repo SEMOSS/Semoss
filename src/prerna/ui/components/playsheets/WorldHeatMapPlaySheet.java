@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 /**
  * The Play Sheet for the World geo-location data heatmap.  
  * Visualizes a world heat map that can show any numeric property on a node.
@@ -35,7 +38,7 @@ public class WorldHeatMapPlaySheet extends BrowserPlaySheet {
 	public WorldHeatMapPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/worldheatmap.html";
 	}
 	

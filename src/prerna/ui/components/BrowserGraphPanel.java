@@ -60,7 +60,7 @@ public class BrowserGraphPanel extends JPanel{
 			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
 		 
 		BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.navigate("file://" + workingDir + fileName);
 		browser.waitReady();
 		setLayout(new BorderLayout());

@@ -129,7 +129,7 @@ public class D3CSVLoader extends CSVReader{
 	public void main(String[] args) throws Exception
 	{
 		D3CSVLoader reader = new D3CSVLoader();
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		reader.customBaseURI = "http://health.mil/ontologies";
 		reader.semossURI = "http://semoss.org/ontologies";
 		reader.createTypes();

@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 import com.google.gson.Gson;
 
 /**
@@ -39,7 +42,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	public CONUSMapPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/conusmap.html";
 	}
 	

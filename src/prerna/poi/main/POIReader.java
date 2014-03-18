@@ -52,7 +52,7 @@ public class POIReader extends AbstractFileReader {
 	public static void main(String[] args) throws Exception {
 		// try to load the file and see the worksheets
 
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String propFile = ""; //DO NOT EDIT HERE---it is now specified in the loops below, depending on what db you are loading
 		String bdPropFile = ""; //DO NOT EDIT HERE---it is now specified in the loops below, depending on what db you are loading
 		ArrayList<String> files = new ArrayList<String>();

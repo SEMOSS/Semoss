@@ -25,6 +25,8 @@ import com.google.gson.Gson;
 
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  * This class creates the application health grid.
@@ -41,7 +43,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	public HealthGridSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String htmlFileName = "/html/MHS-RDFSemossCharts/app/grid.html";
 		fileName = "file://" + workingDir + htmlFileName;
 	}

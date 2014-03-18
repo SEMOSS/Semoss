@@ -97,7 +97,7 @@ public class VertexIconTransformer extends DefaultVertexIconTransformer<SEMOSSVe
 			String propType = (String)arg0.getProperty(Constants.VERTEX_TYPE);
 			
 			String fileName = DIHelper.getInstance().getProperty("System_ICON");
-			fileName = System.getProperty("user.dir") + "/pictures/globe.jpg";
+			fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/pictures/globe.jpg";
 
 			if(propType !=null && fileName != null)
 			{

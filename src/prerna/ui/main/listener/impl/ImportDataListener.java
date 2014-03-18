@@ -74,7 +74,7 @@ public class ImportDataListener implements IChakraListener {
 		ImportDataProcessor.IMPORT_METHOD importMethod = null;
 		ImportDataProcessor.IMPORT_TYPE importType = null;
 		ImportDataProcessor processor = new ImportDataProcessor();
-		processor.setBaseDirectory(System.getProperty("user.dir"));
+		processor.setBaseDirectory(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
 		
 		String selection = comboBox.getSelectedItem() + "";
 		if(selection.equals("Add to existing database engine"))

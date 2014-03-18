@@ -43,7 +43,7 @@ import prerna.util.Utility;
 public class CapabilityFactSheetPerformer {
 	Logger logger = Logger.getLogger(getClass());
 	String HRCoreEngine = "HR_Core";
-	String workingDir = System.getProperty("user.dir");
+	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	CapabilityFactSheetCapDupeCalculator capDupe;
 	Hashtable masterHash = new Hashtable();
 	

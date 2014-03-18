@@ -40,7 +40,7 @@ public class StartTrainingListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		JButton htmlButton= (JButton)DIHelper.getInstance().getLocalProp(Constants.HTML_TRAINING_BUTTON);
 		JButton pptButton= (JButton)DIHelper.getInstance().getLocalProp(Constants.PPT_TRAINING_BUTTON);
 		File file = null;

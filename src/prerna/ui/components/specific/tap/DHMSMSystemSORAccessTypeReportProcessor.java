@@ -45,7 +45,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	String hrCoreEngine = "HR_Core";
-	String workingDir = System.getProperty("user.dir");
+	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	Hashtable<String,Hashtable> masterHash;
 	ArrayList<String> sysList;
 	ArrayList<String> headersList;

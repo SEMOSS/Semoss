@@ -34,6 +34,8 @@ import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  Icons used in this search panel contributed from gentleface.com.
@@ -58,7 +60,7 @@ public class ChartControlPanel extends JPanel {
 		gridBagLayout.rowWeights = new double[]{0.0};
 		setLayout(gridBagLayout);
 		
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		String exportIconLocation = "/pictures/export.png";
 		btnGraphImageExport = new JButton();

@@ -931,7 +931,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		String helpNotesData = "";	
 		try{
 			//Here we read the help text file
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String  releaseNotesTextFile= workingDir + "/help/optimizationHelp.txt";
 			FileReader fr = new FileReader(releaseNotesTextFile);
 			BufferedReader releaseNotesTextReader = new BufferedReader(fr);

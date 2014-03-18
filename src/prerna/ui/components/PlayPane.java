@@ -486,7 +486,7 @@ public class PlayPane extends JFrame {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		// set the icons
 		List<Image> images = new Vector();
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String imgFile16 = workingDir + "/pictures/finalWhiteLogo16.png";
 		ImageIcon img16 = new ImageIcon(imgFile16);
 		images.add(img16.getImage());
@@ -560,7 +560,7 @@ public class PlayPane extends JFrame {
 
 		String[] fetching = { "Fetching" };
 
-		// String workingDir = System.getProperty("user.dir");
+		// String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		FileReader fr = null;
 
 		// Here we read the release notes text file
