@@ -28,6 +28,8 @@ import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.events.NavigationEvent;
@@ -61,7 +63,7 @@ public class CapDupeHeatMapSheet extends BrowserPlaySheet{
 		SysDupeFunctions sdf = new SysDupeFunctions();
 		
 
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.addNavigationListener(new NavigationListener() {
     	    public void navigationStarted(NavigationEvent event) {
     	    	logger.info("event.getUrl() = " + event.getUrl());

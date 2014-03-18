@@ -36,6 +36,9 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 
 
 /**
@@ -48,7 +51,7 @@ public class RDFSesameFileReader {
 	 */
 	public static void main(String [] args) throws Exception
 	{
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String fileName = workingDir + "/db/foaf.xml";
 	
 		Repository myRepository = new SailRepository(

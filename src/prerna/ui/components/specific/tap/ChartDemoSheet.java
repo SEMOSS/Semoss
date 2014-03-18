@@ -73,7 +73,7 @@ public class ChartDemoSheet extends BrowserPlaySheet{
 			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
 		 
 		BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.navigate("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html");
 		browser.waitReady();
 	       

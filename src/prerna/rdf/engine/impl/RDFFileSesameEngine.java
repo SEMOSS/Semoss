@@ -53,6 +53,7 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -93,7 +94,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			if(prop != null)
 			{
 				
-				fileName = System.getProperty("user.dir") + "/" + prop.getProperty(Constants.RDF_FILE_NAME);
+				fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + prop.getProperty(Constants.RDF_FILE_NAME);
 				rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
 				baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
 			}

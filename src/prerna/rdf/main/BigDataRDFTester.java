@@ -58,6 +58,8 @@ import org.openrdf.sail.SailException;
 import org.stringtemplate.v4.ST;
 
 import prerna.om.DBCMVertex;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -106,7 +108,7 @@ public class BigDataRDFTester {
 
 		// SailRepositoryConnection src = (SailRepositoryConnection) repo.getConnection();
 
-		String workingDir = System.getProperty("user.dir");
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		sc = (rc).getSailConnection();
 		String propFile = workingDir + "/DBCM_RDF_Map.prop";
@@ -604,7 +606,7 @@ public class BigDataRDFTester {
 	public static void main(String[] args) throws Exception {
 		try {
 			BigDataRDFTester tester = new BigDataRDFTester();
-			String workingDir = System.getProperty("user.dir");
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String db = workingDir + "/BigData.Properties";
 
 			//tester.testToken();
