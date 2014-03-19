@@ -37,18 +37,25 @@ public class DHMSMSysDecommissionDataProcessing {
 	private Set<String> listOfSystems = new HashSet<String>();
 	private Set<String> listOfSites = new HashSet<String>();
 
-	private Hashtable<String, Double> systemCost = new Hashtable<String, Double>();
+	//private Hashtable<String, Double> systemCost = new Hashtable<String, Double>();
 	private Hashtable<String, Double> siteCost = new Hashtable<String, Double>();
 
-    private Hashtable<String, Hashtable<String, Double>> siteLatLongHash = new Hashtable<String, Hashtable<String, Double>>();
-    
-    private Double costPerHr = 150.0;
-	
+	private Double costPerHr = 150.0;
+
 	public Hashtable<Integer, Object> constructHash()
 	{
-		siteLatLongHash = dataSource.getSiteLatLongHash();
+		Hashtable<String, Hashtable<String, Double>> siteLatLongHash = dataSource.getSiteLatLongHash();
+
+		Hashtable<String, Double> cumSysCost = new Hashtable<String, Double>();
+
+		for( String s : listOfSystems)
+		{
+			cumSysCost.put(s, (double) 0);
+		}
+
+
 		Hashtable<Integer, Object> output = new Hashtable<Integer, Object>();
-		Integer time = 2015;
+		Integer time = 2014;
 		Date endingDate = getLatestDate();
 		Integer endTime = endingDate.getYear() + 1900 + 1;
 		while( time <= endTime)
@@ -63,6 +70,8 @@ public class DHMSMSysDecommissionDataProcessing {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
+			Hashtable<String, ArrayList<Double>> currentDeployedSystemsCost = new Hashtable<String, ArrayList<Double>>();
 
 			output.put(time, new Hashtable<String, Object>());
 			Hashtable<String, Object> divergence = (Hashtable<String, Object>) output.get(time);
@@ -91,20 +100,34 @@ public class DHMSMSysDecommissionDataProcessing {
 					sysAtSitePropHash.put("Rescources", resourceForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("Pilot", pilotForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("AccessType", accessTypeForSiteSystem.get(site).get(sys));
+
 					// logic to determine status of system at given site
 					String status = "";
-					if(yearStart.before(startDateForSiteSystem.get(site).get(sys)))
+					if(!startDateForSiteSystem.get(site).get(sys).before(yearEnd))
 					{
 						status = "Not Started";
+					}
+					else if(endDateForSiteSystem.get(site).get(sys).before(yearStart))
+					{
+						status = "Decommissioned";
 					}
 					else
 					{
 						status = "In Progress";
-						if(endDateForSiteSystem.get(site).get(sys).before(yearEnd))
+						if(!currentDeployedSystemsCost.containsKey(sys))
 						{
-							status = "Decommissioned";
+							ArrayList<Double> sysCostList = new ArrayList<Double>();
+							sysCostList.add(loeForSiteSystem.get(site).get(sys));
+							currentDeployedSystemsCost.put(sys, sysCostList);
 						}
+						else
+						{
+							ArrayList<Double> sysCostList = currentDeployedSystemsCost.get(sys);
+							sysCostList.add(loeForSiteSystem.get(site).get(sys));
+						}
+
 					}
+					
 					sysAtSitePropHash.put("Status", status);
 
 					// logic to determine global status of system
@@ -127,7 +150,23 @@ public class DHMSMSysDecommissionDataProcessing {
 			{
 				sysHashList.put(sys, new Hashtable<String, Object>());
 				Hashtable<String, Object> propHash = (Hashtable<String, Object>) sysHashList.get(sys);
-				propHash.put("TCostSystem", systemCost.get(sys)*costPerHr);
+
+				// total sys cost calculation
+				Double yearCostForSys = (double) 0;
+				ArrayList<Double> deploymentCostArr = currentDeployedSystemsCost.get(sys);
+				if(deploymentCostArr != null)
+				{
+					for(int i = 0; i < deploymentCostArr.size(); i++)
+					{
+						yearCostForSys += deploymentCostArr.get(i);
+					}
+				}
+				yearCostForSys *= costPerHr;
+				Double pastCostForSys = cumSysCost.get(sys);
+				cumSysCost.put(sys, pastCostForSys + yearCostForSys);
+				propHash.put("TCostSystem", cumSysCost.get(sys));
+
+				// status determination
 				ArrayList<String> statArr = globalStatusForSys.get(sys);
 				if(statArr.contains("Not Started") && !statArr.contains("In Progress") && !statArr.contains("Decommissioned"))
 				{
@@ -144,7 +183,7 @@ public class DHMSMSysDecommissionDataProcessing {
 			}
 			time++;
 		}
-		
+
 		return output;
 	}
 
@@ -315,17 +354,17 @@ public class DHMSMSysDecommissionDataProcessing {
 								innerHash.put(system, oldLOE + addLOE);
 							}
 
-							// determine overall system cost
-							if(!systemCost.containsKey(system))
-							{
-								systemCost.put(system, (Double) propHash.get(dataSource.loeKey));
-							}
-							else
-							{
-								Double oldLOW = systemCost.get(system);
-								Double addLOE = (Double) propHash.get(dataSource.loeKey);
-								systemCost.put(system, oldLOW + addLOE);
-							}
+							//							// determine overall system cost
+							//							if(!systemCost.containsKey(system))
+							//							{
+							//								systemCost.put(system, (Double) propHash.get(dataSource.loeKey));
+							//							}
+							//							else
+							//							{
+							//								Double oldLOW = systemCost.get(system);
+							//								Double addLOE = (Double) propHash.get(dataSource.loeKey);
+							//								systemCost.put(system, oldLOW + addLOE);
+							//							}
 
 							// determine overall site cost
 							if(!siteCost.containsKey(site))
