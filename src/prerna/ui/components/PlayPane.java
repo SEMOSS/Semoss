@@ -180,14 +180,16 @@ public class PlayPane extends JFrame {
 	
 	//DHMSM Report Panel
 	public JPanel dhmsmReportTopPanel;
-	public Panel dhmsmFunctionalAreaPanel;
 	public JLabel dhmsmDataAccessSelectionFileLbl;
+	public Panel dhmsmDataAccessFileImportPanel;
 	public JButton dhmsmDataAccessFileBrowseBtn;
 	public JTextField dhmsmDataAccessImportFileNameField;
-
+	
+	public Panel dhmsmFunctionalAreaPanel;
 	public JCheckBox HSDCheckBoxDHMSM, HSSCheckBoxDHMSM, FHPCheckBoxDHMSM, DHMSMCheckBoxDHMSM;
 	public SourceSelectPanel dhmsmCapabilitySelectPanel;
 	public JScrollPane dhmsmCapabilitySelectScrollPane;
+	public JButton dhmsmUpdateDataFromFileButton = new JButton();
 	public JButton dhmsmUpdateDataButton = new JButton();
 	
 	public Panel dhmsmSelectAllAccessTypePanel;
@@ -198,6 +200,9 @@ public class PlayPane extends JFrame {
 	public JButton dhmsmDecommissionReportButton = new JButton();
 	public JButton dhmsmSystemSORAccessTypeReportButton = new JButton();
 	private JSeparator separator_9;
+	//DHMSM Report 2nd Panel
+	public JPanel dhmsmReportMidPanel;
+	public JButton dhmsmCapSystemIntersectionReportButton;
 
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -2660,25 +2665,47 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmDataAccessSelectionFileLbl, gbc_dhmsmDataAccessSelectionFileLbl);
 		dhmsmDataAccessSelectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
 
+		
+		dhmsmDataAccessFileImportPanel = new Panel();
+		GridBagConstraints gbc_dhmsmDataAccessFileImportPanel = new GridBagConstraints();
+		gbc_dhmsmDataAccessFileImportPanel.gridwidth = 1;
+		gbc_dhmsmDataAccessFileImportPanel.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmDataAccessFileImportPanel.gridx = 2;
+		gbc_dhmsmDataAccessFileImportPanel.gridy = 3;
+		dhmsmReportTopPanel.add(dhmsmDataAccessFileImportPanel, gbc_dhmsmDataAccessFileImportPanel);
+		dhmsmDataAccessFileImportPanel.setLayout(new GridBagLayout());
+		
+//		
+//		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
+//		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
+//		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
+//		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+//		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+//		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
+		
 		dhmsmDataAccessFileBrowseBtn = new CustomButton("Browse");
 		dhmsmDataAccessFileBrowseBtn.setName(Constants.IMPORT_BUTTON_BROWSE);
 		dhmsmDataAccessFileBrowseBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn);
 		GridBagConstraints gbc_dhmsmDataAccessFileBrowseBtn = new GridBagConstraints();
 		gbc_dhmsmDataAccessFileBrowseBtn.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmDataAccessFileBrowseBtn.insets = new Insets(0, 0, 5, 5);
-		gbc_dhmsmDataAccessFileBrowseBtn.gridx = 3;
-		gbc_dhmsmDataAccessFileBrowseBtn.gridy = 2;
-		dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
+		gbc_dhmsmDataAccessFileBrowseBtn.gridx = 0;
+		gbc_dhmsmDataAccessFileBrowseBtn.gridy = 0;
+//		dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
+		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
 		Style.registerTargetClassName(dhmsmDataAccessFileBrowseBtn, ".standardButton");
 
 		dhmsmDataAccessImportFileNameField = new JTextField();
 		dhmsmDataAccessImportFileNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField);
 		GridBagConstraints gbc_dhmsmDataAccessImportFileNameField = new GridBagConstraints();
 		gbc_dhmsmDataAccessImportFileNameField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_dhmsmDataAccessImportFileNameField.insets = new Insets(0, 0, 5, 0);
-		gbc_dhmsmDataAccessImportFileNameField.gridx = 4;
-		gbc_dhmsmDataAccessImportFileNameField.gridy = 2;
-		dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
+		gbc_dhmsmDataAccessImportFileNameField.gridx = 1;
+		gbc_dhmsmDataAccessImportFileNameField.gridy = 0;
+		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
+//		dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
 		dhmsmDataAccessImportFileNameField.setColumns(10);		
 		
 		dhmsmFunctionalAreaPanel = new Panel();
@@ -2726,12 +2753,22 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmCapabilitySelectScrollPane, gbc_dhmsmCapabilitySelectScrollPane);
 		dhmsmCapabilitySelectScrollPane.setPreferredSize(new Dimension(300, 300));
 
-		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List");
+		dhmsmUpdateDataFromFileButton = new CustomButton("Update Data Access Type List from File");
+		GridBagConstraints gbc_dhmsmUpdateDataFromFileButton = new GridBagConstraints();
+		gbc_dhmsmUpdateDataFromFileButton.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmUpdateDataFromFileButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmUpdateDataFromFileButton.gridx = 2;
+		gbc_dhmsmUpdateDataFromFileButton.gridy = 7;
+		dhmsmReportTopPanel.add(dhmsmUpdateDataFromFileButton, gbc_dhmsmUpdateDataFromFileButton);
+		dhmsmUpdateDataFromFileButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(dhmsmUpdateDataFromFileButton, ".standardButton");
+		
+		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List from Capabilities");
 		GridBagConstraints gbc_dhmsmUpdateDataButton = new GridBagConstraints();
 		gbc_dhmsmUpdateDataButton.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmUpdateDataButton.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmUpdateDataButton.gridx = 2;
-		gbc_dhmsmUpdateDataButton.gridy = 7;
+		gbc_dhmsmUpdateDataButton.gridy = 8;
 		dhmsmReportTopPanel.add(dhmsmUpdateDataButton, gbc_dhmsmUpdateDataButton);
 		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
@@ -2826,6 +2863,42 @@ public class PlayPane extends JFrame {
 		gbc_separator_9.gridx = 0;
 		gbc_separator_9.gridy = 3;
 		dhmsmReportPanel.add(separator_9, gbc_separator_9);
+		
+		dhmsmReportMidPanel = new JPanel();
+		dhmsmReportMidPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_dhmsmReportMidPanel = new GridBagConstraints();
+		gbc_dhmsmReportMidPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dhmsmReportMidPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmReportMidPanel.anchor = GridBagConstraints.NORTH;
+		gbc_dhmsmReportMidPanel.gridx = 0;
+		gbc_dhmsmReportMidPanel.gridy = 1;
+		dhmsmReportPanel.add(dhmsmReportMidPanel, gbc_dhmsmReportMidPanel);
+		GridBagLayout gbl_dhmsmReportMidPanel = new GridBagLayout();
+		gbl_dhmsmReportMidPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
+		gbl_dhmsmReportMidPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_dhmsmReportMidPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+		gbl_dhmsmReportMidPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		dhmsmReportMidPanel.setLayout(gbl_dhmsmReportMidPanel);
+
+		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap");
+		GridBagConstraints gbc_dhmsmCapSystemIntersectionTitleLabel = new GridBagConstraints();
+		gbc_dhmsmCapSystemIntersectionTitleLabel.gridwidth = 2;
+		gbc_dhmsmCapSystemIntersectionTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmCapSystemIntersectionTitleLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmCapSystemIntersectionTitleLabel.gridx = 1;
+		gbc_dhmsmCapSystemIntersectionTitleLabel.gridy = 1;
+		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionTitleLabel, gbc_dhmsmCapSystemIntersectionTitleLabel);
+		dhmsmCapSystemIntersectionTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		
+		dhmsmCapSystemIntersectionReportButton = new CustomButton("Generate Capability and System Overlap");
+		GridBagConstraints gbc_dhmsmCapSystemIntersectionReportButton = new GridBagConstraints();
+		gbc_dhmsmCapSystemIntersectionReportButton.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmCapSystemIntersectionReportButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmCapSystemIntersectionReportButton.gridx = 2;
+		gbc_dhmsmCapSystemIntersectionReportButton.gridy = 2;
+		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionReportButton, gbc_dhmsmCapSystemIntersectionReportButton);
+		dhmsmCapSystemIntersectionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(dhmsmCapSystemIntersectionReportButton, ".standardButton");
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();

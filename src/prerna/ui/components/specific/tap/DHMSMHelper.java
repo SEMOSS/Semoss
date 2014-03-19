@@ -14,7 +14,7 @@ public class DHMSMHelper {
 
 	private String GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM = "SELECT DISTINCT ?System ?Data ?CRM WHERE { BIND(\"C\" as ?CRM) {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } ORDER BY ?System";	
 
-	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"R\" as ?crm) FILTER NOT EXISTS{{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data}} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/Provide> ?data} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd}{?system <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
+	private String GET_ALL_SYSTEM_WITH_UPSTREAM = "SELECT DISTINCT ?system ?data ?crm WHERE { BIND(\"R\" as ?crm) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?otherSystem <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} }";
 
 	private String GET_ALL_DHMSM_CAPABILITIES_AND_CRM = "SELECT DISTINCT ?cap ?data ?crm WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?task ?needs ?data} {?needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
 	
@@ -81,7 +81,7 @@ public class DHMSMHelper {
 		
 		
 		ArrayList<ArrayList<String>> sysCreateCapCreate = getCapAndData(system,"C","C");
-		ArrayList<ArrayList<String>> sysCreateCapRead = getCapAndData(system, "C","R");
+		ArrayList<ArrayList<String>> sysCreateCapRead = getCapAndData(system, "R","C");
 		
 		ArrayList<String> HSDCapabilities = new ArrayList<String>();
 		ArrayList<String> HSSCapabilities = new ArrayList<String>();
@@ -123,10 +123,10 @@ public class DHMSMHelper {
 	
 	public ArrayList<ArrayList<String>> getCapAndData(String sys, String capCRM, String sysCRM)
 	{
-		return processSysOrCapAndData(sys, capCRM, sysCRM, dataListSystems, dataListCapabilities);
+		return processSysOrCapAndData(sys, sysCRM, capCRM, dataListSystems, dataListCapabilities);
 	}
 	
-	private ArrayList<ArrayList<String>> processSysOrCapAndData(String capOrSys, String capCRM, String sysCRM, 
+	private ArrayList<ArrayList<String>> processSysOrCapAndData(String capOrSys, String searchCRM, String getCRM, 
 			Hashtable<String, Hashtable<String, String>> searchList, 
 			Hashtable<String, Hashtable<String, String>> getList ) 
 	{
@@ -139,16 +139,16 @@ public class DHMSMHelper {
 			if(innerHash.containsKey(capOrSys))
 			{
 				String crm = innerHash.get(capOrSys);
-				if(capCRM.contains("C"))
+				if(searchCRM.contains("C"))
 				{
-					if(crm.contains(capCRM) || crm.contains("M"))
+					if(crm.contains(searchCRM) || crm.contains("M"))
 					{
 						capDataList.add(data);
 					}
 				}
 				else
 				{
-					if(crm.contains(capCRM))
+					if(crm.contains(searchCRM))
 					{
 						capDataList.add(data);
 					}
@@ -163,9 +163,9 @@ public class DHMSMHelper {
 			{
 				for( String sys : innerHash.keySet())
 				{
-					if(sysCRM.contains("C"))
+					if(getCRM.contains("C"))
 					{				
-						if(innerHash.get(sys).contains(sysCRM) || innerHash.get(sys).contains("M"))
+						if(innerHash.get(sys).contains(getCRM) || innerHash.get(sys).contains("M"))
 						{
 							ArrayList<String> innerArray = new ArrayList<String>();
 							innerArray.add(sys);
@@ -175,7 +175,7 @@ public class DHMSMHelper {
 					}
 					else
 					{
-						if(innerHash.get(sys).contains(sysCRM))
+						if(innerHash.get(sys).contains(getCRM))
 						{
 							ArrayList<String> innerArray = new ArrayList<String>();
 							innerArray.add(sys);
@@ -191,17 +191,17 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 	
-	public ArrayList<String> getDataObjectListSupportedFromSystem(String sys, String capCRM, String sysCRM)
+	public ArrayList<String> getDataObjectListSupportedFromSystem(String sys, String sysCRM, String capCRM)
 	{
-		return processDataObjectList(sys, capCRM, sysCRM, dataListCapabilities, dataListSystems);
+		return processDataObjectList(sys, sysCRM, capCRM, dataListSystems, dataListCapabilities);
 	}
 	
 	public ArrayList<String> getDataObjectListSupportedFromCapabilities(String cap, String capCRM, String sysCRM)
 	{
-		return processDataObjectList(cap, capCRM, sysCRM, dataListSystems, dataListCapabilities);
+		return processDataObjectList(cap, capCRM, sysCRM, dataListCapabilities, dataListSystems);
 	}
 	
-	private ArrayList<String> processDataObjectList(String capOrSys, String capCRM, String sysCRM, 
+	private ArrayList<String> processDataObjectList(String capOrSys, String searchCRM, String getCRM, 
 			Hashtable<String, Hashtable<String, String>> searchList, Hashtable<String, Hashtable<String, String>> getList) 
 	{
 		ArrayList<String> resultSet = new ArrayList<String>();
@@ -213,16 +213,16 @@ public class DHMSMHelper {
 			if(innerHash.containsKey(capOrSys))
 			{
 				String crm = innerHash.get(capOrSys);
-				if(capCRM.contains("C"))
+				if(searchCRM.contains("C"))
 				{
-					if(crm.contains(capCRM) || crm.contains("M"))
+					if(crm.contains(searchCRM) || crm.contains("M"))
 					{
 						capOrSysDataList.add(data);
 					}
 				}
 				else
 				{
-					if(crm.contains(capCRM))
+					if(crm.contains(searchCRM))
 					{
 						capOrSysDataList.add(data);
 					}
@@ -237,9 +237,9 @@ public class DHMSMHelper {
 			{
 				for( String sys : innerHash.keySet())
 				{
-					if(sysCRM.contains("C"))
+					if(getCRM.contains("C"))
 					{				
-						if(innerHash.get(sys).contains(sysCRM) || innerHash.get(sys).contains("M"))
+						if(innerHash.get(sys).contains(getCRM) || innerHash.get(sys).contains("M"))
 						{
 							if(!resultSet.contains(data))
 								resultSet.add(data);
@@ -247,7 +247,7 @@ public class DHMSMHelper {
 					}
 					else
 					{
-						if(innerHash.get(sys).contains(sysCRM))
+						if(innerHash.get(sys).contains(getCRM))
 						{
 							if(!resultSet.contains(data))
 								resultSet.add(data);
@@ -307,15 +307,15 @@ public class DHMSMHelper {
 	{
 		if(sys)
 		{
-			processResults(sjsw, dataListSystems);
+			dataListSystems = processResults(sjsw, dataListSystems);
 		}
 		else
 		{
-			processResults(sjsw, dataListCapabilities);
+			dataListCapabilities = processResults(sjsw, dataListCapabilities);
 		}
 	}
 	
-	private void processResults(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> dataList)
+	private  Hashtable<String, Hashtable<String, String>> processResults(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> dataList)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -339,12 +339,13 @@ public class DHMSMHelper {
 			else
 			{
 				Hashtable<String, String> innerHash = dataList.get(obj);
-				if((crm.equals("\"C\"") || crm.equals("\"M\"")) && innerHash.get(sub).equals("\"R\""))
+				if((crm.contains("C") || crm.contains("M")) && innerHash.get(sub).contains("R"))
 				{
 					innerHash.put(sub, crm);
 				}
 			}
 		}
+		return dataList;
 	}
 
 	//process the query
