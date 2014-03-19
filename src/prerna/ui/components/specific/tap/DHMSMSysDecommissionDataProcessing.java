@@ -125,9 +125,7 @@ public class DHMSMSysDecommissionDataProcessing {
 			Hashtable<String, Object> sysHashList = (Hashtable<String, Object>) divergence.get("system");
 			for( String sys : listOfSystems)
 			{
-				System.out.println(sys);
 				sysHashList.put(sys, new Hashtable<String, Object>());
-				System.out.println(sysHashList.keySet().size());
 				Hashtable<String, Object> propHash = (Hashtable<String, Object>) sysHashList.get(sys);
 				propHash.put("TCostSystem", systemCost.get(sys)*costPerHr);
 				ArrayList<String> statArr = globalStatusForSys.get(sys);
@@ -146,10 +144,6 @@ public class DHMSMSysDecommissionDataProcessing {
 			}
 			time++;
 		}
-		
-		Gson gson = new Gson();
-		String json = gson.toJson(output);
-		System.out.println(json);
 		
 		return output;
 	}
