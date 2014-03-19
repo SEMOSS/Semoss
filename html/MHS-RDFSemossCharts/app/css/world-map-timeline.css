@@ -54,8 +54,15 @@
 }
 
 #sidebarContentLeft {
+    position: fixed;
+    height: 100%;
+    width:50%;
     left: 0px;
+    bottom: 0px;
+    right: 0px;
     background-color: white;
+    padding: 10px 15px 0px 15px;
+    border-left: 1px solid #ccc;
 }
 
 #sidebarFooter {
