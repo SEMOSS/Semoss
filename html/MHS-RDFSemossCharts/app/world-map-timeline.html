@@ -13,14 +13,13 @@
     <script src="lib/angular/angular_new.js"></script>
     <script src="js/ng-table.js"></script>
 
-    <script type="text/javascript" src="lib/d3.v3_new.js"></script>
+    <script type="text/javascript" src="lib/d3.v3.js"></script>
     <script type="text/javascript" src="lib/tooltip.js"></script>
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
     <script src="lib/underscore.js"></script>
     <script src="lib/bootstrap-slider.js"></script>
 
 <!--    <script src="data/geoTimelineData.js"></script> -->
-    <script src="data/oceans.js"></script>
         
 </head>
 <body ng-app="main">
@@ -80,6 +79,143 @@
             };
             
             function createAll (dataString) {
+
+
+
+
+
+
+
+
+                //Load in GeoJSON data
+        d3.json("world-countries.json", function(json) {
+            
+
+            //Width and height
+            var w = 1500;
+            var h = 1000;
+
+            //Define map projection
+            var projection = d3.geo.mercator()
+                .translate([w/2, h/2])
+                .scale([1500]);
+
+            //Define path generator
+            var path = d3.geo.path()
+                .projection(projection);
+
+            //Create SVG element
+            var svg = d3.select("#sidebarContentLeft")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h)
+                .call (
+                    d3.behavior.zoom()
+                        .scaleExtent([.1, 10])
+                        .on("zoom", zoom)
+                )
+                .append("g");
+                    
+            function zoom() {
+                svg.attr("transform", "translate(" 
+                + d3.event.translate 
+                + ")scale(" + d3.event.scale + ")");
+            }   
+                                
+
+        //Bind data and create one path per GeoJSON feature
+        svg.selectAll("path")
+           .data(json.features)
+           .enter()
+           .append("path")
+           .attr("d", path)
+           .attr("stroke","#fff")
+           .attr("stroke-width", "1")
+           .style("fill", 
+            "#ccc"
+           );
+
+
+
+
+           
+
+
+
+
+
+
+
+
+
+var renderGeoMap = function(dataGeo){
+
+                             /* Initialize tooltip */
+             /*(if(undefined != d.System) {+ " " + d.System }*/
+            var genObj = function (d) {
+                var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
+                    for(var system in d.Systems){
+                        tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system
+                        for (var prop in d.Systems[system]){
+                            tempvar = tempvar + "</br>" + "&nbsp &nbsp &nbsp &nbsp" + prop + ": " + d.Systems[system][prop]
+                        }
+                    }
+            return (tempvar);
+            };
+
+            tip = d3.tip()
+                .attr('class', 'd3-tip')
+                .html(function(d) { return genObj(d)});
+    
+            var redCircle = svg.selectAll("circle")
+               .data(dataGeo);
+            redCircle
+               .enter()
+               .append("circle");
+            redCircle
+               .attr("cx", function(d) {
+                   return projection([d.lon, d.lat])[0];
+               })
+               .attr("cy", function(d) {
+                   return projection([d.lon, d.lat])[1];
+               })
+               .attr("r", 2.5)
+               .style("fill", function(d){
+                    var colorFlag = "orange";
+                    var colorCounter = 0;
+                    var redCounter = 0;
+                    var greenCounter = 0;
+                        for(var system in d.Systems){
+                            colorCounter++
+                            if(d.Systems[system].Status === "Not Started"){
+                                redCounter++
+                            }
+                            if(d.Systems[system].Status === "Decommissioned"){
+                                greenCounter++
+                            }
+                        }
+                        if(colorCounter === redCounter){
+                            colorFlag = "red"
+                        }
+                        else if(colorCounter === greenCounter){
+                            colorFlag = "green"
+                        }
+                        else{
+                            colorFlag = "orange"
+                        }
+                    return colorFlag
+
+               }
+            )
+               .style("opacity", 0.75)
+            redCircle
+               .on('mouseover', tip.show)
+               .on('mouseout', tip.hide);
+
+            redCircle.call(tip);
+            redCircle.exit().remove();
+            }
+
                 $scope.dataUpdater;
                 
                 var dataRefresh = function(year){
@@ -90,6 +226,9 @@
                     $scope.dataUpdater = data;
                     return data;
                 }
+
+
+
                 var maxYear = 0;
                 var minYear = 3000;
                 var hop = 1;
@@ -99,10 +238,16 @@
                     } else{}
                     if(year>maxYear){
                         maxYear = year;
-                        
                     } else {};
                 }
-                //console.log(minYear, maxYear);
+
+                var slideFunction = function(){
+                    var data = dataRefresh($('#slider').data('slider').getValue())
+                    $scope.dataUpdater = data;
+                    $scope.tableParams.reload();
+                    var dataGeo = geoDataRefresh($('#slider').data('slider').getValue())
+                    renderGeoMap(dataGeo);
+                }
 
                 $('#slider').slider({
                     min: parseInt(minYear),
@@ -110,13 +255,7 @@
                     step: 1
                   })
                 .on('slide', function(){
-                    console.log($('#slider').data('slider').getValue())
-                    var data = dataRefresh($('#slider').data('slider').getValue())
-                    $scope.dataUpdater = data;
-                    console.log(data);
-                    $scope.tableParams.reload();
-                    var dataGeo = geoDataRefresh($('#slider').data('slider').getValue())
-                    renderGeoMap(dataGeo);
+                    slideFunction();
                 })
                     
                     var data = dataRefresh($('#slider').data('slider').getValue());
@@ -148,122 +287,23 @@
 
         ////////////////////////////////////////////////GEOMAP FUNNNN
 
+
+            var geoDataRefresh = function(year){
                 var dataGeo = [];
-
-                //Width and height
-                var w = 1200;
-                var h = 500;
-
-                //Define map projection
-                var projection = d3.geo.mercator()
-                                       .translate([w/4, h/2])
-                                       .scale([100]);
-
-                //Define path generator
-                var path = d3.geo.path()
-                                 .projection(projection);
-
-                //Create SVG element
-                var svg = d3.select("#sidebarContentLeft")
-                            .append("svg")
-                            .attr("width", w)
-                            .attr("height", h);
-
-                //Load in GeoJSON data
-
-                //Bind data and create one path per GeoJSON feature
-                var oceans = svg.selectAll("path")
-                   .data(oceanGeoData.features)
-                   .enter()
-                   .append("path")
-                   .attr("d", path)
-                   .style("fill", "steelblue");
-                
-
-        /////////////////////////////////
-                var geoDataRefresh = function(year){
-                    var dataGeo = [];
-                    for(var site in dataString[year].site){
-                        dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Total Site Cost': dataString[year].site[site]['tCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
-                    }
-                    return dataGeo
+                for(var site in dataString[year].site){
+                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Total Site Cost': dataString[year].site[site]['tCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
                 }
+                return dataGeo
+            }
 
-                dataGeo = geoDataRefresh(2015);
+            dataGeo = geoDataRefresh(2015);
 
-        /////////////////////////////////
+           renderGeoMap(dataGeo);
 
-                var renderGeoMap = function(dataGeo){
-
-                    var genObj = function (d) {
-                        var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
-                            for(var system in d.Systems){
-                                tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system
-                                for (var prop in d.Systems[system]){
-                                    tempvar = tempvar + "</br>" + "&nbsp &nbsp &nbsp &nbsp" + prop + ": " + d.Systems[system][prop]
-                                }
-                            }
-                    return (tempvar);
-                    };
+        });
 
 
-                    tip = d3.tip()
-                        .attr('class', 'd3-tip')
-                        .html(function(d) { return genObj(d)});
-
-
-                    var circle = svg.selectAll("circle")
-                       .data(dataGeo);
-                    circle
-                       .enter()
-                       .append("circle");
-                    circle
-                       .attr("cx", function(d) {
-                           return projection([d.lon, d.lat])[0];
-                       })
-                       .attr("cy", function(d) {
-                           return projection([d.lon, d.lat])[1];
-                       })
-                       .attr("r", 2.5)
-                       .style("fill", function(d){
-                            var colorFlag = "orange";
-                            var colorCounter = 0;
-                            var redCounter = 0;
-                            var greenCounter = 0;
-                                for(var system in d.Systems){
-                                    colorCounter++
-                                    if(d.Systems[system].Status === "Not Started"){
-                                        redCounter++
-                                    }
-                                    if(d.Systems[system].Status === "Decommissioned"){
-                                        greenCounter++
-                                    }
-                                }
-                                if(colorCounter === redCounter){
-                                    colorFlag = "red"
-                                }
-                                else if(colorCounter === greenCounter){
-                                    colorFlag = "green"
-                                }
-                                else{
-                                    colorFlag = "orange"
-                                }
-                            return colorFlag
-
-                       })
-                       .style("opacity", 0.75);
-                    circle
-                       .on("mouseover", tip.show)
-                       .on("mouseout", tip.hide);
-                
-                    /* Invoke the tip in the context of your visualization */
-                    circle.call(tip);
-                    circle.exit().remove();
-
-                }
-
-                renderGeoMap(dataGeo);
-
+///
             }
 
         }); 
