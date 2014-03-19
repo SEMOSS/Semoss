@@ -51,7 +51,7 @@ public class DHMSMSysDecommissionDataProcessing {
 		Integer time = 2015;
 		Date endingDate = getLatestDate();
 		Integer endTime = endingDate.getYear() + 1900 + 1;
-		while( time < endTime)
+		while( time <= endTime)
 		{
 			DateFormat d = new SimpleDateFormat("yyyy-MM-dd");
 			Date yearEnd = null;
