@@ -53,7 +53,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	JSplitPane splitPane;
 	public Hashtable output = null;
 	ChartControlPanel controlPanel;
-	Hashtable dataHash = new Hashtable();
+	protected Hashtable dataHash = new Hashtable();
 	
 	/**
 	 * Method getControlPanel.  Gets the current Control Panel.

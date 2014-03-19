@@ -138,6 +138,7 @@ public class DHMSMSysDecommissionReport {
 		sysToSiteHash = sysTransOrganizer.getSysToSiteHash();
 		sysToDataToCostHash = sysTransOrganizer.getSysDataLOEHash();
 		sysToDataReadHash = sysTransOrganizer.getSysReadDataHash();
+		siteLatLongHash = sysTransOrganizer.getSiteLatLongHash();
 		
 		Set<String> siteList = siteToSysHash.keySet();
 		Vector <String> siteListV = new Vector<String>(siteList);
@@ -177,7 +178,6 @@ public class DHMSMSysDecommissionReport {
 		//convertToArrayListSmaller();
 		
 		createGrid(outputArray);
-		
 	}
 	
 
