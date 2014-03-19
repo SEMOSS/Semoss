@@ -29,20 +29,24 @@ import java.util.List;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
+import prerna.poi.main.DHMSMDataAccessLatencyFileImporter;
 import prerna.poi.specific.ReportSheetWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.DHMSMSysDecommissionReport;
+import prerna.ui.components.specific.tap.DHMSMSystemCapabilityOverlapProcessor;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
+import prerna.ui.components.specific.tap.SystemInfoGenProcessor;
 import prerna.ui.components.specific.tap.SystemTransitionOrganizer;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -53,40 +57,30 @@ import prerna.util.Utility;
 /**
  * Listener for sourceReportGenButton
  */
-public class DHMSMUpdateDataListener implements IChakraListener {
+public class DHMSMSystemCapabilityOverlapListener implements IChakraListener {
 
+	DHMSMSystemCapabilityOverlapProcessor processor = new DHMSMSystemCapabilityOverlapProcessor();
 	Logger logger = Logger.getLogger(getClass());
-	
+	ArrayList queryArray = new ArrayList();
+
 	/**
-	 * Method actionPerformed.
-	 * @param actionevent ActionEvent
+	 * This is executed when the btnFactSheetReport is pressed by the user
+	 * Calls FactSheetProcessor to generate all the information from the queries to write onto the fact sheet
+	 * @param arg0 ActionEvent
 	 */
 	@Override
-	public void actionPerformed(ActionEvent actionevent) {
+	public void actionPerformed(ActionEvent arg0) {
+		processor.generateSystemCapabilityOverlapReport();
 
-		
-		//get capability list and then update the list of data objects shown
-		ArrayList<String> capabilitiesSelected = new ArrayList<String>();
-		SourceSelectPanel dhmsmCapSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.DHMSM_CAPABILITY_SELECT_PANEL);
-		Enumeration<String> enumKey = dhmsmCapSelPanel.checkBoxHash.keys();
-		while(enumKey.hasMoreElements()) {
-			    String key = enumKey.nextElement();
-				JCheckBox checkBox = (JCheckBox) dhmsmCapSelPanel.checkBoxHash.get(key);
-				if (checkBox.isSelected())
-					capabilitiesSelected.add(key);
-		}
-
-		
-		SelectRadioButtonPanel radioSelPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
-		radioSelPanel.getDataObjectsFromCapabilities(capabilitiesSelected);
 	}
-	
+
 	/**
 	 * Override method from IChakraListener
 	 * @param view
 	 */
 	@Override
 	public void setView(JComponent view) {
+
 	}
 
 }

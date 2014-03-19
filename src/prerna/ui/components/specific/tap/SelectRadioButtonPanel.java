@@ -35,6 +35,8 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.main.listener.specific.tap.SourceSelectAllListener;
 import prerna.ui.main.listener.specific.tap.SourceSelectListener;
 import prerna.util.Constants;
@@ -56,6 +58,9 @@ public class SelectRadioButtonPanel extends JPanel {
 	public Hashtable radioNearBoxHash = new Hashtable();
 	public Hashtable radioArchiveBoxHash = new Hashtable();
 	public Hashtable radioIgnoreBoxHash = new Hashtable();
+	
+	public Hashtable dataToDataAccessHash;
+	public Hashtable dataToDataLatencyHash;
 	/**
 	 * Constructor for SourceSelectPanel.
 	 */
@@ -71,35 +76,93 @@ public class SelectRadioButtonPanel extends JPanel {
 	 * Gets the list of services via SPARQL query.
 	 * Creates checkboxes for each service.
 	 */
-	public void getDataObjects(ArrayList<String> capabilities)
+	public void getDataObjectsFromCapabilities(ArrayList<String> capabilities)
 	{
 		removeAll();
-		String capabilityBindings = "";
-		for(String capability : capabilities)
-		{
-			capabilityBindings += "(<http://health.mil/ontologies/Concept/Capability/"+capability+">)";
-		}
-		Vector <String> names = new Vector<String>();
-		try{
-		String sparqlQuery = "SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} } BINDINGS ?Capability {@CAPABILITY-BINDINGS@}";
-		sparqlQuery = sparqlQuery.replace("@CAPABILITY-BINDINGS@", capabilityBindings);
-		if(sparqlQuery==null)
-			return;
-		Hashtable paramTable = new Hashtable();
-		String entityNS = DIHelper.getInstance().getProperty("DataObject"+Constants.CLASS);
-		paramTable.put(Constants.ENTITY, entityNS);
-		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
+
+		radioIntegratedBoxHash = new Hashtable();
+		radioHybridBoxHash = new Hashtable();
+		radioManualBoxHash = new Hashtable();
 		
-		names = engine.getEntityOfType(sparqlQuery);
-		Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-		Set nameC = paramHash.keySet();
-		names = new Vector(nameC);
+		radioRealBoxHash = new Hashtable();
+		radioNearBoxHash = new Hashtable();
+		radioArchiveBoxHash = new Hashtable();
+		radioIgnoreBoxHash = new Hashtable();
+		
+		dataToDataAccessHash = new Hashtable<String,String>();
+		dataToDataLatencyHash = new Hashtable<String,String>();
+
+		runCapabilityQuery(capabilities);
+		Set nameC = dataToDataAccessHash.keySet();
+		nameC.addAll(dataToDataLatencyHash.keySet());
+		Vector<String> names = new Vector(nameC);
 		Collections.sort(names);
 		removeAll();
 		repaint();
 		if(names.size()>0)
 			createCheckBoxes(names);
-		}catch(Exception e){}
+	}
+	
+	public void getDataObjectsFromHashes(Hashtable<String, String> dataAccessTypeHash,Hashtable<String, String>dataLatencyTypeHash)
+	{
+		removeAll();
+
+		radioIntegratedBoxHash = new Hashtable();
+		radioHybridBoxHash = new Hashtable();
+		radioManualBoxHash = new Hashtable();
+		
+		radioRealBoxHash = new Hashtable();
+		radioNearBoxHash = new Hashtable();
+		radioArchiveBoxHash = new Hashtable();
+		radioIgnoreBoxHash = new Hashtable();
+		
+		dataToDataAccessHash=dataAccessTypeHash;
+		dataToDataLatencyHash=dataLatencyTypeHash;
+		Set nameC = dataToDataAccessHash.keySet();
+		Vector<String> names = new Vector(nameC);
+		Collections.sort(names);
+		removeAll();
+		repaint();
+		if(names.size()>0)
+			createCheckBoxes(names);
+		
+	}
+	
+	public void runCapabilityQuery(ArrayList<String> capabilities)
+	{
+		String capabilityBindings = "";
+		for(String capability : capabilities)
+		{
+			capabilityBindings += "(<http://health.mil/ontologies/Concept/Capability/"+capability+">)";
+		}
+		String query = "SELECT DISTINCT ?Data ?Crm WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} } BINDINGS ?Capability {@CAPABILITY-BINDINGS@}";
+		query = query.replace("@CAPABILITY-BINDINGS@", capabilityBindings);
+		
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();
+		sjsw.getVariables();
+		
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String data = sjss.getVar(vars[0]).toString();
+			String crm = sjss.getVar(vars[1]).toString();
+			//cap reads then access is integrated and realtime
+			//cap creates then access is hybrid and realtime
+			if(crm.contains("C") || crm.contains("M"))
+			{
+				dataToDataAccessHash.put(data,"Hybrid");
+				dataToDataLatencyHash.put(data,"Real");
+			}
+			else if(crm.contains("R")&&!dataToDataAccessHash.containsKey(data))
+			{
+				dataToDataAccessHash.put(data,"Integrated");
+				dataToDataLatencyHash.put(data,"Real");
+			}
+		}
 	}
 	
 	/**
@@ -197,32 +260,46 @@ public class SelectRadioButtonPanel extends JPanel {
 		
 		for (int i=0; i < dataV.size(); i++)
 		{
-			JLabel label= new JLabel((String)dataV.get(i));
-			
+			String data = (String)dataV.get(i);
+			JLabel label= new JLabel(data);
 			ButtonGroup dataAccessButtonGroup = new ButtonGroup();		
 			JRadioButton radioIntegratedButton = new JRadioButton();//"integrated
 			radioIntegratedButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioIntegratedButton.setSelected(true);
 			JRadioButton radioHybridButton = new JRadioButton();//"hybrid
 			radioHybridButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioHybridButton.setSelected(false);
 			JRadioButton radioManualButton = new JRadioButton();//manual
 			radioManualButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioManualButton.setSelected(false);
+			String access = (String)dataToDataAccessHash.get(data);
+			if(access==null)
+				access = "Integrated";
+			if(access.equals("Integrated"))
+				radioIntegratedButton.setSelected(true);
+			else if(access.equals("Hybrid"))
+				radioHybridButton.setSelected(true);
+			else
+				radioManualButton.setSelected(true);
 
 			ButtonGroup dataLatencyButtonGroup = new ButtonGroup();
 			JRadioButton radioRealButton = new JRadioButton();//"Real Time");
 			radioRealButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioRealButton.setSelected(true);
 			JRadioButton radioNearButton = new JRadioButton();//"Near Real Time");
 			radioNearButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioNearButton.setSelected(false);
 			JRadioButton radioArchiveButton = new JRadioButton();//"Archived");
 			radioArchiveButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioArchiveButton.setSelected(false);
 			JRadioButton radioIgnoreButton = new JRadioButton();//"Ignore");
 			radioIgnoreButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
-			radioIgnoreButton.setSelected(false);
+			
+			String latency = (String)dataToDataLatencyHash.get(data);
+			if(latency==null)
+				latency = "Integrated";
+			if(latency.equals("Real"))
+				radioRealButton.setSelected(true);
+			else if(latency.equals("NearReal"))
+				radioNearButton.setSelected(true);
+			else if(latency.equals("Archive"))
+				radioArchiveButton.setSelected(true);
+			else
+				radioIgnoreButton.setSelected(true);
 			
 			dataAccessButtonGroup.add(radioIntegratedButton);
 			dataAccessButtonGroup.add(radioHybridButton);

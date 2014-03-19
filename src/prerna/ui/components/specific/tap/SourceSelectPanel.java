@@ -72,6 +72,7 @@ public class SourceSelectPanel extends JPanel {
 	public void getCapabilities()
 	{
 		removeAll();
+		checkBoxHash = new Hashtable();
 		Vector <String> names = new Vector<String>();
 		try{
 		String sparqlQuery = DIHelper.getInstance().getProperty(ConstantsTAP.SOURCE_SELECT_REPORT_QUERY);

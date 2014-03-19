@@ -19,33 +19,22 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.List;
 
-import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JList;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.specific.ReportSheetWriter;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.poi.main.DHMSMDataAccessLatencyFileImporter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMSysDecommissionReport;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
-import prerna.ui.components.specific.tap.SourceSelectPanel;
-import prerna.ui.components.specific.tap.SystemTransitionOrganizer;
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -53,7 +42,7 @@ import prerna.util.Utility;
 /**
  * Listener for sourceReportGenButton
  */
-public class DHMSMUpdateDataListener implements IChakraListener {
+public class DHMSMUpdateDataFromFileListener implements IChakraListener {
 
 	Logger logger = Logger.getLogger(getClass());
 	
@@ -64,21 +53,39 @@ public class DHMSMUpdateDataListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
 
-		
-		//get capability list and then update the list of data objects shown
-		ArrayList<String> capabilitiesSelected = new ArrayList<String>();
-		SourceSelectPanel dhmsmCapSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.DHMSM_CAPABILITY_SELECT_PANEL);
-		Enumeration<String> enumKey = dhmsmCapSelPanel.checkBoxHash.keys();
-		while(enumKey.hasMoreElements()) {
-			    String key = enumKey.nextElement();
-				JCheckBox checkBox = (JCheckBox) dhmsmCapSelPanel.checkBoxHash.get(key);
-				if (checkBox.isSelected())
-					capabilitiesSelected.add(key);
-		}
+		//get data objects that are checked and put them in the data object hash
+		Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
+		Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 
-		
+		JTextField dataAccessLatencyFileField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SELECT_DATA_ACCESS_FILE_JFIELD);
+		if(dataAccessLatencyFileField.getText()!=null&&dataAccessLatencyFileField.getText().length()>0)
+		{
+			DHMSMDataAccessLatencyFileImporter dataAccessImporter = new DHMSMDataAccessLatencyFileImporter();
+			try {
+				dataAccessImporter.importFile(dataAccessLatencyFileField.getText());
+				dataAccessTypeHash = dataAccessImporter.getDataAccessTypeHash();
+				dataLatencyTypeHash = dataAccessImporter.getDataLatencyTypeHash();
+			} catch (Exception e) {
+				Utility.showError("<html>Error with Selected File.</html>");
+				return;
+			}
+			
+
+		}
+		else
+		{
+			Utility.showError("<html>Please select a file.</html>");
+			return;
+		}
+		if(dataLatencyTypeHash.isEmpty()&&dataAccessTypeHash.isEmpty())
+		{
+			Utility.showError("<html>Please select at least one data object.</html>");
+			return;
+		}
 		SelectRadioButtonPanel radioSelPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
-		radioSelPanel.getDataObjectsFromCapabilities(capabilitiesSelected);
+		radioSelPanel.getDataObjectsFromHashes(dataAccessTypeHash,dataLatencyTypeHash);
+
+	
 	}
 	
 	/**

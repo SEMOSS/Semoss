@@ -85,7 +85,12 @@ public class SystemInfoGenWriter {
 			XSSFRow row1 = worksheet.createRow(row+1);
 			String sys = sysList.get(row);
 			XSSFCell cell0 = row1.createCell(0);
-			cell0.setCellValue(sys);
+			String sysSubstring = sys;
+			if(sys.contains("$$$"))
+			{
+				sysSubstring = sys.substring(0,sys.indexOf("$$$"));
+			}
+			cell0.setCellValue(sysSubstring);
 			cell0.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 			if(result.containsKey(sys)){
 				Hashtable sysHash = (Hashtable) result.get(sys);
