@@ -72,22 +72,22 @@ public class DHMSMSystemSORAccessTypeReportListener implements IChakraListener {
 		Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 		Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
 		
-		JTextField dataAccessLatencyFileField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SELECT_DATA_ACCESS_FILE_JFIELD);
-		if(dataAccessLatencyFileField.getText()!=null&&dataAccessLatencyFileField.getText().length()>0)
-		{
-			DHMSMDataAccessLatencyFileImporter dataLatencyFileImporter = new DHMSMDataAccessLatencyFileImporter();
-			try {
-				dataLatencyFileImporter.importFile(dataAccessLatencyFileField.getText());
-				dataLatencyTypeHash = dataLatencyFileImporter.getDataLatencyTypeHash();
-				dataAccessTypeHash = dataLatencyFileImporter.getDataAccessTypeHash();
-			} catch (Exception e) {
-				JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-				JOptionPane.showMessageDialog(playPane, "<html>Error with Selected File.</html>");
-				return;
-			}
-		}
-		else
-		{
+//		JTextField dataAccessLatencyFileField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.SELECT_DATA_ACCESS_FILE_JFIELD);
+//		if(dataAccessLatencyFileField.getText()!=null&&dataAccessLatencyFileField.getText().length()>0)
+//		{
+//			DHMSMDataAccessLatencyFileImporter dataLatencyFileImporter = new DHMSMDataAccessLatencyFileImporter();
+//			try {
+//				dataLatencyFileImporter.importFile(dataAccessLatencyFileField.getText());
+//				dataLatencyTypeHash = dataLatencyFileImporter.getDataLatencyTypeHash();
+//				dataAccessTypeHash = dataLatencyFileImporter.getDataAccessTypeHash();
+//			} catch (Exception e) {
+//				JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+//				JOptionPane.showMessageDialog(playPane, "<html>Error with Selected File.</html>");
+//				return;
+//			}
+//		}
+//		else
+//		{
 			SelectRadioButtonPanel selectRadioPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
 			Enumeration<String> enumKey = selectRadioPanel.radioIntegratedBoxHash.keys();
 			while(enumKey.hasMoreElements()) {
@@ -154,7 +154,7 @@ public class DHMSMSystemSORAccessTypeReportListener implements IChakraListener {
 						dataLatencyTypeHash.put(key, "Ignore");
 					}
 			}
-		}
+//		}
 		
 		if(dataLatencyTypeHash.isEmpty()&&dataAccessTypeHash.isEmpty())
 		{
