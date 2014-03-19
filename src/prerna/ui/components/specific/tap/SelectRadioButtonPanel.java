@@ -93,16 +93,28 @@ public class SelectRadioButtonPanel extends JPanel {
 		dataToDataLatencyHash = new Hashtable<String,String>();
 
 		runCapabilityQuery(capabilities);
-		Set nameC = dataToDataAccessHash.keySet();
-		nameC.addAll(dataToDataLatencyHash.keySet());
-		Vector<String> names = new Vector(nameC);
+		Vector<String> names = makeVectorOfDataObjects(dataToDataAccessHash,dataToDataLatencyHash);
+
+//		Set nameC = dataToDataAccessHash.keySet();
+//		Set nameLat = dataToDataLatencyHash.keySet();
+//		nameC.addAll(nameLat);
+//		Vector<String> names = new Vector(nameC);
 		Collections.sort(names);
 		removeAll();
 		repaint();
 		if(names.size()>0)
 			createCheckBoxes(names);
 	}
-	
+	public Vector<String> makeVectorOfDataObjects(Hashtable<String,String> dataToDataAccessHash,Hashtable<String,String> dataToDataLatencyHash)
+	{
+		Vector<String> retVect = new Vector<String>(dataToDataAccessHash.keySet());
+		for(String key : dataToDataLatencyHash.keySet())
+		{
+			if(!retVect.contains(key))
+				retVect.add(key);
+		}
+		return retVect;
+	}
 	public void getDataObjectsFromHashes(Hashtable<String, String> dataAccessTypeHash,Hashtable<String, String>dataLatencyTypeHash)
 	{
 		removeAll();
