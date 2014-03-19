@@ -269,32 +269,18 @@ public class SystemInfoGenProcessor {
 		
 		//Num of Upstream Systems
 		String sysNumUpstreamSystemsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?UpstreamSys)) AS ?Num_Of_Upstream_Systems) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?System ;}} GROUP BY ?System";
-		
-		//Num of data objects that this system is a record or source for.
-//		String sysNumDataObjectsRecordQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Data)) AS ?Num_Of_Data_Objects_System_Is_Record_Of) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } GROUP BY ?System";
-		
-//		//Num of data objects that this system is record or source for AND DHMSM creates.
-//		String sysNumDataObjectsRecordAndDHMSMCreatedQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Data)) AS ?Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities) WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } GROUP BY ?System";
-//			
-//		//Number of data objects that DHMSM Capabilities create AND are read by this system
-//		String sysNumDataObjectsDHMSMCreateAndSystemReadQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Data)) AS ?Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads) WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?System ;}{?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}{?Task ?Needs ?Data.} } GROUP BY ?System";
-		
+				
 		//System Complexity
 		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
 		
 		//System BV and TM
-		String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) (?SustainmentBud AS ?Sustainment_Budget) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}  }}";
+		//String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) (?SustainmentBud AS ?Sustainment_Budget) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}  }}";
+		String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }}";
+		
+		//Sustainment Budget
+		String sustainmentQuery = "SELECT DISTINCT ?System (SUM(?value) AS ?Sustainment_Budget) WHERE{ SELECT DISTINCT ?System ?budget ?value  WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?budget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?System ?has ?budget .} {?budget <http://semoss.org/ontologies/Relation/Contains/Cost> ?value ;} } } GROUP BY ?System";
 
-//		//create list of data objects read by DHMSM
-//		String dataObjectsReadByDHMSMQuery = "SELECT DISTINCT ?Data WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'} }";
-//		runDataObjectListQuery(hrCoreEngine,dataObjectsReadByDHMSMQuery);
-//		
-//		//Num of data objects that this system is a record of and the DHMSM Capabilities read
-//		String sysNumDataObjectsRecordAndDHMSMReadQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Data)) AS ?Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data ;} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;}FILTER(!BOUND(?icd2)) } GROUP BY ?System BINDINGS ?Data {@Replace_Bindings@}";
-//		sysNumDataObjectsRecordAndDHMSMReadQuery = sysNumDataObjectsRecordAndDHMSMReadQuery.replace("@Replace_Bindings@", dataObjectBindings);
-//		
-	
-		//Transistion Cost queries
+		//Transition Cost queries
 		//data consumer
 		String dataConsumerQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE { SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;}{?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?data ?input ?GLitem} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} } }GROUP BY ?System";
 
@@ -336,17 +322,27 @@ public class SystemInfoGenProcessor {
 		dhelp.runData(engine);
 
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of");
+		headersList.add("Data_Objects_System_Is_Record_Of");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
+		headersList.add("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
+		headersList.add("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
+		headersList.add("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
+		headersList.add("Probability");
+		headersList.add("Percentage_Of_Data_Objects_Covered_By_DHMSM");
 		headersList.add("Top_Five_Duplicating_Systems");
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of", dhelp.getAllDataFromSys(system, "C").size());
+			sysHash.put("Data_Objects_System_Is_Record_Of", makeConcatString(dhelp.getAllDataFromSys(system, "C")));
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", dhelp.getDataObjectListSupportedFromSystem(system, "C", "C").size());
+			sysHash.put("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "C")));
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
+			sysHash.put("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "R")));
 			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
+			sysHash.put("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "R", "C")));
 			ArrayList<String> sysDupeList = sysDupe.prioritySysHash.get(system);
 			ArrayList<Double> sysDupeValueList = sysDupe.priorityValueHash.get(system);
 			String sysDupeConcat = "";
@@ -361,8 +357,10 @@ public class SystemInfoGenProcessor {
 			masterHash.put(system,sysHash);
 		}
 		
+		runProbability(dhelp);
 		runQuery(hrCoreEngine,complexityQuery);
 		runQuery(tapCoreEngine,BVAndTMQuery);
+		runQuery(tapCostEngine,sustainmentQuery);
 		logger.info("Completed Complexity and BV/TM queries");
 		runCostQueries(tapCostEngine,costQueries);
 		logger.info("Completed Transistion Cost queries");
@@ -372,5 +370,49 @@ public class SystemInfoGenProcessor {
 
 
 	}
+	public String makeConcatString(ArrayList<String> vals)
+	{
+		String concat = "";
+		if(vals==null||vals.size()==0)
+			return concat;
+		concat = vals.get(0);
+		for(int i=1;i<vals.size();i++)
+			concat+=", "+vals.get(i);
+		return concat;
+	}
+	
+	public void runProbability(DHMSMHelper dhelp)
+	{
+		for(String system : sysList)
+		{
+			Hashtable sysHash = masterHash.get(system);
+			int numOfDataSystemSOR = (Integer) sysHash.get("Num_Of_Data_Objects_System_Is_Record_Of");
+			int numOfDataSystemSORAndDHMSMCreate = (Integer) sysHash.get("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
+			
+			if(numOfDataSystemSOR == 0)
+			{
+				sysHash.put("Probability", "Question");
+				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", "");
+			}
+			else if(numOfDataSystemSOR == numOfDataSystemSORAndDHMSMCreate)
+			{
+				sysHash.put("Probability", "High");
+				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", 100);
+			}
+			else if(numOfDataSystemSORAndDHMSMCreate ==0)
+			{
+				sysHash.put("Probability", "Low");
+				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", 0);
+			}
+			else
+			{
+				double percent = (double)numOfDataSystemSORAndDHMSMCreate/ (double)numOfDataSystemSOR;
+				sysHash.put("Probability", "Medium");
+				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", percent*100);
+			}
+			
+		}
+	}
+
 
 }
