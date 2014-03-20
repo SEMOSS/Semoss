@@ -36,13 +36,13 @@
                 <div id="sidebarContentRight">
                     <table ng-table="tableParams" show-filter="true" class="table">
                         <tr ng-repeat="user in $data">
-                            <td data-title="'Name'" sortable="'name'" filter="{ 'name': 'text' }">
+                            <td data-title="'Name'" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
                                 {{user.name}}
                             </td>
                              <td id="cumulativeSystemCost" data-title="'Cumulative Cost ($)'" sortable="'totalSystemCost'" filter="{ 'totalSystemCost': 'text' }" header-class = "text-center" class="text-right" >
                                 {{user.totalSystemCost}}
                             </td>
-                            <td data-title="'Aggregated Status'" sortable="'aggregatedStatus'" filter="{ 'aggregatedStatus': 'text' }">
+                            <td data-title="'Aggregated Status'" sortable="'aggregatedStatus'" filter="{ 'aggregatedStatus': 'text' }" header-class = "text-center" class="text-center">
                                 <span ng-show="user.aggregatedStatus === 'Not Started'" class="label label-important">{{user.aggregatedStatus}}</span>
                                 <span ng-show="user.aggregatedStatus === 'In Progress'" class="label label-warning">{{user.aggregatedStatus}}</span>
                                 <span ng-show="user.aggregatedStatus === 'Decommissioned'" class="label label-success">{{user.aggregatedStatus}}</span>
@@ -57,7 +57,7 @@
     </div>
 
     <script> 
-        /////////////////////////////////////
+        
         function start(dataPassed) {
             
                 var ctrlScope = angular.element(jQuery('#controllerID')).scope();
@@ -71,20 +71,11 @@
 
             $scope.setJSONData = function (data) {
                 $scope.$apply(function () {
-                    
                     createAll(jQuery.parseJSON(data));
-
-                    
                 });
             };
             
             function createAll (dataString) {
-
-
-
-
-
-
 
 
                 //Load in GeoJSON data
@@ -134,17 +125,6 @@
            .style("fill", 
             "#ccc"
            );
-
-
-
-
-           
-
-
-
-
-
-
 
 
 
@@ -294,7 +274,7 @@ var renderGeoMap = function(dataGeo){
                     });
 
 
-        ////////////////////////////////////////////////GEOMAP FUNNNN
+        //GEOMAP FUNNNN
 
 
             var geoDataRefresh = function(year){
@@ -312,7 +292,7 @@ var renderGeoMap = function(dataGeo){
         });
 
 
-///
+
             }
 
         }); 
