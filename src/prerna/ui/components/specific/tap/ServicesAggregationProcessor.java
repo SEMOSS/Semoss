@@ -1,9 +1,6 @@
 package prerna.ui.components.specific.tap;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -41,7 +38,7 @@ public class ServicesAggregationProcessor {
 	private HashSet<String> allHardwareModules = new HashSet<String>();
 
 	public String errorMessage = "";
-	
+
 	public String getErrorMessage()
 	{
 		return this.errorMessage;
@@ -157,9 +154,6 @@ public class ServicesAggregationProcessor {
 	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE { {?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter( regex(str(?relations),\"^http://semoss\") ) }";
 	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE { {?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }";
 
-	//	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareVersion ?has ?hardware WHERE { {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} "
-	//			+ "{?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has ?hardwareVersion} }";
-
 	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
 		this.servicesDB = servicesDB;
 		this.coreDB = coreDB;
@@ -170,13 +164,13 @@ public class ServicesAggregationProcessor {
 		boolean success = true;
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
-		
+
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
-		
+
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
 		if(!errorMessage.isEmpty())
 		{
@@ -229,7 +223,7 @@ public class ServicesAggregationProcessor {
 			String object = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
 			logger.info("ADDING:     " + subject + " -----> {" + pred + " --- " + object + "}");
-			addToHash(new String[]{subject, pred, object}, true);
+			addToHash(new String[]{subject, pred, object});
 			// add instances to master list
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
@@ -253,8 +247,8 @@ public class ServicesAggregationProcessor {
 		processServiceSystemProperties(sjswCore, true);
 
 		// processing modifies class variable dataHash directly
-		processData(dataHash);
 		deleteData(removeDataHash);
+		processData(dataHash);
 	}
 
 	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, boolean TAP_Core)
@@ -331,15 +325,15 @@ public class ServicesAggregationProcessor {
 					}
 
 					// if error occurs
-					if(returnTriple.equals(new String[]{""}))
+					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
 						return;
 					}
-					
+
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						addToHash(returnTriple, true);
+						addToHash(returnTriple);
 					}
 
 					// sub already exists when going through TAP Core db
@@ -351,7 +345,7 @@ public class ServicesAggregationProcessor {
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new String[]{sub, prop, value.toString()}, false);
+						addToDeleteHash(new String[]{"<" + sub + ">","<" + prop + ">", value.toString()});
 					}
 				}
 			}
@@ -371,8 +365,8 @@ public class ServicesAggregationProcessor {
 		processICDAggregation(sjswCore , true);
 
 		// processing modifies class variable dataHash directly
-		processData(dataHash);
 		deleteData(removeDataHash);
+		processData(dataHash);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -386,7 +380,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
-			Object value = sjss.getRawVar(vars[2]).toString();
+			Object value = sjss.getRawVar(vars[2]);
 			String user = "";
 			if(!TAP_Core)
 			{
@@ -403,7 +397,7 @@ public class ServicesAggregationProcessor {
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
+				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
 				{
 					if(prop.equals(propURI + "Data"))
 					{
@@ -437,23 +431,23 @@ public class ServicesAggregationProcessor {
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					
+
 					// if error occurs
 					if(returnTriple.equals(new String[]{""}))
 					{
 						return;
 					}
-					
+
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						addToHash(returnTriple, true);
+						addToHash(returnTriple);
 						if(!edgeType.equals(""))
 						{
 							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
 							String newObj = sub.substring(0, sub.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
 							logger.info("ADDING:     " + sub + " -----> {" + newRel + " --- " + newObj + "}");
-							addToHash(new Object[]{sub, newRel, newObj}, true);
+							addToHash(new Object[]{sub, newRel, newObj});
 
 							addToAllRelationships(newRel);
 							addToAllConcepts(newObj);
@@ -467,7 +461,7 @@ public class ServicesAggregationProcessor {
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new Object[]{sub, prop, value}, false);
+						addToDeleteHash(new String[]{"<" + sub + ">","<" + prop + ">", value.toString()});
 					}
 				}
 			}
@@ -496,9 +490,9 @@ public class ServicesAggregationProcessor {
 		{
 			return;
 		}
-		
-		processData(dataHash);
+
 		deleteData(removeDataHash);
+		processData(dataHash);
 	}
 
 	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
@@ -524,16 +518,20 @@ public class ServicesAggregationProcessor {
 					}
 					else 
 					{
-						Object valueAsObject = tErrIt.next();
-//						if (!(valueAsObject instanceof Double))
-//						{
-//							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
-//									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsObject + "\n"				
-//									+ "Check that value is parsable as a double";
-//							return (success = false);
-//						}
-						
-						Double value = ( (Literal) tErrIt.next()).doubleValue();
+						Literal valueAsObject = (Literal) tErrIt.next();
+						try
+						{
+							valueAsObject.doubleValue();
+						}
+						catch(NumberFormatException e)
+						{
+							e.printStackTrace();
+							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
+									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsObject + "\n"				
+									+ "Check that value is parsable as a double";	
+							return (success = false);
+						}
+						Double value = valueAsObject.doubleValue();
 						totalTErr += value;
 						counter++;
 					}
@@ -541,9 +539,9 @@ public class ServicesAggregationProcessor {
 
 				Double TError = totalTErr/(counter-1);
 				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new Object[]{sub, pred, obj}, true);
+				addToHash(new Object[]{sub, pred, obj});
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
-				addToHash(new Object[]{pred, propertyURI, TError}, true);
+				addToHash(new Object[]{pred, propertyURI, TError});
 			}
 		}
 		return success;
@@ -568,8 +566,8 @@ public class ServicesAggregationProcessor {
 		// processing modifies class variable dataHash directly
 		processDataObjects(aggregatedDataObjects, "CRM");
 
-		processData(dataHash);
 		deleteData(removeDataHash);
+		processData(dataHash);
 	}
 
 	private void processDataObjects(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects, String propType) 
@@ -595,11 +593,11 @@ public class ServicesAggregationProcessor {
 				{
 					CRM = "\"R\"";
 				}
-				
+
 				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new Object[]{sub, pred, obj}, true);
+				addToHash(new Object[]{sub, pred, obj});
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
-				addToHash(new Object[]{pred, propertyURI, CRM}, true);
+				addToHash(new Object[]{pred, propertyURI, CRM});
 			}
 		}
 	}
@@ -639,8 +637,8 @@ public class ServicesAggregationProcessor {
 		processHardwareSoftwareProperties(sjswCore, true, softwareModule);
 
 		// processing modifies class variable dataHash directly
-		processData(dataHash);
 		deleteData(removeDataHash);
+		processData(dataHash);
 	}
 
 
@@ -652,7 +650,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String module = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
-			String value = sjss.getRawVar(vars[2]).toString();
+			Object value = sjss.getRawVar(vars[2]);
 			String user = "";
 			if(!TAP_Core)
 			{
@@ -662,7 +660,7 @@ public class ServicesAggregationProcessor {
 			if(dataHash.containsKey(module) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				if(!value.equals("\"NA\"") && !value.equals("\"TBD\""))
+				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
 				{
 					if(prop.equals(propURI + "Quantity"))
 					{
@@ -707,17 +705,17 @@ public class ServicesAggregationProcessor {
 					{
 						return;
 					}
-					
+
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						addToHash(returnTriple, true);
+						addToHash(returnTriple);
 					}
 
 					// must remove existing triple in TAP Core prior to adding
 					if(TAP_Core)
 					{
-						addToHash(new Object[]{module, prop, value}, false);
+						addToDeleteHash(new String[]{"<" + module + ">","<" + prop + ">", value.toString()});
 					}
 
 					// perform check to see if must add software/hardware version is software/hardware Module does not exist in TAP Core
@@ -737,14 +735,14 @@ public class ServicesAggregationProcessor {
 							//relationship from system to softwareModule
 							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 							addToAllRelationships(predSysToMod);
-							addToHash(new String[]{system, predSysToMod, module}, true);
+							addToHash(new String[]{system, predSysToMod, module});
 							//relationship from softwareModule to softwareVersion
 							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 							addToAllRelationships(predModToVer);
-							addToHash(new String[]{module, predModToVer, softwareV}, true);
+							addToHash(new String[]{module, predModToVer, softwareV});
 							//relationship from software to softwareVersion
 							String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
-							addToHash(new String[]{software, predSoffToVer, softwareV}, true);
+							addToHash(new String[]{software, predSoffToVer, softwareV});
 						}
 					}
 					else
@@ -763,14 +761,14 @@ public class ServicesAggregationProcessor {
 							//relationship from system to hardwareModule
 							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 							addToAllRelationships(predSysToMod);
-							addToHash(new String[]{system, predSysToMod, module}, true);
+							addToHash(new String[]{system, predSysToMod, module});
 							//relationship from hardwareModule to hardwareVersion
 							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 							addToAllRelationships(predModToVer);
-							addToHash(new String[]{module, predModToVer, hardwareV}, true);
+							addToHash(new String[]{module, predModToVer, hardwareV});
 							//relationship from software to softwareVersion
 							String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
-							addToHash(new String[]{hardware, predSoffToVer, hardwareV}, true);
+							addToHash(new String[]{hardware, predSoffToVer, hardwareV});
 						}
 					}
 				}
@@ -781,31 +779,31 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// methods used by all aggregation methods
 
-	private void addToHash(Object[] returnTriple, boolean add) 
+	private void addToHash(Object[] returnTriple) 
 	{
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
-		if(add)
+		if(dataHash.containsKey(returnTriple[0].toString()))
 		{
-			if(dataHash.containsKey(returnTriple[0].toString()))
-			{
-				dataHash.get(returnTriple[0].toString()).putAll(innerHash);
-			}
-			else
-			{
-				dataHash.put(returnTriple[0].toString(), innerHash);
-			}
+			dataHash.get(returnTriple[0].toString()).putAll(innerHash);
 		}
 		else
 		{
-			if(removeDataHash.containsKey(returnTriple[0].toString()))
-			{
-				removeDataHash.get(returnTriple[0]).putAll(innerHash);
-			}
-			else
-			{
-				removeDataHash.put(returnTriple[0].toString(), innerHash);
-			}
+			dataHash.put(returnTriple[0].toString(), innerHash);
+		}
+	}
+
+	private void addToDeleteHash(Object[] returnTriple)
+	{
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
+		if(removeDataHash.containsKey(returnTriple[0].toString()))
+		{
+			removeDataHash.get(returnTriple[0]).putAll(innerHash);
+		}
+		else
+		{
+			removeDataHash.put(returnTriple[0].toString(), innerHash);
 		}
 	}
 
@@ -863,7 +861,7 @@ public class ServicesAggregationProcessor {
 			for (String pred : data.get(sub).keySet())
 			{
 				Object obj = data.get(sub).get(pred);
-				deleteQuery.append("<" + sub + ">" + "<" + pred + ">" + "<" + obj + ">. ");
+				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
 			}
 		}
 		deleteQuery.append(" }");
@@ -886,7 +884,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			conceptList.add(sjss.getRawVar(var[0]) + "");
 		}
-		
+
 		String pred = "http://www.w3.org/2000/01/rdf-schema#type";
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>";
@@ -943,26 +941,31 @@ public class ServicesAggregationProcessor {
 
 	private Object[] processSumValues(String sub, String prop, Object value)
 	{
+		try
+		{
+			((Literal) value).doubleValue();
+		}
+		catch(NumberFormatException e)
+		{
+			e.printStackTrace();
+			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
+					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			return new String[]{""};
+		}
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}" + value.getClass());
+			value = ((Literal) value).doubleValue();
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
 			Double addValue = ( (Literal) value).doubleValue();
-			Double currentValue = null;
-			if(innerHash.get(prop) instanceof Literal)
-			{
-				currentValue = ( (Literal) innerHash.get(prop)).doubleValue();
-			}
-			else
-			{
-				currentValue = (Double) innerHash.get(prop);
-			}
+			Double currentValue = (Double) innerHash.get(prop);
 			value = addValue + currentValue;
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}" + value.getClass());
+			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -998,37 +1001,35 @@ public class ServicesAggregationProcessor {
 
 	private Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max)
 	{
-//		if(!(value instanceof Double))
-//		{
-//			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
-//					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
-//			return new String[]{""};
-//		}
-		
-		
+		try
+		{
+			((Literal) value).doubleValue();
+		}
+		catch(NumberFormatException e)
+		{
+			e.printStackTrace();
+			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
+					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			return new String[]{""};
+		}
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
+			value = ((Literal) value).doubleValue();
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
-			Double oldDouble = null;
-			if(innerHash.get(prop) instanceof Literal)
-			{
-				oldDouble = ( (Literal) innerHash.get(prop)).doubleValue();
-			}
-			else
-			{
-				oldDouble = (Double) innerHash.get(prop);
-			}
-			Double newDouble = ( (Literal) value).doubleValue();
+			Double oldDouble = (Double) innerHash.get(prop);
+			Double newDouble = ((Literal) value).doubleValue();
 			if(!max)
 			{
 				if(newDouble < oldDouble)
 				{
 					// return the value being passed in
+					value = ((Literal) value).doubleValue();
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1042,6 +1043,7 @@ public class ServicesAggregationProcessor {
 				if(newDouble > oldDouble)
 				{
 					// return the value being passed in
+					value = ((Literal) value).doubleValue();
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1052,44 +1054,39 @@ public class ServicesAggregationProcessor {
 			}
 		}
 		return new Object[]{sub, prop, value};
-
 	}
 
 	private Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest) 
 	{
-//		if(!(value instanceof XMLGregorianCalendar))
-//		{
-//			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
-//					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
-//			return new String[]{""};
-//		}
-		
+		try
+		{
+			((Literal) value).calendarValue();
+		}
+		catch(IllegalArgumentException e)
+		{
+			e.printStackTrace();
+			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
+					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			return new String[]{""};
+		}
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			innerHash.put(prop, value);
-			dataHash.put(sub, innerHash);
+			value = ((Literal) value).calendarValue();
 			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
-			XMLGregorianCalendar oldDate = null;
-			if(innerHash.get(prop) instanceof Literal)
-			{
-				oldDate = ((Literal) innerHash.get(prop)).calendarValue();
-			}
-			else
-			{
-				oldDate = (XMLGregorianCalendar) innerHash.get(prop);
-			}
-				XMLGregorianCalendar newDate = ((Literal) value).calendarValue();
-			
-				if(!latest)
+			XMLGregorianCalendar oldDate = (XMLGregorianCalendar) innerHash.get(prop);
+			XMLGregorianCalendar newDate = ((Literal) value).calendarValue();
+			if(!latest)
 			{
 				if(newDate.toGregorianCalendar().getTime().before(oldDate.toGregorianCalendar().getTime()))
 				{
 					// return the value being passed in
+					value = ((Literal) value).calendarValue();
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1103,6 +1100,7 @@ public class ServicesAggregationProcessor {
 				if(newDate.toGregorianCalendar().getTime().after(oldDate.toGregorianCalendar().getTime()))
 				{
 					// return the value being passed in
+					value = ((Literal) value).calendarValue();
 					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -1239,7 +1237,7 @@ public class ServicesAggregationProcessor {
 				else if(frequencies[i].equalsIgnoreCase("Batch (yearly)")) currentFreqValue[i] = 8760;
 				else if(frequencies[i].equalsIgnoreCase("Each user login instance")) currentFreqValue[i] = 0;
 			}
-			
+
 			if(currentFreqValue[0] == null || currentFreqValue[1] == null)
 			{
 				this.errorMessage = this.errorMessage + "Error Processing DFreq!  Check frequency is predefined in list. \n" 
@@ -1296,7 +1294,7 @@ public class ServicesAggregationProcessor {
 			String sys = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
 			String obj = sjss.getRawVar(vars[2]).toString();
-			Object prop = sjss.getRawVar(vars[3]).toString();
+			Object prop = sjss.getRawVar(vars[3]);
 
 			if(!TAP_Core)
 			{
@@ -1340,7 +1338,7 @@ public class ServicesAggregationProcessor {
 
 				if(TAP_Core)
 				{
-					addToHash(new Object[]{pred, propURI + propType, prop}, false);
+					addToHash(new Object[]{pred, propURI + propType, prop});
 				}
 				addToAllRelationships(pred);
 			}
