@@ -393,6 +393,7 @@ public class ServicesAggregationProcessor {
 
 			// variables to define relationship
 			String edgeType = "";
+			String newNodeType = "";
 
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
@@ -403,16 +404,19 @@ public class ServicesAggregationProcessor {
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 						edgeType = "Has";
+						newNodeType = "DataObject";
 					}
 					else if(prop.equals(propURI + "Format"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 						edgeType = "Has";
+						newNodeType = "DForm";
 					}
 					else if(prop.equals(propURI + "Frequency"))
 					{
 						returnTriple = processDFreq(sub, prop, value);
 						edgeType = "Has";
+						newNodeType = "DFreq";
 					}
 					else if(prop.equals(propURI + "Interface_Name"))
 					{
@@ -422,6 +426,7 @@ public class ServicesAggregationProcessor {
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 						edgeType = "Has";
+						newNodeType = "DProt";
 					}
 					else if(prop.equals(propURI + "Source"))
 					{
@@ -433,7 +438,7 @@ public class ServicesAggregationProcessor {
 					}
 
 					// if error occurs
-					if(returnTriple.equals(new String[]{""}))
+					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
 						return;
 					}
@@ -442,10 +447,10 @@ public class ServicesAggregationProcessor {
 					if(returnTriple[0] != null)
 					{
 						addToHash(returnTriple);
-						if(!edgeType.equals(""))
+						if(!edgeType.equals("") && !newNodeType.equals(""))
 						{
 							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
-							String newObj = sub.substring(0, sub.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
+							String newObj = getBaseURI(sub) + "/" + newNodeType + "/" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
 							logger.info("ADDING:     " + sub + " -----> {" + newRel + " --- " + newObj + "}");
 							addToHash(new Object[]{sub, newRel, newObj});
 
@@ -497,6 +502,7 @@ public class ServicesAggregationProcessor {
 
 	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
 	{
+
 		boolean success = true;
 		String propertyURI = propURI + propType;
 		for( String sub : aggregatedTError.keySet() )
@@ -542,6 +548,8 @@ public class ServicesAggregationProcessor {
 				addToHash(new Object[]{sub, pred, obj});
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
 				addToHash(new Object[]{pred, propertyURI, TError});
+				addToAllConcepts(obj);
+				addToAllRelationships(pred);
 			}
 		}
 		return success;
@@ -580,16 +588,17 @@ public class ServicesAggregationProcessor {
 			{
 				LinkedList<Object> crmList = innerHash.get(obj);
 				String pred  = crmList.get(0).toString();
+				crmList.remove(0);
 				String CRM = "";
-				if(crmList.contains("\"C\""))
+				if(crmList.toString().contains("C"))
 				{
 					CRM = "\"C\"";
 				}
-				else if(crmList.contains("\"M\""))
+				else if(crmList.toString().contains("M"))
 				{
 					CRM = "\"M\"";
 				}
-				else if(crmList.contains("\"R\""))
+				else if(crmList.toString().contains("R"))
 				{
 					CRM = "\"R\"";
 				}
@@ -598,6 +607,7 @@ public class ServicesAggregationProcessor {
 				addToHash(new Object[]{sub, pred, obj});
 				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
 				addToHash(new Object[]{pred, propertyURI, CRM});
+				addToAllRelationships(pred);
 			}
 		}
 	}
@@ -701,7 +711,7 @@ public class ServicesAggregationProcessor {
 					}
 
 					// if error occurs
-					if(returnTriple.equals(new String[]{""}))
+					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
 						return;
 					}
@@ -924,13 +934,13 @@ public class ServicesAggregationProcessor {
 		{
 			for (String sub : allRelations.get(obj) )
 			{
-				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, false);
+				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
 				logger.info(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 			// add relationships that are not already in db
 			if(!relationshipList.contains(obj))
 			{
-				( (BigDataEngine) coreDB).addStatement(obj, pred, relation, false);
+				( (BigDataEngine) coreDB).addStatement(obj, pred, relation, true);
 				logger.info(obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 			}
 		}	
