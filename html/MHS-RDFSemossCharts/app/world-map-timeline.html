@@ -39,7 +39,7 @@
                             <td data-title="'Name'" sortable="'name'" filter="{ 'name': 'text' }">
                                 {{user.name}}
                             </td>
-                            <td data-title="'Total System Cost'" sortable="'totalSystemCost'" filter="{ 'totalSystemCost': 'text' }">
+                             <td id="cumulativeSystemCost" data-title="'Cumulative Cost ($)'" sortable="'totalSystemCost'" filter="{ 'totalSystemCost': 'text' }" header-class = "text-center" class="text-right" >
                                 {{user.totalSystemCost}}
                             </td>
                             <td data-title="'Aggregated Status'" sortable="'aggregatedStatus'" filter="{ 'aggregatedStatus': 'text' }">
@@ -218,9 +218,18 @@ var renderGeoMap = function(dataGeo){
 
                 $scope.dataUpdater;
                 
+                function numberWithCommas(x) {
+                    var parts = x.toString().split(".");
+                    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    return parts.join(".");
+                }
+
+
                 var dataRefresh = function(year){
                     var data = [];
                     for(var system in dataString[year].system){
+                        dataString[year].system[system]['TCostSystem'] = numberWithCommas(dataString[year].system[system]['TCostSystem'])
+
                         data.push({name: system, totalSystemCost: dataString[year].system[system]['TCostSystem'], aggregatedStatus: dataString[year].system[system]['AggregatedStatus']});
                     };
                     $scope.dataUpdater = data;
