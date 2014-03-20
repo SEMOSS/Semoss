@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.tap;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -83,6 +84,12 @@ public class ServicesAggregationProcessor {
 			+ "{?system ?consistsOf ?systemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} "
 			+ "{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?systemService ?provide ?BLU}}";
 
+	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?SystemService} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?systemService ?phase ?lifeCycle}}";
+
+	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE { {?sys a <http://semoss.org/ontologies/Concept/System>} {?icd a <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd} }";
+	
+	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE { {?sys a <http://semoss.org/ontologies/Concept/System>} {?icd a <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys} }";
+	
 	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ "
 			+ "{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
 			+ "{?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} "
@@ -170,6 +177,10 @@ public class ServicesAggregationProcessor {
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_ICD_CONSUME_SYS_QUERY);
+		
+		runSystemServiceLifeCylceAggregation(TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY);
 
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
 		if(!errorMessage.isEmpty())
@@ -230,6 +241,68 @@ public class ServicesAggregationProcessor {
 			addToAllRelationships(pred);
 		}
 		processData(dataHash);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// process system life cycle properties
+	private void runSystemServiceLifeCylceAggregation(String query) 
+	{
+		logger.info(query);
+		dataHash.clear();
+		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		Hashtable<String, LinkedList<String>> lifeCycleHash = new Hashtable<String, LinkedList<String>>();
+		lifeCycleHash = aggregateLifeCycle(sjsw, lifeCycleHash);
+		String lifeCycle = "";
+		for( String sys : lifeCycleHash.keySet())
+		{
+			LinkedList<String> lifeCycleList = lifeCycleHash.get(sys);
+			String pred = lifeCycleList.get(0);
+			lifeCycleList.remove(0);
+			if(lifeCycleList.toString().contains("LifeCycle/Supported"))
+			{
+				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Supported";
+			}
+			else
+			{
+				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Retired (Not Supported)";
+			}
+			addToAllConcepts(sys);
+			addToAllConcepts(lifeCycle);
+			addToAllRelationships(pred);
+			addToHash(new String[]{sys, pred, lifeCycle});
+		}
+		processData(dataHash);
+	}
+
+	private Hashtable<String, LinkedList<String>> aggregateLifeCycle(SesameJenaSelectWrapper sjsw, Hashtable<String, LinkedList<String>> lifeCycleHash) 
+	{
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			// get the next row and see how it must be added to the insert query
+			String sys = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String lifeCycle = sjss.getRawVar(vars[2]).toString();
+			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(lifeCycle, "/");
+
+			if(!lifeCycle.equals("\"NA\"") && !lifeCycle.equals("\"TBD\""))
+			{
+				if(!lifeCycleHash.containsKey(sys))
+				{
+					LinkedList<String> lifeCycleList = new LinkedList<String>();
+					lifeCycleList.add(pred);
+					lifeCycleList.add(lifeCycle);
+					lifeCycleHash.put(sys, lifeCycleList);
+				}
+				else
+				{
+					LinkedList<String> lifeCycleList = lifeCycleHash.get(sys);
+					lifeCycleList.add(lifeCycle);
+				}
+			}
+		}
+		return lifeCycleHash;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
