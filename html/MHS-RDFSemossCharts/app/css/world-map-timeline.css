@@ -110,3 +110,11 @@
     top: 98%;
     left: 0;
 }
+
+ .ng-table td.text-right {
+     text-align: right;
+ }
+
+ .ng-table th.text-center {
+     text-align: center;
+ }
