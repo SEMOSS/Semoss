@@ -115,6 +115,10 @@
      text-align: right;
  }
 
+ .ng-table td.text-center {
+     text-align: center;
+ }
+
  .ng-table th.text-center {
      text-align: center;
  }
