@@ -120,16 +120,18 @@ public class GraphDataModel {
 	//it will use the rc to create edge and node properties
 	//and then nodes and edges
 	public void fillStoresFromModel(){
-		if(containsRelation == null)
-			containsRelation = findContainsRelation();
-		if(containsRelation == null)
-			containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
-		RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this);
-		RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
-		genBaseConcepts();
-		logger.info("Loaded Orphans");
-		genBaseGraph();//subjects2, predicates2, subjects2);
-		logger.info("Loaded Graph");
+		if(rc!=null){
+			if(containsRelation == null)
+				containsRelation = findContainsRelation();
+			if(containsRelation == null)
+				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
+			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this);
+			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
+			genBaseConcepts();
+			logger.info("Loaded Orphans");
+			genBaseGraph();//subjects2, predicates2, subjects2);
+			logger.info("Loaded Graph");
+		}
 	}
 	
 	public void processData(String query, IEngine engine) {
