@@ -1365,7 +1365,7 @@ public class ServicesAggregationProcessor {
 
 				if(TAP_Core)
 				{
-					addToHash(new Object[]{pred, propURI + propType, prop});
+					addToDeleteHash(new Object[]{pred, propURI + propType, prop});
 				}
 				addToAllRelationships(pred);
 			}
