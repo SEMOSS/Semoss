@@ -1014,7 +1014,7 @@ public class ServicesAggregationProcessor {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1022,13 +1022,21 @@ public class ServicesAggregationProcessor {
 			Double addValue = ( (Literal) value).doubleValue();
 			Double currentValue = (Double) innerHash.get(prop);
 			value = addValue + currentValue;
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
 
 	private Object[] processConcatString(String sub, String prop, Object value, String user) 
 	{
+		// replace any tags for properties that are loaded as other data types but should be strings
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#decimal","");
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#integer","");
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
+		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
@@ -1036,7 +1044,7 @@ public class ServicesAggregationProcessor {
 			{
 				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
 			}
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1050,7 +1058,7 @@ public class ServicesAggregationProcessor {
 			{
 				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
 			}
-			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -1074,7 +1082,7 @@ public class ServicesAggregationProcessor {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1087,7 +1095,7 @@ public class ServicesAggregationProcessor {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					logger.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -1101,7 +1109,7 @@ public class ServicesAggregationProcessor {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					logger.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -1131,7 +1139,7 @@ public class ServicesAggregationProcessor {
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).calendarValue();
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1144,7 +1152,7 @@ public class ServicesAggregationProcessor {
 				{
 					// return the value being passed in
 					value = ((Literal) value).calendarValue();
-					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					logger.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -1158,7 +1166,7 @@ public class ServicesAggregationProcessor {
 				{
 					// return the value being passed in
 					value = ((Literal) value).calendarValue();
-					logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					logger.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -1178,7 +1186,7 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING GARRISONTHEATER:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1187,7 +1195,7 @@ public class ServicesAggregationProcessor {
 			if(!oldGT.toString().toString().equalsIgnoreCase(value.toString()))
 			{
 				value = "\"Both\"";
-				logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
+				logger.debug("ADJUSTING GARRISONTHEATER:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
 			}
 		}
 		return new Object[]{sub, prop, value};
@@ -1198,7 +1206,7 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING TRANSACTIONAL:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		//Different SystemServices should not be sending different transactional value
 		//perform check to make sure data is correct
@@ -1221,7 +1229,7 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			logger.info("ADDING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADDING DFREQ:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -1307,7 +1315,7 @@ public class ServicesAggregationProcessor {
 				value = innerHash.get(prop);
 			}
 			// else, do not change the value to keep the one being inputed
-			logger.info("ADJUSTING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			logger.debug("ADJUSTING DFREQ:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
