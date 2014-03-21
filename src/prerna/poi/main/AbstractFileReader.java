@@ -432,6 +432,7 @@ public abstract class AbstractFileReader {
 	
 	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) throws Exception{
 		//create the node in case its not in a relationship
+		instanceName = Utility.cleanString(instanceName, true);
 		String semossBaseURI = getBaseURI(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
