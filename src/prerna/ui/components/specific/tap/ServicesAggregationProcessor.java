@@ -388,7 +388,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
+						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 						addToHash(returnTriple);
 					}
 
@@ -488,7 +488,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
+						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 						addToHash(returnTriple);
 					}
 					// sub already exists when going through TAP Core db
@@ -746,7 +746,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
-						logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
+						logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 						addToHash(returnTriple);
 					}
 
