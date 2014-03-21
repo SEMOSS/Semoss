@@ -11,6 +11,9 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.URI;
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
@@ -64,6 +67,7 @@ public class ServicesAggregationProcessor {
 	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?icd ?pred ?sys WHERE { {?sys a <http://semoss.org/ontologies/Concept/System>} {?icd a <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys} }";
 	private String TAP_CORE_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value}}";
 	private String TAP_SERVICES_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value ?user WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } {?implemenetdAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/Implemented_At>} {?systemService ?implemenetedAt ?ICD} }";
+	
 	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
 	private String TAP_CORE_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?system ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
 
@@ -898,9 +902,9 @@ public class ServicesAggregationProcessor {
 			conceptList.add(sjss.getRawVar(var[0]) + "");
 		}
 
-		String pred = "http://www.w3.org/2000/01/rdf-schema#type";
+		String pred = RDF.TYPE.toString();
 		String concept = "http://semoss.org/ontologies/Concept";
-		String subclassOf = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>";
+		String subclassOf = RDFS.SUBCLASSOF.toString();
 		for ( String obj : allConcepts.keySet())
 		{
 			for (String sub : allConcepts.get(obj) )
@@ -929,21 +933,20 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			relationshipList.add(sjss.getRawVar(var[0]) + "");
 		}
-
-		String pred = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
+		
 		String relation = "http://semoss.org/ontologies/Relation";
-		String subpropertyOf = "<http://www.w3.org/2000/01/rdf-schema#subPropertyOf>";
+		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		for ( String obj : allRelations.keySet())
 		{
 			for (String sub : allRelations.get(obj) )
 			{
-				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
-				logger.info(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				( (BigDataEngine) coreDB).addStatement(sub, subpropertyOf, obj, true);
+				logger.info(sub + ">>>>>" + subpropertyOf + ">>>>>" + obj + ">>>>>");
 			}
 			// add relationships that are not already in db
 			if(!relationshipList.contains(obj))
 			{
-				( (BigDataEngine) coreDB).addStatement(obj, pred, relation, true);
+				( (BigDataEngine) coreDB).addStatement(obj, subpropertyOf, relation, true);
 				logger.info(obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 			}
 		}	
