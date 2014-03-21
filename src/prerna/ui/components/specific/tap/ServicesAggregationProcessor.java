@@ -11,7 +11,6 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.model.URI;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -47,45 +46,65 @@ public class ServicesAggregationProcessor {
 		return this.errorMessage;
 	}
 
-	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consists ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } }";
-
-	private String TAP_CORE_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value WHERE { {?system a <http://semoss.org/ontologies/Concept/System>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
-
-	private String TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY = "SELECT DISTINCT ?system ?usedBy ?personnel WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?SystemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel>} {?systemService ?usedBy ?personnel}}";
-
-	private String TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY = "SELECT DISTINCT ?system ?utilizes ?userInterface WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>} {?userInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface>} {?systemService ?utilizes ?userInterface}}";
-
-	private String TAP_SERVICES_AGGREGATE_BP_QUERY = "SELECT DISTINCT ?system ?supports ?bp WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?bp <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?systemService ?supports ?bp}}";
-
-	private String TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY = "SELECT DISTINCT ?system ?supports ?activity WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?systemService ?supports ?activity}}";
-
-	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?systemService ?provide ?BLU}}";
-
-	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?SystemService} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?systemService ?phase ?lifeCycle}}";
-
-	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE { {?sys a <http://semoss.org/ontologies/Concept/System>} {?icd a <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd} }";
-	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?icd ?pred ?sys WHERE { {?sys a <http://semoss.org/ontologies/Concept/System>} {?icd a <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys} }";
-	private String TAP_CORE_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value}}";
-	private String TAP_SERVICES_AGGREGATE_ICD_QUERY = "SELECT DISTINCT ?ICD ?prop ?value ?user WHERE {{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?Payload ?Data} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser> } {?implemenetdAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>  <http://semoss.org/ontologies/Relation/Implemented_At>} {?systemService ?implemenetedAt ?ICD} }";
+	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
 	
-	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?systemService} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
-	private String TAP_CORE_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?system ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight} }";
+	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE{{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user}}";
 
-	private String TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system ?consistsOf ?SystemService} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?SystemService ?provide ?data}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} }";
+	private String TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value WHERE{{?system a <http://semoss.org/ontologies/Concept/System>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
+
+	private String TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY = "SELECT DISTINCT ?system ?usedBy ?personnel WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>}{?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel>}  {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?systemService ?usedBy ?personnel}}";
+
+	private String TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY = "SELECT DISTINCT ?system ?utilizes ?userInterface WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>} {?userInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?utilizes ?userInterface}}";
+
+	private String TAP_SERVICES_AGGREGATE_BP_QUERY = "SELECT DISTINCT ?system ?supports ?bp WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?bp <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?bp}}";
+
+	private String TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY = "SELECT DISTINCT ?system ?supports ?activity WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?activity}}";
+
+	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?BLU}}";
+
+	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?phase ?lifeCycle}}";
+
+	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd}}";
+	
+	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?icd ?pred ?sys WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys}}";
+	
+	private String TAP_CORE_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?ICD ?Payload ?Data} {?Payload ?prop ?value}}";
+	
+	private String TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value ?user WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} {?ICD ?Payload ?Data} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService <http://semoss.org/ontologies/Relation/Implemented_At> ?ICD}}";
+	
+	private String TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY = "SELECT DISTINCT ?ICD ?Payload ?data WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?data}}";
+	
+	private String TAP_SERVICES_AGGREGATE_ICD_DFORM_QUERY = "SELECT DISTINCT ?ICD ?has ?dForm WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dForm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dForm}}";
+	
+	private String TAP_SERVICER_AGGREGATE_ICD_DFREQ_QUERY = "SELECT DISTINCT ?ICD ?has ?dFreq WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dFreq <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dFreq}}";
+	
+	private String TAP_SERVICER_AGGREGATE_ICD_DPROT_QUERY = "SELECT DISTINCT ?ICD ?has ?dProt WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dProt <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dProt}}";
+	
+	private String TAP_SERVICER_AGGREGATE_ICD_LIFECYCLE_QUERY = "SELECT DISTINCT ?ICD ?phase ?lifeCycle WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?ICD ?phase ?lifeCycle} }";
+	
+	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}";
+	
+	private String TAP_CORE_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?system ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}";
+
+	private String TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?SystemService ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
 
 	private String TAP_CORE_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
 
-	private String TAP_CORE_SOFTWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?softwareModule WHERE { {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} }";
-	private String TAP_CORE_HARDWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?hardwareModule WHERE { {?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} }";
+	private String TAP_CORE_SOFTWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?softwareModule WHERE{{?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} }";
+	
+	private String TAP_CORE_HARDWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?hardwareModule WHERE{{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} }";
 
-	private String TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?serviceSoftwareModule ?prop ?value ?system ?softwareVersion ?software ?user WHERE { {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>} {?serviceSoftwareModule a <http://semoss.org/ontologies/Concept/ServiceSoftwareModule>} {?systemService ?consists ?serviceSoftwareModule} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?serviceSoftwareModule ?prop ?value} {?system a <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consistsOf ?systemService} {?typeOf1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} {?serviceSoftwareModule ?typeOf1 ?softwareModule} {?typeOf2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?softwareVersion a <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?softwareModule ?typeOf2 ?softwareVersion} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?software a <http://semoss.org/ontologies/Concept/Software>} {?software ?has ?softwareVersion} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} }";
-	private String TAP_CORE_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value WHERE { {?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?softwareModule ?prop ?value} }";
+	private String TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value ?system ?softwareVersion ?software ?user WHERE{{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?software <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Software>} {?serviceSoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceSoftwareModule>} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?systemService <http://semoss.org/ontologies/Relation/Consists> ?serviceSoftwareModule} {?serviceSoftwareModule ?prop ?value} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?softwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareVersion} {?software <http://semoss.org/ontologies/Relation/Has> ?softwareVersion} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user}}";
+	
+	private String TAP_CORE_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value WHERE{{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?softwareModule ?prop ?value}}";
+	
+	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value ?system ?hardwareVersion ?hardware ?user WHERE{{?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceHardwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?hardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?hardware <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Hardware>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?systemService <http://semoss.org/ontologies/Relation/Has> ?serviceHardwareModule} {?serviceHardwareModule ?prop ?value} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?hardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareVersion} {?hardware <http://semoss.org/ontologies/Relation/Has> ?hardwareVersion} {?systemService ?usedBy ?user}}";
+	
+	private String TAP_CORE_AGGREGATION_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value WHERE{{?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule ?prop ?value}}";
 
-	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?serviceHardwareModule ?prop ?value ?system ?hardwareVersion ?hardware ?user WHERE { {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?has1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?serviceHardwareModule a <http://semoss.org/ontologies/Concept/ServiceHardwareModule>} {?systemService ?has1 ?serviceHardwareModule} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?serviceHardwareModule ?prop ?value} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?consistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>} {?system ?consistsOf ?systemService} {?typeOf1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule ?typeOf1 ?hardwareModule} {?typeOf2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?hardwareVersion a <http://semoss.org/ontologies/Concept/HardwareVersion>} {?hardwareModule ?typeOf2 ?hardwareVersion} {?has2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?hardware a <http://semoss.org/ontologies/Concept/Hardware>} {?hardware ?has2 ?hardwareVersion} {?systemService ?usedBy ?user} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} }";
-	private String TAP_CORE_AGGREGATION_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value WHERE { {?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule ?prop ?value} }";
-
-	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE { {?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter( regex(str(?relations),\"^http://semoss\") ) }";
-	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE { {?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }";
+	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE{{?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter(regex(str(?relations),\"^http://semoss\"))}";
+	
+	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE{{?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 
 	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
 		this.servicesDB = servicesDB;
@@ -97,23 +116,37 @@ public class ServicesAggregationProcessor {
 		boolean success = true;
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
-
+		
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY);
+		
 		runRelationshipAggregation(TAP_SERVICES_ICD_CONSUME_SYS_QUERY);
+		
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY);
+		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ICD_DFORM_QUERY);
+		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_DFREQ_QUERY);
+		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_DPROT_QUERY);
+		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_LIFECYCLE_QUERY);
 
 		runSystemServiceLifeCylceAggregation(TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY);
 
-		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_PROPERTY_AGGREGATION_QUERY);
+		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
-		runICDAggregation(TAP_SERVICES_AGGREGATE_ICD_QUERY, TAP_CORE_AGGREGATE_ICD_QUERY);
+		runICDPropAggregation(TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY, TAP_CORE_AGGREGATE_ICD_PROP_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
@@ -351,17 +384,17 @@ public class ServicesAggregationProcessor {
 		}
 	}
 
-	private void runICDAggregation(String servicesQuery, String coreQuery)
+	private void runICDPropAggregation(String servicesQuery, String coreQuery)
 	{
 		dataHash.clear();
 
 		logger.info(servicesQuery);
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
-		processICDAggregation(sjswService, false);
+		processICDPropAggregation(sjswService, false);
 
 		logger.info(coreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
-		processICDAggregation(sjswCore , true);
+		processICDPropAggregation(sjswCore , true);
 
 		// processing modifies class variable dataHash directly
 		deleteData(removeDataHash);
@@ -371,7 +404,7 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// process icds
 
-	private void processICDAggregation(SesameJenaSelectWrapper sjsw, boolean TAP_Core) 
+	private void processICDPropAggregation(SesameJenaSelectWrapper sjsw, boolean TAP_Core) 
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -390,10 +423,6 @@ public class ServicesAggregationProcessor {
 				user = "";
 			}
 
-			// variables to define relationship
-			String edgeType = "";
-			String newNodeType = "";
-
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
@@ -402,20 +431,14 @@ public class ServicesAggregationProcessor {
 					if(prop.equals(propURI + "Data"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
-						edgeType = "Has";
-						newNodeType = "DataObject";
 					}
 					else if(prop.equals(propURI + "Format"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
-						edgeType = "Has";
-						newNodeType = "DForm";
 					}
 					else if(prop.equals(propURI + "Frequency"))
 					{
 						returnTriple = processDFreq(sub, prop, value);
-						edgeType = "Has";
-						newNodeType = "DFreq";
 					}
 					else if(prop.equals(propURI + "Interface_Name"))
 					{
@@ -424,8 +447,6 @@ public class ServicesAggregationProcessor {
 					else if(prop.equals(propURI + "Protocol"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
-						edgeType = "Has";
-						newNodeType = "DProt";
 					}
 					else if(prop.equals(propURI + "Source"))
 					{
@@ -446,16 +467,6 @@ public class ServicesAggregationProcessor {
 					if(returnTriple[0] != null)
 					{
 						addToHash(returnTriple);
-						if(!edgeType.equals("") && !newNodeType.equals(""))
-						{
-							String newRel = getBaseURI(sub) + "/Relation/" + edgeType + "/"  + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
-							String newObj = getBaseURI(sub) + "/Concept/" + newNodeType + "/" + getTextAfterFinalDelimeter(value.toString().replaceAll("\"", ""), "/");
-							logger.info("ADDING:     " + sub + " -----> {" + newRel + " --- " + newObj + "}");
-							addToHash(new Object[]{sub, newRel, newObj});
-
-							addToAllRelationships(newRel);
-							addToAllConcepts(newObj);
-						}
 					}
 					// sub already exists when going through TAP Core db
 					if(!TAP_Core)
@@ -471,7 +482,7 @@ public class ServicesAggregationProcessor {
 			}
 		}
 	}
-
+	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// process terror
 
