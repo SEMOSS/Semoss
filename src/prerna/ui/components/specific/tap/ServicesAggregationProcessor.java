@@ -117,55 +117,79 @@ public class ServicesAggregationProcessor {
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
 		
+		logger.info("PROCESSING SYSTEM USERS FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY);
 		
+		logger.info("PROCESSING PERSONNEL FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
 		
+		logger.info("PROCESSING USER INTERFACE FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
 		
+		logger.info("PROCESSING BP FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
 		
+		logger.info("PROCESSING ACTIVITY FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
 		
+		logger.info("PROCESSING BLU FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
 		
+		logger.info("PROCESSING SYSTEM PROVIDE ICDS AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY);
 		
+		logger.info("PROCESSING ICD CONSUME SYSTEM AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_ICD_CONSUME_SYS_QUERY);
 		
+		logger.info("PROCESSING ICD PAYLOAD DATA_OBJECT AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY);
+		logger.info("PROCESSING ICD HAS DFORM AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ICD_DFORM_QUERY);
+		logger.info("PROCESSING ICD HAS DFREQ AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_DFREQ_QUERY);
+		logger.info("PROCESSING ICD HAS DPROT_OBJECT AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_DPROT_QUERY);
+		logger.info("PROCESSING ICD PHASE LIFECYCLE AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICER_AGGREGATE_ICD_LIFECYCLE_QUERY);
 
+		logger.info("PROCESSING SYSTEM SERVICE LIFE AND AGGREGATING INTO TAP CORE");
 		runSystemServiceLifeCylceAggregation(TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY);
 
+		logger.info("PROCESSING SYSTEM SERVICE PROPERTIES AND AGGREGATING TO SYSTEMS IN TAP CORE");
+		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE SO NO PROPERTIES ARE LOST");
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
+		logger.info("PROCESSING ICD PAYLOAD DATA RELATIONSHIP PROPERTIES AND AGGREGATING TO PAYLOAD RELATIONSHIP IN TAP CORE");
+		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE SO NO PROPERTIES ARE LOST");
 		runICDPropAggregation(TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY, TAP_CORE_AGGREGATE_ICD_PROP_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
+		logger.info("PROCESSING SYSTEM TERROR RELATIONSHIP AND WEIGHT PROPERTY AND AGGREGATING INTO TAP CORE");
+		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE NEW WEIGHT OF TERROR PROPERTY VALUE");
 		runTErrorAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, TAP_CORE_AGGREGATE_TERROR_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
+		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND CRM PROPERTY AND AGGREGATING INTO TAP CORE");
+		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE CRM");
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_QUERY);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
+		logger.info("PROCESSING SERVICE SYSTEM MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY, TAP_CORE_AGGREGATION_SOFTWARE_QUERY, true);
 		if(!errorMessage.isEmpty())
 		{
 			return (success = false);
 		}
+		logger.info("PROCESSING SERVICE HARDWARE MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATE_HARDWARE_QUERY, TAP_CORE_AGGREGATION_HARDWARE_QUERY, false);
 		if(!errorMessage.isEmpty())
 		{
@@ -180,7 +204,6 @@ public class ServicesAggregationProcessor {
 
 	private void runRelationshipAggregation(String query)
 	{
-		logger.info(query);
 		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		String[] vars = sjsw.getVariables();
@@ -192,7 +215,7 @@ public class ServicesAggregationProcessor {
 			String pred = sjss.getRawVar(vars[1]).toString();
 			String object = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
-			logger.info("ADDING:     " + subject + " -----> {" + pred + " --- " + object + "}");
+			logger.debug("ADDING RELATIONSHIP:     " + subject + " -----> {" + pred + " --- " + object + "}");
 			addToHash(new String[]{subject, pred, object});
 			// add instances to master list
 			addToAllConcepts(subject);
@@ -206,7 +229,6 @@ public class ServicesAggregationProcessor {
 	// process system life cycle properties
 	private void runSystemServiceLifeCylceAggregation(String query) 
 	{
-		logger.info(query);
 		dataHash.clear();
 		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
 		Hashtable<String, LinkedList<String>> lifeCycleHash = new Hashtable<String, LinkedList<String>>();
@@ -228,6 +250,7 @@ public class ServicesAggregationProcessor {
 			addToAllConcepts(sys);
 			addToAllConcepts(lifeCycle);
 			addToAllRelationships(pred);
+			logger.debug("ADDING SYSTEM LIFECYCLE:     " + sys + " -----> {" + pred + " --- " + lifeCycle + "}");
 			addToHash(new String[]{sys, pred, lifeCycle});
 		}
 		processData(dataHash);
@@ -253,11 +276,13 @@ public class ServicesAggregationProcessor {
 					lifeCycleList.add(pred);
 					lifeCycleList.add(lifeCycle);
 					lifeCycleHash.put(sys, lifeCycleList);
+					logger.debug("ADDING NEW LIFECYCLE LIST:     " + sys + " -----> {" + pred + " --- " + lifeCycleList.toString() + "}");
 				}
 				else
 				{
 					LinkedList<String> lifeCycleList = lifeCycleHash.get(sys);
 					lifeCycleList.add(lifeCycle);
+					logger.debug("ADJUSTING LIFECYCLE LIST:     " + sys + " -----> {" + pred + " --- " + lifeCycleList.toString() + "}");
 				}
 			}
 		}
@@ -270,11 +295,9 @@ public class ServicesAggregationProcessor {
 	private void runSystemServicePropertyAggregation(String propSystemServiceQuery, String propTAPCoreQuery)
 	{
 		dataHash.clear();
-		logger.info("PROCESSING QUERY: " + propSystemServiceQuery);
 		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
 		processServiceSystemProperties(sjswServices,  false);
 
-		logger.info("PROCESSING QUERY: " + propTAPCoreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(propTAPCoreQuery, coreDB);
 		processServiceSystemProperties(sjswCore, true);
 
@@ -365,6 +388,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
+						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
 						addToHash(returnTriple);
 					}
 
@@ -388,11 +412,9 @@ public class ServicesAggregationProcessor {
 	{
 		dataHash.clear();
 
-		logger.info(servicesQuery);
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		processICDPropAggregation(sjswService, false);
 
-		logger.info(coreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
 		processICDPropAggregation(sjswCore , true);
 
@@ -466,6 +488,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
+						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
 						addToHash(returnTriple);
 					}
 					// sub already exists when going through TAP Core db
@@ -491,11 +514,9 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
 
-		logger.info(servicesQuery);
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		aggregatedTError = runAggregateAllData(sjswService, aggregatedTError, "weight", false);
 
-		logger.info(coreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
 		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
 
@@ -554,9 +575,9 @@ public class ServicesAggregationProcessor {
 				}
 
 				Double TError = totalTErr/(counter-1);
-				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
+				logger.debug("ADDING SYSTEM TO TERROR RELATIONSHIP:     " + sub + " -----> {" + pred + " --- " + obj + "}");
 				addToHash(new Object[]{sub, pred, obj});
-				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
+				logger.debug("ADDING TERROR WEIGHT RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
 				addToHash(new Object[]{pred, propertyURI, TError});
 				addToAllConcepts(obj);
 				addToAllRelationships(pred);
@@ -573,11 +594,9 @@ public class ServicesAggregationProcessor {
 		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
 
-		logger.info(servicesQuery);
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		aggregatedDataObjects = runAggregateAllData(sjswService , aggregatedDataObjects, "CRM", false);
 
-		logger.info(coreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
 		aggregatedDataObjects = runAggregateAllData(sjswCore, aggregatedDataObjects, "CRM", true);
 
@@ -613,9 +632,9 @@ public class ServicesAggregationProcessor {
 					CRM = "\"R\"";
 				}
 
-				logger.info("ADDING:     " + sub + " -----> {" + pred + " --- " + obj + "}");
+				logger.debug("ADDING SYSTEM TO DATAOBJECT RELATIONSHIP:     " + sub + " -----> {" + pred + " --- " + obj + "}");
 				addToHash(new Object[]{sub, pred, obj});
-				logger.info("ADDING:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
+				logger.debug("ADDING DATAOBJECT CRM RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
 				addToHash(new Object[]{pred, propertyURI, CRM});
 				addToAllRelationships(pred);
 			}
@@ -648,11 +667,9 @@ public class ServicesAggregationProcessor {
 	{
 		dataHash.clear();
 
-		logger.info("PROCESSING QUERY: " + servicesQuery);
 		SesameJenaSelectWrapper sjswServices = processQuery(servicesQuery, servicesDB);
 		processHardwareSoftwareProperties(sjswServices,  false, softwareModule);
 
-		logger.info("PROCESSING QUERY: " + coreQuery);
 		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
 		processHardwareSoftwareProperties(sjswCore, true, softwareModule);
 
@@ -729,6 +746,7 @@ public class ServicesAggregationProcessor {
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					if(returnTriple[0] != null)
 					{
+						logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[3].toString() + "}");
 						addToHash(returnTriple);
 					}
 
@@ -755,13 +773,19 @@ public class ServicesAggregationProcessor {
 							//relationship from system to softwareModule
 							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 							addToAllRelationships(predSysToMod);
+							logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
 							addToHash(new String[]{system, predSysToMod, module});
 							//relationship from softwareModule to softwareVersion
 							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 							addToAllRelationships(predModToVer);
+							logger.debug("SOFTWARE MODULE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + softwareV + "}");
 							addToHash(new String[]{module, predModToVer, softwareV});
 							//relationship from software to softwareVersion
 							String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+							logger.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
 							addToHash(new String[]{software, predSoffToVer, softwareV});
 						}
 					}
@@ -781,14 +805,20 @@ public class ServicesAggregationProcessor {
 							//relationship from system to hardwareModule
 							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 							addToAllRelationships(predSysToMod);
+							logger.debug("SYSTEM TO HARDWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
 							addToHash(new String[]{system, predSysToMod, module});
 							//relationship from hardwareModule to hardwareVersion
 							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 							addToAllRelationships(predModToVer);
+							logger.debug("HARDWARE MODULE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + hardwareV + "}");
 							addToHash(new String[]{module, predModToVer, hardwareV});
 							//relationship from software to softwareVersion
-							String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
-							addToHash(new String[]{hardware, predSoffToVer, hardwareV});
+							String predhARDToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+							logger.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+							logger.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
+							addToHash(new String[]{hardware, predhARDToVer, hardwareV});
 						}
 					}
 				}
@@ -868,7 +898,7 @@ public class ServicesAggregationProcessor {
 					concept_triple = false;
 				}
 				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, concept_triple);
-				logger.info(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				logger.info("ADDING INTO TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -921,13 +951,13 @@ public class ServicesAggregationProcessor {
 			for (String sub : allConcepts.get(obj) )
 			{
 				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
-				logger.info(sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				logger.info("ADDING INSTANCE TYPEOF CONCEPT TRIPLE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 			// add concepts that are not already in db
 			if(!conceptList.contains(obj))
 			{
 				( (BigDataEngine) coreDB).addStatement(obj, subclassOf, concept, true);
-				logger.info(obj + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
+				logger.info("ADDING NEW CONCEPT TRIPLE: " + obj + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
 			}
 		}
 	}
@@ -952,13 +982,13 @@ public class ServicesAggregationProcessor {
 			for (String sub : allRelations.get(obj) )
 			{
 				( (BigDataEngine) coreDB).addStatement(sub, subpropertyOf, obj, true);
-				logger.info(sub + ">>>>>" + subpropertyOf + ">>>>>" + obj + ">>>>>");
+				logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + sub + ">>>>>" + subpropertyOf + ">>>>>" + obj + ">>>>>");
 			}
 			// add relationships that are not already in db
 			if(!relationshipList.contains(obj))
 			{
 				( (BigDataEngine) coreDB).addStatement(obj, subpropertyOf, relation, true);
-				logger.info(obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
+				logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 			}
 		}	
 	}
@@ -1302,6 +1332,7 @@ public class ServicesAggregationProcessor {
 
 	//process the query
 	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
+		logger.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
@@ -1338,7 +1369,7 @@ public class ServicesAggregationProcessor {
 					dataList.add(prop);
 					innerHash.put(obj, dataList);
 					aggregatedData.put(sys, innerHash);
-					logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+					logger.debug("ADDING NEW DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
 				}
 				else
 				{
@@ -1348,14 +1379,14 @@ public class ServicesAggregationProcessor {
 						dataList.add(pred);
 						dataList.add(prop);
 						innerHash.put(obj, dataList);
-						logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+						logger.debug("ADDING NEW DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
 					}
 					else
 					{
 						innerHash = aggregatedData.get(sys);
 						dataList = innerHash.get(obj);
 						dataList.add(prop);
-						logger.info("ADDING      :     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+						logger.debug("ADJUSTING DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
 					}
 				}
 
