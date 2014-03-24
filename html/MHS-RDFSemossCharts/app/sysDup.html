@@ -370,24 +370,21 @@
 	      domainArray = $('#slider').data('slider').getValue();
 	      
 	      if (this.options[this.selectedIndex].value == 'Green') {
-		colors = colorsGreen;
+		colors = colorsGreen.slice(0);
 	      } else if (this.options[this.selectedIndex].value == 'Blue') {
-		colors = colorsBlue;
+		colors = colorsBlue.slice(0);
 	      }else {
-		colors = colorsRed;
+		colors = colorsRed.slice(0);
 	      }
 	      
 	      colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, 100]) // should be max value
-                .range(colors);
+		  .domain([ 0, buckets - 1, 100]) // should be max value
+		  .range(colors);
 		  
-		  var barW = 280;
-		  var barH = 190;
-		  
-		 bar.attr("fill", function(d) { return colorScale(d.Score) });
-		
-	      heatMap
-		.style("fill", function(d) {
+		 if(bar){ 
+		  bar.attr("fill", function(d) { return colorScale(d.Score) });
+		 }
+	      heatMap.style("fill", function(d) {
 		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
 		  return colorScale(d.Value);
 		}else {return "white"}
