@@ -118,14 +118,22 @@ public class SysDupeRefreshBrowserFunction implements BrowserFunction {
 			for(int orderedVarIdx = minVarLoc; orderedVarIdx < orderedVars.size(); orderedVarIdx++){
 				String var = orderedVars.get(orderedVarIdx);
 				if(selectedVars.contains(var)){//this means it is a valid var (aka checked)
+					Double minVal = minimumWeights.get(var);//need to see if minimum weight was specified for this param
 					Hashtable<String, Hashtable<String, Object>> varHash = paramDataHash.get(var);
 					Hashtable elementHash = varHash.get(cellKey);
-					if(elementHash == null){
-						storeCell = false;
-						break;
+					if(elementHash != null){
+						Double newVal = (Double) elementHash.get(valueString);
+						if(minVal == null || newVal>=minVal){ // then it is valid
+							score = score + (newVal / totalVars);
+						}
+						else{
+							storeCell = false;
+							break;
+						}
 					}
 					else{
-						score = score + ((Double) elementHash.get(valueString) / totalVars);
+						storeCell = false;
+						break;
 					}
 					
 					//store all information if first time looking at the cell
