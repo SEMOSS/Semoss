@@ -15,7 +15,7 @@ import com.teamdev.jxbrowser.BrowserFunction;
 /**
  * An browser class for refreshing system duplication heat map based on selected parameters.
  */
-public class SysDupeRefreshBrowserFunction implements BrowserFunction {
+public class DuplicationRefreshBrowserFunction implements BrowserFunction {
 
 	Logger logger = Logger.getLogger(getClass());
 	ArrayList<String> orderedVars = new ArrayList<String>();
@@ -146,8 +146,7 @@ public class SysDupeRefreshBrowserFunction implements BrowserFunction {
 				retArray = storeCellInArray(cellKey, finalCellHash, retArray);
 			}
 			
-		}
-		
+		}		
 //		
 //		for(int orderedVarIdx = 0; orderedVarIdx < orderedVars.size(); orderedVarIdx++){
 //			//not guarenteed every system will have every parameter, but by starting with the smallest, we are most likely good to go

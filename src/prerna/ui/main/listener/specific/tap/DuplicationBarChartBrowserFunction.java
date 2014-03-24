@@ -14,7 +14,7 @@ import com.teamdev.jxbrowser.BrowserFunction;
 /**
  * An browser class for refreshing system duplication heat map based on selected parameters.
  */
-public class SysDupeBarChartBrowserFunction implements BrowserFunction {
+public class DuplicationBarChartBrowserFunction implements BrowserFunction {
 
 	Logger logger = Logger.getLogger(getClass());
 	Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash;
