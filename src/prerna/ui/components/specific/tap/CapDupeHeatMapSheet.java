@@ -38,12 +38,8 @@ import com.teamdev.jxbrowser.events.NavigationListener;
 
 /**
  */
-public class CapDupeHeatMapSheet extends BrowserPlaySheet{
-	Logger logger = Logger.getLogger(getClass());
-	ArrayList<String> capList = new ArrayList<String>();
-	final String crmKey = "!CRM!";
-	Hashtable allHash = new Hashtable();
-	Hashtable paramDataHash = new Hashtable();
+public class CapDupeHeatMapSheet extends DuplicationHeatMapSheet{
+
 	String hrCoreDB = "HR_Core";
 	
 	/**
@@ -52,68 +48,12 @@ public class CapDupeHeatMapSheet extends BrowserPlaySheet{
 	public CapDupeHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-	}
-
-	/**
-	 * Processes all Capability Dupe queries and shows results in sysdupe.html format.
-	 */
-	@Override
-	public void createView()
-	{
-		SysDupeFunctions sdf = new SysDupeFunctions();
-		
-
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.addNavigationListener(new NavigationListener() {
-    	    public void navigationStarted(NavigationEvent event) {
-    	    	logger.info("event.getUrl() = " + event.getUrl());
-    	    }
-
-    	    public void navigationFinished(NavigationFinishedEvent event) {
-    	    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
-    	    	browser.registerFunction("healthGrid",  healthGridCall);
-    			callIt();
-    	    }
-    	});
-	       
-		browser.navigate("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		
+		setComparisonObjectType("Capability");
 	}
 	
-	/**
-	 * Formats data hashtable into proper format needed for charting.
-	 * 
-	 * @param dataHash Hashtable<String,Hashtable<String,Double>>	Hashtable of data to be formatted
-	 * 
-	 * @return Hashtable	Formatted hashtable of data
-	 */
-	public Hashtable processHashForCharting(Hashtable<String, Hashtable<String,Double>>dataHash)
-	{
-		//first create hashtable of arraylist with capability as key and corresponding data + blu as the values
-		Hashtable<String, Hashtable<String,String>> dataRetHash = new Hashtable<String, Hashtable<String,String>>();
-
-		for(Entry<String, Hashtable<String, Double>> capEntry : dataHash.entrySet()) 
-		{
-			String capName = capEntry.getKey();
-		    Hashtable<String,Double> capDataHash = capEntry.getValue();
-		    for(Entry<String, Double> capCompEntry : capDataHash.entrySet()) 
-			{
-				String capName2 = capCompEntry.getKey();
-			    double capCompValue = capCompEntry.getValue();
-				Hashtable elementHash = new Hashtable();
-				elementHash.put("Capability1", capName);
-				elementHash.put("Capability2", capName2);
-				elementHash.put("Score", capCompValue*100);
-				dataRetHash.put(capName +"-"+capName2, elementHash);
-			}
-		}
-		return dataRetHash;
-	}
-
-
 	public void createData()
 	{
-		SysDupeFunctions sdf = new SysDupeFunctions();
+		DuplicationFunctions sdf = new DuplicationFunctions();
 		addPanel();
 		// this would be create the data
 		Hashtable dataHash = new Hashtable();
@@ -121,31 +61,31 @@ public class CapDupeHeatMapSheet extends BrowserPlaySheet{
 		//get list of capabilities first
 		updateProgressBar("10%...Getting all capabilities for evaluation", 10);
 		query = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
-		capList = sdf.createSystemList(hrCoreDB, query);
-		sdf.setSysList(capList);
+		comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, query);
+		sdf.setComparisonObjectList(comparisonObjectList);
 		
 		//first get databack from the 
 		updateProgressBar("20%...Evaluating Data/BLU Score", 20);
 		String dataQuery = "SELECT DISTINCT ?Capability ?Data ?CRM WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.} }";
 		String bluQuery = "SELECT DISTINCT ?Capability ?BusinessLogicUnit WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(hrCoreDB, dataQuery, bluQuery, SysDupeFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(hrCoreDB, dataQuery, bluQuery, DuplicationFunctions.VALUE);
 		dataHash = processHashForCharting(dataBLUHash);
 	
 		//Participants
 		String participantQuery ="SELECT DISTINCT ?Capability ?Participant WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;}{?Participant <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Participant>;}{?Capability ?Consists ?Task.}{?Task ?Requires ?Participant.}}";
 		updateProgressBar("50%...Evaluating Capability Supporting Participants", 50);
-		Hashtable participantHash = sdf.compareSystemParameterScore(hrCoreDB, participantQuery, SysDupeFunctions.VALUE);
+		Hashtable participantHash = sdf.compareObjectParameterScore(hrCoreDB, participantQuery, DuplicationFunctions.VALUE);
 		participantHash = processHashForCharting(participantHash);
 
 		//BP
 		String bpQuery ="SELECT DISTINCT ?Capability ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Capability ?Supports ?BusinessProcess.} }";
 		updateProgressBar("50%...Evaluating Capability Supporting Business Processes", 50);
-		Hashtable bpHash = sdf.compareSystemParameterScore(hrCoreDB, bpQuery, SysDupeFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(hrCoreDB, bpQuery, DuplicationFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
 		String attributeQuery ="SELECT DISTINCT ?Capability ?Attribute WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute>;}{?Capability ?Consists ?Task.}{?Task ?Has ?Attribute.}}";
-		updateProgressBar("55%...Evaluating Capability Supporting Activity", 55);
-		Hashtable attributeHash = sdf.compareSystemParameterScore(hrCoreDB, attributeQuery, SysDupeFunctions.VALUE);
+		updateProgressBar("55%...Evaluating Capability Supporting Attribute", 55);
+		Hashtable attributeHash = sdf.compareObjectParameterScore(hrCoreDB, attributeQuery, DuplicationFunctions.VALUE);
 		attributeHash = processHashForCharting(attributeHash);	
 
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
@@ -162,29 +102,4 @@ public class CapDupeHeatMapSheet extends BrowserPlaySheet{
 		allHash.put("value", "Score");
 	}
 	
-	public void callIt()
-	{
-		Enumeration enumKey = paramDataHash.keys();
-		while (enumKey.hasMoreElements())
-		{
-			String key = (String) enumKey.nextElement();
-			Object value = (Object) paramDataHash.get(key);
-			//if value equal to 0, dont need to calculate
-			Gson gson = new Gson();
-			//.info("Converted " + gson.toJson(table));
-			browser.executeScript("dataBuilder('" + gson.toJson(value) + "', '"+key+"');");
-		}
-		enumKey = allHash.keys();
-		while (enumKey.hasMoreElements())
-		{
-			String key = (String) enumKey.nextElement();
-			Object value = (Object) allHash.get(key);
-			//if value equal to 0, dont need to calculate
-			Gson gson = new Gson();
-			//.info("Converted " + gson.toJson(table));
-			browser.executeScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
-		}
-		browser.executeScript("start();");
-		updateProgressBar("100%...Visualization Complete", 100);
-	}
 }
