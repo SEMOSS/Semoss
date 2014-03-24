@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.SysDupeBarChartBrowserFunction;
+import prerna.ui.main.listener.specific.tap.DuplicationBarChartBrowserFunction;
 import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
-import prerna.ui.main.listener.specific.tap.SysDupeRefreshBrowserFunction;
+import prerna.ui.main.listener.specific.tap.DuplicationRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -40,22 +40,15 @@ import com.teamdev.jxbrowser.events.NavigationListener;
 
 /**
  */
-public class SysDupeHeatMapSheet extends BrowserPlaySheet{
-	Logger logger = Logger.getLogger(getClass());
-	ArrayList<String> sysList = new ArrayList<String>();
-	final String crmKey = "!CRM!";
-	Hashtable allHash = new Hashtable();
-	Hashtable paramDataHash = new Hashtable();
-	Hashtable keyHash = new Hashtable();
+public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 	String tapCoreDB = "TAP_Core_Data";
-	SysDupeRefreshBrowserFunction refreshFunction;
-	
 	/**
 	 * Constructor for SysDupeHeatMapSheet.
 	 */
 	public SysDupeHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
+		setComparisonObjectType("System");
 	}
 
 	/**
@@ -73,12 +66,12 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
     	    public void navigationFinished(NavigationFinishedEvent event) {
     	    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
     	    	browser.registerFunction("healthGrid",  healthGridCall);
-    	    	refreshFunction = new SysDupeRefreshBrowserFunction();
+    	    	refreshFunction = new DuplicationRefreshBrowserFunction();
     	    	refreshFunction.setParamDataHash(paramDataHash);
     	    	refreshFunction.setKeyHash(keyHash);
     	    	refreshFunction.setBrowser(browser);
     	    	browser.registerFunction("refreshFunction",  refreshFunction);
-    	    	SysDupeBarChartBrowserFunction barChartFunction = new SysDupeBarChartBrowserFunction();
+    	    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
     	    	barChartFunction.setParamDataHash(paramDataHash);
     	    	browser.registerFunction("barChartFunction",  barChartFunction);
     			callIt();
@@ -89,50 +82,10 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		
 	}
 	
-	/**
-	 * Formats data hashtable into proper format needed for charting.
-	 * 
-	 * @param dataHash Hashtable<String,Hashtable<String,Double>>	Hashtable of data to be formatted
-	 * 
-	 * @return Hashtable	Formatted hashtable of data
-	 */
-	public Hashtable processHashForCharting(Hashtable<String, Hashtable<String,Double>>dataHash)
-	{
-		//first create hashtable of arraylist with system as key and corresponding data + blu as the values
-		Hashtable<String, Hashtable<String,String>> dataRetHash = new Hashtable<String, Hashtable<String,String>>();
-
-		for(Entry<String, Hashtable<String, Double>> sysEntry : dataHash.entrySet()) 
-		{
-			String sysName = sysEntry.getKey();
-		    Hashtable<String,Double> sysDataHash = sysEntry.getValue();
-		    for(Entry<String, Double> sysCompEntry : sysDataHash.entrySet()) 
-			{
-				String sysName2 = sysCompEntry.getKey();
-			    double sysCompValue = sysCompEntry.getValue();
-			    if (!sysName.equals(sysName2))
-			    {
-					Hashtable elementHash = new Hashtable();
-//					elementHash.put("System1", sysName);
-//					elementHash.put("System2", sysName2);
-					elementHash.put("Score", sysCompValue*100);
-					String key = sysName +"-"+sysName2;
-					dataRetHash.put(key, elementHash);
-					if(!keyHash.containsKey(key)){
-						Hashtable keyElementHash = new Hashtable();
-						keyElementHash.put("System1", sysName);
-						keyElementHash.put("System2", sysName2);
-						keyHash.put(key, keyElementHash);
-					}
-			    }
-
-			}
-		}
-		return dataRetHash;
-	}
-
+	@Override
 	public void createData()
 	{
-		SysDupeFunctions sdf = new SysDupeFunctions();
+		DuplicationFunctions sdf = new DuplicationFunctions();
 		addPanel();
 		// this would be create the data
 		Hashtable dataHash = new Hashtable();
@@ -140,14 +93,14 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		//get list of systems first
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
 		query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
-		sysList = sdf.createSystemList(tapCoreDB, query);
-		sdf.setSysList(sysList);
+		comparisonObjectList = sdf.createComparisonObjectList(tapCoreDB, query);
+		sdf.setComparisonObjectList(comparisonObjectList);
 		
 		//first get databack from the 
 		updateProgressBar("20%...Evaluating Data/BLU Score", 20);
 		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System ?UsedBy ?SystemUser}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?UsedBy ?SystemUser}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?provide ?BLU }}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, SysDupeFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, DuplicationFunctions.VALUE);
 		dataHash = processHashForCharting(dataBLUHash);
 		
 		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
@@ -165,22 +118,22 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 		//BP
 		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System ?Supports ?BusinessProcess}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("50%...Evaluating System Supporting Business Processes", 50);
-		Hashtable bpHash = sdf.compareSystemParameterScore(tapCoreDB, bpQuery, SysDupeFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(tapCoreDB, bpQuery, DuplicationFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
 		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System ?Supports ?Activity}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("55%...Evaluating System Supporting Activity", 55);
-		Hashtable actHash = sdf.compareSystemParameterScore(tapCoreDB, actQuery, SysDupeFunctions.VALUE);
+		Hashtable actHash = sdf.compareObjectParameterScore(tapCoreDB, actQuery, DuplicationFunctions.VALUE);
 		actHash = processHashForCharting(actHash);
 		
 		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser}{?UsedBy2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System ?UsedBy2 ?Personnel}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("60%...Evaluating System Users", 60);
-		Hashtable userHash = sdf.compareSystemParameterScore(tapCoreDB, userQuery, SysDupeFunctions.VALUE);
+		Hashtable userHash = sdf.compareObjectParameterScore(tapCoreDB, userQuery, DuplicationFunctions.VALUE);
 		userHash = processHashForCharting(userHash);
 		
 		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System ?Utilizes ?UserInterface}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("70%...Evaluating User Interface", 70);
-		Hashtable uiHash = sdf.compareSystemParameterScore(tapCoreDB, uiQuery, SysDupeFunctions.VALUE);
+		Hashtable uiHash = sdf.compareObjectParameterScore(tapCoreDB, uiQuery, DuplicationFunctions.VALUE);
 		uiHash = processHashForCharting(uiHash);
 		
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
@@ -206,40 +159,5 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 
 	}
 	
-	public void callIt()
-	{
-		Gson gson = new Gson();
-		ArrayList args = new ArrayList();
-		Enumeration enumKey = paramDataHash.keys();
-		int count = 0;
-		while (enumKey.hasMoreElements())
-		{
-			args.add(enumKey.nextElement());
-			count++;
-		}
-		Hashtable testHash = new Hashtable();
-//		testHash.put("Deployment_(Theater/Garrison)", 0.90);
-//		browser.executeScript("dataBuilder('" + gson.toJson(args) + "', '" + gson.toJson(testHash) + "');");
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray = refreshFunction.calculateHash(args, testHash);
-		refreshFunction.sendData(calculatedArray);
-		
-		//send available dimensions:
-		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
-		System.out.println(availCatString);
-		browser.executeScript(availCatString);
-		
-		enumKey = allHash.keys();
-		while (enumKey.hasMoreElements())
-		{
-			String key = (String) enumKey.nextElement();
-			Object value = (Object) allHash.get(key);
-			
-			browser.executeScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
-			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
-		}
-		browser.executeScript("start();");
-		updateProgressBar("100%...Visualization Complete", 100);
-		allHash.clear();
-//		paramDataHash.clear();
-	}
+
 }
