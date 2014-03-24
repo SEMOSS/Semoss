@@ -184,6 +184,31 @@ public class DHMSMSysDecommissionDataProcessing {
 			time++;
 		}
 
+		// round all cost values
+		for( Integer years : output.keySet() )
+		{
+			Hashtable<String, Object> siteSystem = (Hashtable<String, Object>) ((Hashtable<String, Object>) output.get(years)).get("site");
+			Hashtable<String, Object> aggregatedSystems = (Hashtable<String, Object>) ((Hashtable<String, Object>) output.get(years)).get("system");
+			for ( String site : siteSystem.keySet() )
+			{
+				Double TCostSite = (Double) ((Hashtable<String, Object>) siteSystem.get(site)).get("TCostSite");
+				TCostSite = (double) Math.round(TCostSite);
+				Hashtable<String, Object> systemsAtSite = (Hashtable<String, Object>) ((Hashtable<String, Object>) siteSystem.get(site)).get("SystemForSite");
+				for ( String sys : systemsAtSite.keySet())
+				{
+					Hashtable<String, Object> sysProp = (Hashtable<String, Object>) systemsAtSite.get(sys);
+					Double loe = (Double) sysProp.get("Cost");
+					loe = (double) Math.round(loe);
+				}
+			}
+			for( String sys : aggregatedSystems.keySet() )
+			{
+				Hashtable<String, Object> sysProp = (Hashtable<String, Object>) aggregatedSystems.get(sys);
+				Double TCostSystem = (Double) sysProp.get("TCostSystem");
+				TCostSystem = (double) Math.round(TCostSystem);
+			}
+		}
+		
 		return output;
 	}
 
