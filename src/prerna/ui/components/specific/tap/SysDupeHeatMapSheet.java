@@ -27,7 +27,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.ui.main.listener.specific.tap.SysDupeBarChartBrowserFunction;
 import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
+import prerna.ui.main.listener.specific.tap.SysDupeRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -44,7 +46,9 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 	final String crmKey = "!CRM!";
 	Hashtable allHash = new Hashtable();
 	Hashtable paramDataHash = new Hashtable();
+	Hashtable keyHash = new Hashtable();
 	String tapCoreDB = "TAP_Core_Data";
+	SysDupeRefreshBrowserFunction refreshFunction;
 	
 	/**
 	 * Constructor for SysDupeHeatMapSheet.
@@ -69,6 +73,14 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
     	    public void navigationFinished(NavigationFinishedEvent event) {
     	    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
     	    	browser.registerFunction("healthGrid",  healthGridCall);
+    	    	refreshFunction = new SysDupeRefreshBrowserFunction();
+    	    	refreshFunction.setParamDataHash(paramDataHash);
+    	    	refreshFunction.setKeyHash(keyHash);
+    	    	refreshFunction.setBrowser(browser);
+    	    	browser.registerFunction("refreshFunction",  refreshFunction);
+    	    	SysDupeBarChartBrowserFunction barChartFunction = new SysDupeBarChartBrowserFunction();
+    	    	barChartFunction.setParamDataHash(paramDataHash);
+    	    	browser.registerFunction("barChartFunction",  barChartFunction);
     			callIt();
     	    }
     	});
@@ -100,10 +112,17 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 			    if (!sysName.equals(sysName2))
 			    {
 					Hashtable elementHash = new Hashtable();
-					elementHash.put("System1", sysName);
-					elementHash.put("System2", sysName2);
+//					elementHash.put("System1", sysName);
+//					elementHash.put("System2", sysName2);
 					elementHash.put("Score", sysCompValue*100);
-					dataRetHash.put(sysName +"-"+sysName2, elementHash);
+					String key = sysName +"-"+sysName2;
+					dataRetHash.put(key, elementHash);
+					if(!keyHash.containsKey(key)){
+						Hashtable keyElementHash = new Hashtable();
+						keyElementHash.put("System1", sysName);
+						keyElementHash.put("System2", sysName2);
+						keyHash.put(key, keyElementHash);
+					}
 			    }
 
 			}
@@ -189,31 +208,38 @@ public class SysDupeHeatMapSheet extends BrowserPlaySheet{
 	
 	public void callIt()
 	{
+		Gson gson = new Gson();
+		ArrayList args = new ArrayList();
 		Enumeration enumKey = paramDataHash.keys();
+		int count = 0;
 		while (enumKey.hasMoreElements())
 		{
-			String key = (String) enumKey.nextElement();
-			Object value = (Object) paramDataHash.get(key);
-			//if value equal to 0, dont need to calculate
-			Gson gson = new Gson();
-			//.info("Converted " + gson.toJson(table));
-			browser.executeScript("dataBuilder('" + gson.toJson(value) + "', '"+key+"');");
-			//System.out.println("dataBuilder('" + gson.toJson(value) + "', '"+key+"');");
+			args.add(enumKey.nextElement());
+			count++;
 		}
+		Hashtable testHash = new Hashtable();
+//		testHash.put("Deployment_(Theater/Garrison)", 0.90);
+//		browser.executeScript("dataBuilder('" + gson.toJson(args) + "', '" + gson.toJson(testHash) + "');");
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray = refreshFunction.calculateHash(args, testHash);
+		refreshFunction.sendData(calculatedArray);
+		
+		//send available dimensions:
+		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
+		System.out.println(availCatString);
+		browser.executeScript(availCatString);
+		
 		enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
 		{
 			String key = (String) enumKey.nextElement();
 			Object value = (Object) allHash.get(key);
-			//if value equal to 0, dont need to calculate
-			Gson gson = new Gson();
-			//.info("Converted " + gson.toJson(table));
+			
 			browser.executeScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 		}
 		browser.executeScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
 		allHash.clear();
-		paramDataHash.clear();
+//		paramDataHash.clear();
 	}
 }
