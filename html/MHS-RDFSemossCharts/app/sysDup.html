@@ -207,6 +207,12 @@
 	
 	  update();
       function update() {
+		if (xAxisArray.length < 100) {
+		  legendElementWidth = 40;
+		  if (xAxisArray.length < 40) {
+			legendElementWidth = 20;
+		  }
+		} 
       
 		width = xAxisArray.length * gridSize;
 		height = yAxisArray.length * gridSize;
