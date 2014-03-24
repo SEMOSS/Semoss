@@ -71,15 +71,8 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
     	    }
 
     	    public void navigationFinished(NavigationFinishedEvent event) {
-    	    	refreshFunction = new DuplicationRefreshBrowserFunction();
-    	    	refreshFunction.setParamDataHash(paramDataHash);
-    	    	refreshFunction.setKeyHash(keyHash);
-    	    	refreshFunction.setBrowser(browser);
-    	    	browser.registerFunction("refreshFunction",  refreshFunction);
-    	    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
-    	    	barChartFunction.setParamDataHash(paramDataHash);
-    	    	browser.registerFunction("barChartFunction",  barChartFunction);
-    			callIt();
+    	    	prepareNavigationFinished();
+
     	    }
     	});
 	       
@@ -95,6 +88,21 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
 		this.comparisonObjectType = comparisonObjectType;
 	}
 	
+	/**
+	 * Adds the refresh and bar chart listeners when navigation has finished.
+	 */
+	public void prepareNavigationFinished()
+	{
+    	refreshFunction = new DuplicationRefreshBrowserFunction();
+    	refreshFunction.setParamDataHash(paramDataHash);
+    	refreshFunction.setKeyHash(keyHash);
+    	refreshFunction.setBrowser(browser);
+    	browser.registerFunction("refreshFunction",  refreshFunction);
+    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
+    	barChartFunction.setParamDataHash(paramDataHash);
+    	browser.registerFunction("barChartFunction",  barChartFunction);
+		callIt();
+	}
 	/**
 	 * Formats data hashtable into proper format needed for charting.
 	 * 

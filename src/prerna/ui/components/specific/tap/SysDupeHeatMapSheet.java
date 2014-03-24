@@ -52,36 +52,24 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 	}
 
 	/**
-	 * Processes all Sys Dupe queries and shows results in sysdupe.html format.
+	 * Adds the health grid, refresh, and bar chart listeners when the navigation has finished.
 	 */
 	@Override
-	public void createView()
+	public void prepareNavigationFinished()
 	{
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.addNavigationListener(new NavigationListener() {
-    	    public void navigationStarted(NavigationEvent event) {
-    	    	logger.info("event.getUrl() = " + event.getUrl());
-    	    }
-
-    	    public void navigationFinished(NavigationFinishedEvent event) {
-    	    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
-    	    	browser.registerFunction("healthGrid",  healthGridCall);
-    	    	refreshFunction = new DuplicationRefreshBrowserFunction();
-    	    	refreshFunction.setParamDataHash(paramDataHash);
-    	    	refreshFunction.setKeyHash(keyHash);
-    	    	refreshFunction.setBrowser(browser);
-    	    	browser.registerFunction("refreshFunction",  refreshFunction);
-    	    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
-    	    	barChartFunction.setParamDataHash(paramDataHash);
-    	    	browser.registerFunction("barChartFunction",  barChartFunction);
-    			callIt();
-    	    }
-    	});
-	       
-		browser.navigate("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		
+    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
+    	browser.registerFunction("healthGrid",  healthGridCall);
+    	refreshFunction = new DuplicationRefreshBrowserFunction();
+    	refreshFunction.setParamDataHash(paramDataHash);
+    	refreshFunction.setKeyHash(keyHash);
+    	refreshFunction.setBrowser(browser);
+    	browser.registerFunction("refreshFunction",  refreshFunction);
+    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
+    	barChartFunction.setParamDataHash(paramDataHash);
+    	browser.registerFunction("barChartFunction",  barChartFunction);
+		callIt();
 	}
-	
+    	
 	@Override
 	public void createData()
 	{
