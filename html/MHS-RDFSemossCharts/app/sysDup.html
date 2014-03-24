@@ -96,6 +96,7 @@
 	var buckets = 9;
 	var heatMap; // we need at this level so dropdown can have access.
 	var legend;
+	var bar;
 	var colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"];
 	var colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"];
 	var colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"];
@@ -379,9 +380,11 @@
 	      colorScale = d3.scale.quantile()
                 .domain([ 0, buckets - 1, 100]) // should be max value
                 .range(colors);
-		
-	     var bar = side.selectAll("rect.bar")
-		.attr("fill", function(d) { return colorScale(d.Value) });
+		  
+		  var barW = 280;
+		  var barH = 190;
+		  
+		 bar.attr("fill", function(d) { return colorScale(d.Score) });
 		
 	      heatMap
 		.style("fill", function(d) {
@@ -596,7 +599,7 @@
 	    var barHeight = 20;
 	    var barSpacing = barHeight + barPadding;
 	    
-	    var bar = side.selectAll("rect.bar")
+	    bar = side.selectAll("rect.bar")
 	      .data(data);
 	    bar
 	      .enter()
