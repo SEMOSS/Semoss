@@ -11,11 +11,12 @@
 
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
     <script src="lib/d3.v3.js"></script>
-    <script src="lib/lodash.js"></script>
+    <script src="lib/underscore.js"></script>
     <script src="lib/select2.js"></script>
     <script src="lib/tooltip.js"></script>
     <script src="lib/bootstrap-slider.js"></script>
-	<!-- <script src="SysDupJSON_v06.js"></script> -->
+	<!--<script src="data/sysDup.js"></script>
+	<script src="data/refreshSysDup.js"></script>-->
 
   </head>
   <body>
@@ -44,145 +45,104 @@
     
     <div id="chart"></div>
     <script type="text/javascript">
-     
- //      start(dataString);
- //      function start(dataString) {
- //      	// var jsonData = jQuery.parseJSON(dataString);
-	// var data = dataString.dataSeries
-	// var xAxisName = dataString.xAxisTitle
-	// var yAxisName = dataString.yAxisTitle
-	// var heatValue = dataString.value
-      
+  
+      var builderObject = {};
       //Create the dataString global variable that is passed to both the data formation functions as well as the start function
       var dataString = {};
-      dataString["dataSeries"] = {}; // we need this to be created so all our data can go in it
+		dataString["dataSeries"] = {}; // we need this to be created so all our data can go in it
       
-      //For our actual data      
-      function dataBuilder (dataPiece, key) {
-	dataPieceFormatted = jQuery.parseJSON(dataPiece)
-	dataString["dataSeries"][key] = dataPieceFormatted;
-	
+    //   //For our actual data      
+      function dataBuilder (passedData) {
+      	var incrementalObject = jQuery.parseJSON(passedData);
+      	builderObject = _.extend(builderObject, incrementalObject);
       }
+
       //For our xAxisName, value etc.
       function dimensionData (dataPiece, key) {
-	dataPieceFormatted = jQuery.parseJSON(dataPiece)
-	dataString[key] = dataPieceFormatted;
+		dataString[key] = jQuery.parseJSON(dataPiece);
       }
-      
+      var dataRecieved = function(){};
+	  
+	  function refreshDataFunction() {
+	  	
+		dataRecieved(builderObject);
+	  }
+	  
       //start(dataString);
       function start() {
+		
+		//dataString["dataSeries"] = jQuery.parseJSON(passedFullData);
+  
 	
 	//var jsonData = jQuery.parseJSON(dataString);
-	var data = dataString.dataSeries
+	//var data = dataBuilder
 	
-	//var data = dataString.dataSeries
-	var xAxisName = dataString.xAxisTitle
-	var yAxisName = dataString.yAxisTitle
-	var heatValue = dataString.value
-
-	
-	
-	var refreshObject = data; // we need thisbecause we are not manipulating the data
-	
+	var data = builderObject;
+	var xAxisName = dataString.xAxisTitle;
+	var yAxisName = dataString.yAxisTitle;
+	var heatValue = dataString.value;
+	var categoryArray = dataString.categories;
 	var xAxisArray = [];
 	var yAxisArray = [];
-	var helperArray = [];
 	var dataArray = [];
-	var refreshArray = [];
-	
-	var finderArray = [];
 	var truncY = [];
 	var truncX = [];
 	var domainArray = [];
-	var keyVal = [];
-	var keyLength = 0;
-	var systemValues = [];
-	var groupedValues = [];
-	var avg;
-	var minSize;
-	var categoryArray = [];
-	var categorySize = [];
-	var eliminateFlag = false;
-	var catThresh = 0;
 	var sliderArray = [0,100];
-	var refreshPushed = false;
 	var yAxisMatches = [];
-	var dropDownArrayYAxisMatches = [];
+	var margin = { top: 185, right: 150, bottom: 100, left: 150 };
+	var gridSize = 15;
+	var legendElementWidth = 60;
+	var buckets = 9;
+	var heatMap; // we need at this level so dropdown can have access.
+	var legend;
+	var colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"];
+	var colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"];
+	var colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"];
+	var colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
 	
-	
+	/* Initialize tooltip */
+	var tip = d3.tip()
+	  .attr('class', 'd3-tip')
+	  .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
 	/*----------Format Data-------------*/
-	var keys = _.keys(refreshObject);
-	for (var category in data) {
-	  categoryArray.push(category);
-	  categorySize.push(_.size(data[category]));
-	}
 	
-//getting a list of all of the 7 categories
-//the length of each category - maybe not important
-
-	var small = refreshObject[keys[0]];
-
-//this is the first category. Look through all of the combinations 
-
-	for (var combos in small) {
-	  var totalVal = 0;
-	  var roundedAvg = 0;
-	  var roundedVal = 0;
-	  var val = 0;
-	  var count = 0;
-	  var xAxisVal;
-	  var yAxisVal;
-	  eliminateFlag = false;
-	  for (var category in data) {
-	    
-	    if (refreshObject[category][combos]) {
-	      count++
-	      totalVal += refreshObject[category][combos][heatValue];
-	      val = refreshObject[category][combos][heatValue];
-	      roundedVal = Math.round(val * 10) / 10
-	      xAxisVal = refreshObject[category][combos][xAxisName];
-	      yAxisVal = refreshObject[category][combos][yAxisName];
-	      finderArray.push({Value: roundedVal, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal, key: category})
-	    } else {
-	      totalVal = 0
-	      eliminateFlag = true;
-	      break;
-	    }
-	    
-//if you don't find the matching or combo in any category, flag on, and break
-
-
-	  }
-	  
-	  avg = totalVal / count;
-	  roundedAvg = Math.round(avg * 10) / 10
-	 
-//if exists in all selected categories, then push in new array
-
-	  if (!eliminateFlag) {
-	    xAxisArray.push(xAxisVal);
-	    yAxisArray.push(yAxisVal);
-	    dataArray.push({Value: roundedAvg, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal})
-	  }
-	}
-	  
+	
+	
+	
 	  //On click of heatmap this function is called. this is just for the bar chart
-	  var popover = function(param) {
-	    var listOfCurrentObjects = _.where(finderArray, {xAxisName: param.xAxisName, yAxisName: param.yAxisName});
-	    systemValues.length = 0;
-	    for(var i=0; i<listOfCurrentObjects.length;i++){
-	      systemValues.push(listOfCurrentObjects[i]);
-	    }
-	    
+	var popover = function(param) {
+	  	var cellKey = param.Key;
+		var thresh = {};
+	  for(var i = 0; i<categoryArray.length; i++) {
+		if (document.getElementById(categoryArray[i] + "filter").value) {
+		  thresh[categoryArray[i]] = parseFloat(document.getElementById(categoryArray[i] + "filter").value);
+		}
+	  }
+	  
+	  var chartData = barChartFunction( cellKey , JSON.stringify(categoryArray), JSON.stringify(thresh));
+
 	    var barData = [];
 	    barData.length = 0;
-	    barData = systemValues;
-	    barChart(barData);
+	    barData = jQuery.parseJSON(chartData);
+	    barChart(barData, param.xAxisName, param.yAxisName);
 	    
-	  }
-	  
-//sets up the axes for the heat map
+	}
 
+	/*----------Calculations-------------*/
+	calculate();
+	
+	
+	
+	function calculate() {
+		
+	  for (var key in data) {
+		xAxisArray.push(data[key][xAxisName]);
+		yAxisArray.push(data[key][yAxisName]);
+		var round = Math.round(data[key][heatValue] * 100) / 100
+		dataArray.push({"Key": key,"Value": round,"xAxis":data[key][xAxisName],"yAxis": data[key][yAxisName],"xAxisName":data[key][xAxisName],"yAxisName":data[key][yAxisName]});
+	  }
+		
 	  var uniqueX = _.uniq(xAxisArray);
 	  var uniqueY = _.uniq(yAxisArray);
 	  xAxisArray = uniqueX.sort();
@@ -193,134 +153,129 @@
 	  //loop through data array, give every namea number. Heat values correspond to these numbers.  It's important that this comes after the sort. Same as before
 
 	  for (var i = 0; i<dataArray.length;i++) {
-	    for (var j = 0; j<xAxisArray.length; j++) {
-	      if (xAxisArray[j] == dataArray[i].xAxis) {
-		dataArray[i].xAxis = j;
-	      }
-	    }
-	    for (var j = 0; j<yAxisArray.length; j++) {
-	      if (yAxisArray[j] == dataArray[i].yAxis) {
-		dataArray[i].yAxis = j;
-	      }
-	    }
+		for (var j = 0; j<xAxisArray.length; j++) {
+		  if (xAxisArray[j] == dataArray[i].xAxis) {
+			dataArray[i].xAxis = j;
+		  }
+		}
+		for (var j = 0; j<yAxisArray.length; j++) {
+		  if (yAxisArray[j] == dataArray[i].yAxis) {
+			dataArray[i].yAxis = j;
+		  }
+		}
 	  };
 	  
-//truncate if labels get over a certain length.
+	  //truncate if labels get over a certain length.
 
 	  /* Truncate Values */
 	  for (var i = 0; i < yAxisArray.length; i++) {
-	    if (yAxisArray[i].length > 20) {
-	      truncY.push(yAxisArray[i].substring(0, 20) + '...');
-	    } else {
-	      truncY.push(yAxisArray[i]);
-	    }
+		if (yAxisArray[i]) {
+		  if (yAxisArray[i].length > 20) {
+			truncY.push(yAxisArray[i].substring(0, 20) + '...');
+		  } else {
+			truncY.push(yAxisArray[i]);
+		  }
+		}
 	  }
 	  
 	  for (var i = 0; i < xAxisArray.length; i++) {
-	    if (xAxisArray[i].length > 30) {
-	      truncX.push(xAxisArray[i].substring(0, 30) + '...');
-	    } else {
-	      truncX.push(xAxisArray[i]);
-	    }
-	  }
-      
-	/*----------Build Heatmap-------------*/
-	var margin = { top: 185, right: 150, bottom: 100, left: 150 },
-        xAxisData = xAxisArray,
-        yAxisData = yAxisArray
-	gridSize = 15;
-	
-	var width = xAxisData.length * gridSize,
-        height = yAxisData.length * gridSize,
-        legendElementWidth = 60,
-        buckets = 9,
-	colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
-        colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"], // alternatively colorbrewer.YlGnBu[9]
-        colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
-	colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
-	
-	
-	//color selection
-	
-	if (xAxisData.length < 35) {
-	  legendElementWidth = 40
-	  if (xAxisData.length < 25) {
-	    legendElementWidth = 25
-	    if (xAxisData.length < 15) {
-	      legendElementWidth = 15
-	    }
-	  }
+		if (xAxisArray[i]) {
+		  if (xAxisArray[i].length > 30) {
+			truncX.push(xAxisArray[i].substring(0, 30) + '...');
+		  } else {
+			truncX.push(xAxisArray[i]);
+		  }
+		}
+	  } 
 	}
 	
-	    var colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
-                .range(colors);
-	    
-            var svg = d3.select("#chart").append("svg")
-                .attr("width", width + margin.left + margin.right)
+	var width = xAxisArray.length * gridSize;
+	var height = yAxisArray.length * gridSize;
+	var colorScale = d3.scale.quantile()
+	  .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+	  .range(colors);
+	
+	var svg = d3.select("#chart").append("svg")
+	  .attr("width", width + margin.left + margin.right)
+	  .attr("height", height + margin.top + margin.bottom)
+	  .append("g")
+	  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	
+	
+	
+	
+	  update();
+      function update() {
+      
+		width = xAxisArray.length * gridSize;
+		height = yAxisArray.length * gridSize;
+		colorScale = d3.scale.quantile()
+		  .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+		  .range(colors);
+		// Resize svg
+		var sizeSvg = d3.select("#chart svg");
+		sizeSvg.attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-            
-            var yAxis = svg.selectAll(".yAxis")
-                .data(truncY)
-                .enter().append("text")
-                .text(function (d) { return d; })
-                .attr("x", 0)
-                .attr("y", function (d, i) { return i * gridSize; })
-                .style("text-anchor", "end")
-                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-                .attr("class", "yAxis");
-            
-            var xAxis = svg.selectAll(".xAxis")
-		.data(truncX)
-		.enter().append("svg:g")
-		xAxis.append("text")
-		.text(function(d) { return d; })
-		.style("text-anchor", "start")
-		.attr("x", 6)
-		.attr("y", 7)
-		.attr("class", "xAxis")
-		.attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+	
+		yAxis = svg.selectAll(".yAxis")
+		  .data(truncY);
+		yAxis
+		  .enter().append("text");
+		yAxis
+		  .text(function (d) { return d; })
+		  .attr("x", 0)
+		  .attr("y", function (d, i) { return i * gridSize; })
+		  .style("text-anchor", "end")
+		  .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+		  .attr("class", "yAxis");
+		yAxis.exit().remove();
+      
+		var xAxis = svg.selectAll(".xAxis")
+		  .data(truncX);
+		xAxis
+		  .enter()
+		  .append("g");
+		xAxis
+		  .enter()
+		  .append("text");
+		xAxis
+		  .text(function(d) { return d; })
+		  .style("text-anchor", "start")
+		  .attr("x", 6)
+		  .attr("y", 7)
+		  .attr("class", "xAxis")
+		  .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
+		xAxis.exit().remove();  
 	    
-	    /* Initialize tooltip */
-	    var tip = d3.tip()
-	      .attr('class', 'd3-tip')
-	      .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
-	    
-            var heatMap = svg.selectAll(".heat")
-                .data(dataArray);
-              heatMap
-		.enter().append("rect");
-	      heatMap
-                .attr("x", function(d) { return (d.xAxis) * gridSize; })
-                .attr("y", function(d) { return (d.yAxis) * gridSize; })
-                .attr("rx", 2)
-                .attr("ry", 2)
-                .attr("class", "heat bordered")
-                .attr("width", gridSize)
-                .attr("height", gridSize)
-                .style("fill", colors[0])
-		.on('mouseover', tip.show)
-		.on('mouseout', tip.hide)
-		.on('click', function(d){popover(d)});
-		
-//passes data into popover. param is the label, which is the system-sys pair.
 
-	      heatMap
-		.transition()
-		.duration(1000)
-		.style("fill", function(d) { return colorScale(d.Value); });
-	      heatMap.exit().remove();
+		heatMap = svg.selectAll(".heat")
+		  .data(dataArray);
+        heatMap
+		  .enter().append("rect");
+		heatMap
+		  .attr("x", function(d) { return (d.xAxis) * gridSize; })
+		  .attr("y", function(d) { return (d.yAxis) * gridSize; })
+		  .attr("class", "heat bordered")
+		  .attr("width", gridSize)
+		  .attr("height", gridSize)
+		  .style("fill", function(d) { return colorScale(d.Value); })
+		  .on('mouseover', tip.show)
+		  .on('mouseout', tip.hide)
+		  .on('click', function(d){popover(d)});
+		  
+	  //passes data into popover. param is the label, which is the system-sys pair.
+
+	    heatMap.exit().remove();
 	    
 	    /* Invoke the tooltip in the context of your visualization */
 	    heatMap.call(tip);
-	    
-	    
 	    /*----------Horizontal and Vertical Lines-------------*/
 	    //vertical lines
-	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisData.length + 1));
+	    var vLine = svg.selectAll(".vline");
+		vLine.remove();
+		vLine = svg.selectAll(".vline")
+		  .data(d3.range(xAxisArray.length + 1));
 	    
 	    vLine.enter()
 	      .append("line");
@@ -344,46 +299,56 @@
 	    vLine.exit().remove();
 	    
 	    // horizontal lines
-	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisData.length + 1))
-	      hLine.enter()
-		.append("line");
-	      hLine
-		.attr("class","hline")
-		.attr("y1", function (d) {
-		return d * gridSize;
-	    })
-		.attr("y2", function (d) {
-		return d * gridSize;
-	    })
-		.attr("x1", function (d) {
-		return 0;
-	    })
-		.attr("x2", function (d) {
-		return width;
-	    })
-		.style("stroke", "#eee");
-	      hLine.exit().remove();
+	    var hLine = svg.selectAll(".hline");
+		hLine.remove();
+		hLine = svg.selectAll(".hline")
+		  .data(d3.range(yAxisArray.length + 1))
+		hLine.enter()
+		  .append("line");
+		hLine
+		  .attr("class","hline")
+		  .attr("y1", function (d) {
+			return d * gridSize;
+		  })
+		  .attr("y2", function (d) {
+			return d * gridSize;
+		  })
+		  .attr("x1", function (d) {
+			return 0;
+		  })
+		  .attr("x2", function (d) {
+			return width;
+		  })
+		  .style("stroke", "#eee");
+		hLine.exit().remove();
 
           
           /*----------Legend-------------*/
-          var legend = svg.selectAll(".legend")
-              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
-              .enter().append("g")
-              .attr("class", "legend");
+		legend = svg.selectAll(".legend")
+		legend.remove();
+		legend = svg.selectAll(".legend")
+		  .data([0].concat(colorScale.quantiles()), function(d) { return d; });
+		legend.enter().append("g");
+		legend.attr("class", "legend");
 	  
-          legend.append("rect")
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", yAxisData.length * gridSize + 40)
-            .attr("width", legendElementWidth)
-            .attr("height", 20);
+		legend.append("rect")
+		  .attr("x", function(d, i) { return legendElementWidth * i; })
+		  .attr("y", yAxisArray.length * gridSize + 40)
+		  .attr("width", legendElementWidth)
+		  .attr("height", 20);
             
-	  legend.style("fill", function(d, i) { return colors[i]; });
+		legend.style("fill", function(d, i) { return colors[i]; });
 
-          legend.append("text")
-            .attr("class", "mono")
-            .text(function(d) { return "" + Math.round(d); })
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", yAxisData.length * gridSize + 75);
+        legend.append("text")
+		  .attr("class", "mono")
+		  .text(function(d) { return "" + Math.round(d); })
+		  .attr("x", function(d, i) { return legendElementWidth * i; })
+		  .attr("y", yAxisArray.length * gridSize + 75);
+		  
+		legend.exit().remove();
+		  
+	  } // End of update
+	  
 	  
 	  /*----------Color Changer-------------*/ 
 	    d3.select("#nav").append("select")
@@ -394,8 +359,7 @@
 	      .enter()
 	      .append("option")
 	      .attr("value", function(d){ return d; }) /* This gives me the value */
-	      .text(function(d){ return d})
-	      ;
+	      .text(function(d){ return d});
 	    
 	    $("#select2DropDown").select2();
 	    $("#select2DropDown").on("change", change);
@@ -405,16 +369,16 @@
 	      domainArray = $('#slider').data('slider').getValue();
 	      
 	      if (this.options[this.selectedIndex].value == 'Green') {
-		colors.push(colorsGreen);
+		colors = colorsGreen;
 	      } else if (this.options[this.selectedIndex].value == 'Blue') {
-		colors.push(colorsBlue);
+		colors = colorsBlue;
 	      }else {
-		colors.push(colorsRed);
+		colors = colorsRed;
 	      }
 	      
 	      colorScale = d3.scale.quantile()
                 .domain([ 0, buckets - 1, 100]) // should be max value
-                .range(colors[0]);
+                .range(colors);
 		
 	     var bar = side.selectAll("rect.bar")
 		.attr("fill", function(d) { return colorScale(d.Value) });
@@ -425,7 +389,7 @@
 		  return colorScale(d.Value);
 		}else {return "white"}
 	      });
-	      legend.style("fill", function(d, i) { return colors[0][i]; });
+	      legend.style("fill", function(d, i) { return colors[i]; });
 	      
 
 	    }
@@ -448,8 +412,7 @@
 		sliderArray = []
 		sliderArray.push(domainArray[0],domainArray[1]);
 
-		heatMap
-		.style("fill", function(d) {
+		d3.selectAll(".heat").style("fill", function(d) {
 		  if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
 		    return colorScale(d.Value);
 		  }else {return "white"}
@@ -462,12 +425,12 @@
 
 
 	  d3.select("#min").append("span")
-	    .text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
+	    .text("Min: 0")
 	    .attr("x", 20)
 	    .attr("y", 0);
 	    
 	  d3.select("#max").append("span")
-	    .text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
+	    .text("Max: 100")
 	    .attr("x", 20)
 	    .attr("y", 0);
 	    
@@ -501,345 +464,62 @@
 	  /*----------Checkboxes and Refresh-------------*/
 //function called when refresh button is clicked
 	var refresh = function() {
-	  barChart([]); // refresh the bar chart
-	  refreshArray.length = 0;
-	  finderArray.length = 0; // we still need this for the bar chart to update correctly
+	
+	  barChart([]);
+	  tip.hide();
+	  var refreshData = {};
+	  var parsedData = {};
+	  builderObject = {};
+	  data = {};
 	  xAxisArray.length = 0;
 	  yAxisArray.length = 0;
-	  refreshPushed = true;
-	  refreshArray = [];
-	  sliderArray = [0,100];
-	  var cloneObject = {}; // we need this clone of refreshObject so that when we delete values, we aren't deleting from the refresh Object
-	  cloneObject = jQuery.extend(true, {}, refreshObject);
-//for the filter. Say you select 50 in the fitler, you don't want to delete the original data because you won't be able to decrease filter value in subsequent refreshes. You only delete cloneObject, and the cloneObject copies off of the original.
-
-
+	  dataArray.length = 0;
+	  truncY.length = 0;
+	  truncX.length = 0;
+	  var thresh = {};
 	  
-	  // loop through ny new clone object and delete out all the values that dont meet the thresholds
-	  catThresh = 0;
-	  for(var cat in cloneObject){
-	    catThresh = document.getElementById(cat + "filter").value
-	    for(pair in cloneObject[cat]){
-	      if(cloneObject[cat][pair][heatValue] < catThresh){
-		delete cloneObject[cat][pair];
-	      }
-	    }
-	  }
-	  
-	  var keys = _.keys(cloneObject);
-	  
-	  var smallRefresh = cloneObject[keys[0]]; //Grab one category inside my smaller refreshed object
-	  for (var combos in smallRefresh) {
-	    var totalVal = 0;
-	    var roundedAvg = 0;
-	    var roundedVal = 0;
-	    var val = 0;
-	    var count = 0;
-	    var xAxisVal;
-	    var yAxisVal;
-	    eliminateFlag = false;
-	    for (var category in cloneObject) {
-	      
-	      if (cloneObject[category][combos]) {
-		
-		
-		count++
-		totalVal += cloneObject[category][combos][heatValue];
-		val = cloneObject[category][combos][heatValue];
-		roundedVal = Math.round(val * 10) / 10
-		xAxisVal = cloneObject[category][combos][xAxisName];
-		yAxisVal = cloneObject[category][combos][yAxisName];
-		finderArray.push({Value: roundedVal, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal, key: category})
-	      } else {
-		totalVal = 0
-		eliminateFlag = true;
-		break;
-	      }
-	    }
-	    
-	    avg = totalVal / count;
-	    roundedAvg = Math.round(avg * 10) / 10
-	   
-//new data array
-
-
-	    if (!eliminateFlag) {
-	      xAxisArray.push(xAxisVal);
-	      yAxisArray.push(yAxisVal);
-	      refreshArray.push({Value: roundedAvg, xAxis:xAxisVal, yAxis: yAxisVal, xAxisName: xAxisVal, yAxisName: yAxisVal})
-	    }
-	  }
-	  
-	  // We need this to recreate the slider everytime because there's no other way to update the min/max values
-	  changeSliderRange(refreshArray)
-	  function changeSliderRange(refreshArray){
-	    //Save old slider's css width
-	    var oldSliderWidth = $("#slider").css("width");
-	
-	   //remove the old slider      
-	   $(".slider").remove();   
-	
-	   //Recreate slider anchor tag with saved width value
-	   $("#min").after("<input type='text' class='slider' id='slider'/>");
-	
-	   //Now recreate the slider
-	   sliderInit(refreshArray);
-	  };
-	  
-//need to recreate all of this
-
-	  var uniqueX = _.uniq(xAxisArray);
-	  var uniqueY = _.uniq(yAxisArray);
-	  xAxisArray = uniqueX.sort();
-	  yAxisArray = uniqueY.sort();
-	  
-	  var width = xAxisArray.length * gridSize
-	  var height = yAxisArray.length * gridSize
-	  var sizeSvg = $("#chart svg");
-	  sizeSvg.attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-	  
-	  
-	   /* Assign each name a number and place matrix coordinates inside of dataArray */
-	  for (var i = 0; i<refreshArray.length;i++) {
-	    for (var j = 0; j<xAxisArray.length; j++) {
-	      if (xAxisArray[j] == refreshArray[i].xAxis) {
-		refreshArray[i].xAxis = j;
-	      }
-	    }
-	    for (var j = 0; j<yAxisArray.length; j++) {
-	      if (yAxisArray[j] == refreshArray[i].yAxis) {
-		refreshArray[i].yAxis = j;
-	      }
-	    }
-	  };
-	  
-	  //refresh x/y labels
-	  var yAxis = svg.selectAll(".yAxis")
-	    .data(yAxisArray);
-	  yAxis
-	    .enter().append("text");
-	    
-	  yAxis.text(function (d) { return d; })
-	    .attr("x", 0)
-	    .attr("y", function (d, i) { return i * gridSize; })
-	    .style("text-anchor", "end")
-	    .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-	    .attr("class", "yAxis");
-	  yAxis.exit().remove();
-	  
-	  var xAxis = svg.selectAll(".xAxis")
-	    .data(xAxisArray);
-	  xAxis
-	    .enter()
-	    .append("svg:g")
-	  xAxis
-	    .enter()
-	    .append("text");
-	  xAxis
-	    .text(function(d) { return d; })
-	    .style("text-anchor", "start")
-	    .attr("x", 6)
-	    .attr("y", 7)
-	    .attr("class", "xAxis")
-	    .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
-	  xAxis.exit().remove();
-	  
-	  //Refresh tooltip
-	  var tip = d3.tip()
-	   .attr('class', 'd3-tip')
-	   .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
-	 
-	 
-	  //refresh heat values
-	  var heatMap = svg.selectAll(".heat")
-	      .data(refreshArray);
-	    heatMap
-	      .enter().append("rect");
-	    heatMap
-	      .attr("x", function(d) { return (d.xAxis) * gridSize; })
-	      .attr("y", function(d) { return (d.yAxis) * gridSize; })
-	      .attr("rx", 2)
-	      .attr("ry", 2)
-	      .attr("class", "heat bordered")
-	      .attr("width", gridSize)
-	      .attr("height", gridSize)
-	      .style("fill", colors[0])
-	      .on('mouseover', tip.show)
-	      .on('mouseout', tip.hide)
-	      .on('click', function(d){popover(d)});
-	      
-	    heatMap
-	      .transition()
-	      .duration(0)
-	      .style("fill", function(d) { return colorScale(d.Value); });
-	    heatMap.exit().remove();
-	    
-	    heatMap.call(tip);
-	    
-	   
-	    //Refresh vertical lines
-	    var vLine = svg.selectAll(".vline").data(d3.range(xAxisArray.length + 1))
-	    
-	    vLine
-		.enter()
-		.append("line");
-	    vLine
-		.attr("class", "vline")
-		.attr("x1", function (d) {
-		return d * gridSize;
-	    })
-		.attr("x2", function (d) {
-		return d * gridSize;
-	    })
-		.attr("y1", function (d) {
-		return 0;
-	    })
-		.attr("y2", function (d) {
-		return height;
-	    })
-		.style("stroke", "#eee");
-	    vLine.exit().remove();
-	    
-	    // Refreshhorizontal lines
-	    var hLine = svg.selectAll(".hline").data(d3.range(yAxisArray.length + 1))
-	      hLine.enter()
-		.append("line");
-	      hLine
-		.attr("class","hline")
-		.attr("y1", function (d) {
-		return d * gridSize;
-	    })
-		.attr("y2", function (d) {
-		return d * gridSize;
-	    })
-		.attr("x1", function (d) {
-		return 0;
-	    })
-		.attr("x2", function (d) {
-		return width;
-	    })
-		.style("stroke", "#eee");
-	      hLine.exit().remove();
-	    	    
-	    // Update legend
-	    var legendText = svg.selectAll(".legend text")
-	    .attr("y", yAxisArray.length * gridSize + 75);
-	    
-	    var legendText = svg.selectAll(".legend rect")
-            .attr("y", yAxisArray.length * gridSize + 40);
-	
-	    // Update color changer for new values
-	    $("#select2DropDown").on("change", changeRefresh);
-	    
-	    function changeRefresh() {
-	      colors.length = 0;
-	      domainArray = $('#slider').data('slider').getValue();
-
-
-
-
-	      
-	      if (this.options[this.selectedIndex].value == 'Green') {
-		colors.push(colorsGreen);
-	      } else if (this.options[this.selectedIndex].value == 'Blue') {
-		colors.push(colorsBlue);
-	      }else {
-		colors.push(colorsRed);
-	      }
-	      
-	      colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, 100])
-                .range(colors[0]);
-		
-	     
-	      heatMap
-		.style("fill", function(d) {
-		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		  return colorScale(d.Value);
-		}else {return "white"}
-	      });
-	      legend.style("fill", function(d, i) { return colors[0][i]; });
-	    }
-	    
-	  // Update slider
-	   sliderInitRefresh(refreshArray);
-	  function sliderInitRefresh(data) {
-	    
-	    /*----------Slider-------------*/
-	    $('#slider').slider({
-		min: Math.floor(d3.min(data, function (d) { return d.Value; })),
-		max: Math.ceil(d3.max(data, function (d) { return d.Value; })),
-		value:[Math.floor(d3.min(data, function (d) { return d.Value; })), Math.ceil(d3.max(data, function (d) { return d.Value; }))],
-		step:1
-	      })
-	    .on('slide', function(){
-		domainArray = $('#slider').data('slider').getValue()
-		
-		heatMap
-		.style("fill", function(d) {
-		  if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		    return colorScale(d.Value);
-		  }else {return "white"}
-		});
-	    })
-	  }
-	  
-
-
-		//Updating the dropDownArray so as to only include systems with matches
-		dropDownArray = [];
-		for(i=0; i<xAxisArray.length; i++){
-			dropDownArrayYAxisMatches = [];					
-			for(j=0; j<refreshArray.length; j++){
-			    if(refreshArray[j].xAxisName === xAxisArray[i]){
-				    dropDownArrayYAxisMatches.push(refreshArray[j].yAxisName);
-			    }
-				if(dropDownArrayYAxisMatches.length>1){
-					dropDownArray.push(xAxisArray[i]);
-					break;
-				}	  
-			}	  
+	  for(var i = 0; i<categoryArray.length; i++) {
+		if (document.getElementById(categoryArray[i] + "filter").value) {
+		  thresh[categoryArray[i]] = parseFloat(document.getElementById(categoryArray[i] + "filter").value);
 		}
-
-	  //Sidebar drop down datat updates
-	  dropDownArray.unshift("");
-	  selectedSystem = dropDownArray[0];
-	  console.log("dropDownArray: ")
-	  console.log(dropDownArray)
-
-	   var sidebarDropDown = d3.select("#sidebarContentCenter").select("#select2DropDown2")
-	     	.selectAll("option")
-	    	.data(dropDownArray);
-
-	    sidebarDropDown
-	    	.enter()
-	    	.append("option");
-
-	    sidebarDropDown
-		    .attr("value", function(d){ return d; }) /* This gives me the value */
-		    .text(function(d){ return d});
-
-	    sidebarDropDown.exit().remove();
-	   	 
-		$("#select2DropDown2").select2("val", "");
-	    $("#select2DropDown2").select2({
-		    placeholder: "Select a System"
-		});
-
-
-	  d3.select("#min")
+	  }
 	  
-	    .text("Min: " + Math.floor(d3.min(refreshArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
-	    
-	  d3.select("#max")
-	    .text("Max: " + Math.ceil(d3.max(refreshArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
+	  refreshFunction(JSON.stringify(categoryArray), JSON.stringify(thresh))
+	//  function getPromise() {
+	//	var deferred = $.Deferred();
+	//	//refreshData = refreshFunction(JSON.stringify(categoryArray), JSON.stringify(thresh))
+	//	refreshData = dataPassed;
+	//	setInterval(function(){
+	//	  if (refreshData != "") {
+	//		deferred.resolve(refreshData);
+	//	  } 
+	//	}, 500);
+	//  
+	//	return deferred.promise();
+	//  }
+	//  
+	//  $.when( getPromise() ).done(function(refreshData) {
+	//	data = refreshData;
+	//	dataRecieved(refreshData);
+	//  });
+	// 
+	 
 	} //end of refresh function
-
+	
+	dataRecieved = function(refreshData) {
+	
+	  //document.write(refreshData);
+	  data = refreshData;
+	  //parsedData = refreshData;
+	 //  for (var key in parsedData) {
+		// xAxisArray.push(parsedData[key][xAxisName]);
+		// yAxisArray.push(parsedData[key][yAxisName]);
+		// dataArray.push({"Key": key,"Value": parsedData[key][heatValue],"xAxis":parsedData[key][xAxisName],"yAxis": parsedData[key][yAxisName],"xAxisName":parsedData[key][xAxisName],"yAxisName":parsedData[key][yAxisName]});
+	 //  }
+	  calculate();
+	  update();
+	}
+	
 	
 	  //refresh button
 	  var refBtn = ref.selectAll("foreignObject")
@@ -860,16 +540,15 @@
 	  //On click of checkbox
 	  var checkbox = function(param){
 	    if(document.getElementById(param).checked) {
-	      refreshObject[param] = data[param];
+	      categoryArray.push(param);
 	      document.getElementById(param + "filter").disabled = false;
-	      
 	    }else{
-	      refreshObject = _.omit(refreshObject, param);
+		  categoryArray = _.without(categoryArray, param);
 	      document.getElementById(param + "filter").disabled = true;
 	      document.getElementById(param + "filter").value = "";
 	    }
 	  }
-	  //sets values back to zero after you uncheck
+
 
 
 
@@ -907,12 +586,12 @@
 	      .attr("height", "30px")
 	    .append("xhtml:div")
 	      .html(function(d){ return ("<input type=text class='filter input-sm' id=" + d + 'filter' + "></input>")}) // give each element a unique id
-	      .on("click", function(d){checkbox(d);});
+		  ;
 	  
 
 	  //popover generates data. barChart displays it.
-	  /*----------Bar Chart--------------*/
-	  var barChart = function(data){
+	   /*----------Bar Chart--------------*/
+	  var barChart = function(data, system1Name, system2Name){
 	    var barPadding = 1;
 	    var barHeight = 20;
 	    var barSpacing = barHeight + barPadding;
@@ -927,10 +606,10 @@
 	      .attr("y",function(d,i){return 40 + (i*(barHeight + barPadding))})
 	      .attr("x", 177)
 	      .attr("height", barHeight)
-	      .attr("fill", function(d) { return colorScale(d.Value) });
+	      .attr("fill", function(d) { return colorScale(d.Score) });
 	    bar.transition()
 	      .duration(600)
-	      .attr("width", function(d){ return d.Value * .8});
+	      .attr("width", function(d){ return d.Score * .8});
 	    bar.exit().remove();
 	    
 	    var barLabel = side.selectAll("text.labels")
@@ -959,13 +638,13 @@
 	      .attr("id","barValue");
 	      
 	    barValue.attr("class",function(d){
-		if (d.Value > 30){
+		if (d.Score > 30){
 		    return "light"
 		  } else{return "dark"}
 	      })
 	      .attr("y", function(d,i){return (i * barSpacing) + 55})
 	      .attr("x", 180)
-	      .text(function(d){return d.Value});
+	      .text(function(d){return Math.round(d.Score * 100)/100});
 	    
 	    barValue.exit().remove();
 	    
@@ -975,7 +654,7 @@
 	      .enter()
 	      .append("text");
 	    system1
-	      .text(function(d){return xAxisName + ": "+ d.xAxisName})
+	      .text(function(d){return xAxisName + ": " + system1Name})
 	      .attr("class","system1")
 	      .attr("text-anchor", "start")
 	      .attr("y", 10)
@@ -987,7 +666,7 @@
 	      .enter()
 	      .append("text");
 	    system2
-	      .text(function(d){return yAxisName + ": " + d.yAxisName})
+	      .text(function(d){return yAxisName + ": " + system2Name})
 	      .attr("class","system2")
 	      .attr("text-anchor", "start")
 	      .attr("y", 25)
@@ -995,6 +674,7 @@
 	    system2.exit().remove();
 
 	  } //End bar chart function
+
 	  
 
 	  var dropDownArray = xAxisArray;
@@ -1039,63 +719,27 @@
 
 
 	    appGridBtn.on("click", function(d){
-
-				yAxisMatches = [];
-	       		if(refreshPushed === false)
-	       		{		
-				for(i=0; i<dataArray.length; i++)
+		  yAxisMatches = [];
+		  for(i=0; i<dataArray.length; i++) {
+			  if(i==0){
+				  yAxisMatches.push(selectedSystem)
+			  }
+			  if(dataArray[i].xAxisName === selectedSystem && dataArray[i].Value >= sliderArray[0] && dataArray[i].Value <= sliderArray[1] && dataArray[i].xAxisName !== dataArray[i].yAxisName)
 				{
-					if(i==0){
-						yAxisMatches.push(selectedSystem)
-					}
-					if(dataArray[i].xAxisName === selectedSystem && dataArray[i].Value >= sliderArray[0] && dataArray[i].Value <= sliderArray[1] && dataArray[i].xAxisName !== dataArray[i].yAxisName)
-					{
-						yAxisMatches.push(dataArray[i].yAxisName)
-					}
+				  yAxisMatches.push(dataArray[i].yAxisName)
 				}
+		  }
+		  
+		  var myJsonString = JSON.stringify(yAxisMatches);
+		  
+		  if(selectedSystem != ""){
+			healthGrid(myJsonString);
+		  }
+	  });
 
-				console.log("selectedSystem below: ")
-				console.log(selectedSystem)
-	       		console.log("yAxisMatches below: ")
-	       		console.log(yAxisMatches)
-	       		console.log("yAxisMatches.length = " + yAxisMatches.length)
-
-	       		}
-	       		else
-	       		{
-				for(i=0; i<refreshArray.length; i++)
-				{
-					if(i==0){
-						yAxisMatches.push(selectedSystem)
-					}
-					if(refreshArray[i].xAxisName === selectedSystem && refreshArray[i].Value >= sliderArray[0] && refreshArray[i].Value <= sliderArray[1] && refreshArray[i].xAxisName !== refreshArray[i].yAxisName)
-					{
-						yAxisMatches.push(refreshArray[i].yAxisName)
-					}
-				}
-				console.log("selectedSystem below: ")
-				console.log(selectedSystem)
-	       		console.log("yAxisMatches below: ")
-	       		console.log(yAxisMatches)
-	       		console.log("yAxisMatches.length = " + yAxisMatches.length)
-	       		}
-
-
-				//alert(yAxisMatches);
-				var myJsonString = JSON.stringify(yAxisMatches);
-				
-				if(selectedSystem != ""){
-				healthGrid(myJsonString);
-				}
-
-
-	 });
-
-
-
-
-	  
-      };      
+	}
+	
+	
     </script>
   </body>
 </html>
