@@ -85,13 +85,11 @@
 	<classpathentry kind="lib" path="RDFGraphLib/d2rq-0.8.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-sources.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-javadoc.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/stanford-corenlp-3.3.0-models.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/tika-app-1.2.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/jsoup-1.7.3.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-1.2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-demo-1.2.0.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-javadoc-1.2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/boilerpipe-sources-1.2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/nekohtml.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/itextpdf-5.5.0.jar"/>
