@@ -90,7 +90,7 @@ public class NodeLoadingSheetWriter {
 	public void writeSheet(String key, Vector<String[]> sheetVector, XSSFWorkbook workbook) {
 		XSSFSheet worksheet = workbook.createSheet(key);
 		int count=0;//keeps track of rows; one below the row int because of header row
-		final Pattern NUMERIC = Pattern.compile("^\\d+.?\\d*$");
+		final Pattern NUMERIC = Pattern.compile("^\\d+\\.?\\d*$");
 		//for each row, create the row in excel
 		for (int row=0; row<sheetVector.size();row++){
 			XSSFRow row1 = worksheet.createRow( count);
