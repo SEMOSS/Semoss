@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.DuplicationBarChartBrowserFunction;
-import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
-import prerna.ui.main.listener.specific.tap.DuplicationRefreshBrowserFunction;
+import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
+import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
+import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -40,12 +40,12 @@ import com.teamdev.jxbrowser.events.NavigationListener;
 
 /**
  */
-public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
+public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	String tapCoreDB = "TAP_Core_Data";
 	/**
-	 * Constructor for SysDupeHeatMapSheet.
+	 * Constructor for SysSimeHeatMapSheet.
 	 */
-	public SysDupeHeatMapSheet() {
+	public SysSimHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		setComparisonObjectType("System");
@@ -58,14 +58,14 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 	public void prepareNavigationFinished()
 	{
 		super.prepareNavigationFinished();
-    	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
+    	SysSimHealthGridListener healthGridCall = new SysSimHealthGridListener();
     	browser.registerFunction("healthGrid",  healthGridCall);
 	}
     	
 	@Override
 	public void createData()
 	{
-		DuplicationFunctions sdf = new DuplicationFunctions();
+		SimilarityFunctions sdf = new SimilarityFunctions();
 		addPanel();
 		// this would be create the data
 		Hashtable dataHash = new Hashtable();
@@ -80,7 +80,7 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 		updateProgressBar("20%...Evaluating Data/BLU Score", 20);
 		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System ?UsedBy ?SystemUser}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?UsedBy ?SystemUser}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?provide ?BLU }}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, DuplicationFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, SimilarityFunctions.VALUE);
 		dataHash = processHashForCharting(dataBLUHash);
 		
 		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
@@ -98,22 +98,22 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 		//BP
 		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System ?Supports ?BusinessProcess}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("50%...Evaluating System Supporting Business Processes", 50);
-		Hashtable bpHash = sdf.compareObjectParameterScore(tapCoreDB, bpQuery, DuplicationFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(tapCoreDB, bpQuery, SimilarityFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
 		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System ?Supports ?Activity}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("55%...Evaluating System Supporting Activity", 55);
-		Hashtable actHash = sdf.compareObjectParameterScore(tapCoreDB, actQuery, DuplicationFunctions.VALUE);
+		Hashtable actHash = sdf.compareObjectParameterScore(tapCoreDB, actQuery, SimilarityFunctions.VALUE);
 		actHash = processHashForCharting(actHash);
 		
 		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser}{?UsedBy2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System ?UsedBy2 ?Personnel}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("60%...Evaluating System Users", 60);
-		Hashtable userHash = sdf.compareObjectParameterScore(tapCoreDB, userQuery, DuplicationFunctions.VALUE);
+		Hashtable userHash = sdf.compareObjectParameterScore(tapCoreDB, userQuery, SimilarityFunctions.VALUE);
 		userHash = processHashForCharting(userHash);
 		
 		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System ?Utilizes ?UserInterface}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
 		updateProgressBar("70%...Evaluating User Interface", 70);
-		Hashtable uiHash = sdf.compareObjectParameterScore(tapCoreDB, uiQuery, DuplicationFunctions.VALUE);
+		Hashtable uiHash = sdf.compareObjectParameterScore(tapCoreDB, uiQuery, SimilarityFunctions.VALUE);
 		uiHash = processHashForCharting(uiHash);
 		
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
@@ -132,7 +132,7 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 		paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
 		
 		//allHash.put("dataSeries", testDataHash);
-		allHash.put("title",  "System Duplication");
+		allHash.put("title",  "System Similarity");
 		allHash.put("xAxisTitle", "System1");
 		allHash.put("yAxisTitle", "System2");
 		allHash.put("value", "Score");

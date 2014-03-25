@@ -59,7 +59,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	}
 
 	/**
-	 * Processes all Sys Dupe queries and shows results in sysdupe.html format.
+	 * Processes all capability Similarity queries and shows results in sysdupe.html format.
 	 */
 	@Override
 	public void createView()
@@ -122,9 +122,9 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		CapabilityFactSheetPerformer performer = new CapabilityFactSheetPerformer();
 		Hashtable<String,Object> dataSeries = new Hashtable<String,Object>();
 
-		updateProgressBar("10%...Processing Capability Dupe", 10);
-		Hashtable<String, Object> capabilityDupeSheetHash = performer.processCapabilityDupeSheet(capability);
-		dataSeries.put("CapabilityDupeSheet", capabilityDupeSheetHash);
+		updateProgressBar("10%...Processing Capability Similarity", 10);
+		Hashtable<String, Object> capabilitySimSheetHash = performer.processCapabilitySimSheet(capability);
+		dataSeries.put("CapabilitySimSheet", capabilitySimSheetHash);
 		
 		updateProgressBar("25%...Processing Data Objects", 25);
 		Hashtable<String, Object> dataSheet = performer.processDataSheetQueries(capability);

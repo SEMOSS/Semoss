@@ -27,9 +27,8 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.DuplicationBarChartBrowserFunction;
-import prerna.ui.main.listener.specific.tap.SysDupeHealthGridListener;
-import prerna.ui.main.listener.specific.tap.DuplicationRefreshBrowserFunction;
+import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
+import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -40,7 +39,7 @@ import com.teamdev.jxbrowser.events.NavigationListener;
 
 /**
  */
-public class DuplicationHeatMapSheet extends BrowserPlaySheet{
+public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	Logger logger = Logger.getLogger(getClass());
 	ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
@@ -48,18 +47,18 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
 	Hashtable allHash = new Hashtable();
 	Hashtable paramDataHash = new Hashtable();
 	Hashtable keyHash = new Hashtable();
-	DuplicationRefreshBrowserFunction refreshFunction;
+	SimilarityRefreshBrowserFunction refreshFunction;
 	
 	/**
-	 * Constructor for HeatMapSheet.
+	 * Constructor for SimilarityHeatMapSheet.
 	 */
-	public DuplicationHeatMapSheet() {
+	public SimilarityHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 	}
 
 	/**
-	 * Processes all Duplication queries and shows results in sysdupe.html format.
+	 * Set-up the browser by adding listeners and navigating to the html
 	 */
 	@Override
 	public void createView()
@@ -94,12 +93,12 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
 	 */
 	public void prepareNavigationFinished()
 	{
-    	refreshFunction = new DuplicationRefreshBrowserFunction();
+    	refreshFunction = new SimilarityRefreshBrowserFunction();
     	refreshFunction.setParamDataHash(paramDataHash);
     	refreshFunction.setKeyHash(keyHash);
     	refreshFunction.setBrowser(browser);
     	browser.registerFunction("refreshFunction",  refreshFunction);
-    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
+    	SimilarityBarChartBrowserFunction barChartFunction = new SimilarityBarChartBrowserFunction();
     	barChartFunction.setParamDataHash(paramDataHash);
     	browser.registerFunction("barChartFunction",  barChartFunction);
 	}

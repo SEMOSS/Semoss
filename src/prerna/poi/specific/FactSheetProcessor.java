@@ -32,7 +32,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.specific.tap.DHMSMHelper;
-import prerna.ui.components.specific.tap.FactSheetSysDupeCalculator;
+import prerna.ui.components.specific.tap.FactSheetSysSimCalculator;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -48,7 +48,7 @@ public class FactSheetProcessor {
 	String tapSiteEngine = "TAP_Site_Data";
 	String tapCostEngine = "TAP_Cost_Data";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	FactSheetSysDupeCalculator sysDupe;
+	FactSheetSysSimCalculator sysSim;
 	DHMSMHelper dhelp;
 	
 	public void setDHMSMHelper(DHMSMHelper dhelp)
@@ -189,7 +189,7 @@ public class FactSheetProcessor {
 	 * Processes and stores the fact sheet queries and calls the report writer for each system in a list of the Services Systems
 	 */
 	public void generateReports() {
-		sysDupe = new FactSheetSysDupeCalculator();		
+		sysSim = new FactSheetSysSimCalculator();		
 
 		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}");
 
@@ -225,7 +225,7 @@ public class FactSheetProcessor {
 	 * @param systemName	String containing the system name to produce a fact sheet
 	 */
 	public void generateSystemReport(String systemName) {
-		sysDupe = new FactSheetSysDupeCalculator();		
+		sysSim = new FactSheetSysSimCalculator();		
 
 		Hashtable queryResults = processQueries(systemName);
 		ArrayList serviceResults = (ArrayList) queryResults.get(ConstantsTAP.PPI_QUERY);
@@ -323,9 +323,9 @@ public class FactSheetProcessor {
 		ArrayList<ArrayList<Object>> businessLogicResultsList = runQuery(tapCoreEngine, businessLogicQuery);
 		ArrayList<ArrayList<Object>> siteResultsList = runQuery(tapSiteEngine, siteListQuery);
 		ArrayList<ArrayList<Object>> budgetResultsList = runQuery(tapCostEngine, budgetQuery);
-		ArrayList<ArrayList<Object>> sysDupeList = sysDupe.priorityAllDataHash.get(systemName);
-		ArrayList<String> sysList = sysDupe.prioritySysHash.get(systemName);
-		ArrayList<Double> valueList = sysDupe.priorityValueHash.get(systemName);			
+		ArrayList<ArrayList<Object>> sysSimList = sysSim.priorityAllDataHash.get(systemName);
+		ArrayList<String> sysList = sysSim.prioritySysHash.get(systemName);
+		ArrayList<Double> valueList = sysSim.priorityValueHash.get(systemName);			
 		ArrayList<ArrayList<Object>> uniqueDataResultsList = runQuery(tapCoreEngine, uniqueDataQuery);
 		ArrayList<ArrayList<Object>> uniqueBLUResultsList = runQuery(tapCoreEngine, uniqueBLUQuery);
 		ArrayList<String> systemDescriptionResultsList = runQuery(tapCoreEngine, systemDescriptionQuery);
@@ -347,8 +347,8 @@ public class FactSheetProcessor {
 		returnHash.put(ConstantsTAP.BUSINESS_LOGIC_QUERY, businessLogicResultsList);
 		returnHash.put(ConstantsTAP.SITE_LIST_QUERY, siteResultsList);
 		returnHash.put(ConstantsTAP.BUDGET_QUERY, budgetResultsList);
-		if (sysDupeList != null) {
-			returnHash.put(ConstantsTAP.SYS_DUPE_QUERY, sysDupeList);
+		if (sysSimList != null) {
+			returnHash.put(ConstantsTAP.SYS_SIM_QUERY, sysSimList);
 			returnHash.put(ConstantsTAP.SYS_QUERY, sysList);
 			returnHash.put(ConstantsTAP.VALUE_QUERY, valueList);
 		}		

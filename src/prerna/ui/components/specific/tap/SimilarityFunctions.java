@@ -32,9 +32,9 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * Functions needed for determining Duplication functionality.
+ * Functions needed for determining Similarity functionality.
  */
-public class DuplicationFunctions {
+public class SimilarityFunctions {
 
 	ArrayList <Object []> list;
 	SesameJenaSelectWrapper wrapper;
@@ -285,13 +285,13 @@ public class DuplicationFunctions {
 	}	
 	
 	/**
-	 * Get data/actual percentage related to the duplication of the parameter
+	 * Get data/actual percentage related to the similarity of the parameter
 	 * 
 	 * @param dbName String		Name of the database
 	 * @param query String		Query to be run against db
 	 * @param option String		Option to calculate Count or Value
 	 * 
-	 * @return Hashtable		Values for duplication of parameter
+	 * @return Hashtable		Values for similarity of parameter
 	 */
 	public Hashtable compareObjectParameterScore(String dbName, String query, String option)
 	{
