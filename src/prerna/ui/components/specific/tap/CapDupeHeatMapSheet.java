@@ -100,6 +100,7 @@ public class CapDupeHeatMapSheet extends DuplicationHeatMapSheet{
 		allHash.put("xAxisTitle", "Capability1");
 		allHash.put("yAxisTitle", "Capability2");
 		allHash.put("value", "Score");
+		allHash.put("sysDup", false);
 	}
 	
 }

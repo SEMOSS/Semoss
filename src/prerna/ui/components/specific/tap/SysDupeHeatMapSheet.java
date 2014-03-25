@@ -144,6 +144,7 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 		allHash.put("xAxisTitle", "System1");
 		allHash.put("yAxisTitle", "System2");
 		allHash.put("value", "Score");
+		allHash.put("sysDup", true);
 
 	}
 	
