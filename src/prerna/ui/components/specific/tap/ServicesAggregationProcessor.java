@@ -47,7 +47,7 @@ public class ServicesAggregationProcessor {
 	}
 
 	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
-	
+
 	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE{{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user}}";
 
 	private String TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value WHERE{{?system a <http://semoss.org/ontologies/Concept/System>} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?system ?prop ?value} }";
@@ -65,45 +65,45 @@ public class ServicesAggregationProcessor {
 	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?phase ?lifeCycle}}";
 
 	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd}}";
-	
+
 	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?icd ?pred ?sys WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys}}";
-	
+
 	private String TAP_CORE_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?ICD ?Payload ?Data} {?Payload ?prop ?value}}";
-	
+
 	private String TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value ?user WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} {?ICD ?Payload ?Data} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService <http://semoss.org/ontologies/Relation/Implemented_At> ?ICD}}";
-	
+
 	private String TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY = "SELECT DISTINCT ?ICD ?Payload ?data WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?data}}";
-	
+
 	private String TAP_SERVICES_AGGREGATE_ICD_DFORM_QUERY = "SELECT DISTINCT ?ICD ?has ?dForm WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dForm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dForm}}";
-	
+
 	private String TAP_SERVICER_AGGREGATE_ICD_DFREQ_QUERY = "SELECT DISTINCT ?ICD ?has ?dFreq WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dFreq <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DFreq>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dFreq}}";
-	
+
 	private String TAP_SERVICER_AGGREGATE_ICD_DPROT_QUERY = "SELECT DISTINCT ?ICD ?has ?dProt WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?dProt <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?ICD ?has ?dProt}}";
-	
+
 	private String TAP_SERVICER_AGGREGATE_ICD_LIFECYCLE_QUERY = "SELECT DISTINCT ?ICD ?phase ?lifeCycle WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?ICD ?phase ?lifeCycle} }";
-	
-	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}";
+
+	private String TAP_SERVICES_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?has ?TError} OPTIONAL{{?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}}";
 	
 	private String TAP_CORE_AGGREGATE_TERROR_QUERY = "SELECT DISTINCT ?system ?has ?TError ?weight WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?TError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TError>} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?system ?has ?TError} {?has <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}}";
 
-	private String TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
-
+	private String TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?data} OPTIONAL{{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}}";
+	
 	private String TAP_CORE_AGGREGATE_DATAOBJECT_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
 
 	private String TAP_CORE_SOFTWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?softwareModule WHERE{{?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} }";
-	
+
 	private String TAP_CORE_HARDWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?hardwareModule WHERE{{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} }";
 
-	private String TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value ?system ?softwareVersion ?software ?user WHERE{{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?software <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Software>} {?serviceSoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceSoftwareModule>} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?systemService <http://semoss.org/ontologies/Relation/Consists> ?serviceSoftwareModule} {?serviceSoftwareModule ?prop ?value} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?softwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareVersion} {?software <http://semoss.org/ontologies/Relation/Has> ?softwareVersion} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user}}";
+	private String TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value ?system ?softwareVersion ?software ?user WHERE{{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?softwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?software <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Software>} {?serviceSoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceSoftwareModule>} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?systemService <http://semoss.org/ontologies/Relation/Consists> ?serviceSoftwareModule} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceSoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareModule} {?softwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?softwareVersion} {?software <http://semoss.org/ontologies/Relation/Has> ?softwareVersion} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} OPTIONAL{{?serviceSoftwareModule ?prop ?value}} }";
 	
 	private String TAP_CORE_AGGREGATION_SOFTWARE_QUERY = "SELECT DISTINCT ?softwareModule ?prop ?value WHERE{{?softwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?softwareModule ?prop ?value}}";
-	
-	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value ?system ?hardwareVersion ?hardware ?user WHERE{{?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceHardwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?hardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?hardware <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Hardware>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?systemService <http://semoss.org/ontologies/Relation/Has> ?serviceHardwareModule} {?serviceHardwareModule ?prop ?value} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?hardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareVersion} {?hardware <http://semoss.org/ontologies/Relation/Has> ?hardwareVersion} {?systemService ?usedBy ?user}}";
+
+	private String TAP_SERVICES_AGGREGATE_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value ?system ?hardwareVersion ?hardware ?user WHERE{{?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ServiceHardwareModule>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?hardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?hardware <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Hardware>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?systemService <http://semoss.org/ontologies/Relation/Has> ?serviceHardwareModule} {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?serviceHardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareModule} {?hardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?hardwareVersion} {?hardware <http://semoss.org/ontologies/Relation/Has> ?hardwareVersion} {?systemService ?usedBy ?user} OPTIONAL{{?serviceHardwareModule ?prop ?value}} }";
 	
 	private String TAP_CORE_AGGREGATION_HARDWARE_QUERY = "SELECT DISTINCT ?hardwareModule ?prop ?value WHERE{{?hardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?hardwareModule ?prop ?value}}";
 
 	private String TAP_CORE_RELATIONS_LIST_QUERY = "SELECT ?relations WHERE{{?relations <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} filter(regex(str(?relations),\"^http://semoss\"))}";
-	
+
 	private String TAP_CORE_CONCEPTS_LIST_QUERY = "SELECT ?concepts WHERE{{?concepts <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 
 	public ServicesAggregationProcessor(IEngine servicesDB, IEngine coreDB){
@@ -116,31 +116,31 @@ public class ServicesAggregationProcessor {
 		boolean success = true;
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
-		
+
 		logger.info("PROCESSING SYSTEM USERS FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY);
-		
+
 		logger.info("PROCESSING PERSONNEL FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_PERSONNEL_QUERY);
-		
+
 		logger.info("PROCESSING USER INTERFACE FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
-		
+
 		logger.info("PROCESSING BP FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
-		
+
 		logger.info("PROCESSING ACTIVITY FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
-		
+
 		logger.info("PROCESSING BLU FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
-		
+
 		logger.info("PROCESSING SYSTEM PROVIDE ICDS AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY);
-		
+
 		logger.info("PROCESSING ICD CONSUME SYSTEM AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_ICD_CONSUME_SYS_QUERY);
-		
+
 		logger.info("PROCESSING ICD PAYLOAD DATA_OBJECT AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY);
 		logger.info("PROCESSING ICD HAS DFORM AND PUSHING INTO TAP CORE");
@@ -505,7 +505,7 @@ public class ServicesAggregationProcessor {
 			}
 		}
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// process terror
 
@@ -694,133 +694,139 @@ public class ServicesAggregationProcessor {
 				user = sjss.getRawVar(vars[6]).toString();
 			}
 
-			if(dataHash.containsKey(module) || !TAP_Core)
+			if(value == null)
 			{
-				Object[] returnTriple = new Object[3];
-				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
+				addToAllConcepts(module);
+			}
+			else
+			{
+				if(dataHash.containsKey(module) || !TAP_Core)
 				{
-					if(prop.equals(propURI + "Quantity"))
+					Object[] returnTriple = new Object[3];
+					if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
 					{
-						returnTriple = processSumValues(module, prop, value);
-					}
-					else if(prop.equals(propURI + "Comments"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "EOL"))
-					{
-						boolean max = true;
-						returnTriple = processMinMaxDate(module, prop, value, max);
-					}
-					else if(prop.equals(propURI + "Manufacturer"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "Model"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "Product_Type"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "Master_Version"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "Major_Version"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-					else if(prop.equals(propURI + "Vendor"))
-					{
-						returnTriple = processConcatString(module, prop, value, user);
-					}
-
-					// if error occurs
-					if(Arrays.equals(returnTriple, new String[]{""}))
-					{
-						return;
-					}
-
-					// returnTriple never gets a value when the property being passed in isn't in the defined list above
-					if(returnTriple[0] != null)
-					{
-						logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-						addToHash(returnTriple);
-					}
-
-					// must remove existing triple in TAP Core prior to adding
-					if(TAP_Core)
-					{
-						addToDeleteHash(new String[]{"<" + module + ">","<" + prop + ">", value.toString()});
-					}
-
-					// perform check to see if must add software/hardware version is software/hardware Module does not exist in TAP Core
-					if(softwareModule)
-					{
-						if(!allSoftwareModules.contains(module))
+						if(prop.equals(propURI + "Quantity"))
 						{
-							String system = sjss.getRawVar(vars[3]).toString();
-							String softwareV = sjss.getRawVar(vars[4]).toString();
-							String software = sjss.getRawVar(vars[5]).toString();
-							addToAllConcepts(system);
-							addToAllConcepts(softwareV);
-							addToAllConcepts(software);
-							addToAllConcepts(module);
+							returnTriple = processSumValues(module, prop, value);
+						}
+						else if(prop.equals(propURI + "Comments"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "EOL"))
+						{
+							boolean max = true;
+							returnTriple = processMinMaxDate(module, prop, value, max);
+						}
+						else if(prop.equals(propURI + "Manufacturer"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "Model"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "Product_Type"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "Master_Version"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "Major_Version"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
+						else if(prop.equals(propURI + "Vendor"))
+						{
+							returnTriple = processConcatString(module, prop, value, user);
+						}
 
-							String baseUri = getBaseURI(system);
-							//relationship from system to softwareModule
-							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
-							addToAllRelationships(predSysToMod);
-							logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
-							addToHash(new String[]{system, predSysToMod, module});
-							//relationship from softwareModule to softwareVersion
-							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
-							addToAllRelationships(predModToVer);
-							logger.debug("SOFTWARE MODULE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + softwareV + "}");
-							addToHash(new String[]{module, predModToVer, softwareV});
-							//relationship from software to softwareVersion
-							String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
-							logger.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
-							addToHash(new String[]{software, predSoffToVer, softwareV});
+						// if error occurs
+						if(Arrays.equals(returnTriple, new String[]{""}))
+						{
+							return;
+						}
+
+						// returnTriple never gets a value when the property being passed in isn't in the defined list above
+						if(returnTriple[0] != null)
+						{
+							logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
+							addToHash(returnTriple);
+						}
+
+						// must remove existing triple in TAP Core prior to adding
+						if(TAP_Core)
+						{
+							addToDeleteHash(new String[]{"<" + module + ">","<" + prop + ">", value.toString()});
 						}
 					}
-					else
-					{
-						if(!allHardwareModules.contains(module))
-						{
-							String system = sjss.getRawVar(vars[3]).toString();
-							String hardwareV = sjss.getRawVar(vars[4]).toString();
-							String hardware = sjss.getRawVar(vars[5]).toString();
-							addToAllConcepts(system);
-							addToAllConcepts(hardwareV);
-							addToAllConcepts(hardware);
-							addToAllConcepts(module);
+				}
+			}
+			// perform check to see if must add software/hardware version is software/hardware Module does not exist in TAP Core
+			if(softwareModule)
+			{
+				if(!allSoftwareModules.contains(module))
+				{
+					String system = sjss.getRawVar(vars[3]).toString();
+					String softwareV = sjss.getRawVar(vars[4]).toString();
+					String software = sjss.getRawVar(vars[5]).toString();
+					addToAllConcepts(system);
+					addToAllConcepts(softwareV);
+					addToAllConcepts(software);
+					addToAllConcepts(module);
 
-							String baseUri = getBaseURI(system);
-							//relationship from system to hardwareModule
-							String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
-							addToAllRelationships(predSysToMod);
-							logger.debug("SYSTEM TO HARDWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
-							addToHash(new String[]{system, predSysToMod, module});
-							//relationship from hardwareModule to hardwareVersion
-							String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
-							addToAllRelationships(predModToVer);
-							logger.debug("HARDWARE MODULE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + hardwareV + "}");
-							addToHash(new String[]{module, predModToVer, hardwareV});
-							//relationship from software to softwareVersion
-							String predhARDToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
-							logger.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
-							logger.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
-							addToHash(new String[]{hardware, predhARDToVer, hardwareV});
-						}
-					}
+					String baseUri = getBaseURI(system);
+					//relationship from system to softwareModule
+					String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
+					addToAllRelationships(predSysToMod);
+					logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
+					addToHash(new String[]{system, predSysToMod, module});
+					//relationship from softwareModule to softwareVersion
+					String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+					addToAllRelationships(predModToVer);
+					logger.debug("SOFTWARE MODULE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + softwareV + "}");
+					addToHash(new String[]{module, predModToVer, softwareV});
+					//relationship from software to softwareVersion
+					String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+					logger.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
+					addToHash(new String[]{software, predSoffToVer, softwareV});
+				}
+			}
+			else
+			{
+				if(!allHardwareModules.contains(module))
+				{
+					String system = sjss.getRawVar(vars[3]).toString();
+					String hardwareV = sjss.getRawVar(vars[4]).toString();
+					String hardware = sjss.getRawVar(vars[5]).toString();
+					addToAllConcepts(system);
+					addToAllConcepts(hardwareV);
+					addToAllConcepts(hardware);
+					addToAllConcepts(module);
+
+					String baseUri = getBaseURI(system);
+					//relationship from system to hardwareModule
+					String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
+					addToAllRelationships(predSysToMod);
+					logger.debug("SYSTEM TO HARDWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
+					addToHash(new String[]{system, predSysToMod, module});
+					//relationship from hardwareModule to hardwareVersion
+					String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+					addToAllRelationships(predModToVer);
+					logger.debug("HARDWARE MODULE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + hardwareV + "}");
+					addToHash(new String[]{module, predModToVer, hardwareV});
+					//relationship from software to softwareVersion
+					String predhARDToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+					logger.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
+					logger.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
+					addToHash(new String[]{hardware, predhARDToVer, hardwareV});
 				}
 			}
 		}
@@ -974,7 +980,7 @@ public class ServicesAggregationProcessor {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			relationshipList.add(sjss.getRawVar(var[0]) + "");
 		}
-		
+
 		String relation = "http://semoss.org/ontologies/Relation";
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		for ( String obj : allRelations.keySet())
@@ -1030,12 +1036,12 @@ public class ServicesAggregationProcessor {
 	private Object[] processConcatString(String sub, String prop, Object value, String user) 
 	{
 		// replace any tags for properties that are loaded as other data types but should be strings
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#decimal","");
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#integer","");
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
-		value = ((String) value).replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#decimal","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#integer","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
 
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
@@ -1367,46 +1373,56 @@ public class ServicesAggregationProcessor {
 				pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(obj, "/");
 			}
 
-			if(aggregatedData.containsKey(sys) || !TAP_Core)
+			if(prop == null && !TAP_Core)
 			{
-				LinkedList<Object> dataList = new LinkedList<Object>();
-				Hashtable<String, LinkedList<Object>> innerHash = new Hashtable<String, LinkedList<Object>>();
-				if(!aggregatedData.containsKey(sys))
+				addToAllConcepts(sys);
+				addToAllConcepts(obj);
+				addToAllRelationships(pred);
+				addToHash(new String[]{sys, pred, obj});
+			}
+			else
+			{
+				if(aggregatedData.containsKey(sys) || !TAP_Core)
 				{
-					dataList.add(pred);
-					dataList.add(prop);
-					innerHash.put(obj, dataList);
-					aggregatedData.put(sys, innerHash);
-					logger.debug("ADDING NEW DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
-				}
-				else
-				{
-					if(!aggregatedData.get(sys).containsKey(obj))
+					LinkedList<Object> dataList = new LinkedList<Object>();
+					Hashtable<String, LinkedList<Object>> innerHash = new Hashtable<String, LinkedList<Object>>();
+					if(!aggregatedData.containsKey(sys))
 					{
-						innerHash = aggregatedData.get(sys);
 						dataList.add(pred);
 						dataList.add(prop);
 						innerHash.put(obj, dataList);
+						aggregatedData.put(sys, innerHash);
 						logger.debug("ADDING NEW DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
 					}
 					else
 					{
-						innerHash = aggregatedData.get(sys);
-						dataList = innerHash.get(obj);
-						dataList.add(prop);
-						logger.debug("ADJUSTING DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+						if(!aggregatedData.get(sys).containsKey(obj))
+						{
+							innerHash = aggregatedData.get(sys);
+							dataList.add(pred);
+							dataList.add(prop);
+							innerHash.put(obj, dataList);
+							logger.debug("ADDING NEW DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+						}
+						else
+						{
+							innerHash = aggregatedData.get(sys);
+							dataList = innerHash.get(obj);
+							dataList.add(prop);
+							logger.debug("ADJUSTING DATA LIST:     " + sys + " -----> {" + obj + " --- " + dataList.toString() + "}");
+						}
 					}
-				}
 
-				// add instances to master list
-				addToAllConcepts(sys);
-				addToAllConcepts(obj);
+					// add instances to master list
+					addToAllConcepts(sys);
+					addToAllConcepts(obj);
 
-				if(TAP_Core)
-				{
-					addToDeleteHash(new Object[]{pred, propURI + propType, prop});
+					if(TAP_Core)
+					{
+						addToDeleteHash(new Object[]{pred, propURI + propType, prop});
+					}
+					addToAllRelationships(pred);
 				}
-				addToAllRelationships(pred);
 			}
 		}
 		return aggregatedData;
