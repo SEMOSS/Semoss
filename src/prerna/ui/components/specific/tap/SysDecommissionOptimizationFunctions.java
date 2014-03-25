@@ -29,6 +29,7 @@ public class SysDecommissionOptimizationFunctions {
     //hashtable storing all the systems and their sites.
     Hashtable<String, ArrayList<String>> sysToSiteHash;
     
+    private ArrayList<String> systemsWithNoSite;
 
 	ArrayList <Object []> outputList;
 
@@ -39,8 +40,10 @@ public class SysDecommissionOptimizationFunctions {
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 	
 	private static final int workHoursInDay = 8;
-	private static int resourcesConstraint = 5000;
+	public int resourcesConstraint;
 	private double resourcesPossible;
+	
+	public double timeConstraint;
 	
 	private double minNecessaryTimeAllSystems;
 	private double minPossibleTimeAllSystems;
@@ -50,6 +53,78 @@ public class SysDecommissionOptimizationFunctions {
 	{
 	}
 	
+	
+	public void optimizeTime()
+	{
+		resourcesConstraint = 1000;
+		instantiate();
+	
+		//if necessary is greater than possible, we have more resources than we need so will recalculate R to be only necessary.
+		if(minNecessaryTimeAllSystems>minPossibleTimeAllSystems)
+		{
+			minPossibleTimeAllSystems = minNecessaryTimeAllSystems;
+			recalculateResourcesPossible();
+		}
+		else
+			resourcesPossible = resourcesConstraint;
+		
+		calculateResourceAndOutput();
+
+	}
+	public void optimizeResource()
+	{
+		timeConstraint = 9.09*365;
+		instantiate();
+		
+		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,timeConstraint);
+		recalculateResourcesPossible();
+		
+		calculateResourceAndOutput();
+	}
+	
+	public void instantiate()
+	{
+		sysToMinTimeHashPerSite = new Hashtable<String, Double>();
+		sysToWorkVolHashPerSite = new Hashtable<String, Double>();
+		sysToMinTimeHashAllSites = new Hashtable<String, Double>();
+		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
+		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
+		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
+		sysToResourceAllocationHash = new Hashtable<String, Double>();
+		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
+		outputList = new ArrayList<Object[]>();
+		systemsWithNoSite = new ArrayList<String>();
+
+		resourcesPossible = 0.0;
+		
+		minNecessaryTimeAllSystems = 0.0;
+		minPossibleTimeAllSystems = 0.0;
+		workVolAllSysAllSites = 0.0;
+		
+		calculateMinTimeAndWorkVolPerSystemPerSite();
+		calculateMinTimeAndWorkVolPerSystemAllSites();
+		removeSystemsWithNoSite();
+		calculateMinTimeAllSystemsAllSites();
+		calculateWorkVolAllSystemsAllSites();
+		
+	}
+	
+	public void calculateResourceAndOutput()
+	{
+		calculateResourceAllocationPerSystem();
+		calculateNumSysSimultaneousTransform();
+//		printTest();
+		
+		System.out.println("Resources constraint:"+resourcesConstraint);
+		System.out.println("Resources used:"+resourcesPossible);
+		
+		System.out.println("Time constraint:"+timeConstraint);
+		System.out.println("Time used in years:"+minPossibleTimeAllSystems / 365.0);
+
+		System.out.println();
+	
+		makeArrayList();
+	}
 	
 	/**
 	 * Calculating the minimum time and work volume for each system.
@@ -94,18 +169,34 @@ public class SysDecommissionOptimizationFunctions {
 			//if we dont have site data, we are assuming the system is only deployed at one site.
 			int numOfSites = 1;
 			if(sysToSiteHash.containsKey(sys))
+			{
 				numOfSites = sysToSiteHash.get(sys).size();
 			
-			double minNecessaryTimePerSysPerSite = sysToMinTimeHashPerSite.get(sys);
-			double minNecessaryTimePerSysAllSites = numOfSites*minNecessaryTimePerSysPerSite;
+				double minNecessaryTimePerSysPerSite = sysToMinTimeHashPerSite.get(sys);
+				double minNecessaryTimePerSysAllSites = numOfSites*minNecessaryTimePerSysPerSite;
+				
+				double workVolPerSysPerSite = sysToWorkVolHashPerSite.get(sys);
+				double workVolPerSysAllSites = numOfSites*workVolPerSysPerSite;
+				
+				sysToMinTimeHashAllSites.put(sys,minNecessaryTimePerSysAllSites);
+				sysToWorkVolHashAllSites.put(sys,workVolPerSysAllSites);
+			}
+			else
+			{
+				systemsWithNoSite.add(sys);
+			}
 			
-			double workVolPerSysPerSite = sysToWorkVolHashPerSite.get(sys);
-			double workVolPerSysAllSites = numOfSites*workVolPerSysPerSite;
-			
-			sysToMinTimeHashAllSites.put(sys,minNecessaryTimePerSysAllSites);
-			sysToWorkVolHashAllSites.put(sys,workVolPerSysAllSites);
 		}
 
+	}
+	
+	public void removeSystemsWithNoSite()
+	{
+		for(String sys : systemsWithNoSite)
+		{
+			sysToMinTimeHashPerSite.remove(sys);
+			sysToWorkVolHashPerSite.remove(sys);
+		}
 	}
 	
 	public void calculateMinTimeAllSystemsAllSites()
@@ -180,50 +271,6 @@ public class SysDecommissionOptimizationFunctions {
 		System.out.println();
 	}
 	
-	public void optimizeTime()
-	{
-		sysToMinTimeHashPerSite = new Hashtable<String, Double>();
-		sysToWorkVolHashPerSite = new Hashtable<String, Double>();
-		sysToMinTimeHashAllSites = new Hashtable<String, Double>();
-		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
-		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
-		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
-		sysToResourceAllocationHash = new Hashtable<String, Double>();
-		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
-		outputList = new ArrayList<Object[]>();
-
-		resourcesPossible = 0.0;
-		
-		minNecessaryTimeAllSystems = 0.0;
-		minPossibleTimeAllSystems = 0.0;
-		workVolAllSysAllSites = 0.0;
-		
-		
-		calculateMinTimeAndWorkVolPerSystemPerSite();
-		calculateMinTimeAndWorkVolPerSystemAllSites();
-		calculateMinTimeAllSystemsAllSites();
-		//if necessary is greater than possible, we have more resources than we need so will recalculate R to be only necessary.
-		if(minNecessaryTimeAllSystems>minPossibleTimeAllSystems)
-		{
-			minPossibleTimeAllSystems = minNecessaryTimeAllSystems;
-			recalculateResourcesPossible();
-		}
-		else
-			resourcesPossible = resourcesConstraint;
-		
-		calculateWorkVolAllSystemsAllSites();
-		calculateResourceAllocationPerSystem();
-		calculateNumSysSimultaneousTransform();
-//		printTest();
-		
-		System.out.println("resources used: "+resourcesPossible);
-		System.out.println("min time with unlimited resources: "+minNecessaryTimeAllSystems / 365.0);
-		System.out.println("min time with resources used: "+minPossibleTimeAllSystems / 365.0);		
-		System.out.println();
-		
-		makeArrayList();
-	}
-	
 	public void makeArrayList()
 	{
 		for(String sys : sysToMinTimeHashPerSite.keySet())
@@ -235,7 +282,7 @@ public class SysDecommissionOptimizationFunctions {
 			if(sysToSiteHash.containsKey(sys))
 				element[3] = sysToSiteHash.get(sys).size();
 			else
-				element[3] = "1";
+				element[3] = "not found in site";
 			element[4] = sysToResourceAllocationHash.get(sys);
 			element[5] = sysToNumSimultaneousTransformHash.get(sys);
 			outputList.add(element);
@@ -252,8 +299,7 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		return loeInHours/workHoursInDay / 5 * 7;
 	}
-	
-	
+		
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();

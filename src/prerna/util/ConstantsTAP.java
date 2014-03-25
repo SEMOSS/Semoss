@@ -52,6 +52,9 @@ public class ConstantsTAP {
 	public static final String DHMSM_ACCESS_ARCHIVE_BUTTON = "archiveAccessButton";
 	public static final String DHMSM_ACCESS_IGNORE_BUTTON = "ignoreAccessButton";
 	
+	public static final String SYS_DECOM_OPT_RESOURCE_TEXT_FIELD = "sysDecomOptimizationResourceTextField";
+	public static final String SYS_DECOM_OPT_TIME_TEXT_FIELD = "sysDecomOptimizationTimeTextField";
+	
 	//Analysis of Vendors' Response to RFP
 	public static final String VENDOR_BV_TV_QUERY="VENDOR_BV_TV_QUERY";
 	public static final String VENDOR_CUSTOM_COST_QUERY="VENDOR_CUSTOM_COST_QUERY";
