@@ -33,7 +33,7 @@
 		      <div id="checkboxes"></div>
 		      <div id="refreshBtn"></div>
 		      <div id="barCanvas"></div>
-		      <h4 id="header2">Application Health Grid</h4>
+		      <h5 id="header2">Application Health Grid</h5>
 		 	  <div id="appGridDropDown"></div>
 		 	  <div id="appGridBtn"></div>
 		    </div>
@@ -684,13 +684,17 @@
 	    system2.exit().remove();
 
 	  } //End bar chart function
-
 	  
-
-	  var dropDownArray = xAxisArray;
-	  dropDownArray.unshift("");
-
-	  /*----------App health grid dropdown-------------*/ 
+	  function systemSelection() {
+  		selectedSystem = this.options[this.selectedIndex].value
+	  }
+	  
+	  if (dataString.sysDup) {
+		$("#header2").show();
+		var dropDownArray = xAxisArray;
+		dropDownArray.unshift("");
+  
+		/*----------App health grid dropdown-------------*/ 
 	    d3.select("#appGridDropDown").append("select")
 	      .attr("id", "select2DropDown2")
 	      .attr("class", "mySelect2v2")
@@ -706,26 +710,18 @@
 		    placeholder: "Select a System"
 		});
 	    $("#select2DropDown2").on("change", systemSelection);
-	    
-	    function systemSelection() {
 
-  		    selectedSystem = this.options[this.selectedIndex].value
-	       	
-       		console.log(selectedSystem)
- 	
-	    	}
-
-	  var appGridBtn = appBtn.selectAll("foreignObject")
-	    .data([1])
-	    .enter()
-	    .append("foreignObject")
-	    .attr("y", 0)
-	    .attr("x", 0)
-	    .attr("width", "140px")
-	    .attr("height", "60px")
-	    .append("xhtml:div")
-	    .html("<a>Launch</a>")
-	    .attr("class","btn btn-success");
+		var appGridBtn = appBtn.selectAll("foreignObject")
+		  .data([1])
+		  .enter()
+		  .append("foreignObject")
+		  .attr("y", 0)
+		  .attr("x", 0)
+		  .attr("width", "140px")
+		  .attr("height", "60px")
+		  .append("xhtml:div")
+		  .html("<a>Launch</a>")
+		  .attr("class","btn btn-success");
 
 
 	    appGridBtn.on("click", function(d){
@@ -745,7 +741,10 @@
 		  if(selectedSystem != ""){
 			healthGrid(myJsonString);
 		  }
-	  });
+		});
+	  } else {
+		$("#header2").hide();
+	  }
 
 	}
 	
