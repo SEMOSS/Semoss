@@ -87,7 +87,7 @@
 	var dataArray = [];
 	var truncY = [];
 	var truncX = [];
-	var domainArray = [];
+	var domainArray = [0,100];
 	var sliderArray = [0,100];
 	var yAxisMatches = [];
 	var margin = { top: 185, right: 150, bottom: 100, left: 150 };
@@ -266,7 +266,11 @@
 		  .attr("class", "heat bordered")
 		  .attr("width", gridSize)
 		  .attr("height", gridSize)
-		  .style("fill", function(d) { return colorScale(d.Value); })
+		  .style("fill", function(d) {
+			if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+			  return colorScale(d.Value);
+			} else { return "white"}
+		  })
 		  .on('mouseover', tip.show)
 		  .on('mouseout', tip.hide)
 		  .on('click', function(d){popover(d)});
@@ -404,12 +408,11 @@
 	  /*----------Slider-------------*/
 	  sliderInit(dataArray);
 	  function sliderInit(data) {
-	     
-
+		
 	    $('#slider').slider({
-		min: Math.floor(d3.min(data, function (d) { return d.Value; })),
-		max: Math.ceil(d3.max(data, function (d) { return d.Value; })),
-		value:[Math.floor(d3.min(data, function (d) { return d.Value; })), Math.ceil(d3.max(data, function (d) { return d.Value; }))],
+		min: 0,
+		max: 100,
+		value:[0,100],
 		step:1
 	      })
 	    .on('slide', function(){
@@ -477,6 +480,7 @@
 	  var parsedData = {};
 	  builderObject = {};
 	  data = {};
+	  
 	  xAxisArray.length = 0;
 	  yAxisArray.length = 0;
 	  dataArray.length = 0;
