@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 /**
- * This class is used to generate the system duplication calculations for the fact sheet report.
+ * This class is used to generate the capability similarity calculations for the fact sheet report.
  */
-public class CapabilityFactSheetCapDupeCalculator {
+public class CapabilityFactSheetCapSimCalculator {
 	
 	Logger logger = Logger.getLogger(getClass());
 
@@ -41,9 +41,9 @@ public class CapabilityFactSheetCapDupeCalculator {
 	int comparisonSysNum = 5;
 	int numCriteria = 4;
 	/**
-	 * Constructor for FactSheetSysDupeCalculator.
+	 * Constructor for CapabilityFactSheetCapSimCalculator.
 	 */
-	public CapabilityFactSheetCapDupeCalculator()
+	public CapabilityFactSheetCapSimCalculator()
 	{
 		performAnalysis();
 		prioritizeValues();
@@ -52,13 +52,13 @@ public class CapabilityFactSheetCapDupeCalculator {
 	}
 	
 	/**
-	 * Performs analysis on the TAP Core database for system duplication calculations.
+	 * Performs analysis on the TAP Core database for system similarity calculations.
 	 * Takes into business processes, data, BLU, theater/garrison, transactions, data warehouse, users, sites, and user interface.
 	 */
 	public void performAnalysis() 
 	{
 		//declare 
-		DuplicationFunctions sdf = new DuplicationFunctions();
+		SimilarityFunctions sdf = new SimilarityFunctions();
 		//get list of systems first
 		
 		String query = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
@@ -69,32 +69,32 @@ public class CapabilityFactSheetCapDupeCalculator {
 		criteriaList.add("Data/BLU");
 		String dataQuery = "SELECT DISTINCT ?Capability ?Data ?CRM WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Capability ?Consists ?Task.}{?Task ?Needs ?Data.} }";
 		String bluQuery = "SELECT DISTINCT ?Capability ?BusinessLogicUnit WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(hrCoreDB, dataQuery, bluQuery, DuplicationFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(hrCoreDB, dataQuery, bluQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(dataBLUHash, 0);
 		
 		//BP
 		criteriaList.add("BusinessProcess");
 		String bpQuery ="SELECT DISTINCT ?Capability ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>; }{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?Consists ?Task.} {?Task ?Needs ?BusinessProcess}}";
-		Hashtable bpHash = sdf.compareObjectParameterScore(hrCoreDB, bpQuery, DuplicationFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(hrCoreDB, bpQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(bpHash,1);
 	
 		//Attribute
 		criteriaList.add("Attribute");
 		String attributeQuery ="SELECT DISTINCT ?Capability ?Attribute WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute>;}{?Capability ?Consists ?Task.}{?Task ?Has ?Attribute.}}";
-		Hashtable attributeHash = sdf.compareObjectParameterScore(hrCoreDB, attributeQuery, DuplicationFunctions.VALUE);
+		Hashtable attributeHash = sdf.compareObjectParameterScore(hrCoreDB, attributeQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(attributeHash,2);
 		
 		//Participant
 		criteriaList.add("Participant");
 		String participantQuery ="SELECT DISTINCT ?Capability ?Participant WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;}{?Participant <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Participant>;}{?Capability ?Consists ?Task.}{?Task ?Requires ?Participant.}}";
-		Hashtable participantHash = sdf.compareObjectParameterScore(hrCoreDB, participantQuery, DuplicationFunctions.VALUE);
+		Hashtable participantHash = sdf.compareObjectParameterScore(hrCoreDB, participantQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(participantHash,3);
 		
 	}	
 	
 
 	/**
-	 * Processes the hashtable that is used for system duplication storing.
+	 * Processes the hashtable that is used for system similarity storing.
 	 * Creates hashtable of arraylists with system as the key and corresponding data/BLU as the values.
 	 * @param dataHash 	Hashtable<String,Hashtable<String,Double>>
 	 * @param idx 		Index for the system value hash (int).
@@ -241,7 +241,7 @@ public class CapabilityFactSheetCapDupeCalculator {
 	}
 	
 	/**
-	 * Prints values for system duplication, looping through the all data hash.
+	 * Prints values for capability similarity, looping through the all data hash.
 	 */
 	public void printValues1()
 	{
@@ -264,7 +264,7 @@ public class CapabilityFactSheetCapDupeCalculator {
 	}
 	
 	/**
-	 * Prints values for system duplication, looping through the priority all data hash.
+	 * Prints values for capability similarity, looping through the priority all data hash.
 	 */
 	public void printValues2()
 	{

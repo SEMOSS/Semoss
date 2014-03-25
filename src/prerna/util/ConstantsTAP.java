@@ -74,7 +74,7 @@ public class ConstantsTAP {
 	public static final String BUSINESS_LOGIC_QUERY = "BUSINESS_LOGIC_QUERY";
 	public static final String SITE_LIST_QUERY = "SITE_LIST_QUERY";
 	public static final String BUDGET_QUERY = "BUDGET_QUERY";
-	public static final String SYS_DUPE_QUERY = "SYS_DUPE_QUERY";
+	public static final String SYS_SIM_QUERY = "SYS_SIM_QUERY";
 	public static final String SYS_QUERY = "SYS_QUERY";
 	public static final String POC_QUERY = "POC_QUERY";
 	public static final String VALUE_QUERY = "VALUE_QUERY";
@@ -115,7 +115,7 @@ public class ConstantsTAP {
 	public static final String FUNCTIONAL_GAP_COUNT_QUERY = "FUNCTIONAL_GAP_COUNT_QUERY";	
 	public static final String PARTICIPANT_QUERY = "PARTICIPANT_QUERY";
 	public static final String DATE_GENERATED_QUERY = "DATE_GENERATED_QUERY";
-	public static final String CAPABILITY_DUPE_QUERY = "CAPABILITY_DUPE_QUERY";
+	public static final String CAPABILITY_SIM_QUERY = "CAPABILITY_SIM_QUERY";
 	public static final String CAPABILITY_QUERY = "CAPABILITY_QUERY";
 	public static final String DATA_OBJECT_QUERY = "DATA_OBJECT_QUERY";
 	public static final String FUNCTIONAL_GAP_QUERY = "FUNCTIONAL_GAP_QUERY";

@@ -89,7 +89,7 @@ public class FactSheetWriter {
 		ArrayList bluResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_LOGIC_QUERY);
 		ArrayList siteResults = (ArrayList) systemDataHash.get(ConstantsTAP.SITE_LIST_QUERY);
 		ArrayList budgetResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUDGET_QUERY);
-		ArrayList sysDupeResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYS_DUPE_QUERY);
+		ArrayList sysSimResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYS_SIM_QUERY);
 		ArrayList sysResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYS_QUERY);
 		ArrayList pocResults = (ArrayList) systemDataHash.get(ConstantsTAP.POC_QUERY);
 		ArrayList valueResults = (ArrayList) systemDataHash.get(ConstantsTAP.VALUE_QUERY);		
@@ -127,8 +127,8 @@ public class FactSheetWriter {
 		writeListOfInterfacesSheet(wb, icdResults);
 		writeDataProvenanceSheet(wb, dataResults, uniqueDataSystems, uniqueData);
 		writeBusinessLogicSheet(wb, bluResults, uniqueBLUSystems, uniqueBLU);	
-		if (sysDupeResults != null) {
-			writeSystemSimilaritySheet(wb, sysDupeResults, sysResults);
+		if (sysSimResults != null) {
+			writeSystemSimilaritySheet(wb, sysSimResults, sysResults);
 		}
 		writeDeploymentStrategySheet(wb);
 		writeSiteListSheet(wb, siteResults);
@@ -315,7 +315,7 @@ public class FactSheetWriter {
 			}
 		}
 
-		//Top 5 Similar Systems -- System Duplication/Similarity
+		//Top 5 Similar Systems -- System Similarity
 		rowToWriteOn = sheetToWriteOver.getRow(33);
 		cellToWriteOn = rowToWriteOn.getCell(1);
 		cellToWriteOn.setCellValue(systemName);
@@ -884,12 +884,12 @@ public class FactSheetWriter {
 	}
 
 	/**
-	 * Writes the data from the system similarity and system duplication queries
+	 * Writes the data from the system similarity and system similarity queries
 	 * @param wb 				XSSFWorkbook containing the System Similarity Sheet to populate
-	 * @param sysDupeResults	ArrayList containing the system duplication results
+	 * @param sysSimResults	ArrayList containing the system similarity results
 	 * @param sysResults		ArrayList containing the similar system results
 	 */
-	public void writeSystemSimilaritySheet (XSSFWorkbook wb, ArrayList sysDupeResults, ArrayList sysResults){
+	public void writeSystemSimilaritySheet (XSSFWorkbook wb, ArrayList sysSimResults, ArrayList sysResults){
 		XSSFSheet sheetToWriteOver = wb.getSheet("System Similarity");
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(3);
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
@@ -905,8 +905,8 @@ public class FactSheetWriter {
 			cellToWriteOn.setCellValue((String)sysResults.get(i));
 		}
 
-		for (int i=0; i<sysDupeResults.size(); i++) {
-			ArrayList row = (ArrayList) sysDupeResults.get(i);
+		for (int i=0; i<sysSimResults.size(); i++) {
+			ArrayList row = (ArrayList) sysSimResults.get(i);
 
 			for (int j=0; j<row.size(); j++) {	
 				rowToWriteOn = sheetToWriteOver.getRow(j+7);

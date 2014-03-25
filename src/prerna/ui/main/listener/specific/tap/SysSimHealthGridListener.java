@@ -33,7 +33,7 @@ import com.google.gson.Gson;
 
 /**
  */
-public class SysDupeHealthGridListener extends AbstractBrowserSPARQLFunction {
+public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 	
 	GraphPlaySheet gps;
 	String coreDb = "TAP_Core_Data";
@@ -66,8 +66,8 @@ public class SysDupeHealthGridListener extends AbstractBrowserSPARQLFunction {
 		
 		
 		
-		String question ="System Duplication HealthGrid Custom";
-		hgs.setTitle("System Duplication HealthGrid for "+ sysOfInterest);
+		String question ="System Similarity HealthGrid Custom";
+		hgs.setTitle("System Similarity HealthGrid for "+ sysOfInterest);
 		hgs.setQuery(query);
 		hgs.setRDFEngine(engine);
 		hgs.setQuestionID(question);

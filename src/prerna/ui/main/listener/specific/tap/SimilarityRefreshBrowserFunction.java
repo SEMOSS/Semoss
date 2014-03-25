@@ -13,9 +13,9 @@ import com.teamdev.jxbrowser.Browser;
 import com.teamdev.jxbrowser.BrowserFunction;
 
 /**
- * An browser class for refreshing system duplication heat map based on selected parameters.
+ * An browser class for refreshing similarity comparison heat map based on selected parameters.
  */
-public class DuplicationRefreshBrowserFunction implements BrowserFunction {
+public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 
 	Logger logger = Logger.getLogger(getClass());
 	ArrayList<String> orderedVars = new ArrayList<String>();

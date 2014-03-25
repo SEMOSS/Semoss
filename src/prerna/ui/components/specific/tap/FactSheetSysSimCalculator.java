@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 /**
- * This class is used to generate the system duplication calculations for the fact sheet report.
+ * This class is used to generate the system similarity calculations for the fact sheet report.
  */
-public class FactSheetSysDupeCalculator {
+public class FactSheetSysSimCalculator {
 	
 	Logger logger = Logger.getLogger(getClass());
 
@@ -46,9 +46,9 @@ public class FactSheetSysDupeCalculator {
 	
 	
 	/**
-	 * Constructor for FactSheetSysDupeCalculator.
+	 * Constructor for FactSheetSysSimCalculator.
 	 */
-	public FactSheetSysDupeCalculator()
+	public FactSheetSysSimCalculator()
 	{
 		performAnalysis();
 		prioritizeValues();
@@ -57,13 +57,13 @@ public class FactSheetSysDupeCalculator {
 	}
 	
 	/**
-	 * Performs analysis on the TAP Core database for system duplication calculations.
+	 * Performs analysis on the TAP Core database for system similarity calculations.
 	 * Takes into business processes, data, BLU, theater/garrison, transactions, data warehouse, users, sites, and user interface.
 	 */
 	public void performAnalysis() 
 	{
 		//declare 
-		DuplicationFunctions sdf = new DuplicationFunctions();
+		SimilarityFunctions sdf = new SimilarityFunctions();
 		//get list of systems first
 		
 		String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
@@ -73,14 +73,14 @@ public class FactSheetSysDupeCalculator {
 		//BP First
 		criteriaList.add("BusinessProcess");
 		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System ?Supports ?BusinessProcess}}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
-		Hashtable bpHash = sdf.compareObjectParameterScore(tapCoreDB, bpQuery, DuplicationFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(tapCoreDB, bpQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(bpHash,0);
 		
 		//Data and BLU 2
 		criteriaList.add("Data/BLU");
 		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System ?OwnedBy ?SystemOwner}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .}}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?OwnedBy ?SystemOwner}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?provide ?BLU }}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, DuplicationFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(tapCoreDB, dataQuery, bluQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(dataBLUHash, 1);
 		
 		
@@ -99,19 +99,19 @@ public class FactSheetSysDupeCalculator {
 		//User Types 5
 		criteriaList.add("Users");
 		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System ?UsedBy ?Personnel}}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}";
-		Hashtable userHash = sdf.compareObjectParameterScore(tapCoreDB, userQuery, DuplicationFunctions.VALUE);
+		Hashtable userHash = sdf.compareObjectParameterScore(tapCoreDB, userQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(userHash,4);
 		
 		//Sites 6
 		criteriaList.add("Sites");
 		String siteQuery ="SELECT DISTINCT ?System ?Facility WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?SystemDCSite ?DeployedAt ?Facility;}{?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?Facility <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Facility>;}  {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?DeployedAt1 ?SystemDCSite;}} ";
-		Hashtable siteHash = sdf.compareObjectParameterScore(tapSiteDB, siteQuery, DuplicationFunctions.VALUE);
+		Hashtable siteHash = sdf.compareObjectParameterScore(tapSiteDB, siteQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(siteHash,5);
 		
 		//User Interface
 		criteriaList.add("User Interface");
 		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System ?Utilizes ?UserInterface}}BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)}";
-		Hashtable uiHash = sdf.compareObjectParameterScore(tapCoreDB, uiQuery, DuplicationFunctions.VALUE);
+		Hashtable uiHash = sdf.compareObjectParameterScore(tapCoreDB, uiQuery, SimilarityFunctions.VALUE);
 		processHashForScoring(uiHash,6);
 		
 		//
@@ -126,7 +126,7 @@ public class FactSheetSysDupeCalculator {
 	
 
 	/**
-	 * Processes the hashtable that is used for system duplication storing.
+	 * Processes the hashtable that is used for system similarity storing.
 	 * Creates hashtable of arraylists with system as the key and corresponding data/BLU as the values.
 	 * @param dataHash 	Hashtable<String,Hashtable<String,Double>>
 	 * @param idx 		Index for the system value hash (int).
@@ -275,7 +275,7 @@ public class FactSheetSysDupeCalculator {
 	}
 	
 	/**
-	 * Prints values for system duplication, looping through the all data hash.
+	 * Prints values for system similarity, looping through the all data hash.
 	 */
 	public void printValues1()
 	{
@@ -298,7 +298,7 @@ public class FactSheetSysDupeCalculator {
 	}
 	
 	/**
-	 * Prints values for system duplication, looping through the priority all data hash.
+	 * Prints values for system similarity, looping through the priority all data hash.
 	 */
 	public void printValues2()
 	{

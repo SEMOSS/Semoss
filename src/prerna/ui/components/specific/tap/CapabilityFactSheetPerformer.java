@@ -44,7 +44,7 @@ public class CapabilityFactSheetPerformer {
 	Logger logger = Logger.getLogger(getClass());
 	String HRCoreEngine = "HR_Core";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	CapabilityFactSheetCapDupeCalculator capDupe;
+	CapabilityFactSheetCapSimCalculator capSim;
 	Hashtable masterHash = new Hashtable();
 	
 	/**
@@ -316,15 +316,15 @@ public class CapabilityFactSheetPerformer {
 	 * @param capabilityName	String containing the capability name to run the queries on
 	 * @return returnHash	Hashtable containing the results for all the queries
 	 */
-	public Hashtable processCapabilityDupeSheet(String capabilityName) {
+	public Hashtable processCapabilitySimSheet(String capabilityName) {
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 
-		capDupe = new CapabilityFactSheetCapDupeCalculator();
+		capSim = new CapabilityFactSheetCapSimCalculator();
 		
-		ArrayList<ArrayList<Object>> capDupeList = capDupe.priorityAllDataHash.get(capabilityName);
-		ArrayList<String> capList = capDupe.priorityCapHash.get(capabilityName);
-		ArrayList<Double> valueList = capDupe.priorityValueHash.get(capabilityName);
-		ArrayList<String> criteriaList = capDupe.criteriaList;
+		ArrayList<ArrayList<Object>> capSimList = capSim.priorityAllDataHash.get(capabilityName);
+		ArrayList<String> capList = capSim.priorityCapHash.get(capabilityName);
+		ArrayList<Double> valueList = capSim.priorityValueHash.get(capabilityName);
+		ArrayList<String> criteriaList = capSim.criteriaList;
 
 		Hashtable dataSeries = new Hashtable();
 		for(int i=0;i<capList.size();i++)
@@ -336,7 +336,7 @@ public class CapabilityFactSheetPerformer {
 				Hashtable elementHash = new Hashtable();
 				elementHash.put("Capability", capability);
 				elementHash.put("Criteria", criteria);
-				elementHash.put("val",((Double) capDupeList.get(i).get(j))*100);
+				elementHash.put("val",((Double) capSimList.get(i).get(j))*100);
 				dataSeries.put(capability+"-"+criteria,elementHash);
 			}
 			String criteria ="Total Score";
@@ -351,7 +351,7 @@ public class CapabilityFactSheetPerformer {
 		returnHash.put("value", "val");
 		returnHash.put("xAxisTitle", "Capability");
 		returnHash.put("yAxisTitle", "Criteria");
-		returnHash.put("title", "Capability Similarity / Duplication Scores");
+		returnHash.put("title", "Capability Similarity Scores");
 
 		return returnHash;
 	}

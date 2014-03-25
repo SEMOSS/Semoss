@@ -12,9 +12,9 @@ import com.google.gson.Gson;
 import com.teamdev.jxbrowser.BrowserFunction;
 
 /**
- * An browser class for refreshing system duplication heat map based on selected parameters.
+ * An browser class for refreshing similarity comparison heat map based on selected parameters.
  */
-public class DuplicationBarChartBrowserFunction implements BrowserFunction {
+public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 
 	Logger logger = Logger.getLogger(getClass());
 	Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash;
@@ -63,7 +63,7 @@ public class DuplicationBarChartBrowserFunction implements BrowserFunction {
 			String var = selectedVars.get(varIdx);
 			Double minVal = minimumWeights.get(var);//need to see if minimum weight was specified for this param
 			Hashtable<String, Hashtable<String, Object>> varHash = paramDataHash.get(var);
-			// get the system-system hashtable
+			// get the comparison object to object hashtable
 			Hashtable elementHash = varHash.get(key);
 			Double newVal = ((Double)elementHash.get(valueString));
 			//make sure value is valid
