@@ -72,6 +72,7 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
 
     	    public void navigationFinished(NavigationFinishedEvent event) {
     	    	prepareNavigationFinished();
+    			callIt();
 
     	    }
     	});
@@ -101,7 +102,6 @@ public class DuplicationHeatMapSheet extends BrowserPlaySheet{
     	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
     	barChartFunction.setParamDataHash(paramDataHash);
     	browser.registerFunction("barChartFunction",  barChartFunction);
-		callIt();
 	}
 	/**
 	 * Formats data hashtable into proper format needed for charting.
