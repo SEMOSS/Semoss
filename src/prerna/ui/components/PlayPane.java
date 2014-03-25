@@ -203,6 +203,9 @@ public class PlayPane extends JFrame {
 	//DHMSM Report 2nd Panel
 	public JPanel dhmsmReportMidPanel;
 	public JButton dhmsmCapSystemIntersectionReportButton;
+	
+	public JTextField sysDecomOptimizationResourceTextField, sysDecomOptimizationTimeTextField;
+	public JButton btnSysDecomOptimization;
 
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -294,6 +297,7 @@ public class PlayPane extends JFrame {
 	private JSeparator separator_8;
 	public JButton btnTaskerGeneration;
 	public JButton btnSystemInfoGenButton;
+	public JButton btnInterfaceReportButton;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
 	
 	private JLabel lblModifyQueryOf;
@@ -2616,6 +2620,16 @@ public class PlayPane extends JFrame {
 		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
 		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
 
+		btnInterfaceReportButton = new CustomButton("Generate Interface Report");
+		btnInterfaceReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnInterfaceReportButton = new GridBagConstraints();
+		gbc_btnInterfaceReportButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnInterfaceReportButton.gridwidth = 2;
+		gbc_btnInterfaceReportButton.insets = new Insets(0, 0, 5, 5);
+		gbc_btnInterfaceReportButton.gridx = 1;
+		gbc_btnInterfaceReportButton.gridy = 5;
+		TaskerGenerationPanel.add(btnInterfaceReportButton, gbc_btnInterfaceReportButton);
+		Style.registerTargetClassName(btnInterfaceReportButton, ".standardButton");
 		
 		JPanel dhmsmReportPanel = new JPanel();
 		dhmsmReportPanel.setBackground(SystemColor.control);
@@ -2899,6 +2913,74 @@ public class PlayPane extends JFrame {
 		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionReportButton, gbc_dhmsmCapSystemIntersectionReportButton);
 		dhmsmCapSystemIntersectionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmCapSystemIntersectionReportButton, ".standardButton");
+
+		
+		JLabel lblSysDecomOptimization = new JLabel("System Decommission Optimization");
+		GridBagConstraints gbc_lblSysDecomOptimization = new GridBagConstraints();
+		gbc_lblSysDecomOptimization.gridwidth = 2;
+		gbc_lblSysDecomOptimization.anchor = GridBagConstraints.WEST;
+		gbc_lblSysDecomOptimization.insets = new Insets(0, 0, 5, 5);
+		gbc_lblSysDecomOptimization.gridx = 1;
+		gbc_lblSysDecomOptimization.gridy = 3;
+		dhmsmReportMidPanel.add(lblSysDecomOptimization, gbc_lblSysDecomOptimization);
+		lblSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 12));
+		
+		JLabel lblSysDecomOptimizationResourceConstraint = new JLabel("Resource Constraint:");
+		lblSysDecomOptimizationResourceConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSysDecomOptimizationResourceConstraint = new GridBagConstraints();
+		gbc_lblSysDecomOptimizationResourceConstraint.anchor = GridBagConstraints.WEST;
+		gbc_lblSysDecomOptimizationResourceConstraint.insets = new Insets(0, 0, 5, 5);
+		gbc_lblSysDecomOptimizationResourceConstraint.gridx = 2;
+		gbc_lblSysDecomOptimizationResourceConstraint.gridy = 4;
+		dhmsmReportMidPanel.add(lblSysDecomOptimizationResourceConstraint, gbc_lblSysDecomOptimizationResourceConstraint);
+
+		JLabel lblSysDecomOptimizationTimeConstraint = new JLabel("Time Constraint (in days):");
+		lblSysDecomOptimizationTimeConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSysDecomOptimizationTimeConstraint = new GridBagConstraints();
+		gbc_lblSysDecomOptimizationTimeConstraint.anchor = GridBagConstraints.WEST;
+		gbc_lblSysDecomOptimizationTimeConstraint.insets = new Insets(0, 10, 5, 5);
+		gbc_lblSysDecomOptimizationTimeConstraint.gridx = 3;
+		gbc_lblSysDecomOptimizationTimeConstraint.gridy = 4;
+		dhmsmReportMidPanel.add(lblSysDecomOptimizationTimeConstraint, gbc_lblSysDecomOptimizationTimeConstraint);
+
+		sysDecomOptimizationResourceTextField = new JTextField();
+		sysDecomOptimizationResourceTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		sysDecomOptimizationResourceTextField.setMinimumSize(new Dimension(122, 28));
+		sysDecomOptimizationResourceTextField.setSize(new Dimension(10, 28));
+		sysDecomOptimizationResourceTextField.setText("");
+		sysDecomOptimizationResourceTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_sysDecomOptimizationResourceTextField = new GridBagConstraints();
+		gbc_sysDecomOptimizationResourceTextField.anchor = GridBagConstraints.WEST;
+		gbc_sysDecomOptimizationResourceTextField.insets = new Insets(0, 0, 5, 5);
+		gbc_sysDecomOptimizationResourceTextField.gridx = 2;
+		gbc_sysDecomOptimizationResourceTextField.gridy = 5;
+		dhmsmReportMidPanel.add(sysDecomOptimizationResourceTextField, gbc_sysDecomOptimizationResourceTextField);
+		sysDecomOptimizationResourceTextField.setColumns(12);
+
+		sysDecomOptimizationTimeTextField = new JTextField();
+		sysDecomOptimizationTimeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		sysDecomOptimizationTimeTextField.setMinimumSize(new Dimension(122, 28));
+		sysDecomOptimizationTimeTextField.setSize(new Dimension(10, 28));
+		sysDecomOptimizationTimeTextField.setText("");
+		GridBagConstraints gbc_sysDecomOptimizationTimeTextField = new GridBagConstraints();
+		gbc_sysDecomOptimizationTimeTextField.anchor = GridBagConstraints.WEST;
+		gbc_sysDecomOptimizationTimeTextField.insets = new Insets(0, 10, 5, 5);
+		gbc_sysDecomOptimizationTimeTextField.gridx = 3;
+		gbc_sysDecomOptimizationTimeTextField.gridy = 5;
+		dhmsmReportMidPanel.add(sysDecomOptimizationTimeTextField, gbc_sysDecomOptimizationTimeTextField);
+		sysDecomOptimizationTimeTextField.setColumns(12);
+
+		
+		btnSysDecomOptimization = new CustomButton("Sys Decom Optimization");
+		btnSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnSysDecomOptimizationResourceConstraint = new GridBagConstraints();
+		gbc_btnSysDecomOptimizationResourceConstraint.anchor = GridBagConstraints.WEST;
+		gbc_btnSysDecomOptimizationResourceConstraint.insets = new Insets(0, 20, 5, 5);
+		gbc_btnSysDecomOptimizationResourceConstraint.gridx = 2;
+		gbc_btnSysDecomOptimizationResourceConstraint.gridy = 6;
+		dhmsmReportMidPanel.add(btnSysDecomOptimization, gbc_btnSysDecomOptimizationResourceConstraint);
+		Style.registerTargetClassName(btnSysDecomOptimization, ".standardButton");
+		
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
@@ -2908,6 +2990,7 @@ public class PlayPane extends JFrame {
 		gbc_separator_5.gridx = 0;
 		gbc_separator_5.gridy = 15;
 		financialsPanel.add(separator_5, gbc_separator_5);
+		
 
 		JLabel lblAdvancedFinancialFunctions = new JLabel("Advanced Financial Functions");
 		lblAdvancedFinancialFunctions.setFont(new Font("Tahoma", Font.BOLD, 12));
