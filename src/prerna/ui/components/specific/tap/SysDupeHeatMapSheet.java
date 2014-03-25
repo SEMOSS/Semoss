@@ -57,17 +57,9 @@ public class SysDupeHeatMapSheet extends DuplicationHeatMapSheet{
 	@Override
 	public void prepareNavigationFinished()
 	{
+		super.prepareNavigationFinished();
     	SysDupeHealthGridListener healthGridCall = new SysDupeHealthGridListener();
     	browser.registerFunction("healthGrid",  healthGridCall);
-    	refreshFunction = new DuplicationRefreshBrowserFunction();
-    	refreshFunction.setParamDataHash(paramDataHash);
-    	refreshFunction.setKeyHash(keyHash);
-    	refreshFunction.setBrowser(browser);
-    	browser.registerFunction("refreshFunction",  refreshFunction);
-    	DuplicationBarChartBrowserFunction barChartFunction = new DuplicationBarChartBrowserFunction();
-    	barChartFunction.setParamDataHash(paramDataHash);
-    	browser.registerFunction("barChartFunction",  barChartFunction);
-		callIt();
 	}
     	
 	@Override
