@@ -54,7 +54,7 @@ public class SystemInfoGenProcessor {
 	ArrayList<String> headersList;
 	ArrayList<String> dataObjectList;
 	String dataObjectBindings;
-	FactSheetSysDupeCalculator sysDupe;
+	FactSheetSysSimCalculator sysSim;
 	/**
 	 * Runs a query on a specific database and puts the results in the masterHash for a system
 	 * @param engineName 	String containing the name of the database engine to be queried
@@ -91,9 +91,18 @@ public class SystemInfoGenProcessor {
 							}
 							else
 							{
-								if(sysHash.containsKey(varName))
-									val = (String) sysHash.get(varName) +", " + (String) val;
-								sysHash.put(varName, val);
+//								if(varName.contains("Logic")&&varName.contains("Num"))
+//								{
+//									if(sysHash.containsKey(varName))
+//										sysHash.put(varName,(Double)sysHash.get(varName)+1);
+//									else
+//										sysHash.put(varName, )
+//								}
+//								else{
+									if(sysHash.containsKey(varName))
+										val = (String) sysHash.get(varName) +", " + (String) val;
+									sysHash.put(varName, val);
+//								}
 							}
 						}
 					}
@@ -218,7 +227,7 @@ public class SystemInfoGenProcessor {
 			return;
 		}
 		
-		sysDupe = new FactSheetSysDupeCalculator();	
+		sysSim = new FactSheetSysSimCalculator();	
 		
 		processQueries();
 		
@@ -270,6 +279,16 @@ public class SystemInfoGenProcessor {
 		//Num of Upstream Systems
 		String sysNumUpstreamSystemsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?UpstreamSys)) AS ?Num_Of_Upstream_Systems) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?System ;}} GROUP BY ?System";
 				
+		//System Providing BLU Queries
+		String sysNumBLUQuery = "SELECT DISTINCT ?System (COUNT(?blu) AS ?Num_Of_Business_Logic_Units_System_Provides) WHERE{SELECT DISTINCT ?System ?blu WHERE { {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?blu}}} GROUP BY ?System";
+
+		String sysBLUQuery = "SELECT DISTINCT ?System ?Business_Logic_Units_System_Provides WHERE {{?Business_Logic_Units_System_Provides <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?Business_Logic_Units_System_Provides}}";
+
+		//System and DHMSM Providing BLU Queries
+		String sysAndDHMSMNumBLUQuery = "SELECT DISTINCT ?System (COUNT(?blu) AS ?Num_Of_Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities) WHERE{SELECT DISTINCT ?System ?blu WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?blu}{?System ?provideBLU ?blu}}} GROUP BY ?System";
+		
+		String sysAndDHMSMBLUQuery = "SELECT DISTINCT ?System ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities}{?System ?provideBLU ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities}}";
+				
 		//System Complexity
 		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
 		
@@ -308,6 +327,11 @@ public class SystemInfoGenProcessor {
 		runQuery(hrCoreEngine,sysDescriptionQuery);
 		runQuery(hrCoreEngine,sysOwnersQuery);
 		runQuery(hrCoreEngine,sysUsersQuery);
+		headersList.add("Probability");
+		headersList.add("Percentage_Of_Data_Objects_Covered_By_DHMSM");
+		headersList.add("Number_Of_Data_Objects_Not_Covered_By_DHMSM");
+		headersList.add("Data_Objects_Not_Covered_By_DHMSM");
+		headersList.add("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM");
 		runQuery(hrCoreEngine,sysGarrisonTheaterQuery);
 		runQuery(tapSiteEngine,sysNumDeploymentQuery);
 		logger.info("Completed Description, Owner/User, and Deployment queries");
@@ -329,31 +353,43 @@ public class SystemInfoGenProcessor {
 		headersList.add("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
 		headersList.add("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
-		headersList.add("Probability");
-		headersList.add("Percentage_Of_Data_Objects_Covered_By_DHMSM");
-		headersList.add("Top_Five_Duplicating_Systems");
+
+		runQuery(hrCoreEngine,sysNumBLUQuery);
+		runQuery(hrCoreEngine,sysBLUQuery);
+		runQuery(hrCoreEngine,sysAndDHMSMNumBLUQuery);
+		runQuery(hrCoreEngine,sysAndDHMSMBLUQuery);
+	
+
+		headersList.add("Top_Five_Similar_Systems");
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of", dhelp.getAllDataFromSys(system, "C").size());
-			sysHash.put("Data_Objects_System_Is_Record_Of", makeConcatString(dhelp.getAllDataFromSys(system, "C")));
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", dhelp.getDataObjectListSupportedFromSystem(system, "C", "C").size());
-			sysHash.put("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "C")));
+
+			ArrayList<String> dataSystemSORList = dhelp.getAllDataFromSys(system, "C");
+			int numOfDataSystemSOR = dataSystemSORList.size();
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of", numOfDataSystemSOR);
+			sysHash.put("Data_Objects_System_Is_Record_Of", makeConcatString(dataSystemSORList));
+			ArrayList<String> dataSystemSORAndDHMSMCreateList = dhelp.getDataObjectListSupportedFromSystem(system, "C", "C");
+			int numOfDataSystemSORAndDHMSMCreate = dataSystemSORAndDHMSMCreateList.size();
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", numOfDataSystemSORAndDHMSMCreate);
+			sysHash.put("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", makeConcatString(dataSystemSORAndDHMSMCreateList));
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
 			sysHash.put("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "R")));
 			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
 			sysHash.put("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "R", "C")));
-			ArrayList<String> sysDupeList = sysDupe.prioritySysHash.get(system);
-			ArrayList<Double> sysDupeValueList = sysDupe.priorityValueHash.get(system);
-			String sysDupeConcat = "";
-			if(sysDupeList!=null)
+			sysHash.put("Number_Of_Data_Objects_Not_Covered_By_DHMSM", numOfDataSystemSOR-numOfDataSystemSORAndDHMSMCreate);
+			sysHash.put("Data_Objects_Not_Covered_By_DHMSM", makeConcatString(getNotCoveredList(dataSystemSORList,dataSystemSORAndDHMSMCreateList)));
+			ArrayList<String> sysSimList = sysSim.prioritySysHash.get(system);
+			ArrayList<Double> sysSimValueList = sysSim.priorityValueHash.get(system);
+			String sysSimConcat = "";
+			if(sysSimList!=null)
 			{
-				if(sysDupeList.size()>0)
-					sysDupeConcat = sysDupeList.get(0)+": "+sysDupeValueList.get(0)*100+"%";
-				for(int i=1;i<sysDupeList.size();i++)
-					sysDupeConcat +=", "+sysDupeList.get(i)+": "+sysDupeValueList.get(i)*100+"%";
+				if(sysSimList.size()>0)
+					sysSimConcat = sysSimList.get(0)+": "+sysSimValueList.get(0)*100+"%";
+				for(int i=1;i<sysSimList.size();i++)
+					sysSimConcat +=", "+sysSimList.get(i)+": "+sysSimValueList.get(i)*100+"%";
 			}
-			sysHash.put("Top_Five_Duplicating_Systems",sysDupeConcat);
+			sysHash.put("Top_Five_Similar_Systems",sysSimConcat);
 			masterHash.put(system,sysHash);
 		}
 		
@@ -365,10 +401,6 @@ public class SystemInfoGenProcessor {
 		runCostQueries(tapCostEngine,costQueries);
 		logger.info("Completed Transistion Cost queries");
 		
-		
-
-
-
 	}
 	public String makeConcatString(ArrayList<String> vals)
 	{
@@ -380,6 +412,16 @@ public class SystemInfoGenProcessor {
 			concat+=", "+vals.get(i);
 		return concat;
 	}
+	public ArrayList<String> getNotCoveredList(ArrayList<String> systemList, ArrayList<String> systemAndDHMSMList)
+	{
+		ArrayList<String> retVal = new ArrayList<String>();
+		for(String data : systemList)
+		{
+			if(!systemAndDHMSMList.contains(data))
+				retVal.add(data);
+		}
+		return retVal;
+	}
 	
 	public void runProbability(DHMSMHelper dhelp)
 	{
@@ -389,12 +431,31 @@ public class SystemInfoGenProcessor {
 			int numOfDataSystemSOR = (Integer) sysHash.get("Num_Of_Data_Objects_System_Is_Record_Of");
 			int numOfDataSystemSORAndDHMSMCreate = (Integer) sysHash.get("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
 			
+			double numOfBLUSystemSOR = 0;
+			double numOfBLUSystemSORAndDHMSMCreate = 0;
+			if(sysHash.containsKey("Num_Of_Business_Logic_Units_System_Provides"))
+			{
+				numOfBLUSystemSOR= (Double) sysHash.get("Num_Of_Business_Logic_Units_System_Provides");
+				numOfBLUSystemSORAndDHMSMCreate = (Double) sysHash.get("Num_Of_Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities");
+			}
+			if(numOfBLUSystemSOR==0)
+				sysHash.put("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM", "");
+			else if(numOfBLUSystemSORAndDHMSMCreate == 0)
+				sysHash.put("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM", 0);
+			else if(numOfBLUSystemSOR==numOfBLUSystemSORAndDHMSMCreate)
+				sysHash.put("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM", 100);
+			else
+			{
+				double bluPercent = (double)numOfBLUSystemSORAndDHMSMCreate/ (double)numOfBLUSystemSOR;
+				sysHash.put("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM", bluPercent*100);				
+			}
+			
 			if(numOfDataSystemSOR == 0)
 			{
 				sysHash.put("Probability", "Question");
 				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", "");
 			}
-			else if(numOfDataSystemSOR == numOfDataSystemSORAndDHMSMCreate)
+			else if((numOfDataSystemSOR == numOfDataSystemSORAndDHMSMCreate))
 			{
 				sysHash.put("Probability", "High");
 				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", 100);
@@ -406,11 +467,10 @@ public class SystemInfoGenProcessor {
 			}
 			else
 			{
-				double percent = (double)numOfDataSystemSORAndDHMSMCreate/ (double)numOfDataSystemSOR;
+				double dataPercent = (double)numOfDataSystemSORAndDHMSMCreate/ (double)numOfDataSystemSOR;
 				sysHash.put("Probability", "Medium");
-				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", percent*100);
+				sysHash.put("Percentage_Of_Data_Objects_Covered_By_DHMSM", dataPercent*100);
 			}
-			
 		}
 	}
 
