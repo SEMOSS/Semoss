@@ -101,7 +101,7 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 			query = "Constrain Time";
 			playsheet.setQuery(query);
 			try{
-				timeValue = Double.parseDouble(timeTextValue);
+				timeValue = Double.parseDouble(timeTextValue)*365;
 			}catch(Exception e){
 				Utility.showError("All text values must be numbers");
 				return;
