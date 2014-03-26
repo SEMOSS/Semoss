@@ -60,6 +60,7 @@ public class Constants {
 	public static String IMPORT_RDBMS_PW_LABEL = "lblDBImportPW";
 	public static String IMPORT_RDBMS_PW_FIELD = "dbImportPWField";
 	public static String TEST_RDBMS_CONNECTION = "btnTestRDBMSConnection";
+	public static String GET_RDBMS_SCHEMA = "btnGetRDBMSSchema";
 	public static String IMPORT_MAP_LABEL = "lblselectCustomMap";
 	public static String DBCM_Prop = "DBCM_Prop";
 	public static String EMPTY = "@@";

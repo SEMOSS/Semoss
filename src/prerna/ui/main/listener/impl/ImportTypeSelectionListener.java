@@ -73,6 +73,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		JButton btnFileBrowse = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON_BROWSE);
 		JButton btnImport = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON);
 		JButton btnTestRDBMSConnection = (JButton)DIHelper.getInstance().getLocalProp(Constants.TEST_RDBMS_CONNECTION);
+		JButton btnGetRDBMSSchema = (JButton)DIHelper.getInstance().getLocalProp(Constants.GET_RDBMS_SCHEMA);
 		JTextField mapText = (JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD);
 		JButton advancedButton = (JButton)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_BUTTON);
 		JPanel advancedPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.ADVANCED_IMPORT_OPTIONS_PANEL);
@@ -99,6 +100,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
 			btnTestRDBMSConnection.setVisible(false);
+			btnGetRDBMSSchema.setVisible(false);
 		}
 		else if(selection.equals("Modify/Replace data in existing engine"))
 		{
@@ -123,7 +125,8 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			dbImportRDBMSDriverComboBox.setVisible(false);
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
-			btnTestRDBMSConnection.setVisible(false);
+			btnTestRDBMSConnection.setVisible(false);			
+			btnGetRDBMSSchema.setVisible(false);
 		}
 		else if (selection.equals("Create new database engine"))
 		{
@@ -148,6 +151,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			dbImportUsernameField.setVisible(false);
 			dbImportPWField.setVisible(false);
 			btnTestRDBMSConnection.setVisible(false);
+			btnGetRDBMSSchema.setVisible(false);
 		}
 		else if (selection.equals("Create new RDBMS connection")) {
 			typeBox.setVisible(true);
@@ -171,6 +175,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 			dbImportUsernameField.setVisible(true);
 			dbImportPWField.setVisible(true);
 			btnTestRDBMSConnection.setVisible(true);
+			btnGetRDBMSSchema.setVisible(true);
 		}
 		else if (selection.equals("Select a database import method"))
 		{
