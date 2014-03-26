@@ -43,6 +43,8 @@ public class SysDecommissionOptimizationFunctions {
 	public int resourcesConstraint;
 	private double resourcesPossible;
 	
+
+	
 	public double timeConstraint;
 	
 	private double minNecessaryTimeAllSystems;
@@ -51,12 +53,14 @@ public class SysDecommissionOptimizationFunctions {
 	
 	public SysDecommissionOptimizationFunctions()
 	{
+		resourcesConstraint = 1000;
+		timeConstraint = 9.09*365;
 	}
 	
 	
 	public void optimizeTime()
 	{
-		resourcesConstraint = 1000;
+
 		instantiate();
 	
 		//if necessary is greater than possible, we have more resources than we need so will recalculate R to be only necessary.
@@ -73,7 +77,7 @@ public class SysDecommissionOptimizationFunctions {
 	}
 	public void optimizeResource()
 	{
-		timeConstraint = 9.09*365;
+
 		instantiate();
 		
 		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,timeConstraint);
