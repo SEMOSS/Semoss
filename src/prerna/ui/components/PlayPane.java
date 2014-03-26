@@ -2944,7 +2944,7 @@ public class PlayPane extends JFrame {
 		gbc_lblSysDecomOptimizationResourceConstraint.gridy = 4;
 		dhmsmReportMidPanel.add(lblSysDecomOptimizationResourceConstraint, gbc_lblSysDecomOptimizationResourceConstraint);
 
-		JLabel lblSysDecomOptimizationTimeConstraint = new JLabel("Time Constraint (in days):");
+		JLabel lblSysDecomOptimizationTimeConstraint = new JLabel("Time Constraint (in years):");
 		lblSysDecomOptimizationTimeConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblSysDecomOptimizationTimeConstraint = new GridBagConstraints();
 		gbc_lblSysDecomOptimizationTimeConstraint.anchor = GridBagConstraints.WEST;

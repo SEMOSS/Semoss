@@ -38,19 +38,21 @@ public class SysDecommissionOptimizationFunctions {
 
 	private static String siteDB = "TAP_Site_Data";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
-	
+
+	private double percentOfPilot;
+	private double costPerHour;	
 	private static final int workHoursInDay = 8;
+
 	public int resourcesConstraint;
 	private double resourcesPossible;
-	
 
-	
 	public double timeConstraint;
-	
+
 	private double minNecessaryTimeAllSystems;
 	private double minPossibleTimeAllSystems;
 	private double workVolAllSysAllSites;
-	
+	private double costAllSysAllSites;
+
 	public SysDecommissionOptimizationFunctions()
 	{
 		resourcesConstraint = 1000;
@@ -74,16 +76,25 @@ public class SysDecommissionOptimizationFunctions {
 		
 		calculateResourceAndOutput();
 
+		System.out.println("Resources constraint: "+Math.ceil(resourcesConstraint));
+		System.out.println("Resources used: "+Math.ceil(resourcesPossible));
+		System.out.println("Time used in years: "+minPossibleTimeAllSystems / 365.0);
+		System.out.println("Total cost: "+costAllSysAllSites);
+
 	}
 	public void optimizeResource()
 	{
-
 		instantiate();
 		
 		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,timeConstraint);
 		recalculateResourcesPossible();
 		
 		calculateResourceAndOutput();
+		
+		System.out.println("Time constraint:"+timeConstraint / 365.0);
+		System.out.println("Time actually used in years:"+minPossibleTimeAllSystems / 365.0);
+		System.out.println("Resources used: "+Math.ceil(resourcesPossible));
+		System.out.println("Total cost: "+costAllSysAllSites);
 	}
 	
 	public void instantiate()
@@ -99,33 +110,27 @@ public class SysDecommissionOptimizationFunctions {
 		outputList = new ArrayList<Object[]>();
 		systemsWithNoSite = new ArrayList<String>();
 
-		resourcesPossible = 0.0;
+		percentOfPilot = .2;
+		costPerHour = 150.0;
 		
+		resourcesPossible = 0.0;
 		minNecessaryTimeAllSystems = 0.0;
 		minPossibleTimeAllSystems = 0.0;
 		workVolAllSysAllSites = 0.0;
+		costAllSysAllSites = 0.0;
 		
 		calculateMinTimeAndWorkVolPerSystemPerSite();
 		calculateMinTimeAndWorkVolPerSystemAllSites();
 		removeSystemsWithNoSite();
 		calculateMinTimeAllSystemsAllSites();
 		calculateWorkVolAllSystemsAllSites();
-		
 	}
 	
 	public void calculateResourceAndOutput()
 	{
 		calculateResourceAllocationPerSystem();
 		calculateNumSysSimultaneousTransform();
-//		printTest();
-		
-		System.out.println("Resources constraint:"+resourcesConstraint);
-		System.out.println("Resources used:"+resourcesPossible);
-		
-		System.out.println("Time constraint:"+timeConstraint);
-		System.out.println("Time used in years:"+minPossibleTimeAllSystems / 365.0);
-
-		System.out.println();
+		calculateTotalCost();
 	
 		makeArrayList();
 	}
@@ -200,6 +205,7 @@ public class SysDecommissionOptimizationFunctions {
 		{
 			sysToMinTimeHashPerSite.remove(sys);
 			sysToWorkVolHashPerSite.remove(sys);
+			logger.info(sys+"...removing because no site data");
 		}
 	}
 	
@@ -256,6 +262,15 @@ public class SysDecommissionOptimizationFunctions {
 		}
 	}
 	
+	public void calculateTotalCost()
+	{
+		for(String sys : sysToWorkVolHashPerSite.keySet())
+		{
+			costAllSysAllSites += sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150;
+		}
+
+	}
+	
 	public void printTest()
 	{
 		for(String sys : sysToMinTimeHashPerSite.keySet())
@@ -277,18 +292,27 @@ public class SysDecommissionOptimizationFunctions {
 	
 	public void makeArrayList()
 	{
+		
+		//output is system, number of sites, resource allocation, number of sites at same time, total cost for system
+		//old version included min time at one site and work volume at one site
 		for(String sys : sysToMinTimeHashPerSite.keySet())
 		{
-			Object[] element = new Object[6];
+			Object[] element = new Object[5];
 			element[0] = sys;
-			element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
-			element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
+	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
+	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 			if(sysToSiteHash.containsKey(sys))
-				element[3] = sysToSiteHash.get(sys).size();
+			{
+				element[1] = sysToSiteHash.get(sys).size();
+				element[4] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
+			}
 			else
-				element[3] = "not found in site";
-			element[4] = sysToResourceAllocationHash.get(sys);
-			element[5] = sysToNumSimultaneousTransformHash.get(sys);
+			{
+				element[1] = "not found in site";
+				element[4] = "not found in site";
+			}
+			element[2] = Math.ceil(sysToResourceAllocationHash.get(sys));
+			element[3] = sysToNumSimultaneousTransformHash.get(sys);
 			outputList.add(element);
 		}
 	}
@@ -301,7 +325,7 @@ public class SysDecommissionOptimizationFunctions {
 	 */
 	public double convertLoeHoursToDays(double loeInHours)
 	{
-		return loeInHours/workHoursInDay / 5 * 7;
+		return loeInHours/workHoursInDay / 5 * 7 * percentOfPilot;
 	}
 		
 	public ArrayList <Object []> createData(String engineName, String query) {
