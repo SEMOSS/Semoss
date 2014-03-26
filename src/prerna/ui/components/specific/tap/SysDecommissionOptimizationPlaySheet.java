@@ -28,12 +28,13 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 		
 		names = new String[5];
 		names[0] = "System";
-//		names[1] ="Min Time in Years at One Site";
+		names[1] ="Min Time in Years at One Site";
 //		names[2] ="Work Volume in Years at One Site";
-		names[1] = "Number of Sites Deployed At";
+//		names[1] = "Number of Sites Deployed At";
 		names[2] = "Resource Allocation";
 		names[3] = "Number of Systems Transformed Simultaneously";
 		names[4] = "Total Cost for System";
+//		names[5] = "Min time for system";
 		
 		if(query.equals("Constrain Resource"))
 		{
