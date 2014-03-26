@@ -47,6 +47,8 @@ public class NewScrollBarUI extends BasicScrollBarUI {
 	public NewScrollBarUI() {
 		try {
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			//Got to comment out DIHelper and user System.getProperty when using WindowBuilder for PlayPane
+			//String workingDir = System.getProperty("user.dir");
 			String picFileURL = workingDir+"/pictures/rect.png";
 			File picFile = new File(picFileURL);
 			thumb = ImageIO.read(picFile);
