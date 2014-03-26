@@ -299,19 +299,21 @@ public class SysDecommissionOptimizationFunctions {
 		{
 			Object[] element = new Object[5];
 			element[0] = sys;
-	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
+			element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 			if(sysToSiteHash.containsKey(sys))
 			{
-				element[1] = sysToSiteHash.get(sys).size();
+//				element[1] = sysToSiteHash.get(sys).size();
 				element[4] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
 			}
 			else
 			{
-				element[1] = "not found in site";
+//				element[1] = "not found in site";
 				element[4] = "not found in site";
 			}
 			element[2] = Math.ceil(sysToResourceAllocationHash.get(sys));
+//			element[2] = sysToResourceAllocationHash.get(sys);
+
 			element[3] = sysToNumSimultaneousTransformHash.get(sys);
 			outputList.add(element);
 		}
