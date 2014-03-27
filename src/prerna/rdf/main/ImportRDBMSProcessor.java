@@ -21,6 +21,7 @@ import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
+import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -166,9 +167,34 @@ public class ImportRDBMSProcessor {
 				XSSFRow dataRow = propSheet.getRow(i);
 				tableInput = dataRow.getCell(0).toString();
 				tableInstanceColumn = dataRow.getCell(1).toString();
-				propertyName = dataRow.getCell(2).toString();
-
-				dataType = dataRow.getCell(3).toString();
+				
+				if(dataRow.getCell(2) != null)
+				{
+					propertyName = dataRow.getCell(2).toString();
+					dataType = dataRow.getCell(3).toString();
+					
+					if(dataType.equalsIgnoreCase("int") || dataType.equalsIgnoreCase("Integer"))
+					{
+						dataType = "integer";
+					}
+					else if(dataType.equalsIgnoreCase("varchar") || dataType.equalsIgnoreCase("String"))
+					{
+						dataType = "string";
+					}
+					else if(dataType.equalsIgnoreCase("DateTime") || dataType.equalsIgnoreCase("Date"))
+					{
+						dataType = "dateTime";
+					}
+					else if(dataType.equalsIgnoreCase("Double") || dataType.equalsIgnoreCase("Decimal"))
+					{
+						dataType = "double";
+					}
+					else if(dataType.equalsIgnoreCase("Float"))
+					{
+						dataType = "float";
+					}
+				}
+				
 				nodeType = dataRow.getCell(4).toString();
 
 				if(!baseConcepts.contains(nodeType)) {
@@ -282,7 +308,7 @@ public class ImportRDBMSProcessor {
 				"d2rq:belongsToClassMap map:Instance").append(tableName).append("_TypeOf_Base").append(tableName).append(";").append(spacer).append(
 				"d2rq:property ").append("<").append(propURI).append(propertyName).append(">;").append(spacer).append(
 				"d2rq:column ").append("\"").append(tableName).append(".").append(propertyName).append("\";").append(spacer).append(
-				"d2rq:datatype xsd:").append(dataType.toLowerCase()).append(";").append(spacer).append(
+				"d2rq:datatype xsd:").append(dataType).append(";").append(spacer).append(
 				".\n");
 	}
 	
@@ -651,6 +677,10 @@ public class ImportRDBMSProcessor {
 			}			
 		}
 		
+		XSSFSheet dataSheet = wb.createSheet(dbName + "_DataSheet_DO_NOT_DELETE");
+		buildDataSheeet(dataSheet, schemaHash);
+		dataSheet.getWorkbook().setSheetHidden(4, true);
+		
 		// create drop downs for node and relationship tabs
 		
 		HashSet<String> allColumnNames = new HashSet<String>();
@@ -680,46 +710,61 @@ public class ImportRDBMSProcessor {
 		// create drop down validation helper
 		XSSFDataValidationHelper nodeSheetValidationHelper = new XSSFDataValidationHelper(nodeSheet);
 		// create all lists
-		DataValidationConstraint nodeSheetTableNameConstraint = nodeSheetValidationHelper.createExplicitListConstraint(tableNames);
-		DataValidationConstraint nodeSheetColumnNameConstraint = nodeSheetValidationHelper.createExplicitListConstraint(allColumnNames.toArray(new String[allColumnNames.size()]));
-		DataValidationConstraint nodeSheetDataTypeConstraint = nodeSheetValidationHelper.createExplicitListConstraint(allDataTypes.toArray(new String[allDataTypes.size()]));
+		DataValidationConstraint nodeSheetTableNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("TABLES");
+		DataValidationConstraint nodeSheetColumnNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
+		DataValidationConstraint nodeSheetDataTypeConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(CONCATENATE(UPPER(A2),\"_\",UPPER(C2)))");
 		// create all ranges
 		CellRangeAddressList nodeSheetTableNameAddressList = new CellRangeAddressList(1,6,0,0);
-		CellRangeAddressList nodeSheetColumnNameAddressList = new CellRangeAddressList(1,6,1,2);
+		CellRangeAddressList nodeSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
+		CellRangeAddressList nodeSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
 		CellRangeAddressList nodeSheetDataTypeAddressList = new CellRangeAddressList(1,6,3,3);
 		// create the drop downs
 		DataValidation nodeSheetTableNameDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetTableNameConstraint, nodeSheetTableNameAddressList);
-		DataValidation nodeSheetColumnNameDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList);
+		DataValidation nodeSheetColumnNameDataValidation1 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList1);
+		DataValidation nodeSheetColumnNameDataValidation2 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList2);
 		DataValidation nodeSheetDataTypeDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetDataTypeConstraint, nodeSheetDataTypeAddressList);
 		// create the drop down side btn
 		nodeSheetTableNameDataValidation.setSuppressDropDownArrow(true);
-		nodeSheetColumnNameDataValidation.setSuppressDropDownArrow(true);
+		nodeSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
+		nodeSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
 		nodeSheetDataTypeDataValidation.setSuppressDropDownArrow(true);
 		// add the validation to the node sheet
 		nodeSheet.addValidationData(nodeSheetTableNameDataValidation);
-		nodeSheet.addValidationData(nodeSheetColumnNameDataValidation);
+		nodeSheet.addValidationData(nodeSheetColumnNameDataValidation1);
+		nodeSheet.addValidationData(nodeSheetColumnNameDataValidation2);
 		nodeSheet.addValidationData(nodeSheetDataTypeDataValidation);
 		
 		
 		// create drop down validation helper
 		XSSFDataValidationHelper relationshipSheetValidationHelper = new XSSFDataValidationHelper(relationshipSheet);
 	    // create all lists
-		DataValidationConstraint relationshipSheetTableNameConstraint = relationshipSheetValidationHelper.createExplicitListConstraint(tableNames);
-		DataValidationConstraint relationshipSheetColumnNameConstraint = relationshipSheetValidationHelper.createExplicitListConstraint(allColumnNames.toArray(new String[allColumnNames.size()]));
+		DataValidationConstraint relationshipSheetTableNameConstraint = relationshipSheetValidationHelper.createFormulaListConstraint("TABLES");
+		DataValidationConstraint relationshipSheetColumnNameConstraint1 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
+		DataValidationConstraint relationshipSheetColumnNameConstraint2 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(D2))");
+		DataValidationConstraint relationshipSheetColumnNameConstraint3 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(G2))");
+
 		// create all ranges
 		CellRangeAddressList relationshipSheetTableNameAddressList1 = new  CellRangeAddressList(1,6,0,0);
 	    CellRangeAddressList relationshipSheetTableNameAddressList2 = new  CellRangeAddressList(1,6,3,3);
 	    CellRangeAddressList relationshipSheetTableNameAddressList3 = new  CellRangeAddressList(1,6,6,6);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,2);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,4,5);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList3 = new CellRangeAddressList(1,6,7,8);
+	    
+	    CellRangeAddressList relationshipSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
+	    CellRangeAddressList relationshipSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
+	    CellRangeAddressList relationshipSheetColumnNameAddressList3 = new CellRangeAddressList(1,6,4,4);
+	    CellRangeAddressList relationshipSheetColumnNameAddressList4 = new CellRangeAddressList(1,6,5,5);
+	    CellRangeAddressList relationshipSheetColumnNameAddressList5 = new CellRangeAddressList(1,6,7,7);
+	    CellRangeAddressList relationshipSheetColumnNameAddressList6 = new CellRangeAddressList(1,6,8,8);
+
 	    // create the drop downs	    
 	    DataValidation relationshipSheetTableNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList1);
 	    DataValidation relationshipSheetTableNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList2);
 	    DataValidation relationshipSheetTableNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList3);
-	    DataValidation relationshipSheetColumnNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint, relationshipSheetColumnNameAddressList1);
-	    DataValidation relationshipSheetColumnNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint, relationshipSheetColumnNameAddressList2);
-	    DataValidation relationshipSheetColumnNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint, relationshipSheetColumnNameAddressList3);
+	    DataValidation relationshipSheetColumnNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList1);
+	    DataValidation relationshipSheetColumnNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList2);
+	    DataValidation relationshipSheetColumnNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList3);
+	    DataValidation relationshipSheetColumnNameDataValidation4 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList4);
+	    DataValidation relationshipSheetColumnNameDataValidation5 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList5);
+	    DataValidation relationshipSheetColumnNameDataValidation6 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList6);
 	    // create the drop down side btn
 	    relationshipSheetTableNameDataValidation1.setSuppressDropDownArrow(true);
 	    relationshipSheetTableNameDataValidation2.setSuppressDropDownArrow(true);
@@ -727,6 +772,9 @@ public class ImportRDBMSProcessor {
 	    relationshipSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
 	    relationshipSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
 	    relationshipSheetColumnNameDataValidation3.setSuppressDropDownArrow(true);
+	    relationshipSheetColumnNameDataValidation4.setSuppressDropDownArrow(true);
+	    relationshipSheetColumnNameDataValidation5.setSuppressDropDownArrow(true);
+	    relationshipSheetColumnNameDataValidation6.setSuppressDropDownArrow(true);
 	    // add the validations to the relationship sheet
 	    relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation1);
 	    relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation2);
@@ -734,7 +782,10 @@ public class ImportRDBMSProcessor {
 	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation1);
 	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation2);
 	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation3);
-	    
+	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation4);
+	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation5);
+	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation6);
+
 		try {
 			wb.write(new FileOutputStream(path + dbName + "_" + "RDBMS_Import_Sheet.xlsx"));
 		} catch (FileNotFoundException e) {
@@ -747,6 +798,155 @@ public class ImportRDBMSProcessor {
 
 		return success;
 	}
+	
+	private void buildDataSheeet(XSSFSheet dataSheet, Hashtable<String, Hashtable<String, ArrayList<String>>> schemaHash) 
+	{
+		int rowNum = 1;
+		int colColumnNum = 0;
+		int totalRowsOfColumns = 0;
+		
+		ArrayList<String> tableNameList = new ArrayList<String>();
+		ArrayList<String> table_columnNameList = new ArrayList<String>();
+		XSSFRow tableNameRow = dataSheet.createRow(0);
+		
+		int cellTableNum = 0;
+		for( String tableName : schemaHash.keySet() )
+		{
+			tableNameList.add(tableName);
+			
+			tableNameRow.createCell(cellTableNum).setCellValue(tableName);
+			cellTableNum++;
+			
+			Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
+			ArrayList<String> columnList = innerHash.get("COLUMN");
+			
+			for( String colName : columnList)
+			{
+				table_columnNameList.add(tableName + "_" + colName);
+				
+				XSSFRow currColRow = dataSheet.getRow(rowNum);
+				if(currColRow == null)
+				{
+					currColRow = dataSheet.createRow(rowNum);
+					currColRow.createCell(colColumnNum).setCellValue(colName);
+				}
+				else
+				{
+					currColRow.createCell(colColumnNum).setCellValue(colName);
+				}
+				colColumnNum++;
+			}
+			colColumnNum = 0;
+			rowNum++;
+		}
+		totalRowsOfColumns = rowNum - 1;
+		
+		for( String tableName : schemaHash.keySet() )
+		{
+			Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
+			ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+			
+			for( String dataTypeName : dataTypeList)
+			{
+				XSSFRow currColRow = dataSheet.createRow(rowNum);
+				currColRow.createCell(0).setCellValue(dataTypeName);
+				rowNum++;
+			}
+		}
+			
+		char tableColStart = 'A';
+		int currRowNum = 1;
+		int internalTableCounter = 0;
+		int internalTableColumnCounter = 0;
+		for(int processRow = 0; processRow <= dataSheet.getLastRowNum(); processRow++)
+		{
+			XSSFRow currRow = dataSheet.getRow(processRow);
+			
+			if(processRow == 0)
+			{
+				char endRowCol = (char) (tableColStart + currRow.getLastCellNum() - 1);
+				Name nameTable = dataSheet.getWorkbook().createName();
+				nameTable.setNameName("TABLES");
+				nameTable.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + tableColStart + "$" + currRowNum + ":$" + endRowCol + "$" + currRowNum);
+			}
+			else if (1 <= processRow && processRow <= totalRowsOfColumns)
+			{
+				char endRowCol = (char) (tableColStart + currRow.getLastCellNum() - 1);
 
+				Name nameCol = dataSheet.getWorkbook().createName();
+				nameCol.setNameName(tableNameList.get(internalTableCounter));
+				nameCol.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + tableColStart + "$" + currRowNum + ":$" + endRowCol + "$" + currRowNum);
+				internalTableCounter++;
+			}
+			else
+			{
+				char endRowCol = 'A';
+				
+				Name nameCol = dataSheet.getWorkbook().createName();
+				nameCol.setNameName(table_columnNameList.get(internalTableColumnCounter));
+				nameCol.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + tableColStart + "$" + currRowNum + ":$" + endRowCol + "$" + currRowNum);
+				internalTableColumnCounter++;
+			}
+			currRowNum++;
+		}
+	}
+
+	
+//	private void buildDataSheeet(XSSFSheet dataSheet)
+//	{
+//		int numRows = dataSheet.getLastRowNum();
+//	
+//		char tableCol = 'A';
+//		
+//		Name nameTable = dataSheet.getWorkbook().createName();
+//		nameTable.setNameName("TABLES");
+//		nameTable.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + tableCol + "$" + 2 + ":$" + tableCol + "$" + numRows+1);
+//		
+//		int row = 1;
+//		String lastTableName = "";
+//		int colsForTable = 0;
+//		int colStartRow = 2;
+//		char columnCol = 'B';
+//
+//		
+//		for(int i = 0; i < numRows; i++)
+//		{
+//			XSSFRow currRow = dataSheet.getRow(row);
+//			String currTableName = currRow.getCell(0).getStringCellValue();
+//			if(lastTableName.equals(""))
+//			{
+//				lastTableName = currTableName;
+//				colsForTable++;
+//			}
+//			else if(lastTableName.equals(currTableName))
+//			{
+//				colsForTable++;
+//			}
+//			else
+//			{				
+//				int endRow = colStartRow+colsForTable-1;
+//				Name nameCol = dataSheet.getWorkbook().createName();
+//				nameCol.setNameName(lastTableName);
+//				nameCol.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + columnCol + "$" + colStartRow + ":$" + columnCol + "$" + endRow );
+//				
+//				int dataCounterRow = colStartRow;
+//				while(dataCounterRow <= endRow)
+//				{
+//					char dataTypeCol = 'C';
+//					String dataTypeName = dataSheet.getRow(dataCounterRow).getCell(1).getStringCellValue();
+//					Name nameData = dataSheet.getWorkbook().createName();
+//					nameData.setNameName(lastTableName+"_"+dataTypeName);
+//					nameData.setRefersToFormula("'" + dataSheet.getSheetName() +"'!" + "$" + dataTypeCol + "$" + dataCounterRow + ":$" + dataTypeCol + "$" + dataCounterRow);
+//					
+//					dataCounterRow++;
+//				}
+//				
+//				colStartRow = row + 1;
+//				colsForTable = 1;
+//				lastTableName = currTableName;
+//			}
+//			row++;
+//		}
+//	}
 }
 
