@@ -56,7 +56,7 @@ public class RDBMSTestConnectionCreateSchemaBtnListener extends AbstractListener
 				boolean excelCreated = t.processRDBMSSchema(dbType.getSelectedItem().toString(), url, username, password);
 				if(excelCreated)
 				{
-					Utility.showMessage("Excel file located in Folder: \n" + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\rdbms");
+					Utility.showMessage("Excel file located in Folder: \n" + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\rdbms");
 				}
 				else
 				{
