@@ -53,6 +53,7 @@ import prerna.ui.components.specific.tap.SystemTransitionOrganizer;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
+import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 
@@ -61,9 +62,7 @@ import prerna.util.Utility;
  */
 public class SysDecommissionOptimizationListener implements IChakraListener {
 
-	SysDecommissionOptimizationPlaySheet playsheet = new SysDecommissionOptimizationPlaySheet();
 	Logger logger = Logger.getLogger(getClass());
-	ArrayList queryArray = new ArrayList();
 
 	/**
 	 * This is executed when the btnFactSheetReport is pressed by the user
@@ -72,9 +71,7 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		playsheet.setJDesktopPane(pane);
+
 		
 		JTextField resourceTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.SYS_DECOM_OPT_RESOURCE_TEXT_FIELD);
 		String resourceTextValue = resourceTextField.getText();
@@ -82,6 +79,20 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 		JTextField timeTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.SYS_DECOM_OPT_TIME_TEXT_FIELD);
 		String timeTextValue = timeTextField.getText();
 		Double timeValue = 0.0;
+		
+		SysDecommissionOptimizationPlaySheet playsheet = new SysDecommissionOptimizationPlaySheet();
+		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		playsheet.setJDesktopPane(pane);
+		QuestionPlaySheetStore.getInstance().customIDcount++;
+		String playSheetTitle = "Custom Query - "+QuestionPlaySheetStore.getInstance().getCustomCount();
+		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+"custom";
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+
+		QuestionPlaySheetStore.getInstance().put(insightID,  playsheet);
+		playsheet.setRDFEngine(engine);
+		playsheet.setQuestionID(insightID);
+		playsheet.setTitle(playSheetTitle);
+		
 		
 		String query="";
 		if(resourceTextValue!=null&&resourceTextValue.length()>0)
