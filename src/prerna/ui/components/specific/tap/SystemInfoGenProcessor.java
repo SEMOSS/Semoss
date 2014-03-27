@@ -288,6 +288,10 @@ public class SystemInfoGenProcessor {
 		String sysAndDHMSMNumBLUQuery = "SELECT DISTINCT ?System (COUNT(?blu) AS ?Num_Of_Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities) WHERE{SELECT DISTINCT ?System ?blu WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?blu}{?System ?provideBLU ?blu}}} GROUP BY ?System";
 		
 		String sysAndDHMSMBLUQuery = "SELECT DISTINCT ?System ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities}{?System ?provideBLU ?Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities}}";
+		
+		String sysAndNotDHMSMBLUCountQuery = "SELECT DISTINCT ?System (COUNT(?blu) AS ?Num_Of_Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities) WHERE{SELECT DISTINCT ?System ?blu WHERE {{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?blu} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?blu}}FILTER(!BOUND(?cap))}} GROUP BY ?System";
+		
+		String sysAndNotDHMSMBLUQuery = "SELECT DISTINCT ?System ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities WHERE {{?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities}}FILTER(!BOUND(?cap))}";
 				
 		//System Complexity
 		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
@@ -329,8 +333,6 @@ public class SystemInfoGenProcessor {
 		runQuery(hrCoreEngine,sysUsersQuery);
 		headersList.add("Probability");
 		headersList.add("Percentage_Of_Data_Objects_Covered_By_DHMSM");
-		headersList.add("Number_Of_Data_Objects_Not_Covered_By_DHMSM");
-		headersList.add("Data_Objects_Not_Covered_By_DHMSM");
 		headersList.add("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM");
 		runQuery(hrCoreEngine,sysGarrisonTheaterQuery);
 		runQuery(tapSiteEngine,sysNumDeploymentQuery);
@@ -349,6 +351,8 @@ public class SystemInfoGenProcessor {
 		headersList.add("Data_Objects_System_Is_Record_Of");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
 		headersList.add("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
+		headersList.add("Number_Of_Data_Objects_Not_Covered_By_DHMSM");
+		headersList.add("Data_Objects_Not_Covered_By_DHMSM");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
 		headersList.add("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
 		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
@@ -358,8 +362,10 @@ public class SystemInfoGenProcessor {
 		runQuery(hrCoreEngine,sysBLUQuery);
 		runQuery(hrCoreEngine,sysAndDHMSMNumBLUQuery);
 		runQuery(hrCoreEngine,sysAndDHMSMBLUQuery);
-	
+		runQuery(hrCoreEngine,sysAndNotDHMSMBLUCountQuery);
+		runQuery(hrCoreEngine,sysAndNotDHMSMBLUQuery);
 
+	
 		headersList.add("Top_Five_Similar_Systems");
 		for(String system : sysList)
 		{
@@ -473,6 +479,7 @@ public class SystemInfoGenProcessor {
 			}
 		}
 	}
+	
 
 
 }

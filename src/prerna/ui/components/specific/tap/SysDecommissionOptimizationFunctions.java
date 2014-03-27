@@ -1,7 +1,9 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -30,6 +32,7 @@ public class SysDecommissionOptimizationFunctions {
     Hashtable<String, ArrayList<String>> sysToSiteHash;
     
     private ArrayList<String> systemsWithNoSite;
+    private Vector<String> sortedSysList;
 
 	ArrayList <Object []> outputList;
 
@@ -109,6 +112,7 @@ public class SysDecommissionOptimizationFunctions {
 		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
 		outputList = new ArrayList<Object[]>();
 		systemsWithNoSite = new ArrayList<String>();
+		sortedSysList = new Vector<String>();
 
 		percentOfPilot = .2;
 		costPerHour = 150.0;
@@ -122,6 +126,7 @@ public class SysDecommissionOptimizationFunctions {
 		calculateMinTimeAndWorkVolPerSystemPerSite();
 		calculateMinTimeAndWorkVolPerSystemAllSites();
 		removeSystemsWithNoSite();
+		sortSysList();
 		calculateMinTimeAllSystemsAllSites();
 		calculateWorkVolAllSystemsAllSites();
 	}
@@ -295,26 +300,22 @@ public class SysDecommissionOptimizationFunctions {
 		
 		//output is system, number of sites, resource allocation, number of sites at same time, total cost for system
 		//old version included min time at one site and work volume at one site
-		for(String sys : sysToMinTimeHashPerSite.keySet())
+		for(String sys : sortedSysList)
 		{
-			Object[] element = new Object[5];
+			Object[] element = new Object[6];
 			element[0] = sys;
-			element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
+			double time1 = sysToWorkVolHashAllSites.get(sys) / 365.0 / Math.ceil(sysToResourceAllocationHash.get(sys));
+			element[1] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
+	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
-			if(sysToSiteHash.containsKey(sys))
-			{
-//				element[1] = sysToSiteHash.get(sys).size();
-				element[4] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
-			}
-			else
-			{
-//				element[1] = "not found in site";
-				element[4] = "not found in site";
-			}
-			element[2] = Math.ceil(sysToResourceAllocationHash.get(sys));
+
+			element[2] = sysToSiteHash.get(sys).size();
+			element[3] = Math.ceil(sysToResourceAllocationHash.get(sys));
 //			element[2] = sysToResourceAllocationHash.get(sys);
 
-			element[3] = sysToNumSimultaneousTransformHash.get(sys);
+			element[4] = sysToNumSimultaneousTransformHash.get(sys);
+			element[5] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
+
 			outputList.add(element);
 		}
 	}
@@ -418,5 +419,10 @@ public class SysDecommissionOptimizationFunctions {
 				sysToSiteHash.put(system, siteList);
 			}
 		}
+	}
+	private void sortSysList()
+	{
+		sortedSysList = new Vector<String>(sysToMinTimeHashPerSite.keySet());
+		Collections.sort(sortedSysList);
 	}
 }
