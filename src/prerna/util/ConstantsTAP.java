@@ -150,4 +150,8 @@ public class ConstantsTAP {
 	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreComboBox";
 	public static final String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY";
 	
+	//Central System Sys-BP Sys-Activity Aggregation Thresholds
+	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
+	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
+	
 }

@@ -57,6 +57,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
@@ -266,6 +267,10 @@ public class PlayPane extends JFrame {
 	// Aggregate TAP Services into TAP Core
 	public CustomButton btnAggregateTapServicesIntoTapCore;
 	public JComboBox<String> selectTapServicesComboBox, selectTapCoreComboBox;
+	
+	//Central Systems Data/BLU Aggregation
+	public CustomButton btnCentralSysBPActInsert;
+	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck,
@@ -1908,8 +1913,8 @@ public class PlayPane extends JFrame {
 		JScrollPane tapCalcScroll = new JScrollPane(tapCalcPanel);
 		tapTabPane.addTab("Additional Calculations", null, tapCalcScroll, null);
 		GridBagLayout tapCalcPanelLayout = new GridBagLayout();
-		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 		tapCalcPanelLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 		tapCalcPanelLayout.columnWidths = new int[] { 10, 10, 0, 0, 0, 0, 0, 0, 0};
 		tapCalcPanel.setLayout(tapCalcPanelLayout);
@@ -2203,6 +2208,116 @@ public class PlayPane extends JFrame {
 		gbc_btnAggregateTapServicesIntoTapCore.gridy = 3;
 		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
 		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
+		
+		//Billy
+		
+		JSeparator separateCentralSystemBPActInsert = new JSeparator();
+		GridBagConstraints gbc_separateCentralSystemBPActInsert = new GridBagConstraints();
+		gbc_separateCentralSystemBPActInsert.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separateCentralSystemBPActInsert.gridwidth = 6;
+		gbc_separateCentralSystemBPActInsert.insets = new Insets(0, 0, 0, 0);
+		gbc_separateCentralSystemBPActInsert.gridx = 0;
+		gbc_separateCentralSystemBPActInsert.gridy = 18;
+		tapCalcPanel.add(separateCentralSystemBPActInsert, gbc_separateCentralSystemBPActInsert);
+		
+		JPanel centralSystemBPActInsertPanel = new JPanel();
+		centralSystemBPActInsertPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_centralSystemBPActInsertPanel = new GridBagConstraints();
+		gbc_centralSystemBPActInsertPanel.anchor = GridBagConstraints.EAST;
+		gbc_centralSystemBPActInsertPanel.gridwidth = 6;
+		gbc_centralSystemBPActInsertPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_centralSystemBPActInsertPanel.gridx = 0;
+		gbc_centralSystemBPActInsertPanel.gridy = 19;
+		tapCalcPanel.add(centralSystemBPActInsertPanel, gbc_centralSystemBPActInsertPanel);
+		GridBagLayout gbl_centralSystemBPActInsertPanel = new GridBagLayout();
+		gbl_centralSystemBPActInsertPanel.columnWidths = new int[] { 0, 75, 100, 75 };
+		gbl_centralSystemBPActInsertPanel.rowHeights = new int[] { 10, 0, 0, 0, 0 };
+		gbl_centralSystemBPActInsertPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
+		gbl_centralSystemBPActInsertPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		centralSystemBPActInsertPanel.setLayout(gbl_centralSystemBPActInsertPanel);
+
+		JLabel centralSystemBPActInsertLabel = new JLabel("Central Systems: Sys-BP and Sys-Activity Insert (TAP Core)");
+		centralSystemBPActInsertLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_centralSystemBPActInsertLabel = new GridBagConstraints();
+		gbc_centralSystemBPActInsertLabel.anchor = GridBagConstraints.WEST;
+		gbc_centralSystemBPActInsertLabel.gridwidth = 4;
+		gbc_centralSystemBPActInsertLabel.insets = new Insets(10, 10, 5, 5);
+		gbc_centralSystemBPActInsertLabel.gridx = 1;
+		gbc_centralSystemBPActInsertLabel.gridy = 1;
+		centralSystemBPActInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
+
+		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Activities Aggregation:");
+		activityThresholdlabel_1.setFont(new Font("Tahoma", Font.ITALIC, 12));
+		GridBagConstraints gbc_activityThresholdlabel_1 = new GridBagConstraints();
+		gbc_activityThresholdlabel_1.anchor = GridBagConstraints.WEST;
+		gbc_activityThresholdlabel_1.gridwidth = 4;
+		gbc_activityThresholdlabel_1.insets = new Insets(5, 20, 5, 5);
+		gbc_activityThresholdlabel_1.gridx = 1;
+		gbc_activityThresholdlabel_1.gridy = 2;
+		centralSystemBPActInsertPanel.add(activityThresholdlabel_1, gbc_activityThresholdlabel_1);
+
+		JLabel lblDataThresholdValue = new JLabel("Data Object Threshold Value:");
+		lblDataThresholdValue.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblDataThresholdValue = new GridBagConstraints();
+		gbc_lblDataThresholdValue.anchor = GridBagConstraints.WEST;
+		gbc_lblDataThresholdValue.insets = new Insets(0, 20, 5, 5);
+		gbc_lblDataThresholdValue.gridx = 1;
+		gbc_lblDataThresholdValue.gridy = 3;
+		centralSystemBPActInsertPanel.add(lblDataThresholdValue, gbc_lblDataThresholdValue);
+
+		JLabel lblBLUThresholdValue = new JLabel("BLU Threshold Value:");
+		lblBLUThresholdValue.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblBLUThresholdValue = new GridBagConstraints();
+		gbc_lblBLUThresholdValue.anchor = GridBagConstraints.WEST;
+		gbc_lblBLUThresholdValue.insets = new Insets(0, 10, 5, 5);
+		gbc_lblBLUThresholdValue.gridx = 2;
+		gbc_lblBLUThresholdValue.gridy = 3;
+		centralSystemBPActInsertPanel.add(lblBLUThresholdValue, gbc_lblBLUThresholdValue);
+
+		dataObjectThresholdValueTextField = new JTextField();
+		dataObjectThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		dataObjectThresholdValueTextField.setMinimumSize(new Dimension(61, 28));
+		dataObjectThresholdValueTextField.setSize(new Dimension(5, 28));
+		dataObjectThresholdValueTextField.setText("0.8");
+		dataObjectThresholdValueTextField.setHorizontalAlignment(JTextField.RIGHT);
+		dataObjectThresholdValueTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_dataObjectThresholdValueTextField = new GridBagConstraints();
+		gbc_dataObjectThresholdValueTextField.anchor = GridBagConstraints.WEST;
+		gbc_dataObjectThresholdValueTextField.insets = new Insets(0, 20, 5, 5);
+		gbc_dataObjectThresholdValueTextField.gridx = 1;
+		gbc_dataObjectThresholdValueTextField.gridy = 4;
+		centralSystemBPActInsertPanel.add(dataObjectThresholdValueTextField, gbc_dataObjectThresholdValueTextField);
+		dataObjectThresholdValueTextField.setColumns(12);
+		
+		bluThresholdValueTextField = new JTextField();
+		bluThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		bluThresholdValueTextField.setMinimumSize(new Dimension(61, 28));
+		bluThresholdValueTextField.setSize(new Dimension(5, 28));
+		bluThresholdValueTextField.setText("0.9");
+		bluThresholdValueTextField.setHorizontalAlignment(JTextField.RIGHT);
+		bluThresholdValueTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_bluThresholdValueTextField = new GridBagConstraints();
+		gbc_bluThresholdValueTextField.anchor = GridBagConstraints.EAST;
+		gbc_bluThresholdValueTextField.insets = new Insets(0, 0, 5, 5);
+		gbc_bluThresholdValueTextField.gridx = 2;
+		gbc_bluThresholdValueTextField.gridy = 4;
+		centralSystemBPActInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
+		bluThresholdValueTextField.setColumns(12);		
+
+		btnCentralSysBPActInsert = new CustomButton("Run Aggregation and Insert");
+		btnCentralSysBPActInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnCentralSysBPActInsert = new GridBagConstraints();
+		gbc_btnCentralSysBPActInsert.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnCentralSysBPActInsert.gridwidth = 1;
+		gbc_btnCentralSysBPActInsert.insets = new Insets(0, 20, 5, 5);
+		gbc_btnCentralSysBPActInsert.gridx = 1;
+		gbc_btnCentralSysBPActInsert.gridy = 5;
+		centralSystemBPActInsertPanel.add(btnCentralSysBPActInsert, gbc_btnCentralSysBPActInsert);
+		Style.registerTargetClassName(btnCentralSysBPActInsert, ".standardButton");
+
+			
+		
+		//Billy		
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
