@@ -148,7 +148,7 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	    while(it.hasNext()){
 	    	Entry pairs = (Entry)it.next();
 			StringMap propHash = (StringMap) pairs.getValue();
-			int propIdx = (int)((double) propHash.get(tripleIdxKey));
+			int propIdx =  ((Double)propHash.get(tripleIdxKey)).intValue();
 			String propURI = (String) propHash.get(uriKey);
 			String predVar = tripleVarArray.get(propIdx).get(predIdx);
 			SEMOSSQueryHelper.addGenericTriple(predVar, TriplePart.VARIABLE, propURI, TriplePart.URI, pairs.getKey()+"", TriplePart.VARIABLE, semossQuery);
@@ -195,7 +195,7 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	    while(it.hasNext()){
 	    	Entry pairs = (Entry)it.next();
 			StringMap propHash = (StringMap) pairs.getValue();
-			int propIdx = (int)((double) propHash.get(tripleIdxKey));
+			int propIdx = ((Double) propHash.get(tripleIdxKey)).intValue();
 			String propURI = (String) propHash.get(uriKey);
 			String nodeVar = (String) propHash.get(nodePropName);
 			SEMOSSQueryHelper.addGenericTriple(nodeVar, TriplePart.VARIABLE, propURI, TriplePart.URI, pairs.getKey()+"", TriplePart.VARIABLE, semossQuery);
