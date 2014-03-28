@@ -32,7 +32,9 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	static final String uriKey = "uri";
 	static final String tripleIdxKey = "tripleIndex";
 	static final String edgePropKey = "edgeProps";
-
+	static final String nodePropKey = "nodeProps";
+	static final String nodePropName = "nodeName";
+	
 	static final int subIdx = 0;
 	static final int predIdx = 1;
 	static final int objIdx = 2;
@@ -124,7 +126,6 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	
 	private void buildQueryForEdgeProp()
 	{
-		
 		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
 		ArrayList<ArrayList<String>> tripleVarArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relVarArrayKey);
 		StringMap edgePropMap =(StringMap)allJSONHash.get(edgePropKey);
@@ -168,12 +169,53 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 		else
 			heatValue = "HeatValue";
 		SEMOSSQueryHelper.addSingleReturnVarToQuery(heatValue, mod, semossQuery);
-		
 	}
 
 	private void buildQueryForNodeProp()
 	{
+		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
+		ArrayList<ArrayList<String>> tripleVarArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relVarArrayKey);
+		StringMap nodePropMap =(StringMap)allJSONHash.get(nodePropKey);
+		ArrayList<Object> propList = new ArrayList<Object>();
 		
+		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
+		{
+			String subjectName = tripleVarArray.get(tripleIdx).get(subIdx);
+			String predURIName = tripleVarArray.get(tripleIdx).get(predIdx);
+			String objURIName =	tripleVarArray.get(tripleIdx).get(objIdx);
+			String subjectURI = tripleArray.get(tripleIdx).get(subIdx);
+			String predURI = tripleArray.get(tripleIdx).get(predIdx);
+			String objURI = tripleArray.get(tripleIdx).get(objIdx);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(subjectName, subjectURI, semossQuery);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(objURIName, objURI, semossQuery);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predURIName, predURI, semossQuery);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(subjectName, predURIName, objURIName, semossQuery);
+		}
+		Iterator it = nodePropMap.entrySet().iterator();
+	    while(it.hasNext()){
+	    	Entry pairs = (Entry)it.next();
+			StringMap propHash = (StringMap) pairs.getValue();
+			int propIdx = (int)((double) propHash.get(tripleIdxKey));
+			String propURI = (String) propHash.get(uriKey);
+			String nodeVar = (String) propHash.get(nodePropName);
+			SEMOSSQueryHelper.addGenericTriple(nodeVar, TriplePart.VARIABLE, propURI, TriplePart.URI, pairs.getKey()+"", TriplePart.VARIABLE, semossQuery);
+			propList.add(propIdx, pairs.getKey());
+	    }
+		ISPARQLReturnModifier mod;
+		ArrayList<String> opList = (ArrayList<String>) allJSONHash.get(operatorKey);
+		//first multiply the weights
+		mod = SEMOSSQueryHelper.createReturnModifier(propList, opList);
+		mod = SEMOSSQueryHelper.createReturnModifier(mod, SPARQLAbstractReturnModifier.SUM);
+		
+		
+		String heatValue = "";
+		if((String)allJSONHash.get(heatNameKey)!=null && !((String)allJSONHash.get(heatNameKey)).isEmpty())
+		{
+			heatValue = (String)allJSONHash.get(heatNameKey);
+		}
+		else
+			heatValue = "HeatValue";
+		SEMOSSQueryHelper.addSingleReturnVarToQuery(heatValue, mod, semossQuery);
 	}
 
 	private void buildQueryForCustom()
