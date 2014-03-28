@@ -2,8 +2,8 @@
 ##Base Objects##
 
 DataObject http://health.mil/ontologies/Concept/DataObject
-LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 Software http://health.mil/ontologies/Concept/Software
+LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 Service http://health.mil/ontologies/Concept/Service
 DataElement http://health.mil/ontologies/Concept/DataElement
 Complexity http://health.mil/ontologies/Concept/Complexity
@@ -33,6 +33,7 @@ VISTAUnion http://health.mil/ontologies/Concept/VISTAUnion
 Personnel http://health.mil/ontologies/Concept/Personnel
 RDF http://health.mil/ontologies/Concept/RDF
 DProt http://health.mil/ontologies/Concept/DProt
+JMA http://health.mil/ontologies/Concept/JMA
 Activity http://health.mil/ontologies/Concept/Activity
 TError http://health.mil/ontologies/Concept/TError
 RDFElement http://health.mil/ontologies/Concept/RDFElement
@@ -54,6 +55,7 @@ DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 ConformanceCriteria_Fulfill_DataObject http://health.mil/ontologies/Relation/Fulfill
 HardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
+JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
 Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
@@ -104,14 +106,13 @@ SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
 System_Has_TError http://health.mil/ontologies/Relation/Has
 CDRElement_BelongsTo_CDR http://health.mil/ontologies/Relation/BelongsTo
-HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
 Requirement_Consists_ConformanceCriteria http://health.mil/ontologies/Relation/Consists
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
 FError_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
-SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+Activity_MapsTo_JMA http://health.mil/ontologies/Relation/MapsTo
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
 
@@ -123,6 +124,7 @@ Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
 HardwareModule_CLASS http://semoss.org/ontologies/Concept/HardwareModule
 RDFElement_CLASS http://semoss.org/ontologies/Concept/RDFElement
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+JMA_CLASS http://semoss.org/ontologies/Concept/JMA
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
@@ -171,7 +173,6 @@ System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relat
 InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
 Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
-SoftwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 System_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
 System_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
@@ -197,6 +198,7 @@ System_Has_HardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
 Requirement_Consists_ConformanceCriteria_CLASS http://semoss.org/ontologies/Relation/Consists
 RDF_Has_RDFElement_CLASS http://semoss.org/ontologies/Relation/Has
+JMA_Consists_JMA_CLASS http://semoss.org/ontologies/Relation/Consists
 System_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
 Activity_Assigned_FError_CLASS http://semoss.org/ontologies/Relation/Assigned
 DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
@@ -212,6 +214,7 @@ DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/Bel
 System_OwnedBy_SystemOwner_CLASS http://semoss.org/ontologies/Relation/OwnedBy
 Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 System_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 System_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
@@ -223,7 +226,6 @@ System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
 FError_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
-HardwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 Activity_ActivitySplit_Element_CLASS http://semoss.org/ontologies/Relation/ActivitySplit
 VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
 InterfaceControlDocument_Carries_DataElement_CLASS http://semoss.org/ontologies/Relation/Carries
