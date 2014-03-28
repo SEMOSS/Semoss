@@ -26,6 +26,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/JMA">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DForm">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -203,6 +206,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OwnedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MapsTo">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -295,9 +301,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Service">
 	<Replaces rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SoftwareVersion">
-	<Phase rdf:resource="http://semoss.org/ontologies/Concept/LifeCycle"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Activity">
 	<Consists rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
 </rdf:Description>
@@ -321,14 +324,11 @@
 	<Provide rdf:resource="http://semoss.org/ontologies/Concept/BusinessLogicUnit"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareModule">
-	<TypeOf>
-		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareVersion">
-			<Phase rdf:resource="http://semoss.org/ontologies/Concept/LifeCycle"/>
-		</rdf:Description>
-	</TypeOf>
+	<TypeOf rdf:resource="http://semoss.org/ontologies/Concept/HardwareVersion"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Activity">
 	<Needs rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+	<MapsTo rdf:resource="http://semoss.org/ontologies/Concept/JMA"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<OwnedBy rdf:resource="http://semoss.org/ontologies/Concept/SystemOwner"/>
@@ -366,6 +366,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Service">
 	<Exposes rdf:resource="http://semoss.org/ontologies/Concept/BusinessLogicUnit"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/JMA">
+	<Consists rdf:resource="http://semoss.org/ontologies/Concept/JMA"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareVersion">
 	<Upgrade rdf:resource="http://semoss.org/ontologies/Concept/HardwareVersion"/>
 </rdf:Description>
@@ -381,11 +384,11 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<Connected rdf:resource="http://semoss.org/ontologies/Concept/RDF"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Requirement">
-	<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Has rdf:resource="http://semoss.org/ontologies/Concept/DFreq"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Requirement">
+	<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Has rdf:resource="http://semoss.org/ontologies/Concept/TError"/>
