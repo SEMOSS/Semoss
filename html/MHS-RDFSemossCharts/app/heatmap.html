@@ -31,7 +31,6 @@
        
        function start(dataString) {
 	
-	
 	var jsonData = jQuery.parseJSON(dataString);
 	var data = jsonData.dataSeries
 	//var data = dataString.dataSeries
@@ -45,50 +44,74 @@
 	var truncY = [];
 	var truncX = [];
 	var domainArray = [];
-	
-	  for (var key in data) {
+	var valueArray = [];
+	var valueArrayDiff = 0;
+	var decimalToKeepFlag = true;
+	var decimalToKeep = 0;
+
+	//Evaluating what places to round heatmap values to
+	for (var key in data) {
+		valueArray.push(data[key][value]);
+	}
+	function SortLowToHigh(a, b) {return a - b ;}
+	valueArray.sort(SortLowToHigh);
+	valueArrayDiff = valueArray[Math.floor(valueArray.length*3/4)]-valueArray[Math.floor(valueArray.length/4)];
+	if(valueArrayDiff > 10){
+		decimalToKeepFlag = false;
+	}
+	else
+	{
+	valueArrayDiff = valueArrayDiff.toPrecision(2);
+	while(valueArrayDiff < Math.ceil(valueArrayDiff)){
+		valueArrayDiff = valueArrayDiff*10;
+		decimalToKeep++
+	  }
+	}
+
+	//business as usual
+	for (var key in data) {
 	    xAxisArray.push(data[key][xAxisName]);
 	    yAxisArray.push(data[key][yAxisName]);
 	    var round = (Math.round(data[key][value] * 100) / 100);
 	    //This array stores the values as numbers
 	    dataArray.push({yAxis: data[key][yAxisName], Value: round, xAxis: data[key][xAxisName], xAxisName: data[key][xAxisName], yAxisName: data[key][yAxisName]});
-	  };
+	};
 	  
-	  var uniqueX = _.uniq(xAxisArray);
-	  var uniqueY = _.uniq(yAxisArray);
-	  xAxisArray = uniqueX.sort();
-	  yAxisArray = uniqueY.sort();
+	var uniqueX = _.uniq(xAxisArray);
+	var uniqueY = _.uniq(yAxisArray);
+	xAxisArray = uniqueX.sort();
+	yAxisArray = uniqueY.sort();
 	  
 	  /* Assign each name a number and place matrix coordinates inside of dataArray */
-	  for (var i = 0; i<dataArray.length;i++) {
-	    for (var j = 0; j<xAxisArray.length; j++) {
-	      if (xAxisArray[j] == dataArray[i].xAxis) {
-		dataArray[i].xAxis = j;
-	      }
-	    }
-	    for (var j = 0; j<yAxisArray.length; j++) {
-	      if (yAxisArray[j] == dataArray[i].yAxis) {
-		dataArray[i].yAxis = j;
-	      }
-	    }
-	  };
+	for (var i = 0; i<dataArray.length;i++) {
+	for (var j = 0; j<xAxisArray.length; j++) {
+		if (xAxisArray[j] == dataArray[i].xAxis) {
+			dataArray[i].xAxis = j;
+		}
+	}
+	for (var j = 0; j<yAxisArray.length; j++) {
+		if (yAxisArray[j] == dataArray[i].yAxis) {
+			dataArray[i].yAxis = j;
+		}
+	}
+	};
 	  
 	  /* Truncate Values */
-	  for (i = 0; i < yAxisArray.length; i++) {
+	for (i = 0; i < yAxisArray.length; i++) {
 	    if (yAxisArray[i].length > 20) {
-	      truncY.push(yAxisArray[i].substring(0, 20) + '...');
+			truncY.push(yAxisArray[i].substring(0, 20) + '...');
 	    } else {
-	      truncY.push(yAxisArray[i]);
+			truncY.push(yAxisArray[i]);
 	    }
-	  }
+	}
 	  
-	  for (i = 0; i < xAxisArray.length; i++) {
+	for (i = 0; i < xAxisArray.length; i++) {
 	    if (xAxisArray[i].length > 30) {
-	      truncX.push(xAxisArray[i].substring(0, 30) + '...');
+			truncX.push(xAxisArray[i].substring(0, 30) + '...');
 	    } else {
-	      truncX.push(xAxisArray[i]);
+			truncX.push(xAxisArray[i]);
 	    }
-	  }
+	}
       
     
 	var margin = { top: 185, right: 150, bottom: 100, left: 150 },
@@ -121,55 +144,55 @@
 	}
 	
 	var colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
-                .range(colors);
+        .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+        .range(colors);
 	    
-            var svg = d3.select("#chart").append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var svg = d3.select("#chart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-            var yAxisTitle = svg.selectAll(".yAxisTitle")
-	      .data([yAxisName]);
+    var yAxisTitle = svg.selectAll(".yAxisTitle")
+			.data([yAxisName]);
 	    yAxisTitle
-	      .enter().append("text");
+			.enter().append("text");
 	    yAxisTitle
-	      .attr("class", "yAxisTitle")
-	      .attr("transform","rotate(-90)")
-	      .attr("y", -140)
-	      .attr("x", 0)
-	      .attr("text-anchor", "end")
-	      .text(function(d){return d});
+			.attr("class", "yAxisTitle")
+			.attr("transform","rotate(-90)")
+			.attr("y", -140)
+			.attr("x", 0)
+			.attr("text-anchor", "end")
+			.text(function(d){return d});
 	    yAxisTitle
-	      .exit().remove();
+			.exit().remove();
 	      
-            var yAxis = svg.selectAll(".yAxis")
-                .data(truncY)
-                .enter().append("text")
-                .text(function (d) { return d; })
-                .attr("x", 0)
-                .attr("y", function (d, i) { return i * gridSize; })
-                .style("text-anchor", "end")
-                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-                .attr("class", "yAxis");
-		
-	    var xAxisTitle = svg.selectAll(".xAxisTitle")
-	      .data([xAxisName]);
-	    xAxisTitle
-	      .enter().append("text");
-	    xAxisTitle
-	      .attr("class", "xAxisTitle")
-	      .attr("y", -120)
-	      .attr("x", 0)
-	      .text(function(d){return d});
-	    xAxisTitle
-	      .exit().remove();
-            
-            var xAxis = svg.selectAll(".xAxis")
+	var yAxis = svg.selectAll(".yAxis")
+        .data(truncY)
+        .enter().append("text")
+        .text(function (d) { return d; })
+        .attr("x", 0)
+        .attr("y", function (d, i) { return i * gridSize; })
+        .style("text-anchor", "end")
+        .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+        .attr("class", "yAxis");
+	
+    var xAxisTitle = svg.selectAll(".xAxisTitle")
+		.data([xAxisName]);
+    xAxisTitle
+		.enter().append("text");
+    xAxisTitle
+		.attr("class", "xAxisTitle")
+		.attr("y", -120)
+		.attr("x", 0)
+		.text(function(d){return d});
+    xAxisTitle
+		.exit().remove();
+        
+	var xAxis = svg.selectAll(".xAxis")
 		.data(truncX)
 		.enter().append("svg:g")
-		xAxis.append("text")
+	xAxis.append("text")
 		.text(function(d) { return d; })
 		.style("text-anchor", "start")
 		.attr("x", 6)
@@ -178,9 +201,17 @@
 		.attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" });
 	    
 	    /* Initialize tooltip */
-	    var tip = d3.tip()
-	      .attr('class', 'd3-tip')
-	      .html(function(d) { return "<div> <span class='light'>" + value + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+	var roundedValue = function(d){
+		if(decimalToKeepFlag = true){
+			return d.Value.toFixed(decimalToKeep);
+		}else{
+			return d.Value.toFixed(0);
+		}
+	}
+
+    var tip = d3.tip()
+		.attr('class', 'd3-tip')
+		.html(function(d) { return "<div> <span class='light'>" + value + ":</span> " + roundedValue(d) + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
 	    
             var heatMap = svg.selectAll(".heat")
                 .data(dataArray)
@@ -196,16 +227,13 @@
 		.on('mouseover', tip.show)
 		.on('mouseout', tip.hide);
 		
-	      heatMap
+    heatMap
 		.transition()
 		.duration(1000)
 		.style("fill", function(d) { return colorScale(d.Value); });
 	    
 	    /* Invoke the tooltip in the context of your visualization */
 	    heatMap.call(tip);
-	    
-	    
-	 
 		
 	    //vertical lines
 	    svg.selectAll(".vline").data(d3.range(xAxisData.length + 1)).enter()
@@ -244,104 +272,105 @@
 
           //heatMap.append("title").text(function(d) { return d.Value; });
               
-          var legend = svg.selectAll(".legend")
-              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
-              .enter().append("g")
-              .attr("class", "legend");
-	  
-          legend.append("rect")
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", yAxisData.length * gridSize + 40)
-            .attr("width", legendElementWidth)
-            .attr("height", 20);
-            
-	  legend.style("fill", function(d, i) { return colors[i]; });
+	var legend = svg.selectAll(".legend")
+		.data([0].concat(colorScale.quantiles()), function(d) { return d; })
+		.enter().append("g")
+		.attr("class", "legend");
 
-          legend.append("text")
-            .attr("class", "mono")
-            .text(function(d) { return "" + Math.round(d); })
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", yAxisData.length * gridSize + 75);
+	legend.append("rect")
+		.attr("x", function(d, i) { return legendElementWidth * i; })
+		.attr("y", yAxisData.length * gridSize + 40)
+		.attr("width", legendElementWidth)
+		.attr("height", 20);
+            
+	legend.style("fill", function(d, i) { return colors[i]; });
+
+	var roundedLegendValue = function(d){
+		if(decimalToKeepFlag = true){
+			return d.toFixed(decimalToKeep);
+		}else{
+			return d.toFixed(0);
+		}
+	}
+
+	legend.append("text")
+        .attr("class", "mono")
+        .text(function(d) { return "" + roundedLegendValue(d); })
+        .attr("x", function(d, i) { return legendElementWidth * i; })
+        .attr("y", yAxisData.length * gridSize + 75);
 	  
 	  // Color Changer  
-	    d3.select("#nav").append("select")
-	      .attr("id", "select2DropDown")
-	      .style("width", "130px")
-	      .attr("class", "mySelect2")
-	      .selectAll("option")
-	      .data(["Red","Blue","Green","Traffic", "Traffic Reverse"])
-	      .enter()
-	      .append("option")
-	      .attr("value", function(d){ return d; }) /* This gives me the value */
-	      .text(function(d){ return d})
-	      ;
+	d3.select("#nav").append("select")
+		.attr("id", "select2DropDown")
+		.style("width", "130px")
+		.attr("class", "mySelect2")
+		.selectAll("option")
+		.data(["Red","Blue","Green","Traffic", "Traffic Reverse"])
+		.enter()
+		.append("option")
+		.attr("value", function(d){ return d; }) /* This gives me the value */
+		.text(function(d){ return d})
+		;
 	    
-	    $("#select2DropDown").select2();
-	    $("#select2DropDown").on("change", change);
+	$("#select2DropDown").select2();
+	$("#select2DropDown").on("change", change);
 	    
-	    function change() {
-	      colors.length = 0;
-	      domainArray = $('#slider').data('slider').getValue()  
-	      if (this.options[this.selectedIndex].value == 'Green') {
-		colors.push(colorsGreen);
-	      } else if (this.options[this.selectedIndex].value == 'Blue') {
-		colors.push(colorsBlue);
-	      }else if (this.options[this.selectedIndex].value == 'Traffic') {
-		colors.push(colorsTraffic);
-		
-	      }else if (this.options[this.selectedIndex].value == 'Traffic Reverse') {
-		colors.push(colorsTrafficReverse);
-		
-	      }else {
-		colors.push(colorsRed);
-	      }
+	function change() {
+		colors.length = 0;
+		domainArray = $('#slider').data('slider').getValue()  
+		if (this.options[this.selectedIndex].value == 'Green') {
+	colors.push(colorsGreen);
+		} else if (this.options[this.selectedIndex].value == 'Blue') {
+	colors.push(colorsBlue);
+		}else if (this.options[this.selectedIndex].value == 'Traffic') {
+	colors.push(colorsTraffic);
+		}else if (this.options[this.selectedIndex].value == 'Traffic Reverse') {
+	colors.push(colorsTrafficReverse);
+		}else {
+	colors.push(colorsRed);
+		}
 	      
-	      colorScale = d3.scale.quantile()
-                .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
-                .range(colors[0]);
+	colorScale = d3.scale.quantile()
+		.domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+		.range(colors[0]);
 		
-	      heatMap.style("fill", function(d) {
+	heatMap.style("fill", function(d) {
 		console.log(domainArray[0]);
 		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		  return colorScale(d.Value);
+			return colorScale(d.Value);
 		}else {return "white"}
 		
-	      });
-	      legend.style("fill", function(d, i) { return colors[0][i]; });
+		});
+	legend.style("fill", function(d, i) { return colors[0][i]; });
 	    }
 	    
-	    
 	  // Slider
-	  $('#slider').slider({
-	      min: Math.floor(d3.min(dataArray, function (d) { return d.Value; })),
-	      max: Math.ceil(d3.max(dataArray, function (d) { return d.Value; })),
-	      value:[0, Math.ceil(d3.max(dataArray, function (d) { return d.Value; }))],
-	      step:1
-	      
+	$('#slider').slider({
+		min: Math.floor(d3.min(dataArray, function (d) { return d.Value; })),
+		max: Math.ceil(d3.max(dataArray, function (d) { return d.Value; })),
+		value:[0, Math.ceil(d3.max(dataArray, function (d) { return d.Value; }))],
+		step:1
 	    })
-	  .on('slide', function(){
+	.on('slide', function(){
 	      domainArray = $('#slider').data('slider').getValue()  
 	      heatMap
 	      .style("fill", function(d) {
-		if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
-		  return colorScale(d.Value);
-		}else {return "white"}
-		
-	      });
-	  })
-	  
+	if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+		return colorScale(d.Value);
+	}else{
+		return "white"}
+	});
+	})
 	   
-	  d3.select("#min").append("text")
-	    .text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
-	    
-	  d3.select("#max").append("text")
-	    .text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
-	    .attr("x", 20)
-	    .attr("y", 0);
-	    
+	d3.select("#min").append("text")
+		.text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
+		.attr("x", 20)
+		.attr("y", 0);
 
+	d3.select("#max").append("text")
+		.text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
+		.attr("x", 20)
+		.attr("y", 0);
       };      
     </script>
   </body>
