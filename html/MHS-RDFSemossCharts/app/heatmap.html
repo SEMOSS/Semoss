@@ -41,21 +41,22 @@
 	var xAxisArray = [];
 	var yAxisArray = [];
 	var dataArray = [];
+	var valueArray = [];
 	var truncY = [];
 	var truncX = [];
 	var domainArray = [];
-	var valueArray = [];
-	var valueArrayDiff = 0;
+	var roundValueArray = [];
+	var roundValueArrayDiff = 0;
 	var decimalToKeepFlag = true;
 	var decimalToKeep = 0;
 
 	//Evaluating what places to round heatmap values to
 	for (var key in data) {
-		valueArray.push(data[key][value]);
+		roundValueArray.push(data[key][value]);
 	}
 	function SortLowToHigh(a, b) {return a - b ;}
-	valueArray.sort(SortLowToHigh);
-	valueArrayDiff = valueArray[Math.floor(valueArray.length*3/4)]-valueArray[Math.floor(valueArray.length/4)];
+	roundValueArray.sort(SortLowToHigh);
+	valueArrayDiff = roundValueArray[Math.floor(roundValueArray.length*3/4)]-roundValueArray[Math.floor(roundValueArray.length/4)];
 	if(valueArrayDiff > 10){
 		decimalToKeepFlag = false;
 	}
@@ -73,6 +74,7 @@
 	    xAxisArray.push(data[key][xAxisName]);
 	    yAxisArray.push(data[key][yAxisName]);
 	    var round = (Math.round(data[key][value] * 100) / 100);
+		valueArray.push(data[key][value]);
 	    //This array stores the values as numbers
 	    dataArray.push({yAxis: data[key][yAxisName], Value: round, xAxis: data[key][xAxisName], xAxisName: data[key][xAxisName], yAxisName: data[key][yAxisName]});
 	};
@@ -144,7 +146,7 @@
 	}
 	
 	var colorScale = d3.scale.quantile()
-        .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+        .domain(valueArray)
         .range(colors);
 	    
     var svg = d3.select("#chart").append("svg")
