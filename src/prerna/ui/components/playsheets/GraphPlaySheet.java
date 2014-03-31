@@ -293,7 +293,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			if(gdm.modelCounter > 1)
 			{
 				updateProgressBar("30%...Getting Previous Model", 30);
-				gdm.undoView();
+				gdm.undoData();
 				filterData = new VertexFilterData();
 				controlData = new ControlData();
 				predData = new PropertySpecData();
@@ -325,7 +325,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
                if(gdm.rcStore.size() > gdm.modelCounter-1)
                {
                      updateProgressBar("30%...Getting Previous Model", 30);
-                     gdm.redoView();
+                     gdm.redoData();
                      updateProgressBar("50%...Graph Redo in Progress", 50);
                      refineView();
                      
