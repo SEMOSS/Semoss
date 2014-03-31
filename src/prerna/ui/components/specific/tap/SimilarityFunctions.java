@@ -111,29 +111,8 @@ public class SimilarityFunctions {
 	public Hashtable<String, Hashtable<String,Double>> getDataBLUDataSet(String dbName, String dataQuery, String bluQuery, String option)
 	{
 		//first create hashtable of arraylist with system as key and corresponding data + blu as the values
-		Hashtable<String, Hashtable<String,Double>> dataRetHash = new Hashtable<String, Hashtable<String,Double>>();
-		Hashtable<String, Hashtable<String,String>> dataBLUHash = new Hashtable<String, Hashtable<String,String>>();
 		createTable(dbName, dataQuery);
-
-		//because in data's case, we also have crm, we need to append taht information
-		for (int i=0;i<list.size();i++)
-		{
-			Object[] listElement = list.get(i);
-			String sysName = (String) listElement[0];
-			String dataName = (String) listElement[1];
-			String crm = (String) listElement[2];
-			if(dataBLUHash.get(sysName) != null)
-			{
-				Hashtable<String,String> sysSpecDataBLUHash= (Hashtable<String,String>) dataBLUHash.get(sysName);
-				sysSpecDataBLUHash.put(dataName, crm.replace("\"", ""));
-			}
-			else
-			{
-				Hashtable<String,String> sysSpecDataBLUHash = new Hashtable<String,String>();
-				sysSpecDataBLUHash.put(dataName, crm.replace("\"", ""));
-				dataBLUHash.put(sysName,  sysSpecDataBLUHash);
-			}
-		}
+		Hashtable<String, Hashtable<String,String>> dataBLUHash = makeDataHash();
 		createTable(dbName, bluQuery);
 		for (int i=0;i<list.size();i++)
 		{
@@ -153,6 +132,60 @@ public class SimilarityFunctions {
 				dataBLUHash.put(sysName,  sysSpecDataBLUHash);
 			}
 		}
+		Hashtable<String, Hashtable<String,Double>> dataRetHash = makeComparisonWithCRM(dataBLUHash,option);
+
+		return dataRetHash;
+	}
+	
+	public Hashtable<String, Hashtable<String,String>> makeDataHash()
+	{
+		Hashtable<String, Hashtable<String,String>> dataHash = new Hashtable<String, Hashtable<String,String>>();
+		for (int i=0;i<list.size();i++)
+		{
+			Object[] listElement = list.get(i);
+			String sysName = (String) listElement[0];
+			String dataName = (String) listElement[1];
+			String crm = (String) listElement[2];
+			if(dataHash.get(sysName) != null)
+			{
+				Hashtable<String,String> sysSpecDataHash= (Hashtable<String,String>) dataHash.get(sysName);
+				sysSpecDataHash.put(dataName, crm.replace("\"", ""));
+			}
+			else
+			{
+				Hashtable<String,String> sysSpecDataHash = new Hashtable<String,String>();
+				sysSpecDataHash.put(dataName, crm.replace("\"", ""));
+				dataHash.put(sysName,  sysSpecDataHash);
+			}
+		}
+		return dataHash;
+	}
+
+	/**
+	 * Since data and blu get added together needed to create a custom query function that did all of this.
+	 * Returns combined list of DataObject and BLUs.
+	 * 
+	 * @param dbName String		Name of database to be queried
+	 * @param dataQuery String	Query to retrieve DataObjects
+	 * @param bluQuery String	Query to retrieve BLUs
+	 * @param option String		Option to calculate Count or Value
+	
+	 * @return Hashtable<String,Hashtable<String,Double>>	System-specific list of scores/values
+	 */
+	public Hashtable<String, Hashtable<String,Double>> getDataSet(String dbName, String dataQuery,String option)
+	{
+		createTable(dbName, dataQuery);
+
+		//because in data's case, we also have crm, we need to append taht information
+		Hashtable<String, Hashtable<String,String>> dataBLUHash = makeDataHash();
+		Hashtable<String, Hashtable<String,Double>> dataRetHash = makeComparisonWithCRM(dataBLUHash,option);
+
+		return dataRetHash;
+	}
+	
+	public Hashtable<String, Hashtable<String,Double>> makeComparisonWithCRM(Hashtable<String, Hashtable<String,String>> dataBLUHash, String option)
+	{
+		Hashtable<String, Hashtable<String,Double>> dataRetHash = new Hashtable<String, Hashtable<String,Double>>();
 		for(int i=0; i<comparisonObjectList.size();i++)
 		{
 			String sysName = comparisonObjectList.get(i);
@@ -205,10 +238,8 @@ public class SimilarityFunctions {
 			}
 
 		}
-
 		return dataRetHash;
 	}
-
 
 	/**
 	 * Generic function that can compare a given property of a comparison object given three choices where doubleOverlap fulfills the first two
