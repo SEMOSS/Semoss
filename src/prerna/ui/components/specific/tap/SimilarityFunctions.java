@@ -41,7 +41,7 @@ public class SimilarityFunctions {
 	ArrayList <String> comparisonObjectList;
 	protected Logger logger = Logger.getLogger(getClass());
 	final static String COUNT = "Count";
-	final static String VALUE = "Value";
+	public final static String VALUE = "Value";
 
 	/**
 	 * Populates class-level 'list' var with binding values retrieved from running input query.

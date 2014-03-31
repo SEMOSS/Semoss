@@ -41,7 +41,7 @@ import com.teamdev.jxbrowser.events.NavigationListener;
  */
 public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	Logger logger = Logger.getLogger(getClass());
-	ArrayList<String> comparisonObjectList = new ArrayList<String>();
+	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
 	String comparisonObjectType = "";
 	public Hashtable allHash = new Hashtable();
