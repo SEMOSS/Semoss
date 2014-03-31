@@ -44,9 +44,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
 	String comparisonObjectType = "";
-	Hashtable allHash = new Hashtable();
-	Hashtable paramDataHash = new Hashtable();
-	Hashtable keyHash = new Hashtable();
+	public Hashtable allHash = new Hashtable();
+	public Hashtable paramDataHash = new Hashtable();
+	public Hashtable keyHash = new Hashtable();
+	
 	SimilarityRefreshBrowserFunction refreshFunction;
 	
 	/**
