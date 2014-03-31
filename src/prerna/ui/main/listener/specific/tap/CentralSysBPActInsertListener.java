@@ -63,7 +63,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 		//send to processor
 		logger.info("Inserting System-BP and System-Activity for Central Systems into TAP_Core...");			
 		CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);		
-		boolean success = insertProcessor.runAggregation();
+		boolean success = insertProcessor.runCoreInsert();
 		if(success)	{
 			Utility.showMessage("Finished Aggregation!");
 		}
@@ -75,8 +75,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 	
 	@Override
 	public void setView(JComponent view) {
-		// TODO Auto-generated method stub
-		
+		// TODO Auto-generated method stub		
 	}
 
 }
