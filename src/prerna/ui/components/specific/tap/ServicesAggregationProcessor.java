@@ -779,19 +779,19 @@ public class ServicesAggregationProcessor {
 
 					String baseUri = getBaseURI(system);
 					//relationship from system to softwareModule
-					String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
+					String predSysToMod = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 					addToAllRelationships(predSysToMod);
 					logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
 					addToHash(new String[]{system, predSysToMod, module});
 					//relationship from softwareModule to softwareVersion
-					String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+					String predModToVer = baseUri + "/Relation/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 					addToAllRelationships(predModToVer);
 					logger.debug("SOFTWARE MODULE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + softwareV + "}");
 					addToHash(new String[]{module, predModToVer, softwareV});
 					//relationship from software to softwareVersion
-					String predSoffToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+					String predSoffToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 					logger.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
 					addToHash(new String[]{software, predSoffToVer, softwareV});
@@ -811,19 +811,19 @@ public class ServicesAggregationProcessor {
 
 					String baseUri = getBaseURI(system);
 					//relationship from system to hardwareModule
-					String predSysToMod = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
+					String predSysToMod = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 					addToAllRelationships(predSysToMod);
 					logger.debug("SYSTEM TO HARDWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
 					addToHash(new String[]{system, predSysToMod, module});
 					//relationship from hardwareModule to hardwareVersion
-					String predModToVer = baseUri + "/Relatoin/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+					String predModToVer = baseUri + "/Relation/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 					addToAllRelationships(predModToVer);
 					logger.debug("HARDWARE MODULE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + hardwareV + "}");
 					addToHash(new String[]{module, predModToVer, hardwareV});
 					//relationship from software to softwareVersion
-					String predhARDToVer = baseUri + "/Relatoin/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+					String predhARDToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 					logger.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
 					addToHash(new String[]{hardware, predhARDToVer, hardwareV});
