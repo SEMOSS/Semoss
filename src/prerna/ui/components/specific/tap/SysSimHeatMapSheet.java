@@ -69,7 +69,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		addPanel();
 		// this would be create the data
 		Hashtable dataHash = new Hashtable();
-		Hashtable overallHash;
+//		Hashtable overallHash;
 		//get list of systems first
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
 		query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}}BINDINGS ?SystemUser {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)}";
