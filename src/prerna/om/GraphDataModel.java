@@ -49,6 +49,8 @@ public class GraphDataModel {
 	 * This data mainly consists of the edgeStore and vertStore as well as models/repository connections
 	 */
 	private Logger logger = Logger.getLogger(getClass());
+	public enum CREATION_METHOD {CREATE_NEW, OVERLAY, UNDO};
+	CREATION_METHOD method;
 	
 	Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
 
@@ -66,7 +68,6 @@ public class GraphDataModel {
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	
-	boolean overlay;
 	boolean search, prop, sudowl;
 	
 	Hashtable<String, SEMOSSVertex> vertStore = null;
@@ -109,10 +110,10 @@ public class GraphDataModel {
 	}
 	
 	public void createModel(String query, IEngine engine){
-		if(overlay){
+		if(method == CREATION_METHOD.OVERLAY){
 			overlayData(query, engine);
 		}
-		else
+		else 
 			processData(query, engine);
 	}
 	
@@ -338,7 +339,7 @@ public class GraphDataModel {
 				else 
 					object = new URIImpl(st.getObject()+"");
 				
-				if(overlay) {
+				if(method == CREATION_METHOD.OVERLAY) {
 					if (!rc.hasStatement(subject,predicate,object, true)) {
 						curRC.add(subject,predicate,object);
 					} else {
@@ -366,7 +367,7 @@ public class GraphDataModel {
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), obj, false);
 				}*/
 				
-				if(overlay) {
+				if(method == CREATION_METHOD.OVERLAY) {
 					//logger.info("Adding to the new model");
 					if (!rc.hasStatement(subject,predicate,(Literal)obj, true)) {
 						curRC.add(subject,predicate,(Literal)obj);
@@ -385,7 +386,7 @@ public class GraphDataModel {
 				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
 				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
 				
-				if(overlay) {
+				if(method == CREATION_METHOD.OVERLAY) {
 					if (!rc.hasStatement(subject,predicate,newObj, true)) {
 						curRC.add(subject,predicate,(Literal)newObj);
 					} else {
@@ -441,7 +442,7 @@ public class GraphDataModel {
 		if (!jenaModel.contains(jenaSt))
 		{
 			jenaModel.add(jenaSt);
-			if(overlay)
+			if(method == CREATION_METHOD.OVERLAY)
 			{
 				curModel.add(jenaSt);
 			}
@@ -474,14 +475,18 @@ public class GraphDataModel {
 	
 	private void storeVert(SEMOSSVertex vert){
 		vertStore.put(vert.getProperty(Constants.URI) + "", vert);
-		if(overlay && incrementalVertStore != null)
+		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null)
 			incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
+		else if(method == CREATION_METHOD.UNDO && incrementalVertStore != null)
+			incrementalVertStore.remove(vert.getProperty(Constants.URI) + "");
 	}
 
 	private void storeEdge(SEMOSSEdge edge){
 		edgeStore.put(edge.getProperty(Constants.URI) + "", edge);
-		if(overlay && incrementalEdgeStore != null)
+		if(method == CREATION_METHOD.OVERLAY && incrementalEdgeStore != null)
 			incrementalEdgeStore.put(edge.getProperty(Constants.URI) + "", edge);
+		if(method == CREATION_METHOD.UNDO && incrementalEdgeStore != null)
+			incrementalEdgeStore.remove(edge.getProperty(Constants.URI) + "");
 	}
 			
 	/**
@@ -571,7 +576,7 @@ public class GraphDataModel {
 				.getProperty(Constants.PROP_URI);
 	}
 	
-	public void undoView(){
+	public void undoData(){
 		RepositoryConnection lastRC = rcStore.elementAt(modelCounter-2);
 		Model lastModel = modelStore.elementAt(modelCounter-2);
 		// remove undo model from repository connection
@@ -588,11 +593,15 @@ public class GraphDataModel {
 		//jenaModel.remove(lastModel);
 		modelCounter--;
 		
-		vertStore = new Hashtable<String, SEMOSSVertex>();
-		edgeStore = new Hashtable<String, SEMOSSEdge>();
+		incrementalVertStore.clear();
+		incrementalVertStore.putAll(vertStore);
+		incrementalEdgeStore.clear();
+		incrementalEdgeStore.putAll(edgeStore);
+		vertStore.clear();
+		edgeStore.clear();
 	}
 	
-	public void redoView(){
+	public void redoData(){
 		RepositoryConnection newRC = rcStore.elementAt(modelCounter-1);
         Model newModel = modelStore.elementAt(modelCounter-1);
         //add redo model from repository connection
@@ -602,6 +611,9 @@ public class GraphDataModel {
         RDFEngineHelper.addAllData(sesameEngine, rc);
         //jenaModel.add(newModel);
         modelCounter++;
+
+		incrementalVertStore.clear();
+		incrementalEdgeStore.clear();
 	}
 	
 	/**
@@ -835,7 +847,17 @@ public class GraphDataModel {
 	}
 	
 	public void setOverlay(boolean overlay){
-		this.overlay = overlay;
+		if(overlay)
+			this.method = CREATION_METHOD.OVERLAY;
+		else
+			this.method = CREATION_METHOD.CREATE_NEW;
+	}
+
+	public void setUndo(boolean undo){
+		if(undo)
+			this.method = CREATION_METHOD.UNDO;
+		else
+			this.method = CREATION_METHOD.CREATE_NEW;
 	}
 
 	public void setPropSudowlSearch(boolean prop, boolean sudowl, boolean search){
