@@ -8,7 +8,6 @@ public interface ISPARQLReturnModifier {
 	//this interface API does not support two modifiers on one level
 	public final static String MOD = "MODIFIER";
 	
-	
 	public void setLowerLevelModifier(Hashtable<String, ISPARQLReturnModifier> lowerMods);
 	
 	public Hashtable<String, ISPARQLReturnModifier> getLowerLevelModifier();
@@ -22,5 +21,5 @@ public interface ISPARQLReturnModifier {
 	public void setModType(SPARQLModifierConstant modConstant);
 	
 	public String getModType();
-
+	
 }

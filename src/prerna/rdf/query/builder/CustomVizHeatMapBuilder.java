@@ -1,18 +1,17 @@
 package prerna.rdf.query.builder;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import com.google.gson.internal.StringMap;
-
+import prerna.rdf.query.util.ISPARQLReturnModifier;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLAbstractReturnModifier;
 import prerna.rdf.query.util.SPARQLConstants;
-import prerna.rdf.query.util.ISPARQLReturnModifier;
+import prerna.rdf.query.util.SPARQLCustomModifier;
 import prerna.rdf.query.util.TriplePart;
+
+import com.google.gson.internal.StringMap;
 
 public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	static final String optionKey = "option";
@@ -34,6 +33,8 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 	static final String edgePropKey = "edgeProps";
 	static final String nodePropKey = "nodeProps";
 	static final String nodePropName = "nodeName";
+	static final String edgePropName = "edgeName";
+	static final String customQuery = "heatQueryString";
 	
 	static final int subIdx = 0;
 	static final int predIdx = 1;
@@ -167,7 +168,9 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 			heatValue = (String)allJSONHash.get(heatNameKey);
 		}
 		else
+		{
 			heatValue = "HeatValue";
+		}
 		SEMOSSQueryHelper.addSingleReturnVarToQuery(heatValue, mod, semossQuery);
 	}
 
@@ -214,12 +217,63 @@ public class CustomVizHeatMapBuilder extends AbstractCustomVizBuilder{
 			heatValue = (String)allJSONHash.get(heatNameKey);
 		}
 		else
+		{
 			heatValue = "HeatValue";
+		}
 		SEMOSSQueryHelper.addSingleReturnVarToQuery(heatValue, mod, semossQuery);
 	}
 
 	private void buildQueryForCustom()
 	{
+		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
+		ArrayList<ArrayList<String>> tripleVarArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relVarArrayKey);
+		StringMap nodePropMap =(StringMap)allJSONHash.get(nodePropKey);
+		StringMap edgePropMap =(StringMap)allJSONHash.get(edgePropKey);
 		
+		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
+		{
+			String subjectName = tripleVarArray.get(tripleIdx).get(subIdx);
+			String predURIName = tripleVarArray.get(tripleIdx).get(predIdx);
+			String objURIName =	tripleVarArray.get(tripleIdx).get(objIdx);
+			String subjectURI = tripleArray.get(tripleIdx).get(subIdx);
+			String predURI = tripleArray.get(tripleIdx).get(predIdx);
+			String objURI = tripleArray.get(tripleIdx).get(objIdx);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(subjectName, subjectURI, semossQuery);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(objURIName, objURI, semossQuery);
+			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predURIName, predURI, semossQuery);
+			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(subjectName, predURIName, objURIName, semossQuery);
+		}
+		Iterator itNode = nodePropMap.entrySet().iterator();
+	    while(itNode.hasNext()){
+	    	Entry pairs = (Entry)itNode.next();
+			StringMap propHash = (StringMap) pairs.getValue();
+			String propURI = (String) propHash.get(uriKey);
+			String nodeVar = (String) propHash.get(nodePropName);
+			SEMOSSQueryHelper.addGenericTriple(nodeVar, TriplePart.VARIABLE, propURI, TriplePart.URI, pairs.getKey()+"", TriplePart.VARIABLE, semossQuery);
+	    }
+	    Iterator itEdge = edgePropMap.entrySet().iterator();
+	    while(itEdge.hasNext()){
+	    	Entry pairs = (Entry)itEdge.next();
+			StringMap propHash = (StringMap) pairs.getValue();
+			String propURI = (String) propHash.get(uriKey);
+			String edgeVar = (String) propHash.get(edgePropName);
+			SEMOSSQueryHelper.addGenericTriple(edgeVar, TriplePart.VARIABLE, propURI, TriplePart.URI, pairs.getKey()+"", TriplePart.VARIABLE, semossQuery);
+	    }
+	    
+	    String heatQuery = (String) allJSONHash.get(customQuery);
+	    
+	    SPARQLCustomModifier mod = new SPARQLCustomModifier();
+		mod.setModString(heatQuery);
+		
+		String heatValue = "";
+		if((String)allJSONHash.get(heatNameKey)!=null && !((String)allJSONHash.get(heatNameKey)).isEmpty())
+		{
+			heatValue = (String)allJSONHash.get(heatNameKey);
+		}
+		else
+		{
+			heatValue = "HeatValue";
+		}
+		SEMOSSQueryHelper.addSingleReturnVarToQuery(heatValue, mod, semossQuery);
 	}
 }

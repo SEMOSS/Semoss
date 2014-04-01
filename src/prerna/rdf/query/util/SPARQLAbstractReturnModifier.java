@@ -7,6 +7,7 @@ public class SPARQLAbstractReturnModifier implements ISPARQLReturnModifier{
 	TriplePart triplePart= null;
 	String id;
 	String type;
+	String customModString;
 	//hash table for lower mods because generically speaking, you can have multiple mods inside one mod
 	//however the generic case, it can only have one modifier 
 	public Hashtable<String, ISPARQLReturnModifier> lowerMods = null;
@@ -67,7 +68,6 @@ public class SPARQLAbstractReturnModifier implements ISPARQLReturnModifier{
 		return modString;
 	}
 	
-	
 	public String parameterizeMod(String mod) {
 		return "@"+mod+"@";
 	}
@@ -91,8 +91,6 @@ public class SPARQLAbstractReturnModifier implements ISPARQLReturnModifier{
 	public String getModType() {
 		return type;
 	}
-
-
-
-
+	
+	
 }
