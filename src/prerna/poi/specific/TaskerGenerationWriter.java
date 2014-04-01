@@ -122,7 +122,7 @@ public class TaskerGenerationWriter {
 			if (row.get(1) instanceof String) {
 				String fullName= (String) row.get(1);
 				cellToWriteOn=rowToWriteOn.getCell(6);
-				cellToWriteOn.setCellValue(fullName);
+				cellToWriteOn.setCellValue(fullName.replaceAll("\"","").replaceAll("_"," "));
 			}
 		}
 		
@@ -136,10 +136,10 @@ public class TaskerGenerationWriter {
 					String highlight = (String) highlights.get(j);
 					highlight = highlight.replaceAll("\"", "");					
 					if ( (j==6 || j==7) && ( (highlight.length() >= 10) && (!highlight.equals("TBD")) && (!highlight.equals("")) && (!highlight.equals("NA")) ) ) {
-						cellToWriteOn.setCellValue(highlight.substring(0, 10));
+						cellToWriteOn.setCellValue(highlight.substring(0, 10).replaceAll("_"," "));
 					}
 					else					
-						cellToWriteOn.setCellValue(highlight);
+						cellToWriteOn.setCellValue(highlight.replaceAll("_"," "));
 				}
 				if (highlights.get(j) instanceof Double) {
 					double highlight = (Double) highlights.get(j);
@@ -313,7 +313,7 @@ public class TaskerGenerationWriter {
 					if(j==0)
 						cellToWriteOn.setCellValue(own);
 					else
-						cellToWriteOn.setCellValue(((String)resultRowValues.get(j-1)).replaceAll("\"", ""));
+						cellToWriteOn.setCellValue(((String)resultRowValues.get(j-1)).replaceAll("\"", "").replaceAll("_", " "));
 				}
 			}
 		}
@@ -426,7 +426,7 @@ public class TaskerGenerationWriter {
 				if(resultRowValues.get(j) instanceof Double)
 					cellToWriteOn.setCellValue(((Double)resultRowValues.get(j)));
 				else
-					cellToWriteOn.setCellValue(((String)resultRowValues.get(j)).replaceAll("\"", ""));
+					cellToWriteOn.setCellValue(((String)resultRowValues.get(j)).replaceAll("\"", "").replaceAll("_"," "));
 			}
 		}
 	}
