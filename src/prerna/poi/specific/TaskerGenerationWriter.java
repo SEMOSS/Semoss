@@ -293,7 +293,7 @@ public class TaskerGenerationWriter {
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(0);
 		XSSFCellStyle style = cellToWriteOn.getCellStyle();
 		if(result.size()==0)
-			cellToWriteOn.setCellValue("N/A");
+			cellToWriteOn.setCellValue("TBD");
 		else
 		{
 			if(result.size()>1)
