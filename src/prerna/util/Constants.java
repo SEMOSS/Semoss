@@ -303,6 +303,10 @@ public class Constants {
 	public static String SOA_ALPHA_VALUE_TEXT_BOX = "soaAlphaValueTextField";
 	public static String APPRECIATION_TEXT_BOX = "appreciationValueTextField";
 	public static String DEPRECIATION_TEXT_BOX = "depreciationValueTextField";
+	
+	//Central System Sys-BP Sys-Activity Aggregation Thresholds
+	public static String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
+	public static String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
 		
 	//SOA Transition All
 	public static String SOA_TRANSITION_ALL_DATA_QUERY="SOA_TRANSITION_ALL_DATA_QUERY";

@@ -28,6 +28,9 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 
+/**
+ * Procedure to evaluate BLU's and Data Objects from a system perspective to see which business processes a system supports.
+ */
 public class CentralSysBPActInsertProcessor {
 	
 	Logger logger = Logger.getLogger(getClass());
@@ -36,21 +39,17 @@ public class CentralSysBPActInsertProcessor {
 	
 	private double dataObjectThresholdValue = 0.0;
 	private double bluThresholdValue = 0.0;
+	
+	//TODO get the URI from the data itself?
+	private String hrCoreBaseURI = "http://health.mil/ontologies/Relation/";
 
 	private Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
 	private Hashtable<String, Set<String>> newRelationships = new Hashtable<String, Set<String>>();
 
 	public String errorMessage = "";
-	
-	//private String TAP_CORE_CENTRAL_SYSTEM_LIST_QUERY = "SELECT DISTINCT ?System WHERE { BIND(<http://health.mil/ontologies/Concept/Tasker/TAP_Central_Systems_Tasker> AS ?Tasker) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?DistributedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DistributedTo> ;}{?Tasker ?DistributedTo ?System} }";
-	//TODO Ask Bill or George which to use
-	//private String TAP_CORE_CENTRAL_SYSTEM_LIST_QUERY = "SELECT DISTINCT ?System WHERE { BIND(<http://health.mil/ontologies/Concept/SystemOwner/Central> AS ?SystemOwner) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}  {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner} }";
-	
-	//private String TAP_CORE_BUSINESS_PROCESSES_QUERY = "SELECT DISTINCT ?BusinessProcess WHERE { {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} }";
+		
 	private String TAP_CORE_BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data ?CRM WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}}";
 	private String TAP_CORE_BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
-	//private String TAP_CORE_ACTIVITY_DATA_QUERY = "SELECT DISTINCT ?Activity ?Data WHERE {{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Activity ?Needs ?Data.} }";
-	//private String TAP_CORE_ACTIVITY_BLU_QUERY = "SELECT DISTINCT ?Activity ?BLU WHERE { {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Activity ?Needs ?BLU.} }";	
 	private String TAP_CORE_SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data ?CRM WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} BIND(<http://health.mil/ontologies/Concept/Tasker/TAP_Central_Systems_Tasker> AS ?Tasker) {?DistributedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DistributedTo> ;}{?Tasker ?DistributedTo ?System}}";
 	private String TAP_CORE_SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} BIND(<http://health.mil/ontologies/Concept/Tasker/TAP_Central_Systems_Tasker> AS ?Tasker) {?DistributedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DistributedTo> ;}{?Tasker ?DistributedTo ?System} }";
 	
@@ -68,7 +67,6 @@ public class CentralSysBPActInsertProcessor {
 		boolean success = true;
 		
 		AggregationHelper aggregationHelper = new AggregationHelper();
-		aggregationHelper.setCoreDB(coreDB);
 		
 		logger.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
 		logger.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
@@ -91,8 +89,8 @@ public class CentralSysBPActInsertProcessor {
 		processSystemToBP(bpDataList, bpBLUList, systemData, systemBLU);			
 
 //3.  Insert new relationships (Full URIs)			
-		aggregationHelper.processData(dataHash);
-		aggregationHelper.processNewRelationships(newRelationships);
+		aggregationHelper.processData(coreDB, dataHash);
+		aggregationHelper.processNewRelationships(coreDB, newRelationships);
 		
 		if(!errorMessage.isEmpty()) {
 			success = false;
@@ -136,65 +134,81 @@ public class CentralSysBPActInsertProcessor {
 	//Process Query Results (BP Specific)
 				for (int i = 0; i < bpDataList.size(); i++) {
 					ArrayList tempList = (ArrayList) bpDataList.get(i);
-					//System.out.println((tempList.get(0)).toString().contains(bp));
-					if ((tempList.get(0)).toString().contains(bp)) { 
+					
+					String businessProcess = tempList.get(0).toString();
+					String dataObject = tempList.get(1).toString();
+					String crm = tempList.get(2).toString();
+					
+							
+					if (businessProcess.contains(bp)) { 
 			//Prioritize C over R
-						if((tempList.get(2).toString().contains("R"))) {
-							if(!bpSpecificDataHash.containsKey(tempList.get(1))) {
-								bpSpecificDataHash.put(tempList.get(1).toString(), tempList.get(2).toString());
+						if(crm.contains("R")) {
+							if(!bpSpecificDataHash.containsKey(dataObject)) {
+								bpSpecificDataHash.put(dataObject, crm);
 							}
 						}
-						if((tempList.get(2).toString().contains("C"))) {
-							bpSpecificDataHash.put(tempList.get(1).toString(), tempList.get(2).toString());
+						if(crm.contains("C")) {
+							bpSpecificDataHash.put(dataObject, crm);
 						}
 						
 					}
 				}	
+			//Populate bpSpecific BLU list	
 				for (int i = 0; i < bpBLUList.size(); i++) {
 					ArrayList tempList = (ArrayList) bpBLUList.get(i);
-					//System.out.println((tempList.get(0)).equals(bp));
-					if ((tempList.get(0)).toString().contains(bp)) { 
-						bpSpecificBLUList.add(tempList.get(1).toString());
+					String businessProcess = tempList.get(0).toString();
+					String blu = tempList.get(1).toString();
+					
+					if (businessProcess.contains(bp)) { 
+						bpSpecificBLUList.add(blu);
 					}
 				}		
 			
-				for (String s : overallSystemSet) {
-					int systemSpecificDataCount = 0, 
-						systemSpecificBLUCount = 0;
+				for (String system : overallSystemSet) {
+					int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;
+					String data;
+					
 				
 	//Figure out what Data Objects a system creates or reads
 					Hashtable<String, String> systemSpecificDataHash = new Hashtable<String, String>();
 					for (int i = 0; i < systemData.size(); i++) {
 						ArrayList tempList = (ArrayList) systemData.get(i);
-						if (tempList.get(0).toString().contains(s) & (tempList.get(2).toString()).contains("R")) {
-							if(!systemSpecificDataHash.containsKey(tempList.get(1))) {
-								systemSpecificDataHash.put(tempList.get(1).toString(), tempList.get(2).toString());
+						String sys = tempList.get(0).toString();
+						String dataObject = tempList.get(1).toString();
+						String crm = tempList.get(2).toString();
+						
+						if (sys.contains(system) & crm.contains("R")) {
+							if(!systemSpecificDataHash.containsKey(dataObject)) {
+								systemSpecificDataHash.put(dataObject, crm);
 							}							
 						}
-						if (tempList.get(0).toString().contains(s) & (tempList.get(2).toString()).contains("C")) { 	
-							systemSpecificDataHash.put(tempList.get(1).toString(), tempList.get(2).toString());
+						if (sys.contains(system) & crm.contains("C")) { 	
+							systemSpecificDataHash.put(dataObject, crm);
 						}
 					}	
 	//Figure out what BLUs a system provides
 					ArrayList<String> systemSpecificBLUList = new ArrayList<String>();
 					for (int i = 0; i < systemBLU.size(); i++) {
 						ArrayList tempList = (ArrayList) systemBLU.get(i);
-						if (tempList.get(0).toString().contains(s)) {
-							systemSpecificBLUList.add(tempList.get(1).toString());
+						String sys = tempList.get(0).toString();
+						String blu = tempList.get(1).toString();
+						
+						if (sys.contains(system)) {
+							systemSpecificBLUList.add(blu);
 						}
 					}		
 					
 	//check to see if system created data objects ('d') is needed by the Business Process 'bp' 			
-					for (String d : systemSpecificDataHash.keySet()) {					
-						if (bpSpecificDataHash.containsKey(d)) {
-							if (systemSpecificDataHash.get(d).contains(bpSpecificDataHash.get(d)) || systemSpecificDataHash.get(d).contains("C") && bpSpecificDataHash.get(d).contains("R")) {
+					for (String dataObj : systemSpecificDataHash.keySet()) {					
+						if (bpSpecificDataHash.containsKey(dataObj)) {
+							if (systemSpecificDataHash.get(dataObj).contains(bpSpecificDataHash.get(dataObj)) || systemSpecificDataHash.get(dataObj).contains("C") && bpSpecificDataHash.get(dataObj).contains("R")) {
 								systemSpecificDataCount++;
 							}
 						}
 					}
 	//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
-					for (String b : systemSpecificBLUList) {					
-						if (bpSpecificBLUList.contains(b)) {
+					for (String blu : systemSpecificBLUList) {					
+						if (bpSpecificBLUList.contains(blu)) {
 							systemSpecificBLUCount++;
 						}
 					} 
@@ -204,11 +218,11 @@ public class CentralSysBPActInsertProcessor {
 							& (systemSpecificBLUCount > ( bpSpecificBLUList.size()*bluThresholdValue )) ) {
 						
 						//Add the System-BP relation to the local Hashtables to prepare for Insert						
-							String pred = aggregationHelper.getSemossRelationBaseURI() + "Supports";
-							pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + aggregationHelper.getTextAfterFinalDelimeter(s, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
-							dataHash = aggregationHelper.addToHash(dataHash, new Object[]{s, pred, bp});
+							String pred = hrCoreBaseURI + "Supports";
+							pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(system, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
+							dataHash = aggregationHelper.addToHash(dataHash, new Object[]{system, pred, bp});
 							newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);						
-							logger.info("System: " + s + ", BP: " + bp + ", Pred: " + pred);
+							logger.info("System: " + system + ", BP: " + bp + ", Pred: " + pred);
 					}
 				}				
 		}
