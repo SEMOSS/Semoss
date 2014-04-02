@@ -2278,7 +2278,7 @@ public class PlayPane extends JFrame {
 		dataObjectThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dataObjectThresholdValueTextField.setMinimumSize(new Dimension(61, 28));
 		dataObjectThresholdValueTextField.setSize(new Dimension(5, 28));
-		dataObjectThresholdValueTextField.setText("0.8");
+		dataObjectThresholdValueTextField.setText("0.5");
 		dataObjectThresholdValueTextField.setHorizontalAlignment(JTextField.RIGHT);
 		dataObjectThresholdValueTextField.setMaximumSize(new Dimension(15, 2147483647));
 		GridBagConstraints gbc_dataObjectThresholdValueTextField = new GridBagConstraints();
@@ -2293,7 +2293,7 @@ public class PlayPane extends JFrame {
 		bluThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		bluThresholdValueTextField.setMinimumSize(new Dimension(61, 28));
 		bluThresholdValueTextField.setSize(new Dimension(5, 28));
-		bluThresholdValueTextField.setText("0.9");
+		bluThresholdValueTextField.setText("0.5");
 		bluThresholdValueTextField.setHorizontalAlignment(JTextField.RIGHT);
 		bluThresholdValueTextField.setMaximumSize(new Dimension(15, 2147483647));
 		GridBagConstraints gbc_bluThresholdValueTextField = new GridBagConstraints();

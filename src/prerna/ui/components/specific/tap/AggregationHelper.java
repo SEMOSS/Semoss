@@ -46,7 +46,6 @@ import prerna.util.Utility;
 public class AggregationHelper {
 	
 	Logger logger = Logger.getLogger(getClass());
-	private IEngine coreDB;
 	
 	private String semossConceptBaseURI = "http://semoss.org/ontologies/Concept/";
 	private String semossRelationBaseURI = "http://semoss.org/ontologies/Relation/";
@@ -74,7 +73,7 @@ public class AggregationHelper {
 			
 //INSERT DATA HELPERS****************************************************************************************************************
 
-	public void processData(Hashtable<String, Hashtable<String, Object>> data) {
+	public void processData(IEngine coreDB, Hashtable<String, Hashtable<String, Object>> data) {
 		for (String sub : data.keySet()) {
 			for (String pred : data.get(sub).keySet()) {
 				Object obj = data.get(sub).get(pred);
@@ -108,15 +107,13 @@ public class AggregationHelper {
 		}
 	}*/
 
-	public void processNewRelationships(Hashtable<String, Set<String>> data) {
+	public void processNewRelationships(IEngine coreDB, Hashtable<String, Set<String>> data) {
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 			for (String obj : data.keySet()) {
 				for (String sub : data.get(obj)) {
 					((BigDataEngine) coreDB).addStatement(sub, subpropertyOf, obj, true);
 					logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + sub + ">>>>>" + subpropertyOf + ">>>>>" + obj	+ ">>>>>");
 				}			
-					//((BigDataEngine) coreDB).addStatement(obj, subpropertyOf, semossRelationBaseURI, true);
-					//logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + obj + ">>>>>" + subpropertyOf + ">>>>>" + semossRelationBaseURI + ">>>>>");
 			}	
 		}
 	
@@ -425,14 +422,6 @@ public class AggregationHelper {
 	}
 
 // GETTERS & SETTERS************************************************************************************************************************
-	
-	public IEngine getCoreDB() {
-		return coreDB;
-	}
-	
-	public void setCoreDB(IEngine coreDB) {
-		this.coreDB = coreDB;
-	}
 
 	public String getSemossConceptBaseURI() {
 		return semossConceptBaseURI;
