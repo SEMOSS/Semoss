@@ -105,8 +105,7 @@ public class GraphDataModel {
 		}
 		
 		processData(query, engine);
-		modelStore.addElement(curModel);
-		rcStore.addElement(curRC);
+		processTraverseCourse();
 	}
 	
 	public void createModel(String query, IEngine engine){
@@ -577,12 +576,15 @@ public class GraphDataModel {
 	}
 	
 	public void undoData(){
+		System.out.println("rcStore  " + rcStore.toString());
 		RepositoryConnection lastRC = rcStore.elementAt(modelCounter-2);
 		Model lastModel = modelStore.elementAt(modelCounter-2);
 		// remove undo model from repository connection
 		try {
 			logger.info("Number of undo statements " + lastRC.size());
 			logger.info("Number of statements in the old model " + rc.size());
+			logger.info("rcStore size              " + rcStore.size());
+			logger.info("modelCounter              " + modelCounter);
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
