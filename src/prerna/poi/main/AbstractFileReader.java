@@ -473,6 +473,12 @@ public abstract class AbstractFileReader {
 				logger.info("Processing Date value " + date); 
 				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
 			}
+			else if(propHash.get(key).getClass() == new Boolean(true).getClass())
+			{
+				Boolean value = (Boolean) propHash.get(key);
+				logger.info("Processing Boolean value " + value); 
+				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.booleanValue()));
+			}
 			else
 			{
 				String value = propHash.get(key).toString();
