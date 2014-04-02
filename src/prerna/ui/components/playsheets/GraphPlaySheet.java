@@ -356,7 +356,6 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			}
 			
 			processView();
-			gdm.processTraverseCourse();
 			setUndoRedoBtn();
 			updateProgressBar("100%...Graph Extension Complete", 100);
 		}catch(Exception ex)
