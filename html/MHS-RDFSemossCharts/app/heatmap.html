@@ -348,10 +348,13 @@
 	    
 	  // Slider
 	$('#slider').slider({
-		min: Math.floor(d3.min(dataArray, function (d) { return d.Value; })),
-		max: Math.ceil(d3.max(dataArray, function (d) { return d.Value; })),
-		value:[0, Math.ceil(d3.max(dataArray, function (d) { return d.Value; }))],
-		step:1
+		min: roundValueArray[0],
+		max: roundValueArray[roundValueArray.length-1],
+		value:[roundValueArray[0], roundValueArray[roundValueArray.length-1]],
+		step:Math.pow(10,-1*decimalToKeep),
+		formater: function(value) {
+			return value.toFixed(decimalToKeep);
+		}
 	    })
 	.on('slide', function(){
 	      domainArray = $('#slider').data('slider').getValue()  
@@ -365,12 +368,12 @@
 	})
 	   
 	d3.select("#min").append("text")
-		.text("Min: " + Math.floor(d3.min(dataArray, function (d) { return d.Value; })))
+		.text("Min: " + roundValueArray[0].toFixed(decimalToKeep))
 		.attr("x", 20)
 		.attr("y", 0);
 
 	d3.select("#max").append("text")
-		.text("Max: " + Math.ceil(d3.max(dataArray, function (d) { return d.Value; })))
+		.text("Max: " + roundValueArray[roundValueArray.length-1].toFixed(decimalToKeep))
 		.attr("x", 20)
 		.attr("y", 0);
       };      
