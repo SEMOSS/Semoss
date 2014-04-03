@@ -165,8 +165,8 @@ function RdfEditCtrl($scope, $routeParams, $q, nodeService, editNodeService, edi
 			$scope.nodeType = nodeType;
 			$q.all([
 			    nodeService.getNodeValues($scope.nodeURI),
-			    nodeService.getOutboundRelationships($scope.nodeURI),
-			    nodeService.getInboundRelationships($scope.nodeURI)
+			    nodeService.getOutboundRelationships($scope.nodeURI, $scope.nodeType),
+			    nodeService.getInboundRelationships($scope.nodeURI, $scope.nodeType)
 			]).then(function(data){
 				//set scope variables with the return data from the $q.all 
 				$scope.outboundRelationships = data[1];
