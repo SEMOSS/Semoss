@@ -41,21 +41,22 @@
 	var xAxisArray = [];
 	var yAxisArray = [];
 	var dataArray = [];
+	var valueArray = [];
 	var truncY = [];
 	var truncX = [];
 	var domainArray = [];
-	var valueArray = [];
-	var valueArrayDiff = 0;
+	var roundValueArray = [];
+	var roundValueArrayDiff = 0;
 	var decimalToKeepFlag = true;
 	var decimalToKeep = 0;
 
 	//Evaluating what places to round heatmap values to
 	for (var key in data) {
-		valueArray.push(data[key][value]);
+		roundValueArray.push(data[key][value]);
 	}
 	function SortLowToHigh(a, b) {return a - b ;}
-	valueArray.sort(SortLowToHigh);
-	valueArrayDiff = valueArray[Math.floor(valueArray.length*3/4)]-valueArray[Math.floor(valueArray.length/4)];
+	roundValueArray.sort(SortLowToHigh);
+	valueArrayDiff = roundValueArray[Math.floor(roundValueArray.length*3/4)]-roundValueArray[Math.floor(roundValueArray.length/4)];
 	if(valueArrayDiff > 10){
 		decimalToKeepFlag = false;
 	}
@@ -96,7 +97,8 @@
 	}
 	};
 	  
-	  /* Truncate Values */
+	  /* Truncate 
+	  s */
 	for (i = 0; i < yAxisArray.length; i++) {
 	    if (yAxisArray[i].length > 20) {
 			truncY.push(yAxisArray[i].substring(0, 20) + '...');
