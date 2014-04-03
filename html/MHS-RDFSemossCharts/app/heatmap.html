@@ -75,6 +75,7 @@
 	    yAxisArray.push(data[key][yAxisName]);
 	    var round = (Math.round(data[key][value] * 100) / 100);
 	    //This array stores the values as numbers
+		valueArray.push(data[key][value]);
 	    dataArray.push({yAxis: data[key][yAxisName], Value: round, xAxis: data[key][xAxisName], xAxisName: data[key][xAxisName], yAxisName: data[key][yAxisName]});
 	};
 	  
@@ -146,7 +147,7 @@
 	}
 	
 	var colorScale = d3.scale.quantile()
-        .domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+        .domain(valueArray)
         .range(colors);
 	    
     var svg = d3.select("#chart").append("svg")
@@ -333,7 +334,7 @@
 		}
 	      
 	colorScale = d3.scale.quantile()
-		.domain([ 0, buckets - 1, d3.max(dataArray, function (d) { return d.Value; })])
+		.domain(valueArray)
 		.range(colors[0]);
 		
 	heatMap.style("fill", function(d) {
