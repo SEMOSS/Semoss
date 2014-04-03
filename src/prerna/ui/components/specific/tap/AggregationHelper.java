@@ -109,7 +109,7 @@ public class AggregationHelper {
 				if (pred.contains("Relation/Contains")) {
 					concept_triple = false;
 				}
-				((BigDataEngine) coreDB).addStatement(sub, pred, obj,concept_triple);
+				((BigDataEngine) coreDB).addStatement(sub, pred, obj, concept_triple);
 				logger.info("ADDING INTO " + coreDB.toString() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
