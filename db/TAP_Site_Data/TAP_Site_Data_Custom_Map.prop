@@ -11,6 +11,7 @@ TError http://health.mil/ontologies/Concept/TError
 Activity http://health.mil/ontologies/Concept/Activity
 IO http://health.mil/ontologies/Concept/IO
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
+DProt http://health.mil/ontologies/Concept/DProt
 DForm http://health.mil/ontologies/Concept/DForm
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 SiteSoftwareModule http://health.mil/ontologies/Concept/SiteSoftwareModule
@@ -25,8 +26,8 @@ DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
 MTF http://health.mil/ontologies/Concept/MTF
 SystemIncident http://health.mil/ontologies/Concept/SystemIncident
 DCSite http://health.mil/ontologies/Concept/DCSite
-NPI http://health.mil/ontologies/Concept/NPI
 HardwareVersion http://health.mil/ontologies/Concept/HardwareVersion
+NPI http://health.mil/ontologies/Concept/NPI
 SystemDCSiteIncident http://health.mil/ontologies/Concept/SystemDCSiteIncident
 Hardware http://health.mil/ontologies/Concept/Hardware
 Personnel http://health.mil/ontologies/Concept/Personnel
@@ -42,6 +43,7 @@ SystemDCSite_Consists_SiteSoftwareModule http://health.mil/ontologies/Relation/C
 SystemDCSite_Provide_BLU http://health.mil/ontologies/Relation/Provide
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
+InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 SystemDCSiteIncident_Affects_SystemDCSite http://health.mil/ontologies/Relation/Affects
 SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
 SystemDCSite_Provide_IO http://health.mil/ontologies/Relation/Provide
@@ -76,6 +78,7 @@ SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 DCSiteIncident_CLASS http://semoss.org/ontologies/Concept/DCSiteIncident
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
+DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
 BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
 SiteSoftwareModule_CLASS http://semoss.org/ontologies/Concept/SiteSoftwareModule
@@ -120,12 +123,13 @@ MTF_Assigned_NPI_CLASS http://semoss.org/ontologies/Relation/Assigned
 Hardware_Has_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Upgrade
 InterfaceControlDocument_Has_DForm_CLASS http://semoss.org/ontologies/Relation/Has
+DCSiteIncident_Affects_DCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 SystemDCSite_Has_SiteHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Has_SoftwareVCategory_CLASS http://semoss.org/ontologies/Relation/Has
-DCSiteIncident_Affects_DCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
+InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
 SystemDCSite_Provide_IO_CLASS http://semoss.org/ontologies/Relation/Provide
