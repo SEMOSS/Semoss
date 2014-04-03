@@ -629,6 +629,7 @@ public class Utility {
 		retString = retString.replaceAll("\\{", "(");
 		retString = retString.replaceAll("\\}", ")");
 		retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
+		retString = retString.replaceAll("'", "");//remove apostrophe
 		retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
 		if(replaceForwardSlash) {
 			retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
