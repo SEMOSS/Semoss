@@ -21,6 +21,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.Set;
 
 import javax.swing.JList;
@@ -68,6 +69,33 @@ public class AggregationHelper {
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
 		return sjsw;
+	}
+	
+	public void deleteData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data)
+	{
+		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
+		boolean notEmpty = false;
+		for ( String sub : data.keySet())
+		{
+			for (String pred : data.get(sub).keySet())
+			{
+				Object obj = data.get(sub).get(pred);
+				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
+				{
+					notEmpty = true;
+				}
+				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
+			}
+		}
+		deleteQuery.append(" }");
+		logger.info("DELETE QUERY: " + deleteQuery.toString());
+		if(notEmpty)
+		{
+			UpdateProcessor proc = new UpdateProcessor();
+			proc.setEngine(engine);
+			proc.setQuery(deleteQuery.toString());
+			proc.processQuery();
+		}
 	}
 
 			
@@ -404,6 +432,43 @@ public class AggregationHelper {
 			e.printStackTrace();
 		}
 		return list;
+	}
+	
+	public Hashtable hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
+		//Hashtable dataHash = new Hashtable();
+		/*if(truedataobject) {
+			Hashtable<String, Hashtable<String, Set<String>>> aggregatedData = new Hashtable<String, Hashtable<String, Set<String>>>();
+			String[] vars = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();			
+				String sub = sjss.getRawVar(vars[0]).toString();
+				String node = sjss.getRawVar(vars[1]).toString();
+				Set<String> prop = null;
+				prop.add(sjss.getRawVar(vars[2]).toString());
+				Hashtable<String, Set<String>> subHash = new Hashtable<String, Set<String>>();
+				subHash.put(node, prop);
+				if (aggregatedData.contains(node)) {
+					
+				}
+								
+				aggregatedData.put(sub, subHash);
+			}
+			dataHash.put("data", aggregatedData);
+		}
+		else {*/
+			Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
+			String[] vars = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();			
+				String sub = sjss.getRawVar(vars[0]).toString();
+				Set<String> pred = new HashSet<String>();
+				pred.add(sjss.getRawVar(vars[1]).toString());
+				if (aggregatedData.containsKey(sub))
+					aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());
+			}		
+		//}
+				
+		return aggregatedData;
 	}
 		
 // UTILITY METHODS ************************************************************************************************************************
