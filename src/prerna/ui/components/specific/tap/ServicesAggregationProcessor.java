@@ -268,7 +268,7 @@ public class ServicesAggregationProcessor {
 			String lifeCycle = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(lifeCycle, "/");
 
-			if(!lifeCycle.equals("\"NA\"") && !lifeCycle.equals("\"TBD\""))
+			if(!lifeCycle.equals("\"NA\"") && !lifeCycle.equals("\"N-A\"") && !lifeCycle.equals("\"TBD\""))
 			{
 				if(!lifeCycleHash.containsKey(sys))
 				{
@@ -324,7 +324,7 @@ public class ServicesAggregationProcessor {
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
+				if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 				{
 					if(prop.equals(propURI + "ATO_Date"))
 					{
@@ -448,7 +448,7 @@ public class ServicesAggregationProcessor {
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
+				if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 				{
 					if(prop.equals(propURI + "Data"))
 					{
@@ -703,7 +703,7 @@ public class ServicesAggregationProcessor {
 				if(dataHash.containsKey(module) || !TAP_Core)
 				{
 					Object[] returnTriple = new Object[3];
-					if(!value.toString().equals("\"NA\"") && !value.toString().equals("\"TBD\"") && value != null && value instanceof Literal )
+					if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 					{
 						if(prop.equals(propURI + "Quantity"))
 						{
