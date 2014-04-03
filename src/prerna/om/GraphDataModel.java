@@ -70,6 +70,8 @@ public class GraphDataModel {
 	
 	boolean search, prop, sudowl;
 	
+	boolean subclassCreate = false; //this is used for our metamodel graphs. Need to be modify the base graph base and base concepts queries to use subclass of concept rather than type
+	
 	Hashtable<String, SEMOSSVertex> vertStore = null;
 	Hashtable<String, SEMOSSEdge> edgeStore = null;
 
@@ -646,6 +648,13 @@ public class GraphDataModel {
 				  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
 				  "BIND(\"\" AS ?Object)" +
 				  "}";
+		if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
+			conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+				  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+//				  "{?Subject ?Predicate ?Object.}" +
+				  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+				  "BIND(\"\" AS ?Object)" +
+				  "}";
 		
 		logger.info("ConceptSelectQuery query " + conceptSelectQuery);
 		
@@ -707,6 +716,12 @@ public class GraphDataModel {
 									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
 									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 									  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+									  "{?Subject ?Predicate ?Object}" +
+									  "}";
+		if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
+			predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+									  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 									  "{?Subject ?Predicate ?Object}" +
 									  "}";
 		
@@ -866,6 +881,10 @@ public class GraphDataModel {
 		this.prop = prop;
 		this.sudowl = sudowl;
 		this.search = search;
+	}
+	
+	public void setSubclassCreate(boolean subclassCreate){
+		this.subclassCreate = subclassCreate;
 	}
 
 	/**
