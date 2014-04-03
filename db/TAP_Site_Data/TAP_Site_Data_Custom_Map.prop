@@ -9,7 +9,6 @@ DCSiteIncident http://health.mil/ontologies/Concept/DCSiteIncident
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 TError http://health.mil/ontologies/Concept/TError
 Activity http://health.mil/ontologies/Concept/Activity
-IO http://health.mil/ontologies/Concept/IO
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
 DProt http://health.mil/ontologies/Concept/DProt
 DForm http://health.mil/ontologies/Concept/DForm
@@ -38,6 +37,7 @@ City http://health.mil/ontologies/Concept/City
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 MTF_Assigned_NPI http://health.mil/ontologies/Relation/Assigned
 DCSite_Includes_MTF http://health.mil/ontologies/Relation/Includes
+SystemDCSite_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 SystemDCSite_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 SystemDCSite_Consists_SiteSoftwareModule http://health.mil/ontologies/Relation/Consists
 SystemDCSite_Provide_BLU http://health.mil/ontologies/Relation/Provide
@@ -46,7 +46,6 @@ InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relati
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 SystemDCSiteIncident_Affects_SystemDCSite http://health.mil/ontologies/Relation/Affects
 SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
-SystemDCSite_Provide_IO http://health.mil/ontologies/Relation/Provide
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
@@ -86,7 +85,6 @@ SoftwareVersion_CLASS http://semoss.org/ontologies/Concept/SoftwareVersion
 BLU_CLASS http://semoss.org/ontologies/Concept/BLU
 UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 DCSiteCmdCode_CLASS http://semoss.org/ontologies/Concept/DCSiteCmdCode
-IO_CLASS http://semoss.org/ontologies/Concept/IO
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
@@ -126,13 +124,13 @@ InterfaceControlDocument_Has_DForm_CLASS http://semoss.org/ontologies/Relation/H
 DCSiteIncident_Affects_DCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 SystemDCSite_Has_SiteHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Has_SoftwareVCategory_CLASS http://semoss.org/ontologies/Relation/Has
+SystemDCSite_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
-SystemDCSite_Provide_IO_CLASS http://semoss.org/ontologies/Relation/Provide
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemDCSite_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Affects
