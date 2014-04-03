@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 
@@ -54,7 +55,7 @@ public class CentralSysBPActInsertProcessor {
 	private String TAP_CORE_BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
 	private String TAP_CORE_SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data ?CRM WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} }";
 	private String TAP_CORE_SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
-	private String DELETE_RELATIONS_QUERY = "DELETE {  }";
+	private String DELETE_RELATIONS_QUERY = "DELETE DATA {  }";
 	
 	public String getErrorMessage() {
 		return this.errorMessage;
@@ -90,13 +91,13 @@ public class CentralSysBPActInsertProcessor {
 		Hashtable bpDataHash = aggregationHelper.hashTableResultProcessor(bpDataListWrapper);
 		Hashtable bpBLUHash = aggregationHelper.hashTableResultProcessor(bpBLUListWrapper);
 		Hashtable systemDataHash = aggregationHelper.hashTableResultProcessor(systemDataWrapper);
-		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);
-		
+		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);		
 		//ArrayList
 		/*ArrayList<ArrayList<Object>> bpDataList = aggregationHelper.arrayListResultProcessor(bpDataListWrapper);
 		ArrayList<ArrayList<Object>> bpBLUList = aggregationHelper.arrayListResultProcessor(bpBLUListWrapper);
 		ArrayList<ArrayList<Object>> systemData = aggregationHelper.arrayListResultProcessor(systemDataWrapper);
 		ArrayList<ArrayList<Object>> systemBLU = aggregationHelper.arrayListResultProcessor(systemBLUWrapper);	*/	
+		
 	//Analysis
 		//processSystemToBP(bpDataList, bpBLUList, systemData, systemBLU);	
 		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
@@ -104,7 +105,7 @@ public class CentralSysBPActInsertProcessor {
 //3.  Insert new relationships (Full URIs)			
 		aggregationHelper.processData(coreDB, dataHash);
 		aggregationHelper.processNewRelationships(coreDB, newRelationships);
-		
+		//((BigDataEngine) coreDB).infer();
 		if(!errorMessage.isEmpty()) {success = false;}
 		
 		return success;		
@@ -245,9 +246,11 @@ public class CentralSysBPActInsertProcessor {
 	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash) {		
 		AggregationHelper aggregationHelper = new AggregationHelper();			
 	//populate the System, BP sets with the appropriate data from the query result hashtables. (Raw URIs)
+		
 		Set<String> overallBPSet = new HashSet<String>();
 		overallBPSet.addAll(bpDataHash.keySet());
 		overallBPSet.addAll(bpBLUHash.keySet());
+		
 		Set<String> overallSystemSet = new HashSet<String>();
 		overallSystemSet.addAll(systemDataHash.keySet());
 		overallSystemSet.addAll(systemBLUHash.keySet());
@@ -255,24 +258,30 @@ public class CentralSysBPActInsertProcessor {
 		for (String bp : overallBPSet) {			
 		//Process Query Results (BP Specific)
 			Set<String> bpSpecificDataSet = new HashSet<String>();
-			bpSpecificDataSet.addAll((Set<String>) bpDataHash.get(bp));
+			if (!(bpDataHash.get(bp) == (null))) {
+				bpSpecificDataSet.addAll((Set<String>) bpDataHash.get(bp));}
 			Set<String> bpSpecificBLUSet = new HashSet<String>();	
-			bpSpecificBLUSet.addAll((Set<String>) bpBLUHash.get(bp));	
+			if (!(bpDataHash.get(bp) == (null))) {
+				bpSpecificBLUSet.addAll((Set<String>) bpBLUHash.get(bp));}	
+				
 				for (String sys : overallSystemSet) {
 					int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;				
 				//Figure out what Data Objects a system creates or reads and what BLUs that system provides
 					Set<String> systemSpecificDataSet = (Set<String>) systemDataHash.get(sys);
 					Set<String> systemSpecificBLUSet = (Set<String>) systemBLUHash.get(sys);	
 					
-				//check to see if system created data objects ('d') is needed by the Business Process 'bp' 			
-					for (String dataObj : systemSpecificDataSet) {					
-						if (bpSpecificDataSet.contains(dataObj)) {systemSpecificDataCount++;}
+				//check to see if system created data objects ('d') is needed by the Business Process 'bp'
+					if(!(systemSpecificDataSet == (null))) {
+						for (String dataObj : systemSpecificDataSet) {					
+							if (bpSpecificDataSet.contains(dataObj)) {systemSpecificDataCount++;}
+						}
 					}
-					
 				//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
-					for (String blu : systemSpecificBLUSet) {					
-						if (bpSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
-					} 
+					if (!(systemSpecificBLUSet == (null))) {
+						for (String blu : systemSpecificBLUSet) {					
+							if (bpSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
+						} 
+					}	
 					
 				//Decide if System 's' Supports BusinessProcess	
 					if ( (systemSpecificDataCount > ( bpSpecificDataSet.size()*dataObjectThresholdValue ))
@@ -281,12 +290,15 @@ public class CentralSysBPActInsertProcessor {
 						String pred = hrCoreBaseURI + "Supports";
 						pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(sys, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
 						dataHash = aggregationHelper.addToHash(dataHash, new Object[]{sys, pred, bp});
+						dataHash = aggregationHelper.addToHash(dataHash, new Object[]{pred, aggregationHelper.getSemossPropertyBaseURI() + "Calculated", "\"true\"^^<xsd:boolean>"});
+						logger.info("*****Prop URI: " + pred + ", predURI: " + aggregationHelper.getSemossPropertyBaseURI() + "Calculated" + ", value: " + "\"true\"^^<xsd:boolean>");
 						newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);						
 						logger.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
 					}
 				}
 		}
-		//dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossPropertyBaseURI()});
+		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
+		logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
 	}
 	
 }

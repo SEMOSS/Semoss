@@ -463,8 +463,9 @@ public class AggregationHelper {
 				String sub = sjss.getRawVar(vars[0]).toString();
 				Set<String> pred = new HashSet<String>();
 				pred.add(sjss.getRawVar(vars[1]).toString());
-				if (aggregatedData.containsKey(sub))
-					aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());
+				if (!aggregatedData.containsKey(sub))
+					{aggregatedData.put(sub, pred);}
+				else {aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());}				
 			}		
 		//}
 				
