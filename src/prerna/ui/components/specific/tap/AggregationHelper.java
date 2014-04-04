@@ -52,15 +52,13 @@ public class AggregationHelper {
 	private String semossRelationBaseURI = "http://semoss.org/ontologies/Relation/";
 	private String semossPropertyBaseURI = "http://semoss.org/ontologies/Relation/Contains/";
 
-	private static Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
-	
+	//private static Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();	
 	//private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
 	//private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
 
 	public String errorMessage = "";
 	
 //QUERY DATA HELPERS****************************************************************************************************************
-	//run the query
 	public SesameJenaSelectWrapper processQuery(IEngine engine, String query){
 		logger.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
@@ -435,40 +433,17 @@ public class AggregationHelper {
 	}
 	
 	public Hashtable hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
-		//Hashtable dataHash = new Hashtable();
-		/*if(truedataobject) {
-			Hashtable<String, Hashtable<String, Set<String>>> aggregatedData = new Hashtable<String, Hashtable<String, Set<String>>>();
-			String[] vars = sjsw.getVariables();
-			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();			
-				String sub = sjss.getRawVar(vars[0]).toString();
-				String node = sjss.getRawVar(vars[1]).toString();
-				Set<String> prop = null;
-				prop.add(sjss.getRawVar(vars[2]).toString());
-				Hashtable<String, Set<String>> subHash = new Hashtable<String, Set<String>>();
-				subHash.put(node, prop);
-				if (aggregatedData.contains(node)) {
-					
-				}
-								
-				aggregatedData.put(sub, subHash);
-			}
-			dataHash.put("data", aggregatedData);
-		}
-		else {*/
-			Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
-			String[] vars = sjsw.getVariables();
-			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();			
-				String sub = sjss.getRawVar(vars[0]).toString();
-				Set<String> pred = new HashSet<String>();
-				pred.add(sjss.getRawVar(vars[1]).toString());
-				if (!aggregatedData.containsKey(sub))
-					{aggregatedData.put(sub, pred);}
-				else {aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());}				
-			}		
-		//}
-				
+		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
+		String[] vars = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();			
+			String sub = sjss.getRawVar(vars[0]).toString();
+			Set<String> pred = new HashSet<String>();
+			pred.add(sjss.getRawVar(vars[1]).toString());
+			if (!aggregatedData.containsKey(sub))
+				{aggregatedData.put(sub, pred);}
+			else {aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());}				
+		}						
 		return aggregatedData;
 	}
 		
@@ -487,7 +462,7 @@ public class AggregationHelper {
 		return uri.substring(0, uri.substring(0, uri.substring(0, uri.lastIndexOf("/")).lastIndexOf("/")).lastIndexOf("/"));
 	}
 
-// GETTERS & SETTERS************************************************************************************************************************
+// GETTERS************************************************************************************************************************
 
 	public String getSemossConceptBaseURI() {
 		return semossConceptBaseURI;

@@ -2209,8 +2209,6 @@ public class PlayPane extends JFrame {
 		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
 		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
 		
-		//Billy
-		
 		JSeparator separateCentralSystemBPActInsert = new JSeparator();
 		GridBagConstraints gbc_separateCentralSystemBPActInsert = new GridBagConstraints();
 		gbc_separateCentralSystemBPActInsert.fill = GridBagConstraints.HORIZONTAL;
@@ -2236,7 +2234,7 @@ public class PlayPane extends JFrame {
 		gbl_centralSystemBPActInsertPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		centralSystemBPActInsertPanel.setLayout(gbl_centralSystemBPActInsertPanel);
 
-		JLabel centralSystemBPActInsertLabel = new JLabel("Central Systems: Sys-BP and Sys-Activity Insert (TAP Core)");
+		JLabel centralSystemBPActInsertLabel = new JLabel("Inferred Relationship Insert: Sys-BP and Sys-Cap");
 		centralSystemBPActInsertLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_centralSystemBPActInsertLabel = new GridBagConstraints();
 		gbc_centralSystemBPActInsertLabel.anchor = GridBagConstraints.WEST;
@@ -2246,7 +2244,7 @@ public class PlayPane extends JFrame {
 		gbc_centralSystemBPActInsertLabel.gridy = 1;
 		centralSystemBPActInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
 
-		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Activities Aggregation:");
+		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Inferred Relationships:");
 		activityThresholdlabel_1.setFont(new Font("Tahoma", Font.ITALIC, 12));
 		GridBagConstraints gbc_activityThresholdlabel_1 = new GridBagConstraints();
 		gbc_activityThresholdlabel_1.anchor = GridBagConstraints.WEST;
@@ -2304,7 +2302,7 @@ public class PlayPane extends JFrame {
 		centralSystemBPActInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
 		bluThresholdValueTextField.setColumns(12);		
 
-		btnCentralSysBPActInsert = new CustomButton("Run Aggregation and Insert");
+		btnCentralSysBPActInsert = new CustomButton("Run Relationship Insert");
 		btnCentralSysBPActInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnCentralSysBPActInsert = new GridBagConstraints();
 		gbc_btnCentralSysBPActInsert.fill = GridBagConstraints.HORIZONTAL;
@@ -2314,10 +2312,6 @@ public class PlayPane extends JFrame {
 		gbc_btnCentralSysBPActInsert.gridy = 5;
 		centralSystemBPActInsertPanel.add(btnCentralSysBPActInsert, gbc_btnCentralSysBPActInsert);
 		Style.registerTargetClassName(btnCentralSysBPActInsert, ".standardButton");
-
-			
-		
-		//Billy		
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
