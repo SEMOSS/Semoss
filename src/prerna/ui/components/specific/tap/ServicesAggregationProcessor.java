@@ -1,5 +1,8 @@
 package prerna.ui.components.specific.tap;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -10,6 +13,11 @@ import java.util.Set;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -19,6 +27,8 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ServicesAggregationProcessor {
@@ -39,6 +49,10 @@ public class ServicesAggregationProcessor {
 	private HashSet<String> allSoftwareModules = new HashSet<String>();
 	private HashSet<String> allHardwareModules = new HashSet<String>();
 
+	private XSSFWorkbook wb = new XSSFWorkbook();
+	private XSSFSheet errSheet = wb.createSheet();
+	private int rowNum = 1;
+	
 	public String errorMessage = "";
 
 	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
@@ -107,7 +121,7 @@ public class ServicesAggregationProcessor {
 	}
 
 	public boolean runFullAggregation()
-	{
+	{		
 		boolean success = true;
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
@@ -155,45 +169,66 @@ public class ServicesAggregationProcessor {
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		logger.info("PROCESSING ICD PAYLOAD DATA RELATIONSHIP PROPERTIES AND AGGREGATING TO PAYLOAD RELATIONSHIP IN TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE SO NO PROPERTIES ARE LOST");
 		runICDPropAggregation(TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY, TAP_CORE_AGGREGATE_ICD_PROP_QUERY);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		logger.info("PROCESSING SYSTEM TERROR RELATIONSHIP AND WEIGHT PROPERTY AND AGGREGATING INTO TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE NEW WEIGHT OF TERROR PROPERTY VALUE");
 		runTErrorAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, TAP_CORE_AGGREGATE_TERROR_QUERY);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND CRM PROPERTY AND AGGREGATING INTO TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE CRM");
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_QUERY);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		logger.info("PROCESSING SERVICE SYSTEM MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY, TAP_CORE_AGGREGATION_SOFTWARE_QUERY, true);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		logger.info("PROCESSING SERVICE HARDWARE MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATE_HARDWARE_QUERY, TAP_CORE_AGGREGATION_HARDWARE_QUERY, false);
 		if(!errorMessage.isEmpty())
 		{
-			return (success = false);
+			success = false;
 		}
 		processNewConcepts();
 		processNewRelationships();
 		((BigDataEngine) coreDB).infer();
 
+		
+		XSSFRow row = errSheet.createRow(0);
+		row.createCell(0).setCellValue("DB Name");
+		row.createCell(1).setCellValue("Subject");
+		row.createCell(2).setCellValue("Predicate");
+		row.createCell(3).setCellValue("Object");
+		row.createCell(3).setCellValue("Error Messge");
+		XSSFFont font = wb.createFont();
+		font.setBold(true);
+		CellStyle style = row.getRowStyle();
+		style.setFont(font);
+		
+		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		try {
+			wb.write(new FileOutputStream(workspace + "\\" + "ServiceAggreagationErrorLog"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		return success;
 	}
 
@@ -379,7 +414,20 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						//TODO: add to excel table report of issues
+						XSSFRow row = errSheet.createRow(rowNum);
+						if(!TAP_Core)
+						{
+							row.createCell(0).setCellValue("TAP_Core_DB");
+						}
+						else
+						{
+							row.createCell(0).setCellValue("TAP_Core_DB");
+						}
+						row.createCell(1).setCellValue(sub);
+						row.createCell(2).setCellValue(prop);
+						row.createCell(3).setCellValue(value.toString());
+						row.createCell(4).setCellValue(this.errorMessage);
+						rowNum++;
 					}
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					else if(returnTriple[0] != null)
@@ -480,7 +528,20 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						//TODO: add to excel table report of issues
+						XSSFRow row = errSheet.createRow(rowNum);
+						if(!TAP_Core)
+						{
+							row.createCell(0).setCellValue("TAP_Core_DB");
+						}
+						else
+						{
+							row.createCell(0).setCellValue("TAP_Core_DB");
+						}
+						row.createCell(1).setCellValue(sub);
+						row.createCell(2).setCellValue(prop);
+						row.createCell(3).setCellValue(value.toString());
+						row.createCell(4).setCellValue(this.errorMessage);
+						rowNum++;
 					}
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					else if(returnTriple[0] != null)
@@ -745,7 +806,20 @@ public class ServicesAggregationProcessor {
 						// if error occurs
 						if(Arrays.equals(returnTriple, new String[]{""}))
 						{
-							//TODO: add to excel table report of issues
+							XSSFRow row = errSheet.createRow(rowNum);
+							if(!TAP_Core)
+							{
+								row.createCell(0).setCellValue("TAP_Core_DB");
+							}
+							else
+							{
+								row.createCell(0).setCellValue("TAP_Core_DB");
+							}
+							row.createCell(1).setCellValue(module);
+							row.createCell(2).setCellValue(prop);
+							row.createCell(3).setCellValue(value.toString());
+							row.createCell(4).setCellValue(this.errorMessage);
+							rowNum++;
 						}
 						// returnTriple never gets a value when the property being passed in isn't in the defined list above
 						else if(returnTriple[0] != null)
