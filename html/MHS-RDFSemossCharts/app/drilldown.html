@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+    <link rel="stylesheet" type="text/css" href="css/drilldown.css">
+    
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/select2.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <script src="lib/bootstrap-slider.js"></script>
+    <!--<script src="data/data.js"></script>-->
+
+  </head>
+  <body>
+    <div id="nav">
+      <img id="logo" src="img/heatmap.png"><span class="brand">Heatmap</span>
+      <b id="min"></b><input type="text" class="slider" id="slider" value=""><b id="max"></b>
+      <div id="drillupBtn"></div>
+    </div>
+    <div id="chart"></div>
+    
+    <script type="text/javascript">
+     
+      // start(dataString);
+      function start(dataString) {
+        var match;
+        var levelFlag;
+        var jsonData = jQuery.parseJSON(dataString);
+        var data = jsonData.dataSeries
+        var heatValue = jsonData.value;
+        var xAxisArray = [];
+        var yAxisArray = [];
+        var dataArray = [];
+        var truncY = [];
+        var truncX = [];
+        var domainArray = [];
+        var systemServiceInstanceArray = [];
+        var numerator;
+        var numeratorArray = [];
+        var denominator;
+        var denominatorArray = [];
+        var dataArray = [];
+        var xAxisName = jsonData.xAxisTitle;
+        var yAxisName = jsonData.yAxisTitle;
+        var round = 0;
+
+        var dummyDataObject = [];
+        var level2XAxisArray = [];
+        var level2YAxisArray = [];
+        var level2DataArray = [];
+        var level2DummyDataObject = [];
+        var xAxisArray = [];
+        var yAxisArray = [];
+        var passedXAxisTitle = [];
+
+        for (var nodeType in data){
+          xAxisArray.push(nodeType);
+          for(var systemService in data[nodeType]){
+            yAxisArray.push(systemService);
+          }
+        };
+        xAxisArray = _.uniq(xAxisArray).sort();
+        yAxisArray = _.uniq(yAxisArray).sort();
+        for (var i = 0; i < xAxisArray.length; i++) {
+          for (var j = 0; j < yAxisArray.length; j++) {
+            dummyDataObject.push([xAxisArray[i], yAxisArray[j]]);
+          }
+        }
+
+        for (var nodeType in data) {
+          systemServiceInstanceArray.length = 0;
+          for (var systemService in data[nodeType]) {
+            for (var i = 0; i < data[nodeType][systemService].length; i++) {
+              systemServiceInstanceArray.push(data[nodeType][systemService][i]);
+            }
+          }
+            denominator = _.uniq(systemServiceInstanceArray).length;
+          for (var systemService in data[nodeType]) {
+            numerator = data[nodeType][systemService].length;
+            round = (Math.round(numerator/denominator * 100));
+            dataArray.push({Value: round, yAxis: systemService, yAxisName: systemService, xAxis: nodeType , xAxisName: nodeType });
+            for(var j = 0; j < dummyDataObject.length; j++){
+              if(nodeType === dummyDataObject[j][0] && systemService === dummyDataObject[j][1]){
+                dummyDataObject.splice(j,1);
+              }
+            }
+          }
+        }
+        for (var i = 0; i<dummyDataObject.length; i++){
+          dataArray.push({Value: 0, yAxis: dummyDataObject[i][1], yAxisName: dummyDataObject[i][1], xAxis: dummyDataObject[i][0] , xAxisName: dummyDataObject[i][0] });
+        }
+    /* Assign each name a number and place matrix coordinates inside of dataArray */
+    for (var i = 0; i<dataArray.length;i++) {
+      for (var j = 0; j<xAxisArray.length; j++) {
+        if (xAxisArray[j] == dataArray[i].xAxis) {
+    dataArray[i].xAxis = j;
+        }
+      }
+      for (var j = 0; j<yAxisArray.length; j++) {
+        if (yAxisArray[j] == dataArray[i].yAxis) {
+    dataArray[i].yAxis = j;
+        }
+      }
+    };
+    
+    /* Truncate Values */
+    for (i = 0; i < yAxisArray.length; i++) {
+      if (yAxisArray[i].length > 20) {
+         truncY.push(yAxisArray[i].substring(0, 9) + '...'+yAxisArray[i].substring(yAxisArray[i].length-1,yAxisArray[i].length-10) );
+
+      } else {
+        truncY.push(yAxisArray[i]);
+      }
+    }
+    
+    for (i = 0; i < xAxisArray.length; i++) {
+      if (xAxisArray[i].length > 30) {
+        truncX.push(xAxisArray[i].substring(0, 30) + '...');
+      } else {
+        truncX.push(xAxisArray[i]);
+      }
+    }
+
+//////////////////////////
+
+  var margin = { top: 185, right: 150, bottom: 100, left: 150 },
+        xAxisData = xAxisArray,
+        yAxisData = yAxisArray
+  gridSize = 15;
+  
+  var width = xAxisData.length * gridSize,
+        height = yAxisData.length * gridSize,
+        legendElementWidth = 100,
+        buckets = 9,
+  colors = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
+        colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"], // alternatively colorbrewer.YlGnBu[9]
+        colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
+  colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
+  colorsTraffic = ["#ae0e06","#e92e10","#fb741e","#fdc63f","#ffff57","#5cba24","#1e8b1f","#1e8b1f","#005715"];
+  colorsTrafficReverse = ["#005715","#1e8b1f","#1e8b1f","#5cba24","#ffff57","#fdc63f","#fb741e","#e92e10","#ae0e06"];
+  
+
+
+      
+var svg = d3.select("#chart").append("svg")
+                .attr("width",5*(width +margin.right + margin.left))
+                .attr("height", height + margin.top + 2*margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var ref = d3.select("#drillupBtn")
+            .append("svg")
+            .attr("width", 300)
+            .attr("height", 50);
+
+  d3.select("#nav").append("select")
+        .attr("id", "select2DropDown")
+        .style("width", "130px")
+        .attr("class", "mySelect2")
+        .selectAll("option")
+        .data(["Red","Blue","Green","Traffic", "Traffic Reverse"])
+        .enter()
+        .append("option")
+        .attr("value", function(d){ return d; }) /* This gives me the value */
+        .text(function(d){ return d})
+        ;
+
+////////////////////////////////////////////
+
+
+passedXAxisTitle = [xAxisName]
+
+var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedheatValue,passedXAxisTitle) {
+  //color selection
+  if (xAxisData.length < 35) {
+    legendElementWidth = 40
+    if (xAxisData.length < 25) {
+      legendElementWidth = 25
+      if (xAxisData.length < 15) {
+        legendElementWidth = 15
+      }
+    }
+  }
+  
+  var colorScale = d3.scale.quantile()
+      .domain([ 0, buckets - 1, d3.max(passedDataArray, function (d) { return d.Value; })])
+      .range(colors);
+
+  var yAxisTitle = svg.selectAll(".yAxisTitle")
+      .data([yAxisName]);
+  yAxisTitle
+      .enter().append("text");
+  yAxisTitle
+      .attr("class", "yAxisTitle")
+      .attr("transform","rotate(-90)")
+      .attr("y", -140)
+      .attr("x", 0)
+      .attr("text-anchor", "end")
+      .text(function(d){return d});
+  yAxisTitle
+      .exit().remove();
+        
+            var yAxis = svg.selectAll(".yAxis")
+                .data(truncY, function(d, i) { return d; } 
+);
+
+                yAxis.enter().append("text");
+                
+                yAxis.text(function (d) { return d; })
+                .attr("x", 0)
+                .attr("y", function (d, i) { return i * gridSize; })
+                .style("text-anchor", "end")
+                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+                .attr("class", "yAxis");
+                yAxis.exit().remove();
+
+      
+    
+       
+      var xAxisTitle = svg.selectAll(".xAxisTitle")
+        .data(passedXAxisTitle);
+      xAxisTitle
+        .enter().append("text");
+      xAxisTitle
+        .attr("class", "xAxisTitle")
+        .attr("y", -110)
+        .attr("x", 0)
+        .text(function(d){return d});
+      xAxisTitle
+        .exit().remove();
+
+
+
+      // console.log(xAxisTitle)
+
+       
+            
+    var xAxis = svg.selectAll(".xAxis")
+    .data(passedXAxisArray, function(d, i) { return d; } 
+);
+    xAxis.enter().append("svg:g");
+    xAxis.append("text")
+    .text(function(d,i) { return d; })
+    .style("text-anchor", "start")
+    .attr("x", 7)
+    .attr("y", 9)
+    .attr("class", "xAxis")
+    .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" })
+    .on("click", function(d,i){
+
+      if (levelFlag == "1") {
+
+      level2Calc(d)
+
+      $(".legend").hide();
+
+
+    }
+
+    xAxis.exit().remove();
+
+
+    });
+
+    xAxis.exit().remove();
+
+    
+
+    console.log(truncX);
+
+
+ 
+
+      
+      /* Initialize tooltip */
+    var tip = d3.tip()
+      .attr('class', 'd3-tip')
+      .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+      
+    var heatMap = svg.selectAll(".heat")
+        .data(passedDataArray);
+        heatMap
+        .enter().append("rect");
+        heatMap
+        .attr("x", function(d) { return (d.xAxis) * gridSize; })
+        .attr("y", function(d) { return (d.yAxis) * gridSize; })
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("class", "heat bordered")
+        .attr("width", gridSize)
+        .attr("height", gridSize)
+        .style("fill", colors[0])
+    .on('mouseover', tip.show)
+    .on('mouseout', tip.hide);
+    
+        heatMap
+    .transition()
+    .duration(1000)
+    .style("fill", function(d) { return colorScale(d.Value); });
+      
+      /* Invoke the tooltip in the context of your visualization */
+      heatMap.call(tip);
+      
+      heatMap.exit().remove();
+   
+    
+      //vertical lines
+     var vline = svg.selectAll(".vline").data(d3.range(passedXAxisArray.length + 1));
+     vline.enter()
+    .append("line")
+    .attr("class","vline")
+    .attr("height",gridSize)
+    .attr("x1", function (d) {
+    return d * gridSize;
+      })
+    .attr("x2", function (d) {
+    return d * gridSize;
+      })
+    .attr("y1", function (d) {
+    return 0;
+      })
+    .attr("y2", function (d) {
+    return height;
+      })
+    .style("stroke", "#eee");
+    vline.exit().remove();
+      
+      // horizontal lines
+      var hline = svg.selectAll(".hline").data(d3.range(passedYAxisArray.length + 1));
+      hline.enter()
+    .append("line")
+    .attr("class","hline")
+    .attr("width",gridSize)
+    .attr("y1", function (d) {
+    return d * gridSize;
+      })
+    .attr("y2", function (d) {
+    return d * gridSize;
+      })
+    .attr("x1", function (d) {
+    return 0;
+      })
+    .attr("x2", function (d) {
+    return (d) * gridSize;
+      })
+    .style("stroke", "#eee");
+    hline.exit().remove();
+
+
+          //heatMap.append("title").text(function(d) { return d.Value; });
+              
+    var legend = svg.selectAll(".legend")
+        .data([0].concat(colorScale.quantiles()), function(d) { return d; });
+        legend.enter().append("g")
+        .attr("class", "legend");
+        legend.exit().remove();
+    
+    legend.append("rect")
+      .attr("x", function(d, i) { return legendElementWidth * i; })
+      .attr("y", yAxisData.length * gridSize + 40)
+      .attr("width", legendElementWidth)
+      .attr("height", 20);
+            
+    legend.style("fill", function(d, i) { return colors[i]; });
+
+          legend.append("text")
+            .attr("class", "mono")
+            .text(function(d) { return "" + Math.round(d); })
+            .attr("x", function(d, i) { return legendElementWidth * i; })
+            .attr("y", yAxisData.length * gridSize + 75);
+
+  
+    
+    // Color Changer  
+    
+      
+      $("#select2DropDown").select2();
+      $("#select2DropDown").on("change", change);
+      
+      function change() {
+        colors.length = 0;
+        domainArray = $('#slider').data('slider').getValue()  
+        if (this.options[this.selectedIndex].value == 'Green') {
+    colors = colorsGreen.slice(0);
+        } else if (this.options[this.selectedIndex].value == 'Blue') {
+    colors = colorsBlue.slice(0);
+        }else if (this.options[this.selectedIndex].value == 'Traffic') {
+    colors = colorsTraffic.slice(0);
+    
+        }else if (this.options[this.selectedIndex].value == 'Traffic Reverse') {
+    colors = colorsTrafficReverse.slice(0);;
+    
+        }else {
+
+    colors = colorsRed.slice(0);
+
+        }
+        
+        colorScale = d3.scale.quantile()
+                .domain([ 0, buckets - 1, d3.max(passedDataArray, function (d) { return d.Value; })])
+                .range(colors);
+    
+        heatMap.style("fill", function(d) {
+    console.log(domainArray[0]);
+    if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+      return colorScale(d.Value);
+    }else {return "white"}
+    
+        });
+        legend.style("fill", function(d, i) { return colors[i]; });
+        match.style("fill", function(d, i) { return colors[d]; });
+      }
+      
+      
+    // Slider
+    $('#slider').slider({
+        min: Math.floor(d3.min(passedDataArray, function (d) { return d.Value; })),
+        max: Math.ceil(d3.max(passedDataArray, function (d) { return d.Value; })),
+        value:[0, Math.ceil(d3.max(passedDataArray, function (d) { return d.Value; }))],
+        step:1
+        
+      })
+    .on('slide', function(){
+        domainArray = $('#slider').data('slider').getValue()  
+        heatMap
+        .style("fill", function(d) {
+    if (d.Value >= domainArray[0] && d.Value <= domainArray[1]) {
+      return colorScale(d.Value);
+    }else {return "white"}
+    
+        });
+    })
+    
+     
+    var min = d3.select("#min")
+    .data([1]);
+    min.enter() 
+    .append("text");
+    min.text("Min: " + Math.floor(d3.min(passedDataArray, function (d) { return d.Value; })))
+      .attr("x", 20)
+      .attr("y", 0);
+    min.exit().remove();
+      
+    var max = d3.select("#max")
+    .data([1]);
+    max.enter() 
+    .append("text");
+    max.text("Max: " + Math.floor(d3.max(passedDataArray, function (d) { return d.Value; })))
+      .attr("x", 20)
+      .attr("y", 0);
+    max.exit().remove();
+      
+
+
+    };
+
+    //cloning first level variables to 
+
+    var lvl1DataArray = _.clone(dataArray);
+    var lvl1XAxisArray =_.clone(xAxisArray);
+    var lvl1YAxisArray = _.clone(yAxisArray);
+    var lvl1HeatValue = _.clone(heatValue);
+    
+    console.log(lvl1DataArray);
+
+
+
+    //////////////////////////////////////////////////////////////////////
+
+    update(dataArray,xAxisArray,yAxisArray,heatValue,[xAxisName]);
+    levelFlag = "1"
+
+    var level2Calc = function(d){
+
+      
+      $(".match").show();
+
+
+
+    $(".slider").hide();
+        $("#max").hide();
+        $("#min").hide();
+
+      truncX.length = 0;
+      truncY.length = 0;
+      level2XAxisArray = [];
+      level2YAxisArray = [];
+      level2DataArray = [];
+      level2DummyDataObject = [];
+
+
+        match = svg.selectAll(".match").data([0,8]);
+        match.enter().append("g")
+        .attr("class", "match");
+        match.exit().remove();
+    
+    match.append("rect")
+      .attr("x", function(d, i) { return legendElementWidth * i; })
+      .attr("y", yAxisData.length * gridSize + 40)
+      .attr("width", legendElementWidth)
+      .attr("height", 20);
+            
+    match.style("fill", function(d, i) { return colors[d]; });
+
+          match.append("text")
+            .attr("class", "mono")
+            .text(function(d,i) { if (i==1) {return "Match"} else {return "No Match"}}) 
+            .attr("text-anchor","start")    
+            .attr("x", function(d, i) { return legendElementWidth * i; })
+            .attr("y", yAxisData.length * gridSize + 75)
+            .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -90)rotate(-90,70,165)" });
+
+
+            
+
+
+      //Drill Up button
+    var drillUpBtn = ref.selectAll("foreignObject")
+      .data([1])
+      .enter()
+      .append("foreignObject")
+      .attr("y", 0)
+      .attr("x", 0)
+      .attr("width", "140px")
+      .attr("height", "60px")
+      .append("xhtml:div")
+      .html("<a><i class='icon-arrow-up icon-white'></i> Drill Up</a>")
+      .attr("class","btn btn-success");
+      drillUpBtn.on("click", function(d){ lvl1Update()});
+
+   
+
+     
+
+      for (var nodeType in data){
+        for(var systemService in data[nodeType]){
+          level2YAxisArray.push(systemService);
+        }
+      }
+      for(var systemService in data[d]){
+        for(i=0; i<data[d][systemService].length; i++){
+          level2XAxisArray.push(data[d][systemService][i]);
+        }
+      };
+      level2XAxisArray = _.uniq(level2XAxisArray).sort();
+      level2YAxisArray = _.uniq(level2YAxisArray).sort();
+      level2YAxisName = jsonData.yAxisTitle;
+      level2XAxisName = d;
+      for (var i = 0; i < level2XAxisArray.length; i++){
+        for (var j = 0; j < level2YAxisArray.length; j++){
+          level2DummyDataObject.push([level2XAxisArray[i], level2YAxisArray[j]]);
+        }
+      }
+      // console.log(level2DummyDataObject);
+      for(var systemService in data[d]){
+        for(i=0; i<data[d][systemService].length; i++){
+          level2DataArray.push({Value: 100, yAxis: systemService, yAxisName: systemService, xAxis: data[d][systemService][i] , xAxisName: data[d][systemService][i] });
+          for(var j = 0; j < level2DummyDataObject.length; j++){
+            if(data[d][systemService][i] === level2DummyDataObject[j][0] && systemService === level2DummyDataObject[j][1]){
+              level2DummyDataObject.splice(j,1);
+            }
+          }
+        }
+      };
+      for (var i = 0; i < level2DummyDataObject.length; i++){
+        level2DataArray.push({Value: 0, yAxis: level2DummyDataObject[i][1], yAxisName: level2DummyDataObject[i][1], xAxis: level2DummyDataObject[i][0] , xAxisName: level2DummyDataObject[i][0] });
+      }
+    /* Assign each name a number and place matrix coordinates inside of dataArray */
+    for (var i = 0; i<level2DataArray.length;i++) {
+      for (var j = 0; j<level2XAxisArray.length; j++) {
+        if (level2XAxisArray[j] == level2DataArray[i].xAxis) {
+          level2DataArray[i].xAxis = j;
+        }
+      }
+      for (var j = 0; j<level2YAxisArray.length; j++) {
+        if (level2YAxisArray[j] == level2DataArray[i].yAxis) {
+          level2DataArray[i].yAxis = j;
+        }
+      }
+    };
+    /* Truncate Values */
+    for (i = 0; i < level2YAxisArray.length; i++) {
+      if (level2YAxisArray[i].length > 20) {
+        truncY.push(yAxisArray[i].substring(0, 9) + '...'+yAxisArray[i].substring(yAxisArray[i].length-1,yAxisArray[i].length-10) );
+      } else {
+        truncY.push(level2YAxisArray[i]);
+      }
+    }
+    for (i = 0; i < level2XAxisArray.length; i++) {
+      if (level2XAxisArray[i].length > 30) {
+        truncX.push(level2XAxisArray[i].substring(0, 10) + '...'+level2XAxisArray[i].substring(level2XAxisArray[i].length-1,level2XAxisArray[i].length-15) );
+      } else {
+        truncX.push(level2XAxisArray[i]);
+      }
+    }
+
+    level2XAxisArray = truncX;
+
+    passedXAxisTitle = [d];
+    // passedXAxisArray = truncX;
+     
+
+      
+    
+    
+    // passedXAxisTitle = d;
+    heatValue = "Match?"
+     update(level2DataArray,level2XAxisArray,level2YAxisArray,heatValue,[d]);
+     levelFlag = "2"
+
+    
+  }
+
+  function lvl1Update() {
+    update(lvl1DataArray,lvl1XAxisArray,lvl1YAxisArray,lvl1HeatValue,[xAxisName]);
+    levelFlag = "1"
+
+     $(".slider").show();
+      $("input.slider").hide();
+      $(".max").show();
+      $(".min").show();
+
+      $(".legend").show();
+      $(".match").hide();
+  }
+      };      
+    </script>
+  </body>
+</html>
