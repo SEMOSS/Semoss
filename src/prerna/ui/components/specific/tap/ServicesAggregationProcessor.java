@@ -197,10 +197,6 @@ public class ServicesAggregationProcessor {
 		row.createCell(2).setCellValue("Predicate");
 		row.createCell(3).setCellValue("Object");
 		row.createCell(3).setCellValue("Error Messge");
-		XSSFFont font = wb.createFont();
-		font.setBold(true);
-		CellStyle style = row.getRowStyle();
-		style.setFont(font);
 		
 		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		try {
