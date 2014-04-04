@@ -54,6 +54,7 @@ public class ServicesAggregationProcessor {
 	private int rowNum = 1;
 	
 	public String errorMessage = "";
+	private boolean aggregationSuccess;
 
 	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
 
@@ -122,7 +123,7 @@ public class ServicesAggregationProcessor {
 
 	public boolean runFullAggregation()
 	{		
-		boolean success = true;
+		boolean aggregationSuccess = true;
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
 
@@ -167,43 +168,24 @@ public class ServicesAggregationProcessor {
 		logger.info("PROCESSING SYSTEM SERVICE PROPERTIES AND AGGREGATING TO SYSTEMS IN TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE SO NO PROPERTIES ARE LOST");
 		runSystemServicePropertyAggregation(TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY, TAP_CORE_SYSTEM_PROPERTY_AGGREGATION_QUERY);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
+
 		logger.info("PROCESSING ICD PAYLOAD DATA RELATIONSHIP PROPERTIES AND AGGREGATING TO PAYLOAD RELATIONSHIP IN TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE SO NO PROPERTIES ARE LOST");
 		runICDPropAggregation(TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY, TAP_CORE_AGGREGATE_ICD_PROP_QUERY);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
+
 		logger.info("PROCESSING SYSTEM TERROR RELATIONSHIP AND WEIGHT PROPERTY AND AGGREGATING INTO TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE NEW WEIGHT OF TERROR PROPERTY VALUE");
 		runTErrorAggregation(TAP_SERVICES_AGGREGATE_TERROR_QUERY, TAP_CORE_AGGREGATE_TERROR_QUERY);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
+
 		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND CRM PROPERTY AND AGGREGATING INTO TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE CRM");
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_QUERY);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
+
 		logger.info("PROCESSING SERVICE SYSTEM MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATION_SOFTWARE_QUERY, TAP_CORE_AGGREGATION_SOFTWARE_QUERY, true);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
+
 		logger.info("PROCESSING SERVICE HARDWARE MODULE AND DOING LOTS OF STUFF");
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATE_HARDWARE_QUERY, TAP_CORE_AGGREGATION_HARDWARE_QUERY, false);
-		if(!errorMessage.isEmpty())
-		{
-			success = false;
-		}
 		processNewConcepts();
 		processNewRelationships();
 		((BigDataEngine) coreDB).infer();
@@ -222,14 +204,14 @@ public class ServicesAggregationProcessor {
 		
 		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		try {
-			wb.write(new FileOutputStream(workspace + "\\" + "ServiceAggreagationErrorLog"));
+			wb.write(new FileOutputStream(workspace + "/" + "ServiceAggreagationErrorLog.xlsx"));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-		return success;
+		return aggregationSuccess;
 	}
 
 	private void runRelationshipAggregation(String query)
@@ -428,6 +410,8 @@ public class ServicesAggregationProcessor {
 						row.createCell(3).setCellValue(value.toString());
 						row.createCell(4).setCellValue(this.errorMessage);
 						rowNum++;
+						
+						aggregationSuccess = false;
 					}
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					else if(returnTriple[0] != null)
@@ -542,6 +526,8 @@ public class ServicesAggregationProcessor {
 						row.createCell(3).setCellValue(value.toString());
 						row.createCell(4).setCellValue(this.errorMessage);
 						rowNum++;
+						
+						aggregationSuccess = false;
 					}
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
 					else if(returnTriple[0] != null)
@@ -579,20 +565,15 @@ public class ServicesAggregationProcessor {
 		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
 
 		// processing modifies class variable dataHash directly
-		boolean success = processTError(aggregatedTError, "weight");
-		if(!success)
-		{
-			return;
-		}
+		processTError(aggregatedTError, "weight");
 
 		deleteData(removeDataHash);
 		processData(dataHash);
 	}
 
-	private boolean processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
+	private void processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
 	{
-
-		boolean success = true;
+		this.errorMessage = "";
 		String propertyURI = propURI + propType;
 		for( String sub : aggregatedTError.keySet() )
 		{
@@ -617,18 +598,26 @@ public class ServicesAggregationProcessor {
 						try
 						{
 							valueAsObject.doubleValue();
+							Double value = valueAsObject.doubleValue();
+							totalTErr += value;
+							counter++;
 						}
 						catch(NumberFormatException e)
 						{
-							e.printStackTrace();
+							//e.printStackTrace();
 							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
 									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsObject + "\n"				
 									+ "Check that value is parsable as a double";	
-							return (success = false);
+							XSSFRow row = errSheet.createRow(rowNum);
+							row.createCell(0).setCellValue("Not Sure");
+							row.createCell(1).setCellValue(pred);
+							row.createCell(2).setCellValue(propertyURI);
+							row.createCell(3).setCellValue(valueAsObject.toString());
+							row.createCell(4).setCellValue(this.errorMessage);
+							rowNum++;
+							
+							aggregationSuccess = false;
 						}
-						Double value = valueAsObject.doubleValue();
-						totalTErr += value;
-						counter++;
 					}
 				}
 
@@ -641,7 +630,6 @@ public class ServicesAggregationProcessor {
 				addToAllRelationships(pred);
 			}
 		}
-		return success;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -820,6 +808,8 @@ public class ServicesAggregationProcessor {
 							row.createCell(3).setCellValue(value.toString());
 							row.createCell(4).setCellValue(this.errorMessage);
 							rowNum++;
+							
+							aggregationSuccess = false;
 						}
 						// returnTriple never gets a value when the property being passed in isn't in the defined list above
 						else if(returnTriple[0] != null)
@@ -1082,7 +1072,7 @@ public class ServicesAggregationProcessor {
 		}
 		catch(NumberFormatException e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
 					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
 			return new String[]{""};
@@ -1150,7 +1140,7 @@ public class ServicesAggregationProcessor {
 		}
 		catch(NumberFormatException e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
 					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
 			return new String[]{""};
@@ -1207,7 +1197,7 @@ public class ServicesAggregationProcessor {
 		}
 		catch(IllegalArgumentException e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
 					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
 			return new String[]{""};
