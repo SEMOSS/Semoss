@@ -34,7 +34,7 @@
         var levelFlag;
         var jsonData = jQuery.parseJSON(dataString);
         var data = jsonData.dataSeries
-        var heatValue = jsonData.value;
+        var heatValue = "Percent Supported: "
         var xAxisArray = [];
         var yAxisArray = [];
         var dataArray = [];
@@ -255,7 +255,7 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
     .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" })
     .on("click", function(d,i){
 
-      if (levelFlag == "1") {
+      if (levelFlag == 1) {
 
       level2Calc(d)
 
@@ -276,13 +276,23 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
     console.log(truncX);
 
 
- 
+    var tipDataValue = function(d){
+      if(levelFlag === 2){
+        if(d.Value === 100){
+          return "Yes"
+        }else{
+          return "No"
+        }
+      }else{
+        return d.Value
+      }
+    }
 
       
       /* Initialize tooltip */
     var tip = d3.tip()
       .attr('class', 'd3-tip')
-      .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + d.Value + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
+      .html(function(d) { return "<div> <span class='light'>" + heatValue + "</span> " + tipDataValue(d) + "</div>" + "<div><span class='light'>" + xAxisName + ":</span> " + d.xAxisName + "</div>" + "<div> <span class='light'>" + yAxisName + ": </span>" + d.yAxisName + "</div>"; })
       
     var heatMap = svg.selectAll(".heat")
         .data(passedDataArray);
@@ -473,9 +483,9 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
 
 
     //////////////////////////////////////////////////////////////////////
-
+    levelFlag = 1;
     update(dataArray,xAxisArray,yAxisArray,heatValue,[xAxisName]);
-    levelFlag = "1"
+    
 
     var level2Calc = function(d){
 
@@ -607,20 +617,20 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
     // passedXAxisArray = truncX;
      
 
-      
+    heatValue = "Supported: ";
     
-    
+    levelFlag = 2;
     // passedXAxisTitle = d;
-    heatValue = "Match?"
      update(level2DataArray,level2XAxisArray,level2YAxisArray,heatValue,[d]);
-     levelFlag = "2"
+     
 
     
   }
 
   function lvl1Update() {
+    heatValue = "Percent Supported: ";
     update(lvl1DataArray,lvl1XAxisArray,lvl1YAxisArray,lvl1HeatValue,[xAxisName]);
-    levelFlag = "1"
+    levelFlag = 1;
 
      $(".slider").show();
       $("input.slider").hide();
