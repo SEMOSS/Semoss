@@ -22,11 +22,15 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.specific.tap.CentralSysBPActInsertProcessor;
 import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -41,6 +45,10 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
+		//get the selected engine name
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		String engineName = (String)list.getSelectedValue();
+		
 		//get selected threshold values and parse as a double
 		JTextField dataObjectThresholdTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX);
 		String dataObjectThresholdTextValue = dataObjectThresholdTextField.getText();
@@ -61,14 +69,40 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 		}
 				
 		//send to processor
-		logger.info("Inserting System-BP and System-Activity for Central Systems into TAP_Core...");			
-		CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);		
-		boolean success = insertProcessor.runCoreInsert();
-		if(success)	{
-			Utility.showMessage("Finished Aggregation!");
+		logger.info("Inserting System-BP and System-Activity for Central Systems into TAP_Core...");
+		boolean success = false;
+		String errorMessage = "";
+		//TODO test this query
+		String isCalculatedQuery = "ASK WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?s ?p ?o ;} BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?contains) {?p ?contains ?prop ;} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} }";
+		BooleanProcessor proc = new BooleanProcessor();
+		proc.setQuery(isCalculatedQuery);
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		boolean isCalculated = proc.processQuery();
+		if(isCalculated){		
+			Object[] buttons = {"Cancel Calculation", "Continue With Calculation"};
+			int response = JOptionPane.showOptionDialog(playPane, "The selected RDF store (" + engineName + ") already " +
+					"contains calculated relationships.  Would you like to recalculate?", 
+					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
+			
+			if (response == 1) {
+				CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+				insertProcessor.setInsertCoreDB(engineName);
+				insertProcessor.runDeleteQueries();
+				success = insertProcessor.runCoreInsert();
+				errorMessage = insertProcessor.getErrorMessage();
+			}
+			else return;
 		}
 		else {
-			String errorMessage = insertProcessor.getErrorMessage();
+			CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+			insertProcessor.setInsertCoreDB(engineName);
+			success = insertProcessor.runCoreInsert();
+		}
+		if(success)	{
+			Utility.showMessage("Insert Completed!");
+			logger.info("Completed Insert.");
+		}
+		else {			
 			Utility.showError(errorMessage);
 		}
 	}
@@ -77,5 +111,5 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 	public void setView(JComponent view) {
 		// TODO Auto-generated method stub		
 	}
-
+	
 }
