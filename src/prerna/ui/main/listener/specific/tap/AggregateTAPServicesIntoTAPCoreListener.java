@@ -40,8 +40,7 @@ public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 		}
 		else
 		{
-			String errorMessage = sap.getErrorMessage();
-			Utility.showError(errorMessage);
+			Utility.showError("Please Check Error Report for Possible Issues with Data Quality");
 		}
 	}
 

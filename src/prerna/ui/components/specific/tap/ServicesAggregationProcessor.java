@@ -41,11 +41,6 @@ public class ServicesAggregationProcessor {
 
 	public String errorMessage = "";
 
-	public String getErrorMessage()
-	{
-		return this.errorMessage;
-	}
-
 	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
 
 	private String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "SELECT DISTINCT ?system ?prop ?value ?user WHERE{{?system a <http://semoss.org/ontologies/Concept/System>} {?systemService a <http://semoss.org/ontologies/Concept/SystemService>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?prop a <http://semoss.org/ontologies/Relation/Contains>} {?systemService ?prop ?value} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user}}";
@@ -311,6 +306,8 @@ public class ServicesAggregationProcessor {
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
+			this.errorMessage = "";
+			
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
@@ -382,16 +379,15 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						return;
+						//TODO: add to excel table report of issues
 					}
-
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
-					if(returnTriple[0] != null)
+					else if(returnTriple[0] != null)
 					{
 						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 						addToHash(returnTriple);
 					}
-
+					
 					// sub already exists when going through TAP Core db
 					if(!TAP_Core)
 					{
@@ -431,6 +427,8 @@ public class ServicesAggregationProcessor {
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
+			this.errorMessage = "";
+			
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
@@ -482,11 +480,10 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						return;
+						//TODO: add to excel table report of issues
 					}
-
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
-					if(returnTriple[0] != null)
+					else if(returnTriple[0] != null)
 					{
 						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 						addToHash(returnTriple);
@@ -684,6 +681,8 @@ public class ServicesAggregationProcessor {
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
+			this.errorMessage = "";
+			
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String module = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
@@ -746,11 +745,10 @@ public class ServicesAggregationProcessor {
 						// if error occurs
 						if(Arrays.equals(returnTriple, new String[]{""}))
 						{
-							return;
+							//TODO: add to excel table report of issues
 						}
-
 						// returnTriple never gets a value when the property being passed in isn't in the defined list above
-						if(returnTriple[0] != null)
+						else if(returnTriple[0] != null)
 						{
 							logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
 							addToHash(returnTriple);
