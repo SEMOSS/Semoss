@@ -55,7 +55,8 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 		Double dataObjectThresholdValue = 0.0;
 		JTextField bluThresholdTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.BLU_THRESHOLD_VALUE_TEXT_BOX);
 		String bluThresholdTextValue = bluThresholdTextField.getText();
-		Double bluThresholdValue = 0.0;		
+		Double bluThresholdValue = 0.0;	
+		
 		try{
 			dataObjectThresholdValue = Double.parseDouble(dataObjectThresholdTextValue);
 			bluThresholdValue = Double.parseDouble(bluThresholdTextValue);
@@ -69,7 +70,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 		}
 				
 		//send to processor
-		logger.info("Inserting System-BP and System-Activity for Central Systems into TAP_Core...");
+		logger.info("Inserting System-BP and System-Activity for Central Systems into " + engineName + "...");
 		boolean success = false;
 		String errorMessage = "";
 		//TODO test this query
@@ -90,6 +91,9 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 				insertProcessor.runDeleteQueries();
 				success = insertProcessor.runCoreInsert();
 				errorMessage = insertProcessor.getErrorMessage();
+				if (!(errorMessage == "")) {
+					Utility.showError(errorMessage);
+				}
 			}
 			else return;
 		}
@@ -97,13 +101,15 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 			CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
 			insertProcessor.setInsertCoreDB(engineName);
 			success = insertProcessor.runCoreInsert();
+			errorMessage = insertProcessor.getErrorMessage();
+			if (!(errorMessage == "")) {
+				Utility.showError(errorMessage);
+			}
 		}
+		
 		if(success)	{
 			Utility.showMessage("Insert Completed!");
 			logger.info("Completed Insert.");
-		}
-		else {			
-			Utility.showError(errorMessage);
 		}
 	}
 	
