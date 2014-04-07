@@ -43,7 +43,6 @@ public class CentralSysBPActInsertProcessor {
 	
 	Logger logger = Logger.getLogger(getClass());
 	private IEngine coreDB;
-	private String insertEngine = "HR_Core_Data";
 	
 	private double dataObjectThresholdValue = 0.0;
 	private double bluThresholdValue = 0.0;
@@ -76,7 +75,6 @@ public class CentralSysBPActInsertProcessor {
 	public CentralSysBPActInsertProcessor(Double dataObjectThresholdValue, Double bluThresholdValue) {
 		this.dataObjectThresholdValue = dataObjectThresholdValue;
 		this.bluThresholdValue = bluThresholdValue;
-		this.coreDB = (IEngine) DIHelper.getInstance().getLocalProp(insertEngine);
 	}
 	
 	public void runDeleteQueries() {
@@ -111,22 +109,19 @@ public class CentralSysBPActInsertProcessor {
 		
 //2.  PROCESS THE DATA AND PERFORM ANALYSIS	
 	//Processing
-		//Hashtable
 		Hashtable bpDataHash = aggregationHelper.hashTableResultProcessor(bpDataListWrapper);
 		Hashtable bpBLUHash = aggregationHelper.hashTableResultProcessor(bpBLUListWrapper);
 		Hashtable systemDataHash = aggregationHelper.hashTableResultProcessor(systemDataWrapper);
-		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);		
-		//ArrayList
-		/*ArrayList<ArrayList<Object>> bpDataList = aggregationHelper.arrayListResultProcessor(bpDataListWrapper);
-		ArrayList<ArrayList<Object>> bpBLUList = aggregationHelper.arrayListResultProcessor(bpBLUListWrapper);
-		ArrayList<ArrayList<Object>> systemData = aggregationHelper.arrayListResultProcessor(systemDataWrapper);
-		ArrayList<ArrayList<Object>> systemBLU = aggregationHelper.arrayListResultProcessor(systemBLUWrapper);	*/	
-		
+		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);				
 		Hashtable capDataHash = aggregationHelper.hashTableResultProcessor(capDataListWrapper);
 		Hashtable capBLUHash = aggregationHelper.hashTableResultProcessor(capBLUListWrapper);
 		
+		if (bpDataHash.isEmpty() || bpBLUHash.isEmpty() || systemDataHash.isEmpty() || systemBLUHash.isEmpty() || capDataHash.isEmpty() || capBLUHash.isEmpty()) {
+			this.errorMessage = "One or more of the queries returned no results.";
+			return false;
+		}
+		
 	//Analysis
-		//processSystemToBP(bpDataList, bpBLUList, systemData, systemBLU);	
 		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
 		processRelations(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
 
@@ -134,144 +129,9 @@ public class CentralSysBPActInsertProcessor {
 		aggregationHelper.processData(coreDB, dataHash);
 		aggregationHelper.processNewRelationships(coreDB, newRelationships);
 		((BigDataEngine) coreDB).infer();
-	
-		
+			
 		return success;		
 	}
-	
-	private void processSystemToBP(ArrayList<ArrayList<Object>> bpDataList, ArrayList<ArrayList<Object>> bpBLUList, ArrayList<ArrayList<Object>> systemData, ArrayList<ArrayList<Object>> systemBLU) {
-		
-		AggregationHelper aggregationHelper = new AggregationHelper();
-				
-		HashSet<String> overallBPSet = new HashSet<String>();
-		HashSet<String> overallSystemSet = new HashSet<String>();
-		
-	//populate the System, BP sets with the data from the query result array list. (Raw URIs)
-		for (int i = 0; i < bpDataList.size(); i++) {
-			ArrayList tempList = (ArrayList) bpDataList.get(i);
-			overallBPSet.add(tempList.get(0).toString());		
-		}
-		for (int i = 0; i < bpBLUList.size(); i++) {
-			ArrayList tempList = (ArrayList) bpBLUList.get(i);
-			overallBPSet.add(tempList.get(0).toString());		
-		}
-		for (int i = 0; i < systemBLU.size(); i++) {
-			ArrayList tempList = (ArrayList) systemBLU.get(i);
-			overallSystemSet.add(tempList.get(0).toString());		
-		}
-		for (int i = 0; i < systemData.size(); i++) {
-			ArrayList tempList = (ArrayList) systemData.get(i);
-			overallSystemSet.add(tempList.get(0).toString());		
-		}
-			
-	//System.out.println(overallBPSet.size());
-		
-		for (String bp : overallBPSet) {
-			Hashtable<String, String> bpSpecificDataHash = new Hashtable<String, String>();
-			ArrayList<String> bpSpecificBLUList = new ArrayList<String>();	
-			
-	//Process Query Results (BP Specific)
-				for (int i = 0; i < bpDataList.size(); i++) {
-					ArrayList tempList = (ArrayList) bpDataList.get(i);
-					
-					String businessProcess = tempList.get(0).toString();
-					String dataObject = tempList.get(1).toString();
-					String crm = tempList.get(2).toString();
-					
-							
-					if (businessProcess.contains(bp)) { 
-			//Prioritize C over R
-						if(crm.contains("R")) {
-							if(!bpSpecificDataHash.containsKey(dataObject)) {
-								bpSpecificDataHash.put(dataObject, crm);
-							}
-						}
-						if(crm.contains("C")) {
-							bpSpecificDataHash.put(dataObject, crm);
-						}
-						
-					}
-				}	
-			//Populate bpSpecific BLU list	
-				for (int i = 0; i < bpBLUList.size(); i++) {
-					ArrayList tempList = (ArrayList) bpBLUList.get(i);
-					String businessProcess = tempList.get(0).toString();
-					String blu = tempList.get(1).toString();
-					
-					if (businessProcess.contains(bp)) { 
-						bpSpecificBLUList.add(blu);
-					}
-				}		
-			
-				for (String system : overallSystemSet) {
-					int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;
-					String data;
-					
-				
-	//Figure out what Data Objects a system creates or reads
-					Hashtable<String, String> systemSpecificDataHash = new Hashtable<String, String>();
-					for (int i = 0; i < systemData.size(); i++) {
-						ArrayList tempList = (ArrayList) systemData.get(i);
-						String sys = tempList.get(0).toString();
-						String dataObject = tempList.get(1).toString();
-						String crm = tempList.get(2).toString();
-						
-						if (sys.contains(system) & crm.contains("R")) {
-							if(!systemSpecificDataHash.containsKey(dataObject)) {
-								systemSpecificDataHash.put(dataObject, crm);
-							}							
-						}
-						if (sys.contains(system) & crm.contains("C")) { 	
-							systemSpecificDataHash.put(dataObject, crm);
-						}
-					}	
-	//Figure out what BLUs a system provides
-					ArrayList<String> systemSpecificBLUList = new ArrayList<String>();
-					for (int i = 0; i < systemBLU.size(); i++) {
-						ArrayList tempList = (ArrayList) systemBLU.get(i);
-						String sys = tempList.get(0).toString();
-						String blu = tempList.get(1).toString();
-						
-						if (sys.contains(system)) {
-							systemSpecificBLUList.add(blu);
-						}
-					}		
-					
-	//check to see if system created data objects ('d') is needed by the Business Process 'bp' 			
-					for (String dataObj : systemSpecificDataHash.keySet()) {					
-						if (bpSpecificDataHash.containsKey(dataObj)) {
-							if (systemSpecificDataHash.get(dataObj).contains(bpSpecificDataHash.get(dataObj)) || systemSpecificDataHash.get(dataObj).contains("C") && bpSpecificDataHash.get(dataObj).contains("R")) {
-								systemSpecificDataCount++;
-							}
-						}
-					}
-	//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
-					for (String blu : systemSpecificBLUList) {					
-						if (bpSpecificBLUList.contains(blu)) {
-							systemSpecificBLUCount++;
-						}
-					} 
-					
-	//Decide if System 's' Supports BusinessProcess	
-					if ( (systemSpecificDataCount >= ( bpSpecificDataHash.keySet().size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUList.size()*bluThresholdValue )) ) {
-						
-						//Add the System-BP relation to the local Hashtables to prepare for Insert						
-							String pred = hrCoreBaseURI + "Supports";
-							pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(system, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
-							dataHash = aggregationHelper.addToHash(dataHash, new Object[]{system, pred, bp});
-							dataHash = aggregationHelper.addToHash(dataHash, new Object[]{pred, aggregationHelper.getSemossPropertyBaseURI() + "Calculated", "\"true\"^^<xsd:boolean>"});
-							logger.info("*****Prop URI: " + pred + ", predURI: " + aggregationHelper.getSemossPropertyBaseURI() + "Calculated" + ", value: " + "\"true\"^^<xsd:boolean>");
-							newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);
-							
-							logger.info("System: " + system + ", BP: " + bp + ", Pred: " + pred);
-					}
-				}
-				dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
-				logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
-				
-		}
-	}
-
 	
 	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash) {		
 		AggregationHelper aggregationHelper = new AggregationHelper();			
@@ -348,7 +208,6 @@ public class CentralSysBPActInsertProcessor {
 
 	
 	public void setInsertCoreDB(String insertEngine) {
-		this.insertEngine = insertEngine;
 		this.coreDB = (IEngine) DIHelper.getInstance().getLocalProp(insertEngine);
 	}	
 }
