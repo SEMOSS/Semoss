@@ -69,13 +69,14 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
-		options.put("Supports_out_of_box", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
-		options.put("Supports_with_configuration",  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
-		options.put("Supports_with_customization", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
-		options.put("Does_not_support", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
+		options.put("out_of_box".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
+		options.put("out_of_box_with_configuration".toLowerCase(),  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
+		options.put("out_of_box_with_customization".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
+		options.put("does_not_support".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
 		
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();
+		ArrayList<String> vendorArray= new ArrayList<String>();
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
@@ -101,10 +102,20 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 					String vendor = (String)sjss.getVar(names[0]);
 					String capability = (String)sjss.getVar(names[1]);
 					String requirement = ((String)sjss.getVar(names[2]));
-					String requirementCategory = names[2];
+					String requirementCategory = capability;//names[2];
 					String fulfill = (String)sjss.getVar(names[3]);
-					double score=options.get(fulfill); //score based on vendor direct response
+					fulfill = fulfill.toLowerCase();
+					double score=0.0;
+					Object scoreObj = options.get(fulfill); //score based on vendor direct response
+					if(scoreObj!=null&&scoreObj instanceof Double)
+						score = (Double)scoreObj;
+					else if(scoreObj!=null&&scoreObj instanceof Integer)
+					{
+						int scoreInt = (Integer) scoreObj;
+						score = scoreInt*1.0;
+					}
 					
+//					if(!(vendorArray.contains(vendor))
 //					Hashtable<String, Object> requirementCategories;
 //					Hashtable<String, Object> requirementAndWeight;
 //					Hashtable<String, Hashtable<String,Object>> requirements;
@@ -296,7 +307,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		allHash.put("value", "Score");
 		allHash.put("childvalue","Value");
 	}
-	
+
 	@Override
 	public void createView()
 	{

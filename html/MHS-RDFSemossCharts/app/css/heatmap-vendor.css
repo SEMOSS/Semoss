@@ -194,7 +194,16 @@
       overflow-x: hidden;
       overflow-y: scroll;
     }
-    
+    #checkboxesVendor {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 5px;
+      height: 200px;
+      overflow-x: hidden;
+      overflow-y: scroll;
+    }
     .btn a, .btn a:hover {
       color: white;
       text-decoration: none;
@@ -215,6 +224,18 @@
     /*background-color: red; This was to test a wierd glitch with the checkboxes*/
   }
   .cbxLabels {
+    font-size: 9px;
+  }
+
+
+  .cbxVendorContainer {
+    margin-top: 0px;
+  }
+
+  .cbxVendor {
+    /*background-color: red; This was to test a wierd glitch with the checkboxes*/
+  }
+  .cbxVendorLabels {
     font-size: 9px;
   }
   
