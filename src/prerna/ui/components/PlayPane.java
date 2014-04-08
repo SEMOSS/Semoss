@@ -268,8 +268,8 @@ public class PlayPane extends JFrame {
 	public CustomButton btnAggregateTapServicesIntoTapCore;
 	public JComboBox<String> selectTapServicesComboBox, selectTapCoreComboBox;
 	
-	//Central Systems Data/BLU Aggregation
-	public CustomButton btnCentralSysBPActInsert;
+	//System-BP and System-Cap Insert
+	public CustomButton btnSysBPCapInsert;
 	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
 	
 	// Components on settings panel
@@ -2302,16 +2302,16 @@ public class PlayPane extends JFrame {
 		centralSystemBPActInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
 		bluThresholdValueTextField.setColumns(12);		
 
-		btnCentralSysBPActInsert = new CustomButton("Run Relationship Insert");
-		btnCentralSysBPActInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
+		btnSysBPCapInsert = new CustomButton("Run Relationship Insert");
+		btnSysBPCapInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnCentralSysBPActInsert = new GridBagConstraints();
 		gbc_btnCentralSysBPActInsert.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnCentralSysBPActInsert.gridwidth = 1;
 		gbc_btnCentralSysBPActInsert.insets = new Insets(0, 20, 5, 5);
 		gbc_btnCentralSysBPActInsert.gridx = 1;
 		gbc_btnCentralSysBPActInsert.gridy = 5;
-		centralSystemBPActInsertPanel.add(btnCentralSysBPActInsert, gbc_btnCentralSysBPActInsert);
-		Style.registerTargetClassName(btnCentralSysBPActInsert, ".standardButton");
+		centralSystemBPActInsertPanel.add(btnSysBPCapInsert, gbc_btnCentralSysBPActInsert);
+		Style.registerTargetClassName(btnSysBPCapInsert, ".standardButton");
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
