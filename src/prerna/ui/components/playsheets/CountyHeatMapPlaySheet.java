@@ -24,6 +24,10 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import com.bigdata.rdf.model.BigdataLiteral;
+import com.bigdata.rdf.model.BigdataURIImpl;
+
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -41,6 +45,17 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/countyheatmap.html";
+	}
+	
+	/**
+	 * Method getVariable. Gets the variable names from the query results.
+	 * @param varName String - the variable name.
+	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
+	
+	 * @return Object - results with given URI.*/
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getRawVar(varName);
 	}
 	
 	/**
@@ -63,14 +78,44 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 			for (int j = 0; j < var.length; j++) 
 			{	
 				colName = var[j];
-				if (listElement[j] instanceof String && j==1)
+				if(listElement[j] instanceof BigdataURIImpl && j==0)
+				{
+					BigdataURIImpl val = (BigdataURIImpl) listElement[j];
+					String text = val.toString();
+					text = text.substring(text.lastIndexOf("/")+1);
+					elementHash.put(colName, text.replaceAll("\"",""));
+				}
+				else if(listElement[j] instanceof BigdataURIImpl && j==1)
+				{
+					BigdataURIImpl val = (BigdataURIImpl) listElement[j];
+					String text = val.toString();
+					text = text.substring(text.lastIndexOf("/")+1);
+					elementHash.put(colName, text.replaceAll("\"",""));
+				}
+				else if(listElement[j] instanceof BigdataLiteral && j==1)
+				{
+					BigdataLiteral val = (BigdataLiteral) listElement[j];
+					if(val.stringValue().contains("NaN"))
+						elementHash.put(colName, 0.0);
+					else{
+						Object numVal = val.doubleValue();
+						if(numVal==null)
+							numVal = val.floatValue();
+						if(numVal==null)
+							numVal = val.integerValue();
+						elementHash.put(colName, numVal);
+					}
+				}
+				else if (listElement[j] instanceof String && j==1)
 				{	
 					String text = (String) listElement[j];
-					elementHash.put(colName, Integer.parseInt(text.replaceAll("\"","")));
+					text = text.substring(text.indexOf("\""), text.indexOf("\""));
+					elementHash.put(colName, Double.parseDouble(text.replaceAll("\"","")));
 				}
 				else if(listElement[j] instanceof String)
 				{
 					String text = (String) listElement[j];
+					text = text.substring(text.lastIndexOf("\\"));
 					elementHash.put(colName, text.replaceAll("\"",""));
 
 				}
@@ -78,7 +123,6 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 				{	
 					value = (Double) listElement[j];							
 					elementHash.put(colName, value);
-
 				}
 						
 			}
