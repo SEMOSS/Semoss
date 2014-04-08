@@ -656,6 +656,19 @@ public abstract class AbstractEngine implements IEngine {
 			boolean concept) {
 
 	}
+	
+	/**
+	 * Method removeStatement. Processes a given subject, predicate, object triple and removes the statement to the SailConnection.
+	 * @param subject		String - RDF Subject for the triple
+	 * @param predicate		String - RDF Predicate for the triple
+	 * @param object		Object - RDF Object for the triple
+	 * @param concept		boolean - True if the statement is a concept
+	 */
+	@Override
+	public void removeStatement(String subject, String predicate, Object object, boolean concept) 
+	{
+
+	}
 
 	/**
 	 * Commit the database. Commits the active transaction. This operation ends

@@ -314,6 +314,7 @@ public class ServicesAggregationProcessor {
 	private void runSystemServicePropertyAggregation(String propSystemServiceQuery, String propTAPCoreQuery)
 	{
 		dataHash.clear();
+		removeDataHash.clear();
 		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
 		processServiceSystemProperties(sjswServices,  false);
 
@@ -452,6 +453,7 @@ public class ServicesAggregationProcessor {
 	private void runICDPropAggregation(String servicesQuery, String coreQuery)
 	{
 		dataHash.clear();
+		removeDataHash.clear();
 
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		processICDPropAggregation(sjswService, false);
@@ -576,6 +578,7 @@ public class ServicesAggregationProcessor {
 	{
 		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
+		removeDataHash.clear();
 
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		aggregatedTError = runAggregateAllData(sjswService, aggregatedTError, "weight", false);
@@ -660,6 +663,7 @@ public class ServicesAggregationProcessor {
 	{
 		Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects = new Hashtable<String, Hashtable<String, LinkedList<Object>>>();
 		dataHash.clear();
+		removeDataHash.clear();
 
 		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
 		aggregatedDataObjects = runAggregateAllData(sjswService , aggregatedDataObjects, "CRM", false);
@@ -733,6 +737,7 @@ public class ServicesAggregationProcessor {
 	private void runHardwareSoftwareAggregation(String servicesQuery, String coreQuery, boolean softwareModule) 
 	{
 		dataHash.clear();
+		removeDataHash.clear();
 
 		SesameJenaSelectWrapper sjswServices = processQuery(servicesQuery, servicesDB);
 		processHardwareSoftwareProperties(sjswServices,  false, softwareModule);
@@ -1000,29 +1005,44 @@ public class ServicesAggregationProcessor {
 
 	private void deleteData(Hashtable<String, Hashtable<String, Object>> data)
 	{
-		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
-		boolean notEmpty = false;
-		for ( String sub : data.keySet())
+		for( String sub : data.keySet())
 		{
-			for (String pred : data.get(sub).keySet())
+			for ( String pred : data.get(sub).keySet())
 			{
 				Object obj = data.get(sub).get(pred);
-				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
+				boolean concept_triple = true;
+				if( pred.contains("Relation/Contains"))
 				{
-					notEmpty = true;
+					concept_triple = false;
 				}
-				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
+				( (BigDataEngine) coreDB).removeStatement(sub, pred, obj, concept_triple);
+				logger.info("REMOVING FROM TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
-		deleteQuery.append(" }");
-		logger.info("DELETE QUERY: " + deleteQuery.toString());
-		if(notEmpty)
-		{
-			UpdateProcessor proc = new UpdateProcessor();
-			proc.setEngine(coreDB);
-			proc.setQuery(deleteQuery.toString());
-			proc.processQuery();
-		}
+		
+//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
+//		boolean notEmpty = false;
+//		for ( String sub : data.keySet())
+//		{
+//			for (String pred : data.get(sub).keySet())
+//			{
+//				Object obj = data.get(sub).get(pred);
+//				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
+//				{
+//					notEmpty = true;
+//				}
+//				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
+//			}
+//		}
+//		deleteQuery.append(" }");
+//		logger.info("DELETE QUERY: " + deleteQuery.toString());
+//		if(notEmpty)
+//		{
+//			UpdateProcessor proc = new UpdateProcessor();
+//			proc.setEngine(coreDB);
+//			proc.setQuery(deleteQuery.toString());
+//			proc.processQuery();
+//		}
 	}
 
 	private void processNewConcepts()
