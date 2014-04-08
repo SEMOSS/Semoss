@@ -326,6 +326,67 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	}
 	
 	/**
+	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
+	 * @param subject String - RDF Subject
+	 * @param predicate String - RDF Predicate
+	 * @param object Object - RDF Object
+	 * @param concept boolean - True if the statement is a concept
+	 */
+	@Override
+	public void removeStatement(String subject, String predicate, Object object, boolean concept)
+	{
+		//logger.info("Updating Triple " + subject + "<>" + predicate + "<>" + object);
+		try {
+			URI newSub = null;
+			URI newPred = null;
+			String subString = null;
+			String predString = null;
+			String sub = subject.trim();
+			String pred = predicate.trim();
+			
+			//System.err.println("VF is " + vf);
+			
+			subString = Utility.cleanString(sub, false);
+			newSub = vf.createURI(subString);
+			
+			predString = Utility.cleanString(pred, false);
+			newPred = vf.createURI(predString);
+			
+			if(!concept)
+			{
+				if(object.getClass() == new Double(1).getClass())
+				{
+					logger.debug("Found Double " + object);
+					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
+				}
+				else if(object.getClass() == new Date(1).getClass())
+				{
+					logger.debug("Found Date " + object);
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+					String date = df.format(object);
+					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+					sc.removeStatements(newSub, newPred, vf.createLiteral(date, datatype));
+				}
+				else
+				{
+					logger.debug("Found String " + object);
+					String value = object + "";
+					// try to see if it already has properties then add to it
+					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.removeStatements(newSub, newPred, vf.createLiteral(cleanValue));
+				} 
+			}
+			else
+			{
+				sc.removeStatements(newSub, newPred, vf.createURI(object+""));
+			}
+		} catch (SailException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	/**
 	 * Runs the passed string query against the engine as an INSERT query.  The query passed must be in the structure of an INSERT 
 	 * SPARQL query or an INSERT DATA SPARQL query 
 	 * and there are no returned results.  The query will result in the specified triples getting added to the 
