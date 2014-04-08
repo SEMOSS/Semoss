@@ -1,5 +1,7 @@
 package prerna.ui.components.specific.tap;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -13,12 +15,20 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.repository.RepositoryConnection;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ServicesAggregationProcessor {
@@ -46,6 +56,7 @@ public class ServicesAggregationProcessor {
 //	private int rowNum = 1;
 	
 	public String errorMessage = "";
+	private boolean addedToOwl = false;
 	private boolean aggregationSuccess;
 
 	private String TAP_SERVICES_AGGREGATE_SYSTEM_USERS_QUERY = "SELECT DISTINCT ?system ?usedBy ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?usedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>} {?systemService ?usedBy ?user}}";
@@ -185,7 +196,11 @@ public class ServicesAggregationProcessor {
 		processNewConcepts();
 		processNewRelationships();
 		((BigDataEngine) coreDB).infer();
-
+		
+		if(addedToOwl)
+		{
+			writeToOWL();
+		}
 		
 //		XSSFRow row = errSheet.createRow(0);
 //		row.createCell(0).setCellValue("DB Name");
@@ -1036,12 +1051,15 @@ public class ServicesAggregationProcessor {
 			// add concepts that are not already in db
 			if(!conceptList.contains(obj))
 			{
+				addedToOwl = true;
 				( (BigDataEngine) coreDB).addStatement(obj, subclassOf, concept, true);
+				RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
+				existingBaseEngine.addStatement(obj, subclassOf, concept, true);
 				logger.info("ADDING NEW CONCEPT TRIPLE: " + obj + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
 			}
 		}
 	}
-
+	
 	private void processNewRelationships()
 	{
 		// get list of all relationships from tap core
@@ -1067,12 +1085,43 @@ public class ServicesAggregationProcessor {
 			// add relationships that are not already in db
 			if(!relationshipList.contains(obj))
 			{
+				addedToOwl = true;
 				( (BigDataEngine) coreDB).addStatement(obj, subpropertyOf, relation, true);
+				RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
+				existingBaseEngine.addStatement(obj, subpropertyOf, relation, true);
 				logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 			}
 		}	
 	}
 
+	public void writeToOWL()
+	{
+		// get the path to the owlFile
+		String owlFileLocation = DIHelper.getInstance().getProperty(coreDB.getEngineName() +"_" + Constants.OWL); 
+		
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
+		RepositoryConnection exportRC = existingBaseEngine.getRc();
+		
+		try{
+			FileWriter fWrite = new FileWriter(owlFileLocation);
+			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+			exportRC.export(owlWriter);
+			fWrite.close();
+			owlWriter.close();	
+		}
+		catch(IOException ex)
+		{
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// general methods for properties
 
