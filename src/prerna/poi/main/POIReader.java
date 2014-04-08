@@ -28,6 +28,7 @@ import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.Level;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -140,6 +141,7 @@ public class POIReader extends AbstractFileReader {
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
 	{
+		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
 		
@@ -324,7 +326,19 @@ public class POIReader extends AbstractFileReader {
 				if (nextRow.getCell(1) != null	&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK){
 					nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);					
 				}
-				String instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
+				
+				// to prevent errors when java thinks there is a row of data when the row is empty
+				XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
+				String instanceSubjectNode = "";
+				if(instanceSubjectNodeCell != null)
+				{
+					instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
+				}
+				else
+				{
+					continue;
+				}
+			
 				// get the name of the object instance node if relationship
 				String instanceObjectNode = "";
 				int startCol = 1;
