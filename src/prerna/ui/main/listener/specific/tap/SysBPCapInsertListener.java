@@ -31,7 +31,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BooleanProcessor;
-import prerna.ui.components.specific.tap.CentralSysBPActInsertProcessor;
+import prerna.ui.components.specific.tap.SysBPCapInsertProcessor;
 import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
@@ -39,7 +39,7 @@ import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class CentralSysBPActInsertListener extends AbstractListener {
+public class SysBPCapInsertListener extends AbstractListener {
 
 	Logger logger = Logger.getLogger(getClass());
 	
@@ -73,7 +73,6 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 		logger.info("Inserting System-BP and System-Activity for Central Systems into " + engineName + "...");
 		boolean success = false;
 		String errorMessage = "";
-		//TODO test this query
 		String isCalculatedQuery = "ASK WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?s ?p ?o ;} BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?contains) {?p ?contains ?prop ;} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} }";
 		BooleanProcessor proc = new BooleanProcessor();
 		proc.setQuery(isCalculatedQuery);
@@ -86,7 +85,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
 			
 			if (response == 1) {
-				CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+				SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
 				insertProcessor.setInsertCoreDB(engineName);
 				insertProcessor.runDeleteQueries();
 				success = insertProcessor.runCoreInsert();
@@ -98,7 +97,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 			else return;
 		}
 		else {
-			CentralSysBPActInsertProcessor insertProcessor = new CentralSysBPActInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+			SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
 			insertProcessor.setInsertCoreDB(engineName);
 			success = insertProcessor.runCoreInsert();
 			errorMessage = insertProcessor.getErrorMessage();
@@ -115,7 +114,7 @@ public class CentralSysBPActInsertListener extends AbstractListener {
 	
 	@Override
 	public void setView(JComponent view) {
-		// TODO Auto-generated method stub		
+			
 	}
 	
 }
