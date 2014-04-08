@@ -8,4 +8,10 @@ log4j.appender.A1=org.apache.log4j.ConsoleAppender
 log4j.appender.A1.layout=org.apache.log4j.PatternLayout
 log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n
 
-
+# Logger for error files
+log4j.appender.reportsLog=org.apache.log4j.FileAppender
+log4j.appender.reportsLog.File=ErrorLogFile.log
+log4j.appender.reportsLog.layout=org.apache.log4j.PatternLayout
+log4j.appender.reportsLog.layout.ConversionPattern=%d >>> %m%n
+log4j.category.reportsLogger=INFO, reportsLog
+log4j.additivity.reportsLogger=false
