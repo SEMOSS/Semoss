@@ -92,6 +92,13 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 					text = text.substring(text.lastIndexOf("/")+1);
 					elementHash.put(colName, text.replaceAll("\"",""));
 				}
+				else if(listElement[j] instanceof BigdataURIImpl && j>1)
+				{
+					BigdataURIImpl val = (BigdataURIImpl) listElement[j];
+					String text = val.toString();
+					text = text.substring(text.lastIndexOf("/")+1);
+					elementHash.put(colName, text.replaceAll("\"",""));
+				}
 				else if(listElement[j] instanceof BigdataLiteral && j==1)
 				{
 					BigdataLiteral val = (BigdataLiteral) listElement[j];
@@ -106,20 +113,25 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 						elementHash.put(colName, numVal);
 					}
 				}
-				else if (listElement[j] instanceof String && j==1)
+				else if(listElement[j] instanceof BigdataLiteral && j>1)
+				{
+					BigdataLiteral val = (BigdataLiteral) listElement[j];
+					elementHash.put(colName, val.stringValue().replaceAll("\"",""));
+				}
+				else if (listElement[j] instanceof String && j==1) //dont think we use this
 				{	
 					String text = (String) listElement[j];
 					text = text.substring(text.indexOf("\""), text.indexOf("\""));
 					elementHash.put(colName, Double.parseDouble(text.replaceAll("\"","")));
 				}
-				else if(listElement[j] instanceof String)
+				else if(listElement[j] instanceof String)//dont think we use this
 				{
 					String text = (String) listElement[j];
 					text = text.substring(text.lastIndexOf("\\"));
 					elementHash.put(colName, text.replaceAll("\"",""));
 
 				}
-				else 
+				else //dont think we use this
 				{	
 					value = (Double) listElement[j];							
 					elementHash.put(colName, value);
