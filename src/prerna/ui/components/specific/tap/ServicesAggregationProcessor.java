@@ -1,8 +1,5 @@
 package prerna.ui.components.specific.tap;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -13,11 +10,6 @@ import java.util.Set;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -27,13 +19,13 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ServicesAggregationProcessor {
 
+	Logger fileLogger = Logger.getLogger("reportsLogger");
 	Logger logger = Logger.getLogger(getClass());
+	
 	private IEngine servicesDB;
 	private IEngine coreDB;
 	private String semossBaseURI = "http://semoss.org/ontologies/Concept/";
@@ -49,9 +41,9 @@ public class ServicesAggregationProcessor {
 	private HashSet<String> allSoftwareModules = new HashSet<String>();
 	private HashSet<String> allHardwareModules = new HashSet<String>();
 
-	private XSSFWorkbook wb = new XSSFWorkbook();
-	private XSSFSheet errSheet = wb.createSheet();
-	private int rowNum = 1;
+//	private XSSFWorkbook wb = new XSSFWorkbook();
+//	private XSSFSheet errSheet = wb.createSheet();
+//	private int rowNum = 1;
 	
 	public String errorMessage = "";
 	private boolean aggregationSuccess;
@@ -123,7 +115,11 @@ public class ServicesAggregationProcessor {
 
 	public boolean runFullAggregation()
 	{		
-		boolean aggregationSuccess = true;
+		this.aggregationSuccess = true;
+		
+		fileLogger.info("TAP_SERVICES_DB TO TAP_CORE_DB AGGREGATION!");
+		fileLogger.info("DB NAME >>> SUBJECT >>>>> PREDICATE >>>>> OBJECT >>>>> ERROR MESSAGE");
+		
 		runGetListOfModules(TAP_CORE_SOFTWARE_MODULE_LIST_QUERY, true);
 		runGetListOfModules(TAP_CORE_HARDWARE_MODULE_LIST_QUERY, false);
 
@@ -191,23 +187,23 @@ public class ServicesAggregationProcessor {
 		((BigDataEngine) coreDB).infer();
 
 		
-		XSSFRow row = errSheet.createRow(0);
-		row.createCell(0).setCellValue("DB Name");
-		row.createCell(1).setCellValue("Subject");
-		row.createCell(2).setCellValue("Predicate");
-		row.createCell(3).setCellValue("Object");
-		row.createCell(3).setCellValue("Error Messge");
+//		XSSFRow row = errSheet.createRow(0);
+//		row.createCell(0).setCellValue("DB Name");
+//		row.createCell(1).setCellValue("Subject");
+//		row.createCell(2).setCellValue("Predicate");
+//		row.createCell(3).setCellValue("Object");
+//		row.createCell(4).setCellValue("Error Messge");
+//		
+//		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+//		try {
+//			wb.write(new FileOutputStream(workspace + "/" + "ServiceAggreagationErrorLog.xlsx"));
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 		
-		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		try {
-			wb.write(new FileOutputStream(workspace + "/" + "ServiceAggreagationErrorLog.xlsx"));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return aggregationSuccess;
+		return this.aggregationSuccess;
 	}
 
 	private void runRelationshipAggregation(String query)
@@ -392,20 +388,26 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						XSSFRow row = errSheet.createRow(rowNum);
+						String outuptToLog = "";
+//						XSSFRow row = errSheet.createRow(rowNum);
 						if(!TAP_Core)
 						{
-							row.createCell(0).setCellValue("TAP_Core_DB");
+//							row.createCell(0).setCellValue("TAP_Services_DB");
+							outuptToLog += "TAP_Services_DB ";
+							
 						}
 						else
 						{
-							row.createCell(0).setCellValue("TAP_Core_DB");
+//							row.createCell(0).setCellValue("TAP_Core_DB");
+							outuptToLog += "TAP_Core_DB ";
 						}
-						row.createCell(1).setCellValue(sub);
-						row.createCell(2).setCellValue(prop);
-						row.createCell(3).setCellValue(value.toString());
-						row.createCell(4).setCellValue(this.errorMessage);
-						rowNum++;
+						outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+						fileLogger.info(outuptToLog);
+//						row.createCell(1).setCellValue(sub);
+//						row.createCell(2).setCellValue(prop);
+//						row.createCell(3).setCellValue(value.toString());
+//						row.createCell(4).setCellValue(this.errorMessage);
+//						rowNum++;
 						
 						aggregationSuccess = false;
 					}
@@ -508,20 +510,26 @@ public class ServicesAggregationProcessor {
 					// if error occurs
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
-						XSSFRow row = errSheet.createRow(rowNum);
+						String outuptToLog = "";
+//						XSSFRow row = errSheet.createRow(rowNum);
 						if(!TAP_Core)
 						{
-							row.createCell(0).setCellValue("TAP_Core_DB");
+//							row.createCell(0).setCellValue("TAP_Services_DB");
+							outuptToLog += "TAP_Services_DB ";
+							
 						}
 						else
 						{
-							row.createCell(0).setCellValue("TAP_Core_DB");
+//							row.createCell(0).setCellValue("TAP_Core_DB");
+							outuptToLog += "TAP_Core_DB ";
 						}
-						row.createCell(1).setCellValue(sub);
-						row.createCell(2).setCellValue(prop);
-						row.createCell(3).setCellValue(value.toString());
-						row.createCell(4).setCellValue(this.errorMessage);
-						rowNum++;
+						outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+						fileLogger.info(outuptToLog);
+//						row.createCell(1).setCellValue(sub);
+//						row.createCell(2).setCellValue(prop);
+//						row.createCell(3).setCellValue(value.toString());
+//						row.createCell(4).setCellValue(this.errorMessage);
+//						rowNum++;
 						
 						aggregationSuccess = false;
 					}
@@ -601,16 +609,18 @@ public class ServicesAggregationProcessor {
 						catch(NumberFormatException e)
 						{
 							//e.printStackTrace();
-							this.errorMessage = this.errorMessage + "Error Processing TError! \n" 
-									+ "Error occured processing: " + pred + ">>>>" + propertyURI + ">>>>" + valueAsObject + "\n"				
+							this.errorMessage = this.errorMessage + "Error Processing TError! " 
+									+ "Error occured processing: " + pred + " >>>> " + propertyURI + " >>>> " + valueAsObject + " " 	
 									+ "Check that value is parsable as a double";	
-							XSSFRow row = errSheet.createRow(rowNum);
-							row.createCell(0).setCellValue("Not Sure");
-							row.createCell(1).setCellValue(pred);
-							row.createCell(2).setCellValue(propertyURI);
-							row.createCell(3).setCellValue(valueAsObject.toString());
-							row.createCell(4).setCellValue(this.errorMessage);
-							rowNum++;
+//							XSSFRow row = errSheet.createRow(rowNum);
+//							row.createCell(0).setCellValue("Not Sure");
+//							row.createCell(1).setCellValue(pred);
+//							row.createCell(2).setCellValue(propertyURI);
+//							row.createCell(3).setCellValue(valueAsObject.toString());
+//							row.createCell(4).setCellValue(this.errorMessage);
+//							rowNum++;
+							String outputToLog = "Unsure About DB" + " >>>>> " + pred + " >>>>> " + propertyURI + " >>>>> " + valueAsObject.toString() + " >>>>> " + this.errorMessage;
+							fileLogger.info(outputToLog);
 							
 							aggregationSuccess = false;
 						}
@@ -790,20 +800,26 @@ public class ServicesAggregationProcessor {
 						// if error occurs
 						if(Arrays.equals(returnTriple, new String[]{""}))
 						{
-							XSSFRow row = errSheet.createRow(rowNum);
+							String outuptToLog = "";
+//							XSSFRow row = errSheet.createRow(rowNum);
 							if(!TAP_Core)
 							{
-								row.createCell(0).setCellValue("TAP_Core_DB");
+//								row.createCell(0).setCellValue("TAP_Services_DB");
+								outuptToLog += "TAP_Services_DB ";
+								
 							}
 							else
 							{
-								row.createCell(0).setCellValue("TAP_Core_DB");
+//								row.createCell(0).setCellValue("TAP_Core_DB");
+								outuptToLog += "TAP_Core_DB ";
 							}
-							row.createCell(1).setCellValue(module);
-							row.createCell(2).setCellValue(prop);
-							row.createCell(3).setCellValue(value.toString());
-							row.createCell(4).setCellValue(this.errorMessage);
-							rowNum++;
+							outuptToLog += module + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+							fileLogger.info(outuptToLog);
+//							row.createCell(1).setCellValue(sub);
+//							row.createCell(2).setCellValue(prop);
+//							row.createCell(3).setCellValue(value.toString());
+//							row.createCell(4).setCellValue(this.errorMessage);
+//							rowNum++;
 							
 							aggregationSuccess = false;
 						}
@@ -1069,8 +1085,8 @@ public class ServicesAggregationProcessor {
 		catch(NumberFormatException e)
 		{
 			//e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -1137,8 +1153,8 @@ public class ServicesAggregationProcessor {
 		catch(NumberFormatException e)
 		{
 			//e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -1194,8 +1210,8 @@ public class ServicesAggregationProcessor {
 		catch(IllegalArgumentException e)
 		{
 			//e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -1280,8 +1296,8 @@ public class ServicesAggregationProcessor {
 			Object currentTransactional = innerHash.get(prop);
 			if(!currentTransactional.toString().toString().equalsIgnoreCase(value.toString()))
 			{
-				this.errorMessage = this.errorMessage + "Error Processing Transactional!  Conflicting report from systems \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n"						;				
+				this.errorMessage = "Error Processing Transactional!  Conflicting report from systems. " 
+						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
 				return new Object[]{""};
 			}
 		}
@@ -1369,8 +1385,8 @@ public class ServicesAggregationProcessor {
 
 			if(currentFreqValue[0] == null || currentFreqValue[1] == null)
 			{
-				this.errorMessage = this.errorMessage + "Error Processing DFreq!  Check frequency is predefined in list. \n" 
-						+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+				this.errorMessage = "Error Processing DFreq!  Check frequency is predefined in list. " 
+						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 				return new String[]{""};
 			}
 
