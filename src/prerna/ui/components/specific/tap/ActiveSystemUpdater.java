@@ -186,7 +186,7 @@ public class ActiveSystemUpdater {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		
 		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(engineName +"_"+Constants.OWL);;
+		String owlFileLocation = DIHelper.getInstance().getProperty(engineName +"_"+Constants.OWL);
 		
 		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
