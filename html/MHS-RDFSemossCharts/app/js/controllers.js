@@ -2160,7 +2160,7 @@ function SingleChartCtrl($scope, $http) {
                 } else {
                     graphOptions.series.push({name: key, data: data.dataSeries[key]});
                 }
-            } else if (graphOptions.type == 'pie') {
+            } else if (graphOptions.chartType == 'pie') {
             	graphOptions.series.push({name: key, data: data.dataSeries[key]});
             } else {
 
