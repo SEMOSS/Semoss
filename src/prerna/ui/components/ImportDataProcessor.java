@@ -108,6 +108,8 @@ public class ImportDataProcessor {
 	
 	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
 		boolean success = true;
+		//Replace spaces in db name with underscores
+		dbName = dbName.replace(" ", "_");
 		//first write the prop file for the new engine
 		PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType);
 
