@@ -175,8 +175,11 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				SesameJenaSelectStatement stmt = sjw.next();
 				// only one variable
 				String objClassName = stmt.getRawVar(vars[0])+"";
-				//logger.debug("Predicate is " + predName + "<<>> "+ predClassName);
-
+				String pred = "";
+				if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+					pred = stmt.getRawVar(vars[1])+"";
+				}
+				
 				//logger.debug("Filler Query is " + nFillQuery);
 				// compose the query based on this class name
 				// should we get type or not ?
@@ -185,7 +188,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
 						&& !objClassName.equals("http://semoss.org/ontologies/Concept")
 						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource")
-						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class"))
+						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class")
+						&& !pred.equals("http://semoss.org/ontologies/Relation")
+						&& (pred.equals("") || pred.startsWith("http://semoss.org")))
 				{
 					//add the to: and from: labels
 					if(count == 0){
@@ -205,10 +210,16 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 						hash.put("OBJECT_TYPE", objClassName);
 					else
 						hash.put("SUBJECT_TYPE", objClassName);
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						hash.put("PREDICATE", pred);
+					}
 
 					String nFillQuery = Utility.fillParam(typeQuery, hash);
 
 					NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
+					}
 					nItem.addActionListener(NeighborMenuListener.getInstance());
 					add(nItem);
 					//hash.put(objClassName, predClassName);

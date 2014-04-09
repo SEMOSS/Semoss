@@ -168,6 +168,10 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						SesameJenaSelectStatement stmt = sjw.next();
 						// only one variable
 						String objClassName = stmt.getRawVar(vars[0])+"";
+						String pred = "";
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+							pred = stmt.getRawVar(vars[1])+"";
+						}
 						//logger.debug("Predicate is " + predName + "<<>> "+ predClassName);
 
 						//logger.debug("Filler Query is " + nFillQuery);
@@ -178,7 +182,9 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
 								&& !objClassName.equals("http://semoss.org/ontologies/Concept")
 								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource") 
-								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class"))
+								&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class")
+								&& !pred.equals("http://semoss.org/ontologies/Relation")
+								&& (pred.equals("") || pred.startsWith("http://semoss.org")))
 						{
 							String instance = Utility.getInstanceName(objClassName);
 							//add the to: and from: labels
@@ -198,10 +204,16 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 								hash.put("OBJECT_TYPE", objClassName);
 							else
 								hash.put("SUBJECT_TYPE", objClassName);
+							if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+								hash.put("PREDICATE", pred);
+							}
 							
 							String nFillQuery = Utility.fillParam(typeQuery, hash);
-
+							System.err.println(nFillQuery);
 							NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
+							if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+								nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
+							}
 							nItem.addActionListener(NeighborMenuListener.getInstance());
 							add(nItem);
 							//hash.put(objClassName, predClassName);
