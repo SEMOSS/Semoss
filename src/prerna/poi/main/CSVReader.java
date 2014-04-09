@@ -110,6 +110,7 @@ public class CSVReader extends AbstractFileReader {
 	 */
 	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception  
 	{
+		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
 		createTypes();
@@ -144,6 +145,7 @@ public class CSVReader extends AbstractFileReader {
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception 
 	{
+		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
 		
