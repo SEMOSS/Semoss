@@ -2319,7 +2319,7 @@ function SingleChartCtrl($scope, $http) {
                 title: {
                     text: graphOptions.xAxis
                 },
-                categories: graphOptions.xAxisCategories,
+                categories: getXAxisCategories(),
                 plotLines: getXAxisPlotLines()
             },
             yAxis: {
@@ -2491,6 +2491,19 @@ function SingleChartCtrl($scope, $http) {
         } else{
             return 1;
         } 
+    }
+    
+    function getXAxisCategories () {
+    	var shortAxisNames = [];
+    	for (var i=0; i<graphOptions.xAxisCategories.length; i++) {
+    		if (graphOptions.xAxisCategories[i].length > 25) {
+    			shortAxisNames.push(graphOptions.xAxisCategories[i].substring(0, 25) + "...");
+    		} else {
+    			shortAxisNames.push(graphOptions.xAxisCategories[i]);
+    		}
+    	}
+    	return shortAxisNames;
+    	
     }
     
 }
