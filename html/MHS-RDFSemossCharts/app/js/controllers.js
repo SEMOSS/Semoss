@@ -2160,6 +2160,8 @@ function SingleChartCtrl($scope, $http) {
                 } else {
                     graphOptions.series.push({name: key, data: data.dataSeries[key]});
                 }
+            } else if (graphOptions.type == 'pie') {
+            	graphOptions.series.push({name: key, data: data.dataSeries[key]});
             } else {
 
                 var series = [];
