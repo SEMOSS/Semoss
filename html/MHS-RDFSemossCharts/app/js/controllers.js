@@ -2063,6 +2063,8 @@ function SingleChartCtrl($scope, $http) {
     };
     $scope.yExtraLegend = [];
     $scope.xExtraLegend = [];
+    $scope.switchAxes = false;
+    $scope.chartType = '';
     
 
     //function used to interact with the inline javascript
@@ -2076,7 +2078,7 @@ function SingleChartCtrl($scope, $http) {
     };
     
     //----------Comment the below $http.get when using in Java
-    /*$http.get('lib/singleChartGridData.json').success(function(jsonData) {
+    /*$http.get('lib/barTestData.json').success(function(jsonData) {
         setChartData(jsonData);
     });*/
     
@@ -2107,8 +2109,8 @@ function SingleChartCtrl($scope, $http) {
             }
         }
         
-
-
+        $scope.chartType = data.type;
+        
         //declare and set variables
         graphOptions.xLineLabel = data.xLineLabel;
         graphOptions.yLineLabel = data.yLineLabel;
@@ -2248,13 +2250,34 @@ function SingleChartCtrl($scope, $http) {
         }
             
     }
-
+    
+    $scope.switchGraphAxesData = function() {
+    	var newSeries = [];
+    	var newXAxisCategories = [];
+    	
+    	for (var i=0; i<graphOptions.xAxisCategories.length; i++) {
+    		var name = graphOptions.xAxisCategories[i];
+    		var data = [];
+    		
+    		for (var j=0; j<graphOptions.series.length; j++) {
+                data.push(graphOptions.series[j].data[i]);
+                if (i == 0) {
+                	newXAxisCategories.push(graphOptions.series[j].name);
+                }
+			}
+    		newSeries.push({name: name, data: data});
+    	}
+    	    	
+    	graphOptions.xAxisCategories = newXAxisCategories;
+    	graphOptions.series = newSeries;
+    	$scope.createChart();
+    }
 
     //creates alliance health grid chart
     $scope.createChart = function (newType) {
     		
         if(newType){
-            graphOptions.chartType = newType
+            graphOptions.chartType = newType;
         }
         if(newType === 'bubble' && graphOptions.series[0].data[0].length < 3) {
             graphOptions.chartType = 'scatter';
