@@ -195,6 +195,7 @@ public class ServicesAggregationProcessor {
 		runHardwareSoftwareAggregation(TAP_SERVICES_AGGREGATE_HARDWARE_QUERY, TAP_CORE_AGGREGATION_HARDWARE_QUERY, false);
 		processNewConcepts();
 		processNewRelationships();
+		
 		((BigDataEngine) coreDB).infer();
 		
 		if(addedToOwl)
@@ -873,7 +874,7 @@ public class ServicesAggregationProcessor {
 
 					String baseUri = getBaseURI(system);
 					//relationship from system to softwareModule
-					String predSysToMod = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
+					String predSysToMod = baseUri + "/Relation/Consists/" + getTextAfterFinalDelimeter(system, "/") + ":" + getTextAfterFinalDelimeter(module, "/");
 					addToAllRelationships(predSysToMod);
 					logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
