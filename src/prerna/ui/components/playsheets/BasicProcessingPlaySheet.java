@@ -188,7 +188,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-
+				
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{

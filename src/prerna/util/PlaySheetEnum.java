@@ -33,10 +33,11 @@ public enum PlaySheetEnum {
 	Heat_Map("Heat Map", "prerna.ui.components.playsheets.HeatMapPlaySheet", "Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList"),
 	Parallel_Coordinates("Parallel Coordinates", "prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet", "Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ...}"),
 	Grid_Scatter("Grid Scatter", "prerna.ui.components.playsheets.GridScatterSheet", "Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }"),
+	Column_Chart("Column Chart", "prerna.ui.components.playsheets.ColumnChartPlaySheet", "Hint: SELECT ?columnType ?entity1 ?entity2 ... ?entity WEHRE {...}"),
 	Sankey_Diagram("Sankey Diagram","prerna.ui.components.playsheets.SankeyPlaySheet", "Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ...}"),
 	World_Heat_Map("World Heat Map","prerna.ui.components.playsheets.WorldHeatMapPlaySheet", "Hint: SELECT ?country ?numericHeatValue WHERE{ ... }"),
 	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "Hint: SELECT ?state ?numericHeatValue WHERE{ ... }");
-
+	
 	
 	private final String sheetName;
 	private final String sheetClass;
