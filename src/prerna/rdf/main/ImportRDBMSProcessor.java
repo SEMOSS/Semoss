@@ -67,6 +67,13 @@ public class ImportRDBMSProcessor {
 	private Set<String> baseRels = new HashSet<String>();
 	private Hashtable<String, ArrayList<String>> baseRelationships = new Hashtable<String, ArrayList<String>>();
 	
+	private final String MYSQL = "MySQL";
+	private final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
+	private final String ORACLE = "Oracle";
+	private final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
+	private final String SQLSERVER = "MS SQL Server";
+	private final String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+	
 	public ImportRDBMSProcessor() {
 		
 	}
@@ -166,6 +173,11 @@ public class ImportRDBMSProcessor {
 			for(int i = 1; i <= propRows; i++){
 				XSSFRow dataRow = propSheet.getRow(i);
 				tableInput = dataRow.getCell(0).toString();
+				
+				if(tableInput.isEmpty()) {
+					continue;
+				}
+				
 				tableInstanceColumn = dataRow.getCell(1).toString();
 				
 				if(dataRow.getCell(2) != null)
@@ -192,6 +204,8 @@ public class ImportRDBMSProcessor {
 					else if(dataType.equalsIgnoreCase("Float"))
 					{
 						dataType = "float";
+					} else {
+						dataType = "string";
 					}
 				}
 				
@@ -264,13 +278,30 @@ public class ImportRDBMSProcessor {
 
 	private String createDatabase(String url, String username, String password)
 	{
-		return dbConnection = "map:database a d2rq:Database;" + spacer + 
+		//Account for the single backslash in a SQL Server URL and escape it when writing D2RQ mapping
+		if(this.type.equalsIgnoreCase(this.SQLSERVER)) {
+			url = url.replace("\\", "\\\\");
+		}
+		
+		String dbConnection = "map:database a d2rq:Database;" + spacer + 
 				"d2rq:jdbcDSN \"" + url + "\";" + spacer + 
-				"d2rq:jdbcDriver \"com.mysql.jdbc.Driver\";" + spacer + 
+				"d2rq:jdbcDriver \"";
+		
+		if(this.type.equalsIgnoreCase(this.MYSQL)) {
+			dbConnection += this.MYSQL_DRIVER;
+		} else if(this.type.equalsIgnoreCase(this.ORACLE)) {
+			dbConnection += this.ORACLE_DRIVER;
+		} else if(this.type.equalsIgnoreCase(this.SQLSERVER)) {
+			dbConnection += this.SQLSERVER_DRIVER;
+		}
+		
+		dbConnection += "\";" + spacer + 
 				"d2rq:username \"" + username + "\";" + spacer + 
 				"d2rq:password \"" + password + "\";" + spacer + 
 				"jdbc:keepAlive \"3600\";" + spacer + 
 				".\n";
+		
+		return dbConnection;
 	}
 
 	private void processTable(String tableName, String tableInstance, String nodeType){
@@ -482,7 +513,7 @@ public class ImportRDBMSProcessor {
 		
 		Connection con;
 		
-		if(type.equals("MySQL")) {
+		if(type.equals(this.MYSQL)) {
 			try {
 				Class.forName("com.mysql.jdbc.Driver");
 				
@@ -497,7 +528,7 @@ public class ImportRDBMSProcessor {
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-		} else if(type.equals("Oracle")) {
+		} else if(type.equals(this.ORACLE)) {
 			try {
 				Class.forName("oracle.jdbc.driver.OracleDriver");
 				
@@ -512,7 +543,7 @@ public class ImportRDBMSProcessor {
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-		} else if(type.equals("MS SQL Server")) {
+		} else if(type.equals(this.SQLSERVER)) {
 			try {
 				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 				
@@ -545,17 +576,16 @@ public class ImportRDBMSProcessor {
 		Hashtable<String, Hashtable<String, ArrayList<String>>> schemaHash = new Hashtable<String, Hashtable<String, ArrayList<String>>>();
 		ResultSet resultSet = null;
 
-		if(type.equals("MySQL")) 
+		if(type.equals(this.MYSQL)) 
 		{
 			try {
 				Class.forName("com.mysql.jdbc.Driver");
 				con = DriverManager
 						.getConnection(url + "?user=" + username + "&password=" + new String(password));
-				//Connection URL format: jdbc:mysql://<hostname>[:port]/<DBname>
 				//Get DBname from URL
 				dbName = url.substring(url.lastIndexOf("/")+1);
-				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';";
-				logger.info("SQL Query for all Tables/Columns/DataTypes:     " + sql);
+				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';";
+				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
 				Statement statement = con.createStatement();
 				resultSet = statement.executeQuery(sql);
 			}
@@ -567,18 +597,18 @@ public class ImportRDBMSProcessor {
 				return (success = false);
 			}
 		}
-		else if(type.equals("Oracle")) 
+		else if(type.equals(this.ORACLE)) 
 		{
 			try {
 				Class.forName("oracle.jdbc.driver.OracleDriver");
 				con = DriverManager
 						.getConnection(url, username, new String(password));
-				//Connection URL format: jdbc:oracle:thin:@<hostname>[:port]/<service or sid>
 				//Get DBname from URL
 				dbName = url.substring(url.lastIndexOf("/")+1);
-
-
-
+				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS";
+				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
+				Statement statement = con.createStatement();
+				resultSet = statement.executeQuery(sql);
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 				return (success = false);
@@ -587,18 +617,18 @@ public class ImportRDBMSProcessor {
 				return (success = false);
 			}
 		} 
-		else if(type.equals("MS SQL Server")) 
+		else if(type.equals(this.SQLSERVER)) 
 		{
 			try {
 				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 				con = DriverManager
 						.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));				
-				//Connection URL format: jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>				
 				//Get DBname from URL
 				dbName = url.substring(url.indexOf("=")+1);
-
-
-
+				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG = '" + dbName + "';";
+				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
+				Statement statement = con.createStatement();
+				resultSet = statement.executeQuery(sql);
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 				return (success = false);
