@@ -2,6 +2,7 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 
 import prerna.util.Constants;
@@ -31,9 +32,8 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 			data.put(elemValues[0].toString(), values);	
 		}
 		
-		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("xAxis", names);
+		columnChartHash.put("xAxis", Arrays.copyOfRange(names, 1, names.length));
 		columnChartHash.put("type", "column");
 		columnChartHash.put("dataSeries", data);
 		
