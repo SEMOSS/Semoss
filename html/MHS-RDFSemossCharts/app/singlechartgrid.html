@@ -20,10 +20,13 @@
 			 
             <div id="graphSpace">
                 <div class="options">
-    				<b>Chart Type: </b>
-    				<button class="btn btn-large btn-primary" ng-click='createChart("scatter")'><img src="img/scatter.png"></button>
-                    <button class="btn btn-large btn-warning" ng-click='createChart("bubble")'><img src="img/bubble.png"></button>
-                    <br>
+                	<span ng-show="chartType == 'scatter' || chartType == 'bubble'">
+	    				<b>Chart Type: </b>
+	    				<button class="btn btn-large btn-primary" ng-click='createChart("scatter")'><img src="img/scatter.png"></button>
+	                    <button class="btn btn-large btn-warning" ng-click='createChart("bubble")'><img src="img/bubble.png"></button>
+	                    <br>
+                    </span>
+                    <button class="btn btn-large btn-default" ng-click='switchGraphAxesData();' ng-show="chartType == 'column' || chartType == 'bar'"><span style="font-size: 13px">Switch Data Groups</span></button>
     			 </div>
                  <span class="extLegend" ng-show="yExtraLegend.length > 0 && xExtraLegend.length > 0">
                     <span ng-show="yExtraLegend.length > 0">
