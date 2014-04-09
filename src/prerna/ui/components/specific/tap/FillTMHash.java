@@ -49,6 +49,7 @@ public class FillTMHash extends GridPlaySheet{
 	ArrayList <String []> list;
 	GridFilterData gfd = new GridFilterData();
 	
+	Logger fileLogger = Logger.getLogger("reportsLogger");
 	Logger logger = Logger.getLogger(getClass());
 	
 	//Necessary items to create a filler
@@ -114,6 +115,7 @@ public class FillTMHash extends GridPlaySheet{
 		if(failed == true){
 			jBar.setVisible(false);
 			runFailPopup(failedQuery);
+			fileLogger.info("Did not return any results for Tech Maturity query: "+query);
 		}
 		else{
 			TMCalculationPerformer calculator = new TMCalculationPerformer();
@@ -180,11 +182,11 @@ public class FillTMHash extends GridPlaySheet{
 		
 
 		if (names[0].contains("CREATE")){
-				createMatrix(constant, names);
+			createMatrix(constant, names);
 		}
 		
 		else if (names[0].contains("FILL")){
-			if(names[0].contains("MATRIX")) fillStringMatrix(constant, names);
+			fillStringMatrix(constant, names);
 		}
 	}
 	
@@ -211,38 +213,48 @@ public class FillTMHash extends GridPlaySheet{
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.BVnext();
-				var2 = Utility.getInstanceName(sjss.getVar(names[2])+"");
-				var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
-				var4 = Utility.getInstanceName(sjss.getVar(names[4])+"");
-				if(constant.contains("_Tech_Maturity_Lifecycle"))
-					var5 = (String)sjss.getVar(names[5]);
-				else
-					var5 = Utility.getInstanceName(sjss.getVar(names[5])+"");
-				
-				if(count == 0){
-					String vert3uri = sjss.getVar(names[3])+"";
-					String vert3type = Utility.getClassName(vert3uri);
-					String vert4uri = sjss.getVar(names[4])+"";
-					String vert4type = Utility.getClassName(vert4uri);
-					if (!(vert3type==null) && !(vert4type==null)) key = vert3type + "/" + vert4type;
-					else key = var2;
+				try{
+					var2 = Utility.getInstanceName(sjss.getVar(names[2])+"");
+					var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
+					var4 = Utility.getInstanceName(sjss.getVar(names[4])+"");
+					if(constant.contains("_Tech_Maturity_Lifecycle"))
+						var5 = (String)sjss.getVar(names[5]);
+					else
+						var5 = Utility.getInstanceName(sjss.getVar(names[5])+"");
+					
+					if(count == 0){
+						String vert3uri = sjss.getVar(names[3])+"";
+						String vert3type = Utility.getClassName(vert3uri);
+						String vert4uri = sjss.getVar(names[4])+"";
+						String vert4type = Utility.getClassName(vert4uri);
+						if (!(vert3type==null) && !(vert4type==null)) key = vert3type + "/" + vert4type;
+						else key = var2;
+					}
+					count++;
+					
+					//get the right matrix and arrayList
+					String[][] matrix = (String[][]) TMhash.get(key+constant);
+					ArrayList<String> rowLabels = (ArrayList<String>) TMhash.get(key+Constants.CALC_ROW_LABELS);
+					ArrayList<String> colLabels = (ArrayList<String>) TMhash.get(key+Constants.CALC_COLUMN_LABELS);
+					
+					//put in the label in rowLabels and put the value in the right spot in the array
+					if (!rowLabels.contains(var3)) rowLabels.add(var3);
+					int rowLoc = rowLabels.indexOf(var3);
+					if (!colLabels.contains(var4)) colLabels.add(var4);
+					int colLoc = colLabels.indexOf(var4);
+					matrix[rowLoc][colLoc] = var5;
+					TMhash.put(key+constant, matrix);
+					TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
+					TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
+					var2="";
+					var3="";
+					var4="";
+					var5="";
 				}
-				count++;
-				
-				//get the right matrix and arrayList
-				String[][] matrix = (String[][]) TMhash.get(key+constant);
-				ArrayList<String> rowLabels = (ArrayList<String>) TMhash.get(key+Constants.CALC_ROW_LABELS);
-				ArrayList<String> colLabels = (ArrayList<String>) TMhash.get(key+Constants.CALC_COLUMN_LABELS);
-				
-				//put in the label in rowLabels and put the value in the right spot in the array
-				if (!rowLabels.contains(var3)) rowLabels.add(var3);
-				int rowLoc = rowLabels.indexOf(var3);
-				if (!colLabels.contains(var4)) colLabels.add(var4);
-				int colLoc = colLabels.indexOf(var4);
-				matrix[rowLoc][colLoc] = var5;
-				TMhash.put(key+constant, matrix);
-				TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
-				TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
+				catch(Exception e)
+				{
+					fileLogger.info("Issue with relation: "+names[2]+" - "+var2+">>>>"+names[3]+" - "+var3+">>>>"+names[4]+" - "+var4+">>>>"+names[5]+" - "+var5);
+				}
 			}
 		}catch (Exception e) {
 			logger.fatal(e);
@@ -261,29 +273,35 @@ public class FillTMHash extends GridPlaySheet{
 			{
 				SesameJenaSelectStatement sjss = wrapper.BVnext();
 				String key = null;
-
-				if (names[1].contains("SystemSoftwareMLifecycle")) {
-						key = "System/SoftwareModule";
-					}
-					else if (names[1].contains("SystemSoftwareMCategory")) {
-						key = "System/SoftwareModule";
-					}
-					else if (names[1].contains("SystemHardware")) {
-						key = "System/HardwareModule";
-					}
-					Double vert3double = (Double) sjss.getVar(names[3]);
-					int vert3int = (int) vert3double.intValue();
-					Double vert4double = (Double) sjss.getVar(names[4]);
-					int vert4int = (int) vert4double.intValue();
-					
-					String[][] fullMatrix = new String[vert3int][vert4int];
-					ArrayList<String> rowLabels = new ArrayList<String>();
-					ArrayList<String> colLabels = new ArrayList<String>();
-					
-					TMhash.put(key+constant, fullMatrix);
-					TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
-					TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
-				
+				Double vert3double=0.0;
+				Double vert4double=0.0;
+				try{
+					if (names[1].contains("SystemSoftwareMLifecycle")) {
+							key = "System/SoftwareModule";
+						}
+						else if (names[1].contains("SystemSoftwareMCategory")) {
+							key = "System/SoftwareModule";
+						}
+						else if (names[1].contains("SystemHardware")) {
+							key = "System/HardwareModule";
+						}
+						vert3double = (Double) sjss.getVar(names[3]);
+						int vert3int = (int) vert3double.intValue();
+						vert4double = (Double) sjss.getVar(names[4]);
+						int vert4int = (int) vert4double.intValue();
+						
+						String[][] fullMatrix = new String[vert3int][vert4int];
+						ArrayList<String> rowLabels = new ArrayList<String>();
+						ArrayList<String> colLabels = new ArrayList<String>();
+						
+						TMhash.put(key+constant, fullMatrix);
+						TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
+						TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
+				}
+				catch(Exception e)
+				{
+					fileLogger.info("Issue with relation: "+names[3]+" - "+vert3double+">>>>"+names[4]+" - "+vert4double);
+				}
 			}
 		} catch (Exception e) {
 			// TODO: Specify exception
