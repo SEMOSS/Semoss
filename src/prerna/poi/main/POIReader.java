@@ -330,7 +330,7 @@ public class POIReader extends AbstractFileReader {
 				// to prevent errors when java thinks there is a row of data when the row is empty
 				XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
 				String instanceSubjectNode = "";
-				if(instanceSubjectNodeCell != null)
+				if(instanceSubjectNodeCell != null || instanceSubjectNodeCell.getCellType() == XSSFCell.CELL_TYPE_BLANK || instanceSubjectNodeCell.toString().isEmpty())
 				{
 					instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 				}
@@ -345,7 +345,15 @@ public class POIReader extends AbstractFileReader {
 				int offset = 1;
 				if (sheetType.equalsIgnoreCase("Relation")) {
 					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
-					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
+					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
+					if(instanceObjectNodeCell != null || instanceObjectNodeCell.getCellType() == XSSFCell.CELL_TYPE_BLANK || instanceObjectNodeCell.toString().isEmpty())
+					{
+						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
+					}
+					else
+					{
+						continue;
+					}
 					startCol++;
 					offset++;
 				}
