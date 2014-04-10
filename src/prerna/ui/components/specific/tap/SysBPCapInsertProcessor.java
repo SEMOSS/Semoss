@@ -46,6 +46,7 @@ public class SysBPCapInsertProcessor {
 	
 	private double dataObjectThresholdValue = 0.0;
 	private double bluThresholdValue = 0.0;
+	private String logicType = "AND";
 	
 	private String hrCoreBaseURI = "http://health.mil/ontologies/Relation/";
 
@@ -67,9 +68,10 @@ public class SysBPCapInsertProcessor {
 		return this.errorMessage;
 	}
 
-	public SysBPCapInsertProcessor(Double dataObjectThresholdValue, Double bluThresholdValue) {
+	public SysBPCapInsertProcessor(Double dataObjectThresholdValue, Double bluThresholdValue, String logicType) {
 		this.dataObjectThresholdValue = dataObjectThresholdValue;
 		this.bluThresholdValue = bluThresholdValue;
+		this.logicType = logicType;
 	}
 	
 	public void runDeleteQueries() {
@@ -89,7 +91,7 @@ public class SysBPCapInsertProcessor {
 		
 		logger.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
 		logger.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
-		logger.info("Core DB is: " + coreDB);		
+		logger.info("Core DB is: " + coreDB.getEngineName());		
 		
 //1.  QUERY AND COLLECT THE DATA (Raw URIs)	
 	//1.1  Collect bp==>Data (CRM) and bp==>BLU 		
@@ -172,23 +174,35 @@ public class SysBPCapInsertProcessor {
 						for (String blu : bpSpecificBLUSet) {					
 							if (systemSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
 						} 
-					}	
-					
-				//Decide if System 's' Supports BusinessProcess	
-					if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {						
-					//Add the System-BP relation to the local Hashtables to prepare for Insert						
-						String pred = hrCoreBaseURI + "Supports";
-						pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(sys, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
-						dataHash = aggregationHelper.addToHash(dataHash, new Object[]{sys, pred, bp});
-						dataHash = aggregationHelper.addToHash(dataHash, new Object[]{pred, aggregationHelper.getSemossPropertyBaseURI() + "Calculated", "yes"});
-						logger.info("*****Prop URI: " + pred + ", predURI: " + aggregationHelper.getSemossPropertyBaseURI() + "Calculated" + ", value: " + "yes");
-						newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);						
-						logger.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
+					}
+				
+				//Based on the logic type, insert new relationships	
+					if (logicType.equals("AND")) {		
+						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {	
+							systemSupportsBPRelationProcessing(sys, bp);
+						}
+					}
+					else if (logicType.equals("OR")) {
+						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) || (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {
+							systemSupportsBPRelationProcessing(sys, bp);
+						}
 					}
 				}
 		}
 		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
 		logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
+	}
+	
+	public void systemSupportsBPRelationProcessing(String sys, String bp) {
+		AggregationHelper aggregationHelper = new AggregationHelper();				
+	//Add the System-BP relation to the local Hashtables to prepare for Insert						
+		String pred = hrCoreBaseURI + "Supports";
+		pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(sys, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
+		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{sys, pred, bp});
+		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{pred, aggregationHelper.getSemossPropertyBaseURI() + "Calculated", "yes"});
+		logger.info("*****Prop URI: " + pred + ", predURI: " + aggregationHelper.getSemossPropertyBaseURI() + "Calculated" + ", value: " + "yes");
+		newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);						
+		logger.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
 	}
 
 	

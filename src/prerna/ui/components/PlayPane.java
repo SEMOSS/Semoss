@@ -271,6 +271,7 @@ public class PlayPane extends JFrame {
 	//System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
 	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
+	public JComboBox relInferLogicTypeComboBox;
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck,
@@ -294,7 +295,7 @@ public class PlayPane extends JFrame {
 	public JPanel factSheetReportSysDropDownPanel,
 			factSheetReportTypeDropDownPanel;
 	public FactSheetReportComboBox factSheetReportSyscomboBox;
-	public JComboBox FactSheetReportTypecomboBox;
+	public JComboBox factSheetReportTypecomboBox;
 
 	//Tasker Generation and System Info Panel
 	private JSeparator separator_8;
@@ -2243,6 +2244,27 @@ public class PlayPane extends JFrame {
 		gbc_centralSystemBPActInsertLabel.gridx = 1;
 		gbc_centralSystemBPActInsertLabel.gridy = 1;
 		centralSystemBPActInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
+		
+		JLabel logicTypelabel = new JLabel("Select Logic Type:");
+		logicTypelabel.setFont(new Font("Tahoma", Font.ITALIC, 12));
+		GridBagConstraints gbc_logicTypelabel = new GridBagConstraints();
+		gbc_logicTypelabel.anchor = GridBagConstraints.WEST;
+		gbc_logicTypelabel.gridwidth = 4;
+		gbc_logicTypelabel.insets = new Insets(5, 20, 5, 5);
+		gbc_logicTypelabel.gridx = 1;
+		gbc_logicTypelabel.gridy = 2;
+		centralSystemBPActInsertPanel.add(logicTypelabel, gbc_logicTypelabel);
+		
+		relInferLogicTypeComboBox = new JComboBox();
+		relInferLogicTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		relInferLogicTypeComboBox.setBackground(Color.GRAY);
+		GridBagConstraints gbc_relInferLogicTypeComboBox = new GridBagConstraints();
+		gbc_relInferLogicTypeComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_relInferLogicTypeComboBox.anchor = GridBagConstraints.EAST;
+		gbc_relInferLogicTypeComboBox.gridx = 2;
+		gbc_relInferLogicTypeComboBox.gridy = 2;
+		centralSystemBPActInsertPanel.add(relInferLogicTypeComboBox, gbc_relInferLogicTypeComboBox);
+		relInferLogicTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "AND" , "OR" }));
 
 		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Inferred Relationships:");
 		activityThresholdlabel_1.setFont(new Font("Tahoma", Font.ITALIC, 12));
@@ -2251,7 +2273,7 @@ public class PlayPane extends JFrame {
 		gbc_activityThresholdlabel_1.gridwidth = 4;
 		gbc_activityThresholdlabel_1.insets = new Insets(5, 20, 5, 5);
 		gbc_activityThresholdlabel_1.gridx = 1;
-		gbc_activityThresholdlabel_1.gridy = 2;
+		gbc_activityThresholdlabel_1.gridy = 3;
 		centralSystemBPActInsertPanel.add(activityThresholdlabel_1, gbc_activityThresholdlabel_1);
 
 		JLabel lblDataThresholdValue = new JLabel("Data Object Threshold Value:");
@@ -2260,7 +2282,7 @@ public class PlayPane extends JFrame {
 		gbc_lblDataThresholdValue.anchor = GridBagConstraints.WEST;
 		gbc_lblDataThresholdValue.insets = new Insets(0, 20, 5, 5);
 		gbc_lblDataThresholdValue.gridx = 1;
-		gbc_lblDataThresholdValue.gridy = 3;
+		gbc_lblDataThresholdValue.gridy = 4;
 		centralSystemBPActInsertPanel.add(lblDataThresholdValue, gbc_lblDataThresholdValue);
 
 		JLabel lblBLUThresholdValue = new JLabel("BLU Threshold Value:");
@@ -2269,7 +2291,7 @@ public class PlayPane extends JFrame {
 		gbc_lblBLUThresholdValue.anchor = GridBagConstraints.WEST;
 		gbc_lblBLUThresholdValue.insets = new Insets(0, 10, 5, 5);
 		gbc_lblBLUThresholdValue.gridx = 2;
-		gbc_lblBLUThresholdValue.gridy = 3;
+		gbc_lblBLUThresholdValue.gridy = 4;
 		centralSystemBPActInsertPanel.add(lblBLUThresholdValue, gbc_lblBLUThresholdValue);
 
 		dataObjectThresholdValueTextField = new JTextField();
@@ -2283,7 +2305,7 @@ public class PlayPane extends JFrame {
 		gbc_dataObjectThresholdValueTextField.anchor = GridBagConstraints.WEST;
 		gbc_dataObjectThresholdValueTextField.insets = new Insets(0, 20, 5, 5);
 		gbc_dataObjectThresholdValueTextField.gridx = 1;
-		gbc_dataObjectThresholdValueTextField.gridy = 4;
+		gbc_dataObjectThresholdValueTextField.gridy = 5;
 		centralSystemBPActInsertPanel.add(dataObjectThresholdValueTextField, gbc_dataObjectThresholdValueTextField);
 		dataObjectThresholdValueTextField.setColumns(12);
 		
@@ -2298,7 +2320,7 @@ public class PlayPane extends JFrame {
 		gbc_bluThresholdValueTextField.anchor = GridBagConstraints.EAST;
 		gbc_bluThresholdValueTextField.insets = new Insets(0, 0, 5, 5);
 		gbc_bluThresholdValueTextField.gridx = 2;
-		gbc_bluThresholdValueTextField.gridy = 4;
+		gbc_bluThresholdValueTextField.gridy = 5;
 		centralSystemBPActInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
 		bluThresholdValueTextField.setColumns(12);		
 
@@ -2309,7 +2331,7 @@ public class PlayPane extends JFrame {
 		gbc_btnCentralSysBPActInsert.gridwidth = 1;
 		gbc_btnCentralSysBPActInsert.insets = new Insets(0, 20, 5, 5);
 		gbc_btnCentralSysBPActInsert.gridx = 1;
-		gbc_btnCentralSysBPActInsert.gridy = 5;
+		gbc_btnCentralSysBPActInsert.gridy = 6;
 		centralSystemBPActInsertPanel.add(btnSysBPCapInsert, gbc_btnCentralSysBPActInsert);
 		Style.registerTargetClassName(btnSysBPCapInsert, ".standardButton");
 		
@@ -2622,15 +2644,15 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectFactSheetReportType.gridy = 0;
 		factSheetReportTypeDropDownPanel.add(lblSelectFactSheetReportType, gbc_lblSelectFactSheetReportType);
 
-		FactSheetReportTypecomboBox = new JComboBox();
-		FactSheetReportTypecomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		FactSheetReportTypecomboBox.setBackground(Color.GRAY);
+		factSheetReportTypecomboBox = new JComboBox();
+		factSheetReportTypecomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		factSheetReportTypecomboBox.setBackground(Color.GRAY);
 		GridBagConstraints gbc_factSheetReportTypecomboBox = new GridBagConstraints();
 		gbc_factSheetReportTypecomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_factSheetReportTypecomboBox.gridx = 0;
 		gbc_factSheetReportTypecomboBox.gridy = 1;
-		factSheetReportTypeDropDownPanel.add(FactSheetReportTypecomboBox, gbc_factSheetReportTypecomboBox);
-		FactSheetReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems" , "System Specific" }));
+		factSheetReportTypeDropDownPanel.add(factSheetReportTypecomboBox, gbc_factSheetReportTypecomboBox);
+		factSheetReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems" , "System Specific" }));
 
 		btnFactSheetReport = new CustomButton("Generate Fact Sheet Report");
 		btnFactSheetReport.setFont(new Font("Tahoma", Font.BOLD, 11));

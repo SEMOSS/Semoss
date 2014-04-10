@@ -91,7 +91,7 @@ public class ConstantsTAP {
 	public static final String BUSINESS_PROCESS_QUERY = "BUSINESS_PROCESS_QUERY";
 	public static final String PPI_QUERY = "PPI_QUERY";
 	public static final String CAPABILITIES_SUPPORTED_QUERY = "CAPABILITIES_SUPPORTED_QUERY";
-	
+		
 	//Tasker Generation Constants
 	public static String TASKER_GENERATION_SYSTEM_COMBO_BOX="TaskerGenerationSyscomboBox";
 	public static final String ACTIVITY_QUERY = "ACTIVITY_QUERY";
@@ -153,5 +153,6 @@ public class ConstantsTAP {
 	//Central System Sys-BP Sys-Activity Aggregation Thresholds
 	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
 	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
-	
+	//Relationship Insert Constants
+	public static final String LOGIC_TYPE = "relInferLogicTypeComboBox";
 }
