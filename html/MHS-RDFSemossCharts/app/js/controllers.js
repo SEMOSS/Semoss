@@ -266,7 +266,9 @@ function indexCtrl($scope, $http) {
         var series2Val = [];
         var reducedInstances = [];
         var colors = Highcharts.getOptions().colors;
-        
+        var sortedPropertiesSelected = _.sortBy($scope.propertiesSelected, function(prop) {
+                return prop;
+            });
         //The start of massaging the data
         if($scope.groupby == 'Instance'){
             //Declaring variables
@@ -283,6 +285,11 @@ function indexCtrl($scope, $http) {
             }
             //returns all unique instances to reducedInstances
             reducedInstances = _.uniq(reducedInstances);
+
+            reducedInstances = _.sortBy(reducedInstances, function(instance) {
+                return instance.propHash.VERTEX_LABEL_PROPERTY;
+            });
+
             
             //adds all the selected unique instances to the columns
             //Params pushed in order of dimensions added
@@ -301,9 +308,9 @@ function indexCtrl($scope, $http) {
                     //loops through and adds every Instance + Property value to the pie chart
                     for(var j=0; j<reducedInstances.length; j++){
                         for(var i=0; i<$scope.dimensions.length; i++){
-                            if($scope.propertiesSelected[i]){
-                                if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                    instanceParams.push([reducedInstances[j].propHash.VERTEX_LABEL_PROPERTY + '-' + $scope.propertiesSelected[i][0], reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]]);
+                            if(sortedPropertiesSelected[i]){
+                                if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                    instanceParams.push([reducedInstances[j].propHash.VERTEX_LABEL_PROPERTY + '-' + sortedPropertiesSelected[i][0], reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]]);
                                 }else{
                                     instanceParams.push('', 0);
                                 }
@@ -316,26 +323,26 @@ function indexCtrl($scope, $http) {
                 }else{
                     //loop through to get the inner circles values into series1Val
                     for(var i=0; i<$scope.dimensions.length; i++){
-                        if($scope.propertiesSelected[i]){
+                        if(sortedPropertiesSelected[i]){
                             var totalPropVal = 0;
                             for(var j=0; j<cols; j++){
-                                if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                    totalPropVal += parseInt(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]);
+                                if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                    totalPropVal += parseInt(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]);
                                 }else{
                                     totalPropVal += 0;
                                 }
                             }
-                            series1Val.push({'name': $scope.propertiesSelected[i][0], 'y': totalPropVal, 'color': colors[i]});
+                            series1Val.push({'name': sortedPropertiesSelected[i][0], 'y': totalPropVal, 'color': colors[i]});
                         }
                     }
                     
                     //loop through to get the outer circles values into series2Val
                     for(var j=0; j<$scope.dimensions.length; j++){
-                        if($scope.propertiesSelected[j]){
+                        if(sortedPropertiesSelected[j]){
                             for(var i=0; i<reducedInstances.length; i++){
-                                if(reducedInstances[i].propHash[$scope.propertiesSelected[j][0]]){
+                                if(reducedInstances[i].propHash[sortedPropertiesSelected[j][0]]){
                                     var brightness = 0.2 - (i / reducedInstances.length) /5;
-                                    series2Val.push({'name': reducedInstances[i].propHash.VERTEX_LABEL_PROPERTY, 'y': reducedInstances[i].propHash[$scope.propertiesSelected[j][0]], 'color': Highcharts.Color(series1Val[j].color).brighten(brightness).get()});
+                                    series2Val.push({'name': reducedInstances[i].propHash.VERTEX_LABEL_PROPERTY, 'y': reducedInstances[i].propHash[sortedPropertiesSelected[j][0]], 'color': Highcharts.Color(series1Val[j].color).brighten(brightness).get()});
                                 }else{
                                     series2Val.push({'name': reducedInstances[i].propHash.VERTEX_LABEL_PROPERTY, 'y': 0});
                                 }
@@ -373,16 +380,16 @@ function indexCtrl($scope, $http) {
                 }
             }else{
                 for(var i=0; i<$scope.dimensions.length; i++){
-                    if($scope.propertiesSelected[i]){
+                    if(sortedPropertiesSelected[i]){
                         var instanceParams = [];
                         for(var j=0; j<cols; j++){
-                            if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                instanceParams.push(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]);
+                            if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                instanceParams.push(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]);
                             }else{
                                 instanceParams.push(0);
                             }
                         }
-                        seriesVal.push({'name': $scope.propertiesSelected[i][0], 'data': instanceParams});
+                        seriesVal.push({'name': sortedPropertiesSelected[i][0], 'data': instanceParams});
                     }
                 }
             }
@@ -391,9 +398,9 @@ function indexCtrl($scope, $http) {
         }else{
             
             for(var i=0; i<$scope.dimensions.length; i++){
-                if($scope.propertiesSelected[i]){
-                    for(var j=0; j<$scope.propertiesSelected[i].length; j++){
-                    	axisParams.push($scope.propertiesSelected[i][0]);
+                if(sortedPropertiesSelected[i]){
+                    for(var j=0; j<sortedPropertiesSelected[i].length; j++){
+                    	axisParams.push(sortedPropertiesSelected[i][0]);
                     }
                 }
             }
@@ -406,6 +413,10 @@ function indexCtrl($scope, $http) {
                 }
             }
             reducedInstances = _.uniq(reducedInstances);
+
+            reducedInstances = _.sortBy(reducedInstances, function(instance) {
+                return instance.propHash.VERTEX_LABEL_PROPERTY;
+            });
             
             var cols = axisParams.length;
             //check if chart type selected is 'pie'
@@ -413,16 +424,16 @@ function indexCtrl($scope, $http) {
                 //check the number of dimensions
                 if($scope.dimensions.length == 1){
                     for(var i=0; i<$scope.dimensions.length; i++){
-                        if($scope.propertiesSelected[i]){
+                        if(sortedPropertiesSelected[i]){
                             var propParams = [];
                             for(var j=0; j<reducedInstances.length; j++){
-                                if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                    propParams.push([reducedInstances[j].propHash.VERTEX_LABEL_PROPERTY, reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]]);
+                                if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                    propParams.push([reducedInstances[j].propHash.VERTEX_LABEL_PROPERTY, reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]]);
                                 }else{
                                     propParams.push(0);
                                 }
                             }
-                            seriesVal.push({'name': $scope.propertiesSelected[i][0], 'data': propParams});
+                            seriesVal.push({'name': sortedPropertiesSelected[i][0], 'data': propParams});
                         }
                     }
                 //for all pie charts with dimensions more than 1
@@ -431,9 +442,9 @@ function indexCtrl($scope, $http) {
                     for(var i=0; i<reducedInstances.length; i++){
                         var totalInstanceVal = 0;
                         for(var j=0; j<cols; j++){
-                            if($scope.propertiesSelected[j]){
-                                if(reducedInstances[i].propHash[$scope.propertiesSelected[j][0]]){
-                                    totalInstanceVal += parseInt(reducedInstances[i].propHash[$scope.propertiesSelected[j][0]]);
+                            if(sortedPropertiesSelected[j]){
+                                if(reducedInstances[i].propHash[sortedPropertiesSelected[j][0]]){
+                                    totalInstanceVal += parseInt(reducedInstances[i].propHash[sortedPropertiesSelected[j][0]]);
                                 }else{
                                     totalInstanceVal += 0;
                                 }
@@ -445,12 +456,12 @@ function indexCtrl($scope, $http) {
                     //loop to set series2Val with outer circle values
                     for(var j=0; j<reducedInstances.length; j++){
                         for(var i=0; i<$scope.dimensions.length; i++){
-                            if($scope.propertiesSelected[i]){
-                                if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
+                            if(sortedPropertiesSelected[i]){
+                                if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
                                     var brightness = 0.2 - (i / $scope.dimensions.length) /5;
-                                    series2Val.push({'name': $scope.propertiesSelected[i][0], 'y': reducedInstances[j].propHash[$scope.propertiesSelected[i][0]], 'color': Highcharts.Color(series1Val[j].color).brighten(brightness).get()});
+                                    series2Val.push({'name': sortedPropertiesSelected[i][0], 'y': reducedInstances[j].propHash[sortedPropertiesSelected[i][0]], 'color': Highcharts.Color(series1Val[j].color).brighten(brightness).get()});
                                 }else{
-                                    series2Val.push({'name': $scope.propertiesSelected[i][0], 'y': 0});
+                                    series2Val.push({'name': sortedPropertiesSelected[i][0], 'y': 0});
                                 }
                             }
                         }
@@ -488,11 +499,11 @@ function indexCtrl($scope, $http) {
             }else if(chartType == 'scatter' && $scope.dimensions.length == 2){
                 var propertyVals = [];
                 for(var i=0; i<$scope.dimensions.length; i++){
-                    if($scope.propertiesSelected[i]){
+                    if(sortedPropertiesSelected[i]){
                         propertyVals[i] = [];
                         for(var j=0; j<reducedInstances.length; j++){
-                            if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                propertyVals[i].push(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]);
+                            if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                propertyVals[i].push(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]);
                             }else{
                                 propertyVals[i].push(0);
                             }
@@ -503,16 +514,17 @@ function indexCtrl($scope, $http) {
                 for(var i=0; i<reducedInstances.length; i++){
                      data.push({name: reducedInstances[i].propHash.VERTEX_LABEL_PROPERTY, x: propertyVals[0][i], y: propertyVals[1][i]});
                 }
+
                 seriesVal.push({'name': 'Instances', 'data': data});
             //sets the data for bubble charts with 3 dimensions
             }else if(chartType == 'bubble' && $scope.dimensions.length == 3){
                 var propertyVals = [];
                 for(var i=0; i<$scope.dimensions.length; i++){
-                    if($scope.propertiesSelected[i]){
+                    if(sortedPropertiesSelected[i]){
                         propertyVals[i] = [];
                         for(var j=0; j<reducedInstances.length; j++){
-                            if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                propertyVals[i].push(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]);
+                            if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                propertyVals[i].push(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]);
                             }else{
                                 propertyVals[i].push(0);
                             }
@@ -532,9 +544,9 @@ function indexCtrl($scope, $http) {
                 for(var i=0; i<reducedInstances.length; i++){
                     var propParams = [];
                     for(var j=0; j<cols; j++){
-                        if($scope.propertiesSelected[j]){
-                            if(reducedInstances[i].propHash[$scope.propertiesSelected[j][0]]){
-                                propParams.push(reducedInstances[i].propHash[$scope.propertiesSelected[j][0]]);
+                        if(sortedPropertiesSelected[j]){
+                            if(reducedInstances[i].propHash[sortedPropertiesSelected[j][0]]){
+                                propParams.push(reducedInstances[i].propHash[sortedPropertiesSelected[j][0]]);
                             }else{
                                 propParams.push(0);
                             }
@@ -723,7 +735,7 @@ function indexCtrl($scope, $http) {
                             }
 
                             var dividedzAxisName = '';
-                            var brokenzAxisArray = $scope.propertiesSelected[2][0].replace(/_/g, ' ');
+                            var brokenzAxisArray = sortedPropertiesSelected[2][0].replace(/_/g, ' ');
                             brokenzAxisArray = brokenzAxisArray.replace(/.{25}\S*\s+/g, "$&@").split(/\s+@/);
                             for (var i = 0; i<brokenzAxisArray.length; i++) {
                                 dividedzAxisName += '<b>' + brokenzAxisArray[i] + '</b>';
@@ -842,11 +854,11 @@ function indexCtrl($scope, $http) {
                     }
                     
                     for(var j=0; j<reducedInstances.length; j++){
-                        if($scope.propertiesSelected[i]){
+                        if(sortedPropertiesSelected[i]){
                             var propParams = [];
                             for(var i=0; i<$scope.dimensions.length; i++){
-                                if(reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]){
-                                    propParams.push([$scope.propertiesSelected[i][0], reducedInstances[j].propHash[$scope.propertiesSelected[i][0]]]);
+                                if(reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]){
+                                    propParams.push([sortedPropertiesSelected[i][0], reducedInstances[j].propHash[sortedPropertiesSelected[i][0]]]);
                                 }else{
                                     propParams.push(0);
                                 }
