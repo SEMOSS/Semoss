@@ -69,12 +69,12 @@ public class ServicesAggregationProcessor {
 
 	private String TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY = "SELECT DISTINCT ?system ?utilizes ?userInterface WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>} {?userInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?utilizes ?userInterface}}";
 
-	private String TAP_SERVICES_AGGREGATE_BP_QUERY = "SELECT DISTINCT ?system ?supports ?bp WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?bp <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?bp}}";
-
-	private String TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY = "SELECT DISTINCT ?system ?supports ?activity WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?activity}}";
-
-	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?BLU}}";
-
+	private String TAP_SERVICES_AGGREGATE_BP_QUERY = "SELECT DISTINCT ?system ?supports ?bp ?prop WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?bp <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?bp} OPTIONAL{{?supports <http://semoss.org/ontologies/Relation/Contains/Reported> ?prop}}}";
+	
+	private String TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY = "SELECT DISTINCT ?system ?supports ?activity ?prop WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?supports ?activity} OPTIONAL{ {?supports <http://semoss.org/ontologies/Relation/Contains/Reported> ?prop}}}";
+	
+	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU ?prop WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?BLU} OPTIONAL{ {?provide <http://semoss.org/ontologies/Relation/Contains/weight> ?prop}}}";
+	
 	private String TAP_SERVICES_AGGREGATE_LIFECYCLE_QUERY = "SELECT DISTINCT ?system ?phase ?lifeCycle WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?phase <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?lifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?phase ?lifeCycle}}";
 
 	private String TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY = "SELECT DISTINCT ?sys ?pred ?icd WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?sys ?pred ?icd}}";
@@ -144,13 +144,13 @@ public class ServicesAggregationProcessor {
 		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_USER_INTERFACE_QUERY);
 
 		logger.info("PROCESSING BP FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
-		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BP_QUERY);
+		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGREGATE_BP_QUERY, new String[]{"Reported"});
 
 		logger.info("PROCESSING ACTIVITY FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
-		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY);
+		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGREGATE_ACTIVITY_QUERY, new String[]{"Reported"});
 
 		logger.info("PROCESSING BLU FOR SERVICE SYSTEMS AND AGGREGATING TO SYSTEMS IN TAP CORE");
-		runRelationshipAggregation(TAP_SERVICES_AGGREGATE_BLU_QUERY);
+		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGREGATE_BLU_QUERY, new String[]{"weight"});
 
 		logger.info("PROCESSING SYSTEM PROVIDE ICDS AND PUSHING INTO TAP CORE");
 		runRelationshipAggregation(TAP_SERVICES_SYSTEM_PROVIDE_ICD_QUERY);
@@ -241,6 +241,35 @@ public class ServicesAggregationProcessor {
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
+		}
+		processData(dataHash);
+	}
+	
+	private void runRelationshipAggregationWithProperties(String query, String[] varNames)
+	{
+		dataHash.clear();
+		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		String[] vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			// get the next row and see how it must be added to the insert query
+			String subject = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String object = sjss.getRawVar(vars[2]).toString();
+			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
+			logger.debug("ADDING RELATIONSHIP:     " + subject + " -----> {" + pred + " --- " + object + "}");
+			addToHash(new String[]{subject, pred, object});
+			// add instances to master list
+			addToAllConcepts(subject);
+			addToAllConcepts(object);
+			addToAllRelationships(pred);
+			for(int i = 0; i < varNames.length; i++)
+			{
+				String propPrep = propURI + varNames[i];
+				Object propValue = sjss.getRawVar(vars[3]);
+				addToHash(new Object[]{pred, propPrep, propValue});
+			}
 		}
 		processData(dataHash);
 	}
