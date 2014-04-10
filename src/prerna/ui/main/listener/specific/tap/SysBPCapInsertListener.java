@@ -43,11 +43,16 @@ public class SysBPCapInsertListener extends AbstractListener {
 
 	Logger logger = Logger.getLogger(getClass());
 	
+	
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		//get the selected engine name
 		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		String engineName = (String)list.getSelectedValue();
+		
+		//get the selected logic type
+		JComboBox logicTypeBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.LOGIC_TYPE);
+		String logicType = (String) logicTypeBox.getSelectedItem();
 		
 		//get selected threshold values and parse as a double
 		JTextField dataObjectThresholdTextField = (JTextField) DIHelper.getInstance().getLocalProp(ConstantsTAP.DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX);
@@ -71,6 +76,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 				
 		//send to processor
 		logger.info("Inserting System-BP and System-Activity for Central Systems into " + engineName + "...");
+		logger.info("Insert logic type " + logicType + " selected.");
 		boolean success = false;
 		String errorMessage = "";
 		String isCalculatedQuery = "ASK WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?s ?p ?o ;} BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?contains) {?p ?contains ?prop ;} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} }";
@@ -78,6 +84,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 		proc.setQuery(isCalculatedQuery);
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		boolean isCalculated = proc.processQuery();
+				
 		if(isCalculated){		
 			Object[] buttons = {"Cancel Calculation", "Continue With Calculation"};
 			int response = JOptionPane.showOptionDialog(playPane, "The selected RDF store (" + engineName + ") already " +
@@ -85,7 +92,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
 			
 			if (response == 1) {
-				SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+				SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue, logicType);
 				insertProcessor.setInsertCoreDB(engineName);
 				insertProcessor.runDeleteQueries();
 				success = insertProcessor.runCoreInsert();
@@ -97,7 +104,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 			else return;
 		}
 		else {
-			SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue);
+			SysBPCapInsertProcessor insertProcessor = new SysBPCapInsertProcessor(dataObjectThresholdValue, bluThresholdValue, logicType);
 			insertProcessor.setInsertCoreDB(engineName);
 			success = insertProcessor.runCoreInsert();
 			errorMessage = insertProcessor.getErrorMessage();
@@ -116,5 +123,4 @@ public class SysBPCapInsertListener extends AbstractListener {
 	public void setView(JComponent view) {
 			
 	}
-	
 }
