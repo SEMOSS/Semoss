@@ -722,15 +722,15 @@ public class ServicesAggregationProcessor {
 				String CRM = "";
 				if(crmList.toString().contains("C"))
 				{
-					CRM = "\"C\"";
+					CRM = "C";
 				}
 				else if(crmList.toString().contains("M"))
 				{
-					CRM = "\"M\"";
+					CRM = "M";
 				}
 				else if(crmList.toString().contains("R"))
 				{
-					CRM = "\"R\"";
+					CRM = "R";
 				}
 
 				logger.debug("ADDING SYSTEM TO DATAOBJECT RELATIONSHIP:     " + sub + " -----> {" + pred + " --- " + obj + "}");
