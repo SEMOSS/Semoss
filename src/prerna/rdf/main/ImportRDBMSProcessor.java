@@ -644,7 +644,7 @@ public class ImportRDBMSProcessor {
 				String tableName = resultSet.getString(1);
 				String columnName = resultSet.getString(2);
 				String dataType = resultSet.getString(3);
-				logger.debug("SQL Result:     " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
+				logger.debug("SQL Result: " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
 
 				if(!schemaHash.containsKey(tableName))
 				{
