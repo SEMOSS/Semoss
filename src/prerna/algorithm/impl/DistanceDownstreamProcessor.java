@@ -70,27 +70,26 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	
 	 * @return ArrayList<DBCMVertex> 	List of roots. */
 	protected ArrayList<SEMOSSVertex> setRoots(){
+		//use current nodes as the next set of nodes that I will have to traverse downward from.  Starts with root nodes
+		ArrayList<SEMOSSVertex> currentNodes = new ArrayList<SEMOSSVertex>();
 		//as we go, put in masterHash with vertHash.  vertHash has distance and path with the key being the actual vertex
-		Collection<SEMOSSVertex> forestRoots = new ArrayList();
 		if(selectedVerts.size()!=0){
 			int count = 0;
 			for(SEMOSSVertex selectedVert : selectedVerts) {
-				forestRoots.add(selectedVert);
 				if(count > 0) selectedNodes = selectedNodes +", ";
 				selectedNodes = selectedNodes + selectedVert.getProperty(Constants.VERTEX_NAME);
+				currentNodes.add(selectedVerts.indexOf(selectedVert), selectedVert);
 				count++;
 			}
 		}
 		else{
 			selectedNodes = "All";
-			forestRoots = forest.getRoots();
+			currentNodes.addAll(forest.getRoots());
 		}
 		
-		//use current nodes as the next set of nodes that I will have to traverse downward from.  Starts with root nodes
-		ArrayList<SEMOSSVertex> currentNodes = new ArrayList<SEMOSSVertex>();
 		
 		//start with the root nodes in the masterHash
-		for(SEMOSSVertex vert: forestRoots) {
+		for(SEMOSSVertex vert: currentNodes) {
 			Hashtable vertHash = new Hashtable();
 			ArrayList<SEMOSSVertex> path = new ArrayList<SEMOSSVertex>();
 			ArrayList<SEMOSSVertex> edgePath = new ArrayList<SEMOSSVertex>();
@@ -99,7 +98,6 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 			vertHash.put(pathString, path);
 			vertHash.put(edgePathString, edgePath);
 			masterHash.put(vert, vertHash);
-			currentNodes.add(vert);
 		}
 		return currentNodes;
 	}
@@ -125,6 +123,10 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 				ArrayList<SEMOSSVertex> subsetNextNodes = traverseDownward(vert, levelIndex, parentPath, parentEdgePath);
 				
 				nextNodes.addAll(subsetNextNodes);
+				
+//				System.err.println(vert.uri + "GOES TO : :::: :: :");
+//				for(SEMOSSVertex printVert : nextNodes)
+//					System.err.println(printVert.uri);
 				
 				nodeIndex++;
 			}
@@ -212,11 +214,13 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	public boolean addSelectedNode(String pickedVertex, int position){
 		Collection<SEMOSSVertex> vertices = forest.getVertices();
 		for(SEMOSSVertex vert : vertices){
-			if(pickedVertex.equals(vert.getProperty(Constants.VERTEX_NAME))){
+			if(pickedVertex.equals(vert.uri)){
 				selectedVerts.add(position, vert);
+				System.out.println("SET VERT..................." + vert.uri + " to position " + position);
 				return true;
 			}
 		}
+
 		return false;
 	}
 	
