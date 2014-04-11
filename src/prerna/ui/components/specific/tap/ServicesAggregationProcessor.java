@@ -267,7 +267,7 @@ public class ServicesAggregationProcessor {
 			for(int i = 0; i < varNames.length; i++)
 			{
 				String propPrep = propURI + varNames[i];
-				Object propValue = sjss.getRawVar(vars[3]);
+				Object propValue = sjss.getVar(vars[3]);
 				addToHash(new Object[]{pred, propPrep, propValue});
 			}
 		}
