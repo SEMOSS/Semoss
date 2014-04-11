@@ -265,16 +265,19 @@ public class FillBVHash implements Runnable{
 			double[][] values = (double[][]) tempSelectHash.get(key + Constants.CALC_MATRIX);
 			double[][] matrix = new double[rowLabels.size()][colLabels.size()];
 			double totalCheck = 0;
+//			System.err.println(key + ".......................................................................................................... ");
 			for (int col = 0; col < matrix[0].length; col++){
 				for(int row = 0; row<matrix.length; row++){
 					matrix[row][col] = values[row][col];
 					totalCheck = totalCheck + values[row][col];
+//					System.err.println(key +";" +colLabels.get(col) + ";" + rowLabels.get(row) +";" + colLabels.get(col) + rowLabels.get(row) +";"+values[row][col]);
 				}
 			}
 			if(totalCheck == 0) logger.warn("Matrix filled with all zeros: " + key);
 			BVhash.put(key+Constants.CALC_MATRIX, matrix);
 			BVhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 			BVhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
+//			System.err.println(key + "        " + matrix.toString());
 			
 			//if the key is BP/Act and it is the correct query, must set BP props
 			//Transition from the double[] to an ArrayList<Double> and put in BVhash

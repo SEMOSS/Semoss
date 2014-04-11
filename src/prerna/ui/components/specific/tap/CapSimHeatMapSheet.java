@@ -78,7 +78,7 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		participantHash = processHashForCharting(participantHash);
 
 		//BP
-		String bpQuery ="SELECT DISTINCT ?Capability ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Capability ?Supports ?BusinessProcess.} }";
+		String bpQuery ="SELECT DISTINCT ?Capability ?System ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Capability ?Supports ?BusinessProcess.} }";
 		updateProgressBar("50%...Evaluating Capability Supporting Business Processes", 50);
 		Hashtable bpHash = sdf.compareObjectParameterScore(hrCoreDB, bpQuery, SimilarityFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);

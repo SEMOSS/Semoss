@@ -94,7 +94,9 @@ public class DistanceDownstreamInserter {
 			//now set everything in DistanceDownstreamProcessor and let that buddy run
 			processor.setForest(dataForest);
 			processor.setRootNodesAsSelected();
-			processor.addSelectedNode(dataObjectString, 0);//need to make sure that creators first have the chance to go from data object directly
+
+			System.out.println("SET SELECTED ::::::::::::::::::::::::::::::::::::::::: " + processor.addSelectedNode(dataObjectString, 0));	//need to make sure that creators first have the chance to go from data object directly
+
 			processor.execute();
 		
 			//now add everything but the data object to fullSystemHash
