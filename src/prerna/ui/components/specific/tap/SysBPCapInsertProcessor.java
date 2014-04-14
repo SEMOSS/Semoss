@@ -35,6 +35,7 @@ import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Procedure to evaluate BLU's and Data Objects from a system perspective to see which business processes and capabilities a system supports.
@@ -44,9 +45,13 @@ public class SysBPCapInsertProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	private IEngine coreDB;
 	
+	public final String DATAC = "Data";
+	public final String BLU = "BLU";
+	
 	private double dataObjectThresholdValue = 0.0;
 	private double bluThresholdValue = 0.0;
 	private String logicType = "AND";
+	Hashtable<String, Hashtable<String, Hashtable<String, Double>>> storageHash = new Hashtable<String, Hashtable<String, Hashtable<String, Double>>>();
 	
 	private String hrCoreBaseURI = "http://health.mil/ontologies/Relation/";
 
@@ -55,12 +60,12 @@ public class SysBPCapInsertProcessor {
 
 	public String errorMessage = "";
 		
-	private String BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
-	private String BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
-	private String CAPABILITY_DATA_QUERY = "SELECT DISTINCT ?Capability ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
-	private String CAPABILITY_BLU_QUERY = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
-	private String SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} } BINDINGS ?CRM {('C')}";
-	private String SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
+	public String BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
+	public String BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
+	public String CAPABILITY_DATA_QUERY = "SELECT DISTINCT ?Capability ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
+	public String CAPABILITY_BLU_QUERY = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
+	public String SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} } BINDINGS ?CRM {('C')}";
+	public String SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
 	private String DELETE_NEW_RELATIONS_QUERY = "DELETE {?System ?relation ?o. ?relation ?allInferredRelationships ?o} WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
 	private String DELETE_NEW_PROPERTIES_QUERY = "DELETE {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} WHERE {{?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}} ";
 	
@@ -125,9 +130,9 @@ public class SysBPCapInsertProcessor {
 		
 	//Analysis
 		//BP
-		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
+		insertRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
 		//Capabilities
-		processRelations(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
+		insertRelations(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
 
 //3.  Insert new relationships (Full URIs)			
 		aggregationHelper.processData(coreDB, dataHash);
@@ -137,8 +142,19 @@ public class SysBPCapInsertProcessor {
 		return success;		
 	}
 	
-	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash) {		
-		AggregationHelper aggregationHelper = new AggregationHelper();			
+	public void insertRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash){
+		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash, true);
+	}
+	
+	public void genRelationsForStorage(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash){
+		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash, false);
+	}
+	
+	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash, boolean insert) {	
+		AggregationHelper aggregationHelper = new AggregationHelper();	
+		//for storage
+		Hashtable<String, Hashtable<String, Double>> dataSubHash = new Hashtable<String, Hashtable<String, Double>>();
+		Hashtable<String, Hashtable<String, Double>> bluSubHash = new Hashtable<String, Hashtable<String, Double>>();
 	//populate the System, BP sets with the appropriate data from the query result hashtables. (Raw URIs)		
 		Set<String> overallBPSet = new HashSet<String>();
 		overallBPSet.addAll(bpDataHash.keySet());
@@ -156,6 +172,9 @@ public class SysBPCapInsertProcessor {
 			Set<String> bpSpecificBLUSet = new HashSet<String>();			
 			if (!(bpBLUHash.get(bp) == null)) {
 				bpSpecificBLUSet.addAll((Set<String>) bpBLUHash.get(bp));}	
+			
+			Hashtable<String, Double> dataScoreHash = new Hashtable<String, Double>();
+			Hashtable<String, Double> bluScoreHash = new Hashtable<String, Double>();
 				
 				for (String sys : overallSystemSet) {
 					int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;				
@@ -176,21 +195,53 @@ public class SysBPCapInsertProcessor {
 						} 
 					}
 				
-				//Based on the logic type, insert new relationships	
-					if (logicType.equals("AND")) {		
-						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {	
-							systemSupportsBPRelationProcessing(sys, bp);
+					if(insert){
+					//Based on the logic type, insert new relationships	
+						if (logicType.equals("AND")) {		
+							if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {	
+								systemSupportsBPRelationProcessing(sys, bp);
+							}
+						}
+						else if (logicType.equals("OR")) {
+							if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) || (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {
+								systemSupportsBPRelationProcessing(sys, bp);
+							}
 						}
 					}
-					else if (logicType.equals("OR")) {
-						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) || (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {
-							systemSupportsBPRelationProcessing(sys, bp);
+					else {
+						//billy will insert code here storing necessary for heatmap
+						//Hashtable<String, Hashtable<String, Hashtable<String, Double>>> storageHash
+						double sysDataScore = 0.0, sysBLUScore = 0.0;
+						if (bpSpecificDataSet.size()!=0)
+							sysDataScore = (double) systemSpecificDataCount/bpSpecificDataSet.size();
+						if (bpSpecificBLUSet.size()!=0)
+							sysBLUScore = (double) systemSpecificBLUCount/bpSpecificBLUSet.size();
+						String bpInstance = Utility.getInstanceName(bp);
+						boolean test = ((sysDataScore > 0) || (sysBLUScore > 0));
+						String sysInstance = Utility.getInstanceName(sys);
+						if (test) {
+							dataScoreHash.put(sysInstance, sysDataScore);
+							bluScoreHash.put(sysInstance, sysBLUScore);
+							logger.info(sysInstance + " ====> " + bpInstance + " Data:" + sysDataScore + " BLU: " + sysBLUScore);
 						}
+						
+						
 					}
 				}
+				String bpInstance = Utility.getInstanceName(bp);
+				dataSubHash.put(bpInstance, dataScoreHash);
+				bluSubHash.put(bpInstance, bluScoreHash);
 		}
-		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
-		logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
+		
+		if (insert) {
+			dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
+			logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
+		
+		}
+		else {
+			storageHash.put(DATAC, dataSubHash);
+			storageHash.put(BLU, bluSubHash);
+		}
 	}
 	
 	public void systemSupportsBPRelationProcessing(String sys, String bp) {

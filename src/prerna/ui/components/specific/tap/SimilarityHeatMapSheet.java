@@ -43,7 +43,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	Logger logger = Logger.getLogger(getClass());
 	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
-	String comparisonObjectType = "";
+	String comparisonObjectTypeX = "";
+	String comparisonObjectTypeY = "";
 	public Hashtable allHash = new Hashtable();
 	public Hashtable paramDataHash = new Hashtable();
 	public Hashtable keyHash = new Hashtable();
@@ -82,12 +83,14 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	}
 	
 	/**
-	 * Sets type of the comparison object
+	 * Sets type of the comparison objects
 	 */
-	public void setComparisonObjectType(String comparisonObjectType)
+	public void setComparisonObjectTypes(String comparisonObjectTypeX, String comparisonObjectTypeY)
 	{
-		this.comparisonObjectType = comparisonObjectType;
+		this.comparisonObjectTypeX = comparisonObjectTypeX;
+		this.comparisonObjectTypeY = comparisonObjectTypeY;
 	}
+	
 	
 	/**
 	 * Adds the refresh and bar chart listeners when navigation has finished.
@@ -131,8 +134,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 					dataRetHash.put(key, elementHash);
 					if(!keyHash.containsKey(key)){
 						Hashtable keyElementHash = new Hashtable();
-						keyElementHash.put(comparisonObjectType+"1", comparisonObjectName);
-						keyElementHash.put(comparisonObjectType+"2", comparisonObjectName2);
+						keyElementHash.put(comparisonObjectTypeX, comparisonObjectName);
+						keyElementHash.put(comparisonObjectTypeY, comparisonObjectName2);
 						keyHash.put(key, keyElementHash);
 					}
 			    }

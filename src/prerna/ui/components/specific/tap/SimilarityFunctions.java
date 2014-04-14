@@ -20,7 +20,9 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
@@ -435,4 +437,93 @@ public class SimilarityFunctions {
 		this.comparisonObjectList=comparisonObjectList;
 	}
 	
+	//System-Capability Comparison Function
+	
+	/**
+     * Get data/actual percentage related to the similarity of the parameter
+     * 
+      * @param dbName String           Name of the database
+     * @param query String            Query to be run against db
+     * @param option String           Option to calculate Count or Value
+     * 
+      * @return Hashtable       Values for similarity of parameter
+     */
+     public Hashtable compareDifferentObjectParameterScore(String dbName, String query, String option)
+     {
+            createTable(dbName, query);
+            Hashtable<String, Hashtable<String,Double>> dataRetHash = new Hashtable<String, Hashtable<String,Double>>();
+            Hashtable<String, ArrayList<String>> dataStoreHash = new Hashtable<String, ArrayList<String>>();
+            Hashtable<String, ArrayList<String>> systemStoreHash = new Hashtable<String, ArrayList<String>>();
+
+            for (int i=0;i<list.size();i++)
+            {
+                   Object[] listElement = list.get(i);
+                   String comparisonObjectName = (String) listElement[0];
+                   String elementName = (String) listElement[2];
+                   if(dataStoreHash.get(comparisonObjectName) != null)
+                   {
+                         ArrayList<String> elementArray= dataStoreHash.get(comparisonObjectName);
+                         elementArray.add(elementName);
+                   }
+                   else
+                   {
+                         ArrayList<String> elementArray = new ArrayList<String>();
+                         elementArray.add(elementName);
+                         dataStoreHash.put(comparisonObjectName,  elementArray);
+                   }
+                   if (!(listElement[1].equals("NA"))) {
+	                   String comparisonSystemName = (String) listElement[1];
+	                   if(systemStoreHash.get(comparisonSystemName) != null)
+	                   {
+	                         ArrayList<String> elementArray= systemStoreHash.get(comparisonSystemName);
+	                         elementArray.add(elementName);
+	                   }
+	                   else
+	                   {
+	                         ArrayList<String> elementArray = new ArrayList<String>();
+	                         elementArray.add(elementName);
+	                         systemStoreHash.put(comparisonSystemName,  elementArray);
+	                   }
+                   }
+            }
+            for(int i=0; i<comparisonObjectList.size();i++) //this will be my capability list
+            {
+                   String comparisonObjectName = comparisonObjectList.get(i);
+                   if (dataStoreHash.containsKey(comparisonObjectName))
+                   {
+                         ArrayList<String> currentComparisonObjectList =  dataStoreHash.get(comparisonObjectName);
+                         Hashtable<String,Double> comparisonObjectElementHash =  new Hashtable<String,Double>();
+                         double totalElement = currentComparisonObjectList.size();
+                         for(Entry<String,ArrayList<String>> comparisonObjectArrayEntry : systemStoreHash.entrySet()) 
+                         {
+                             String comparisonObjectName2 = comparisonObjectArrayEntry.getKey();
+                             ArrayList<String> otherComparisonObjectList = comparisonObjectArrayEntry.getValue();
+                             double matchingElement = 0;
+                             for(int elementIdx=0;elementIdx<currentComparisonObjectList.size();elementIdx++) 
+                             {
+                                String element = currentComparisonObjectList.get(elementIdx);
+                                 if(otherComparisonObjectList.contains(element))
+                                 {
+                                       matchingElement++;
+                                 }
+
+                             }
+                             
+                             if(option.equals("Count"))
+                             {
+                                comparisonObjectElementHash.put(comparisonObjectName2, matchingElement);
+                             }
+                             if(option.equals("Value"))
+                             {
+                                double score = matchingElement/totalElement;
+                                comparisonObjectElementHash.put(comparisonObjectName2, score);
+                             }
+                                dataRetHash.put(comparisonObjectName,  comparisonObjectElementHash);
+                         }
+                   }
+
+            }
+            return dataRetHash;
+     }
+
 }

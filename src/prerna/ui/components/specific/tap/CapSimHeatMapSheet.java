@@ -48,7 +48,7 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 	public CapSimHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		setComparisonObjectType("Capability");
+		setComparisonObjectTypes("Capability1", "Capability2");
 	}
 	
 	public void createData()
@@ -97,8 +97,8 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
 		
 		allHash.put("title",  "Capability Similarity");
-		allHash.put("xAxisTitle", "Capability1");
-		allHash.put("yAxisTitle", "Capability2");
+		allHash.put("xAxisTitle", "Capability");
+		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
 	}
