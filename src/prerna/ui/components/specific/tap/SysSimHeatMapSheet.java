@@ -48,7 +48,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	public SysSimHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		setComparisonObjectType("System");
+		setComparisonObjectTypes("System1", "System2");
 	}
 
 	/**
