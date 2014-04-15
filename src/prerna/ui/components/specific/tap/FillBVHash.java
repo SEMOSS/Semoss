@@ -45,6 +45,7 @@ public class FillBVHash implements Runnable{
 	ArrayList <String []> list;
 	Hashtable tempSelectHash = new Hashtable();
 	Logger logger = Logger.getLogger(getClass());
+	Logger fileLogger = Logger.getLogger("reportsLogger");
 	
 	//Necessary items to create a filler
 	/**
@@ -127,7 +128,6 @@ public class FillBVHash implements Runnable{
 		boolean check = false;
 		// now get the bindings and generate the data
 		try {
-			String[] variables = wrapper.getVariables();
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.BVnext();
@@ -142,65 +142,66 @@ public class FillBVHash implements Runnable{
 					String vert2uri = sjss.getVar(names[2])+"";
 					String vert2type = Utility.getClassName(vert2uri);
 					key = vert1type + "/" + vert2type;
-					if(variables.length>3){
-						if(variables[3].contains("NETWORK")) key=key+"NETWORK";
+					if(names.length>3){
+						if(names[3].contains("NETWORK")) key=key+"NETWORK";
 					}
 				}
 				count++;
 				//if it is an edge triple, everything gets added
 				String var0 = Utility.getInstanceName(sjss.getVar(names[0])+"");
 				String var1 = Utility.getInstanceName(sjss.getVar(names[1])+"");
-				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"");
-				if(var1.contains(var0)&&var1.contains(var2)){
-					//if BP/Act, need to get the necessary properties associated with the BP
-					if(key.equals("BusinessProcess/Activity")&&(sjss.getVar(names[3]) instanceof String)){
-						String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
-						double[] propArray = bpPropHash.get(var3);
-						if (propArray == null){
-							//it is a property that we don't need
-							int x = 0;
-						}
-						else{
-							if (!rowLabels.contains(var0))
-								rowLabels.add(var0);
-							//figure out where on the matrix the value should get added
-							int rowLoc = rowLabels.indexOf(var0);
-							//propArray.add(colLoc, (Double) sjss.getVar(names[4]));
-							propArray[rowLoc]=(Double) sjss.getVar(names[4]);
-							bpPropHash.put(var3, propArray);
-							
-							//use check to make sure correct BP/Act query is being used
-							//one query is to get weights between BP and Act
-							//correct query is to get properties on BP
-							if (check == false) {
-								check = true;
-								tempSelectHash.put("BPkey", new double[1]);
-							}
-						}
+				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"").replaceAll("\"", "");
+				//if BP/Act, need to get the necessary properties associated with the BP
+				if(key.equals("BusinessProcess/Activity")&&(sjss.getVar(names[3]) instanceof String)){
+					String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
+					double[] propArray = bpPropHash.get(var3);
+					if (propArray == null){
+						//it is a property that we don't need
+						int x = 0;
 					}
-
-					if((sjss.getVar(names[3]) instanceof Double)){
-						if (!rowLabels.contains(var0)){
+					else{
+						if (!rowLabels.contains(var0))
 							rowLabels.add(var0);
-							//ArrayList<Double> newCol = new ArrayList<Double>();
-							//weightValues.add(weightValues.size(), newCol);
-						}
-						
-						if (! colLabels.contains(var2))
-							colLabels.add(var2);
-						//get column and row location
+						//figure out where on the matrix the value should get added
 						int rowLoc = rowLabels.indexOf(var0);
-						int colLoc = colLabels.indexOf(var2);
-						//put value in the right spot
-						//ArrayList<Double> col = weightValues.remove(colLoc);
-						//col.add(rowLoc, (Double) sjss.getVar(names[4]));
-						//weightValues.add(colLoc, col);
-						matrix[rowLoc][colLoc] = (Double) sjss.getVar(names[3]);
+						//propArray.add(colLoc, (Double) sjss.getVar(names[4]));
+						propArray[rowLoc]=(Double) sjss.getVar(names[4]);
+						bpPropHash.put(var3, propArray);
+						
+						//use check to make sure correct BP/Act query is being used
+						//one query is to get weights between BP and Act
+						//correct query is to get properties on BP
+						if (check == false) {
+							check = true;
+							tempSelectHash.put("BPkey", new double[1]);
+						}
 					}
-
-				//if it is 
-				logger.debug("Creating new Value ");
 				}
+
+				if((sjss.getVar(names[3]) instanceof Double)){
+					if (!rowLabels.contains(var0)){
+						rowLabels.add(var0);
+						//ArrayList<Double> newCol = new ArrayList<Double>();
+						//weightValues.add(weightValues.size(), newCol);
+					}
+					
+					if (! colLabels.contains(var2))
+						colLabels.add(var2);
+					//get column and row location
+					int rowLoc = rowLabels.indexOf(var0);
+					int colLoc = colLabels.indexOf(var2);
+					//put value in the right spot
+					//ArrayList<Double> col = weightValues.remove(colLoc);
+					//col.add(rowLoc, (Double) sjss.getVar(names[4]));
+					//weightValues.add(colLoc, col);
+					matrix[rowLoc][colLoc] = (Double) sjss.getVar(names[3]);
+					
+					errorCheck(key, var0, var2, (Double) sjss.getVar(names[3]) );
+				}
+
+			//if it is 
+			logger.debug("Creating new Value ");
+				
 				if(key.toLowerCase().contains("vendor"))
 				{
 					if (!rowLabels.contains(var0)){
@@ -273,7 +274,10 @@ public class FillBVHash implements Runnable{
 //					System.err.println(key +";" +colLabels.get(col) + ";" + rowLabels.get(row) +";" + colLabels.get(col) + rowLabels.get(row) +";"+values[row][col]);
 				}
 			}
-			if(totalCheck == 0) logger.warn("Matrix filled with all zeros: " + key);
+			if(totalCheck == 0) {
+				logger.warn("Matrix filled with all zeros: " + key);
+				fileLogger.info("Matrix filled with all zeros: " + key);
+			}
 			BVhash.put(key+Constants.CALC_MATRIX, matrix);
 			BVhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 			BVhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
@@ -314,6 +318,11 @@ public class FillBVHash implements Runnable{
 		}
 
 	}
-	
 
+	private void errorCheck(String key, String rowLabel, String colLabel, Double val){
+		if(key.equals("System/TError") && (val<0 || val>1 )){
+			fileLogger.info("Illegal System - TError value: " + rowLabel + " " + colLabel + " " + val);
+			logger.info("Illegal System - TError value: " + rowLabel + " " + colLabel + " " + val);
+		}
+	}
 }
