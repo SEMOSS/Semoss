@@ -89,14 +89,6 @@ public class SysBPCapInsertProcessor {
 		upProc.processQuery();
 	}
 	
-	public Hashtable getQueryResultHash(IEngine db, String query) {
-		Hashtable queryDataHash = new Hashtable();
-		AggregationHelper aggregationHelper = new AggregationHelper();
-		SesameJenaSelectWrapper queryDataWrapper = aggregationHelper.processQuery(db, query);
-		queryDataHash = aggregationHelper.hashTableResultProcessor(queryDataWrapper);
-		return queryDataHash;
-	}
-	
 	public boolean runCoreInsert()	{
 		boolean success = true;		
 		logger.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
@@ -126,8 +118,7 @@ public class SysBPCapInsertProcessor {
 		AggregationHelper aggregationHelper = new AggregationHelper();
 		aggregationHelper.processData(coreDB, dataHash);
 		aggregationHelper.processNewRelationships(coreDB, newRelationships);
-		((BigDataEngine) coreDB).infer();
-			
+		((BigDataEngine) coreDB).infer();			
 		return success;		
 	}
 	
@@ -135,8 +126,31 @@ public class SysBPCapInsertProcessor {
 		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash, true);
 	}
 	
-	public void genRelationsForStorage(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash){
+	private void genRelationsForStorage(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash){
 		processRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash, false);
+	}
+	
+	public void genStorageInformation(IEngine db, String infoType) {
+		Hashtable systemDataHash = getQueryResultHash(db, SYSTEM_DATA_QUERY);
+		Hashtable systemBLUHash = getQueryResultHash(db, SYSTEM_BLU_QUERY);	
+		if (infoType.equals("Capability")) {
+			Hashtable bpDataHash = getQueryResultHash(db, BUSINESS_PROCESSES_DATA_QUERY);
+			Hashtable bpBLUHash = getQueryResultHash(db, BUSINESS_PROCESSES_BLU_QUERY);
+			genRelationsForStorage(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
+		}
+		else if (infoType.equals("BusinessProcess")) {		
+			Hashtable capDataHash = getQueryResultHash(db, CAPABILITY_DATA_QUERY);
+			Hashtable capBLUHash = getQueryResultHash(db, CAPABILITY_BLU_QUERY);
+			genRelationsForStorage(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
+		}
+	}
+	
+	public Hashtable getQueryResultHash(IEngine db, String query) {
+		Hashtable queryDataHash = new Hashtable();
+		AggregationHelper aggregationHelper = new AggregationHelper();
+		SesameJenaSelectWrapper queryDataWrapper = aggregationHelper.processQuery(db, query);
+		queryDataHash = aggregationHelper.hashTableResultProcessor(queryDataWrapper);
+		return queryDataHash;
 	}
 	
 	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash, boolean insert) {	
