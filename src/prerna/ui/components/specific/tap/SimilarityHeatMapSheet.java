@@ -182,6 +182,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		}
 		browser.executeScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
+		logger.info("Finished creating the visualization.");
 		allHash.clear();
 //		paramDataHash.clear();
 	}
