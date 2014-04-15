@@ -2090,9 +2090,9 @@ function SingleChartCtrl($scope, $http) {
     };
     
     //----------Comment the below $http.get when using in Java
-    $http.get('lib/lineData.json').success(function(jsonData) {
+    /*$http.get('lib/lineData.json').success(function(jsonData) {
         setChartData(jsonData);
-    });
+    });*/
     
     //takes the "data" parameter passed and sorts all the data appropriately
     function setChartData(data) {
