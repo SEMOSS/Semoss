@@ -255,11 +255,15 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
     .attr("transform", function(d, i) { return "translate(" + i * gridSize + ", -6)rotate(-45)" })
     .on("click", function(d,i){
 
-      if (levelFlag == 1) {
+   if (levelFlag == "1") {
 
-      level2Calc(d)
+        if  (!$.isEmptyObject(data[d])) {
 
-      $(".legend").hide();
+            level2Calc(d)
+
+            $(".legend").hide();
+
+         }
 
 
     }
