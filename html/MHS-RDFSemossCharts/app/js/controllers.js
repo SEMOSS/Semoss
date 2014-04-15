@@ -2090,9 +2090,9 @@ function SingleChartCtrl($scope, $http) {
     };
     
     //----------Comment the below $http.get when using in Java
-    /*$http.get('lib/barTestData.json').success(function(jsonData) {
+    $http.get('lib/lineData.json').success(function(jsonData) {
         setChartData(jsonData);
-    });*/
+    });
     
     //takes the "data" parameter passed and sorts all the data appropriately
     function setChartData(data) {
@@ -2507,14 +2507,18 @@ function SingleChartCtrl($scope, $http) {
     
     function getXAxisCategories () {
     	var shortAxisNames = [];
-    	for (var i=0; i<graphOptions.xAxisCategories.length; i++) {
-    		if (graphOptions.xAxisCategories[i].length > 25) {
-    			shortAxisNames.push(graphOptions.xAxisCategories[i].substring(0, 25) + "...");
-    		} else {
-    			shortAxisNames.push(graphOptions.xAxisCategories[i]);
-    		}
-    	}
-    	return shortAxisNames;
+        if (graphOptions.xAxisCategories) {
+        	for (var i=0; i<graphOptions.xAxisCategories.length; i++) {
+        		if (graphOptions.xAxisCategories[i].length > 25) {
+        			shortAxisNames.push(graphOptions.xAxisCategories[i].substring(0, 25) + "...");
+        		} else {
+        			shortAxisNames.push(graphOptions.xAxisCategories[i]);
+        		}
+        	}
+        	return shortAxisNames;
+        } else {
+            return undefined;
+        }
     	
     }
     
