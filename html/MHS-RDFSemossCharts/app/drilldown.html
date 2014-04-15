@@ -347,7 +347,7 @@ var update = function(passedDataArray,passedXAxisArray,passedYAxisArray,passedhe
     vline.exit().remove();
       
       // horizontal lines
-      var hline = svg.selectAll(".hline").data(d3.range(passedYAxisArray.length + 1));
+      var hline = svg.selectAll(".hline").data(d3.range(passedYAxisArray.length ));
       hline.enter()
     .append("line")
     .attr("class","hline")
