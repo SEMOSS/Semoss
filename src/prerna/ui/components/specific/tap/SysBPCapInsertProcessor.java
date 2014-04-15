@@ -89,52 +89,41 @@ public class SysBPCapInsertProcessor {
 		upProc.processQuery();
 	}
 	
-	public boolean runCoreInsert()	{
-		boolean success = true;
-		
+	public Hashtable getQueryResultHash(IEngine db, String query) {
+		Hashtable queryDataHash = new Hashtable();
 		AggregationHelper aggregationHelper = new AggregationHelper();
-		
+		SesameJenaSelectWrapper queryDataWrapper = aggregationHelper.processQuery(db, query);
+		queryDataHash = aggregationHelper.hashTableResultProcessor(queryDataWrapper);
+		return queryDataHash;
+	}
+	
+	public boolean runCoreInsert()	{
+		boolean success = true;		
 		logger.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
 		logger.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
-		logger.info("Core DB is: " + coreDB.getEngineName());		
-		
+		logger.info("Core DB is: " + coreDB.getEngineName());			
 //1.  QUERY AND COLLECT THE DATA (Raw URIs)	
-	//1.1  Collect bp==>Data (CRM) and bp==>BLU 		
-		SesameJenaSelectWrapper bpDataListWrapper = aggregationHelper.processQuery(coreDB, BUSINESS_PROCESSES_DATA_QUERY);
-		SesameJenaSelectWrapper bpBLUListWrapper = aggregationHelper.processQuery(coreDB, BUSINESS_PROCESSES_BLU_QUERY);
-	//1.2  Collect Sys==>Data (CRM) and Sys==>BLU 	
-		SesameJenaSelectWrapper systemDataWrapper = aggregationHelper.processQuery(coreDB, SYSTEM_DATA_QUERY);
-		SesameJenaSelectWrapper systemBLUWrapper = aggregationHelper.processQuery(coreDB, SYSTEM_BLU_QUERY);
-		
-		SesameJenaSelectWrapper capDataListWrapper = aggregationHelper.processQuery(coreDB, CAPABILITY_DATA_QUERY);
-		SesameJenaSelectWrapper capBLUListWrapper = aggregationHelper.processQuery(coreDB, CAPABILITY_BLU_QUERY);
-		
-//2.  PROCESS THE DATA AND PERFORM ANALYSIS	
-	//Processing
-		Hashtable bpDataHash = aggregationHelper.hashTableResultProcessor(bpDataListWrapper);
-		Hashtable bpBLUHash = aggregationHelper.hashTableResultProcessor(bpBLUListWrapper);
-		Hashtable systemDataHash = aggregationHelper.hashTableResultProcessor(systemDataWrapper);
-		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);				
-		Hashtable capDataHash = aggregationHelper.hashTableResultProcessor(capDataListWrapper);
-		Hashtable capBLUHash = aggregationHelper.hashTableResultProcessor(capBLUListWrapper);
-		
-		if (!(coreDB.getEngineName().equals("HR_Core"))) {
-			this.errorMessage = "Select the HR_Core database.";
-			return false;
-		}
-				
-		if (bpDataHash.isEmpty() || bpBLUHash.isEmpty() || systemDataHash.isEmpty() || systemBLUHash.isEmpty() || capDataHash.isEmpty() || capBLUHash.isEmpty()) {
-			this.errorMessage = "One or more of the queries returned no results.";
-			return false;
-		}
-		
-	//Analysis
-		//BP
+		Hashtable bpDataHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_DATA_QUERY);
+		Hashtable bpBLUHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_BLU_QUERY);
+		Hashtable systemDataHash = getQueryResultHash(coreDB, SYSTEM_DATA_QUERY);
+		Hashtable systemBLUHash = getQueryResultHash(coreDB, SYSTEM_BLU_QUERY);				
+		Hashtable capDataHash = getQueryResultHash(coreDB, CAPABILITY_DATA_QUERY);
+		Hashtable capBLUHash = getQueryResultHash(coreDB, CAPABILITY_BLU_QUERY);		
+			if (!(coreDB.getEngineName().equals("HR_Core"))) {
+				this.errorMessage = "Select the HR_Core database.";
+				return false;
+			}				
+			if (bpDataHash.isEmpty() || bpBLUHash.isEmpty() || systemDataHash.isEmpty() || systemBLUHash.isEmpty() || capDataHash.isEmpty() || capBLUHash.isEmpty()) {
+				this.errorMessage = "One or more of the queries returned no results.";
+				return false;
+			}
+//2.  Processing and Analysis
+	//BP
 		insertRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
-		//Capabilities
+	//Capabilities
 		insertRelations(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
-
-//3.  Insert new relationships (Full URIs)			
+//3.  Insert new relationships (Full URIs)	
+		AggregationHelper aggregationHelper = new AggregationHelper();
 		aggregationHelper.processData(coreDB, dataHash);
 		aggregationHelper.processNewRelationships(coreDB, newRelationships);
 		((BigDataEngine) coreDB).infer();
@@ -152,16 +141,16 @@ public class SysBPCapInsertProcessor {
 	
 	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash, boolean insert) {	
 		AggregationHelper aggregationHelper = new AggregationHelper();	
-		//for storage
+	//for storage
 		Hashtable<String, Hashtable<String, Double>> dataSubHash = new Hashtable<String, Hashtable<String, Double>>();
 		Hashtable<String, Hashtable<String, Double>> bluSubHash = new Hashtable<String, Hashtable<String, Double>>();
-	//populate the System, BP sets with the appropriate data from the query result hashtables. (Raw URIs)		
+	//populate the System, BP sets with the appropriate data from the query result Hashtables. (Raw URIs)		
 		Set<String> overallBPSet = new HashSet<String>();
 		overallBPSet.addAll(bpDataHash.keySet());
 		overallBPSet.addAll(bpBLUHash.keySet());		
 		Set<String> overallSystemSet = new HashSet<String>();
 		overallSystemSet.addAll(systemDataHash.keySet());
-		overallSystemSet.addAll(systemBLUHash.keySet());
+		overallSystemSet.addAll(systemBLUHash.keySet());                                                                                                                                                                                                                                                                                                                                                                                                                            
 		
 		for (String bp : overallBPSet) {			
 		//Process Query Results (BP Specific)
@@ -176,67 +165,62 @@ public class SysBPCapInsertProcessor {
 			Hashtable<String, Double> dataScoreHash = new Hashtable<String, Double>();
 			Hashtable<String, Double> bluScoreHash = new Hashtable<String, Double>();
 				
-				for (String sys : overallSystemSet) {
-					int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;				
-				//Figure out what Data Objects a system creates or reads and what BLUs that system provides
-					Set<String> systemSpecificDataSet = (Set<String>) systemDataHash.get(sys);
-					Set<String> systemSpecificBLUSet = (Set<String>) systemBLUHash.get(sys);
-				
-				//check to see if system created data objects ('d') is needed by the Business Process 'bp'
-					if(!(systemSpecificDataSet == null)) {
-						for (String dataObj : bpSpecificDataSet) {					
-							if (systemSpecificDataSet.contains(dataObj)) {systemSpecificDataCount++;}
-						}
-					}
-				//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
-					if (!(systemSpecificBLUSet == null)) {
-						for (String blu : bpSpecificBLUSet) {					
-							if (systemSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
-						} 
-					}
-				
-					if(insert){
-					//Based on the logic type, insert new relationships	
-						if (logicType.equals("AND")) {		
-							if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {	
-								systemSupportsBPRelationProcessing(sys, bp);
-							}
-						}
-						else if (logicType.equals("OR")) {
-							if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) || (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {
-								systemSupportsBPRelationProcessing(sys, bp);
-							}
-						}
-					}
-					else {
-						//billy will insert code here storing necessary for heatmap
-						//Hashtable<String, Hashtable<String, Hashtable<String, Double>>> storageHash
-						double sysDataScore = 0.0, sysBLUScore = 0.0;
-						if (bpSpecificDataSet.size()!=0)
-							sysDataScore = (double) systemSpecificDataCount/bpSpecificDataSet.size();
-						if (bpSpecificBLUSet.size()!=0)
-							sysBLUScore = (double) systemSpecificBLUCount/bpSpecificBLUSet.size();
-						String bpInstance = Utility.getInstanceName(bp);
-						boolean test = ((sysDataScore > 0) || (sysBLUScore > 0));
-						String sysInstance = Utility.getInstanceName(sys);
-						if (test) {
-							dataScoreHash.put(sysInstance, sysDataScore);
-							bluScoreHash.put(sysInstance, sysBLUScore);
-							logger.info(sysInstance + " ====> " + bpInstance + " Data:" + sysDataScore + " BLU: " + sysBLUScore);
-						}
-						
-						
+			for (String sys : overallSystemSet) {
+				int systemSpecificDataCount = 0, systemSpecificBLUCount = 0;				
+			//Figure out what Data Objects a system creates or reads and what BLUs that system provides
+				Set<String> systemSpecificDataSet = (Set<String>) systemDataHash.get(sys);
+				Set<String> systemSpecificBLUSet = (Set<String>) systemBLUHash.get(sys);
+			
+			//check to see if system created data objects ('d') is needed by the Business Process 'bp'
+				if(!(systemSpecificDataSet == null)) {
+					for (String dataObj : bpSpecificDataSet) {					
+						if (systemSpecificDataSet.contains(dataObj)) {systemSpecificDataCount++;}
 					}
 				}
-				String bpInstance = Utility.getInstanceName(bp);
-				dataSubHash.put(bpInstance, dataScoreHash);
-				bluSubHash.put(bpInstance, bluScoreHash);
+			//check to see if system provided BLUs ('b') is needed by the Business Process 'bp'	
+				if (!(systemSpecificBLUSet == null)) {
+					for (String blu : bpSpecificBLUSet) {					
+						if (systemSpecificBLUSet.contains(blu)) {systemSpecificBLUCount++;}
+					} 
+				}
+			
+				if(insert){
+				//Based on the logic type, insert new relationships	
+					if (logicType.equals("AND")) {		
+						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) & (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {	
+							systemSupportsBPRelationProcessing(sys, bp);
+						}
+					}
+					else if (logicType.equals("OR")) {
+						if ( (systemSpecificDataCount >= ( bpSpecificDataSet.size()*dataObjectThresholdValue )) || (systemSpecificBLUCount >= ( bpSpecificBLUSet.size()*bluThresholdValue )) ) {
+							systemSupportsBPRelationProcessing(sys, bp);
+						}
+					}
+				}
+				else {
+					double sysDataScore = 0.0, sysBLUScore = 0.0;						
+					if (bpSpecificDataSet.size()!=0)
+						sysDataScore = (double) systemSpecificDataCount/bpSpecificDataSet.size();
+					if (bpSpecificBLUSet.size()!=0)
+						sysBLUScore = (double) systemSpecificBLUCount/bpSpecificBLUSet.size();
+					String bpInstance = Utility.getInstanceName(bp);
+					boolean test = ((sysDataScore > 0) || (sysBLUScore > 0));
+					String sysInstance = Utility.getInstanceName(sys);
+					if (test) {
+						dataScoreHash.put(sysInstance, sysDataScore);
+						bluScoreHash.put(sysInstance, sysBLUScore);
+						//logger.info(sysInstance + " ====> " + bpInstance + " Data:" + sysDataScore + " BLU: " + sysBLUScore);
+					}	
+				}
+			}
+			String bpInstance = Utility.getInstanceName(bp);
+			dataSubHash.put(bpInstance, dataScoreHash);
+			bluSubHash.put(bpInstance, bluScoreHash);
 		}
 		
 		if (insert) {
 			dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
-			logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");
-		
+			logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");		
 		}
 		else {
 			storageHash.put(DATAC, dataSubHash);

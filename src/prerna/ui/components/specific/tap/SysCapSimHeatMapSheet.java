@@ -34,6 +34,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 	String hrCoreDB = "HR_Core";
 	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
 	String capabilityQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
+	String businessProcessQuery = "SELECT DISTINCT ?BusinessProcess WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}}";	
 	
 	/**
 	 * Constructor for CapSimHeatMapSheet.
@@ -45,88 +46,62 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 	
 	public void createData() {
 		addPanel();
-		SimilarityFunctions sdf = new SimilarityFunctions();
-		AggregationHelper aggregationHelper = new AggregationHelper();		
+		SimilarityFunctions sdf = new SimilarityFunctions();	
 		SysBPCapInsertProcessor processor = new SysBPCapInsertProcessor(0.0, 0.0, "AND");
+		logger.info("Creating " + this.query + " to System Heat Map.");
 		
-		//get list of capabilities first
-		updateProgressBar("10%...Getting all Capabilities for evaluation", 10);
+		updateProgressBar("10%...Getting " + this.query + " list for evaluation", 10);
 		comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, capabilityQuery);
+		if (this.query.equals("Capability")) {
+			comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, capabilityQuery);
+		}
+		else if(this.query.equals("BusinessProcess")) {
+			comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, businessProcessQuery);
+		}
 		sdf.setComparisonObjectList(comparisonObjectList);
-		//get list of systems
-		updateProgressBar("20%...Getting all Systems for evaluation", 20);
 		
-		//query the Data
-		//String BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
-		//String BUSINESS_PROCESSES_BLU_QUERY = "SELECT DISTINCT ?BusinessProcess ?BLU WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
-		//String CAPABILITY_SYSTEM_DATA_C_QUERY = "SELECT DISTINCT ?Capability (COALESCE(?System,'NA') AS ?Sys) ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} OPTIONAL {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System ?provide ?Data .}}} BINDINGS ?CRM {('C')}";
-		//String CAPABILITY_SYSTEM_DATA_R_QUERY = "SELECT DISTINCT ?Capability (COALESCE(?System,'NA') AS ?Sys) ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} OPTIONAL {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System ?provide ?Data .}}} BINDINGS ?CRM {('R')}";
-		//String CAPABILITY_SYSTEM_BLU_QUERY = "SELECT DISTINCT ?Capability (COALESCE(?System,'NA') AS ?Sys) ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} OPTIONAL {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?System ?provide ?BLU.}}}";		
+		updateProgressBar("20%...Getting all Systems for evaluation", 20);		
+		Hashtable systemDataHash = processor.getQueryResultHash(coreDB, processor.SYSTEM_DATA_QUERY);
+		Hashtable systemBLUHash = processor.getQueryResultHash(coreDB, processor.SYSTEM_BLU_QUERY);	
 		
-//1.  QUERY AND COLLECT THE DATA (Raw URIs)	
-	//1.1  Collect bp==>Data (CRM) and bp==>BLU 		
-		//SesameJenaSelectWrapper bpDataListWrapper = aggregationHelper.processQuery(coreDB, processor.BUSINESS_PROCESSES_DATA_QUERY);
-		//SesameJenaSelectWrapper bpBLUListWrapper = aggregationHelper.processQuery(coreDB, processor.BUSINESS_PROCESSES_BLU_QUERY);
-	//1.2  Collect Sys==>Data (CRM) and Sys==>BLU 	
-		SesameJenaSelectWrapper systemDataWrapper = aggregationHelper.processQuery(coreDB, processor.SYSTEM_DATA_QUERY);
-		SesameJenaSelectWrapper systemBLUWrapper = aggregationHelper.processQuery(coreDB, processor.SYSTEM_BLU_QUERY);
-		
-		SesameJenaSelectWrapper capDataListWrapper = aggregationHelper.processQuery(coreDB, processor.CAPABILITY_DATA_QUERY);
-		SesameJenaSelectWrapper capBLUListWrapper = aggregationHelper.processQuery(coreDB, processor.CAPABILITY_BLU_QUERY);
-		
-//2.  PROCESS THE DATA AND PERFORM ANALYSIS	
-	//Processing
-		//Hashtable bpDataHash = aggregationHelper.hashTableResultProcessor(bpDataListWrapper);
-		//Hashtable bpBLUHash = aggregationHelper.hashTableResultProcessor(bpBLUListWrapper);
-		Hashtable systemDataHash = aggregationHelper.hashTableResultProcessor(systemDataWrapper);
-		Hashtable systemBLUHash = aggregationHelper.hashTableResultProcessor(systemBLUWrapper);				
-		Hashtable capDataHash = aggregationHelper.hashTableResultProcessor(capDataListWrapper);
-		Hashtable capBLUHash = aggregationHelper.hashTableResultProcessor(capBLUListWrapper);
-		
-		processor.genRelationsForStorage(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
+		updateProgressBar("35%...Querying Data", 35);
+		if (this.query.equals("Capability")) {
+			Hashtable capDataHash = processor.getQueryResultHash(coreDB, processor.CAPABILITY_DATA_QUERY);
+			Hashtable capBLUHash = processor.getQueryResultHash(coreDB, processor.CAPABILITY_BLU_QUERY);		
+			processor.genRelationsForStorage(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
+		}
+		else if(this.query.equals("BusinessProcess")) {
+			Hashtable bpDataHash = processor.getQueryResultHash(coreDB, processor.BUSINESS_PROCESSES_DATA_QUERY);
+			Hashtable bpBLUHash = processor.getQueryResultHash(coreDB, processor.BUSINESS_PROCESSES_BLU_QUERY);		
+			processor.genRelationsForStorage(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
+		}		
 		Hashtable resultHash = processor.storageHash;		
 		
-		updateProgressBar("50%...Evaluating Data Objects Created for a Capability", 50);
+		updateProgressBar("50%...Evaluating Data Objects Created for a " + this.query, 50);
 		Hashtable dataCScoreHash = (Hashtable) resultHash.get(processor.DATAC);
 		logger.info("Finished Data Objects Created Processing.");
 		dataCScoreHash = processHashForCharting(dataCScoreHash);		
 		
 		/*updateProgressBar("60%...Evaluating Data Objects Read for a Capability", 60);
-		Hashtable dataRScoreHash = sdf.compareDifferentObjectParameterScore(hrCoreDB, CAPABILITY_SYSTEM_DATA_R_QUERY, SimilarityFunctions.VALUE);
+		Hashtable dataRScoreHash = (Hashtable) resultHash.get(processor.DATAR);
 		logger.info("Finished Data Objects Read Processing.");
 		dataRScoreHash = processHashForCharting(dataRScoreHash);*/		
 		
-		updateProgressBar("70%...Evaluating Business Logic Provided for a Capability", 70);
+		updateProgressBar("70%...Evaluating Business Logic Provided for a " + this.query, 70);
 		Hashtable bluScoreHash = (Hashtable) resultHash.get(processor.BLU);
 		logger.info("Finished Business Logic Provided Processing.");
 		bluScoreHash = processHashForCharting(bluScoreHash);		
-		
+			
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
-		
-		//paramDataHash.put("Data_Objects_Created", dataCScoreHash);
-		//paramDataHash.put("Data_Objects_Read", dataRScoreHash);
-		//paramDataHash.put("Business_Logic_Provided", bluScoreHash);
-		
+	
 		paramDataHash.put("Data_Objects_Created", dataCScoreHash);
 		//paramDataHash.put("Data_Objects_Read", dataRScoreHash);
 		paramDataHash.put("Business_Logic_Provided", bluScoreHash);
 		
-		allHash.put("title",  "Systems Support Capability");
+		allHash.put("title",  "Systems Support " + this.query);
 		allHash.put("xAxisTitle", "Capability");
 		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
