@@ -7,28 +7,34 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLTag">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Enterprise">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Complexity">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemBudgetGLItem">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FYTag">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FundingSource">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FYTag">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Complexity">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Enterprise">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLTag">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemBudgetGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Includes">
@@ -37,16 +43,19 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Has">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ConsistsOf">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OccursIn">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Rated">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TaggedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TaggedBy">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/FundedBy">
@@ -64,11 +73,21 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemBudgetGLItem">
 	<TaggedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<ConsistsOf xmlns="http://semoss.org/ontologies/Relation/">
+		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemService">
+			<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem"/>
+		</rdf:Description>
+	</ConsistsOf>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Enterprise">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Rated xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Complexity"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem">
+	<TaggedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem">
 	<OccursIn xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FYTag"/>
@@ -78,6 +97,9 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Enterprise">
 	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem">
+	<OccursIn xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FYTag"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemBudgetGLItem">
 	<FundedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FundingSource"/>
