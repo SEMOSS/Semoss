@@ -28,6 +28,64 @@ import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
  */
 public class SysOptGraphFunctions extends SerOptGraphFunctions{
 
+	@Override
+	public Hashtable createCostChart()
+	{
+		int thisYear = 2014;
+		ArrayList<double[]> susPerYearList = createSusPerYear();
+		int[] totalYearsAxis = new int[opt.maxYears];
+		for (int i=0;i<opt.maxYears;i++)
+		{
+			totalYearsAxis[i]=thisYear+i;
+		}
+		Hashtable barChartHash = new Hashtable();
+		Hashtable seriesHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
+		barChartHash.put("type",  "column");
+		barChartHash.put("stack", "normal");
+		barChartHash.put("title",  "Build and Sustainment Cost ");
+		barChartHash.put("yAxisTitle", "Learning-Adjusted Cost (Actual-time value)");
+		barChartHash.put("xAxisTitle", "Fiscal Year");
+		barChartHash.put("xAxis", totalYearsAxis);
+		double[] buildSeries = susPerYearList.get(0);
+		seriesHash.put("Build Costs", buildSeries);
+		double[] sustainSeries = susPerYearList.get(1);
+		seriesHash.put("Sustainment Costs", sustainSeries);
+		colorHash.put("SOA Service Spending", "#4572A7");
+		barChartHash.put("dataSeries",  seriesHash);
+		barChartHash.put("colorSeries", colorHash);
+		return barChartHash;
+		
+	}
+	
+	@Override
+	public Hashtable createCumulativeSavings()
+	{
+		Hashtable barChartHash = super.createCumulativeSavings();
+		Hashtable seriesHash = (Hashtable)barChartHash.get("dataSeries");
+		seriesHash.put("Savings",seriesHash.remove("Year 1 Services"));
+		return barChartHash;
+	}
+	
+	
+	@Override
+	public ArrayList<double[]> createSusPerYear()
+	{
+		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
+		double[] buildCost = new double[opt.maxYears];
+		for(int i=0;i<opt.maxYears;i++)
+		{
+			buildCost[i] = ((SysNetSavingsOptimizer)opt).installCostList.get(i);
+		}
+		double[] sustainCost = new double[opt.maxYears];
+		for(int i=0;i<opt.maxYears;i++)
+		{
+			sustainCost[i] = ((SysNetSavingsOptimizer)opt).sustainCostList.get(i);
+		}
+		susPerYearList.add(buildCost);
+		susPerYearList.add(sustainCost);		
+		return susPerYearList;
+	}
 	
 	@Override
 	public ArrayList<double[]> createSavingsPerYearList()
