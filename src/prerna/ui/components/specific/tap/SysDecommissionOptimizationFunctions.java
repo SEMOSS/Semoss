@@ -33,6 +33,10 @@ public class SysDecommissionOptimizationFunctions {
     
     private ArrayList<String> systemsWithNoSite;
     private Vector<String> sortedSysList;
+    public ArrayList<String> sysList;
+    public ArrayList<String> dataList;
+    boolean givenSysList = false;
+    boolean givenDataList = false;
 
 	ArrayList <Object []> outputList;
 
@@ -62,6 +66,17 @@ public class SysDecommissionOptimizationFunctions {
 		timeConstraint = 9.09*365;
 	}
 	
+	public void setDataList(ArrayList<String> dataList)
+	{
+		this.dataList = dataList;
+		this.givenDataList = true;
+	}
+	
+	public void setSysList(ArrayList<String> sysList)
+	{
+		this.sysList = sysList;
+		this.givenSysList = true;
+	}
 	
 	public void optimizeTime()
 	{
@@ -147,6 +162,7 @@ public class SysDecommissionOptimizationFunctions {
 	 */
 	public void calculateMinTimeAndWorkVolPerSystemPerSite()
 	{
+		
 		ArrayList <Object []> systemDataCostList = createData(costDB,systemCostQuery);
 		processSystemDataLOE(systemDataCostList);
 		
@@ -271,7 +287,7 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		for(String sys : sysToWorkVolHashPerSite.keySet())
 		{
-			costAllSysAllSites += sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150;
+			costAllSysAllSites += sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;
 		}
 
 	}
@@ -355,7 +371,6 @@ public class SysDecommissionOptimizationFunctions {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
@@ -387,16 +402,23 @@ public class SysDecommissionOptimizationFunctions {
 			String data = (String) elementArray[1];
 			String ser = (String) elementArray[2];
 			Double loe = (Double) elementArray[3];
-			if(sysToDataToLOEHash.containsKey(system))
+			//if given a sysList, make sure that the system is in that list
+			if(!givenSysList||(givenSysList&&sysList.contains(system)))
 			{
-				Hashtable<String, Double> dataCostHash = sysToDataToLOEHash.get(system);
-				dataCostHash.put(data+"$"+ser, loe);
-			}
-			else
-			{
-				Hashtable<String, Double> dataCostHash = new Hashtable<String, Double> ();
-				dataCostHash.put(data+"$"+ser,  loe);
-				sysToDataToLOEHash.put(system, dataCostHash);
+				if(!givenDataList||(givenDataList&&dataList.contains(data)))
+				{
+					if(sysToDataToLOEHash.containsKey(system))
+					{
+						Hashtable<String, Double> dataCostHash = sysToDataToLOEHash.get(system);
+						dataCostHash.put(data+"$"+ser, loe);
+					}
+					else
+					{
+						Hashtable<String, Double> dataCostHash = new Hashtable<String, Double> ();
+						dataCostHash.put(data+"$"+ser,  loe);
+						sysToDataToLOEHash.put(system, dataCostHash);
+					}
+				}
 			}
 		}
 	}
@@ -407,16 +429,19 @@ public class SysDecommissionOptimizationFunctions {
 			Object[] elementArray= list.get(i);
 			String system = (String) elementArray[0];
 			String site = (String) elementArray[1];
-			if(sysToSiteHash.containsKey(system))
+			if(!givenSysList||(givenSysList&&sysList.contains(system)))
 			{
-				ArrayList<String> siteList = sysToSiteHash.get(system);
-				siteList.add(site);
-			}
-			else
-			{
-				ArrayList<String> siteList = new ArrayList<String>();
-				siteList.add(site);
-				sysToSiteHash.put(system, siteList);
+				if(sysToSiteHash.containsKey(system))
+				{
+					ArrayList<String> siteList = sysToSiteHash.get(system);
+					siteList.add(site);
+				}
+				else
+				{
+					ArrayList<String> siteList = new ArrayList<String>();
+					siteList.add(site);
+					sysToSiteHash.put(system, siteList);
+				}
 			}
 		}
 	}
