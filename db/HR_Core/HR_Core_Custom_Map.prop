@@ -41,6 +41,7 @@ RDF http://health.mil/ontologies/Concept/RDF
 Personnel http://health.mil/ontologies/Concept/Personnel
 DProt http://health.mil/ontologies/Concept/DProt
 Task http://health.mil/ontologies/Concept/Task
+JMA http://health.mil/ontologies/Concept/JMA
 Activity http://health.mil/ontologies/Concept/Activity
 MissionOutcome http://health.mil/ontologies/Concept/MissionOutcome
 TError http://health.mil/ontologies/Concept/TError
@@ -94,12 +95,12 @@ Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Prov
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
 System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
-System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
 SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
 Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 TechCategory_Has_TechSubCategory http://health.mil/ontologies/Relation/Has
+Activity_MapsTo_JMA http://health.mil/ontologies/Relation/MapsTo
 InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 Task_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 Requirement_Consists_ConformanceCriteria http://health.mil/ontologies/Relation/Consists
@@ -123,9 +124,7 @@ TaskerLifecycleSystemPhase_TypeOf_TaskerLifecyclePhase http://health.mil/ontolog
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
-SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 Capability_Consists_Task http://health.mil/ontologies/Relation/Consists
-System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 Service_Replaces_InterfaceControlDocument http://health.mil/ontologies/Relation/Replaces
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 Task_Supports_BusinessRule http://health.mil/ontologies/Relation/Supports
@@ -145,7 +144,6 @@ System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 RDF_Has_RDFElement http://health.mil/ontologies/Relation/Has
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
-HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 BusinessRule_Requires_SLA http://health.mil/ontologies/Relation/Requires
 SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
@@ -156,6 +154,7 @@ System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
+JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
 
 ##Base Objects Class##
 
@@ -166,6 +165,7 @@ HardwareModule_CLASS http://semoss.org/ontologies/Concept/HardwareModule
 RDFElement_CLASS http://semoss.org/ontologies/Concept/RDFElement
 BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+JMA_CLASS http://semoss.org/ontologies/Concept/JMA
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
