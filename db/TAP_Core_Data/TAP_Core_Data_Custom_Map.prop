@@ -66,7 +66,6 @@ InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
-System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
 Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
@@ -76,7 +75,6 @@ SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
-System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 System_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
 TaskerLifecycleSystemPhase_TypeOf_TaskerLifecyclePhase http://health.mil/ontologies/Relation/TypeOf
@@ -175,7 +173,6 @@ InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relat
 Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
 System_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
-System_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
 System_Consists_SoftwareModule_CLASS http://semoss.org/ontologies/Relation/Consists
 System_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 Activity_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
@@ -199,7 +196,6 @@ InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/H
 Requirement_Consists_ConformanceCriteria_CLASS http://semoss.org/ontologies/Relation/Consists
 RDF_Has_RDFElement_CLASS http://semoss.org/ontologies/Relation/Has
 JMA_Consists_JMA_CLASS http://semoss.org/ontologies/Relation/Consists
-System_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
 Activity_Assigned_FError_CLASS http://semoss.org/ontologies/Relation/Assigned
 DataObject_Connected_RDF_CLASS http://semoss.org/ontologies/Relation/Connected
 VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
