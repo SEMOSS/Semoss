@@ -47,28 +47,29 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		addPanel();
 		SimilarityFunctions sdf = new SimilarityFunctions();	
 		SysBPCapInsertProcessor processor = new SysBPCapInsertProcessor(0.0, 0.0, "AND");
-		logger.info("Creating " + this.query + " to System Heat Map.");
+		String comparisonType = this.query;
+		logger.info("Creating " + comparisonType + " to System Heat Map.");
 		
-			if (this.query.equals("Capability")) {
+			if (comparisonType.equals("Capability")) {
 				allHash.put("xAxisTitle", "Capability");
-				updateProgressBar("10%...Getting " + this.query + " list for evaluation", 10);
+				updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 				comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, capabilityQuery);
 				setComparisonObjectTypes("Capability", "System");
 				updateProgressBar("35%...Querying Data", 35);
-				processor.genStorageInformation(coreDB, this.query);
+				processor.genStorageInformation(coreDB, comparisonType);
 			}
-			else if(this.query.equals("BusinessProcess")) {
+			else if(comparisonType.equals("BusinessProcess")) {
 				allHash.put("xAxisTitle", "BusinessProcess");
-				updateProgressBar("10%...Getting " + this.query + " list for evaluation", 10);
+				updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 				comparisonObjectList = sdf.createComparisonObjectList(hrCoreDB, businessProcessQuery);
 				setComparisonObjectTypes("BusinessProcess", "System");
 				updateProgressBar("35%...Querying Data", 35);
-				processor.genStorageInformation(coreDB, this.query);
+				processor.genStorageInformation(coreDB, comparisonType);
 			}		
 		sdf.setComparisonObjectList(comparisonObjectList);
 		Hashtable resultHash = processor.storageHash;		
 		
-		updateProgressBar("50%...Evaluating Data Objects Created for a " + this.query, 50);
+		updateProgressBar("50%...Evaluating Data Objects Created for a " + comparisonType, 50);
 		Hashtable dataCScoreHash = (Hashtable) resultHash.get(processor.DATAC);
 		logger.info("Finished Data Objects Created Processing.");
 		dataCScoreHash = processHashForCharting(dataCScoreHash);		
@@ -78,7 +79,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		logger.info("Finished Data Objects Read Processing.");
 		dataRScoreHash = processHashForCharting(dataRScoreHash);*/		
 		
-		updateProgressBar("70%...Evaluating Business Logic Provided for a " + this.query, 70);
+		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);
 		Hashtable bluScoreHash = (Hashtable) resultHash.get(processor.BLU);
 		logger.info("Finished Business Logic Provided Processing.");
 		bluScoreHash = processHashForCharting(bluScoreHash);		
@@ -89,7 +90,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		//paramDataHash.put("Data_Objects_Read", dataRScoreHash);
 		paramDataHash.put("Business_Logic_Provided", bluScoreHash);
 		
-		allHash.put("title",  "Systems Support " + this.query);		
+		allHash.put("title",  "Systems Support " + comparisonType);		
 		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
