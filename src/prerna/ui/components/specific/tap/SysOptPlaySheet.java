@@ -284,24 +284,31 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	@Override
 	public void createSpecificDisplayComponents()
 	{
+		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.insets = new Insets(0, 0, 0, 5);
+		gbc_panel.fill = GridBagConstraints.BOTH;
+		gbc_panel.gridx = 0;
+		gbc_panel.gridy = 1;
+		chartPanel.add(tab3,  gbc_panel);
+		
 		GridBagConstraints gbc_panel2 = new GridBagConstraints();
 		gbc_panel2.insets = new Insets(0, 0, 0, 5);
 		gbc_panel2.fill = GridBagConstraints.BOTH;
-		gbc_panel2.gridx = 0;
+		gbc_panel2.gridx = 1;
 		gbc_panel2.gridy = 1;
 		chartPanel.add(tab4,  gbc_panel2);
 
 		GridBagConstraints gbc_panel3 = new GridBagConstraints();
 		gbc_panel3.insets = new Insets(0, 0, 0, 5);
 		gbc_panel3.fill = GridBagConstraints.BOTH;
-		gbc_panel3.gridx = 1;
-		gbc_panel3.gridy = 1;
+		gbc_panel3.gridx = 0;
+		gbc_panel3.gridy = 2;
 		chartPanel.add(tab5,  gbc_panel3);
 
 		GridBagConstraints gbc_panel4 = new GridBagConstraints();
 		gbc_panel4.insets = new Insets(0, 0, 0, 5);
 		gbc_panel4.fill = GridBagConstraints.BOTH;
-		gbc_panel4.gridx = 0;
+		gbc_panel4.gridx = 1;
 		gbc_panel4.gridy = 2;
 		chartPanel.add(tab6,  gbc_panel4);
 		

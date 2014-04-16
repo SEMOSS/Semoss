@@ -55,25 +55,12 @@ public class SerOptGraphFunctions {
 	 * @return Hashtable	Hashtable used to create bar charts. */
 	public Hashtable createCostChart()
 	{
-		double[] yearlyBuildCosts = new double[lin.actualBudgetList.size()];
-		int thisYear = 2013;
-		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
-		for (int i=0 ;i< lin.actualBudgetList.size();i++)
-		{
-			//yearlyBuildCosts[i]=lin.actualBudgetList.get(i);
-			double[] newYear = new double[opt.maxYears];
-			newYear[i]=Math.round(lin.actualBudgetList.get(i)*Math.pow((1+opt.infRate), i));
-			for (int j=i+1;j<opt.maxYears;j++)
-			{
-				newYear[j]=Math.round(lin.actualBudgetList.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
-			}
-			
-			susPerYearList.add(newYear);
-		}
+		int thisYear = 2014;
+		ArrayList<double[]> susPerYearList = createSusPerYear();
 		int[] totalYearsAxis = new int[opt.maxYears];
 		for (int i=0;i<opt.maxYears;i++)
 		{
-			totalYearsAxis[i]=thisYear+i+1;
+			totalYearsAxis[i]=thisYear+i;
 		}
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
@@ -88,7 +75,7 @@ public class SerOptGraphFunctions {
 		for (int i=0;i<susPerYearList.size();i++)
 		{
 			double[] yearSeries = susPerYearList.get(i);
-			seriesHash.put("Year "+(i+1) +" Services", yearSeries);
+			seriesHash.put("Year "+i +" Services", yearSeries);
 			//use high charts default charts
 			//colorHash.put("Year "+(i+1) +" Services", colorArray.get(i));
 		}
@@ -97,6 +84,23 @@ public class SerOptGraphFunctions {
 		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
 		
+	}
+	public ArrayList<double[]> createSusPerYear()
+	{
+		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
+		for (int i=0 ;i< lin.actualBudgetList.size();i++)
+		{
+			//yearlyBuildCosts[i]=lin.actualBudgetList.get(i);
+			double[] newYear = new double[opt.maxYears];
+			newYear[i]=Math.round(lin.actualBudgetList.get(i)*Math.pow((1+opt.infRate), i));
+			for (int j=i+1;j<opt.maxYears;j++)
+			{
+				newYear[j]=Math.round(lin.actualBudgetList.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
+			}
+			
+			susPerYearList.add(newYear);
+		}
+		return susPerYearList;
 	}
 
 	/**

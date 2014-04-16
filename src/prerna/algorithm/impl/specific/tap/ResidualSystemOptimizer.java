@@ -38,7 +38,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	
 	int ret=0;
 	double roi=0.0;
-	double denomCurrentMaintenance = 0.0;
+	public double denomCurrentMaintenance = 0.0;
 	public double numTransformationTotal = 0.0;
 	public double numMaintenanceTotal = 0.0;
 	double percentOfPilot = 0.20;

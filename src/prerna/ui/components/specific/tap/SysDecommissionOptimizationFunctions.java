@@ -46,8 +46,8 @@ public class SysDecommissionOptimizationFunctions {
 	private static String siteDB = "TAP_Site_Data";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 
-	private double percentOfPilot;
-	private double costPerHour;	
+	private double percentOfPilot=0.2;
+	public double costPerHour=150.0;	
 	private static final int workHoursInDay = 8;
 
 	public int resourcesConstraint;
@@ -114,7 +114,18 @@ public class SysDecommissionOptimizationFunctions {
 		System.out.println("Resources used: "+Math.ceil(resourcesPossible));
 		System.out.println("Total cost: "+costAllSysAllSites);
 	}
-	
+	public void optimize(double budget, double minYears)
+	{
+		instantiate();
+		
+		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,minYears);
+	//	resourcesPossible = budget / (costPerHour
+		
+		//timeConstraint = minYears;
+		
+		//minNecessaryTimeAllSystems
+		
+	}
 	public void instantiate()
 	{
 		sysToMinTimeHashPerSite = new Hashtable<String, Double>();
@@ -128,9 +139,6 @@ public class SysDecommissionOptimizationFunctions {
 		outputList = new ArrayList<Object[]>();
 		systemsWithNoSite = new ArrayList<String>();
 		sortedSysList = new Vector<String>();
-
-		percentOfPilot = .2;
-		costPerHour = 150.0;
 		
 		resourcesPossible = 0.0;
 		minNecessaryTimeAllSystems = 0.0;

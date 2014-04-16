@@ -35,6 +35,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.Logger;
 
+import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.util.Utility;
@@ -49,11 +50,12 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	ArrayList<String> sysList, dataList, bluList;
 	double dataExposeCost;
 	double numMaintenanceSavings;
+	double preTransitionMaintenanceCost;
+	double postTransitionMaintenanceCost;
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
-	public ArrayList<Double> cumSavingsList, breakEvenList;
-	
+	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
 	
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
 	{
@@ -106,7 +108,9 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 
 		this.dataExposeCost = sysOpt.numTransformationTotal; //total cost to expose all data for all systems at all sites
 		this.numMaintenanceSavings =sysOpt.numMaintenanceTotal;
-	}
+		this.preTransitionMaintenanceCost = sysOpt.denomCurrentMaintenance;
+		this.postTransitionMaintenanceCost = preTransitionMaintenanceCost - numMaintenanceSavings;
+		}
 	
 	public void runOpt()
 	{
@@ -129,7 +133,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
         f.setConsoleArea(playSheet.consoleArea);
         f.setProgressBar(progressBar);
         f.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        ((SysNetSavingsFunction)f).setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost);
+        ((SysNetSavingsFunction)f).setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         ((SysNetSavingsFunction)f).createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
 
         //budget in LOE
@@ -146,10 +150,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
             UnivariatePointValuePair pair = multiOpt.optimize(data);
             budget = pair.getPoint();
             optNumYears = ((SysNetSavingsFunction)f).calculateYear(budget);
-
             calculateSavingsAndROI();
-
-           // netSavings = pair.getValue();
             progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
         } catch (TooManyEvaluationsException fee) {
@@ -159,21 +160,48 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
             progressBar.setVisible(false);
             clearPlaysheet();
         }
-        runOptIteration();
-		
+        
+        //getting the deployment strategy
+		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
+		optFunctions.setSysList(sysList);
+		optFunctions.setDataList(dataList);
+		optFunctions.costPerHour = hourlyCost;
+//		optFunctions.optimize(budget, optNumYears);		
+//		optFunctions.timeConstraint = optNumYears;
+//		optFunctions.resourcesConstraint = budget;
+//		optFunctions.optimizeResource();
+//		list = optFunctions.outputList;
+//		column names: "System","Time to Transform","Number of Sites Deployed At","Resource Allocation","Number of Systems Transformed Simultaneously","Total Cost for System";
+
+
+
+        
+        
+        //should this go in the try catch? prob shouldnt do it if we get an error....
+        //runOptIteration();
+        if(noErrors)
+        {
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
+	        displayResults(f.lin);
+        }
+
+
 		
 	}
 	public void calculateSavingsAndROI()
 	{
         SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
         savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost);
+        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         savingsF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
         netSavings = savingsF.calculateRet(budget,optNumYears);
         
         SysROIFunction roiF = new SysROIFunction();
         roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost);
+        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         roiF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
         roi = roiF.calculateRet(budget,optNumYears);
 	}
@@ -186,24 +214,25 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	{
         f = new SysNetSavingsFunction();
         runOpt();
-        if(noErrors)
-        {
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
-        }
+        //should this go in runOpt try catch?
+//        if(noErrors)
+//        {
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
+//        }
 	}   
 	
 
-	/**
-	 * Runs a specific iteration of the optimization.
-	 */
-	@Override
-	public void runOptIteration()
-	{
-        displayResults(f.lin);
-	}
+//	/**
+//	 * Runs a specific iteration of the optimization.
+//	 */
+//	@Override
+//	public void runOptIteration()
+//	{
+//        displayResults(f.lin);
+//	}
 	
 
 	/**
@@ -217,15 +246,17 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
 		cumSavingsList = ((SysNetSavingsFunction)f).createCumulativeSavings(budget, optNumYears);
 		breakEvenList = ((SysNetSavingsFunction)f).createBreakEven(budget, optNumYears);
-
+		sustainCostList = ((SysNetSavingsFunction)f).createSustainmentCosts(budget, optNumYears);
+		installCostList = ((SysNetSavingsFunction)f).createInstallCosts(budget, optNumYears);
+		
 		String netSavingsString = Utility.sciToDollar(netSavings);
 		playSheet.savingLbl.setText(netSavingsString);
 		String annualBudgetString = Utility.sciToDollar(budget);
 		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
 		double timeTransition = Utility.round(optNumYears,2);
 		((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
-		double roiVal = Utility.round(roi, 5);
-		playSheet.roiLbl.setText(Double.toString(roiVal)); 
+		double roiVal = Utility.round(roi*100, 5);
+		playSheet.roiLbl.setText(Double.toString(roiVal)+"%"); 
 		
 		double breakEvenYear = 0.0;
 		for(int i=0;i<breakEvenList.size();i++)
@@ -240,13 +271,17 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
 		graphF.setOptimzer(this);
+
+		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
 		Hashtable chartHash6 = graphF.createLearningCurve();
 
+		playSheet.tab3.callIt(chartHash3);
 		playSheet.tab4.callIt(chartHash4);
 		playSheet.tab5.callIt(chartHash5);
 		playSheet.tab6.callIt(chartHash6);
+		playSheet.tab3.setVisible(true);
 		playSheet.tab4.setVisible(true);
 		playSheet.tab5.setVisible(true);
 		playSheet.tab6.setVisible(true);

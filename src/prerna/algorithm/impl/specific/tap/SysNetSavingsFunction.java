@@ -31,6 +31,8 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	double numMaintenanceSavings;
 	double serMainPerc;
 	double dataExposeCost;
+	double preTransitionMaintenanceCost;
+	double postTransitionMaintenanceCost;
 
 	/**
 	 * Given a budget, calculate the years in Savings.
@@ -66,6 +68,42 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
 
 	}
+	
+	public ArrayList<Double> createSustainmentCosts(double budget, double n)
+	{
+		ArrayList<Double> sustainmentList = new ArrayList<Double>();
+		int index = 0;
+		while(index<totalYrs)
+		{
+			if(index+1<n)
+				sustainmentList.add(0.0);
+			else if(index<n)
+				sustainmentList.add(postTransitionMaintenanceCost*(Math.ceil(n)-n));
+			else
+				sustainmentList.add(postTransitionMaintenanceCost);
+				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
+			index++;
+		}
+		return sustainmentList;
+	}
+	public ArrayList<Double> createInstallCosts(double budget, double n)
+	{
+		ArrayList<Double> installList = new ArrayList<Double>();
+		int index = 0;
+		while(index<totalYrs)
+		{
+			if(index+1<n)
+				installList.add(budget);
+			else if(index<n)
+				installList.add(budget*(n-Math.floor(n)));
+			else
+				installList.add(0.0);
+				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
+			index++;
+		}
+		return installList;
+	}
+	
 	public ArrayList<Double> createCumulativeSavings(double budget, double n)
 	{
 		ArrayList<Double> cumSavingsList = new ArrayList<Double>();
@@ -106,11 +144,13 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		linInt.execute();
 		return linInt.retVal;
 	}
-	public void setSavingsVariables(double numMaintenanceSavings,double serMainPerc,double dataExposeCost)
+	public void setSavingsVariables(double numMaintenanceSavings,double serMainPerc,double dataExposeCost, double preTransitionMaintenanceCost, double postTransitionMaintenanceCost)
 	{
 		this.numMaintenanceSavings = numMaintenanceSavings;
 		this.serMainPerc = serMainPerc;
 		this.dataExposeCost = dataExposeCost;
+		this.preTransitionMaintenanceCost = preTransitionMaintenanceCost;
+		this.postTransitionMaintenanceCost = postTransitionMaintenanceCost;
 	}
 	public void writeToAppConsole(double budget, double n, double savings)
 	{

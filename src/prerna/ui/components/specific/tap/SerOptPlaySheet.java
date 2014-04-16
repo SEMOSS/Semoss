@@ -683,10 +683,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		tab2.setPreferredSize(new Dimension(500, 400));
 		tab2.setMinimumSize(new Dimension(500, 400));
 		tab2.setVisible(false);
-		tab3 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
-		tab3.setPreferredSize(new Dimension(500, 400));
-		tab3.setMinimumSize(new Dimension(500, 400));
-		tab3.setVisible(false);
+
 
 		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
 		gbc_panel_1_1.anchor = GridBagConstraints.NORTHWEST;
@@ -702,12 +699,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_advParamPanel1.gridy = 0;
 		chartPanel.add(tab2, gbc_advParamPanel1);
 
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 1;
-		chartPanel.add(tab3,  gbc_panel);
+
 
 		specificAlysPanel = new JPanel();
 		tabbedPane.addTab("Service Analysis", null, specificAlysPanel, null);
@@ -773,8 +765,10 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 	
 	public void createGenericDisplayPanel()
 	{
-		
-	
+		tab3 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
+		tab3.setPreferredSize(new Dimension(500, 400));
+		tab3.setMinimumSize(new Dimension(500, 400));
+		tab3.setVisible(false);
 		tab4 = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
 		tab4.setPreferredSize(new Dimension(500, 400));
 		tab4.setMinimumSize(new Dimension(500, 400));
@@ -894,6 +888,13 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbl_chartPanel.columnWeights = new double[]{0.0};
 		gbl_chartPanel.rowWeights = new double[]{0.0};
 		chartPanel.setLayout(gbl_chartPanel);
+		
+		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.insets = new Insets(0, 0, 0, 5);
+		gbc_panel.fill = GridBagConstraints.BOTH;
+		gbc_panel.gridx = 0;
+		gbc_panel.gridy = 1;
+		chartPanel.add(tab3,  gbc_panel);
 		
 		GridBagConstraints gbc_panel2 = new GridBagConstraints();
 		gbc_panel2.insets = new Insets(0, 0, 0, 5);
