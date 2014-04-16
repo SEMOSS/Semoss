@@ -88,7 +88,6 @@ public class SerOptBtnListener implements IChakraListener {
 			else if(playSheet.rdbtnBreakeven.isSelected()) this.optimizer = new RecoupOptimizer();
 			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, interfaceCost, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC);
 			optimizer.setPlaySheet(playSheet);
-			optimizer.setPlaySheet(playSheet);
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			((UnivariateSvcOptimizer)optimizer).setSystems(sysArray);
 			Thread playThread = new Thread(runner);
@@ -133,14 +132,6 @@ public class SerOptBtnListener implements IChakraListener {
 		else 
 			this.serMainPerc = userSerMainPerc;
 		
-		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
-		if(interfaceCost<0){
-			failStr = failStr+"Annual Interface Sustainment Cost must not be negative\n";
-			failCount++;
-		}
-		else 
-			this.interfaceCost = interfaceCost;
-
 		double userMinBudget = Double.parseDouble(playSheet.minBudgetField.getText());
 		if(userMinBudget<0){
 			failStr = failStr+"Minimum Annual Budget must not be negative\n";
@@ -225,6 +216,9 @@ public class SerOptBtnListener implements IChakraListener {
 		this.infRate = Double.parseDouble(playSheet.infRateField.getText())/100;
 		this.disRate = Double.parseDouble(playSheet.disRateField.getText())/100;
 		
+		failStr = specificSetVariablesString(failStr);
+		failCount = specificSetVariablesCount(failCount);
+		
 		if(failCount>0){
 			failStr = failStr + "\nPlease adjust the inputs and try again";
 			Utility.showError(failStr);
@@ -233,6 +227,29 @@ public class SerOptBtnListener implements IChakraListener {
 		else
 			return true;
 	}
+	
+	public String specificSetVariablesString(String failStr)
+	{
+		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
+		if(interfaceCost<0){
+			failStr = failStr+"Annual Interface Sustainment Cost must not be negative\n";
+		}
+		else 
+			this.interfaceCost = interfaceCost;
+		return failStr;
+	}
+	
+	public Integer specificSetVariablesCount(int failCount)
+	{
+		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
+		if(interfaceCost<0){
+			failCount++;
+		}
+		else 
+			this.interfaceCost = interfaceCost;
+		return failCount;
+	}
+	
 	
 	/**
 	 * Override method from IChakraListener

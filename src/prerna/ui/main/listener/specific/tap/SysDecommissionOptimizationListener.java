@@ -19,37 +19,16 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
 
-import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
-import javax.swing.JFrame;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.main.DHMSMDataAccessLatencyFileImporter;
-import prerna.poi.specific.ReportSheetWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.DHMSMSystemCapabilityOverlapProcessor;
-import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
-import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationPlaySheet;
-import prerna.ui.components.specific.tap.SystemInfoGenProcessor;
-import prerna.ui.components.specific.tap.SystemTransitionOrganizer;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -93,7 +72,6 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 		playsheet.setQuestionID(insightID);
 		playsheet.setTitle(playSheetTitle);
 		
-		
 		String query="";
 		if(resourceTextValue!=null&&resourceTextValue.length()>0)
 		{
@@ -121,6 +99,7 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 		}
 
 	}
+
 
 	/**
 	 * Override method from IChakraListener
