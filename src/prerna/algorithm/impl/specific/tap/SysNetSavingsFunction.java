@@ -90,9 +90,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index<n)
+			if(index+1<n)
 				breakEvenList.add(-1*budget*index);
-			else if(index<n+1)
+			else if(index<n)
 				breakEvenList.add(calculateRetForVariableTotal(budget,n,Math.ceil(n)));
 			else
 				breakEvenList.add(calculateRetForVariableTotal(budget,n,index+1.0));
