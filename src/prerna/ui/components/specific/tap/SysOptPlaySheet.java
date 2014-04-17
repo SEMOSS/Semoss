@@ -33,17 +33,23 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.ListSelectionModel;
+import javax.swing.border.BevelBorder;
 
+import aurelienribon.ui.css.Style;
 import prerna.ui.helpers.EntityFiller;
+import prerna.ui.main.listener.specific.tap.AdvParamListener;
 import prerna.ui.main.listener.specific.tap.CapSpecComboBoxListener;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptTypeSelectorListener;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
+import prerna.ui.swing.custom.ToggleButton;
 
 
 /**
@@ -59,6 +65,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public ButtonMenuDropDown capSelect;
 	public JComboBox capSelectComboBox;
 	public JLabel annualBudgetLbl, timeTransitionLbl;
+	public JToggleButton showSystemSelectBtn;
+	public JPanel systemSelectPanel;
 	/**
 	 * Constructor for SysOptPlaySheet.
 	 */
@@ -67,12 +75,66 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		super();
 	}
 	@Override
+	public void createAdvParamPanels()
+	{
+		super.createAdvParamPanels();
+		systemSelectPanel = new JPanel();
+		systemSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		systemSelectPanel.setVisible(false);
+	}
+	@Override
+	public void createAdvParamPanelsToggles()
+	{
+		super.createAdvParamPanelsToggles();
+
+		showSystemSelectBtn = new ToggleButton("Select System Functionality");
+		showSystemSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(showSystemSelectBtn,  ".toggleButton");
+		showSystemSelectBtn.setVisible(false);
+		
+		GridBagConstraints gbc_showSystemSelectBtn = new GridBagConstraints();
+		gbc_showSystemSelectBtn.anchor = GridBagConstraints.WEST;
+		gbc_showSystemSelectBtn.gridwidth = 2;
+		gbc_showSystemSelectBtn.insets = new Insets(0, 0, 5, 5);
+		gbc_showSystemSelectBtn.gridx = 6;
+		gbc_showSystemSelectBtn.gridy = 3;
+		ctlPanel.add(showSystemSelectBtn, gbc_showSystemSelectBtn);
+
+	}
+	@Override
+	public void createAdvParamPanelsToggleListeners()
+	{
+		AdvParamListener saLis = new AdvParamListener();
+		saLis.setPlaySheet(this);
+		saLis.setParamButtons(showParamBtn,showSystemSelectBtn);
+		showParamBtn.addActionListener(saLis);
+		showSystemSelectBtn.addActionListener(saLis);
+	}
+	@Override
 	public void createSpecificParamComponents()
 	{
-		
 		yearField.setText("20");
 		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
 		maxBudgetField.setText("500");
+		
+		hourlyRateField.setColumns(4);
+		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
+		gbc_hourlyRateField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
+		gbc_hourlyRateField.gridx = 1;
+		gbc_hourlyRateField.gridy = 3;
+		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
+
+		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
+		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
+		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
+		gbc_lblHourlyRate.gridwidth = 4;
+		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
+		gbc_lblHourlyRate.gridx = 2;
+		gbc_lblHourlyRate.gridy = 3;
+		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
+		
 		JLabel lblSystemSelect = new JLabel("System Select Query");
 		lblSystemSelect.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblSystemSelect = new GridBagConstraints();
@@ -371,14 +433,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_rdbtnRoi.gridy = 4;
 		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
 
-		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
-		gbc_showParamBtn.anchor = GridBagConstraints.WEST;
-		gbc_showParamBtn.gridwidth = 2;
-		gbc_showParamBtn.insets = new Insets(0, 0, 5, 5);
-		gbc_showParamBtn.gridx = 6;
-		gbc_showParamBtn.gridy = 4;
-		ctlPanel.add(showParamBtn, gbc_showParamBtn);
-		
 		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
 		rdbtnROI.addActionListener(opl);
 		rdbtnProfit.addActionListener(opl);
