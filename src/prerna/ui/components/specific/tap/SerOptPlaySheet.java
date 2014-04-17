@@ -178,14 +178,9 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		ctlPanel.add(rdbtnBreakeven, gbc_rdbtnBreakeven);
 		rdbtnProfit.addActionListener(opl);
 		rdbtnBreakeven.addActionListener(opl);
-		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
-		gbc_showParamBtn.anchor = GridBagConstraints.WEST;
-		gbc_showParamBtn.gridwidth = 2;
-		gbc_showParamBtn.insets = new Insets(0, 0, 5, 5);
-		gbc_showParamBtn.gridx = 6;
-		gbc_showParamBtn.gridy = 4;
-		ctlPanel.add(showParamBtn, gbc_showParamBtn);
 		opl.setRadioBtn(rdbtnProfit, rdbtnROI, rdbtnBreakeven);
+		
+
 	}
 	
 	public void createSpecificParamComponents()
@@ -210,6 +205,23 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_lblInterfaceSustainmentCostyear.gridx = 2;
 		gbc_lblInterfaceSustainmentCostyear.gridy = 3;
 		ctlPanel.add(lblInterfaceSustainmentCostyear, gbc_lblInterfaceSustainmentCostyear);
+		
+		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
+		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
+		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
+		gbc_hourlyRateField.gridx = 6;
+		gbc_hourlyRateField.gridy = 3;
+		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
+
+		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
+		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
+		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
+		gbc_lblHourlyRate.gridwidth = 2;
+		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 0);
+		gbc_lblHourlyRate.gridx = 7;
+		gbc_lblHourlyRate.gridy = 3;
+		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
 		
 		sysSpecComboBox = new JComboBox();
 		sysSpecComboBox.setModel(new DefaultComboBoxModel(new String[] {"Choose Optimization Option:", "Enterprise(Default)", "System Specific"}));
@@ -273,87 +285,20 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 			}  
 		}); 	
 
-
 	}
-	
-	
-	/**
-	 * Sets up the Param panel at the top of the split pane
-	 */
-	public void createGenericParamPanel()
+	public void createAdvParamPanels()
 	{
-		ctlScrollPane = new JScrollPane();		
-		ctlPanel = new JPanel();
-		ctlScrollPane.setViewportView(ctlPanel);
-		GridBagLayout gbl_ctlPanel = new GridBagLayout();
-		gbl_ctlPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_ctlPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_ctlPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-		gbl_ctlPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		ctlPanel.setLayout(gbl_ctlPanel);
-
-		JLabel titleLbl = new JLabel("Optimization Input Parameters:");
-		titleLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_titleLbl = new GridBagConstraints();
-		gbc_titleLbl.gridwidth = 7;
-		gbc_titleLbl.anchor = GridBagConstraints.WEST;
-		gbc_titleLbl.insets = new Insets(10, 0, 5, 5);
-		gbc_titleLbl.gridx = 1;
-		gbc_titleLbl.gridy = 0;
-		ctlPanel.add(titleLbl, gbc_titleLbl);
-
-		yearField = new JTextField();
-		yearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		yearField.setText("10");
-		yearField.setColumns(4);
-
-		GridBagConstraints gbc_yearField = new GridBagConstraints();
-		gbc_yearField.anchor = GridBagConstraints.NORTHWEST;
-		gbc_yearField.insets = new Insets(0, 0, 5, 5);
-		gbc_yearField.gridx = 1;
-		gbc_yearField.gridy = 1;
-		ctlPanel.add(yearField, gbc_yearField);
-
-		JLabel label = new JLabel("Maximum Number of Years");
-		label.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.gridwidth = 4;
-		gbc_label.anchor = GridBagConstraints.WEST;
-		gbc_label.insets = new Insets(0, 0, 5, 5);
-		gbc_label.gridx = 2;
-		gbc_label.gridy = 1;
-		ctlPanel.add(label, gbc_label);
-
-
 		advParamPanel = new JPanel();
 		advParamPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		advParamPanel.setVisible(false);
-
-		minBudgetField = new JTextField();
-		minBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		minBudgetField.setText("0");
-		minBudgetField.setColumns(3);
-		GridBagConstraints gbc_minBudgetField = new GridBagConstraints();
-		gbc_minBudgetField.anchor = GridBagConstraints.WEST;
-		gbc_minBudgetField.insets = new Insets(0, 0, 5, 5);
-		gbc_minBudgetField.gridx = 6;
-		gbc_minBudgetField.gridy = 1;
-		ctlPanel.add(minBudgetField, gbc_minBudgetField);
-
-		JLabel lblMinimumYearlyBudget = new JLabel("Minimum Annual Budget ($M)");
-		lblMinimumYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblMinimumYearlyBudget = new GridBagConstraints();
-		gbc_lblMinimumYearlyBudget.anchor = GridBagConstraints.WEST;
-		gbc_lblMinimumYearlyBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblMinimumYearlyBudget.gridx = 7;
-		gbc_lblMinimumYearlyBudget.gridy = 1;
-		ctlPanel.add(lblMinimumYearlyBudget, gbc_lblMinimumYearlyBudget);
+		
 		GridBagConstraints gbc_advParamPanel = new GridBagConstraints();
 		gbc_advParamPanel.gridheight = 6;
 		gbc_advParamPanel.fill = GridBagConstraints.BOTH;
 		gbc_advParamPanel.gridx = 8;
 		gbc_advParamPanel.gridy = 0;
 		ctlPanel.add(advParamPanel, gbc_advParamPanel);
+		
 		GridBagLayout gbl_advParamPanel = new GridBagLayout();
 		gbl_advParamPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_advParamPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
@@ -370,8 +315,6 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_lblAdvancedParameters.gridx = 0;
 		gbc_lblAdvancedParameters.gridy = 0;
 		advParamPanel.add(lblAdvancedParameters, gbc_lblAdvancedParameters);
-
-
 
 		attRateField = new JTextField();
 		attRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -523,9 +466,98 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		advParamPanel.add(lblYearlyDiscountRate, gbc_lblYearlyDiscountRate);
 
 
+	}
+	public void createAdvParamPanelsToggles()
+	{
+		showParamBtn = new ToggleButton("Show Advanced Parameters");
+		showParamBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(showParamBtn,  ".toggleButton");
+		
+		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
+		gbc_showParamBtn.anchor = GridBagConstraints.WEST;
+		gbc_showParamBtn.gridwidth = 2;
+		gbc_showParamBtn.insets = new Insets(0, 0, 5, 5);
+		gbc_showParamBtn.gridx = 6;
+		gbc_showParamBtn.gridy = 4;
+		ctlPanel.add(showParamBtn, gbc_showParamBtn);
 
+	}
+	
+	public void createAdvParamPanelsToggleListeners()
+	{
 
+		AdvParamListener saLis = new AdvParamListener();
+		saLis.setPlaySheet(this);
+		saLis.setParamButton(showParamBtn);
+		showParamBtn.addActionListener(saLis);
+	}
+	
+	/**
+	 * Sets up the Param panel at the top of the split pane
+	 */
+	public void createGenericParamPanel()
+	{
+		ctlScrollPane = new JScrollPane();		
+		ctlPanel = new JPanel();
+		ctlScrollPane.setViewportView(ctlPanel);
+		GridBagLayout gbl_ctlPanel = new GridBagLayout();
+		gbl_ctlPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_ctlPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
+		gbl_ctlPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+		gbl_ctlPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		ctlPanel.setLayout(gbl_ctlPanel);
 
+		JLabel titleLbl = new JLabel("Optimization Input Parameters:");
+		titleLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_titleLbl = new GridBagConstraints();
+		gbc_titleLbl.gridwidth = 7;
+		gbc_titleLbl.anchor = GridBagConstraints.WEST;
+		gbc_titleLbl.insets = new Insets(10, 0, 5, 5);
+		gbc_titleLbl.gridx = 1;
+		gbc_titleLbl.gridy = 0;
+		ctlPanel.add(titleLbl, gbc_titleLbl);
+
+		yearField = new JTextField();
+		yearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		yearField.setText("10");
+		yearField.setColumns(4);
+
+		GridBagConstraints gbc_yearField = new GridBagConstraints();
+		gbc_yearField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_yearField.insets = new Insets(0, 0, 5, 5);
+		gbc_yearField.gridx = 1;
+		gbc_yearField.gridy = 1;
+		ctlPanel.add(yearField, gbc_yearField);
+
+		JLabel label = new JLabel("Maximum Number of Years");
+		label.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_label = new GridBagConstraints();
+		gbc_label.gridwidth = 4;
+		gbc_label.anchor = GridBagConstraints.WEST;
+		gbc_label.insets = new Insets(0, 0, 5, 5);
+		gbc_label.gridx = 2;
+		gbc_label.gridy = 1;
+		ctlPanel.add(label, gbc_label);
+
+		minBudgetField = new JTextField();
+		minBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		minBudgetField.setText("0");
+		minBudgetField.setColumns(3);
+		GridBagConstraints gbc_minBudgetField = new GridBagConstraints();
+		gbc_minBudgetField.anchor = GridBagConstraints.WEST;
+		gbc_minBudgetField.insets = new Insets(0, 0, 5, 5);
+		gbc_minBudgetField.gridx = 6;
+		gbc_minBudgetField.gridy = 1;
+		ctlPanel.add(minBudgetField, gbc_minBudgetField);
+
+		JLabel lblMinimumYearlyBudget = new JLabel("Minimum Annual Budget ($M)");
+		lblMinimumYearlyBudget.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblMinimumYearlyBudget = new GridBagConstraints();
+		gbc_lblMinimumYearlyBudget.anchor = GridBagConstraints.WEST;
+		gbc_lblMinimumYearlyBudget.insets = new Insets(0, 0, 5, 5);
+		gbc_lblMinimumYearlyBudget.gridx = 7;
+		gbc_lblMinimumYearlyBudget.gridy = 1;
+		ctlPanel.add(lblMinimumYearlyBudget, gbc_lblMinimumYearlyBudget);
 
 		mtnPctgField = new JTextField();
 		mtnPctgField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -573,37 +605,11 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		hourlyRateField.setText("150");
 		hourlyRateField.setColumns(3);
-		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
-		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
-		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hourlyRateField.gridx = 6;
-		gbc_hourlyRateField.gridy = 3;
-		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
-
-		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
-		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
-		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHourlyRate.gridwidth = 2;
-		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 0);
-		gbc_lblHourlyRate.gridx = 7;
-		gbc_lblHourlyRate.gridy = 3;
-		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
-
-		AdvParamListener saLis = new AdvParamListener();
-		saLis.setPlaySheet(this);
-
-		showParamBtn = new ToggleButton("Show Advanced Parameters");
-		showParamBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-		showParamBtn.addActionListener(saLis);
-		Style.registerTargetClassName(showParamBtn,  ".toggleButton");
-
 
 
 		Object hidePopupKey = new JComboBox().getClientProperty("doNotCancelPopup");  
 		JButton btnRunOptimization = new CustomButton("Run Optimization");
 		btnRunOptimization.putClientProperty("doNotCancelPopup", hidePopupKey);
-
 
 		btnRunOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnRunOptimization = new GridBagConstraints();
@@ -629,6 +635,12 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		progressBar.setVisible(false);
 		
 		createOptimizationTypeComponents();
+
+		createAdvParamPanels();
+		
+		createAdvParamPanelsToggles();
+		
+		createAdvParamPanelsToggleListeners();
 	}
 	
 	public void addOptimizationBtnListener(JButton btnRunOptimization)

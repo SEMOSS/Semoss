@@ -128,6 +128,13 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 			Utility.showError("All systems must be kept to maintain same functionality.");
 			return;
 		}
+		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
+		{
+        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not recommended.");
+			playSheet.progressBar.setVisible(false);
+			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not recommended.");
+			return;
+		}
 		
         progressBar = playSheet.progressBar;
         f.setConsoleArea(playSheet.consoleArea);
@@ -255,7 +262,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
 		double timeTransition = Utility.round(optNumYears,2);
 		((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
-		double roiVal = Utility.round(roi*100, 5);
+		double roiVal = Utility.round(roi*100, 2);
 		playSheet.roiLbl.setText(Double.toString(roiVal)+"%"); 
 		
 		double breakEvenYear = 0.0;
