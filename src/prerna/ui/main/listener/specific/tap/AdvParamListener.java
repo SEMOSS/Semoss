@@ -66,7 +66,7 @@ public class AdvParamListener implements ActionListener {
 				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 			}
 			else
-				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
+				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
 		}
 
 	}
