@@ -20,6 +20,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -28,6 +29,7 @@ import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
+import prerna.ui.swing.custom.SelectScrollList;
 
 /**
  */
@@ -58,24 +60,26 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			playSheet.progressBar.setStringPainted(true);
 			playSheet.progressBar.setString("Collecting Data");
 			
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystem Query...");
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+sysQuery);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Query...");
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+dataQuery);	
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLU Query...");
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+bluQuery);
+			
+			
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystem Query...");
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+sysQuery);
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Query...");
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+dataQuery);	
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLU Query...");
+//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+bluQuery);
 			
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 
-			((SysNetSavingsOptimizer)optimizer).setQueries(sysQuery, dataQuery, bluQuery);
-			String selectedCapOption = ((SysOptPlaySheet)playSheet).capSelectComboBox.getSelectedItem().toString();
-			if(selectedCapOption.contains("Individual"))
-			{
-				ArrayList capArrayList =  (ArrayList) ((SysOptPlaySheet)playSheet).capSelect.list.getSelectedValuesList();
-				((SysNetSavingsOptimizer)optimizer).addCapBindings(capArrayList);
-				//add bindings to data query and blu query based on individually selected
-			}
+
+			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown);
+//			if(selectedCapOption.contains("Individual"))
+//			{
+//				ArrayList capArrayList =  (ArrayList) ((SysOptPlaySheet)playSheet).capSelectDropDown.list.getSelectedValuesList();
+//				((SysNetSavingsOptimizer)optimizer).addBindings(capArrayList);
+//				//add bindings to data query and blu query based on individually selected
+//			}
 			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			optimizer.setPlaySheet(playSheet);
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
@@ -98,47 +102,47 @@ public class SysOptBtnListener extends SerOptBtnListener {
 	
 	public String specificSetVariablesString(String failStr)
 	{
-		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
-		if(!sysQuery.contains("SELECT")){
-			failStr = failStr+"System Select Query must be a select query\n";
-		}
-		else 
-			this.sysQuery = sysQuery;
-		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
-		if(!dataQuery.contains("SELECT")){
-			failStr = failStr+"Data Select Query must be a select query\n";
-		}
-		else 
-			this.dataQuery = dataQuery;
-		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
-		if(!bluQuery.contains("SELECT")){
-			failStr = failStr+"BLU Select Query must be a select query\n";
-		}
-		else 
-			this.bluQuery = bluQuery;
+//		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
+//		if(!sysQuery.contains("SELECT")){
+//			failStr = failStr+"System Select Query must be a select query\n";
+//		}
+//		else 
+//			this.sysQuery = sysQuery;
+//		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
+//		if(!dataQuery.contains("SELECT")){
+//			failStr = failStr+"Data Select Query must be a select query\n";
+//		}
+//		else 
+//			this.dataQuery = dataQuery;
+//		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
+//		if(!bluQuery.contains("SELECT")){
+//			failStr = failStr+"BLU Select Query must be a select query\n";
+//		}
+//		else 
+//			this.bluQuery = bluQuery;
 		return failStr;
 	}
 	
 	public Integer specificSetVariablesCount(int failCount)
 	{
-		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
-		if(!sysQuery.contains("SELECT")){
-			failCount++;
-		}
-		else 
-			this.sysQuery = sysQuery;
-		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
-		if(!dataQuery.contains("SELECT")){
-			failCount++;
-		}
-		else 
-			this.dataQuery = dataQuery;
-		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
-		if(!bluQuery.contains("SELECT")){
-			failCount++;
-		}
-		else 
-			this.bluQuery = bluQuery;
+//		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
+//		if(!sysQuery.contains("SELECT")){
+//			failCount++;
+//		}
+//		else 
+//			this.sysQuery = sysQuery;
+//		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
+//		if(!dataQuery.contains("SELECT")){
+//			failCount++;
+//		}
+//		else 
+//			this.dataQuery = dataQuery;
+//		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
+//		if(!bluQuery.contains("SELECT")){
+//			failCount++;
+//		}
+//		else 
+//			this.bluQuery = bluQuery;
 		return failCount;
 	}
 	
