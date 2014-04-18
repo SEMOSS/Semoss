@@ -60,26 +60,10 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			playSheet.progressBar.setStringPainted(true);
 			playSheet.progressBar.setString("Collecting Data");
 			
-			
-			
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystem Query...");
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+sysQuery);
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Query...");
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+dataQuery);	
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLU Query...");
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n"+bluQuery);
-			
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 
-
-			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown);
-//			if(selectedCapOption.contains("Individual"))
-//			{
-//				ArrayList capArrayList =  (ArrayList) ((SysOptPlaySheet)playSheet).capSelectDropDown.list.getSelectedValuesList();
-//				((SysNetSavingsOptimizer)optimizer).addBindings(capArrayList);
-//				//add bindings to data query and blu query based on individually selected
-//			}
+			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown);
 			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			optimizer.setPlaySheet(playSheet);
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);

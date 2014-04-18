@@ -58,19 +58,20 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
-	SelectScrollList sysSelectDropDown, capSelectDropDown;
+	SelectScrollList sysSelectDropDown,dataSelectDropDown,bluSelectDropDown;
 	
-	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown)
+	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown)
 	{
 		this.sysSelectDropDown = sysSelectDropDown;
-		this.capSelectDropDown = capSelectDropDown;
+		this.dataSelectDropDown = dataSelectDropDown;
+		this.bluSelectDropDown = bluSelectDropDown;
 		
-		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}}";
-		this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-		this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-		this.sysQuery = addBindings("ActiveSystem",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
-		this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
-		this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
+		this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
+		this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
+		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
+		this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
+		this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
 	}
 	
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
@@ -96,14 +97,13 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		resFunc = new ResidualSystemOptFillData();
 		resFunc.setMaxYears(maxYears);
 		sysList = resFunc.runListQuery(engine,sysQuery);
-		dataList = resFunc.runListQuery(engine,dataQuery);
-		bluList = resFunc.runListQuery(engine,bluQuery);
-		if(sysList.size()==0)
+		if(sysList.size()<2)
 		{
 			noErrors = false;
 			return;
-
 		}
+		dataList = resFunc.runListQuery(engine,dataQuery);
+		bluList = resFunc.runListQuery(engine,bluQuery);
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
 		resFunc.setSysList(sysList);
 		resFunc.setDataList(dataList);
@@ -131,7 +131,12 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		if(noErrors == false)
 		{
 			playSheet.progressBar.setVisible(false);
-			Utility.showError("No systems exist for this selection. Please revise your query or choose different system types.");
+			if(sysList.size()==0)
+				Utility.showError("No systems were selected. Please select systems under the Select System Functionality tab.");
+			else if(sysList.size() == 1)
+				Utility.showError("Only one system exists was selected. Please select more than one system under the Select System Functionality tab.");
+			else
+				Utility.showError("Error with system functionality selections.");
 			return;
 		}
 		getModernizedSysList();
@@ -193,10 +198,6 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 //		list = optFunctions.outputList;
 //		column names: "System","Time to Transform","Number of Sites Deployed At","Resource Allocation","Number of Systems Transformed Simultaneously","Total Cost for System";
 
-
-
-        
-        
         //should this go in the try catch? prob shouldnt do it if we get an error....
         //runOptIteration();
         if(noErrors)
