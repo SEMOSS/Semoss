@@ -20,24 +20,15 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JList;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.ui.swing.custom.SelectScrollList;
-import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
@@ -81,12 +72,13 @@ public class CheckBoxSelectorListener extends AbstractListener {
 			}
 			return;
 		}
+		allElemCheckBox.setSelected(false);
 		Vector<String> systems = new Vector<String>();
 		if(theaterSysCheckBox.isSelected())
 			systems.addAll(theaterSysList);
 		if(garrisonSysCheckBox.isSelected())
 			systems.addAll(garrisonSysList);
-		if(garrisonSysCheckBox.isSelected())
+		if(lowProbCheckBox.isSelected())
 			systems.addAll(lowProbSysList);
 		if(medProbCheckBox.isSelected())
 			systems.addAll(medProbSysList);
