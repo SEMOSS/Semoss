@@ -20,6 +20,7 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.MaxEval;
@@ -38,6 +39,7 @@ import org.apache.log4j.Logger;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
+import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.Utility;
 
 /**
@@ -56,6 +58,20 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
+	SelectScrollList sysSelectDropDown, capSelectDropDown;
+	
+	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown)
+	{
+		this.sysSelectDropDown = sysSelectDropDown;
+		this.capSelectDropDown = capSelectDropDown;
+		
+		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}}";
+		this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+		this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+		this.sysQuery = addBindings("ActiveSystem",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
+		this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
+		this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
+	}
 	
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
 	{
@@ -63,23 +79,20 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		this.dataQuery = dataQuery;
 		this.bluQuery = bluQuery;
 	}
-	public void addCapBindings(ArrayList capBindings)
+	public String addBindings(String type, List bindingsList,String query)
 	{
-		if(capBindings.size()==0)
-			return;
-		dataQuery += "BINDINGS ?Capability {";
-		bluQuery += "BINDINGS ?Capability {";
-		for(int i=0;i<capBindings.size();i++)
-		{
-			dataQuery+="(<http://health.mil/ontologies/Concept/Capability/"+(String)capBindings.get(i)+">)";
-			bluQuery+="(<http://health.mil/ontologies/Concept/Capability/"+(String)capBindings.get(i)+">)";
-		}
-		dataQuery+="}";
-		bluQuery+="}";
+		if(bindingsList.size()==0)
+			return query;
+		query += "BINDINGS ?"+type+" {";
+		for(int i=0;i<bindingsList.size();i++)
+			query+="(<http://health.mil/ontologies/Concept/"+type+"/"+(String)bindingsList.get(i)+">)";
+		query+="}";
+		return query;
 	}
 	public void getData()
 	{
 		String engine = playSheet.engine.getEngineName();
+		
 		resFunc = new ResidualSystemOptFillData();
 		resFunc.setMaxYears(maxYears);
 		sysList = resFunc.runListQuery(engine,sysQuery);

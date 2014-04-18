@@ -79,39 +79,42 @@ import com.teamdev.jxbrowser.UnsupportedBrowserTypeException;
  */
 public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 	protected String title = null;
-	public JPanel panel_1;
-	public JTextField startingPtsField;
-	public JTextField yearField;
-	public JLabel lblSoaSustainmentCost;
-	public JTextField icdSusField;
-	public JTextField mtnPctgField;
 	public JComponent pane = null;
-	public JTextField minBudgetField;
-	public JTextField maxBudgetField;
-	public JTextField hourlyRateField;
-	public JTextArea consoleArea = new JTextArea();
-	public JPanel chartPanel;
-	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6, timeline;
-	public JLabel savingLbl, costLbl, roiLbl, bkevenLbl, recoupLbl;
-	public JPanel overallAlysPanel;
-	public JTextField iniLearningCnstField;
-	public JTextField scdLearningTimeField;
-	public JTextField scdLearningCnstField;
-	public JTextField attRateField, hireRateField, infRateField,disRateField;
-	public JPanel advParamPanel;
+	
+	//param panel components
+	public JLabel lblSoaSustainmentCost;
+	public JTextField yearField, icdSusField, mtnPctgField;
+	public JTextField minBudgetField, maxBudgetField, hourlyRateField;
 	public JRadioButton rdbtnBreakeven, rdbtnProfit, rdbtnROI;
-	public JPanel specificAlysPanel = new JPanel();
-	public JPanel playSheetPanel = new JPanel();
-	public JTabbedPane tabbedPane;
-	public JToggleButton showParamBtn;
-	String questionNum;
 	public JProgressBar progressBar;
-	public JTextPane helpTextArea;
-	public JPanel specificSysAlysPanel;
-	public JLabel lblInvestmentRecoupTime;
-	public JPanel timelinePanel;
+	
+	//advanced param panel components
+	public JPanel advParamPanel;
+	public JToggleButton showParamBtn;
+	public JTextField iniLearningCnstField, scdLearningTimeField, scdLearningCnstField, startingPtsField;
+	public JTextField attRateField, hireRateField, infRateField,disRateField;
 	public ButtonMenuDropDown sysSelect;
 	public JComboBox sysSpecComboBox;
+	
+	//display
+	public JTabbedPane tabbedPane;
+	
+	//display overall analysis components
+	public JPanel overallAlysPanel;
+	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6, timeline;
+	public JLabel savingLbl, costLbl, roiLbl, bkevenLbl, recoupLbl;
+	public JPanel panel_1, chartPanel;
+	
+	//other display components
+	public JTextArea consoleArea = new JTextArea();
+	public JPanel specificAlysPanel = new JPanel();
+	public JPanel playSheetPanel = new JPanel();
+	public JPanel specificSysAlysPanel;
+	public JPanel timelinePanel;
+	public JTextPane helpTextArea;
+
+	String questionNum;
+	public JLabel lblInvestmentRecoupTime;
 	public IEngine engine;
 	
 	JScrollPane ctlScrollPane;

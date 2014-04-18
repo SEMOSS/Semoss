@@ -78,9 +78,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			if(index+1<n)
 				sustainmentList.add(0.0);
 			else if(index<n)
-				sustainmentList.add(postTransitionMaintenanceCost*(Math.ceil(n)-n));
+				sustainmentList.add((serMainPerc*dataExposeCost)*(Math.ceil(n)-n));
 			else
-				sustainmentList.add(postTransitionMaintenanceCost);
+				sustainmentList.add((serMainPerc*dataExposeCost));
 				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
 			index++;
 		}

@@ -51,7 +51,9 @@ public class SysOptGraphFunctions extends SerOptGraphFunctions{
 		seriesHash.put("Build Costs", buildSeries);
 		double[] sustainSeries = susPerYearList.get(1);
 		seriesHash.put("Sustainment Costs", sustainSeries);
-		colorHash.put("SOA Service Spending", "#4572A7");
+		colorHash.put("Build Costs", "#4572A7");
+		colorHash.put("Sustainment Costs", "#80699B");
+		
 		barChartHash.put("dataSeries",  seriesHash);
 		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
