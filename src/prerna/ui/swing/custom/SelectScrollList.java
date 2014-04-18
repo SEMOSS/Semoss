@@ -19,26 +19,17 @@
 package prerna.ui.swing.custom;
 
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
-import javax.swing.DefaultListModel;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JList;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.ListModel;
-import javax.swing.SwingUtilities;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 
 import prerna.ui.components.NewHoriScrollBarUI;
 import prerna.ui.components.NewScrollBarUI;
@@ -126,17 +117,42 @@ public class SelectScrollList  extends JButton {
 		}
 	    list.ensureIndexIsVisible(list.getSelectedIndex());
 	}
-
+	public void setUnselectedValues(Vector<String> listToUnselect) {
+	    list.clearSelection();
+		ListModel model = list.getModel();
+		for (int i = 0; i < model.getSize(); i++)
+		{
+			String value = (String)model.getElementAt(i);
+			//if the unselect list doesnt contain the value, then it should be selected
+			if(!listToUnselect.contains(value))
+				list.addSelectionInterval(i, i);
+		}
+	}
 	public int getIndex(ListModel model, String value) {
 	    if (value == null) return -1;
-	    if (model instanceof DefaultListModel) {
-	        return ((DefaultListModel) model).indexOf(value);
-	    }
 	    for (int i = 0; i < model.getSize(); i++) {
 	        if (value.equals(model.getElementAt(i))) return i;
 	    }
 	    return -1;
 	}
-	
+	public ArrayList<String> getSelectedValues()
+	{
+		return (ArrayList<String>)list.getSelectedValuesList();
+	}
+	public ArrayList<String> getUnselectedValues()
+	{
+		ArrayList<String> unselectedList = new ArrayList<String>();
+		List<String> selectedList = list.getSelectedValuesList();
+		ListModel model = list.getModel();
+		for (int i = 0; i < model.getSize(); i++)
+		{
+			String value = (String)model.getElementAt(i);
+			if(!selectedList.contains(value))
+			{
+				unselectedList.add(value);
+			}
+		}
+		return unselectedList;
+	}
 	
 }  

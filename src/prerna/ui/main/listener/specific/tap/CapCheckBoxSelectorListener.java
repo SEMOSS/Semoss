@@ -20,25 +20,14 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JList;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.ui.swing.custom.SelectScrollList;
-import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
  * Used to determine if user wants to include HSD, HSS, or FHP functional areas in RFP report
@@ -78,6 +67,7 @@ public class CapCheckBoxSelectorListener extends CheckBoxSelectorListener {
 			}
 			return;
 		}
+		allElemCheckBox.setSelected(false);
 		Vector<String> capabilities = new Vector<String>();
 		if(dhmsmCapCheckBox.isSelected())
 			capabilities.addAll(dhmsmCapList);
