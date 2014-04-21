@@ -107,28 +107,36 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		
 		resFunc = new ResidualSystemOptFillData();
 		resFunc.setMaxYears(maxYears);
-		sysList = resFunc.runListQuery(engine,sysQuery);
-		if(sysList.size()<2)
+		this.sysList = resFunc.runListQuery(engine,sysQuery);
+		if(this.sysList.size()<2)
 		{
 			noErrors = false;
 			return;
 		}
-		dataList = resFunc.runListQuery(engine,dataQuery);
-		bluList = resFunc.runListQuery(engine,bluQuery);
+		this.dataList = resFunc.runListQuery(engine,dataQuery);
+		this.bluList = resFunc.runListQuery(engine,bluQuery);
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
-		resFunc.setSysList(sysList);
-		resFunc.setDataList(dataList);
-		resFunc.setBLUList(bluList);
+		resFunc.setSysList(deepCopy(sysList));
+		resFunc.setDataList(deepCopy(dataList));
+		resFunc.setBLUList(deepCopy(bluList));
 		resFunc.fillDataStores();
 	}
-	
+	public ArrayList<String> deepCopy(ArrayList<String> list)
+	{
+		ArrayList<String> retList = new ArrayList<String>();
+		for(String element : list)
+		{
+			retList.add(element);
+		}
+		return retList;
+	}
 	public void getModernizedSysList()
 	{
 		playSheet.progressBar.setString("Determining Modernized List");
 		ResidualSystemOptimizer sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
 		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
-		sysOpt.setDataSet(sysList,dataList,bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
+		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
 		noErrors = sysOpt.runOpt();
 
 		this.dataExposeCost = sysOpt.numTransformationTotal; //total cost to expose all data for all systems at all sites
