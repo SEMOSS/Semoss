@@ -85,37 +85,37 @@ public class SysOptBtnListener extends SerOptBtnListener {
 	
 	public String specificSetVariablesString(String failStr)
 	{
-		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
-		if(dataPercent<0 || dataPercent > 1){
-			failStr = failStr+"Data Percentage must be between 0 and 100 inclusive\n";
-		}
-		else 
-			this.dataPercent = dataPercent;
-		
-		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
-		if(bluPercent<0 || bluPercent > 1){
-			failStr = failStr+"BLU Percentage must be between 0 and 100 inclusive\n";
-		}
-		else 
-			this.bluPercent = bluPercent;
+//		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
+//		if(dataPercent<0 || dataPercent > 1){
+//			failStr = failStr+"Data Percentage must be between 0 and 100 inclusive\n";
+//		}
+//		else 
+//			this.dataPercent = dataPercent;
+//		
+//		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
+//		if(bluPercent<0 || bluPercent > 1){
+//			failStr = failStr+"BLU Percentage must be between 0 and 100 inclusive\n";
+//		}
+//		else 
+//			this.bluPercent = bluPercent;
 		return failStr;
 	}
 	
 	public Integer specificSetVariablesCount(int failCount)
 	{
-		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
-		if(dataPercent<0 || dataPercent > 1){
-			failCount++;
-		}
-		else 
-			this.dataPercent = dataPercent;
-		
-		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
-		if(bluPercent<0 || bluPercent > 1){
-			failCount++;
-		}
-		else 
-			this.bluPercent = bluPercent;
+//		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
+//		if(dataPercent<0 || dataPercent > 1){
+//			failCount++;
+//		}
+//		else 
+//			this.dataPercent = dataPercent;
+//		
+//		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
+//		if(bluPercent<0 || bluPercent > 1){
+//			failCount++;
+//		}
+//		else 
+//			this.bluPercent = bluPercent;
 		return failCount;
 	}
 	
