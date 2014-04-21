@@ -97,6 +97,16 @@ public class ResidualSystemOptFillData{
 		return list;
 	}
 	
+	public ArrayList<String> deepCopy(ArrayList<String> list)
+	{
+		ArrayList<String> retList = new ArrayList<String>();
+		for(String element : list)
+		{
+			retList.add(element);
+		}
+		return retList;
+	}
+	
 	public void fillDataStores()
 	{
 		systemDataMatrix = createEmptyMatrix(systemDataMatrix,sysList.size(),dataList.size());
@@ -133,11 +143,11 @@ public class ResidualSystemOptFillData{
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered...");
 		printToConsoleList(dataList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that are SOR of Data Object...");
-		printNumberToConsoleList(dataList,dataSORSystemExists);
+		printNumberToConsoleList(deepCopy(dataList),dataSORSystemExists);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered...");
 		printToConsoleList(bluList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that provide BLU ...");
-		printNumberToConsoleList(bluList,bluProviderExists);
+		printNumberToConsoleList(deepCopy(bluList),bluProviderExists);
 	}
 	
 	public void printToConsoleList(ArrayList<String> list)
