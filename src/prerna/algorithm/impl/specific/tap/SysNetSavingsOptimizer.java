@@ -58,6 +58,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
+	String errorMessage = "";
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
 	
 	public void setDataBLUPercent(double dataPercent,double bluPercent)
@@ -110,11 +111,21 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		this.sysList = resFunc.runListQuery(engine,sysQuery);
 		if(this.sysList.size()<2)
 		{
+			if(this.sysList.size()==0)
+				errorMessage = "No systems were selected. Please select systems under the Select System Functionality tab.";
+			else if(sysList.size() == 1)
+				errorMessage = "Only one system exists was selected. Please select more than one system under the Select System Functionality tab.";
 			noErrors = false;
 			return;
 		}
 		this.dataList = resFunc.runListQuery(engine,dataQuery);
 		this.bluList = resFunc.runListQuery(engine,bluQuery);
+		if(this.dataList.size()==0 && this.bluList.size()==0 )
+		{
+			errorMessage = "No data objects or business logic unites were selected. Please select at least one under the Select System Functionality tab.";
+			noErrors = false;
+			return;
+		}
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
 		resFunc.setSysList(deepCopy(sysList));
 		resFunc.setDataList(deepCopy(dataList));
@@ -151,12 +162,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		if(noErrors == false)
 		{
 			playSheet.progressBar.setVisible(false);
-			if(sysList.size()==0)
-				Utility.showError("No systems were selected. Please select systems under the Select System Functionality tab.");
-			else if(sysList.size() == 1)
-				Utility.showError("Only one system exists was selected. Please select more than one system under the Select System Functionality tab.");
-			else
-				Utility.showError("Error with system functionality selections.");
+			Utility.showError(errorMessage);
 			return;
 		}
 		getModernizedSysList();
