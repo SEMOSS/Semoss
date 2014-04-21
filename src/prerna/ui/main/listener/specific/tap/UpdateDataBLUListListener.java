@@ -25,6 +25,8 @@ import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JToggleButton;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -41,7 +43,9 @@ import prerna.util.Utility;
 public class UpdateDataBLUListListener extends AbstractListener {
 	IEngine engine;
 	SelectScrollList capScrollList, dataScrollList, bluScrollList;
-	JButton updateDataBLUButton, updateComplementDataBLUButton;
+	JToggleButton updateDataBLUPanelButton;
+	JButton updateDataBLUButton,updateComplementDataBLUButton;
+	JLabel lblDataSelectHeader, lblBLUSelectHeader;
 
 
 	/**
@@ -51,30 +55,52 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		ArrayList<String> capabilities = new ArrayList<String>();
-		capabilities = capScrollList.getSelectedValues();
-		
-		//once you have the list of capabilities, bind them to a data query and a blu query to pull list of data and blus
-		String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-		String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
 
-		dataQuery = addBindings("Capability",capabilities, dataQuery);
-		bluQuery = addBindings("Capability",capabilities, bluQuery);
-		
-		ArrayList<String> dataList = runListQuery(engine,dataQuery);
-		ArrayList<String> bluList = runListQuery(engine,bluQuery);	
-		
-		//select the data and blu's on the scrollLists based on the list of data and blu
-		
-		if(e.getSource().equals(updateDataBLUButton))
+		if((e.getSource().equals(updateDataBLUPanelButton)&&!updateDataBLUPanelButton.isSelected()))
 		{
+			lblDataSelectHeader.setVisible(false);
+			lblBLUSelectHeader.setVisible(false);
+			updateDataBLUButton.setVisible(false);
+			updateComplementDataBLUButton.setVisible(false);
+			dataScrollList.setVisible(false);
+			bluScrollList.setVisible(false);
+		}
+		else if(e.getSource().equals(updateDataBLUPanelButton)||e.getSource().equals(updateDataBLUButton))
+		{
+			lblDataSelectHeader.setVisible(true);
+			lblBLUSelectHeader.setVisible(true);
+			updateDataBLUButton.setVisible(true);
+			updateComplementDataBLUButton.setVisible(true);
+			dataScrollList.setVisible(true);
+			bluScrollList.setVisible(true);
+			//once you have the list of capabilities, bind them to a data query and a blu query to pull list of data and blus
+			String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+			String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+	
+			ArrayList<String> capabilities = new ArrayList<String>();
+			ArrayList<String> dataList =  new ArrayList<String>();
+			ArrayList<String> bluList =  new ArrayList<String>();
+			if(!capScrollList.getSelectedValues().isEmpty())
+			{
+				capabilities = capScrollList.getSelectedValues();
+				dataQuery = addBindings("Capability",capabilities, dataQuery);
+				bluQuery = addBindings("Capability",capabilities, bluQuery);
+				dataList = runListQuery(engine,dataQuery);
+				bluList = runListQuery(engine,bluQuery);	
+			}
+			
+			//select the data and blu's on the scrollLists based on the list of data and blu
+
 			dataScrollList.setSelectedValues(new Vector<String>(dataList));
 			bluScrollList.setSelectedValues(new Vector<String>(bluList));
+
 		}
 		else
 		{
-			dataScrollList.setUnselectedValues(new Vector<String>(dataList));
-			bluScrollList.setUnselectedValues(new Vector<String>(bluList));
+			ArrayList<String> dataList =  dataScrollList.getUnselectedValues();
+			ArrayList<String> bluList =  bluScrollList.getUnselectedValues();
+			dataScrollList.setSelectedValues(new Vector<String>(dataList));
+			bluScrollList.setSelectedValues(new Vector<String>(bluList));
 		}
 	}
 	public String addBindings(String type, List bindingsList,String query)
@@ -116,14 +142,17 @@ public class UpdateDataBLUListListener extends AbstractListener {
 		this.engine = engine;
 		
 	}
-	public void setScrollLists(SelectScrollList capScrollList,SelectScrollList dataScrollList,SelectScrollList bluScrollList)
+	public void setScrollListsAndLabels(SelectScrollList capScrollList,SelectScrollList dataScrollList,SelectScrollList bluScrollList,JLabel lblDataSelectHeader,JLabel lblBLUSelectHeader)
 	{
 		this.capScrollList = capScrollList;
 		this.dataScrollList = dataScrollList;
 		this.bluScrollList = bluScrollList;
+		this.lblDataSelectHeader = lblDataSelectHeader;
+		this.lblBLUSelectHeader = lblBLUSelectHeader;
 	}
-	public void setUpdateButtons(JButton updateDataBLUButton,JButton updateComplementDataBLUButton)
+	public void setUpdateButtons(JToggleButton updateDataBLUPanelButton,JButton updateDataBLUButton,JButton updateComplementDataBLUButton)
 	{
+		this.updateDataBLUPanelButton = updateDataBLUPanelButton;
 		this.updateDataBLUButton = updateDataBLUButton;
 		this.updateComplementDataBLUButton = updateComplementDataBLUButton;
 

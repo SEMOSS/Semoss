@@ -28,7 +28,6 @@ import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -72,7 +71,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JCheckBox allCapButton, dhmsmCapButton;
 	public JCheckBox hsdCapButton, hssCapButton, fhpCapButton;
 	public SelectScrollList sysSelectDropDown, capSelectDropDown,dataSelectDropDown,bluSelectDropDown;
-	public JButton updateDataBLUButton, updateComplementDataBLUButton;
+	public JToggleButton updateDataBLUPanelButton;
+	public JButton updateDataBLUButton,updateComplementDataBLUButton;
 
 	
 	/**
@@ -181,26 +181,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_lblCapSelectHeader.gridy = 0;
 		systemSelectPanel.add(lblCapSelectHeader, gbc_lblCapSelectHeader);
 		
-		JLabel lblDataSelectHeader = new JLabel("Select Data Objects:");
-		lblDataSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblDataSelectHeader = new GridBagConstraints();
-		gbc_lblDataSelectHeader.gridwidth = 3;
-		gbc_lblDataSelectHeader.anchor = GridBagConstraints.WEST;
-		gbc_lblDataSelectHeader.insets = new Insets(10, 0, 5, 5);
-		gbc_lblDataSelectHeader.gridx = 8;
-		gbc_lblDataSelectHeader.gridy = 0;
-		systemSelectPanel.add(lblDataSelectHeader, gbc_lblDataSelectHeader);
-		
-		JLabel lblBLUSelectHeader = new JLabel("Select BLUs:");
-		lblBLUSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblBLUSelectHeader = new GridBagConstraints();
-		gbc_lblBLUSelectHeader.gridwidth = 3;
-		gbc_lblBLUSelectHeader.anchor = GridBagConstraints.WEST;
-		gbc_lblBLUSelectHeader.insets = new Insets(10, 0, 5, 5);
-		gbc_lblBLUSelectHeader.gridx = 12;
-		gbc_lblBLUSelectHeader.gridy = 0;
-		systemSelectPanel.add(lblBLUSelectHeader, gbc_lblBLUSelectHeader);
-
 		allSysButton = new JCheckBox("All Systems");
 		GridBagConstraints gbc_allSysButton = new GridBagConstraints();
 		gbc_allSysButton.anchor = GridBagConstraints.WEST;
@@ -278,22 +258,37 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_fhpCapButton.gridy = 2;
 		systemSelectPanel.add(fhpCapButton, gbc_fhpCapButton);
 		
+		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
+		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(updateDataBLUPanelButton,  ".toggleButton");
+		
+		GridBagConstraints gbc_updateDataBLUPanelButton = new GridBagConstraints();
+		gbc_updateDataBLUPanelButton.anchor = GridBagConstraints.WEST;
+//		gbc_updateDataBLUPanelButton.gridwidth = 3;
+		gbc_updateDataBLUPanelButton.gridheight = 2;
+		gbc_updateDataBLUPanelButton.insets = new Insets(0, 0, 5, 5);
+		gbc_updateDataBLUPanelButton.gridx = 8;
+		gbc_updateDataBLUPanelButton.gridy = 0;
+		systemSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
+		
 		updateDataBLUButton = new CustomButton("Select Data/BLU");
 		updateDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateDataBLUButton,  ".standardButton");
+		Style.registerTargetClassName(updateDataBLUButton,  ".toggleButton");
+		updateDataBLUButton.setVisible(false);		
 		
 		GridBagConstraints gbc_updateDataBLUButton = new GridBagConstraints();
 		gbc_updateDataBLUButton.anchor = GridBagConstraints.WEST;
-		gbc_updateDataBLUButton.gridwidth = 3;
+//		gbc_updateDataBLUButton.gridwidth = 3;
 		gbc_updateDataBLUButton.gridheight = 2;
 		gbc_updateDataBLUButton.insets = new Insets(0, 0, 5, 5);
-		gbc_updateDataBLUButton.gridx = 8;
-		gbc_updateDataBLUButton.gridy = 1;
+		gbc_updateDataBLUButton.gridx = 9;
+		gbc_updateDataBLUButton.gridy = 0;
 		systemSelectPanel.add(updateDataBLUButton, gbc_updateDataBLUButton);
 		
-		updateComplementDataBLUButton = new CustomButton("Select Complement Data/BLU");
+		updateComplementDataBLUButton = new CustomButton("Select Complement");
 		updateComplementDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateComplementDataBLUButton,  ".standardButton");
+		Style.registerTargetClassName(updateComplementDataBLUButton,  ".toggleButton");
+		updateComplementDataBLUButton.setVisible(false);		
 		
 		GridBagConstraints gbc_updateComplementDataBLUButton = new GridBagConstraints();
 		gbc_updateComplementDataBLUButton.anchor = GridBagConstraints.WEST;
@@ -301,9 +296,30 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_updateComplementDataBLUButton.gridheight = 2;
 		gbc_updateComplementDataBLUButton.insets = new Insets(0, 0, 5, 5);
 		gbc_updateComplementDataBLUButton.gridx = 11;
-		gbc_updateComplementDataBLUButton.gridy = 1;
+		gbc_updateComplementDataBLUButton.gridy = 0;
 		systemSelectPanel.add(updateComplementDataBLUButton, gbc_updateComplementDataBLUButton);
 
+		JLabel lblDataSelectHeader = new JLabel("Select Data Objects:");
+		lblDataSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblDataSelectHeader.setVisible(false);
+		GridBagConstraints gbc_lblDataSelectHeader = new GridBagConstraints();
+		gbc_lblDataSelectHeader.gridwidth = 3;
+		gbc_lblDataSelectHeader.anchor = GridBagConstraints.WEST;
+		gbc_lblDataSelectHeader.insets = new Insets(0, 5, 5, 5);
+		gbc_lblDataSelectHeader.gridx = 8;
+		gbc_lblDataSelectHeader.gridy = 2;
+		systemSelectPanel.add(lblDataSelectHeader, gbc_lblDataSelectHeader);
+		
+		JLabel lblBLUSelectHeader = new JLabel("Select BLUs:");
+		lblBLUSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblBLUSelectHeader.setVisible(false);
+		GridBagConstraints gbc_lblBLUSelectHeader = new GridBagConstraints();
+		gbc_lblBLUSelectHeader.gridwidth = 3;
+		gbc_lblBLUSelectHeader.anchor = GridBagConstraints.WEST;
+		gbc_lblBLUSelectHeader.insets = new Insets(0, 0, 5, 5);
+		gbc_lblBLUSelectHeader.gridx = 12;
+		gbc_lblBLUSelectHeader.gridy = 2;
+		systemSelectPanel.add(lblBLUSelectHeader, gbc_lblBLUSelectHeader);
 		
 		sysSelectDropDown = new SelectScrollList("Select Individual Systems");
 		sysSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -365,6 +381,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 
 		String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} }");
 		dataSelectDropDown.setupButton(dataArray,40,120); //need to give list of all systems
+		dataSelectDropDown.setVisible(false);
 		
 		bluSelectDropDown = new SelectScrollList("Select Individual BLU");
 		bluSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -378,11 +395,13 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		
 		String[] bluArray = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?entity}}");
 		bluSelectDropDown.setupButton(bluArray,40,120); //need to give list of all systems
+		bluSelectDropDown.setVisible(false);
 
 		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
 		updateDataBLUListener.setEngine(engine);
-		updateDataBLUListener.setScrollLists(capSelectDropDown,dataSelectDropDown,bluSelectDropDown);
-		updateDataBLUListener.setUpdateButtons(updateDataBLUButton,updateComplementDataBLUButton);
+		updateDataBLUListener.setScrollListsAndLabels(capSelectDropDown,dataSelectDropDown,bluSelectDropDown,lblDataSelectHeader,lblBLUSelectHeader);
+		updateDataBLUListener.setUpdateButtons(updateDataBLUPanelButton,updateDataBLUButton,updateComplementDataBLUButton);
+		updateDataBLUPanelButton.addActionListener(updateDataBLUListener);
 		updateDataBLUButton.addActionListener(updateDataBLUListener);
 		updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
 

@@ -53,6 +53,11 @@ public class SelectScrollList  extends JButton {
 		list = new JList();
 	}
 	
+	public void setVisible(boolean visible)
+	{
+		list.setVisible(visible);
+		pane.setVisible(visible);
+	}
 	/**
 	 * Set's the table's selection mode.
 	 * @param mode int		Specifies single selections, a single contiguous interval, or multiple intervals.
@@ -137,6 +142,8 @@ public class SelectScrollList  extends JButton {
 	}
 	public ArrayList<String> getSelectedValues()
 	{
+		if(list.getSelectedValuesList().isEmpty())
+			return new ArrayList<String>();
 		return (ArrayList<String>)list.getSelectedValuesList();
 	}
 	public ArrayList<String> getUnselectedValues()
