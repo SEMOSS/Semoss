@@ -135,7 +135,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		playSheet.progressBar.setString("Determining Modernized List");
 		ResidualSystemOptimizer sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
-		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
+//		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
 		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
 		noErrors = sysOpt.runOpt();
 
@@ -143,7 +143,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		this.numMaintenanceSavings =sysOpt.numMaintenanceTotal;
 		this.preTransitionMaintenanceCost = sysOpt.denomCurrentMaintenance;
 		this.postTransitionMaintenanceCost = preTransitionMaintenanceCost - numMaintenanceSavings;
-		}
+	}
 	
 	public void runOpt()
 	{

@@ -102,45 +102,45 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	{
 		super.createAdvParamPanels();
 		
-		dataPctField = new JTextField();
-		dataPctField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_dataPctField = new GridBagConstraints();
-		gbc_dataPctField.insets = new Insets(0, 0, 5, 5);
-		gbc_dataPctField.gridx = 6;
-		gbc_dataPctField.gridy = 1;
-		advParamPanel.add(dataPctField, gbc_dataPctField);
-		dataPctField.setText("100");
-		dataPctField.setColumns(3);
-
-		JLabel lbldataPctField = new JLabel("Data Objects to Provide (%)");
-		lbldataPctField.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lbldataPctField = new GridBagConstraints();
-		gbc_lbldataPctField.gridwidth = 3;
-		gbc_lbldataPctField.anchor = GridBagConstraints.WEST;
-		gbc_lbldataPctField.insets = new Insets(0, 0, 5, 0);
-		gbc_lbldataPctField.gridx = 7;
-		gbc_lbldataPctField.gridy = 1;
-		advParamPanel.add(lbldataPctField, gbc_lbldataPctField);
-		
-		bluPctField = new JTextField();
-		bluPctField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_bluPctField = new GridBagConstraints();
-		gbc_bluPctField.insets = new Insets(0, 0, 5, 5);
-		gbc_bluPctField.gridx = 6;
-		gbc_bluPctField.gridy = 2;
-		advParamPanel.add(bluPctField, gbc_bluPctField);
-		bluPctField.setText("100");
-		bluPctField.setColumns(3);
-
-		JLabel lblbluPctField = new JLabel("BLU to Provide (%)");
-		lblbluPctField.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblbluPctField = new GridBagConstraints();
-		gbc_lblbluPctField.gridwidth = 3;
-		gbc_lblbluPctField.anchor = GridBagConstraints.WEST;
-		gbc_lblbluPctField.insets = new Insets(0, 0, 5, 0);
-		gbc_lblbluPctField.gridx = 7;
-		gbc_lblbluPctField.gridy = 2;
-		advParamPanel.add(lblbluPctField, gbc_lblbluPctField);
+//		dataPctField = new JTextField();
+//		dataPctField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		GridBagConstraints gbc_dataPctField = new GridBagConstraints();
+//		gbc_dataPctField.insets = new Insets(0, 0, 5, 5);
+//		gbc_dataPctField.gridx = 6;
+//		gbc_dataPctField.gridy = 1;
+//		advParamPanel.add(dataPctField, gbc_dataPctField);
+//		dataPctField.setText("100");
+//		dataPctField.setColumns(3);
+//
+//		JLabel lbldataPctField = new JLabel("Data Objects to Provide (%)");
+//		lbldataPctField.setFont(new Font("Tahoma", Font.PLAIN, 12));
+//		GridBagConstraints gbc_lbldataPctField = new GridBagConstraints();
+//		gbc_lbldataPctField.gridwidth = 3;
+//		gbc_lbldataPctField.anchor = GridBagConstraints.WEST;
+//		gbc_lbldataPctField.insets = new Insets(0, 0, 5, 0);
+//		gbc_lbldataPctField.gridx = 7;
+//		gbc_lbldataPctField.gridy = 1;
+//		advParamPanel.add(lbldataPctField, gbc_lbldataPctField);
+//		
+//		bluPctField = new JTextField();
+//		bluPctField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		GridBagConstraints gbc_bluPctField = new GridBagConstraints();
+//		gbc_bluPctField.insets = new Insets(0, 0, 5, 5);
+//		gbc_bluPctField.gridx = 6;
+//		gbc_bluPctField.gridy = 2;
+//		advParamPanel.add(bluPctField, gbc_bluPctField);
+//		bluPctField.setText("100");
+//		bluPctField.setColumns(3);
+//
+//		JLabel lblbluPctField = new JLabel("BLU to Provide (%)");
+//		lblbluPctField.setFont(new Font("Tahoma", Font.PLAIN, 12));
+//		GridBagConstraints gbc_lblbluPctField = new GridBagConstraints();
+//		gbc_lblbluPctField.gridwidth = 3;
+//		gbc_lblbluPctField.anchor = GridBagConstraints.WEST;
+//		gbc_lblbluPctField.insets = new Insets(0, 0, 5, 0);
+//		gbc_lblbluPctField.gridx = 7;
+//		gbc_lblbluPctField.gridy = 2;
+//		advParamPanel.add(lblbluPctField, gbc_lblbluPctField);
 		
 		
 		systemSelectPanel = new JPanel();
