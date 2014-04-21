@@ -136,7 +136,10 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		        	colno[sysInd] = sysInd+1;
 		        	row[sysInd] = systemProviderMatrix[sysInd][colInd];
 		        }
-		        solver.addConstraintex(systemProviderMatrix.length, row, colno, LpSolve.GE, constraintMatrix[colInd]);
+		        if(constraintMatrix[colInd]>0)
+		        	solver.addConstraintex(systemProviderMatrix.length, row, colno, LpSolve.GE, 1);
+		        else
+		        	solver.addConstraintex(systemProviderMatrix.length, row, colno, LpSolve.GE, 0);
 			}
 		}catch (LpSolveException e){
 			e.printStackTrace();
