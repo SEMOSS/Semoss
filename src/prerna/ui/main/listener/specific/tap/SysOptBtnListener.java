@@ -36,9 +36,7 @@ import prerna.ui.swing.custom.SelectScrollList;
 public class SysOptBtnListener extends SerOptBtnListener {
 	
 	Logger logger = Logger.getLogger(getClass());
-
-	String sysQuery, dataQuery, bluQuery;
-	
+	double dataPercent, bluPercent;
 	public void updateProg()
 	{
 
@@ -63,7 +61,8 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 
-			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown);
+			((SysNetSavingsOptimizer)optimizer).setDataBLUPercent(dataPercent,bluPercent);
+			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown,((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected());
 			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			optimizer.setPlaySheet(playSheet);
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
@@ -86,47 +85,37 @@ public class SysOptBtnListener extends SerOptBtnListener {
 	
 	public String specificSetVariablesString(String failStr)
 	{
-//		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
-//		if(!sysQuery.contains("SELECT")){
-//			failStr = failStr+"System Select Query must be a select query\n";
-//		}
-//		else 
-//			this.sysQuery = sysQuery;
-//		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
-//		if(!dataQuery.contains("SELECT")){
-//			failStr = failStr+"Data Select Query must be a select query\n";
-//		}
-//		else 
-//			this.dataQuery = dataQuery;
-//		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
-//		if(!bluQuery.contains("SELECT")){
-//			failStr = failStr+"BLU Select Query must be a select query\n";
-//		}
-//		else 
-//			this.bluQuery = bluQuery;
+		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
+		if(dataPercent<0 || dataPercent > 1){
+			failStr = failStr+"Data Percentage must be between 0 and 100 inclusive\n";
+		}
+		else 
+			this.dataPercent = dataPercent;
+		
+		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
+		if(bluPercent<0 || bluPercent > 1){
+			failStr = failStr+"BLU Percentage must be between 0 and 100 inclusive\n";
+		}
+		else 
+			this.bluPercent = bluPercent;
 		return failStr;
 	}
 	
 	public Integer specificSetVariablesCount(int failCount)
 	{
-//		String sysQuery = ((SysOptPlaySheet)playSheet).sysSelectQueryField.getText();
-//		if(!sysQuery.contains("SELECT")){
-//			failCount++;
-//		}
-//		else 
-//			this.sysQuery = sysQuery;
-//		String dataQuery = ((SysOptPlaySheet)playSheet).dataSelectQueryField.getText();
-//		if(!dataQuery.contains("SELECT")){
-//			failCount++;
-//		}
-//		else 
-//			this.dataQuery = dataQuery;
-//		String bluQuery = ((SysOptPlaySheet)playSheet).bluSelectQueryField.getText();
-//		if(!bluQuery.contains("SELECT")){
-//			failCount++;
-//		}
-//		else 
-//			this.bluQuery = bluQuery;
+		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
+		if(dataPercent<0 || dataPercent > 1){
+			failCount++;
+		}
+		else 
+			this.dataPercent = dataPercent;
+		
+		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
+		if(bluPercent<0 || bluPercent > 1){
+			failCount++;
+		}
+		else 
+			this.bluPercent = bluPercent;
 		return failCount;
 	}
 	

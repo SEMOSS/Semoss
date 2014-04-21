@@ -54,24 +54,42 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	double numMaintenanceSavings;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
+	double dataPercent, bluPercent;
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
-	SelectScrollList sysSelectDropDown,dataSelectDropDown,bluSelectDropDown;
+	//SelectScrollList sysSelectDropDown,dataSelectDropDown,bluSelectDropDown;
 	
-	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown)
+	public void setDataBLUPercent(double dataPercent,double bluPercent)
 	{
-		this.sysSelectDropDown = sysSelectDropDown;
-		this.dataSelectDropDown = dataSelectDropDown;
-		this.bluSelectDropDown = bluSelectDropDown;
+		this.dataPercent = dataPercent;
+		this.bluPercent = bluPercent;
+	}
+	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useDataBLU)
+	{
+//		this.sysSelectDropDown = sysSelectDropDown;
+//		this.dataSelectDropDown = dataSelectDropDown;
+//		this.bluSelectDropDown = bluSelectDropDown;
 		
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
-		this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
-		this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
 		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
-		this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
-		this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		if(!useDataBLU)
+		{
+			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+			this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
+			this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		}
+		else
+		{
+			this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
+			this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
+			this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
+			this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		}
+
+
 	}
 	
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
@@ -116,6 +134,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		playSheet.progressBar.setString("Determining Modernized List");
 		ResidualSystemOptimizer sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
+		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
 		sysOpt.setDataSet(sysList,dataList,bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
 		noErrors = sysOpt.runOpt();
 

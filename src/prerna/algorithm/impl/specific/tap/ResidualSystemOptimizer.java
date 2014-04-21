@@ -42,6 +42,8 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	public double numTransformationTotal = 0.0;
 	public double numMaintenanceTotal = 0.0;
 	double percentOfPilot = 0.20;
+
+	double dataPercent = 1.0, bluPercent = 1.0;
 	
 	public ResidualSystemOptimizer(){
 		
@@ -52,6 +54,11 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		this.playSheet = playSheet;
 	}
 
+	public void setDataBLUPercent(double dataPercent,double bluPercent)
+	{
+		this.dataPercent = dataPercent;
+		this.bluPercent = bluPercent;
+	}
 	/**
 	 * Gathers data set.
 	 */
