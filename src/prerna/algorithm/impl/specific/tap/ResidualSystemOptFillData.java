@@ -75,6 +75,8 @@ public class ResidualSystemOptFillData{
 	 */
 	public ArrayList<String> runListQuery(String engineName, String query) {
 		ArrayList<String> list = new ArrayList<String>();
+		if(query!="")
+		{
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 	
@@ -90,6 +92,7 @@ public class ResidualSystemOptFillData{
 				}
 		} catch (Exception e) {
 			Utility.showError("Cannot find engine: "+engineName);
+		}
 		}
 		return list;
 	}
@@ -129,8 +132,12 @@ public class ResidualSystemOptFillData{
 		printToConsoleList(sysList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered...");
 		printToConsoleList(dataList);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that are SOR of Data Object...");
+		printNumberToConsoleList(dataList,dataSORSystemExists);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered...");
 		printToConsoleList(bluList);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that provide BLU ...");
+		printNumberToConsoleList(bluList,bluProviderExists);
 	}
 	
 	public void printToConsoleList(ArrayList<String> list)
@@ -138,6 +145,25 @@ public class ResidualSystemOptFillData{
 		for(String entry : list)
 		{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+entry+", ");
+		}
+	}
+	public void printNumberToConsoleList(ArrayList<String> list,int[] numbers)
+	{
+		ArrayList<Integer> numList = new ArrayList<Integer>();
+		for(int i=0;i<numbers.length;i++)
+			numList.add(numbers[i]);
+		int numSystemsIndex = sysList.size();
+		while(!numList.isEmpty())
+		{
+			int listLoc = numList.indexOf(numSystemsIndex);
+			if(listLoc>-1)
+			{
+				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+list.get(listLoc)+": "+numSystemsIndex+", ");
+				list.remove(listLoc);
+				numList.remove(listLoc);
+			}
+			else
+				numSystemsIndex--;
 		}
 	}
 	
@@ -472,10 +498,11 @@ public class ResidualSystemOptFillData{
 			{
 				numProviders+=sysMatrix[row][col];
 			}
-			if(numProviders>0)
-				retVector[col] = 1;
-			else
-				retVector[col]=0;
+//			if(numProviders>0)
+//				retVector[col] = 1;
+//			else
+//				retVector[col]=0;
+			retVector[col] =numProviders;
 		}
 		return retVector;
 	}

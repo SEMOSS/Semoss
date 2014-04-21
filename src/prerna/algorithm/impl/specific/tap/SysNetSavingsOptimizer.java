@@ -59,7 +59,6 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
-	//SelectScrollList sysSelectDropDown,dataSelectDropDown,bluSelectDropDown;
 	
 	public void setDataBLUPercent(double dataPercent,double bluPercent)
 	{
@@ -68,10 +67,6 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	}
 	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useDataBLU)
 	{
-//		this.sysSelectDropDown = sysSelectDropDown;
-//		this.dataSelectDropDown = dataSelectDropDown;
-//		this.bluSelectDropDown = bluSelectDropDown;
-		
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
 		if(!useDataBLU)
@@ -88,8 +83,6 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 			this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
 			this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
 		}
-
-
 	}
 	
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
@@ -101,7 +94,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	public String addBindings(String type, List bindingsList,String query)
 	{
 		if(bindingsList.size()==0)
-			return query;
+			return "";
 		query += "BINDINGS ?"+type+" {";
 		for(int i=0;i<bindingsList.size();i++)
 			query+="(<http://health.mil/ontologies/Concept/"+type+"/"+(String)bindingsList.get(i)+">)";
