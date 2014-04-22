@@ -20,6 +20,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
@@ -73,20 +74,35 @@ public class CheckBoxSelectorListener extends AbstractListener {
 			return;
 		}
 		allElemCheckBox.setSelected(false);
-		Vector<String> systems = new Vector<String>();
+		Vector<String> systemsTG = new Vector<String>();
+		Vector<String> systemsProb = new Vector<String>();
 		if(theaterSysCheckBox.isSelected())
-			systems.addAll(theaterSysList);
+			systemsTG.addAll(theaterSysList);
 		if(garrisonSysCheckBox.isSelected())
-			systems.addAll(garrisonSysList);
+			systemsTG.addAll(garrisonSysList);
 		if(lowProbCheckBox.isSelected())
-			systems.addAll(lowProbSysList);
+			systemsProb.addAll(lowProbSysList);
 		if(medProbCheckBox.isSelected())
-			systems.addAll(medProbSysList);
+			systemsProb.addAll(medProbSysList);
 		if(highProbCheckBox.isSelected())
-			systems.addAll(highProbSysList);
+			systemsProb.addAll(highProbSysList);
+		Vector<String> systems = addIntersection(systemsTG,systemsProb);
 		
 		scrollList.setSelectedValues(systems);
 
+	}
+	
+	public Vector<String> addIntersection(Vector<String> systemsTG, Vector<String> systemsProb)
+	{
+		Vector<String> retList = new Vector<String>();
+		Iterator<String> sysIt = systemsTG.iterator();
+		while(sysIt.hasNext())
+		{
+			String check = sysIt.next();
+			if(systemsProb.contains(check))
+				retList.add(check);
+		}
+		return retList;
 	}
 		
 	/**
