@@ -107,7 +107,7 @@ public class ResidualSystemOptFillData{
 		return retList;
 	}
 	
-	public void fillDataStores()
+	public void fillDataStores(boolean dataRequired)
 	{
 		systemDataMatrix = createEmptyMatrix(systemDataMatrix,sysList.size(),dataList.size());
 		systemBLUMatrix = createEmptyMatrix(systemBLUMatrix,sysList.size(),bluList.size());
@@ -124,8 +124,8 @@ public class ResidualSystemOptFillData{
 		fillSystemCost();
 		fillSystemNumOfSites();
 		
-		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix);
-		bluProviderExists = calculateIfProviderExists(systemBLUMatrix);
+		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,false);
+		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,false);
 		
 		if(playSheet!=null)
 		{
@@ -133,7 +133,8 @@ public class ResidualSystemOptFillData{
 		}
 		else
 			printAll();
-		
+		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,dataRequired);
+		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,dataRequired);
 	}
 	
 	public void printToConsole()
@@ -264,13 +265,7 @@ public class ResidualSystemOptFillData{
 				matrix[x][y] = 0;
 		return matrix;
 	}
-//	private int[] createEmptyVector(int[] matrix, int row)
-//	{
-//		matrix = new int[row];
-//		for(int x=0;x<row;x++)
-//			matrix[x] = 0;
-//		return matrix;
-//	}
+
 	private double[] createEmptyVector(double[] matrix, int row)
 	{
 		matrix = new double[row];
@@ -498,20 +493,21 @@ public class ResidualSystemOptFillData{
 		return bindings;
 	}
 	
-	public int[] calculateIfProviderExists(int[][] sysMatrix)
+	public int[] calculateIfProviderExists(int[][] sysMatrix,boolean elementRequired)
 	{
 		int[] retVector = new int[sysMatrix[0].length];
 		for(int col=0;col<sysMatrix[0].length;col++)
 		{
 			int numProviders = 0;
-			for(int row=0;row<sysMatrix.length;row++)
+			if(elementRequired)
+				numProviders =1;
+			else
 			{
-				numProviders+=sysMatrix[row][col];
+				for(int row=0;row<sysMatrix.length;row++)
+				{
+					numProviders+=sysMatrix[row][col];
+				}
 			}
-//			if(numProviders>0)
-//				retVector[col] = 1;
-//			else
-//				retVector[col]=0;
 			retVector[col] =numProviders;
 		}
 		return retVector;

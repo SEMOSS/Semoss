@@ -36,12 +36,6 @@ import prerna.ui.swing.custom.SelectScrollList;
 public class SysOptBtnListener extends SerOptBtnListener {
 	
 	Logger logger = Logger.getLogger(getClass());
-	double dataPercent, bluPercent;
-	public void updateProg()
-	{
-
-		playSheet.progressBar.revalidate();
-	}
 	/**
 	 * Method actionPerformed.
 	 * @param arg0 ActionEvent
@@ -61,10 +55,11 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 
-			((SysNetSavingsOptimizer)optimizer).setDataBLUPercent(dataPercent,bluPercent);
-			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown,((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected());
-			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			optimizer.setPlaySheet(playSheet);
+			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
+			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown,((SysOptPlaySheet)playSheet).showSystemSelectBtn.isSelected(),((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected());
+
+
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			Thread playThread = new Thread(runner);
 			playThread.start();
@@ -82,40 +77,14 @@ public class SysOptBtnListener extends SerOptBtnListener {
 	{
 		this.playSheet = sheet;
 	}
-	
+	@Override
 	public String specificSetVariablesString(String failStr)
 	{
-//		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
-//		if(dataPercent<0 || dataPercent > 1){
-//			failStr = failStr+"Data Percentage must be between 0 and 100 inclusive\n";
-//		}
-//		else 
-//			this.dataPercent = dataPercent;
-//		
-//		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
-//		if(bluPercent<0 || bluPercent > 1){
-//			failStr = failStr+"BLU Percentage must be between 0 and 100 inclusive\n";
-//		}
-//		else 
-//			this.bluPercent = bluPercent;
 		return failStr;
 	}
-	
+	@Override
 	public Integer specificSetVariablesCount(int failCount)
 	{
-//		double dataPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).dataPctField.getText())/100;
-//		if(dataPercent<0 || dataPercent > 1){
-//			failCount++;
-//		}
-//		else 
-//			this.dataPercent = dataPercent;
-//		
-//		double bluPercent =Double.parseDouble(((SysOptPlaySheet)playSheet).bluPctField.getText())/100;
-//		if(bluPercent<0 || bluPercent > 1){
-//			failCount++;
-//		}
-//		else 
-//			this.bluPercent = bluPercent;
 		return failCount;
 	}
 	

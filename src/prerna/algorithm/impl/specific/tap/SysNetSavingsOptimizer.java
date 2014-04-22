@@ -36,6 +36,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.Logger;
 
+import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
@@ -48,44 +49,66 @@ import prerna.util.Utility;
 public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	
 	ResidualSystemOptFillData resFunc;
+	public ResidualSystemOptimizer sysOpt;
 	String sysQuery, dataQuery, bluQuery;
-	ArrayList<String> sysList, dataList, bluList;
+	public ArrayList<String> sysList, dataList, bluList;
 	double dataExposeCost;
 	double numMaintenanceSavings;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
-	double dataPercent, bluPercent;
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
 	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	String errorMessage = "";
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
 	
-	public void setDataBLUPercent(double dataPercent,double bluPercent)
-	{
-		this.dataPercent = dataPercent;
-		this.bluPercent = bluPercent;
-	}
-	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useDataBLU)
+	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU)
 	{
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
-		if(!useDataBLU)
-		{
-			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-			this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
-			this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
-		}
-		else
+		if(useDataBLU)
 		{
 			this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
 			this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
 			this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
 			this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
 		}
+		else if(useSysList)
+		{
+			this.dataQuery = "NULL";
+			DHMSMHelper dhelp = new DHMSMHelper();
+			dhelp.setUseDHMSMOnly(false);
+			dhelp.runData(playSheet.engine);
+			ArrayList<String> systems = sysSelectDropDown.getSelectedValues();
+			dataList = new ArrayList<String>();
+			for(int sysInd = 0;sysInd < systems.size();sysInd++)
+			{
+				String sys = systems.get(sysInd);
+				dataList.addAll(dhelp.getAllDataFromSys(sys, "C"));
+			}
+			dataList = removeDuplicates(dataList);
+			this.bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
+			this.bluQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		}
+		else if(!useSysList)
+		{
+			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+			this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
+			this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
+		}
+
 	}
-	
+	public ArrayList<String> removeDuplicates(ArrayList<String> list)
+	{
+		ArrayList<String> retList = new ArrayList<String>();
+		for(String entry : list)
+		{
+			if(!retList.contains(entry))
+				retList.add(entry);
+		}
+		return retList;
+	}
 	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
 	{
 		this.sysQuery = sysQuery;
@@ -118,7 +141,8 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 			noErrors = false;
 			return;
 		}
-		this.dataList = resFunc.runListQuery(engine,dataQuery);
+		if(!dataQuery.equals("NULL"))
+			this.dataList = resFunc.runListQuery(engine,dataQuery);
 		this.bluList = resFunc.runListQuery(engine,bluQuery);
 		if(this.dataList.size()==0 && this.bluList.size()==0 )
 		{
@@ -130,7 +154,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		resFunc.setSysList(deepCopy(sysList));
 		resFunc.setDataList(deepCopy(dataList));
 		resFunc.setBLUList(deepCopy(bluList));
-		resFunc.fillDataStores();
+		resFunc.fillDataStores(!dataQuery.equals("NULL"));
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
 	{
@@ -144,11 +168,12 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	public void getModernizedSysList()
 	{
 		playSheet.progressBar.setString("Determining Modernized List");
-		ResidualSystemOptimizer sysOpt = new ResidualSystemOptimizer();
+		sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
 //		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
 		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
 		noErrors = sysOpt.runOpt();
+		errorMessage = sysOpt.errorMessage;
 
 		this.dataExposeCost = sysOpt.numTransformationTotal; //total cost to expose all data for all systems at all sites
 		this.numMaintenanceSavings =sysOpt.numMaintenanceTotal;
@@ -261,25 +286,8 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	{
         f = new SysNetSavingsFunction();
         runOpt();
-        //should this go in runOpt try catch?
-//        if(noErrors)
-//        {
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
-//			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
-//        }
 	}   
-	
 
-//	/**
-//	 * Runs a specific iteration of the optimization.
-//	 */
-//	@Override
-//	public void runOptIteration()
-//	{
-//        displayResults(f.lin);
-//	}
 	
 
 	/**
@@ -319,15 +327,18 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
 		graphF.setOptimzer(this);
 
+		Hashtable modernizedSysHeatMapChartHash = graphF.createModernizedHeatMap();
 		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
 		Hashtable chartHash6 = graphF.createLearningCurve();
 
+		((SysOptPlaySheet)playSheet).tabModernizedHeatMap.callIt(modernizedSysHeatMapChartHash);
 		playSheet.tab3.callIt(chartHash3);
 		playSheet.tab4.callIt(chartHash4);
 		playSheet.tab5.callIt(chartHash5);
 		playSheet.tab6.callIt(chartHash6);
+		((SysOptPlaySheet)playSheet).tabModernizedHeatMap.setVisible(true);
 		playSheet.tab3.setVisible(true);
 		playSheet.tab4.setVisible(true);
 		playSheet.tab5.setVisible(true);
