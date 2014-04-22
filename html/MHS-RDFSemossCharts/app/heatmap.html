@@ -301,7 +301,9 @@
         .text(function(d) { return "" + roundedLegendValue(d); })
         .attr("x", function(d, i) { return legendElementWidth * i; })
         .attr("y", yAxisData.length * gridSize + 75);
-	  
+	if(jsonData.hideHeader){
+		jQuery("#nav").hide();
+		}
 	  // Color Changer  
 	d3.select("#nav").append("select")
 		.attr("id", "select2DropDown")
