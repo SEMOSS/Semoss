@@ -208,7 +208,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			
 			if(minObjectiveVal>1.0*Math.pow(10, 15))
 			{
-				errorMessage = "No solution can be found for given data and blu. Please modify the data and blu selected.";
+				errorMessage = "No solution can be found for given data and BLU. Please modify the data and BLU selected.";
 				return false;
 			}
 			
@@ -221,11 +221,11 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			boolean allSystemsKept = true;
 			if(playSheet!=null)
 			{
-				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems to be Modernized...");
+				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Systems to be Modernized...");
 				for(int i=0;i<systemIsModernized.length;i++)
 					if(systemIsModernized[i]>0)
 						playSheet.consoleArea.setText(playSheet.consoleArea.getText()+solver.getColName(i + 1)+", ");
-				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems that will not be modernized...");
+				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Systems that will not be modernized...");
 				for(int i=0;i<systemIsModernized.length;i++)
 				{
 					if(systemIsModernized[i]<1)

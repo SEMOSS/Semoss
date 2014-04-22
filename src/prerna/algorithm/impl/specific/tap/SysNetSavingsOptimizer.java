@@ -194,7 +194,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		if(noErrors == false)
 		{
 			playSheet.progressBar.setVisible(false);
-			Utility.showError("All systems must be kept to maintain same functionality.");
+			Utility.showError(errorMessage);
 			return;
 		}
 		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
@@ -333,12 +333,14 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
 		Hashtable chartHash6 = graphF.createLearningCurve();
 
-		((SysOptPlaySheet)playSheet).tabModernizedHeatMap.callIt(modernizedSysHeatMapChartHash);
+
+	//	((SysOptPlaySheet)playSheet).tabModernizedHeatMap.browser.refresh();
+	//	((SysOptPlaySheet)playSheet).tabModernizedHeatMap.callIt(modernizedSysHeatMapChartHash);
 		playSheet.tab3.callIt(chartHash3);
 		playSheet.tab4.callIt(chartHash4);
 		playSheet.tab5.callIt(chartHash5);
 		playSheet.tab6.callIt(chartHash6);
-		((SysOptPlaySheet)playSheet).tabModernizedHeatMap.setVisible(true);
+	//	((SysOptPlaySheet)playSheet).tabModernizedHeatMap.setVisible(true);
 		playSheet.tab3.setVisible(true);
 		playSheet.tab4.setVisible(true);
 		playSheet.tab5.setVisible(true);
