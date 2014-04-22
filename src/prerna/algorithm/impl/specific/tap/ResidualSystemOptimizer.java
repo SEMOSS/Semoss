@@ -15,7 +15,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	SysOptPlaySheet playSheet=null;
 	
 	protected Logger logger = Logger.getLogger(getClass());
-	ArrayList<String> sysList;
+	public ArrayList<String> sysList;
 	ArrayList<String> dataList;
 	ArrayList<String> bluList;
 	
@@ -44,6 +44,8 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	double percentOfPilot = 0.20;
 
 	double dataPercent = 1.0, bluPercent = 1.0;
+	
+	public String errorMessage="";
 	
 	public ResidualSystemOptimizer(){
 		
@@ -204,6 +206,12 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			double minObjectiveVal = solver.getObjective();
 			System.out.println("Objective Val is : " + minObjectiveVal);
 			
+			if(minObjectiveVal>1.0*Math.pow(10, 15))
+			{
+				errorMessage = "No solution can be found for given data and blu. Please modify the data and blu selected.";
+				return false;
+			}
+			
 			systemIsModernized = new double[sysList.size()];
 
 			solver.getVariables(systemIsModernized);
@@ -228,6 +236,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 				}
 				if(allSystemsKept)
 				{
+					errorMessage = "All systems must be kept to maintain same functionality.";
 					return false;
 				}
 				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nYearly maintenance if continued as-is: "+denomCurrentMaintenance);

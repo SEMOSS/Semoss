@@ -28,6 +28,42 @@ import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
  */
 public class SysOptGraphFunctions extends SerOptGraphFunctions{
 
+	public Hashtable createModernizedHeatMap()
+	{
+		ArrayList<String> sysList = ((SysNetSavingsOptimizer)opt).sysOpt.sysList;
+		double[] modernizedList = ((SysNetSavingsOptimizer)opt).sysOpt.systemIsModernized;
+		Hashtable dataHash = new Hashtable();
+		String xName = "System";
+		String yName = "Modernized";
+		for (int i=0;i<sysList.size();i++)
+		{
+			Hashtable elementHash = new Hashtable();
+			String sysName = sysList.get(i);	
+			double modernizedVal = modernizedList[i];
+			sysName = sysName.replaceAll("\"", "");
+			String key = sysName +"-"+yName;
+			if(modernizedVal>0)
+				modernizedVal = 1.0;
+			else
+				modernizedVal = 0.0;
+			elementHash.put(xName, sysName);
+			elementHash.put(yName, yName);
+			elementHash.put("value", modernizedVal);
+			dataHash.put(key, elementHash);
+			
+		}
+
+		Hashtable allHash = new Hashtable();
+		allHash.put("dataSeries", dataHash);
+		allHash.put("title", "Modernized Systems"); //var1[0] + " vs " + var1[1]);
+		allHash.put("xAxisTitle", xName);
+		allHash.put("yAxisTitle", yName);
+		allHash.put("value", "value");
+		allHash.put("hideHeader","true");
+		
+		return allHash;
+	}
+	
 	@Override
 	public Hashtable createCostChart()
 	{
