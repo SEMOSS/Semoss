@@ -86,7 +86,13 @@ public class CheckBoxSelectorListener extends AbstractListener {
 			systemsProb.addAll(medProbSysList);
 		if(highProbCheckBox.isSelected())
 			systemsProb.addAll(highProbSysList);
-		Vector<String> systems = addIntersection(systemsTG,systemsProb);
+		Vector<String> systems;
+		if(systemsTG.isEmpty())
+			systems = systemsProb;
+		else if(systemsProb.isEmpty())
+			systems = systemsTG;
+		else
+			systems = addIntersection(systemsTG,systemsProb);
 		
 		scrollList.setSelectedValues(systems);
 
