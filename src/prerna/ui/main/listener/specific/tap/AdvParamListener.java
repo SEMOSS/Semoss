@@ -27,19 +27,20 @@ import prerna.ui.components.specific.tap.SerOptPlaySheet;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
 /**
- * Listener to show advanced parameters for TAP service optimization
- * Used for when showParamBtn is pressed on the TAP service optimization playsheet
+ * Listener to show advanced parameters for TAP optimization
+ * Used for when showParamBtn, showSystemSelectBtn, or showSystemCapSelectBtn
+ * is pressed on the TAP service optimization or TAP system optimization playsheet
  */
 public class AdvParamListener implements ActionListener {
 	
 	SerOptPlaySheet ps;
-	JToggleButton showParamBtn;
-	JToggleButton showSystemSelectBtn;
+	JToggleButton showParamBtn, showSystemSelectBtn, showSystemCapSelectBtn;
 	boolean isSysOpt;
 	
 	/**
-	 * Action for when showParamBtn is pressed on the TAP service optimization playsheet
-	 * When pressed, makes advParamPanel become visible
+	 * Action for when showParamBtn, showSystemSelectBtn, or showSystemCapSelectBtn is pressed
+	 * on the TAP service or TAP system optimization playsheet
+	 * When pressed, makes advParamPanel become visible or system/capability panel visible
 	 * @param e ActionEvent
 	 */
 	public void actionPerformed(ActionEvent e) {
@@ -51,6 +52,7 @@ public class AdvParamListener implements ActionListener {
 				{
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
 					showSystemSelectBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
 				}
 				ps.advParamPanel.setVisible(true);
 			}
@@ -59,21 +61,55 @@ public class AdvParamListener implements ActionListener {
 		}
 		else if(isSysOpt)
 		{
-			if(showSystemSelectBtn.isSelected())
+			ps.advParamPanel.setVisible(false);
+			showParamBtn.setSelected(false);
+			
+			if(e.getSource().equals(showSystemSelectBtn))
 			{
-				ps.advParamPanel.setVisible(false);
-				showParamBtn.setSelected(false);
-				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
+				showSystemCapSelectBtn.setSelected(false);
+				if(showSystemSelectBtn.isSelected())
+				{
+					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
+					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
+					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
+				}
+				else
+				{
+					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
+				}
+
 			}
-			else
-				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
+			else if(e.getSource().equals(showSystemCapSelectBtn))
+			{
+				showSystemSelectBtn.setSelected(false);
+				if(showSystemCapSelectBtn.isSelected())
+				{
+					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
+					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(true);
+					((SysOptPlaySheet)ps).capScrollPanel.setVisible(true);
+				}
+				else
+				{
+					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
+					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
+				}
+			}	
+//			if(showSystemSelectBtn.isSelected())
+//			{
+//				ps.advParamPanel.setVisible(false);
+//				showParamBtn.setSelected(false);
+//				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
+//			}
+//			else
+//				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
 		}
 
 	}
 	
 	/**
-	 * Determines the playsheet used for TAP service optimization
-	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service optimization
+	 * Determines the playsheet used for TAP service or TAP system optimization
+	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service or TAP system optimization
 	 */
 	public void setPlaySheet (SerOptPlaySheet ps)
 	{
@@ -81,8 +117,8 @@ public class AdvParamListener implements ActionListener {
 	}
 	
 	/**
-	 * Determines the playsheet used for TAP service optimization
-	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service optimization
+	 * Determines the toggle buttons used to show panels for advanced parameters or system/capability selections
+	 * @param showParamBtn 	JToggleButton the toggle button to show advanced parameters
 	 */
 	public void setParamButton (JToggleButton showParamBtn)
 	{
@@ -90,85 +126,17 @@ public class AdvParamListener implements ActionListener {
 		isSysOpt = false;
 	}
 	/**
-	 * Determines the playsheet used for TAP service optimization
-	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service optimization
+	 * Determines the toggle buttons used to show panels for advanced parameters or system/capability selections
+	 * @param showParamBtn 	JToggleButton the toggle button to show advanced parameters
+	 * @param showSystemSelectBtn 	JToggleButton the toggle button to show system select panel
+	 * @param showSystemCapSelectBtn 	JToggleButton the toggle button to show system and capability select panel
+	 * 
 	 */
-	public void setParamButtons (JToggleButton showParamBtn, JToggleButton showSystemSelectBtn)
+	public void setParamButtons (JToggleButton showParamBtn, JToggleButton showSystemSelectBtn, JToggleButton showSystemCapSelectBtn)
 	{
 		this.showParamBtn = showParamBtn;
 		this.showSystemSelectBtn = showSystemSelectBtn;
+		this.showSystemCapSelectBtn = showSystemCapSelectBtn;
 		isSysOpt = true;
 	}
-	
-	
 }
-
-
-
-
-
-
-
-
-
-
-
-///*******************************************************************************
-// * Copyright 2013 SEMOSS.ORG
-// * 
-// * This file is part of SEMOSS.
-// * 
-// * SEMOSS is free software: you can redistribute it and/or modify
-// * it under the terms of the GNU General Public License as published by
-// * the Free Software Foundation, either version 3 of the License, or
-// * (at your option) any later version.
-// * 
-// * SEMOSS is distributed in the hope that it will be useful,
-// * but WITHOUT ANY WARRANTY; without even the implied warranty of
-// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// * GNU General Public License for more details.
-// * 
-// * You should have received a copy of the GNU General Public License
-// * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
-// ******************************************************************************/
-//package prerna.ui.main.listener.specific.tap;
-//
-//import java.awt.event.ActionEvent;
-//import java.awt.event.ActionListener;
-//
-//import prerna.ui.components.specific.tap.SerOptPlaySheet;
-//
-///**
-// * Listener to show advanced parameters for TAP service optimization
-// * Used for when showParamBtn is pressed on the TAP service optimization playsheet
-// */
-//public class AdvParamListener implements ActionListener {
-//	
-//	SerOptPlaySheet ps;
-//	
-//	/**
-//	 * Action for when showParamBtn is pressed on the TAP service optimization playsheet
-//	 * When pressed, makes advParamPanel become visible
-//	 * @param e ActionEvent
-//	 */
-//	public void actionPerformed(ActionEvent e) {
-//		if (ps.showParamBtn.isSelected())
-//		{
-//			ps.advParamPanel.setVisible(true);
-//		}
-//		else
-//		{
-//			ps.advParamPanel.setVisible(false);
-//		}
-//	}
-//	
-//	/**
-//	 * Determines the playsheet used for TAP service optimization
-//	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service optimization
-//	 */
-//	public void setPlaySheet (SerOptPlaySheet ps)
-//	{
-//		this.ps = ps;
-//	}
-//	
-//}
