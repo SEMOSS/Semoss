@@ -128,9 +128,7 @@ public class ResidualSystemOptFillData{
 		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,false);
 		
 		if(playSheet!=null)
-		{
 			printToConsole();
-		}
 		else
 			printAll();
 		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,dataRequired);
@@ -143,11 +141,11 @@ public class ResidualSystemOptFillData{
 		printToConsoleList(sysList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered...");
 		printToConsoleList(dataList);
-		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that are SOR of Data Object...");
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that are SOR of Data Object...");
 		printNumberToConsoleList(deepCopy(dataList),dataSORSystemExists);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered...");
 		printToConsoleList(bluList);
-		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that provide BLU ...");
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that provide BLU ...");
 		printNumberToConsoleList(deepCopy(bluList),bluProviderExists);
 	}
 	
@@ -163,7 +161,7 @@ public class ResidualSystemOptFillData{
 		ArrayList<Integer> numList = new ArrayList<Integer>();
 		for(int i=0;i<numbers.length;i++)
 			numList.add(numbers[i]);
-		int numSystemsIndex = sysList.size();
+		int numSystemsIndex = 0;
 		while(!numList.isEmpty())
 		{
 			int listLoc = numList.indexOf(numSystemsIndex);
@@ -174,7 +172,7 @@ public class ResidualSystemOptFillData{
 				numList.remove(listLoc);
 			}
 			else
-				numSystemsIndex--;
+				numSystemsIndex++;
 		}
 	}
 	

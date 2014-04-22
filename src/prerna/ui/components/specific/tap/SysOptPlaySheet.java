@@ -32,6 +32,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
@@ -430,7 +431,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_showSystemSelectBtn.gridy = 3;
 		ctlPanel.add(showSystemSelectBtn, gbc_showSystemSelectBtn);
 		
-		showSystemCapSelectBtn = new ToggleButton("Select System and Capability");
+		showSystemCapSelectBtn = new ToggleButton("Select Capability Functionality");
 		showSystemCapSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(showSystemCapSelectBtn,  ".toggleButton");
 		
@@ -469,6 +470,16 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		yearField.setText("20");
 		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
 		maxBudgetField.setText("500");
+		
+		GridBagConstraints gbc_progressBar = new GridBagConstraints();
+		gbc_progressBar.anchor = GridBagConstraints.SOUTH;
+		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
+		gbc_progressBar.gridwidth = 2;
+		gbc_progressBar.insets = new Insets(0, 0, 0, 5);
+		gbc_progressBar.gridx = 6;
+		gbc_progressBar.gridy = 0;
+		ctlPanel.add(progressBar, gbc_progressBar);
+		progressBar.setVisible(false);
 		
 		hourlyRateField.setColumns(4);
 		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
