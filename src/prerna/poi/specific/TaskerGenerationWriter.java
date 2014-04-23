@@ -242,7 +242,7 @@ public class TaskerGenerationWriter {
 	 * @param wb					XSSFWorkbook containing the Mapping Sheet to populate
 	 * @param mappingResults		ArrayList containing the mappings
 	 */
-	public void writeMappingSheet(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
+	public void writeMappingSheetOLD(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		XSSFRow rowToWriteOn;
 		XSSFCell cellToCheck;
@@ -252,7 +252,7 @@ public class TaskerGenerationWriter {
 			ArrayList mappingResultsList = (ArrayList) mappingResults.get(i);			
 			String instance = ((String)mappingResultsList.get(1)).replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
 			//go through each bp on the sheet and find the match		
-			for(int rowCount=3;rowCount<maxRow;rowCount++)
+			for(int rowCount=3;rowCount<maxRow+1;rowCount++)
 			{
 				rowToWriteOn = sheetToWriteOver.getRow(rowCount);
 				cellToCheck = rowToWriteOn.getCell(0);
@@ -269,6 +269,59 @@ public class TaskerGenerationWriter {
 
 		}
 
+	}
+	
+	public void writeMappingSheet(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(3);		
+		XSSFCell cellToWriteOn = rowToWriteOn.getCell(0);
+		XSSFCellStyle style = cellToWriteOn.getCellStyle();
+		int maxRow=sheetToWriteOver.getLastRowNum();
+		
+		XSSFCell cellToCheck;
+		XSSFRow rowToCheck;
+		ArrayList defaultTaskerInfoList = new ArrayList();
+		//find all default tasker list items
+		for(int rowCount=3;rowCount<maxRow+1;rowCount++)
+		{
+			rowToCheck = sheetToWriteOver.getRow(rowCount);
+			cellToCheck = rowToCheck.getCell(0);
+			String valToCheck = cellToCheck.getStringCellValue().replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
+			defaultTaskerInfoList.add(valToCheck);
+		}		
+		//go through each item on the sheet and find the match	
+		for(int j = 0; j < defaultTaskerInfoList.size(); j++) {
+			int rowCount = j + 3;
+			rowToWriteOn = sheetToWriteOver.getRow(rowCount);
+			for (int i=0; i<mappingResults.size(); i++) {	
+				ArrayList mappingResultsList = (ArrayList) mappingResults.get(i);			
+				String instance = ((String)mappingResultsList.get(1)).replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
+				if((defaultTaskerInfoList.get(j)).equals(instance))
+				{
+					cellToWriteOn=rowToWriteOn.getCell(1);
+					if(mappingResultsList.size()>2)
+						cellToWriteOn.setCellValue(((String)mappingResultsList.get(2)).replaceAll("\"", ""));
+					else
+						cellToWriteOn.setCellValue(1);
+				}
+				if ((!(defaultTaskerInfoList.contains(instance))) && j == 0)//Add any items not in the default list of information
+				{
+					rowToWriteOn = sheetToWriteOver.createRow(maxRow+1);
+					
+					cellToWriteOn=rowToWriteOn.createCell(0);
+					cellToWriteOn.setCellStyle(style);
+					cellToWriteOn.setCellValue(instance);
+					
+					cellToWriteOn=rowToWriteOn.createCell(1);
+					cellToWriteOn.setCellStyle(style);
+					if(mappingResultsList.size()>2) {
+						cellToWriteOn.setCellValue(((String)mappingResultsList.get(2)).replaceAll("\"", "")); }
+					else {
+						cellToWriteOn.setCellValue(1);}					
+					maxRow=sheetToWriteOver.getLastRowNum();
+				}
+			}
+		}
 	}
 	
 	
