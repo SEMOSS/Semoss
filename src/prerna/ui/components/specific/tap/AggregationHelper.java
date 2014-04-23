@@ -18,25 +18,27 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.Set;
 
-import javax.swing.JList;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.repository.RepositoryConnection;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -44,21 +46,13 @@ import prerna.util.Utility;
 /**
  * Functions needed for data aggregation procedures.
  */
-public class AggregationHelper {
-	
-	Logger logger = Logger.getLogger(getClass());
-	
-	private String semossConceptBaseURI = "http://semoss.org/ontologies/Concept/";
-	private String semossRelationBaseURI = "http://semoss.org/ontologies/Relation/";
-	private String semossPropertyBaseURI = "http://semoss.org/ontologies/Relation/Contains/";
+public class AggregationHelper implements IAggregationHelper {
 
-	//private static Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();	
-	//private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
-	//private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
+	Logger logger = Logger.getLogger(getClass());
 
 	public String errorMessage = "";
-	
-//QUERY DATA HELPERS****************************************************************************************************************
+
+	// Fundamental Methods
 	public SesameJenaSelectWrapper processQuery(IEngine engine, String query){
 		logger.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
@@ -68,94 +62,118 @@ public class AggregationHelper {
 		sjsw.executeQuery();	
 		return sjsw;
 	}
+
+	public void processData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data)
+	{
+		for( String sub : data.keySet())
+		{
+			for ( String pred : data.get(sub).keySet())
+			{
+				Object obj = data.get(sub).get(pred);
+				boolean concept_triple = true;
+				if( pred.contains("Relation/Contains"))
+				{
+					concept_triple = false;
+				}
+				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
+				logger.info("ADDING INTO TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+			}
+		}
+	}
 	
 	public void deleteData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data)
 	{
-		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
-		boolean notEmpty = false;
-		for ( String sub : data.keySet())
+		for( String sub : data.keySet())
 		{
-			for (String pred : data.get(sub).keySet())
+			for ( String pred : data.get(sub).keySet())
 			{
 				Object obj = data.get(sub).get(pred);
-				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
-				{
-					notEmpty = true;
-				}
-				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
-			}
-		}
-		deleteQuery.append(" }");
-		logger.info("DELETE QUERY: " + deleteQuery.toString());
-		if(notEmpty)
-		{
-			UpdateProcessor proc = new UpdateProcessor();
-			proc.setEngine(engine);
-			proc.setQuery(deleteQuery.toString());
-			proc.processQuery();
-		}
-	}
-
-			
-//INSERT DATA HELPERS****************************************************************************************************************
-
-	public void processData(IEngine coreDB, Hashtable<String, Hashtable<String, Object>> data) {
-		for (String sub : data.keySet()) {
-			for (String pred : data.get(sub).keySet()) {
-				Object obj = data.get(sub).get(pred);
 				boolean concept_triple = true;
-				if (pred.contains("Relation/Contains")) {
+				if( pred.contains("Relation/Contains"))
+				{
 					concept_triple = false;
 				}
-				((BigDataEngine) coreDB).addStatement(sub, pred, obj, concept_triple);
-				logger.info("ADDING INTO " + coreDB.toString() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				( (BigDataEngine) engine).removeStatement(sub, pred, obj, concept_triple);
+				logger.info("REMOVING FROM TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
-		}
+		}		
+		//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
+		//		boolean notEmpty = false;
+		//		for ( String sub : data.keySet())
+		//		{
+		//			for (String pred : data.get(sub).keySet())
+		//			{
+		//				Object obj = data.get(sub).get(pred);
+		//				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
+		//				{
+		//					notEmpty = true;
+		//				}
+		//				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
+		//			}
+		//		}
+		//		deleteQuery.append(" }");
+		//		logger.info("DELETE QUERY: " + deleteQuery.toString());
+		//		if(notEmpty)
+		//		{
+		//			UpdateProcessor proc = new UpdateProcessor();
+		//			proc.setEngine(coreDB);
+		//			proc.setQuery(deleteQuery.toString());
+		//			proc.processQuery();
+		//		}
 	}
-	
-	/* (TODO - set up) public void processNewConcepts(Hashtable<String, Set<String>> data) {
-		String pred = RDF.TYPE.toString();
+
+	public void processNewConcepts(IEngine engine, String newConceptType)
+	{
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = RDFS.SUBCLASSOF.toString();
-		for (String obj : data.keySet()) {
-			for (String sub : data.get(obj)) {
-				((BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
-				logger.info("ADDING INSTANCE TYPEOF CONCEPT TRIPLE: " + sub
-						+ ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
-			}
-			// add concepts that are not already in db
-			if (!conceptList.contains(obj)) {
-				((BigDataEngine) coreDB).addStatement(obj, subclassOf, concept,
-						true);
-				logger.info("ADDING NEW CONCEPT TRIPLE: " + obj + ">>>>>"
-						+ subclassOf + ">>>>>" + concept + ">>>>>");
-			}
-		}
-	}*/
+		
+		( (BigDataEngine) engine).addStatement(newConceptType, subclassOf, concept, true);
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
+		existingBaseEngine.addStatement(newConceptType, subclassOf, concept, true);
+		logger.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
+		
+	}
 
-	public void processNewRelationships(IEngine coreDB, Hashtable<String, Set<String>> data) {
+	public void processNewRelationships(IEngine engine, String newRelationshipType) 
+	{
+		String relation = "http://semoss.org/ontologies/Relation";
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
-			for (String obj : data.keySet()) {
-				for (String sub : data.get(obj)) {
-					((BigDataEngine) coreDB).addStatement(sub, subpropertyOf, obj, true);
-					logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + sub + ">>>>>" + subpropertyOf + ">>>>>" + obj	+ ">>>>>");
-				}			
-			}	
-		}
-	
-	public Hashtable<String, Hashtable<String, Object>> addToHash(Hashtable<String, Hashtable<String, Object>> currentHash, Object[] returnTriple) {
-			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put(returnTriple[1].toString(), returnTriple[2]);
-			if(currentHash.containsKey(returnTriple[0].toString())) {
-				currentHash.get(returnTriple[0].toString()).putAll(innerHash);
-			}
-			else {
-				currentHash.put(returnTriple[0].toString(), innerHash);
-			}
-		return currentHash;
+		
+		( (BigDataEngine) engine).addStatement(newRelationshipType, subpropertyOf, relation, true);
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
+		existingBaseEngine.addStatement(newRelationshipType, subpropertyOf, relation, true);
+		logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 	}
 	
-	/* (TODO - set up) public void addToDeleteHash(Object[] returnTriple)
+	public void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object)
+	{
+		String pred = RDF.TYPE.toString();
+		((BigDataEngine) engine).addStatement(subject, pred, object, true);
+		logger.info("ADDING CONCEPT INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
+	}
+
+	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object) 
+	{
+		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
+		((BigDataEngine) engine).addStatement(subject, subpropertyOf, object, true);
+		logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
+	}
+
+	public void addToDataHash(Object[] returnTriple) 
+	{
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
+		if(dataHash.containsKey(returnTriple[0].toString()))
+		{
+			dataHash.get(returnTriple[0].toString()).putAll(innerHash);
+		}
+		else
+		{
+			dataHash.put(returnTriple[0].toString(), innerHash);
+		}
+	}
+	
+	public void addToDeleteHash(Object[] returnTriple)
 	{
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
@@ -167,12 +185,13 @@ public class AggregationHelper {
 		{
 			removeDataHash.put(returnTriple[0].toString(), innerHash);
 		}
-	}*/
+	}
 
-	/* (TODO - set up) public void addToAllConcepts(String uri)
+	public void addToAllConcepts(String uri)
 	{
 		String conceptBaseURI = semossConceptBaseURI + Utility.getClassName(uri);
-		if(allConcepts.containsKey(conceptBaseURI)) {
+		if(allConcepts.containsKey(conceptBaseURI))
+		{
 			allConcepts.get(conceptBaseURI).add(uri);
 		}
 		else
@@ -180,52 +199,50 @@ public class AggregationHelper {
 			allConcepts.put(conceptBaseURI, new HashSet<String>());
 			allConcepts.get(conceptBaseURI).add(uri);
 		}		
-	}*/
+	}
 
-	public Hashtable<String, Set<String>> addNewRelationships(Hashtable<String, Set<String>> currentRelHash, String uri)
+	public void addToAllRelationships(String uri)
 	{
 		String relationBaseURI = semossRelationBaseURI + Utility.getClassName(uri);
-		if(currentRelHash.containsKey(relationBaseURI))
+		if(allRelations.containsKey(relationBaseURI))
 		{
-			currentRelHash.get(relationBaseURI).add(uri);
+			allRelations.get(relationBaseURI).add(uri);
 		}
 		else
 		{
-			currentRelHash.put(relationBaseURI, new HashSet<String>());
-			currentRelHash.get(relationBaseURI).add(uri);
+			allRelations.put(relationBaseURI, new HashSet<String>());
+			allRelations.get(relationBaseURI).add(uri);
 		}
-		return currentRelHash;
 	}
+	
+	public void writeToOWL(IEngine engine)
+	{
+		// get the path to the owlFile
+		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
 
-	/* (TODO - set up) public void deleteData(Hashtable<String, Hashtable<String, Object>> data)	{
-		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
-		boolean notEmpty = false;
-		for ( String sub : data.keySet())
-		{
-			for (String pred : data.get(sub).keySet())
-			{
-				Object obj = data.get(sub).get(pred);
-				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
-				{
-					notEmpty = true;
-				}
-				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
-			}
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
+		RepositoryConnection exportRC = existingBaseEngine.getRc();
+
+		try{
+			FileWriter fWrite = new FileWriter(owlFileLocation);
+			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+			exportRC.export(owlWriter);
+			fWrite.close();
+			owlWriter.close();	
 		}
-		deleteQuery.append(" }");
-		logger.info("DELETE QUERY: " + deleteQuery.toString());
-		if(notEmpty)
+		catch(IOException ex)
 		{
-			UpdateProcessor proc = new UpdateProcessor();
-			proc.setEngine(coreDB);
-			proc.setQuery(deleteQuery.toString());
-			proc.processQuery();
+			ex.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
 		}
-	}*/
-
-// (TODO - set up) GENERAL METHODS FOR PROPERTIES************************************************************************************************************************
-
-	/*public Object[] processSumValues(String sub, String prop, Object value)
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// general methods for properties
+	public Object[] processSumValues(String sub, String prop, Object value)
 	{
 		try
 		{
@@ -233,9 +250,9 @@ public class AggregationHelper {
 		}
 		catch(NumberFormatException e)
 		{
-			e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			//e.printStackTrace();
+			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -256,7 +273,7 @@ public class AggregationHelper {
 		return new Object[]{sub, prop, value};
 	}
 
-	public Object[] processConcatString(String sub, String prop, Object value, String user) 
+	public Object[] processConcatString(String sub, String prop, Object value) 
 	{
 		// replace any tags for properties that are loaded as other data types but should be strings
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
@@ -269,28 +286,18 @@ public class AggregationHelper {
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			if(!user.equals(""))
-			{
-				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
-			}
 			logger.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
 			Object currentString = innerHash.get(prop);
-			if(!user.equals(""))
-			{
-				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
-			}
-			else
-			{
-				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
-			}
+			value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
 			logger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
+
 
 	public Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max)
 	{
@@ -300,9 +307,9 @@ public class AggregationHelper {
 		}
 		catch(NumberFormatException e)
 		{
-			e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Double. Please check value of Double. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			//e.printStackTrace();
+			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -357,9 +364,9 @@ public class AggregationHelper {
 		}
 		catch(IllegalArgumentException e)
 		{
-			e.printStackTrace();
-			this.errorMessage = this.errorMessage + "Error Processing Max/Min Date. Please check value of Date. \n" 
-					+ "Error occured processing: " + sub + ">>>>" + prop + ">>>>" + value + "\n";	
+			//e.printStackTrace();
+			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
+					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
 			return new String[]{""};
 		}
 
@@ -405,51 +412,11 @@ public class AggregationHelper {
 		}
 		return new Object[]{sub, prop, value};
 	}
-*/
 	
-// ADDITIONAL PROCESSING METHODS ************************************************************************************************************************	
-	
-	public ArrayList<ArrayList<Object>> arrayListResultProcessor(SesameJenaSelectWrapper sjsw) {
-		String[] names = sjsw.getVariables();
-		ArrayList<ArrayList<Object>> list = new ArrayList<ArrayList<Object>>();
-		try {
-			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
-				ArrayList<Object> values = new ArrayList<Object>();
-				for (int colIndex = 0; colIndex < names.length; colIndex++) {
-					if (sjss.getRawVar(names[colIndex]) != null) {
-						if (sjss.getRawVar(names[colIndex]) instanceof Double) {
-							values.add(colIndex, (Double) sjss.getRawVar(names[colIndex]));
-						}
-						else values.add(colIndex, sjss.getRawVar(names[colIndex]));						
-					}
-				}
-				list.add(values);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return list;
-	}
-	
-	public Hashtable hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
-		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
-		String[] vars = sjsw.getVariables();
-		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();			
-			String sub = sjss.getRawVar(vars[0]).toString();
-			Set<String> pred = new HashSet<String>();
-			pred.add(sjss.getRawVar(vars[1]).toString());
-			if (!aggregatedData.containsKey(sub))
-				{aggregatedData.put(sub, pred);}
-			else {aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());}				
-		}						
-		return aggregatedData;
-	}
-		
-// UTILITY METHODS ************************************************************************************************************************
-	
-	public String getTextAfterFinalDelimeter(String uri, String delimeter) {
+	// UTILITY METHODS ************************************************************************************************************************
+
+	public String getTextAfterFinalDelimeter(String uri, String delimeter)
+	{
 		if(!uri.equals(""))
 		{
 			uri = uri.substring(uri.lastIndexOf(delimeter)+1);
@@ -457,23 +424,8 @@ public class AggregationHelper {
 		return uri;
 	}
 
-	@SuppressWarnings("unused")
-	private String getBaseURI(String uri) {
+	public String getBaseURI(String uri)
+	{
 		return uri.substring(0, uri.substring(0, uri.substring(0, uri.lastIndexOf("/")).lastIndexOf("/")).lastIndexOf("/"));
 	}
-
-// GETTERS************************************************************************************************************************
-
-	public String getSemossConceptBaseURI() {
-		return semossConceptBaseURI;
-	}
-
-	public String getSemossRelationBaseURI() {
-		return semossRelationBaseURI;
-	}
-
-	public String getSemossPropertyBaseURI() {
-		return semossPropertyBaseURI;
-	}
-	
 }
