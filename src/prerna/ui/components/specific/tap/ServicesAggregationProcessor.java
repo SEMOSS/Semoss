@@ -1,53 +1,27 @@
 package prerna.ui.components.specific.tap;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
-
-import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.UpdateProcessor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-public class ServicesAggregationProcessor {
+public class ServicesAggregationProcessor extends AggregationHelper {
 
 	Logger fileLogger = Logger.getLogger("reportsLogger");
 	Logger logger = Logger.getLogger(getClass());
 	
 	private IEngine servicesDB;
 	private IEngine coreDB;
-	private String semossBaseURI = "http://semoss.org/ontologies/Concept/";
-	private String semossRelBaseURI = "http://semoss.org/ontologies/Relation/";
-	private String propURI = "http://semoss.org/ontologies/Relation/Contains/";
-
-	private Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
-	private Hashtable<String, Hashtable<String, Object>> removeDataHash = new Hashtable<String, Hashtable<String, Object>>();
-
-	private Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
-	private Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
-
+	
 	private HashSet<String> allSoftwareModules = new HashSet<String>();
 	private HashSet<String> allHardwareModules = new HashSet<String>();
 
@@ -200,7 +174,7 @@ public class ServicesAggregationProcessor {
 		
 		if(addedToOwl)
 		{
-			writeToOWL();
+			writeToOWL(coreDB);
 		}
 		
 //		XSSFRow row = errSheet.createRow(0);
@@ -225,7 +199,7 @@ public class ServicesAggregationProcessor {
 	private void runRelationshipAggregation(String query)
 	{
 		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		SesameJenaSelectWrapper sjsw = processQuery(servicesDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -236,19 +210,19 @@ public class ServicesAggregationProcessor {
 			String object = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
 			logger.debug("ADDING RELATIONSHIP:     " + subject + " -----> {" + pred + " --- " + object + "}");
-			addToHash(new String[]{subject, pred, object});
+			addToDataHash(new String[]{subject, pred, object});
 			// add instances to master list
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
 		}
-		processData(dataHash);
+		processData(coreDB, dataHash);
 	}
 	
 	private void runRelationshipAggregationWithProperties(String query, String[] varNames)
 	{
 		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		SesameJenaSelectWrapper sjsw = processQuery(servicesDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -259,19 +233,19 @@ public class ServicesAggregationProcessor {
 			String object = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(subject, "/") +":" + getTextAfterFinalDelimeter(object, "/");
 			logger.debug("ADDING RELATIONSHIP:     " + subject + " -----> {" + pred + " --- " + object + "}");
-			addToHash(new String[]{subject, pred, object});
+			addToDataHash(new String[]{subject, pred, object});
 			// add instances to master list
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
 			for(int i = 0; i < varNames.length; i++)
 			{
-				String propPrep = propURI + varNames[i];
+				String propPrep = semossPropertyBaseURI + varNames[i];
 				Object propValue = sjss.getVar(vars[3]);
-				addToHash(new Object[]{pred, propPrep, propValue});
+				addToDataHash(new Object[]{pred, propPrep, propValue});
 			}
 		}
-		processData(dataHash);
+		processData(coreDB, dataHash);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,7 +253,7 @@ public class ServicesAggregationProcessor {
 	private void runSystemServiceLifeCylceAggregation(String query) 
 	{
 		dataHash.clear();
-		SesameJenaSelectWrapper sjsw = processQuery(query, servicesDB);
+		SesameJenaSelectWrapper sjsw = processQuery(servicesDB, query);
 		Hashtable<String, LinkedList<String>> lifeCycleHash = new Hashtable<String, LinkedList<String>>();
 		lifeCycleHash = aggregateLifeCycle(sjsw, lifeCycleHash);
 		String lifeCycle = "";
@@ -300,9 +274,9 @@ public class ServicesAggregationProcessor {
 			addToAllConcepts(lifeCycle);
 			addToAllRelationships(pred);
 			logger.debug("ADDING SYSTEM LIFECYCLE:     " + sys + " -----> {" + pred + " --- " + lifeCycle + "}");
-			addToHash(new String[]{sys, pred, lifeCycle});
+			addToDataHash(new String[]{sys, pred, lifeCycle});
 		}
-		processData(dataHash);
+		processData(coreDB, dataHash);
 	}
 
 	private Hashtable<String, LinkedList<String>> aggregateLifeCycle(SesameJenaSelectWrapper sjsw, Hashtable<String, LinkedList<String>> lifeCycleHash) 
@@ -345,15 +319,15 @@ public class ServicesAggregationProcessor {
 	{
 		dataHash.clear();
 		removeDataHash.clear();
-		SesameJenaSelectWrapper sjswServices = processQuery(propSystemServiceQuery, servicesDB);
+		SesameJenaSelectWrapper sjswServices = processQuery(servicesDB, propSystemServiceQuery);
 		processServiceSystemProperties(sjswServices,  false);
 
-		SesameJenaSelectWrapper sjswCore = processQuery(propTAPCoreQuery, coreDB);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreDB, propTAPCoreQuery);
 		processServiceSystemProperties(sjswCore, true);
 
 		// processing modifies class variable dataHash directly
-		deleteData(removeDataHash);
-		processData(dataHash);
+		deleteData(coreDB, removeDataHash);
+		processData(coreDB, dataHash);
 	}
 
 	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, boolean TAP_Core)
@@ -378,55 +352,55 @@ public class ServicesAggregationProcessor {
 				Object[] returnTriple = new Object[3];
 				if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 				{
-					if(prop.equals(propURI + "ATO_Date"))
+					if(prop.equals(semossPropertyBaseURI + "ATO_Date"))
 					{
 						boolean earliest = false;
 						returnTriple = processMinMaxDate(sub, prop, value, earliest);
 					}
-					else if(prop.equals(propURI + "End_of_Support_Date"))
+					else if(prop.equals(semossPropertyBaseURI + "End_of_Support_Date"))
 					{
 						boolean latest = true;
 						returnTriple = processMinMaxDate(sub, prop, value, latest);
 					}
-					else if(prop.equals(propURI + "Availability-Actual"))
+					else if(prop.equals(semossPropertyBaseURI + "Availability-Actual"))
 					{
 						boolean min = false;
 						returnTriple = processMaxMinDouble(sub, prop, value, min);
 					}
-					else if(prop.equals(propURI + "Availability-Required"))
+					else if(prop.equals(semossPropertyBaseURI + "Availability-Required"))
 					{
 						boolean max = true;
 						returnTriple = processMaxMinDouble(sub, prop, value, max);
 					}
-					else if(prop.equals(propURI + "Description"))
+					else if(prop.equals(semossPropertyBaseURI + "Description"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "POC"))
+					else if(prop.equals(semossPropertyBaseURI + "POC"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Full_System_Name"))
+					else if(prop.equals(semossPropertyBaseURI + "Full_System_Name"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Number_of_Users"))
+					else if(prop.equals(semossPropertyBaseURI + "Number_of_Users"))
 					{
 						returnTriple = processSumValues(sub, prop, value);
 					}
-					else if(prop.equals(propURI + "Transaction_Count"))
+					else if(prop.equals(semossPropertyBaseURI + "Transaction_Count"))
 					{
 						returnTriple = processSumValues(sub, prop, value);
 					}
-					else if(prop.equals(propURI + "User_Consoles"))
+					else if(prop.equals(semossPropertyBaseURI + "User_Consoles"))
 					{
 						returnTriple = processSumValues(sub, prop, value);
 					}
-					else if(prop.equals(propURI + "GarrisonTheater"))
+					else if(prop.equals(semossPropertyBaseURI + "GarrisonTheater"))
 					{
 						returnTriple = processGarrisonTheater(sub, prop, value);
 					}
-					else if(prop.equals(propURI + "Transactional"))
+					else if(prop.equals(semossPropertyBaseURI + "Transactional"))
 					{
 						returnTriple = processTransactional(sub, prop, value);
 					}
@@ -461,7 +435,7 @@ public class ServicesAggregationProcessor {
 					else if(returnTriple[0] != null)
 					{
 						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-						addToHash(returnTriple);
+						addToDataHash(returnTriple);
 					}
 					
 					// sub already exists when going through TAP Core db
@@ -485,15 +459,15 @@ public class ServicesAggregationProcessor {
 		dataHash.clear();
 		removeDataHash.clear();
 
-		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesDB, servicesQuery);
 		processICDPropAggregation(sjswService, false);
 
-		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreDB, coreQuery);
 		processICDPropAggregation(sjswCore , true);
 
 		// processing modifies class variable dataHash directly
-		deleteData(removeDataHash);
-		processData(dataHash);
+		deleteData(coreDB, removeDataHash);
+		processData(coreDB, dataHash);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -525,31 +499,31 @@ public class ServicesAggregationProcessor {
 				Object[] returnTriple = new Object[3];
 				if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 				{
-					if(prop.equals(propURI + "Data"))
+					if(prop.equals(semossPropertyBaseURI + "Data"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Format"))
+					else if(prop.equals(semossPropertyBaseURI + "Format"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Frequency"))
+					else if(prop.equals(semossPropertyBaseURI + "Frequency"))
 					{
 						returnTriple = processDFreq(sub, prop, value);
 					}
-					else if(prop.equals(propURI + "Interface_Name"))
+					else if(prop.equals(semossPropertyBaseURI + "Interface_Name"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Protocol"))
+					else if(prop.equals(semossPropertyBaseURI + "Protocol"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Source"))
+					else if(prop.equals(semossPropertyBaseURI + "Source"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
-					else if(prop.equals(propURI + "Type"))
+					else if(prop.equals(semossPropertyBaseURI + "Type"))
 					{
 						returnTriple = processConcatString(sub, prop, value, user);
 					}
@@ -584,7 +558,7 @@ public class ServicesAggregationProcessor {
 					else if(returnTriple[0] != null)
 					{
 						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-						addToHash(returnTriple);
+						addToDataHash(returnTriple);
 					}
 					// sub already exists when going through TAP Core db
 					if(!TAP_Core)
@@ -610,23 +584,23 @@ public class ServicesAggregationProcessor {
 		dataHash.clear();
 		removeDataHash.clear();
 
-		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesDB, servicesQuery);
 		aggregatedTError = runAggregateAllData(sjswService, aggregatedTError, "weight", false);
 
-		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreDB, coreQuery);
 		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
 
 		// processing modifies class variable dataHash directly
 		processTError(aggregatedTError, "weight");
 
-		deleteData(removeDataHash);
-		processData(dataHash);
+		deleteData(coreDB, removeDataHash);
+		processData(coreDB, dataHash);
 	}
 
 	private void processTError(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedTError, String propType) 
 	{
 		this.errorMessage = "";
-		String propertyURI = propURI + propType;
+		String propertyURI = semossPropertyBaseURI + propType;
 		for( String sub : aggregatedTError.keySet() )
 		{
 			Hashtable<String, LinkedList<Object>> innerHash = aggregatedTError.get(sub);
@@ -677,9 +651,9 @@ public class ServicesAggregationProcessor {
 
 				Double TError = totalTErr/(counter-1);
 				logger.debug("ADDING SYSTEM TO TERROR RELATIONSHIP:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new Object[]{sub, pred, obj});
+				addToDataHash(new Object[]{sub, pred, obj});
 				logger.debug("ADDING TERROR WEIGHT RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propertyURI + " --- " +  TError +  "}");
-				addToHash(new Object[]{pred, propertyURI, TError});
+				addToDataHash(new Object[]{pred, propertyURI, TError});
 				addToAllConcepts(obj);
 				addToAllRelationships(pred);
 			}
@@ -695,22 +669,22 @@ public class ServicesAggregationProcessor {
 		dataHash.clear();
 		removeDataHash.clear();
 
-		SesameJenaSelectWrapper sjswService = processQuery(servicesQuery, servicesDB);
+		SesameJenaSelectWrapper sjswService = processQuery(servicesDB, servicesQuery);
 		aggregatedDataObjects = runAggregateAllData(sjswService , aggregatedDataObjects, "CRM", false);
 
-		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreDB, coreQuery);
 		aggregatedDataObjects = runAggregateAllData(sjswCore, aggregatedDataObjects, "CRM", true);
 
 		// processing modifies class variable dataHash directly
 		processDataObjects(aggregatedDataObjects, "CRM");
 
-		deleteData(removeDataHash);
-		processData(dataHash);
+		deleteData(coreDB, removeDataHash);
+		processData(coreDB, dataHash);
 	}
 
 	private void processDataObjects(Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedDataObjects, String propType) 
 	{
-		String propertyURI = propURI + propType;
+		String propertyURI = semossPropertyBaseURI + propType;
 		for( String sub : aggregatedDataObjects.keySet() )
 		{
 			Hashtable<String, LinkedList<Object>> innerHash = aggregatedDataObjects.get(sub);
@@ -734,9 +708,9 @@ public class ServicesAggregationProcessor {
 				}
 
 				logger.debug("ADDING SYSTEM TO DATAOBJECT RELATIONSHIP:     " + sub + " -----> {" + pred + " --- " + obj + "}");
-				addToHash(new Object[]{sub, pred, obj});
+				addToDataHash(new Object[]{sub, pred, obj});
 				logger.debug("ADDING DATAOBJECT CRM RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propertyURI + " --- " +  CRM + "}");
-				addToHash(new Object[]{pred, propertyURI, CRM});
+				addToDataHash(new Object[]{pred, propertyURI, CRM});
 				addToAllRelationships(pred);
 			}
 		}
@@ -747,7 +721,7 @@ public class ServicesAggregationProcessor {
 
 	private void runGetListOfModules(String query, boolean softwareModule) 
 	{
-		SesameJenaSelectWrapper sjsw = processQuery(query, coreDB);
+		SesameJenaSelectWrapper sjsw = processQuery(coreDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -769,15 +743,15 @@ public class ServicesAggregationProcessor {
 		dataHash.clear();
 		removeDataHash.clear();
 
-		SesameJenaSelectWrapper sjswServices = processQuery(servicesQuery, servicesDB);
+		SesameJenaSelectWrapper sjswServices = processQuery(servicesDB, servicesQuery);
 		processHardwareSoftwareProperties(sjswServices,  false, softwareModule);
 
-		SesameJenaSelectWrapper sjswCore = processQuery(coreQuery, coreDB);
+		SesameJenaSelectWrapper sjswCore = processQuery(coreDB, coreQuery);
 		processHardwareSoftwareProperties(sjswCore, true, softwareModule);
 
 		// processing modifies class variable dataHash directly
-		deleteData(removeDataHash);
-		processData(dataHash);
+		deleteData(coreDB, removeDataHash);
+		processData(coreDB, dataHash);
 	}
 
 
@@ -809,40 +783,40 @@ public class ServicesAggregationProcessor {
 					Object[] returnTriple = new Object[3];
 					if(!value.toString().equalsIgnoreCase("\"NA\"") && !value.toString().equalsIgnoreCase("\"N-A\"") && !value.toString().equalsIgnoreCase("\"TBD\"")  && value != null && value instanceof Literal )
 					{
-						if(prop.equals(propURI + "Quantity"))
+						if(prop.equals(semossPropertyBaseURI + "Quantity"))
 						{
 							returnTriple = processSumValues(module, prop, value);
 						}
-						else if(prop.equals(propURI + "Comments"))
+						else if(prop.equals(semossPropertyBaseURI + "Comments"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "EOL"))
+						else if(prop.equals(semossPropertyBaseURI + "EOL"))
 						{
 							boolean max = true;
 							returnTriple = processMinMaxDate(module, prop, value, max);
 						}
-						else if(prop.equals(propURI + "Manufacturer"))
+						else if(prop.equals(semossPropertyBaseURI + "Manufacturer"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "Model"))
+						else if(prop.equals(semossPropertyBaseURI + "Model"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "Product_Type"))
+						else if(prop.equals(semossPropertyBaseURI + "Product_Type"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "Master_Version"))
+						else if(prop.equals(semossPropertyBaseURI + "Master_Version"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "Major_Version"))
+						else if(prop.equals(semossPropertyBaseURI + "Major_Version"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
-						else if(prop.equals(propURI + "Vendor"))
+						else if(prop.equals(semossPropertyBaseURI + "Vendor"))
 						{
 							returnTriple = processConcatString(module, prop, value, user);
 						}
@@ -877,7 +851,7 @@ public class ServicesAggregationProcessor {
 						else if(returnTriple[0] != null)
 						{
 							logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-							addToHash(returnTriple);
+							addToDataHash(returnTriple);
 						}
 
 						// must remove existing triple in TAP Core prior to adding
@@ -907,18 +881,18 @@ public class ServicesAggregationProcessor {
 					addToAllRelationships(predSysToMod);
 					logger.debug("SYSTEM TO SOFTWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
-					addToHash(new String[]{system, predSysToMod, module});
+					addToDataHash(new String[]{system, predSysToMod, module});
 					//relationship from softwareModule to softwareVersion
 					String predModToVer = baseUri + "/Relation/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 					addToAllRelationships(predModToVer);
 					logger.debug("SOFTWARE MODULE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + softwareV + "}");
-					addToHash(new String[]{module, predModToVer, softwareV});
+					addToDataHash(new String[]{module, predModToVer, softwareV});
 					//relationship from software to softwareVersion
 					String predSoffToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
 					logger.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
-					addToHash(new String[]{software, predSoffToVer, softwareV});
+					addToDataHash(new String[]{software, predSoffToVer, softwareV});
 				}
 			}
 			else
@@ -939,18 +913,18 @@ public class ServicesAggregationProcessor {
 					addToAllRelationships(predSysToMod);
 					logger.debug("SYSTEM TO HARDWARE MODULE RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + system + " -----> {" + predSysToMod + " --- " + module + "}");
-					addToHash(new String[]{system, predSysToMod, module});
+					addToDataHash(new String[]{system, predSysToMod, module});
 					//relationship from hardwareModule to hardwareVersion
 					String predModToVer = baseUri + "/Relation/TypeOf/" + getTextAfterFinalDelimeter(module, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 					addToAllRelationships(predModToVer);
 					logger.debug("HARDWARE MODULE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + module + " -----> {" + predModToVer + " --- " + hardwareV + "}");
-					addToHash(new String[]{module, predModToVer, hardwareV});
+					addToDataHash(new String[]{module, predModToVer, hardwareV});
 					//relationship from software to softwareVersion
 					String predhARDToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
 					logger.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					logger.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
-					addToHash(new String[]{hardware, predhARDToVer, hardwareV});
+					addToDataHash(new String[]{hardware, predhARDToVer, hardwareV});
 				}
 			}
 		}
@@ -959,128 +933,12 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// methods used by all aggregation methods
 
-	private void addToHash(Object[] returnTriple) 
-	{
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
-		if(dataHash.containsKey(returnTriple[0].toString()))
-		{
-			dataHash.get(returnTriple[0].toString()).putAll(innerHash);
-		}
-		else
-		{
-			dataHash.put(returnTriple[0].toString(), innerHash);
-		}
-	}
-
-	private void addToDeleteHash(Object[] returnTriple)
-	{
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
-		if(removeDataHash.containsKey(returnTriple[0].toString()))
-		{
-			removeDataHash.get(returnTriple[0]).putAll(innerHash);
-		}
-		else
-		{
-			removeDataHash.put(returnTriple[0].toString(), innerHash);
-		}
-	}
-
-	private void addToAllConcepts(String uri)
-	{
-		String conceptBaseURI = semossBaseURI + Utility.getClassName(uri);
-		if(allConcepts.containsKey(conceptBaseURI))
-		{
-			allConcepts.get(conceptBaseURI).add(uri);
-		}
-		else
-		{
-			allConcepts.put(conceptBaseURI, new HashSet<String>());
-			allConcepts.get(conceptBaseURI).add(uri);
-		}		
-	}
-
-	private void addToAllRelationships(String uri)
-	{
-		String relationBaseURI = semossRelBaseURI + Utility.getClassName(uri);
-		if(allRelations.containsKey(relationBaseURI))
-		{
-			allRelations.get(relationBaseURI).add(uri);
-		}
-		else
-		{
-			allRelations.put(relationBaseURI, new HashSet<String>());
-			allRelations.get(relationBaseURI).add(uri);
-		}
-	}
-
-	private void processData(Hashtable<String, Hashtable<String, Object>> data)
-	{
-		for( String sub : data.keySet())
-		{
-			for ( String pred : data.get(sub).keySet())
-			{
-				Object obj = data.get(sub).get(pred);
-				boolean concept_triple = true;
-				if( pred.contains("Relation/Contains"))
-				{
-					concept_triple = false;
-				}
-				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, concept_triple);
-				logger.info("ADDING INTO TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
-			}
-		}
-	}
-
-	private void deleteData(Hashtable<String, Hashtable<String, Object>> data)
-	{
-		for( String sub : data.keySet())
-		{
-			for ( String pred : data.get(sub).keySet())
-			{
-				Object obj = data.get(sub).get(pred);
-				boolean concept_triple = true;
-				if( pred.contains("Relation/Contains"))
-				{
-					concept_triple = false;
-				}
-				( (BigDataEngine) coreDB).removeStatement(sub, pred, obj, concept_triple);
-				logger.info("REMOVING FROM TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
-			}
-		}
-		
-//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
-//		boolean notEmpty = false;
-//		for ( String sub : data.keySet())
-//		{
-//			for (String pred : data.get(sub).keySet())
-//			{
-//				Object obj = data.get(sub).get(pred);
-//				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
-//				{
-//					notEmpty = true;
-//				}
-//				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
-//			}
-//		}
-//		deleteQuery.append(" }");
-//		logger.info("DELETE QUERY: " + deleteQuery.toString());
-//		if(notEmpty)
-//		{
-//			UpdateProcessor proc = new UpdateProcessor();
-//			proc.setEngine(coreDB);
-//			proc.setQuery(deleteQuery.toString());
-//			proc.processQuery();
-//		}
-	}
-
-	private void processNewConcepts()
+	public void processNewConcepts()
 	{
 		// get list of all concepts from tap core
 		HashSet<String> conceptList = new HashSet<String>();
 		logger.info("PROCESSING QUERY: " + TAP_CORE_CONCEPTS_LIST_QUERY);
-		SesameJenaSelectWrapper sjsw = processQuery(TAP_CORE_CONCEPTS_LIST_QUERY, coreDB);
+		SesameJenaSelectWrapper sjsw = processQuery(coreDB, TAP_CORE_CONCEPTS_LIST_QUERY);
 		String[] var = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -1088,24 +946,17 @@ public class ServicesAggregationProcessor {
 			conceptList.add(sjss.getRawVar(var[0]) + "");
 		}
 
-		String pred = RDF.TYPE.toString();
-		String concept = "http://semoss.org/ontologies/Concept";
-		String subclassOf = RDFS.SUBCLASSOF.toString();
 		for ( String obj : allConcepts.keySet())
 		{
 			for (String sub : allConcepts.get(obj) )
 			{
-				( (BigDataEngine) coreDB).addStatement(sub, pred, obj, true);
-				logger.info("ADDING INSTANCE TYPEOF CONCEPT TRIPLE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				super.processNewConceptsAtInstanceLevel(coreDB, sub, obj);
 			}
 			// add concepts that are not already in db
 			if(!conceptList.contains(obj))
 			{
 				addedToOwl = true;
-				( (BigDataEngine) coreDB).addStatement(obj, subclassOf, concept, true);
-				RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
-				existingBaseEngine.addStatement(obj, subclassOf, concept, true);
-				logger.info("ADDING NEW CONCEPT TRIPLE: " + obj + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
+				super.processNewConcepts(coreDB, obj);
 			}
 		}
 	}
@@ -1115,7 +966,7 @@ public class ServicesAggregationProcessor {
 		// get list of all relationships from tap core
 		HashSet<String> relationshipList = new HashSet<String>();
 		logger.info("PROCESSING QUERY: " + TAP_CORE_RELATIONS_LIST_QUERY);
-		SesameJenaSelectWrapper sjsw = processQuery(TAP_CORE_RELATIONS_LIST_QUERY, coreDB);
+		SesameJenaSelectWrapper sjsw = processQuery(coreDB, TAP_CORE_RELATIONS_LIST_QUERY);
 		String[] var = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -1123,90 +974,25 @@ public class ServicesAggregationProcessor {
 			relationshipList.add(sjss.getRawVar(var[0]) + "");
 		}
 
-		String relation = "http://semoss.org/ontologies/Relation";
-		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		for ( String obj : allRelations.keySet())
 		{
 			for (String sub : allRelations.get(obj) )
 			{
-				( (BigDataEngine) coreDB).addStatement(sub, subpropertyOf, obj, true);
-				logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + sub + ">>>>>" + subpropertyOf + ">>>>>" + obj + ">>>>>");
+				super.processNewRelationshipsAtInstanceLevel(coreDB, sub, obj);	
 			}
 			// add relationships that are not already in db
 			if(!relationshipList.contains(obj))
 			{
 				addedToOwl = true;
-				( (BigDataEngine) coreDB).addStatement(obj, subpropertyOf, relation, true);
-				RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
-				existingBaseEngine.addStatement(obj, subpropertyOf, relation, true);
-				logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + obj + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
+				super.processNewRelationships(coreDB, obj);
 			}
 		}	
-	}
+	}	
 
-	public void writeToOWL()
-	{
-		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(coreDB.getEngineName() +"_" + Constants.OWL); 
-		
-		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) coreDB).getBaseDataEngine();
-		RepositoryConnection exportRC = existingBaseEngine.getRc();
-		
-		try{
-			FileWriter fWrite = new FileWriter(owlFileLocation);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			exportRC.export(owlWriter);
-			fWrite.close();
-			owlWriter.close();	
-		}
-		catch(IOException ex)
-		{
-			// TODO Auto-generated catch block
-			ex.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// general methods for properties
-
-	private Object[] processSumValues(String sub, String prop, Object value)
-	{
-		try
-		{
-			((Literal) value).doubleValue();
-		}
-		catch(NumberFormatException e)
-		{
-			//e.printStackTrace();
-			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
-
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
-		{
-			value = ((Literal) value).doubleValue();
-			logger.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			innerHash = dataHash.get(sub);
-			Double addValue = ( (Literal) value).doubleValue();
-			Double currentValue = (Double) innerHash.get(prop);
-			value = addValue + currentValue;
-			logger.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		return new Object[]{sub, prop, value};
-	}
-
-	private Object[] processConcatString(String sub, String prop, Object value, String user) 
+	// Unique methods for properties
+	
+	public Object[] processConcatString(String sub, String prop, Object value, String user) 
 	{
 		// replace any tags for properties that are loaded as other data types but should be strings
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
@@ -1241,125 +1027,7 @@ public class ServicesAggregationProcessor {
 		}
 		return new Object[]{sub, prop, value};
 	}
-
-
-	private Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max)
-	{
-		try
-		{
-			((Literal) value).doubleValue();
-		}
-		catch(NumberFormatException e)
-		{
-			//e.printStackTrace();
-			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
-
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
-		{
-			value = ((Literal) value).doubleValue();
-			logger.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			innerHash = dataHash.get(sub);
-			Double oldDouble = (Double) innerHash.get(prop);
-			Double newDouble = ((Literal) value).doubleValue();
-			if(!max)
-			{
-				if(newDouble < oldDouble)
-				{
-					// return the value being passed in
-					value = ((Literal) value).doubleValue();
-					logger.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-				}
-				// if the new value is not to be used, return the originally value already in dataHash
-				else
-				{
-					value = innerHash.get(prop);
-				}
-			}
-			else
-			{
-				if(newDouble > oldDouble)
-				{
-					// return the value being passed in
-					value = ((Literal) value).doubleValue();
-					logger.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-				}
-				// if the new value is not to be used, return the originally value already in dataHash
-				else
-				{
-					value = innerHash.get(prop);
-				}
-			}
-		}
-		return new Object[]{sub, prop, value};
-	}
-
-	private Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest) 
-	{
-		try
-		{
-			((Literal) value).calendarValue();
-		}
-		catch(IllegalArgumentException e)
-		{
-			//e.printStackTrace();
-			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
-
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
-		{
-			value = ((Literal) value).calendarValue();
-			logger.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-		}
-		else
-		{
-			innerHash = dataHash.get(sub);
-			XMLGregorianCalendar oldDate = (XMLGregorianCalendar) innerHash.get(prop);
-			XMLGregorianCalendar newDate = ((Literal) value).calendarValue();
-			if(!latest)
-			{
-				if(newDate.toGregorianCalendar().getTime().before(oldDate.toGregorianCalendar().getTime()))
-				{
-					// return the value being passed in
-					value = ((Literal) value).calendarValue();
-					logger.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-				}
-				// if the new value is not to be used, return the originally value already in dataHash
-				else
-				{
-					value = innerHash.get(prop);
-				}
-			}
-			else
-			{
-				if(newDate.toGregorianCalendar().getTime().after(oldDate.toGregorianCalendar().getTime()))
-				{
-					// return the value being passed in
-					value = ((Literal) value).calendarValue();
-					logger.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
-				}
-				// if the new value is not to be used, return the originally value already in dataHash
-				else
-				{
-					value = innerHash.get(prop);
-				}
-			}
-		}
-		return new Object[]{sub, prop, value};
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Unique methods for properties
-
+	
 	private Object[] processGarrisonTheater(String sub, String prop, Object value)
 	{
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
@@ -1503,32 +1171,6 @@ public class ServicesAggregationProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Utility methods 
 
-	private String getTextAfterFinalDelimeter(String uri, String delimeter)
-	{
-		if(!uri.equals(""))
-		{
-			uri = uri.substring(uri.lastIndexOf(delimeter)+1);
-		}
-		return uri;
-	}
-
-	private String getBaseURI(String uri)
-	{
-		return uri.substring(0, uri.substring(0, uri.substring(0, uri.lastIndexOf("/")).lastIndexOf("/")).lastIndexOf("/"));
-	}
-
-	//process the query
-	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
-		logger.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();		
-		sjsw.getVariables();
-		return sjsw;
-	}
-
 	private Hashtable<String, Hashtable<String, LinkedList<Object>>> runAggregateAllData(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, LinkedList<Object>>> aggregatedData, String propType, boolean TAP_Core)
 	{
 		String[] vars = sjsw.getVariables();
@@ -1551,7 +1193,7 @@ public class ServicesAggregationProcessor {
 				addToAllConcepts(sys);
 				addToAllConcepts(obj);
 				addToAllRelationships(pred);
-				addToHash(new String[]{sys, pred, obj});
+				addToDataHash(new String[]{sys, pred, obj});
 			}
 			else
 			{
@@ -1592,7 +1234,7 @@ public class ServicesAggregationProcessor {
 
 					if(TAP_Core)
 					{
-						addToDeleteHash(new Object[]{pred, propURI + propType, prop});
+						addToDeleteHash(new Object[]{pred, semossPropertyBaseURI + propType, prop});
 					}
 					addToAllRelationships(pred);
 				}
