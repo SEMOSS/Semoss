@@ -19,8 +19,6 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -29,7 +27,6 @@ import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
-import prerna.ui.swing.custom.SelectScrollList;
 
 /**
  */
@@ -59,14 +56,10 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown,((SysOptPlaySheet)playSheet).showSystemSelectBtn.isSelected(),((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected());
 
-
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			Thread playThread = new Thread(runner);
 			playThread.start();
-
 		}
-
-
 	}
 		
 	/**

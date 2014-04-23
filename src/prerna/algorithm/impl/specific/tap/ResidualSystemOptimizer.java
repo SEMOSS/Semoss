@@ -56,11 +56,6 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		this.playSheet = playSheet;
 	}
 
-	public void setDataBLUPercent(double dataPercent,double bluPercent)
-	{
-		this.dataPercent = dataPercent;
-		this.bluPercent = bluPercent;
-	}
 	/**
 	 * Gathers data set.
 	 */
@@ -185,7 +180,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			}
 			double numSites = systemNumOfSites[sysInd];
 			//first site is pilot and is full cost. each additional site is some percentage of pilot.
-			if(sysInd>1)
+			if(numSites>1)
 				numTransformation = numTransformation + numTransformation * (numSites-1)*percentOfPilot;
 			else
 				numTransformation = numTransformation*numSites;
