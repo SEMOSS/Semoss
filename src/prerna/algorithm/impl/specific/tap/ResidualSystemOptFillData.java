@@ -34,6 +34,8 @@ public class ResidualSystemOptFillData{
 	//Ap, Bq
 	public int[] dataSORSystemExists;
 	public int[] bluProviderExists;
+	public int[] dataSORSystemCount;
+	public int[] bluProviderCount;
 	
 	String systemEngine = "";
 	String costEngine = "TAP_Cost_Data";
@@ -43,18 +45,10 @@ public class ResidualSystemOptFillData{
 	String sysListBindings;
 	double maxYears;
 	
-	public void setSysList(ArrayList<String> sysList)
+	public void setSysDataBLULists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList)
 	{
 		this.sysList = sysList;
-	}
-	
-	public void setDataList(ArrayList<String> dataList)
-	{
 		this.dataList = dataList;
-	}
-	
-	public void setBLUList(ArrayList<String> bluList)
-	{
 		this.bluList = bluList;
 	}
 	
@@ -124,29 +118,40 @@ public class ResidualSystemOptFillData{
 		fillSystemCost();
 		fillSystemNumOfSites();
 		
-		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,false);
-		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,false);
+		dataSORSystemCount = calculateIfProviderExists(systemDataMatrix,false);
+		bluProviderCount = calculateIfProviderExists(systemBLUMatrix,false);
+		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,dataRequired);
+		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,dataRequired);
 		
 		if(playSheet!=null)
 			printToConsole();
 		else
 			printAll();
-		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,dataRequired);
-		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,dataRequired);
+
 	}
 	
 	public void printToConsole()
 	{
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems to be Considered...");
 		printToConsoleList(sysList);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems with no budget information...");
+		printMissingInfoToConsoleList(sysList,systemCostOfMaintenance);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems with no site information...");
+		printMissingInfoToConsoleList(sysList,systemNumOfSites);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered...");
 		printToConsoleList(dataList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that are SOR of Data Object...");
-		printNumberToConsoleList(deepCopy(dataList),dataSORSystemExists);
+		printNumberToConsoleList(deepCopy(dataList),dataSORSystemCount);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered...");
 		printToConsoleList(bluList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that provide BLU ...");
-		printNumberToConsoleList(deepCopy(bluList),bluProviderExists);
+		printNumberToConsoleList(deepCopy(bluList),bluProviderCount);
+	}
+	public void printMissingInfoToConsoleList(ArrayList<String> sysList,double[] listToCheck)
+	{
+		for(int i=0;i<listToCheck.length;i++)
+			if(listToCheck[i]==0)
+				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+sysList.get(i)+", ");
 	}
 	
 	public void printToConsoleList(ArrayList<String> list)

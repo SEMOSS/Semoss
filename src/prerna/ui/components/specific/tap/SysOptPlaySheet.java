@@ -58,8 +58,6 @@ import prerna.ui.swing.custom.ToggleButton;
  */
 public class SysOptPlaySheet extends SerOptPlaySheet{
 
-	//advanced param panel
-	
 	//system, data, blu select panel and toggle button
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
 	public JPanel systemSelectPanel;

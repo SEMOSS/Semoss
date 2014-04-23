@@ -151,9 +151,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 			return;
 		}
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
-		resFunc.setSysList(deepCopy(sysList));
-		resFunc.setDataList(deepCopy(dataList));
-		resFunc.setBLUList(deepCopy(bluList));
+		resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList));
 		resFunc.fillDataStores(!dataQuery.equals("NULL"));
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
