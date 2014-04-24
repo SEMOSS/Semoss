@@ -18,13 +18,9 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
-
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
@@ -33,9 +29,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.BooleanProcessor;
-import prerna.ui.components.UpdateProcessor;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -65,8 +58,8 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	public String CAPABILITY_BLU_QUERY = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
 	public String SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} } BINDINGS ?CRM {('C')}";
 	public String SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
-	private String DELETE_NEW_RELATIONS_QUERY = "DELETE {?System ?relation ?o. ?relation ?allInferredRelationships ?o} WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
-	private String DELETE_NEW_PROPERTIES_QUERY = "DELETE {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} WHERE {{?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}} ";
+	private String DELETE_NEW_RELATIONS_QUERY = "SELECT ?System ?relation ?o ?allInferredRelationships WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
+	private String DELETE_NEW_PROPERTIES_QUERY = "SELECT ?relation ?pred ?Calculated WHERE {BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?pred) {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}} ";
 	
 	public String getErrorMessage() {
 		return this.errorMessage;
@@ -79,13 +72,36 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	}
 	
 	public void runDeleteQueries() {
-		UpdateProcessor upProc = new UpdateProcessor();
-		upProc.setQuery(DELETE_NEW_RELATIONS_QUERY);
-		logger.info("Deleting Calculated Relationships...");
-		upProc.processQuery();
-		upProc.setQuery(DELETE_NEW_PROPERTIES_QUERY);
-		logger.info("Deleting Calculated Properties...");
-		upProc.processQuery();
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		String[] vars;
+		
+		sjsw = processQuery(coreDB, DELETE_NEW_RELATIONS_QUERY);
+		vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{	
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String sys = sjss.getRawVar(vars[0]).toString();
+			String rel = sjss.getRawVar(vars[1]).toString();
+			String obj = sjss.getRawVar(vars[2]).toString();
+			String inf = sjss.getRawVar(vars[3]).toString();
+			
+			addToDeleteHash(new Object[]{sys, rel, obj});
+			addToDeleteHash(new Object[]{rel, inf, obj});
+		}
+		
+		sjsw = processQuery(coreDB, DELETE_NEW_PROPERTIES_QUERY);
+		vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{	
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String rel = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String calc = sjss.getRawVar(vars[2]).toString();
+			
+			addToDeleteHash(new Object[]{rel, pred, calc});
+		}
+		
+		deleteData(coreDB, removeDataHash);
 	}
 	
 	public boolean runCoreInsert()	{
