@@ -267,9 +267,9 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		}
 		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
 		{
-        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not available.");
+        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
 			playSheet.progressBar.setVisible(false);
-			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not available.");
+			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
 			return;
 		}
 		
@@ -454,7 +454,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	public void displayResults()
 	{
 		if(reducedFunctionality)
-			((SysOptPlaySheet)playSheet).solutionLbl.setText("Available with reduced functionality (see functionality analysis tab for details)");
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with reduced functionality (see functionality analysis tab for details)");
 		else{
 			double savingsOrROI = netSavings;
 			String savingsOrROIString = "savings";
@@ -466,7 +466,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			}
 			if(savingsOrROI < 0.0)
 				positiveOrNegativeString = "Negative";
-			((SysOptPlaySheet)playSheet).solutionLbl.setText("Available with "+positiveOrNegativeString+" "+savingsOrROIString);
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsOrROIString);
 		}
 		
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
