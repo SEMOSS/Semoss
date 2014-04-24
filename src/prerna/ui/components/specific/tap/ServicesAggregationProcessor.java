@@ -1030,6 +1030,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	
 	private Object[] processGarrisonTheater(String sub, String prop, Object value)
 	{
+		value = value.toString().replaceAll("\"", "");
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
@@ -1041,8 +1042,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			Object oldGT = innerHash.get(prop);
 			if(!oldGT.toString().toString().equalsIgnoreCase(value.toString()))
 			{
-				value = "\"Both\"";
-				logger.debug("ADJUSTING GARRISONTHEATER:     " + sub + " -----> {" + prop + " --- " + "\"Both\"" + "}");
+				value = "Both";
+				logger.debug("ADJUSTING GARRISONTHEATER:     " + sub + " -----> {" + prop + " --- " + "Both" + "}");
 			}
 		}
 		return new Object[]{sub, prop, value};
