@@ -369,14 +369,17 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		ArrayList <Object []> list = new ArrayList();
 		String[] colNames = new String[4];
 		colNames[0]="System";
-		colNames[1]="Probability";
+		colNames[1]="Action";
 		colNames[2]="Number Of Data Provided";
 		colNames[3]="Number of BLU Provided";
 		for (int i = 0;i<sysList.size();i++)
 		{
 			Object[] newRow = new Object[4];
 			newRow[0] = resFunc.sysList.get(i);
-			newRow[1] = resFunc.systemProb[i];
+			if(sysOpt.systemIsModernized[i]>0)
+				newRow[1] = "Modernize";
+			else
+				newRow[1] = "Decommission";
 			newRow[2] = sumRow(resFunc.systemDataMatrix[i]);
 			newRow[3] = sumRow(resFunc.systemBLUMatrix[i]);
 			list.add(newRow);
