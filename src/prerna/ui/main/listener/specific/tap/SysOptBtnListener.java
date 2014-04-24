@@ -53,7 +53,7 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 
 			optimizer.setPlaySheet(playSheet);
-			((UnivariateSvcOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
+			((SysNetSavingsOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).sysSelectDropDown,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataSelectDropDown,((SysOptPlaySheet)playSheet).bluSelectDropDown,((SysOptPlaySheet)playSheet).showSystemSelectBtn.isSelected(),((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected());
 
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);

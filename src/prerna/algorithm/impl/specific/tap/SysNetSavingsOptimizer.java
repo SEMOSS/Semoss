@@ -18,9 +18,15 @@
  ******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.MaxEval;
@@ -36,7 +42,12 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IAlgorithm;
+import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMHelper;
+import prerna.ui.components.specific.tap.OptimizationOrganizer;
+import prerna.ui.components.specific.tap.SerOptPlaySheet;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
@@ -46,7 +57,32 @@ import prerna.util.Utility;
 /**
  * This optimizer is used for implementation of the ROI (return on investment) function.
  */
-public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
+public class SysNetSavingsOptimizer implements IAlgorithm{
+	
+	Logger logger = Logger.getLogger(getClass());
+	
+	SerOptPlaySheet playSheet;
+	public int maxYears;
+	double interfaceCost;
+	public double serMainPerc;
+	int noOfPts;
+	double minBudget;
+	double maxBudget;
+	double hourlyCost;
+	double[] learningConstants;
+	public double iniLC;
+	public int scdLT;
+	public double scdLC;
+	double attRate;
+	double hireRate;
+	public double infRate;
+	double disRate;
+	public UnivariateSvcOptFunction f;
+	double optBudget =0.0;
+	String bindStr = "";
+	JProgressBar progressBar;
+	OptimizationOrganizer optOrg;
+	public String[] optSys;
 	
 	ResidualSystemOptFillData resFunc;
 	public ResidualSystemOptimizer sysOpt;
@@ -57,11 +93,45 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
-	Logger logger = Logger.getLogger(getClass());
 	boolean noErrors=true;
 	String errorMessage = "";
+	boolean reducedFunctionality = false;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
-	
+
+	/**
+	 * Method setVariables.
+	 * @param maxYears int
+	 * @param interfaceCost double
+	 * @param serMainPerc double
+	 * @param attRate double
+	 * @param hireRate double
+	 * @param infRate double
+	 * @param disRate double
+	 * @param noOfPts int
+	 * @param minBudget double
+	 * @param maxBudget double
+	 * @param hourlyCost double
+	 * @param iniLC double
+	 * @param scdLT int
+	 * @param scdLC double
+	 */
+	public void setVariables(int maxYears, double interfaceCost, double serMainPerc, double attRate, double hireRate, double infRate, double disRate, int noOfPts, double minBudget, double maxBudget, double hourlyCost, double iniLC, int scdLT, double scdLC)
+	{
+		this.maxYears = maxYears;
+		this.interfaceCost = interfaceCost*1000000;
+		this.serMainPerc = serMainPerc;
+		this.noOfPts = noOfPts;
+		this.minBudget = minBudget*1000000;
+		this.maxBudget = maxBudget*1000000;
+		this.hourlyCost = hourlyCost;
+		this.attRate = attRate;
+		this.hireRate = hireRate;
+		this.iniLC = iniLC;
+		this.scdLT = scdLT;
+		this.scdLC = scdLC;
+		this.infRate = infRate;
+		this.disRate = disRate;
+	}
 	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU)
 	{
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
@@ -152,7 +222,7 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		}
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
 		resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList));
-		resFunc.fillDataStores(!dataQuery.equals("NULL"));
+		reducedFunctionality = resFunc.fillDataStores(!dataQuery.equals("NULL"));
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
 	{
@@ -197,9 +267,9 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		}
 		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
 		{
-        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not recommended.");
+        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not available.");
 			playSheet.progressBar.setVisible(false);
-			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not recommended.");
+			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization is not available.");
 			return;
 		}
 		
@@ -255,7 +325,9 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
-	        displayResults(f.lin);
+	        displayResults();
+	        displaySystemSpecifics();
+	        displayFunctionalitySpecifics();
         }
 
 
@@ -279,23 +351,121 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 	/**
 	 * Runs the appropriate optimization iteration.
 	 */
-	@Override
 	public void optimize()
 	{
         f = new SysNetSavingsFunction();
         runOpt();
 	}   
-
+	public int sumRow(int[] row)
+	{
+		int sum=0;
+		for(int i=0;i<row.length;i++)
+			sum+=row[i];
+		return sum;
+	}
 	
+	public void displaySystemSpecifics()
+	{
+		ArrayList <Object []> list = new ArrayList();
+		String[] colNames = new String[4];
+		colNames[0]="System";
+		colNames[1]="Probability";
+		colNames[2]="Number Of Data Provided";
+		colNames[3]="Number of BLU Provided";
+		for (int i = 0;i<sysList.size();i++)
+		{
+			Object[] newRow = new Object[4];
+			newRow[0] = resFunc.sysList.get(i);
+			newRow[1] = resFunc.systemProb[i];
+			newRow[2] = sumRow(resFunc.systemDataMatrix[i]);
+			newRow[3] = sumRow(resFunc.systemBLUMatrix[i]);
+			list.add(newRow);
+		}
+		GridScrollPane pane = new GridScrollPane(colNames, list);
+		playSheet.specificSysAlysPanel.removeAll();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		playSheet.specificSysAlysPanel.setLayout(gridBagLayout);
+		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
+		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1_1.gridx = 0;
+		gbc_panel_1_1.gridy = 0;
+		playSheet.specificSysAlysPanel.add(pane, gbc_panel_1_1);
+		playSheet.specificSysAlysPanel.repaint();
+	}
+	public void displayFunctionalitySpecifics()
+	{
+		ArrayList <Object []> list = new ArrayList();
+		String[] colNames = new String[resFunc.sysList.size()+3];//number of systems+2
+		colNames[0]="Data/BLU";
+		colNames[1]="Type";
+		colNames[2]="Number of Systems Providing";
+		for(int i=0;i<resFunc.sysList.size();i++)
+			colNames[i+3] = resFunc.sysList.get(i);
+		for (int dataInd = 0;dataInd<resFunc.dataList.size();dataInd++)
+		{
+			Object[] newRow = new Object[resFunc.sysList.size()+3];
+			newRow[0] = resFunc.dataList.get(dataInd);
+			newRow[1] = "Data";
+			newRow[2] = resFunc.dataSORSystemCount[dataInd];
+			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
+				if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
+					newRow[sysInd+3] = "X";
+			list.add(newRow);
+		}
+		for (int bluInd = 0;bluInd<resFunc.bluList.size();bluInd++)
+		{
+			Object[] newRow = new Object[resFunc.sysList.size()+3];
+			newRow[0] = resFunc.bluList.get(bluInd);
+			newRow[1] = "BLU";
+			newRow[2] = resFunc.bluProviderCount[bluInd];
+			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
+				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
+					newRow[sysInd+3] = "X";
+			list.add(newRow);
+		}
+
+		GridScrollPane pane = new GridScrollPane(colNames, list);
+		pane.addHorizontalScroll();
+		((SysOptPlaySheet)playSheet).specificFuncAlysPanel.removeAll();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		((SysOptPlaySheet)playSheet).specificFuncAlysPanel.setLayout(gridBagLayout);
+		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
+		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1_1.gridx = 0;
+		gbc_panel_1_1.gridy = 0;
+		((SysOptPlaySheet)playSheet).specificFuncAlysPanel.add(pane, gbc_panel_1_1);
+		((SysOptPlaySheet)playSheet).specificFuncAlysPanel.repaint();
+	}
 
 	/**
 	 * Displays the results from various optimization calculations. 
 	 * These include profit, ROI, Recoup, and breakeven functions.
 	 * @param lin 	Optimizer used for TAP-specific calculations. 
 	 */
-	@Override
-	public void displayResults(ServiceOptimizer lin)
+	public void displayResults()
 	{
+		if(reducedFunctionality)
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Available with reduced functionality (see functionality analysis tab for details)");
+		else{
+			double savingsOrROI = netSavings;
+			String savingsOrROIString = "savings";
+			String positiveOrNegativeString = "Positive";
+			if(f instanceof SysROIFunction)
+			{
+				savingsOrROI = roi;
+				savingsOrROIString = "roi";
+			}
+			if(savingsOrROI < 0.0)
+				positiveOrNegativeString = "Negative";
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Available with "+positiveOrNegativeString+" "+savingsOrROIString);
+		}
+		
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
 		cumSavingsList = ((SysNetSavingsFunction)f).createCumulativeSavings(budget, optNumYears);
 		breakEvenList = ((SysNetSavingsFunction)f).createBreakEven(budget, optNumYears);
@@ -344,6 +514,57 @@ public class SysNetSavingsOptimizer extends UnivariateSvcOptimizer{
 		playSheet.tab5.setVisible(true);
 		playSheet.tab6.setVisible(true);
 	}
+	/**
+	 * Clears the playsheet by removing information from all panels.
+	 */
+	public void clearPlaysheet(){
+		clearGraphs();
+		playSheet.specificAlysPanel.removeAll();
+		playSheet.specificSysAlysPanel.removeAll();
+		playSheet.playSheetPanel.removeAll();
+	}
+	/**
+	 * Clears graphs within the playsheets.
+	 */
+	public void clearGraphs()
+	{
+		playSheet.tab1.setVisible(false);
+		playSheet.tab2.setVisible(false);
+		playSheet.tab3.setVisible(false);
+		playSheet.tab4.setVisible(false);
+		playSheet.tab5.setVisible(false);
+		playSheet.tab6.setVisible(false);
+		playSheet.timeline.setVisible(false);
+	}
 	
+	@Override
+	public void setPlaySheet(IPlaySheet playSheet) {
+		this.playSheet = (SerOptPlaySheet) playSheet;
+		
+	}
 	
+	/**
+	 * Gets variable names.
+	 * */
+	@Override
+	public String[] getVariables() {
+		return null;
+	}
+
+	/**
+	 * Executes the optimization.
+	 */
+	@Override
+	public void execute(){
+		optimize();
+		
+	}
+
+	/**
+	 * Gets the name of the algorithm.
+	 * @return 	Algorithm name. */
+	@Override
+	public String getAlgoName() {
+		return null;
+	}
 }

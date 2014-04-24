@@ -30,6 +30,9 @@ public class SysDecommissionOptimizationFunctions {
     Hashtable<String, Hashtable<String,Double>> sysToDataToLOEHash;
     //hashtable storing all the systems and their sites.
     Hashtable<String, ArrayList<String>> sysToSiteHash;
+    //hashtable storing all the systems and their probabilities
+    Hashtable<String, String> sysToProbHash;
+    
     
     private ArrayList<String> systemsWithNoSite;
     private Vector<String> sortedSysList;
@@ -45,6 +48,9 @@ public class SysDecommissionOptimizationFunctions {
 
 	private static String siteDB = "TAP_Site_Data";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
+	
+	private static String probDB = "HR_Core";
+	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 
 	private double percentOfPilot=0.2;
 	public double costPerHour=150.0;	
@@ -134,6 +140,7 @@ public class SysDecommissionOptimizationFunctions {
 		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
 		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
+		sysToProbHash = new Hashtable<String, String>();
 		sysToResourceAllocationHash = new Hashtable<String, Double>();
 		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
 		outputList = new ArrayList<Object[]>();
@@ -152,6 +159,9 @@ public class SysDecommissionOptimizationFunctions {
 		sortSysList();
 		calculateMinTimeAllSystemsAllSites();
 		calculateWorkVolAllSystemsAllSites();
+		
+		ArrayList <Object []> systemProbList = createData(probDB,systemProbQuery);
+		processSystemProbHash(systemProbList);
 	}
 	
 	public void calculateResourceAndOutput()
@@ -299,7 +309,6 @@ public class SysDecommissionOptimizationFunctions {
 		}
 
 	}
-	
 	public void printTest()
 	{
 		for(String sys : sysToMinTimeHashPerSite.keySet())
@@ -326,19 +335,20 @@ public class SysDecommissionOptimizationFunctions {
 		//old version included min time at one site and work volume at one site
 		for(String sys : sortedSysList)
 		{
-			Object[] element = new Object[6];
+			Object[] element = new Object[7];
 			element[0] = sys;
+			element[1] = sysToProbHash.get(sys);
 			double time1 = sysToWorkVolHashAllSites.get(sys) / 365.0 / Math.ceil(sysToResourceAllocationHash.get(sys));
-			element[1] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
+			element[2] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
 	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 
-			element[2] = sysToSiteHash.get(sys).size();
-			element[3] = Math.ceil(sysToResourceAllocationHash.get(sys));
+			element[3] = sysToSiteHash.get(sys).size();
+			element[4] = Math.ceil(sysToResourceAllocationHash.get(sys));
 //			element[2] = sysToResourceAllocationHash.get(sys);
 
-			element[4] = sysToNumSimultaneousTransformHash.get(sys);
-			element[5] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
+			element[5] = sysToNumSimultaneousTransformHash.get(sys);
+			element[6] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
 
 			outputList.add(element);
 		}
@@ -428,6 +438,16 @@ public class SysDecommissionOptimizationFunctions {
 					}
 				}
 			}
+		}
+	}
+	private void processSystemProbHash(ArrayList <Object []> list)
+	{
+		for (int i=0; i<list.size(); i++)
+		{
+			Object[] elementArray= list.get(i);
+			String system = (String) elementArray[0];
+			String prob = (String) elementArray[1];
+			sysToProbHash.put(system,prob);
 		}
 	}
 	private void processSystemSiteHashTables(ArrayList <Object []> list)

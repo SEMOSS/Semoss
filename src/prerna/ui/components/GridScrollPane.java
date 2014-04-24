@@ -29,7 +29,7 @@ import javax.swing.JTable;
  */
 public class GridScrollPane extends JScrollPane{
 	
-	
+	private JTable table;
 	/**
 	 * Constructor for GridScrollPane.
 	 * @param colNames 	List of column names.
@@ -40,7 +40,7 @@ public class GridScrollPane extends JScrollPane{
 		GridFilterData gfd = new GridFilterData();
 		gfd.setColumnNames(colNames);
 		gfd.setDataList(list);
-		JTable table = new JTable();
+		table = new JTable();
 		table.setAutoCreateRowSorter(true);
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
@@ -55,6 +55,11 @@ public class GridScrollPane extends JScrollPane{
 	 * @param list 		List of data.
 	 */
 	public void createTable(String[] colNames, ArrayList <Object []> list)
+	{
+		
+	}
+	
+	public void addHorizontalScroll()
 	{
 		
 	}
