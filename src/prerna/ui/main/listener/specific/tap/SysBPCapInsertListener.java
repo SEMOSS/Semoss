@@ -114,8 +114,8 @@ public class SysBPCapInsertListener extends AbstractListener {
 		}
 		
 		if(success)	{
-			Utility.showMessage("Insert Completed!");
 			logger.info("Completed Insert.");
+			Utility.showMessage("Insert Completed!");			
 		}
 	}
 	
