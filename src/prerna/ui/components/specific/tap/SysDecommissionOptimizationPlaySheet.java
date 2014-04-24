@@ -17,24 +17,23 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		
-		String db = "TAP_Core_Data";
+		String db = "HR_Core";
 		String sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }}";
 		String dataQuery = "SELECT DISTINCT ?Data WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}}";
 
 		ArrayList<String> sysList = runListQuery(db, sysQuery);
 		ArrayList<String> dataList = runListQuery(db, dataQuery);
 
-		
-		
 		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
 		
-		names = new String[6];
+		names = new String[7];
 		names[0] = "System";
-		names[1] ="Time to Transform";
-		names[2] = "Number of Sites Deployed At";
-		names[3] = "Resource Allocation";
-		names[4] = "Number of Systems Transformed Simultaneously";
-		names[5] = "Total Cost for System";
+		names[1] = "Probability";
+		names[2] ="Time to Transform";
+		names[3] = "Number of Sites Deployed At";
+		names[4] = "Resource Allocation";
+		names[5] = "Number of Systems Transformed Simultaneously";
+		names[6] = "Total Cost for System";
 //		names[5] = "Min time for system";
 		
 		optFunctions.setSysList(sysList);

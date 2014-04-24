@@ -58,17 +58,13 @@ import prerna.ui.swing.custom.ToggleButton;
  */
 public class SysOptPlaySheet extends SerOptPlaySheet{
 
-	//system, data, blu select panel and toggle button
+	//select functionality panel and toggle button
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
 	public JPanel systemSelectPanel;
-	
 	public JPanel capScrollPanel;
 	public JLabel lblDataSelectHeader,lblBLUSelectHeader;
-
-	 //overall analysis tab
-	public JLabel annualBudgetLbl, timeTransitionLbl;
 	
-	//system and capability selects
+	//system, capability, data, and blu selects
 	public JCheckBox theaterSysButton, garrisonSysButton, allSysButton;
 	public JCheckBox lowProbButton, medProbButton, highProbButton;
 	public JCheckBox allCapButton, dhmsmCapButton;
@@ -77,7 +73,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JToggleButton updateDataBLUPanelButton;
 	public JButton updateDataBLUButton,updateComplementDataBLUButton;
 
+	 //overall analysis tab
+	public JLabel solutionLbl, annualBudgetLbl, timeTransitionLbl;
 	public BrowserGraphPanel tabModernizedHeatMap;
+	public JPanel specificFuncAlysPanel;
 	
 	/**
 	 * Constructor for SysOptPlaySheet.
@@ -184,7 +183,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		
 		GridBagConstraints gbc_updateDataBLUPanelButton = new GridBagConstraints();
 		gbc_updateDataBLUPanelButton.anchor = GridBagConstraints.WEST;
-//		gbc_updateDataBLUPanelButton.gridwidth = 3;
 		gbc_updateDataBLUPanelButton.gridheight = 2;
 		gbc_updateDataBLUPanelButton.insets = new Insets(0, 0, 5, 5);
 		gbc_updateDataBLUPanelButton.gridx = 8;
@@ -198,7 +196,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		
 		GridBagConstraints gbc_updateDataBLUButton = new GridBagConstraints();
 		gbc_updateDataBLUButton.anchor = GridBagConstraints.WEST;
-//		gbc_updateDataBLUButton.gridwidth = 3;
 		gbc_updateDataBLUButton.gridheight = 2;
 		gbc_updateDataBLUButton.insets = new Insets(0, 0, 5, 5);
 		gbc_updateDataBLUButton.gridx = 9;
@@ -554,14 +551,23 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		GridBagConstraints gbc_lblAnnualBudget = new GridBagConstraints();
 		gbc_lblAnnualBudget.insets = new Insets(0, 0, 5, 5);
 		gbc_lblAnnualBudget.gridx = 4;
-		gbc_lblAnnualBudget.gridy = 0;
-		panel_1.add(lblAnnualBudget, gbc_lblAnnualBudget);
+		gbc_lblAnnualBudget.gridy = 1;
+		panel_1.add(lblAnnualBudget, gbc_lblAnnualBudget);		
+		
+		solutionLbl = new JLabel("");
+		solutionLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_solutionLbl = new GridBagConstraints();
+		gbc_solutionLbl.insets = new Insets(0, 0, 5, 5);
+		gbc_solutionLbl.gridx = 0;
+		gbc_solutionLbl.gridwidth = 5;
+		gbc_solutionLbl.gridy = 0;
+		panel_1.add(solutionLbl, gbc_solutionLbl);
 		
 		annualBudgetLbl = new JLabel("");
 		GridBagConstraints gbc_annualBudgetLbl = new GridBagConstraints();
 		gbc_annualBudgetLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_annualBudgetLbl.gridx = 5;
-		gbc_annualBudgetLbl.gridy = 0;
+		gbc_annualBudgetLbl.gridy = 1;
 		panel_1.add(annualBudgetLbl, gbc_annualBudgetLbl);
 		
 		JLabel lblTimeSpentTransitioning = new JLabel("Number of Years for Transition:");
@@ -569,7 +575,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_lblTimeSpentTransitioning.anchor = GridBagConstraints.WEST;
 		gbc_lblTimeSpentTransitioning.insets = new Insets(0, 0, 0, 5);
 		gbc_lblTimeSpentTransitioning.gridx = 0;
-		gbc_lblTimeSpentTransitioning.gridy = 1;
+		gbc_lblTimeSpentTransitioning.gridy = 2;
 		panel_1.add(lblTimeSpentTransitioning, gbc_lblTimeSpentTransitioning);
 
 		timeTransitionLbl = new JLabel("");
@@ -577,8 +583,26 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_timeTransitionLbl.anchor = GridBagConstraints.WEST;
 		gbc_timeTransitionLbl.insets = new Insets(0, 0, 0, 5);
 		gbc_timeTransitionLbl.gridx = 1;
-		gbc_timeTransitionLbl.gridy = 1;
+		gbc_timeTransitionLbl.gridy = 2;
 		panel_1.add(timeTransitionLbl, gbc_timeTransitionLbl);
+		
+		specificSysAlysPanel = new JPanel();
+		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
+		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
+		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
+		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
+		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
+		
+		specificFuncAlysPanel = new JPanel();
+		tabbedPane.addTab("Functionality Analysis", null, specificFuncAlysPanel, null);
+		GridBagLayout gbl_specificFuncAlysPanel = new GridBagLayout();
+		gbl_specificFuncAlysPanel.columnWidths = new int[]{0, 0};
+		gbl_specificFuncAlysPanel.rowHeights = new int[]{0, 0};
+		gbl_specificFuncAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_specificFuncAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		specificFuncAlysPanel.setLayout(gbl_specificFuncAlysPanel);
 	}
 	
 	/**

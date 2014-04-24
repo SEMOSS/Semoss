@@ -663,14 +663,14 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		GridBagConstraints gbc_lblInvestmentRecoupTime = new GridBagConstraints();
 		gbc_lblInvestmentRecoupTime.insets = new Insets(0, 0, 5, 5);
 		gbc_lblInvestmentRecoupTime.gridx = 4;
-		gbc_lblInvestmentRecoupTime.gridy = 0;
+		gbc_lblInvestmentRecoupTime.gridy = 1;
 		panel_1.add(lblInvestmentRecoupTime, gbc_lblInvestmentRecoupTime);
 
 		recoupLbl = new JLabel("");
 		GridBagConstraints gbc_recoupLbl = new GridBagConstraints();
 		gbc_recoupLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_recoupLbl.gridx = 5;
-		gbc_recoupLbl.gridy = 0;
+		gbc_recoupLbl.gridy = 1;
 		panel_1.add(recoupLbl, gbc_recoupLbl);
 
 		JLabel label_1 = new JLabel("Total SOA build cost over time horizon:\r\n");
@@ -678,7 +678,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_label_1.anchor = GridBagConstraints.WEST;
 		gbc_label_1.insets = new Insets(0, 0, 0, 5);
 		gbc_label_1.gridx = 0;
-		gbc_label_1.gridy = 1;
+		gbc_label_1.gridy = 2;
 		panel_1.add(label_1, gbc_label_1);
 
 		costLbl = new JLabel("");
@@ -686,7 +686,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_costLbl.anchor = GridBagConstraints.WEST;
 		gbc_costLbl.insets = new Insets(0, 0, 0, 5);
 		gbc_costLbl.gridx = 1;
-		gbc_costLbl.gridy = 1;
+		gbc_costLbl.gridy = 2;
 		panel_1.add(costLbl, gbc_costLbl);
 
 		//charts for first tab
@@ -847,7 +847,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_lblNewLabel.anchor = GridBagConstraints.WEST;
 		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
 		gbc_lblNewLabel.gridx = 0;
-		gbc_lblNewLabel.gridy = 0;
+		gbc_lblNewLabel.gridy = 1;
 		panel_1.add(lblNewLabel, gbc_lblNewLabel);
 
 		savingLbl = new JLabel("");
@@ -855,7 +855,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_savingLbl.anchor = GridBagConstraints.WEST;
 		gbc_savingLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_savingLbl.gridx = 1;
-		gbc_savingLbl.gridy = 0;
+		gbc_savingLbl.gridy = 1;
 		panel_1.add(savingLbl, gbc_savingLbl);
 
 		JLabel lblTotalRoiOver = new JLabel("Total ROI over time horizon:");
@@ -863,7 +863,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_lblTotalRoiOver.anchor = GridBagConstraints.WEST;
 		gbc_lblTotalRoiOver.insets = new Insets(0, 30, 5, 5);
 		gbc_lblTotalRoiOver.gridx = 2;
-		gbc_lblTotalRoiOver.gridy = 0;
+		gbc_lblTotalRoiOver.gridy = 1;
 		panel_1.add(lblTotalRoiOver, gbc_lblTotalRoiOver);
 
 		roiLbl = new JLabel("");
@@ -871,7 +871,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_roiLbl.anchor = GridBagConstraints.WEST;
 		gbc_roiLbl.insets = new Insets(0, 0, 5, 5);
 		gbc_roiLbl.gridx = 3;
-		gbc_roiLbl.gridy = 0;
+		gbc_roiLbl.gridy = 1;
 		panel_1.add(roiLbl, gbc_roiLbl);
 		
 		JLabel lblBreakevenPointDuring = new JLabel("Breakeven point during time horizon:");
@@ -879,7 +879,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_lblBreakevenPointDuring.anchor = GridBagConstraints.WEST;
 		gbc_lblBreakevenPointDuring.insets = new Insets(0, 30, 0, 5);
 		gbc_lblBreakevenPointDuring.gridx = 2;
-		gbc_lblBreakevenPointDuring.gridy = 1;
+		gbc_lblBreakevenPointDuring.gridy = 2;
 		panel_1.add(lblBreakevenPointDuring, gbc_lblBreakevenPointDuring);
 
 		bkevenLbl = new JLabel("");
@@ -887,7 +887,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_bkevenLbl.insets = new Insets(0, 0, 0, 5);
 		gbc_bkevenLbl.anchor = GridBagConstraints.WEST;
 		gbc_bkevenLbl.gridx = 3;
-		gbc_bkevenLbl.gridy = 1;
+		gbc_bkevenLbl.gridy = 2;
 		panel_1.add(bkevenLbl, gbc_bkevenLbl);
 		
 		chartPanel = new JPanel();

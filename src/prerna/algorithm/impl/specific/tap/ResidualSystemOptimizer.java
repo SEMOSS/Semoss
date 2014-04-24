@@ -35,15 +35,12 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	
 	//x_i
 	public double[] systemIsModernized;
-	
 	int ret=0;
 	double roi=0.0;
 	public double denomCurrentMaintenance = 0.0;
 	public double numTransformationTotal = 0.0;
 	public double numMaintenanceTotal = 0.0;
 	double percentOfPilot = 0.20;
-
-	double dataPercent = 1.0, bluPercent = 1.0;
 	
 	public String errorMessage="";
 	

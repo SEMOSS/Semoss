@@ -21,13 +21,31 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.algorithm.impl.specific.tap.ServiceOptimizer;
 import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
+import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 
 /**
- * This class is used to optimize graph functions used in services calculations.
+ * This class is used to optimize graph functions used in system optimization calculations.
  */
 public class SysOptGraphFunctions extends SerOptGraphFunctions{
 
+	protected SysNetSavingsOptimizer opt = null;
+	/**
+	 * Sets the Systems Optimizer and other constants that will be used.
+	 * @param opt SysNetSavingsOptimizer
+	 */
+	public void setOptimzer (SysNetSavingsOptimizer opt)
+	{
+		this.opt=opt;
+		this.iniLC=opt.iniLC;
+		this.scdLT = opt.scdLT;
+		this.scdLC = opt.scdLC;
+		this.learningConstants = opt.f.learningConstants;
+		this.maxYears = opt.maxYears;
+	}
+	
+	
 	public Hashtable createModernizedHeatMap()
 	{
 		ArrayList<String> sysList = ((SysNetSavingsOptimizer)opt).sysOpt.sysList;
@@ -69,8 +87,8 @@ public class SysOptGraphFunctions extends SerOptGraphFunctions{
 	{
 		int thisYear = 2014;
 		ArrayList<double[]> susPerYearList = createSusPerYear();
-		int[] totalYearsAxis = new int[opt.maxYears];
-		for (int i=0;i<opt.maxYears;i++)
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
 		{
 			totalYearsAxis[i]=thisYear+i;
 		}
@@ -110,13 +128,13 @@ public class SysOptGraphFunctions extends SerOptGraphFunctions{
 	public ArrayList<double[]> createSusPerYear()
 	{
 		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
-		double[] buildCost = new double[opt.maxYears];
-		for(int i=0;i<opt.maxYears;i++)
+		double[] buildCost = new double[maxYears];
+		for(int i=0;i<maxYears;i++)
 		{
 			buildCost[i] = ((SysNetSavingsOptimizer)opt).installCostList.get(i);
 		}
-		double[] sustainCost = new double[opt.maxYears];
-		for(int i=0;i<opt.maxYears;i++)
+		double[] sustainCost = new double[maxYears];
+		for(int i=0;i<maxYears;i++)
 		{
 			sustainCost[i] = ((SysNetSavingsOptimizer)opt).sustainCostList.get(i);
 		}
@@ -131,8 +149,8 @@ public class SysOptGraphFunctions extends SerOptGraphFunctions{
 		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
 		for (int i=0 ;i< 1;i++)
 		{
-			double[] newYear = new double[opt.maxYears];
-			for (int j=i;j<opt.maxYears;j++)
+			double[] newYear = new double[maxYears];
+			for (int j=i;j<maxYears;j++)
 			{
 				newYear[j]=((SysNetSavingsOptimizer)opt).cumSavingsList.get(j);
 			}
@@ -145,8 +163,8 @@ public class SysOptGraphFunctions extends SerOptGraphFunctions{
 	public double[][] createBalanceList(int thisYear)
 	{
 		thisYear = 2014;
-		double[][] balanceList  = new double[opt.maxYears][2];
-		for (int i=0; i<opt.maxYears;i++)
+		double[][] balanceList  = new double[maxYears][2];
+		for (int i=0; i<maxYears;i++)
 		{	
 			balanceList[i][0]=thisYear+i;
 			balanceList[i][1]=((SysNetSavingsOptimizer)opt).breakEvenList.get(i);

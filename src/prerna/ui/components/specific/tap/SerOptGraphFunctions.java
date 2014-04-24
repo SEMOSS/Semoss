@@ -30,6 +30,11 @@ import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 public class SerOptGraphFunctions {
 	protected UnivariateSvcOptimizer opt = null;
 	protected ServiceOptimizer lin = null;
+	protected double iniLC;
+	protected double scdLT;
+	protected double scdLC;
+	protected double[] learningConstants;
+	protected int maxYears;
 	/**
 	 * Sets the Univariate Service Optimizer.
 	 * @param opt UnivariateSvcOptimizer
@@ -37,6 +42,11 @@ public class SerOptGraphFunctions {
 	public void setOptimzer (UnivariateSvcOptimizer opt)
 	{
 		this.opt=opt;
+		this.iniLC=opt.iniLC;
+		this.scdLT = opt.scdLT;
+		this.scdLC = opt.scdLC;
+		this.learningConstants = opt.f.learningConstants;
+		this.maxYears = opt.maxYears;
 	}
 	
 	/**
@@ -57,8 +67,8 @@ public class SerOptGraphFunctions {
 	{
 		int thisYear = 2014;
 		ArrayList<double[]> susPerYearList = createSusPerYear();
-		int[] totalYearsAxis = new int[opt.maxYears];
-		for (int i=0;i<opt.maxYears;i++)
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
 		{
 			totalYearsAxis[i]=thisYear+i;
 		}
@@ -91,9 +101,9 @@ public class SerOptGraphFunctions {
 		for (int i=0 ;i< lin.actualBudgetList.size();i++)
 		{
 			//yearlyBuildCosts[i]=lin.actualBudgetList.get(i);
-			double[] newYear = new double[opt.maxYears];
+			double[] newYear = new double[maxYears];
 			newYear[i]=Math.round(lin.actualBudgetList.get(i)*Math.pow((1+opt.infRate), i));
-			for (int j=i+1;j<opt.maxYears;j++)
+			for (int j=i+1;j<maxYears;j++)
 			{
 				newYear[j]=Math.round(lin.actualBudgetList.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
 			}
@@ -174,12 +184,12 @@ public class SerOptGraphFunctions {
 	public Hashtable createLearningCurve()
 	{
 		double[][] data= createLearningCurvePoints();
-		double[][] data2 = new double[opt.f.learningConstants.length][2];
+		double[][] data2 = new double[learningConstants.length][2];
 		double nextYear = 2014;
 		for (int i=0;i<data2.length;i++)
 		{
 			data2[i][0]=nextYear +((double)i)+.5;
-			data2[i][1]=opt.f.learningConstants[i];
+			data2[i][1]=learningConstants[i];
 		}
 		Hashtable curveChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
@@ -207,8 +217,8 @@ public class SerOptGraphFunctions {
 	{
 		int thisYear = 2013;
 		ArrayList<double[]> savingsPerYearList = createSavingsPerYearList();
-		int[] totalYearsAxis = new int[opt.maxYears];
-		for (int i=0;i<opt.maxYears;i++)
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
 		{
 			totalYearsAxis[i]=thisYear+i+1;
 		}
@@ -233,13 +243,14 @@ public class SerOptGraphFunctions {
 		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
 	}
+	
 	public ArrayList<double[]> createSavingsPerYearList()
 	{
 		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
 		for (int i=0 ;i< lin.actualBudgetList.size();i++)
 		{
-			double[] newYear = new double[opt.maxYears];
-			for (int j=i+1;j<opt.maxYears;j++)
+			double[] newYear = new double[maxYears];
+			for (int j=i+1;j<maxYears;j++)
 			{
 				newYear[j]=Math.round(lin.objectiveValueList.get(i)*Math.pow((1+opt.infRate), j));
 			}
@@ -257,8 +268,8 @@ public class SerOptGraphFunctions {
 	{
 		int thisYear = 2013+1;
 		double[][] balanceList  = createBalanceList(thisYear);
-		int[] totalYearsAxis = new int[opt.maxYears];
-		for (int i=0;i<opt.maxYears;i++)
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
 		{
 			totalYearsAxis[i]=thisYear+i+1;
 		}
@@ -280,12 +291,12 @@ public class SerOptGraphFunctions {
 	
 	public double[][] createBalanceList(int thisYear)
 	{
-		double[][] balanceList  = new double[opt.maxYears+1][2];
+		double[][] balanceList  = new double[maxYears+1][2];
 		balanceList[0][1]=0;
 		balanceList[0][0]=thisYear;
 		balanceList[1][1]=-lin.actualBudgetList.get(0);
 		balanceList[1][0]=thisYear+1;
-		for (int i=1; i<opt.maxYears;i++)
+		for (int i=1; i<maxYears;i++)
 		{
 			if (i<lin.actualBudgetList.size())
 			{
@@ -320,11 +331,11 @@ public class SerOptGraphFunctions {
 		//after you solve for differential equation to get constants
 		//here are the equations for the constants
 		double cnstC, cnstK;
-		cnstC = 1.0-opt.iniLC;
+		cnstC = 1.0-iniLC;
 		double nextYear = 2014;
-		cnstK = (1.0/opt.scdLT)*Math.log((1.0-opt.iniLC)/(1.0-opt.scdLC));
-		double[][] learningCurve = new double[opt.f.learningConstants.length*10][2];
-		for (int i = 0; i<opt.f.learningConstants.length*10;i++)
+		cnstK = (1.0/scdLT)*Math.log((1.0-iniLC)/(1.0-scdLC));
+		double[][] learningCurve = new double[learningConstants.length*10][2];
+		for (int i = 0; i<learningConstants.length*10;i++)
 		{
 			double x =nextYear+((double) i)/10;
 			learningCurve[i][1]=1.0-cnstC*Math.exp(-(((double) i)/10)*cnstK);
