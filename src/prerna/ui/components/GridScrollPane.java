@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components;
 
+import java.awt.Dimension;
 import java.util.ArrayList;
 
 import javax.swing.JScrollPane;
@@ -61,7 +62,9 @@ public class GridScrollPane extends JScrollPane{
 	
 	public void addHorizontalScroll()
 	{
-		
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		this.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
+		this.setPreferredSize(new Dimension(200, this.getPreferredSize().height));
 	}
 
 }
