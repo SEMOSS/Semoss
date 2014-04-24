@@ -242,35 +242,6 @@ public class TaskerGenerationWriter {
 	 * @param wb					XSSFWorkbook containing the Mapping Sheet to populate
 	 * @param mappingResults		ArrayList containing the mappings
 	 */
-	public void writeMappingSheetOLD(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
-		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		XSSFRow rowToWriteOn;
-		XSSFCell cellToCheck;
-		XSSFCell cellToWriteOn;
-		int maxRow=sheetToWriteOver.getLastRowNum();
-		for (int i=0; i<mappingResults.size(); i++) {	
-			ArrayList mappingResultsList = (ArrayList) mappingResults.get(i);			
-			String instance = ((String)mappingResultsList.get(1)).replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
-			//go through each bp on the sheet and find the match		
-			for(int rowCount=3;rowCount<maxRow+1;rowCount++)
-			{
-				rowToWriteOn = sheetToWriteOver.getRow(rowCount);
-				cellToCheck = rowToWriteOn.getCell(0);
-				String valToCheck = cellToCheck.getStringCellValue().replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
-				if(valToCheck.equals(instance))
-				{
-					cellToWriteOn=rowToWriteOn.getCell(1);
-					if(mappingResultsList.size()>2)
-						cellToWriteOn.setCellValue(((String)mappingResultsList.get(2)).replaceAll("\"", ""));
-					else
-						cellToWriteOn.setCellValue("1");
-				}
-			}
-
-		}
-
-	}
-	
 	public void writeMappingSheet(XSSFWorkbook wb, String sheetName, ArrayList mappingResults) {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(3);		
