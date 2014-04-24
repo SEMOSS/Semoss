@@ -118,18 +118,25 @@ public class CheckBoxSelectorListener extends AbstractListener {
 	 */
 	public ArrayList<String> getList(String sparqlQuery)
 	{
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = type;
-		filler.setExternalQuery(sparqlQuery);
-		filler.run();
-		Vector names = filler.nameVector;
+
 		ArrayList<String> retList=new ArrayList<String>();
-		for (int i = 0;i<names.size();i++)
+		try{
+			EntityFiller filler = new EntityFiller();
+			filler.engineName = engine.getEngineName();
+			filler.type = type;
+			filler.setExternalQuery(sparqlQuery);
+			filler.run();
+			Vector names = filler.nameVector;
+			for (int i = 0;i<names.size();i++)
+			{
+				retList.add((String) names.get(i));
+			}
+		}catch(Exception e)
 		{
-			retList.add((String) names.get(i));
+			
 		}
 		return retList;
+		
 	}
 
 	public void setEngine(IEngine engine)
