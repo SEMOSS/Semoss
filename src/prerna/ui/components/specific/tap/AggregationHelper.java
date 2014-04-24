@@ -76,7 +76,7 @@ public class AggregationHelper implements IAggregationHelper {
 					concept_triple = false;
 				}
 				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
-				logger.info("ADDING INTO TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -94,7 +94,7 @@ public class AggregationHelper implements IAggregationHelper {
 					concept_triple = false;
 				}
 				( (BigDataEngine) engine).removeStatement(sub, pred, obj, concept_triple);
-				logger.info("REMOVING FROM TAP CORE: " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				logger.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 		//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
