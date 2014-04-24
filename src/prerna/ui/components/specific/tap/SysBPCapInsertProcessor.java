@@ -27,9 +27,11 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Logger;
+import org.openrdf.model.vocabulary.RDF;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
@@ -40,7 +42,7 @@ import prerna.util.Utility;
 /**
  * Procedure to evaluate BLU's and Data Objects from a system perspective to see which business processes and capabilities a system supports.
  */
-public class SysBPCapInsertProcessor {
+public class SysBPCapInsertProcessor extends AggregationHelper {
 	
 	Logger logger = Logger.getLogger(getClass());
 	private IEngine coreDB;
@@ -54,10 +56,7 @@ public class SysBPCapInsertProcessor {
 	Hashtable<String, Hashtable<String, Hashtable<String, Double>>> storageHash = new Hashtable<String, Hashtable<String, Hashtable<String, Double>>>();
 	
 	private String hrCoreBaseURI = "http://health.mil/ontologies/Relation/";
-
-	private Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
-	private Hashtable<String, Set<String>> newRelationships = new Hashtable<String, Set<String>>();
-
+	
 	public String errorMessage = "";
 		
 	public String BUSINESS_PROCESSES_DATA_QUERY = "SELECT DISTINCT ?BusinessProcess ?Data WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Task ?Needs ?BusinessProcess} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Task ?Needs1 ?Data.} {?Needs1 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;} } BINDINGS ?CRM {('C')}";
@@ -110,15 +109,21 @@ public class SysBPCapInsertProcessor {
 				return false;
 			}
 //2.  Processing and Analysis
+		allRelations.clear();
+		dataHash.clear();
 	//BP
 		insertRelations(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
 	//Capabilities
 		insertRelations(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
 //3.  Insert new relationships (Full URIs)	
-		AggregationHelper aggregationHelper = new AggregationHelper();
-		aggregationHelper.processData(coreDB, dataHash);
-		aggregationHelper.processNewRelationships(coreDB, newRelationships);
-		((BigDataEngine) coreDB).infer();			
+	    processData(coreDB, dataHash);
+	    for (String obj : allRelations.keySet()) {
+	    	for (String sub : allRelations.get(obj)) {
+	    	   processNewRelationshipsAtInstanceLevel(coreDB, sub, obj);
+	    	}
+	    }
+	 	((BigDataEngine) coreDB).infer();
+	 	
 		return success;		
 	}
 	
@@ -147,14 +152,27 @@ public class SysBPCapInsertProcessor {
 	
 	public Hashtable getQueryResultHash(IEngine db, String query) {
 		Hashtable queryDataHash = new Hashtable();
-		AggregationHelper aggregationHelper = new AggregationHelper();
-		SesameJenaSelectWrapper queryDataWrapper = aggregationHelper.processQuery(db, query);
-		queryDataHash = aggregationHelper.hashTableResultProcessor(queryDataWrapper);
+		SesameJenaSelectWrapper queryDataWrapper = processQuery(db, query);
+		queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;
 	}
 	
+	public Hashtable hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
+		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
+		String[] vars = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();			
+			String sub = sjss.getRawVar(vars[0]).toString();
+			Set<String> pred = new HashSet<String>();
+			pred.add(sjss.getRawVar(vars[1]).toString());
+			if (!aggregatedData.containsKey(sub))
+				{aggregatedData.put(sub, pred);}
+			else {aggregatedData.get(sub).add(sjss.getRawVar(vars[1]).toString());}				
+		}						
+		return aggregatedData;
+	}
+	
 	private void processRelations(Hashtable bpDataHash, Hashtable bpBLUHash, Hashtable systemDataHash, Hashtable systemBLUHash, boolean insert) {	
-		AggregationHelper aggregationHelper = new AggregationHelper();	
 	//for storage
 		Hashtable<String, Hashtable<String, Double>> dataSubHash = new Hashtable<String, Hashtable<String, Double>>();
 		Hashtable<String, Hashtable<String, Double>> bluSubHash = new Hashtable<String, Hashtable<String, Double>>();
@@ -217,13 +235,11 @@ public class SysBPCapInsertProcessor {
 						sysDataScore = (double) systemSpecificDataCount/bpSpecificDataSet.size();
 					if (bpSpecificBLUSet.size()!=0)
 						sysBLUScore = (double) systemSpecificBLUCount/bpSpecificBLUSet.size();
-					String bpInstance = Utility.getInstanceName(bp);
 					boolean test = ((sysDataScore > 0) || (sysBLUScore > 0));
 					String sysInstance = Utility.getInstanceName(sys);
 					if (test) {
 						dataScoreHash.put(sysInstance, sysDataScore);
 						bluScoreHash.put(sysInstance, sysBLUScore);
-						//logger.info(sysInstance + " ====> " + bpInstance + " Data:" + sysDataScore + " BLU: " + sysBLUScore);
 					}	
 				}
 			}
@@ -233,8 +249,8 @@ public class SysBPCapInsertProcessor {
 		}
 		
 		if (insert) {
-			dataHash = aggregationHelper.addToHash(dataHash, new Object[]{aggregationHelper.getSemossPropertyBaseURI()+"Calculated", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", aggregationHelper.getSemossRelationBaseURI() + "Contains"});
-			logger.info("*****SubProp URI: "+ aggregationHelper.getSemossPropertyBaseURI()+"Calculated" + " typeURI : "+"http://www.w3.org/1999/02/22-rdf-syntax-ns#type" +" propbase: " + aggregationHelper.getSemossRelationBaseURI() + "Contains");		
+			addToDataHash(new Object[]{semossPropertyBaseURI + "Calculated", RDF.TYPE.toString(), semossRelationBaseURI + "Contains"});
+			//logger.info("*****SubProp URI: "+ semossPropertyBaseURI + "Calculated" + " typeURI : " + RDF.TYPE.toString() + " propbase: " + semossRelationBaseURI + "Contains");		
 		}
 		else {
 			storageHash.put(DATAC, dataSubHash);
@@ -242,20 +258,23 @@ public class SysBPCapInsertProcessor {
 		}
 	}
 	
-	public void systemSupportsBPRelationProcessing(String sys, String bp) {
-		AggregationHelper aggregationHelper = new AggregationHelper();				
-	//Add the System-BP relation to the local Hashtables to prepare for Insert						
+	/**
+	 * Add the System-BP relation to the local Hashtables to prepare for Insert
+	 * @param sys
+	 * @param bp
+	 */
+	public void systemSupportsBPRelationProcessing(String sys, String bp) {					
 		String pred = hrCoreBaseURI + "Supports";
-		pred = pred + "/" + aggregationHelper.getTextAfterFinalDelimeter(sys, "/") +":" + aggregationHelper.getTextAfterFinalDelimeter(bp, "/");
-		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{sys, pred, bp});
-		dataHash = aggregationHelper.addToHash(dataHash, new Object[]{pred, aggregationHelper.getSemossPropertyBaseURI() + "Calculated", "yes"});
-		logger.info("*****Prop URI: " + pred + ", predURI: " + aggregationHelper.getSemossPropertyBaseURI() + "Calculated" + ", value: " + "yes");
-		newRelationships = aggregationHelper.addNewRelationships(newRelationships, pred);						
+		pred = pred + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(bp, "/");
+		addToDataHash(new Object[]{sys, pred, bp});
+		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "yes"});
+		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
+		addToAllRelationships(pred);					
 		logger.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
 	}
 
 	
 	public void setInsertCoreDB(String insertEngine) {
 		this.coreDB = (IEngine) DIHelper.getInstance().getLocalProp(insertEngine);
-	}	
+	}
 }
