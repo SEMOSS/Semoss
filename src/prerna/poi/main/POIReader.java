@@ -246,26 +246,29 @@ public class POIReader extends AbstractFileReader {
 		{
 			XSSFRow row = lSheet.getRow(rIndex);
 			// check to make sure cell is not null
-			XSSFCell cell = row.getCell(0);
-			if(cell != null)
+			if(row != null)
 			{
-				// get the name of the sheet
-				String sheetToLoad = row.getCell(0).getStringCellValue();
-				// determine the type of load
-				String loadTypeName = row.getCell(1).getStringCellValue();
-				if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) 
+				XSSFCell cell = row.getCell(0);
+				if(cell != null)
 				{
-					logger.debug("Cell Content is " + sheetToLoad);
-					// this is a relationship
-					if (loadTypeName.contains("Matrix")) 
+					// get the name of the sheet
+					String sheetToLoad = row.getCell(0).getStringCellValue();
+					// determine the type of load
+					String loadTypeName = row.getCell(1).getStringCellValue();
+					if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) 
 					{
-						loadMatrixSheet(sheetToLoad, workbook);
-						sc.commit();
-					} 
-					else 
-					{
-						loadSheet(sheetToLoad, workbook);
-						sc.commit();
+						logger.debug("Cell Content is " + sheetToLoad);
+						// this is a relationship
+						if (loadTypeName.contains("Matrix")) 
+						{
+							loadMatrixSheet(sheetToLoad, workbook);
+							sc.commit();
+						} 
+						else 
+						{
+							loadSheet(sheetToLoad, workbook);
+							sc.commit();
+						}
 					}
 				}
 			}
