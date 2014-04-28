@@ -333,7 +333,6 @@ public class POIReader extends AbstractFileReader {
 				if (nextRow.getCell(1) != null	&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK)
 				{
 					nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
-					
 				}
 				
 				// to prevent errors when java thinks there is a row of data when the row is empty
@@ -388,6 +387,7 @@ public class POIReader extends AbstractFileReader {
 							propHash.put(propName, dbl);
 						}
 					} else {
+						nextRow.getCell(colIndex).setCellType(XSSFCell.CELL_TYPE_STRING);
 						propValue = nextRow.getCell(colIndex).getStringCellValue();
 						propHash.put(propName, propValue);
 					}
