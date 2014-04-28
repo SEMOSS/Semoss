@@ -149,84 +149,64 @@ public class TaskerGenerationWriter {
 		}
 
 		//User Types
-		rowToWriteOn = sheetToWriteOver.getRow(7);
-		int addUserTypeCount=10;
+		int rowToWriteMax = 11; //max list of users
 		for (int i=0; i<userTypesResults.size(); i++) {	
 			ArrayList row = (ArrayList) userTypesResults.get(i);
 			for (int j=0; j< row.size(); j++) {
 				if (row.get(j) instanceof String) {
-					String user= (String) row.get(j);
-					if(user.toLowerCase().equals("doctors"))
+					String user= ((String) row.get(j)).replaceAll("_", " ");
+					boolean inInitialList=false;
+					for(int rowToWriteInd = 7;rowToWriteInd<rowToWriteMax;rowToWriteInd++)
 					{
+						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteInd);
+						cellToWriteOn=rowToWriteOn.getCell(5);
+						if(cellToWriteOn.getStringCellValue().equalsIgnoreCase(user))
+						{
+							cellToWriteOn=rowToWriteOn.getCell(6);
+							cellToWriteOn.setCellValue("X");
+							inInitialList=true;
+						}
+					}
+					if(!inInitialList)
+					{
+						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteMax);
+						cellToWriteOn=rowToWriteOn.getCell(5);
+						cellToWriteOn.setCellValue(user);
 						cellToWriteOn=rowToWriteOn.getCell(6);
 						cellToWriteOn.setCellValue("X");
-					}
-					else if(user.toLowerCase().equals("nurses"))
-					{
-						cellToWriteOn=rowToWriteOn.getCell(7);
-						cellToWriteOn.setCellValue("X");
-					}
-					else if(user.toLowerCase().equals("schedulers"))
-					{
-						cellToWriteOn=rowToWriteOn.getCell(8);
-						cellToWriteOn.setCellValue("X");
-					}
-					else if(user.toLowerCase().equals("logistician"))
-					{
-						cellToWriteOn=rowToWriteOn.getCell(9);
-						cellToWriteOn.setCellValue("X");
-					}
-					else
-					{
-						rowToWriteOn= sheetToWriteOver.getRow(6);
-						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
-						cellToWriteOn.setCellValue(user.replaceAll("_"," "));
-						rowToWriteOn= sheetToWriteOver.getRow(7);
-						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
-						cellToWriteOn.setCellValue("X");
-						addUserTypeCount++;
+						rowToWriteMax++;
 					}
 				}
 			}
 		}
 
 		//User Interfaces
-		rowToWriteOn = sheetToWriteOver.getRow(7);
-		addUserTypeCount=19;
+		rowToWriteMax = 11; //max list of users
 		for (int i=0; i<userInterfacesResults.size(); i++) {	
 			ArrayList row = (ArrayList) userInterfacesResults.get(i);
 			for (int j=0; j< row.size(); j++) {
 				if (row.get(j) instanceof String) {
-					String user= (String) row.get(j);
-					if(user.equals("Web-Based"))
+					String user= ((String) row.get(j)).replaceAll("_", " ");
+					boolean inInitialList=false;
+					for(int rowToWriteInd = 7;rowToWriteInd<rowToWriteMax;rowToWriteInd++)
 					{
-						cellToWriteOn=rowToWriteOn.getCell(15);
-						cellToWriteOn.setCellValue("X");
+						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteInd);
+						cellToWriteOn=rowToWriteOn.getCell(5);
+						if(cellToWriteOn.getStringCellValue().equalsIgnoreCase(user))
+						{
+							cellToWriteOn=rowToWriteOn.getCell(6);
+							cellToWriteOn.setCellValue("X");
+							inInitialList=true;
+						}
 					}
-					else if(user.equals("Mobile"))
+					if(!inInitialList)
 					{
-						cellToWriteOn=rowToWriteOn.getCell(16);
+						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteMax);
+						cellToWriteOn=rowToWriteOn.getCell(5);
+						cellToWriteOn.setCellValue(user);
+						cellToWriteOn=rowToWriteOn.getCell(6);
 						cellToWriteOn.setCellValue("X");
-					}
-					else if(user.equals("PC Application"))
-					{
-						cellToWriteOn=rowToWriteOn.getCell(17);
-						cellToWriteOn.setCellValue("X");
-					}
-					else if(user.equals("Other Device"))
-					{
-						cellToWriteOn=rowToWriteOn.getCell(18);
-						cellToWriteOn.setCellValue("X");
-					}
-					else
-					{
-						rowToWriteOn= sheetToWriteOver.getRow(6);
-						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
-						cellToWriteOn.setCellValue(user.replaceAll("_"," "));
-						rowToWriteOn= sheetToWriteOver.getRow(7);
-						cellToWriteOn=rowToWriteOn.getCell(addUserTypeCount);
-						cellToWriteOn.setCellValue("X");
-						addUserTypeCount++;
+						rowToWriteMax++;
 					}
 				}
 			}
