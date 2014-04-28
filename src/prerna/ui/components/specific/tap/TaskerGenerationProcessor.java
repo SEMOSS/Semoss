@@ -157,7 +157,7 @@ public class TaskerGenerationProcessor {
 //		budgetQuery = budgetQuery.replaceAll("APEQS", systemName);
 
 		//Site List Query
-		String siteListQuery = "SELECT DISTINCT ?SiteName WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?SiteName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} BIND (<http://health.mil/ontologies/Concept/System/AFCHIPS> AS ?System){?SystemDCSite ?DeployedAt ?SiteName;}{?System ?DeployedAt1 ?SystemDCSite;} }";		
+		String siteListQuery = "SELECT DISTINCT ?SiteName WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?SiteName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?SiteName;}{?System ?DeployedAt1 ?SystemDCSite;} }";		
 		siteListQuery = siteListQuery.replaceAll("AHLTA", systemName);		
 
 		
