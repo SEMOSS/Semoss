@@ -29,7 +29,6 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -335,13 +334,13 @@ public class POIReader extends AbstractFileReader {
 				// set the name of the subject instance node to be a string
 				if (nextRow.getCell(1) != null	&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK)
 				{
-					nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
+					nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
 				}
 				
 				// to prevent errors when java thinks there is a row of data when the row is empty
 				XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
 				String instanceSubjectNode = "";
-				if(instanceSubjectNodeCell != null || instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceSubjectNodeCell.toString().isEmpty())
+				if(instanceSubjectNodeCell != null || instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceSubjectNodeCell.getStringCellValue().isEmpty())
 				{
 					instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 				}
@@ -355,10 +354,10 @@ public class POIReader extends AbstractFileReader {
 				int startCol = 1;
 				int offset = 1;
 				if (sheetType.equalsIgnoreCase("Relation")) {
-					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
 					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-					if(instanceObjectNodeCell != null || instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceObjectNodeCell.toString().isEmpty())
+					if(instanceObjectNodeCell != null || instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceObjectNodeCell.getStringCellValue().isEmpty())
 					{
+						instanceObjectNodeCell.setCellType(XSSFCell.CELL_TYPE_STRING);
 						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 					}
 					else
@@ -377,7 +376,7 @@ public class POIReader extends AbstractFileReader {
 					}
 					String propName = propNames.elementAt(colIndex - offset).toString();
 					String propValue = "";
-					if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK || nextRow.getCell(colIndex).toString().isEmpty()) {
+					if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK || nextRow.getCell(colIndex).getStringCellValue().isEmpty()) {
 						continue;
 					}
 					if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
