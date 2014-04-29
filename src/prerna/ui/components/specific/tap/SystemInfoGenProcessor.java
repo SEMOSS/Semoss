@@ -250,18 +250,18 @@ public class SystemInfoGenProcessor {
 	public void processQueries() {
 
 		//System Names
-		String sysNameQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?Owner}}ORDER BY ?System BINDINGS ?Owner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Central>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";
+		String sysNameQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}}ORDER BY ?System";// BINDINGS ?User {(<http://health.mil/ontologies/Concept/SystemUser/Air_Force>)(<http://health.mil/ontologies/Concept/SystemUser/Army>)(<http://health.mil/ontologies/Concept/SystemUser/Central>)(<http://health.mil/ontologies/Concept/SystemUser/Navy>)}";
 		
 		//System Description
 		String sysDescriptionQuery = "SELECT DISTINCT ?System ?Full_System_Name ?Description WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Full_System_Name>  ?Full_System_Name}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Description>  ?Description}} ORDER BY ?System";
 		
 		//System Owners
-		String sysOwnersQuery = "SELECT DISTINCT ?System ?System_Owner WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System_Owner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?System_Owner}}";
+		String sysOwnersQuery = "SELECT DISTINCT ?System ?System_Owner WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System_Owner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?System_Owner}} ORDER BY ?System ?System_Owner";
 
 		//System Users
-		String sysUsersQuery = "SELECT DISTINCT ?System ?System_User WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?System_User <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>;}{?System ?UsedBy ?System_User}}";
+		String sysUsersQuery = "SELECT DISTINCT ?System ?System_User WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?System_User <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>;}{?System ?UsedBy ?System_User}} ORDER BY ?System ?System_User";
 
-		//System Users
+		//Garrison Theater
 		String sysGarrisonTheaterQuery = "SELECT DISTINCT ?System ?Garrison_Theater WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Garrison_Theater}}";
 		
 		//Num of Deployment Sites
@@ -293,38 +293,38 @@ public class SystemInfoGenProcessor {
 		
 		String sysAndNotDHMSMBLUQuery = "SELECT DISTINCT ?System ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities WHERE {{?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?cap <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> } {?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>} {?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap} {?cap <http://semoss.org/ontologies/Relation/Consists> ?task} {?task <http://semoss.org/ontologies/Relation/Needs> ?Business_Logic_Units_System_Provides_And_Not_Provided_By_DHMSM_Capabilities}}FILTER(!BOUND(?cap))}";
 				
-		//System Complexity
-		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
+//		//System Complexity
+//		String complexityQuery = "SELECT DISTINCT ?System ?Complexity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;}{?Complexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity>;}{?System ?Rated ?Complexity}}";
+//		
+//		//System BV and TM
+//		//String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) (?SustainmentBud AS ?Sustainment_Budget) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}  }}";
+//		String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }}";
+//		
+//		//Sustainment Budget
+//		String sustainmentQuery = "SELECT DISTINCT ?System (SUM(?value) AS ?Sustainment_Budget) WHERE{ SELECT DISTINCT ?System ?budget ?value  WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?budget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?System ?has ?budget .} {?budget <http://semoss.org/ontologies/Relation/Contains/Cost> ?value ;} } } GROUP BY ?System";
+//
+//		//Transition Cost queries
+//		//data consumer
+//		String dataConsumerQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE { SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;}{?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?data ?input ?GLitem} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} } }GROUP BY ?System";
+//
+//		//generic data
+//		String genericDataQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem(ROUND(?loe) AS ?LOEIndividual) WHERE {BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}  {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;}  {?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;}  {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} . {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;}{?System ?provide ?data ;}{?GLitem ?tagged ?gltag;}{?GLitem ?belongs ?phase ;}{?GLitem ?output ?ser ;}{?data ?input ?GLitem} } } GROUP BY ?System";
+//
+//		//generic blu
+//		String genericBLUQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?blu ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System ?provide ?blu ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;}{?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;}{?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?blu ?input ?GLitem} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag). } } GROUP BY ?System";
+//
+//		//transition data federation
+//		String dataFedQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;} {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?data ?input ?GLitem} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} } } GROUP BY ?System";
+//
+//		//blu provider
+//		String bluProviderQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE {  BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;} {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?blu ?input ?GLitem} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} } } GROUP BY ?System";
 		
-		//System BV and TM
-		//String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) (?SustainmentBud AS ?Sustainment_Budget) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}  }}";
-		String BVAndTMQuery = "SELECT DISTINCT ?System (?bv * 100 AS ?Business_Value) (?estm AS ?External_Stability) (?tstm AS ?Technical_Standards_Compliance) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv;} } OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm .} }OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM>  ?tstm .} }}";
-		
-		//Sustainment Budget
-		String sustainmentQuery = "SELECT DISTINCT ?System (SUM(?value) AS ?Sustainment_Budget) WHERE{ SELECT DISTINCT ?System ?budget ?value  WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?budget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?System ?has ?budget .} {?budget <http://semoss.org/ontologies/Relation/Contains/Cost> ?value ;} } } GROUP BY ?System";
-
-		//Transition Cost queries
-		//data consumer
-		String dataConsumerQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE { SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;}{?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?data ?input ?GLitem} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} } }GROUP BY ?System";
-
-		//generic data
-		String genericDataQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem(ROUND(?loe) AS ?LOEIndividual) WHERE {BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}  {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;}  {?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;}  {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} . {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;}{?System ?provide ?data ;}{?GLitem ?tagged ?gltag;}{?GLitem ?belongs ?phase ;}{?GLitem ?output ?ser ;}{?data ?input ?GLitem} } } GROUP BY ?System";
-
-		//generic blu
-		String genericBLUQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?blu ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System ?provide ?blu ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;}{?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;}{?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?blu ?input ?GLitem} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag). } } GROUP BY ?System";
-
-		//transition data federation
-		String dataFedQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;} {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?data ?input ?GLitem} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} } } GROUP BY ?System";
-
-		//blu provider
-		String bluProviderQuery = "SELECT DISTINCT ?System (SUM(?LOEIndividual) AS ?LOE) WHERE {SELECT DISTINCT ?System ?phase ?data ?GLitem (ROUND(?loe) AS ?LOEIndividual) WHERE {  BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?tagged <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?GLitem ?tagged ?gltag;} {?influences <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Influences>;}{?System ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?belongs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>;} {?GLitem ?belongs ?phase ;} {?output <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Output>;} {?GLitem ?output ?ser ;}{?input <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Input>;} {?blu ?input ?GLitem} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} } } GROUP BY ?System";
-		
-		ArrayList<String> costQueries = new ArrayList<String>();
-		costQueries.add(dataConsumerQuery);
-		costQueries.add(genericDataQuery);
-		costQueries.add(genericBLUQuery);
-		costQueries.add(dataFedQuery);
-		costQueries.add(bluProviderQuery);
+//		ArrayList<String> costQueries = new ArrayList<String>();
+//		costQueries.add(dataConsumerQuery);
+//		costQueries.add(genericDataQuery);
+//		costQueries.add(genericBLUQuery);
+//		costQueries.add(dataFedQuery);
+//		costQueries.add(bluProviderQuery);
 		
 		//run all queries and store them in the masterHash
 		runSystemListQuery(hrCoreEngine, sysNameQuery);
@@ -351,12 +351,12 @@ public class SystemInfoGenProcessor {
 		headersList.add("Data_Objects_System_Is_Record_Of");
 		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
 		headersList.add("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities");
-		headersList.add("Number_Of_Data_Objects_Not_Covered_By_DHMSM");
-		headersList.add("Data_Objects_Not_Covered_By_DHMSM");
-		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
-		headersList.add("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
-		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
-		headersList.add("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
+		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Not_Created_By_DHMSM_Capabilities");
+		headersList.add("Data_Objects_System_Is_Record_Of_And_Not_Created_By_DHMSM_Capabilities");
+//		headersList.add("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
+//		headersList.add("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities");
+//		headersList.add("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
+//		headersList.add("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads");
 
 		runQuery(hrCoreEngine,sysNumBLUQuery);
 		runQuery(hrCoreEngine,sysBLUQuery);
@@ -366,7 +366,7 @@ public class SystemInfoGenProcessor {
 		runQuery(hrCoreEngine,sysAndNotDHMSMBLUQuery);
 
 	
-		headersList.add("Top_Five_Similar_Systems");
+//		headersList.add("Top_Five_Similar_Systems");
 		for(String system : sysList)
 		{
 			Hashtable sysHash = masterHash.get(system);
@@ -379,33 +379,33 @@ public class SystemInfoGenProcessor {
 			int numOfDataSystemSORAndDHMSMCreate = dataSystemSORAndDHMSMCreateList.size();
 			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", numOfDataSystemSORAndDHMSMCreate);
 			sysHash.put("Data_Objects_System_Is_Record_Of_And_Created_By_DHMSM_Capabilities", makeConcatString(dataSystemSORAndDHMSMCreateList));
-			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
-			sysHash.put("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "R")));
-			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
-			sysHash.put("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "R", "C")));
-			sysHash.put("Number_Of_Data_Objects_Not_Covered_By_DHMSM", numOfDataSystemSOR-numOfDataSystemSORAndDHMSMCreate);
-			sysHash.put("Data_Objects_Not_Covered_By_DHMSM", makeConcatString(getNotCoveredList(dataSystemSORList,dataSystemSORAndDHMSMCreateList)));
-			ArrayList<String> sysSimList = sysSim.prioritySysHash.get(system);
-			ArrayList<Double> sysSimValueList = sysSim.priorityValueHash.get(system);
-			String sysSimConcat = "";
-			if(sysSimList!=null)
-			{
-				if(sysSimList.size()>0)
-					sysSimConcat = sysSimList.get(0)+": "+sysSimValueList.get(0)*100+"%";
-				for(int i=1;i<sysSimList.size();i++)
-					sysSimConcat +=", "+sysSimList.get(i)+": "+sysSimValueList.get(i)*100+"%";
-			}
-			sysHash.put("Top_Five_Similar_Systems",sysSimConcat);
-			masterHash.put(system,sysHash);
+//			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",dhelp.getDataObjectListSupportedFromSystem(system, "C", "R").size());
+//			sysHash.put("Data_Objects_System_Is_Record_Of_And_Read_By_DHMSM_Capabilities",makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "C", "R")));
+//			sysHash.put("Num_Of_Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", dhelp.getDataObjectListSupportedFromSystem(system, "R", "C").size());
+//			sysHash.put("Data_Objects_DHMSM_Capabilities_Create_And_This_System_Reads", makeConcatString(dhelp.getDataObjectListSupportedFromSystem(system, "R", "C")));
+			sysHash.put("Num_Of_Data_Objects_System_Is_Record_Of_And_Not_Created_By_DHMSM_Capabilities", numOfDataSystemSOR-numOfDataSystemSORAndDHMSMCreate);
+			sysHash.put("Data_Objects_System_Is_Record_Of_And_Not_Created_By_DHMSM_Capabilities", makeConcatString(getNotCoveredList(dataSystemSORList,dataSystemSORAndDHMSMCreateList)));
+//			ArrayList<String> sysSimList = sysSim.prioritySysHash.get(system);
+//			ArrayList<Double> sysSimValueList = sysSim.priorityValueHash.get(system);
+//			String sysSimConcat = "";
+//			if(sysSimList!=null)
+//			{
+//				if(sysSimList.size()>0)
+//					sysSimConcat = sysSimList.get(0)+": "+sysSimValueList.get(0)*100+"%";
+//				for(int i=1;i<sysSimList.size();i++)
+//					sysSimConcat +=", "+sysSimList.get(i)+": "+sysSimValueList.get(i)*100+"%";
+//			}
+//			sysHash.put("Top_Five_Similar_Systems",sysSimConcat);
+//			masterHash.put(system,sysHash);
 		}
 		
 		runProbability(dhelp);
-		runQuery(hrCoreEngine,complexityQuery);
-		runQuery(tapCoreEngine,BVAndTMQuery);
-		runQuery(tapCostEngine,sustainmentQuery);
-		logger.info("Completed Complexity and BV/TM queries");
-		runCostQueries(tapCostEngine,costQueries);
-		logger.info("Completed Transistion Cost queries");
+//		runQuery(hrCoreEngine,complexityQuery);
+//		runQuery(tapCoreEngine,BVAndTMQuery);
+//		runQuery(tapCostEngine,sustainmentQuery);
+//		logger.info("Completed Complexity and BV/TM queries");
+//		runCostQueries(tapCostEngine,costQueries);
+//		logger.info("Completed Transistion Cost queries");
 		
 	}
 	public String makeConcatString(ArrayList<String> vals)
@@ -440,10 +440,9 @@ public class SystemInfoGenProcessor {
 			double numOfBLUSystemSOR = 0;
 			double numOfBLUSystemSORAndDHMSMCreate = 0;
 			if(sysHash.containsKey("Num_Of_Business_Logic_Units_System_Provides"))
-			{
 				numOfBLUSystemSOR= (Double) sysHash.get("Num_Of_Business_Logic_Units_System_Provides");
+			if(sysHash.containsKey("Num_Of_Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities"))
 				numOfBLUSystemSORAndDHMSMCreate = (Double) sysHash.get("Num_Of_Business_Logic_Units_System_Provides_And_Provided_By_DHMSM_Capabilities");
-			}
 			if(numOfBLUSystemSOR==0)
 				sysHash.put("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM", "");
 			else if(numOfBLUSystemSORAndDHMSMCreate == 0)
