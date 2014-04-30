@@ -27,6 +27,7 @@ SystemIncident http://health.mil/ontologies/Concept/SystemIncident
 DCSite http://health.mil/ontologies/Concept/DCSite
 HardwareVersion http://health.mil/ontologies/Concept/HardwareVersion
 NPI http://health.mil/ontologies/Concept/NPI
+DHMSM http://health.mil/ontologies/Concept/DHMSM
 SystemDCSiteIncident http://health.mil/ontologies/Concept/SystemDCSiteIncident
 Hardware http://health.mil/ontologies/Concept/Hardware
 Personnel http://health.mil/ontologies/Concept/Personnel
@@ -41,6 +42,7 @@ SystemDCSite_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 SystemDCSite_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 SystemDCSite_Consists_SiteSoftwareModule http://health.mil/ontologies/Relation/Consists
 SystemDCSite_Provide_BLU http://health.mil/ontologies/Relation/Provide
+DHMSM_Transitions_MTF http://health.mil/ontologies/Relation/Transitions
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
@@ -62,8 +64,8 @@ SystemDCSite_Has_TError http://health.mil/ontologies/Relation/Has
 SystemDCSite_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 InterfaceControlDocument_Implemented_At_SystemDCSite http://health.mil/ontologies/Relation/Implemented_At
 SiteSoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
-InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 SystemIncident_Affects_System http://health.mil/ontologies/Relation/Affects
+InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 System_DeployedAt_SystemDCSite http://health.mil/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
 SystemDCSite_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
@@ -87,14 +89,15 @@ UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 DCSiteCmdCode_CLASS http://semoss.org/ontologies/Concept/DCSiteCmdCode
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
+DHMSM_CLASS http://semoss.org/ontologies/Concept/DHMSM
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
 SystemDCSiteIncident_CLASS http://semoss.org/ontologies/Concept/SystemDCSiteIncident
 Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
 Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
 MTF_CLASS http://semoss.org/ontologies/Concept/MTF
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
-City_CLASS http://semoss.org/ontologies/Concept/City
 SiteHardwareModule_CLASS http://semoss.org/ontologies/Concept/SiteHardwareModule
+City_CLASS http://semoss.org/ontologies/Concept/City
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 SystemDCSite_CLASS http://semoss.org/ontologies/Concept/SystemDCSite
 SystemIncident_CLASS http://semoss.org/ontologies/Concept/SystemIncident
@@ -129,6 +132,7 @@ SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
+DHMSM_Transitions_MTF_CLASS http://semoss.org/ontologies/Relation/Transitions
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
