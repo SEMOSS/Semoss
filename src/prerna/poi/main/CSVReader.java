@@ -278,12 +278,49 @@ public class CSVReader extends AbstractFileReader {
 				String relation = relationArrayList.get(relIndex);
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String subject = strSplit[0];
+				String sub = strSplit[0];
+				String subject = "";
 				String predicate = strSplit[1];
-				String object = strSplit[2];
-
-				String subjectValue = createInstanceValue(subject, jcrMap);
-				String objectValue = createInstanceValue(object, jcrMap);
+				String obj = strSplit[2];
+				String object = "";
+				
+				// see if subject node URI exists in prop file
+				if(rdfMap.containsKey(sub))
+				{
+					subject = rdfMap.get(sub);
+				}
+				// if no user specified URI, use generic URI
+				else
+				{
+					if(sub.contains("+"))
+					{
+						subject = processAutoConcat(sub);
+					}
+					else
+					{
+						subject = sub;
+					}
+				}
+				// see if object node URI exists in prop file
+				if(rdfMap.containsKey(obj))
+				{
+					object = rdfMap.get(obj);
+				}
+				// if no user specified URI, use generic URI
+				else
+				{
+					if(obj.contains("+"))
+					{
+						object = processAutoConcat(obj);
+					}
+					else
+					{
+						object = obj;
+					}
+				}
+				
+				String subjectValue = createInstanceValue(sub, jcrMap);
+				String objectValue = createInstanceValue(obj, jcrMap);
 				if (subjectValue.isEmpty() || objectValue.isEmpty())
 				{
 					continue;
@@ -300,11 +337,28 @@ public class CSVReader extends AbstractFileReader {
 					{
 						// loop through all properties on the relationship
 						for(int i = 1; i < relPropSplit.length; i++)
-						{
+						{			
 							// add the necessary triples for the relationship property
 							String prop = relPropSplit[i];
-							// createProperty(predicateInstanceURI, propURI, relPropSplit[i], jcrMap);
-							propHash.put(prop, createObject(prop, jcrMap));
+							String property = "";
+							// see if property node URI exists in prop file
+							if(rdfMap.containsKey(prop))
+							{
+								property = rdfMap.get(prop);
+							}
+							// if no user specified URI, use generic URI
+							else
+							{
+								if(prop.contains("+"))
+								{
+									property = processAutoConcat(prop);
+								}
+								else
+								{
+									property = prop;
+								}
+							}
+							propHash.put(property, createObject(prop, jcrMap));
 						}
 					}
 				}
@@ -318,18 +372,54 @@ public class CSVReader extends AbstractFileReader {
 				String relation = nodePropArrayList.get(relIndex);
 				String[] strSplit = relation.split("%");
 				// get the subject (the first index) and objects for triple
-				String subject = strSplit[0];
-				String subjectValue = createInstanceValue(subject, jcrMap);
+				String sub = strSplit[0];
+				String subject = "";
+				// see if subject node URI exists in prop file
+				if(rdfMap.containsKey(sub))
+				{
+					subject = rdfMap.get(sub);
+				}
+				// if no user specified URI, use generic URI
+				else
+				{	
+					if(sub.contains("+"))
+					{
+						subject = processAutoConcat(sub);
+					}
+					else
+					{
+						subject = sub;
+					}
+				}
+				String subjectValue = createInstanceValue(sub, jcrMap);
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
 					String prop = strSplit[i];
+					String property = "";
+					// see if property node URI exists in prop file
+					if(rdfMap.containsKey(prop))
+					{
+						property = rdfMap.get(prop);
+					}
+					// if no user specified URI, use generic URI
+					else
+					{
+						if(prop.contains("+"))
+						{
+							property = processAutoConcat(prop);
+						}
+						else
+						{
+							property = prop;
+						}
+					}
 					String propValue = createInstanceValue(prop, jcrMap);
 					if (subjectValue.isEmpty() || propValue.isEmpty())
 					{
 						continue;
 					}
-					nodePropHash.put(prop, createObject(prop, jcrMap));
+					nodePropHash.put(property, createObject(prop, jcrMap));
 				}
 				addNodeProperties(subject, subjectValue, nodePropHash);
 			}
@@ -358,31 +448,33 @@ public class CSVReader extends AbstractFileReader {
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String subject = strSplit[0];
+				String sub = strSplit[0];
+				String subject = "";
 				String predicate = strSplit[1];
-				String object = strSplit[2];
+				String obj = strSplit[2];
+				String object = "";
 				// check if prop file entries are not in excel and if nodes are concatenations
 				// throw exception if prop file entries not in excel
 				boolean headException = true;
-				if(subject.contains("+"))
+				if(sub.contains("+"))
 				{
-					headException = isProperConcatHeader(subject);
+					headException = isProperConcatHeader(sub);
 				}
 				else
 				{
-					if(!headerList.contains(subject))
+					if(!headerList.contains(sub))
 						headException = false;
 				}
 				if(headException = false)
 					throw new Exception();
 	
-				if(object.contains("+"))
+				if(obj.contains("+"))
 				{
-					headException = isProperConcatHeader(object);
+					headException = isProperConcatHeader(obj);
 				}
 				else
 				{
-					if(!headerList.contains(object))
+					if(!headerList.contains(obj))
 						headException = false;
 				}
 				if(headException = false)
@@ -395,77 +487,81 @@ public class CSVReader extends AbstractFileReader {
 				String idxURI = "";
 	
 				// see if subject node SEMOSS base URI exist in prop file first
-				if(rdfMap.containsKey(subject+Constants.CLASS))
+				if(rdfMap.containsKey(sub+Constants.CLASS))
 				{
-					baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.get(subject+Constants.CLASS));
+					baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub+Constants.CLASS));
 				}
 				// if no user specific URI, use generic SEMOSS base URI
 				else
 				{
-					if(subject.contains("+"))
+					if(sub.contains("+"))
 					{
-						String processedSubject = processAutoConcat(subject);
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ processedSubject;
+						subject = processAutoConcat(sub);
+						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
 					}
 					else
 					{
+						subject = sub;
 						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
 					}
 					baseConceptURIHash.put(subject+Constants.CLASS, idxBaseURI);
 				}
 				// see if subject node instance URI exists in prop file
-				if(rdfMap.containsKey(subject))
+				if(rdfMap.containsKey(sub))
 				{
-					conceptURIHash.put(subject, rdfMap.get(subject));
+					conceptURIHash.put(sub, rdfMap.get(sub));
 				}
 				// if no user specified URI, use generic custombaseURI
 				else
 				{
-					if(subject.contains("+"))
+					if(sub.contains("+"))
 					{
-						String processedSubject = processAutoConcat(subject);
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ processedSubject;
+						subject = processAutoConcat(sub);
+						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
 					}
 					else
 					{
+						subject = sub;
 						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
 					}
 					conceptURIHash.put(subject, idxURI);
 				}
 				// see if object node SEMOSS base URI exists in prop file
-				if(rdfMap.containsKey(object+Constants.CLASS))
+				if(rdfMap.containsKey(obj+Constants.CLASS))
 				{
-					baseConceptURIHash.put(object+Constants.CLASS,rdfMap.get(object+Constants.CLASS));
+					baseConceptURIHash.put(obj+Constants.CLASS,rdfMap.get(obj+Constants.CLASS));
 				}
 				// if no user specified URI, use generic SEMOSS base URI
 				else
 				{
-					if(object.contains("+"))
+					if(obj.contains("+"))
 					{
-						String processedObject = processAutoConcat(object);
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ processedObject;
+						object = processAutoConcat(obj);
+						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
 					}
 					else
 					{
+						object = obj;
 						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
 					}
 					baseConceptURIHash.put(object+Constants.CLASS, idxBaseURI);
 				}
 				// see if object node instance URI exists in prop file
-				if(rdfMap.containsKey(object))
+				if(rdfMap.containsKey(obj))
 				{
-					conceptURIHash.put(object, rdfMap.get(object));
+					conceptURIHash.put(obj, rdfMap.get(obj));
 				}
 				// if no user specified URI, use generic custombaseURI
 				else
 				{
-					if(object.contains("+"))
+					if(obj.contains("+"))
 					{
-						String processedObject = processAutoConcat(object);
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ processedObject;
+						object = processAutoConcat(obj);
+						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
 					}
 					else
 					{
+						object = obj;
 						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
 					}
 					conceptURIHash.put(object, idxURI);
@@ -522,7 +618,8 @@ public class CSVReader extends AbstractFileReader {
 				logger.info("Loading Node Prop " + relation);            	
 				String[] strSplit = relation.split("%");
 				// get the subject and object for triple (the two indexes)
-				String subject = strSplit[0];
+				String sub = strSplit[0];
+				String subject = "";
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
@@ -532,13 +629,13 @@ public class CSVReader extends AbstractFileReader {
 					String propURI = "";
 	
 					boolean headException = true;
-					if(subject.contains("+"))
+					if(sub.contains("+"))
 					{
-						headException = isProperConcatHeader(subject);
+						headException = isProperConcatHeader(sub);
 					}
 					else
 					{
-						if(!headerList.contains(subject))
+						if(!headerList.contains(sub))
 							headException = false;
 					}
 					if(headException = false)
@@ -557,31 +654,69 @@ public class CSVReader extends AbstractFileReader {
 						throw new Exception();
 	
 					// see if subject node SEMOSS base URI exists in prop file
-					if(rdfMap.containsKey(subject+Constants.CLASS))
+					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
-						baseConceptURIHash.put(subject+Constants.CLASS,rdfMap.get(subject));
+						baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub));
 					}
 					// if no user specified URI, use generic SEMOSS base URI
 					else
 					{
-						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+						if(sub.contains("+"))
+						{
+							subject = processAutoConcat(sub);
+							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+						}
+						else
+						{
+							subject = sub;
+							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+						}
 						baseConceptURIHash.put(subject+Constants.CLASS, idxBaseURI);
 					}
 					// see if subject node instance URI exists in prop file
-					if(rdfMap.containsKey(subject))
+					if(rdfMap.containsKey(sub))
 					{
-						conceptURIHash.put(subject, rdfMap.get(subject));
+						conceptURIHash.put(sub, rdfMap.get(sub));
 					}
 					// if no user specified URI, use generic custombaseURI
 					else
 					{
-						idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-						conceptURIHash.put(subject, idxURI);
+						if(sub.contains("+"))
+						{
+							subject = processAutoConcat(sub);
+							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
+						}
+						else
+						{
+							subject = sub;
+							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
+			
+						}
+						conceptURIHash.put(subject, idxURI);	
+					}
+					
+					String property = "";
+					// see if property node URI exists in prop file
+					if(rdfMap.containsKey(prop))
+					{
+						property = rdfMap.get(prop);
+					}
+					// if no user specified URI, use generic URI
+					else
+					{
+						if(prop.contains("+"))
+						{
+							property = processAutoConcat(prop);
+						}
+						else
+						{
+							property = prop;
+						}
 					}
 	
-					propURI = basePropURI+"/" + prop;
+					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
-					basePropURIHash.put(prop,  propURI);
+					basePropURIHash.put(property,  propURI);
 				}
 			}
 		}
@@ -628,10 +763,30 @@ public class CSVReader extends AbstractFileReader {
 					}
 					if(headException = false)
 						throw new Exception();
+					
 					String propURI = "";
-					propURI = basePropURI+"/"+prop;
+					String property = "";
+					// see if property node URI exists in prop file
+					if(rdfMap.containsKey(prop))
+					{
+						property = rdfMap.get(prop);
+					}
+					// if no user specified URI, use generic URI
+					else
+					{
+						if(prop.contains("+"))
+						{
+							property = processAutoConcat(prop);
+						}
+						else
+						{
+							property = prop;
+						}
+					}
+	
+					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
-					basePropURIHash.put(prop,  propURI);
+					basePropURIHash.put(property,  propURI);
 				}
 			}
 		}
