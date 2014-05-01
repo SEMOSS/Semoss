@@ -22,12 +22,14 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 
 import javax.swing.JComponent;
+import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.TaskerGenerationProcessor;
+import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
@@ -48,6 +50,8 @@ public class TaskerGenerationListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		processor.coreDB = (String)list.getSelectedValue();
 		ParamComboBox systemComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TASKER_GENERATION_SYSTEM_COMBO_BOX);
 		String system = (String)systemComboBox.getSelectedItem();
 		processor.generateSystemTasker(system);

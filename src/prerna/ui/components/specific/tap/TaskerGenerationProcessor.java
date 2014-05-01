@@ -42,7 +42,7 @@ import prerna.util.Utility;
  */
 public class TaskerGenerationProcessor {
 	Logger logger = Logger.getLogger(getClass());
-	String tapCoreEngine = "TAP_Core_Data";
+	public String coreDB = "";
 	String tapSiteEngine = "TAP_Site_Data";
 //	String tapPortfolioEngine = "TAP_Portfolio";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -174,23 +174,23 @@ public class TaskerGenerationProcessor {
 		terrorQuery = terrorQuery.replaceAll("ASIMS", systemName);
 
 		//sheet 1: System info
-		ArrayList<String> systemNameList = runQuery(tapCoreEngine, sysNameQuery);
-		ArrayList<String> systemHighlightsList = runQuery(tapCoreEngine, sysHighlightsQuery);
-		ArrayList<ArrayList<String>> userTypesList = runQuery(tapCoreEngine, userTypesQuery);
-		ArrayList<ArrayList<String>> userInterfacesList = runQuery(tapCoreEngine, userInterfaceQuery);
+		ArrayList<String> systemNameList = runQuery(coreDB, sysNameQuery);
+		ArrayList<String> systemHighlightsList = runQuery(coreDB, sysHighlightsQuery);
+		ArrayList<ArrayList<String>> userTypesList = runQuery(coreDB, userTypesQuery);
+		ArrayList<ArrayList<String>> userInterfacesList = runQuery(coreDB, userInterfaceQuery);
 
-		ArrayList<ArrayList<String>> businessProcessList = runQuery(tapCoreEngine, businessProcessQuery);
-		ArrayList<ArrayList<String>> activityList = runQuery(tapCoreEngine, activityQuery);
-		ArrayList<ArrayList<String>> bluList = runQuery(tapCoreEngine, bluQuery);
-		ArrayList<ArrayList<String>> dataList = runQuery(tapCoreEngine, dataQuery);
+		ArrayList<ArrayList<String>> businessProcessList = runQuery(coreDB, businessProcessQuery);
+		ArrayList<ArrayList<String>> activityList = runQuery(coreDB, activityQuery);
+		ArrayList<ArrayList<String>> bluList = runQuery(coreDB, bluQuery);
+		ArrayList<ArrayList<String>> dataList = runQuery(coreDB, dataQuery);
 		
-		ArrayList<ArrayList<Object>> interfacesResultsList = runQuery(tapCoreEngine, interfacesQuery);
-		ArrayList<String> ownerList = runQuery(tapCoreEngine, ownerQuery);
+		ArrayList<ArrayList<Object>> interfacesResultsList = runQuery(coreDB, interfacesQuery);
+		ArrayList<String> ownerList = runQuery(coreDB, ownerQuery);
 //		ArrayList<ArrayList<Object>> budgetResultsList = runQuery(tapPortfolioEngine, budgetQuery);
 		ArrayList<ArrayList<Object>> siteResultsList = runQuery(tapSiteEngine, siteListQuery);
-		ArrayList<String> systemSWResultsList = runQuery(tapCoreEngine, systemSWQuery);
-		ArrayList<String> systemHWResultsList = runQuery(tapCoreEngine, systemHWQuery);
-		ArrayList<String> terrorResultsList = runQuery(tapCoreEngine, terrorQuery);
+		ArrayList<String> systemSWResultsList = runQuery(coreDB, systemSWQuery);
+		ArrayList<String> systemHWResultsList = runQuery(coreDB, systemHWQuery);
+		ArrayList<String> terrorResultsList = runQuery(coreDB, terrorQuery);
 		
 		//Sheet 1 System Info
 		returnHash.put(ConstantsTAP.SYSTEM_NAME_QUERY, systemNameList);
