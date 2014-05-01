@@ -191,10 +191,10 @@ public class TaskerGenerationWriter {
 					for(int rowToWriteInd = 7;rowToWriteInd<rowToWriteMax;rowToWriteInd++)
 					{
 						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteInd);
-						cellToWriteOn=rowToWriteOn.getCell(5);
+						cellToWriteOn=rowToWriteOn.getCell(8);
 						if(cellToWriteOn.getStringCellValue().equalsIgnoreCase(user))
 						{
-							cellToWriteOn=rowToWriteOn.getCell(6);
+							cellToWriteOn=rowToWriteOn.getCell(9);
 							cellToWriteOn.setCellValue("X");
 							inInitialList=true;
 						}
@@ -202,9 +202,9 @@ public class TaskerGenerationWriter {
 					if(!inInitialList)
 					{
 						rowToWriteOn = sheetToWriteOver.getRow(rowToWriteMax);
-						cellToWriteOn=rowToWriteOn.getCell(5);
+						cellToWriteOn=rowToWriteOn.getCell(8);
 						cellToWriteOn.setCellValue(user);
-						cellToWriteOn=rowToWriteOn.getCell(6);
+						cellToWriteOn=rowToWriteOn.getCell(9);
 						cellToWriteOn.setCellValue("X");
 						rowToWriteMax++;
 					}
