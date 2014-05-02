@@ -36,11 +36,13 @@ DProt http://health.mil/ontologies/Concept/DProt
 JMA http://health.mil/ontologies/Concept/JMA
 Activity http://health.mil/ontologies/Concept/Activity
 TError http://health.mil/ontologies/Concept/TError
+CCD http://health.mil/ontologies/Concept/CCD
 RDFElement http://health.mil/ontologies/Concept/RDFElement
 Hardware http://health.mil/ontologies/Concept/Hardware
 VISTA http://health.mil/ontologies/Concept/VISTA
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
+CCD_Element http://health.mil/ontologies/Concept/CCD_Element
 DFreq http://health.mil/ontologies/Concept/DFreq
 SystemUser http://health.mil/ontologies/Concept/SystemUser
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
@@ -66,13 +68,14 @@ InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
-VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
+VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
 Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
+DataObject_MapsTo_CCD http://health.mil/ontologies/Relation/MapsTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 System_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
@@ -111,6 +114,7 @@ DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
 FError_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
 Activity_MapsTo_JMA http://health.mil/ontologies/Relation/MapsTo
+CCD_Element_BelongsTo_CCD http://health.mil/ontologies/Relation/BelongsTo
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
 
@@ -135,6 +139,7 @@ Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
 SoftwareModule_CLASS http://semoss.org/ontologies/Concept/SoftwareModule
 DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
+CCD_CLASS http://semoss.org/ontologies/Concept/CCD
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
 CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
@@ -151,6 +156,7 @@ InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceCon
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
+CCD_Element_CLASS http://semoss.org/ontologies/Concept/CCD_Element
 VISTAUnion_CLASS http://semoss.org/ontologies/Concept/VISTAUnion
 Database_CLASS http://semoss.org/ontologies/Concept/Database
 LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
@@ -172,6 +178,7 @@ InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Rela
 InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
 Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
 System_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObject_MapsTo_CCD_CLASS http://semoss.org/ontologies/Relation/MapsTo
 DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
 System_Consists_SoftwareModule_CLASS http://semoss.org/ontologies/Relation/Consists
 System_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
@@ -212,6 +219,7 @@ Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
+CCD_Element_BelongsTo_CCD_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 System_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
