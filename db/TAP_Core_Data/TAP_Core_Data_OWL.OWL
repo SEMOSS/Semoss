@@ -65,6 +65,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareVersion">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CCD">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DFreq">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -111,6 +114,9 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Tasker">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CCD_Element">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VISTAUnion">
@@ -164,6 +170,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Exposes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MapsTo">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -201,9 +210,6 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OwnedBy">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MapsTo">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
@@ -275,11 +281,11 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VISTAElement">
 	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/VISTA"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FError">
-	<Needs rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Consume rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FError">
+	<Needs rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase">
 	<TypeOf rdf:resource="http://semoss.org/ontologies/Concept/TaskerLifecyclePhase"/>
@@ -324,6 +330,9 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareModule">
 	<TypeOf rdf:resource="http://semoss.org/ontologies/Concept/HardwareVersion"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CCD_Element">
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/CCD"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Activity">
 	<Needs rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
@@ -408,11 +417,13 @@
 	<Has rdf:resource="http://semoss.org/ontologies/Concept/SoftwareVersion"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
-	<Carries>
-		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataElement">
-			<Connected rdf:resource="http://semoss.org/ontologies/Concept/CDRElement"/>
-		</rdf:Description>
-	</Carries>
+	<Carries rdf:resource="http://semoss.org/ontologies/Concept/DataElement"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
+	<MapsTo rdf:resource="http://semoss.org/ontologies/Concept/CCD"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataElement">
+	<Connected rdf:resource="http://semoss.org/ontologies/Concept/CDRElement"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Payload">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
