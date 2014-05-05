@@ -279,6 +279,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         f.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         ((SysNetSavingsFunction)f).setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         ((SysNetSavingsFunction)f).createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
+        ((SysNetSavingsFunction)f).createYearAdjuster(sysList, dataList, hourlyCost);
 
         //budget in LOE
         UnivariateOptimizer optimizer = new BrentOptimizer(.001, .001);
@@ -292,11 +293,19 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         OptimizationData[] data = new OptimizationData[]{search, objF, GoalType.MAXIMIZE, eval};
         try {
             UnivariatePointValuePair pair = multiOpt.optimize(data);
-            budget = pair.getPoint();
-            optNumYears = ((SysNetSavingsFunction)f).calculateYear(budget);
-            calculateSavingsAndROI();
             progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
+            if(((SysNetSavingsFunction)f).solutionExists)
+            {
+	            budget = pair.getPoint();
+	            optNumYears = ((SysNetSavingsFunction)f).calculateYear(budget);
+	            calculateSavingsAndROI();
+            }
+            else
+            {
+    			((SysOptPlaySheet)playSheet).solutionLbl.setText("No solution available within the given time frame");
+    			return;
+            }
         } catch (TooManyEvaluationsException fee) {
         	noErrors = false;
         	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+fee);
@@ -309,7 +318,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
 		optFunctions.setSysList(sysList);
 		optFunctions.setDataList(dataList);
-		optFunctions.costPerHour = hourlyCost;
+		optFunctions.hourlyCost = hourlyCost;
 //		optFunctions.optimize(budget, optNumYears);		
 //		optFunctions.timeConstraint = optNumYears;
 //		optFunctions.resourcesConstraint = budget;

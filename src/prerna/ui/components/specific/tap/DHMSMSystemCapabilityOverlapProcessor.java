@@ -20,14 +20,16 @@ package prerna.ui.components.specific.tap;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Vector;
 
 import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.specific.SystemInfoGenWriter;
+import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -135,15 +137,20 @@ public class DHMSMSystemCapabilityOverlapProcessor {
 			}
 		}
 		
-		
-		SystemInfoGenWriter writer = new SystemInfoGenWriter();
+		BasicReportWriter writer = new BasicReportWriter();
 		String folder = "\\export\\Reports\\";
 		String writeFileName = "Capability_System_Overlap_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;
-		logger.info(fileLoc);	
+		writer.makeWorkbook(fileLoc);
+		logger.info(fileLoc);
+		
+		Vector<String> keyList =  new Vector<String>(masterHash.keySet());
+		Collections.sort(keyList);
+		ArrayList<Object[]> masterList = writer.makeListFromHash(headersList,new ArrayList<String>(keyList), masterHash);
 
-		writer.exportSystemInfoReport(fileLoc, new ArrayList<String>(masterHash.keySet()),headersList,masterHash);
+		writer.writeListSheet("System Info",headersList,masterList);
+		writer.writeWorkbook();
 		
 		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\"+writeFileName);
 	}

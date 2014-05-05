@@ -27,13 +27,11 @@ import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.specific.SystemInfoGenWriter;
-import prerna.poi.specific.TaskerGenerationWriter;
+import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -146,15 +144,19 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 		
 		processQueries();
 		
-		SystemInfoGenWriter writer = new SystemInfoGenWriter();
+		BasicReportWriter writer = new BasicReportWriter();
 		String folder = "\\export\\Reports\\";
 		String writeFileName = "System_SOR_Access_Type_Report_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;
-		logger.info(fileLoc);	
-
-		writer.exportSystemInfoReport(fileLoc,sysList,headersList,masterHash);
+		writer.makeWorkbook(fileLoc);
+		logger.info(fileLoc);
 		
+		ArrayList<Object[]> masterList = writer.makeListFromHash(headersList, sysList, masterHash);
+
+		writer.writeListSheet("System Info",headersList,masterList);
+		writer.writeWorkbook();
+				
 		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\"+writeFileName);
 	}
 

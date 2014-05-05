@@ -299,9 +299,8 @@ public class PlayPane extends JFrame {
 
 	//Tasker Generation and System Info Panel
 	private JSeparator separator_8;
-	public JButton btnTaskerGeneration;
-	public JButton btnSystemInfoGenButton;
-	public JButton btnInterfaceReportButton;
+	public JButton btnTaskerGeneration, btnInterfaceReportButton;
+	public JButton btnSystemInfoGenButton, btnDataInterfaceWithDHMSM;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
 	
 	private JLabel lblModifyQueryOf;
@@ -2749,17 +2748,6 @@ public class PlayPane extends JFrame {
 		gbc_btnTaskerGeneration.gridy = 3;
 		TaskerGenerationPanel.add(btnTaskerGeneration, gbc_btnTaskerGeneration);
 		Style.registerTargetClassName(btnTaskerGeneration, ".standardButton");
-		
-		btnSystemInfoGenButton = new CustomButton("Generate System Info Report");
-		btnSystemInfoGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnSystemInfoGenerator = new GridBagConstraints();
-		gbc_btnSystemInfoGenerator.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnSystemInfoGenerator.gridwidth = 2;
-		gbc_btnSystemInfoGenerator.insets = new Insets(0, 0, 5, 5);
-		gbc_btnSystemInfoGenerator.gridx = 1;
-		gbc_btnSystemInfoGenerator.gridy = 4;
-		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
-		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
 
 		btnInterfaceReportButton = new CustomButton("Generate Interface Report");
 		btnInterfaceReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -2768,9 +2756,31 @@ public class PlayPane extends JFrame {
 		gbc_btnInterfaceReportButton.gridwidth = 2;
 		gbc_btnInterfaceReportButton.insets = new Insets(0, 0, 5, 5);
 		gbc_btnInterfaceReportButton.gridx = 1;
-		gbc_btnInterfaceReportButton.gridy = 5;
+		gbc_btnInterfaceReportButton.gridy = 4;
 		TaskerGenerationPanel.add(btnInterfaceReportButton, gbc_btnInterfaceReportButton);
 		Style.registerTargetClassName(btnInterfaceReportButton, ".standardButton");
+		
+		btnSystemInfoGenButton = new CustomButton("Generate System Info Report");
+		btnSystemInfoGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnSystemInfoGenerator = new GridBagConstraints();
+		gbc_btnSystemInfoGenerator.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnSystemInfoGenerator.gridwidth = 2;
+		gbc_btnSystemInfoGenerator.insets = new Insets(0, 0, 5, 5);
+		gbc_btnSystemInfoGenerator.gridx = 3;
+		gbc_btnSystemInfoGenerator.gridy = 3;
+		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
+		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
+		
+		btnDataInterfaceWithDHMSM = new CustomButton("Generate Data Interface With DHMSM Report");
+		btnDataInterfaceWithDHMSM.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnDataInterfaceWithDHMSM = new GridBagConstraints();
+		gbc_btnDataInterfaceWithDHMSM.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnDataInterfaceWithDHMSM.gridwidth = 2;
+		gbc_btnDataInterfaceWithDHMSM.insets = new Insets(0, 0, 5, 5);
+		gbc_btnDataInterfaceWithDHMSM.gridx = 3;
+		gbc_btnDataInterfaceWithDHMSM.gridy = 4;
+		TaskerGenerationPanel.add(btnDataInterfaceWithDHMSM, gbc_btnDataInterfaceWithDHMSM);
+		Style.registerTargetClassName(btnDataInterfaceWithDHMSM, ".standardButton");
 		
 		JPanel dhmsmReportPanel = new JPanel();
 		dhmsmReportPanel.setBackground(SystemColor.control);
