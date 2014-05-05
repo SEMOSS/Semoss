@@ -287,7 +287,10 @@ public class CSVReader extends AbstractFileReader {
 				// see if subject node URI exists in prop file
 				if(rdfMap.containsKey(sub))
 				{
-					subject = rdfMap.get(sub);
+					String userSub = rdfMap.get(sub).toString(); 
+					subject = userSub.substring(userSub.lastIndexOf("/")+1);
+					
+					//subject = rdfMap.get(sub);
 				}
 				// if no user specified URI, use generic URI
 				else
@@ -304,7 +307,10 @@ public class CSVReader extends AbstractFileReader {
 				// see if object node URI exists in prop file
 				if(rdfMap.containsKey(obj))
 				{
-					object = rdfMap.get(obj);
+					String userObj = rdfMap.get(obj).toString(); 
+					object = userObj.substring(userObj.lastIndexOf("/")+1);
+					
+					//object = rdfMap.get(obj);
 				}
 				// if no user specified URI, use generic URI
 				else
@@ -344,7 +350,10 @@ public class CSVReader extends AbstractFileReader {
 							// see if property node URI exists in prop file
 							if(rdfMap.containsKey(prop))
 							{
-								property = rdfMap.get(prop);
+								String userProp = rdfMap.get(prop).toString(); 
+								property = userProp.substring(userProp.lastIndexOf("/")+1);
+								
+								//property = rdfMap.get(prop);
 							}
 							// if no user specified URI, use generic URI
 							else
@@ -377,7 +386,10 @@ public class CSVReader extends AbstractFileReader {
 				// see if subject node URI exists in prop file
 				if(rdfMap.containsKey(sub))
 				{
-					subject = rdfMap.get(sub);
+					String userSub = rdfMap.get(sub).toString(); 
+					subject = userSub.substring(userSub.lastIndexOf("/")+1);
+					
+					//subject = rdfMap.get(sub);
 				}
 				// if no user specified URI, use generic URI
 				else
@@ -400,7 +412,10 @@ public class CSVReader extends AbstractFileReader {
 					// see if property node URI exists in prop file
 					if(rdfMap.containsKey(prop))
 					{
-						property = rdfMap.get(prop);
+						String userProp = rdfMap.get(prop).toString(); 
+						property = userProp.substring(userProp.lastIndexOf("/")+1);
+						
+						//property = rdfMap.get(prop);
 					}
 					// if no user specified URI, use generic URI
 					else
@@ -509,7 +524,9 @@ public class CSVReader extends AbstractFileReader {
 				// see if subject node instance URI exists in prop file
 				if(rdfMap.containsKey(sub))
 				{
-					conceptURIHash.put(sub, rdfMap.get(sub));
+					String userSub = rdfMap.get(sub).toString(); 
+					subject = userSub.substring(userSub.lastIndexOf("/"));
+					conceptURIHash.put(sub, userSub);
 				}
 				// if no user specified URI, use generic custombaseURI
 				else
@@ -549,7 +566,9 @@ public class CSVReader extends AbstractFileReader {
 				// see if object node instance URI exists in prop file
 				if(rdfMap.containsKey(obj))
 				{
-					conceptURIHash.put(obj, rdfMap.get(obj));
+					String userObj = rdfMap.get(obj).toString(); 
+					object = userObj.substring(userObj.lastIndexOf("/")+1);
+					conceptURIHash.put(obj, userObj);
 				}
 				// if no user specified URI, use generic custombaseURI
 				else
@@ -607,7 +626,7 @@ public class CSVReader extends AbstractFileReader {
 			}
 			createStatement(vf.createURI(basePropURI),vf.createURI(Constants.SUBPROPERTY_URI),vf.createURI(basePropURI));
 	
-			for(int relIndex = 0;nodePropTokens.hasMoreElements();relIndex++)
+			while(nodePropTokens.hasMoreElements())
 			{
 				String relation = nodePropTokens.nextToken();
 				// in case the end of the prop string is empty string or spaces
@@ -656,7 +675,7 @@ public class CSVReader extends AbstractFileReader {
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
-						baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub));
+						baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub+Constants.CLASS));
 					}
 					// if no user specified URI, use generic SEMOSS base URI
 					else
@@ -676,6 +695,7 @@ public class CSVReader extends AbstractFileReader {
 					// see if subject node instance URI exists in prop file
 					if(rdfMap.containsKey(sub))
 					{
+						subject = rdfMap.get(sub);
 						conceptURIHash.put(sub, rdfMap.get(sub));
 					}
 					// if no user specified URI, use generic custombaseURI
@@ -699,7 +719,8 @@ public class CSVReader extends AbstractFileReader {
 					// see if property node URI exists in prop file
 					if(rdfMap.containsKey(prop))
 					{
-						property = rdfMap.get(prop);
+						String userProp = rdfMap.get(prop).toString(); 
+						property = userProp.substring(userProp.lastIndexOf("/")+1);
 					}
 					// if no user specified URI, use generic URI
 					else
@@ -769,7 +790,8 @@ public class CSVReader extends AbstractFileReader {
 					// see if property node URI exists in prop file
 					if(rdfMap.containsKey(prop))
 					{
-						property = rdfMap.get(prop);
+						String userProp = rdfMap.get(prop).toString(); 
+						property = userProp.substring(userProp.lastIndexOf("/")+1);
 					}
 					// if no user specified URI, use generic URI
 					else
