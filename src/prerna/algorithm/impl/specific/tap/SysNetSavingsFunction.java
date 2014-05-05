@@ -21,6 +21,7 @@ package prerna.algorithm.impl.specific.tap;
 import java.util.ArrayList;
 
 import prerna.algorithm.impl.LinearInterpolation;
+import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 
 /**
  * This class is used to calculate the number of years to decommission systems based on the budget.
@@ -28,12 +29,15 @@ import prerna.algorithm.impl.LinearInterpolation;
 public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	
 	LinearInterpolation linInt;
+	SysDecommissionOptimizationFunctions yearAdjuster;
 	double numMaintenanceSavings;
 	double serMainPerc;
 	double dataExposeCost;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
-
+	public boolean solutionExists = false;
+	
+	
 	/**
 	 * Given a budget, calculate the years in Savings.
 	 * Gets the lists of potential yearly savings and yearly budgets and can write to the app console for each iteration.
@@ -46,7 +50,17 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		linInt.setB(a);
 		linInt.execute();
 		double n = linInt.retVal;
-		double savings = calculateRet(a,n);
+		if(n<=-1.0E30)
+		{
+			consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
+			consoleArea.setText(consoleArea.getText()+"\nThere is no solution for Budget B: "+a);
+			return n;
+		}
+		solutionExists = true;
+		double nAdjusted = yearAdjuster.adjustTimeToTransform(a, n);
+//		if(Math.abs(nAdjusted-n)>.1)
+// 			System.out.println("N is: "+n+" Adjusted N is: "+nAdjusted);
+		double savings = calculateRet(a,nAdjusted);
 		writeToAppConsole(a,n,savings);
 		return savings;
 	}
@@ -163,6 +177,15 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	{
 		 linInt = new LinearInterpolation();
 		 linInt.setValues(initProc, secondYearProc, secondYear, dataExposeCost, minYears, maxYears);
+	}
+	
+	public void createYearAdjuster(ArrayList<String> sysList, ArrayList<String> dataList, double hourlyCost)
+	{
+		yearAdjuster = new SysDecommissionOptimizationFunctions();
+		yearAdjuster.setSysList(sysList);
+		yearAdjuster.setDataList(dataList);
+		yearAdjuster.hourlyCost = hourlyCost;
+		yearAdjuster.instantiate();
 	}
 
 }

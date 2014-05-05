@@ -20,10 +20,14 @@ public class SysDecommissionOptimizationFunctions {
 	//stores list of systems and then hashtable of systems to their min time and work volumes
 	private Hashtable<String, Double> sysToMinTimeHashPerSite;
 	private Hashtable<String, Double> sysToWorkVolHashPerSite;
-	private Hashtable<String, Double> sysToMinTimeHashAllSites;
+//	private Hashtable<String, Double> sysToMinTimeHashAllSites;
 	private Hashtable<String, Double> sysToWorkVolHashAllSites;
 	
+
+	private Hashtable<String, Double> sysToNumOfYearsHash;
 	private Hashtable<String, Double> sysToResourceAllocationHash;
+	private Hashtable<String, Double> sysToPossibleResourceAllocationHash;
+	private Hashtable<String, Double> sysToMaxResourceAllocationHash;
 	private Hashtable<String, Double> sysToNumSimultaneousTransformHash;
 	
     //hashtable storing all the systems, their data objects, and their loes
@@ -53,8 +57,9 @@ public class SysDecommissionOptimizationFunctions {
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 
 	private double percentOfPilot=0.2;
-	public double costPerHour=150.0;	
+	public double hourlyCost=150.0;	
 	private static final int workHoursInDay = 8;
+	private static final int workHoursInYear = 40*52;
 
 	public int resourcesConstraint;
 	private double resourcesPossible;
@@ -132,16 +137,42 @@ public class SysDecommissionOptimizationFunctions {
 		//minNecessaryTimeAllSystems
 		
 	}
+	/**Adjusts the minimum time it takes to transform the systems since there is some
+	 * minimum time each system takes based upon its data objects and resources.
+	 * 
+	 * @param budget
+	 * @param hourlyCost
+	 * @param years
+	 */
+	public double adjustTimeToTransform(double budget, double years)
+	{
+		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
+		sysToMaxResourceAllocationHash = new Hashtable<String, Double>();
+		sysToNumOfYearsHash = new Hashtable<String, Double>();
+		minPossibleTimeAllSystems = 0.0;
+		//instantiate();
+		resourcesPossible = budget / (workHoursInYear*hourlyCost);
+		calculatePossibleResourceAllocationPerSystem();//sysToResourceAllocationHash
+		calculateMaxResourceAllocationPerSystem();
+		calculateResourceAllocationPerSystem();
+		calculateTimeToTransformPerSystem(years);
+		calculateMinTimeToTransform();
+		return minPossibleTimeAllSystems;
+		
+	}
 	public void instantiate()
 	{
 		sysToMinTimeHashPerSite = new Hashtable<String, Double>();
 		sysToWorkVolHashPerSite = new Hashtable<String, Double>();
-		sysToMinTimeHashAllSites = new Hashtable<String, Double>();
+//		sysToMinTimeHashAllSites = new Hashtable<String, Double>();
 		sysToWorkVolHashAllSites = new Hashtable<String, Double>();
 		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
 		sysToProbHash = new Hashtable<String, String>();
+		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
+		sysToMaxResourceAllocationHash = new Hashtable<String, Double>();
 		sysToResourceAllocationHash = new Hashtable<String, Double>();
+		sysToNumOfYearsHash = new Hashtable<String, Double>();
 		sysToNumSimultaneousTransformHash = new Hashtable<String, Double>();
 		outputList = new ArrayList<Object[]>();
 		systemsWithNoSite = new ArrayList<String>();
@@ -155,7 +186,7 @@ public class SysDecommissionOptimizationFunctions {
 		
 		calculateMinTimeAndWorkVolPerSystemPerSite();
 		calculateMinTimeAndWorkVolPerSystemAllSites();
-		removeSystemsWithNoSite();
+//		removeSystemsWithNoSite();
 		sortSysList();
 		calculateMinTimeAllSystemsAllSites();
 		calculateWorkVolAllSystemsAllSites();
@@ -166,7 +197,7 @@ public class SysDecommissionOptimizationFunctions {
 	
 	public void calculateResourceAndOutput()
 	{
-		calculateResourceAllocationPerSystem();
+		calculatePossibleResourceAllocationPerSystem();
 		calculateNumSysSimultaneousTransform();
 		calculateTotalCost();
 	
@@ -219,21 +250,20 @@ public class SysDecommissionOptimizationFunctions {
 			if(sysToSiteHash.containsKey(sys))
 			{
 				numOfSites = sysToSiteHash.get(sys).size();
-			
-				double minNecessaryTimePerSysPerSite = sysToMinTimeHashPerSite.get(sys);
-				double minNecessaryTimePerSysAllSites = numOfSites*minNecessaryTimePerSysPerSite;
-				
-				double workVolPerSysPerSite = sysToWorkVolHashPerSite.get(sys);
-				double workVolPerSysAllSites = numOfSites*workVolPerSysPerSite;
-				
-				sysToMinTimeHashAllSites.put(sys,minNecessaryTimePerSysAllSites);
-				sysToWorkVolHashAllSites.put(sys,workVolPerSysAllSites);
 			}
 			else
 			{
 				systemsWithNoSite.add(sys);
+				numOfSites = 1;
 			}
+	//		double minNecessaryTimePerSysPerSite = sysToMinTimeHashPerSite.get(sys);
+	//		double minNecessaryTimePerSysAllSites = numOfSites*minNecessaryTimePerSysPerSite;
 			
+			double workVolPerSysPerSite = sysToWorkVolHashPerSite.get(sys);
+			double workVolPerSysAllSites = numOfSites*workVolPerSysPerSite;
+			
+	//		sysToMinTimeHashAllSites.put(sys,minNecessaryTimePerSysAllSites);
+			sysToWorkVolHashAllSites.put(sys,workVolPerSysAllSites);
 		}
 
 	}
@@ -250,7 +280,8 @@ public class SysDecommissionOptimizationFunctions {
 	
 	public void calculateMinTimeAllSystemsAllSites()
 	{
-		for(String sys : sysToMinTimeHashAllSites.keySet())
+//		for(String sys : sysToMinTimeHashAllSites.keySet())
+		for(String sys : sysToMinTimeHashPerSite.keySet())
 		{
 			double minNecessaryTimePerSysPerSites = sysToMinTimeHashPerSite.get(sys);
 			
@@ -274,7 +305,8 @@ public class SysDecommissionOptimizationFunctions {
 	
 	public void recalculateResourcesPossible()
 	{
-		for(String sys : sysToMinTimeHashAllSites.keySet())
+//		for(String sys : sysToMinTimeHashAllSites.keySet())
+		for(String sys : sysToMinTimeHashPerSite.keySet())
 		{
 			double workVolPerSysAllSites = sysToWorkVolHashAllSites.get(sys);
 			resourcesPossible+=workVolPerSysAllSites;
@@ -282,21 +314,58 @@ public class SysDecommissionOptimizationFunctions {
 		resourcesPossible = resourcesPossible / minPossibleTimeAllSystems;
 	}
 	
-	public void calculateResourceAllocationPerSystem()
+	public void calculatePossibleResourceAllocationPerSystem()
 	{
 		for(String sys : sysToWorkVolHashAllSites.keySet())
 		{
-			double resourceForSysAllSites = resourcesPossible*sysToWorkVolHashAllSites.get(sys) / workVolAllSysAllSites;
-			sysToResourceAllocationHash.put(sys, resourceForSysAllSites);
+			double possibleResourceForSysAllSites = resourcesPossible*sysToWorkVolHashAllSites.get(sys) / workVolAllSysAllSites;
+			sysToPossibleResourceAllocationHash.put(sys, possibleResourceForSysAllSites);
 		}
 		
+	}
+	public void calculateMaxResourceAllocationPerSystem()
+	{
+		for(String sys : sysToWorkVolHashAllSites.keySet())
+		{
+			double maxResourceForSysAllSites = sysToWorkVolHashAllSites.get(sys) / sysToMinTimeHashPerSite.get(sys);
+			sysToMaxResourceAllocationHash.put(sys, maxResourceForSysAllSites);
+		}
+		
+	}
+	public void calculateResourceAllocationPerSystem()
+	{
+		for(String sys : sysToPossibleResourceAllocationHash.keySet())
+		{
+			double possibleResourceForSysAllSites = sysToPossibleResourceAllocationHash.get(sys);
+			double maxResourceForSysAllSites = sysToMaxResourceAllocationHash.get(sys);
+			sysToResourceAllocationHash.put(sys, Math.min(possibleResourceForSysAllSites,maxResourceForSysAllSites));
+		}
+	}
+	public void calculateTimeToTransformPerSystem(double years)
+	{
+		for(String sys : sysToResourceAllocationHash.keySet())
+		{
+			double possibleResourceForSysAllSites = sysToPossibleResourceAllocationHash.get(sys);
+			double resourceForSysAllSites = sysToResourceAllocationHash.get(sys);
+			double val = years * possibleResourceForSysAllSites / resourceForSysAllSites;
+			sysToNumOfYearsHash.put(sys, val);
+		}
+	}
+	public void calculateMinTimeToTransform()
+	{
+		for(String sys : sysToNumOfYearsHash.keySet())
+		{
+			double timeForSys = sysToNumOfYearsHash.get(sys);
+			if(minPossibleTimeAllSystems<timeForSys)
+				minPossibleTimeAllSystems = timeForSys;
+		}
 	}
 	
 	public void calculateNumSysSimultaneousTransform()
 	{
-		for(String sys : sysToResourceAllocationHash.keySet())
+		for(String sys : sysToPossibleResourceAllocationHash.keySet())
 		{
-			double numSimultaneousTransform = sysToResourceAllocationHash.get(sys)*sysToMinTimeHashPerSite.get(sys)/sysToWorkVolHashPerSite.get(sys);		
+			double numSimultaneousTransform = sysToPossibleResourceAllocationHash.get(sys)*sysToMinTimeHashPerSite.get(sys)/sysToWorkVolHashPerSite.get(sys);		
 			sysToNumSimultaneousTransformHash.put(sys, numSimultaneousTransform);
 		}
 	}
@@ -305,7 +374,7 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		for(String sys : sysToWorkVolHashPerSite.keySet())
 		{
-			costAllSysAllSites += sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;
+			costAllSysAllSites += sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * hourlyCost;
 		}
 
 	}
@@ -318,7 +387,7 @@ public class SysDecommissionOptimizationFunctions {
 				System.out.print("$" + sysToSiteHash.get(sys).size());
 			else
 				System.out.print("$" + "not found");
-			System.out.print("$" + sysToResourceAllocationHash.get(sys) + "$" + sysToNumSimultaneousTransformHash.get(sys));
+			System.out.print("$" + sysToPossibleResourceAllocationHash.get(sys) + "$" + sysToNumSimultaneousTransformHash.get(sys));
 			System.out.println();
 		}
 		
@@ -338,17 +407,17 @@ public class SysDecommissionOptimizationFunctions {
 			Object[] element = new Object[7];
 			element[0] = sys;
 			element[1] = sysToProbHash.get(sys);
-			double time1 = sysToWorkVolHashAllSites.get(sys) / 365.0 / Math.ceil(sysToResourceAllocationHash.get(sys));
+			double time1 = sysToWorkVolHashAllSites.get(sys) / 365.0 / Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
 			element[2] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
 	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 
 			element[3] = sysToSiteHash.get(sys).size();
-			element[4] = Math.ceil(sysToResourceAllocationHash.get(sys));
+			element[4] = Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
 //			element[2] = sysToResourceAllocationHash.get(sys);
 
 			element[5] = sysToNumSimultaneousTransformHash.get(sys);
-			element[6] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * costPerHour;//"still working on...."; // should be total work vol in hours * site * 150
+			element[6] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * sysToSiteHash.get(sys).size() * hourlyCost;//"still working on...."; // should be total work vol in hours * site * 150
 
 			outputList.add(element);
 		}

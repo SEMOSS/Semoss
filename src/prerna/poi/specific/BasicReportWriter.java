@@ -27,7 +27,6 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Workbook;
-
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
@@ -39,33 +38,74 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.util.Utility;
 
 /**
- *This will take the information from the SystemInfoGenProcessor and write a system info report to an excel file
+ *This will write a basic list report to an excel file with basic table formatting.
  */
 public class BasicReportWriter {
 
 	Logger logger = Logger.getLogger(getClass());
 	public Hashtable<String,XSSFCellStyle> myStyles;
 	XSSFWorkbook wb;
+	String fileLoc;
 	
 	/**
-	 * Retrieves the query results from the SystemInfoGenProcessor and creates the System Info Report
+	 * Retrieves the table list to output from the processor and creates an excel file with a single table sheet.
 	 * @param fileLoc			String containing the file location to write the report to
-	 * @param sysList			List containing all the systems in alphabetical order
-	 * @param headersList		List containing all the names of variables to put in the report
-	 * @param systemInfoHash	Hashtable containing all the query results from the SystemInfoGenProcessor
+	 * @param sheetName			String containing the name for the sheet.
+	 * @param headersList		List containing all the names of columns to put in the report
+	 * @param resultList		List containing the values for the table to output
 	 */
 	public void exportReport(String fileLoc, String sheetName, ArrayList<String> headersList, ArrayList<Object[]> resultList) {
-		makeWorkbook();
-		writeListSheet(wb,sheetName,headersList,resultList);
-		wb.setForceFormulaRecalculation(true);
-		Utility.writeWorkbook(wb, fileLoc);
+		makeWorkbook(fileLoc);
+		writeListSheet(sheetName,headersList,resultList);
+		writeWorkbook();
 
 	}
 	
-	public void makeWorkbook()
+	/**
+	 * Creates a new workbook, sets the file location, and creates the styles to be used.
+	 */
+	public void makeWorkbook(String fileLoc)
 	{
+		this.fileLoc = fileLoc;
 		wb =new XSSFWorkbook();
 		makeStyles(wb);
+	}
+	
+	/**
+	 * Writes the workbook to the file location.
+	 */
+	public void writeWorkbook()
+	{
+		wb.setForceFormulaRecalculation(true);
+		Utility.writeWorkbook(wb, fileLoc);
+	}
+	
+	/**
+	 * Retrieves the table list to output from the processor and creates an excel file with a single table sheet.
+	 * @param headersList		List containing all the names of columns to put in the report
+	 * @param rowList			List containing the keys to the hash in the desired order of the rows
+	 * @param hash				Hashtable containing a hashtable for each row 
+	 */
+	public ArrayList<Object[]> makeListFromHash(ArrayList<String> headersList, ArrayList<String> rowList,Hashtable hash) {
+		ArrayList<Object[]> masterList = new ArrayList<Object[]>();
+		for (int rowInd=0; rowInd<rowList.size();rowInd++){
+			Object[] rowArray = new Object[headersList.size()];
+			String sys = rowList.get(rowInd);
+			rowArray[0] = sys;
+			if(hash.containsKey(sys)){
+				Hashtable sysHash = (Hashtable) hash.get(sys);
+				for (int col=1; col<headersList.size();col++) {
+					String varName = headersList.get(col);
+					if(sysHash.containsKey(varName))
+					{
+						Object val = sysHash.get(varName);
+						rowArray[col] = val;
+					}
+				}
+			}
+			masterList.add(rowArray);
+		}
+		return masterList;
 	}
 
 	/**
@@ -75,7 +115,7 @@ public class BasicReportWriter {
 	 * @param headersList		List containing all the names of variables to put in the report
 	 * @param result			ArrayList containing the output of the query
 	 */
-	public void writeListSheet(XSSFWorkbook wb, String sheetName, ArrayList<String> headersList, ArrayList<Object[]> resultList){
+	public void writeListSheet(String sheetName, ArrayList<String> headersList, ArrayList<Object[]> resultList){
 
 		//make the header rows with special format
 		XSSFSheet worksheet = wb.createSheet(sheetName);

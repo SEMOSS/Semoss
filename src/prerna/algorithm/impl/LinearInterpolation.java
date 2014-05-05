@@ -30,7 +30,7 @@ public class LinearInterpolation implements IAlgorithm{
 	IPlaySheet playSheet;
 	final double epsilon = 0.00001;
 	double alpha0, k, sigma, dataExposeCost, B, min, max;
-	double a, b, m, y_m, y_a;
+	double a, b, m, y_m, y_a, y_b;
 	
 	public double retVal = -1.0;
     
@@ -40,13 +40,20 @@ public class LinearInterpolation implements IAlgorithm{
 	 * Calculates the y values at min and max x's.
 	 * Finds the midpoint and determines what the y value is for this point.
 	 * Sets either the min/max y values to be the midpoint depending on which way it needs to go.
+	 * 
+	 * a and b are the time values
+	 * y_a and y_b are the years
 	 */
 	public void execute(){
 
-	   	 a = min;
-	   	 b = max;
-	   	 
-	   	 if(a<0&&b<0)
+		retVal = -1.0E30;
+	   	a = min;
+	    b = max;
+	   	
+	   		y_b = calcY(b);
+	   	    y_m = calcY(m);			// y_m = f(m)
+	   	    y_a = calcY(a);			// y_a = f(a)
+	   	 if(a<0&&b<0 ||(y_b > 0 && y_a > 0) || (y_b < 0 && y_a < 0))
 	   		 return;
 	   	 while ( (b-a) > epsilon )
 	   	 {
