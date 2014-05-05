@@ -45,12 +45,14 @@ JMA http://health.mil/ontologies/Concept/JMA
 Activity http://health.mil/ontologies/Concept/Activity
 MissionOutcome http://health.mil/ontologies/Concept/MissionOutcome
 TError http://health.mil/ontologies/Concept/TError
+CCD http://health.mil/ontologies/Concept/CCD
 RDFElement http://health.mil/ontologies/Concept/RDFElement
 Hardware http://health.mil/ontologies/Concept/Hardware
 VISTA http://health.mil/ontologies/Concept/VISTA
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 DFreq http://health.mil/ontologies/Concept/DFreq
+CCD_Element http://health.mil/ontologies/Concept/CCD_Element
 SystemUser http://health.mil/ontologies/Concept/SystemUser
 BusinessRule http://health.mil/ontologies/Concept/BusinessRule
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
@@ -71,6 +73,7 @@ Participant http://health.mil/ontologies/Concept/Participant
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 CapabilityFunctionalArea_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
 MissionElement_Requires_MissionOutcome http://health.mil/ontologies/Relation/Requires
+DataObject_MapsTo_CCD http://health.mil/ontologies/Relation/MapsTo
 System_Receives-Submits_SystemTasker http://health.mil/ontologies/Relation/Receives-Submits
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
@@ -98,6 +101,7 @@ System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
 SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
+CCD_Element_BelongsTo_CCD http://health.mil/ontologies/Relation/BelongsTo
 Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 TechCategory_Has_TechSubCategory http://health.mil/ontologies/Relation/Has
 Activity_MapsTo_JMA http://health.mil/ontologies/Relation/MapsTo
@@ -184,6 +188,7 @@ Participant_CLASS http://semoss.org/ontologies/Concept/Participant
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
 CapabilityGroup_CLASS http://semoss.org/ontologies/Concept/CapabilityGroup
 CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Concept/CapabilityFunctionalArea
+CCD_CLASS http://semoss.org/ontologies/Concept/CCD
 TechStandardIdentifier_CLASS http://semoss.org/ontologies/Concept/TechStandardIdentifier
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
@@ -204,6 +209,7 @@ InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceCon
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
+CCD_Element_CLASS http://semoss.org/ontologies/Concept/CCD_Element
 MissionElement_CLASS http://semoss.org/ontologies/Concept/MissionElement
 VISTAUnion_CLASS http://semoss.org/ontologies/Concept/VISTAUnion
 Reference_CLASS http://semoss.org/ontologies/Concept/Reference
