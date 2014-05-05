@@ -28,13 +28,10 @@ import javax.swing.JList;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.InterfaceReportWriter;
-import prerna.poi.specific.SystemInfoGenWriter;
-import prerna.poi.specific.TaskerGenerationWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -117,6 +114,9 @@ public class InterfaceReportProcessor {
 		}
 		
 		processQueries();
+		
+		
+		
 		
 		InterfaceReportWriter writer = new InterfaceReportWriter();
 		String folder = "\\export\\Reports\\";

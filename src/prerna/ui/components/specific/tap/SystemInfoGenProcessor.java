@@ -22,18 +22,15 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
-
 import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.specific.SystemInfoGenWriter;
-import prerna.poi.specific.TaskerGenerationWriter;
+import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -43,7 +40,6 @@ import prerna.util.Utility;
  */
 public class SystemInfoGenProcessor {
 	Logger logger = Logger.getLogger(getClass());
-	String tapCoreEngine = "TAP_Core_Data";
 	String tapCostEngine = "TAP_Cost_Data";
 	String tapSiteEngine = "TAP_Site_Data";
 	String hrCoreEngine = "HR_Core";
@@ -200,17 +196,12 @@ public class SystemInfoGenProcessor {
 		headersList = new ArrayList<String>();
 		dataObjectList = new ArrayList<String>();
 		dataObjectBindings = "";
-	
-		
+
 		//checking to see if databases are loaded
-		String engineName = tapCoreEngine;
+		String engineName = tapSiteEngine;
 		try
 		{
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			if(engine==null)
-				throw new Exception();
-			engineName = tapSiteEngine;
-			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			if(engine==null)
 				throw new Exception();
 			engineName = tapCostEngine;
@@ -231,18 +222,23 @@ public class SystemInfoGenProcessor {
 		
 		processQueries();
 		
-		SystemInfoGenWriter writer = new SystemInfoGenWriter();
+		BasicReportWriter writer = new BasicReportWriter();
 		String folder = "\\export\\Reports\\";
 		String writeFileName = "System_Info_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;
-		logger.info(fileLoc);	
+		writer.makeWorkbook(fileLoc);
+		logger.info(fileLoc);
+		
+		ArrayList<Object[]> masterList = writer.makeListFromHash(headersList, sysList, masterHash);
 
-		writer.exportSystemInfoReport(fileLoc, sysList,headersList,masterHash);
+		writer.writeListSheet("System Info",headersList,masterList);
+		writer.writeWorkbook();
 		
 		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\"+writeFileName);
 	}
 
+	
 	/**
 	 * Identifies and runs all the queries required for the system info report.
 	 * Stores values in masterHash 
@@ -278,7 +274,17 @@ public class SystemInfoGenProcessor {
 		
 		//Num of Upstream Systems
 		String sysNumUpstreamSystemsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?UpstreamSys)) AS ?Num_Of_Upstream_Systems) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?System ;}} GROUP BY ?System";
-				
+		
+		//System Providing Business Process Queries
+		String sysNumBPQuery = "SELECT DISTINCT ?System (COUNT(?bp) AS ?Num_Of_Business_Processes_System_Supports) WHERE{SELECT DISTINCT ?System ?bp WHERE { {?bp <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?supportsBP <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?System ?supportsBP ?bp}}} GROUP BY ?System";
+
+		String sysBPQuery = "SELECT DISTINCT ?System ?Business_Processes_System_Supports WHERE {{?Business_Processes_System_Supports <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?supportsBP <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?System ?supportsBP ?Business_Processes_System_Supports}}";
+		
+		//System Providing Activity Queries
+		String sysNumActivityQuery = "SELECT DISTINCT ?System (COUNT(?act) AS ?Num_Of_Activities_System_Supports) WHERE{SELECT DISTINCT ?System ?act WHERE { {?act <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?supportsActivity <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?System ?supportsActivity ?act}}} GROUP BY ?System";
+
+		String sysActivityQuery = "SELECT DISTINCT ?System ?Activities_System_Supports WHERE {{?Activities_System_Supports <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?supportsActivity <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?System ?supportsActivity ?Activities_System_Supports}}";
+		
 		//System Providing BLU Queries
 		String sysNumBLUQuery = "SELECT DISTINCT ?System (COUNT(?blu) AS ?Num_Of_Business_Logic_Units_System_Provides) WHERE{SELECT DISTINCT ?System ?blu WHERE { {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?blu}}} GROUP BY ?System";
 
@@ -342,6 +348,14 @@ public class SystemInfoGenProcessor {
 		runQuery(hrCoreEngine,sysNumUpstreamICDsQuery);
 		runQuery(hrCoreEngine,sysNumUpstreamSystemsQuery);
 		logger.info("Completed Upstream/Downstream queries");
+		
+		runQuery(hrCoreEngine,sysNumBPQuery);
+		runQuery(hrCoreEngine,sysBPQuery);
+		runQuery(hrCoreEngine,sysNumActivityQuery);
+		runQuery(hrCoreEngine,sysActivityQuery);
+		logger.info("Completed business process/activities queries");
+
+		
 		
 		DHMSMHelper dhelp = new DHMSMHelper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine);
