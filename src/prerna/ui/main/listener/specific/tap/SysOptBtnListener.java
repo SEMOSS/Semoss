@@ -61,7 +61,7 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			playThread.start();
 		}
 	}
-		
+	
 	/**
 	 * Method setOptPlaySheet.
 	 * @param sheet SerOptPlaySheet

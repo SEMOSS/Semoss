@@ -358,7 +358,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_dataSelectDropDown.gridy = 3;
 		systemSelectPanel.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
 
-		String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} }");
+		//String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} }");
+		String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}");
 		dataSelectDropDown.setupButton(dataArray,40,120); //need to give list of all systems
 		dataSelectDropDown.setVisible(false);
 		
@@ -372,7 +373,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_bluSelectDropDown.gridy = 3;
 		systemSelectPanel.add(bluSelectDropDown.pane, gbc_bluSelectDropDown);
 		
-		String[] bluArray = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?entity}}");
+		String[] bluArray = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}");
 		bluSelectDropDown.setupButton(bluArray,40,120); //need to give list of all systems
 		bluSelectDropDown.setVisible(false);
 
@@ -638,5 +639,37 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		rdbtnProfit.addActionListener(opl);
 		opl.setRadioBtn(rdbtnProfit, rdbtnROI);
 	}
+	
+	
+	public void hideAndClearSystemSelectPanel()
+	{
+		systemSelectPanel.setVisible(false);
+		capSelectDropDown.setVisible(false);
+		capScrollPanel.setVisible(false);
+		theaterSysButton.setSelected(false);
+		garrisonSysButton.setSelected(false);
+		allSysButton.setSelected(false);
+		lowProbButton.setSelected(false);
+		medProbButton.setSelected(false);
+		highProbButton.setSelected(false);
+		allCapButton.setSelected(false);
+		dhmsmCapButton.setSelected(false);
+		hsdCapButton.setSelected(false);
+		hssCapButton.setSelected(false);
+		fhpCapButton.setSelected(false);
+		updateDataBLUPanelButton.setSelected(false);
+		lblDataSelectHeader.setVisible(false);
+		lblBLUSelectHeader.setVisible(false);
+		updateDataBLUButton.setVisible(false);
+		updateComplementDataBLUButton.setVisible(false);
+		dataSelectDropDown.setVisible(false);
+		bluSelectDropDown.setVisible(false);
+		sysSelectDropDown.clearList();
+		capSelectDropDown.clearList();
+//		public SelectScrollList sysSelectDropDown, capSelectDropDown,dataSelectDropDown,bluSelectDropDown;
+//		public JToggleButton updateDataBLUPanelButton;
+//		public JButton updateDataBLUButton,updateComplementDataBLUButton;
+	}
+	
 	
 }
