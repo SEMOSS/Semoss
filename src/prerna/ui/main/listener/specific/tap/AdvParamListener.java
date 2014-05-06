@@ -50,7 +50,7 @@ public class AdvParamListener implements ActionListener {
 			{
 				if(isSysOpt)
 				{
-					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();//systemSelectPanel.setVisible(false);
 					showSystemSelectBtn.setSelected(false);
 					showSystemCapSelectBtn.setSelected(false);
 				}
@@ -67,42 +67,26 @@ public class AdvParamListener implements ActionListener {
 			if(e.getSource().equals(showSystemSelectBtn))
 			{
 				showSystemCapSelectBtn.setSelected(false);
+				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
 				if(showSystemSelectBtn.isSelected())
 				{
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
 					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
 				}
-				else
-				{
-					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
-				}
 
 			}
 			else if(e.getSource().equals(showSystemCapSelectBtn))
 			{
 				showSystemSelectBtn.setSelected(false);
+				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
 				if(showSystemCapSelectBtn.isSelected())
 				{
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(true);
 					((SysOptPlaySheet)ps).capScrollPanel.setVisible(true);
 				}
-				else
-				{
-					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
-					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
-					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
-				}
 			}	
-//			if(showSystemSelectBtn.isSelected())
-//			{
-//				ps.advParamPanel.setVisible(false);
-//				showParamBtn.setSelected(false);
-//				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
-//			}
-//			else
-//				((SysOptPlaySheet)ps).systemSelectPanel.setVisible(false);
 		}
 
 	}
