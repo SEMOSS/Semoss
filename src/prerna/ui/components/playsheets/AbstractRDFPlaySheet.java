@@ -68,6 +68,15 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public Object getData(){
 		Hashtable retHash = new Hashtable();
 		retHash.put("id", this.questionNum==null? "": this.questionNum);
+		String className = "";
+		Class<?> enclosingClass = getClass().getEnclosingClass();
+		if (enclosingClass != null) {
+			className = enclosingClass.getName();
+		} else {
+			className = getClass().getName();
+		}
+		System.out.println(className);
+		retHash.put("playsheet", className);
 		
 		return retHash;
 	}
