@@ -48,23 +48,41 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	}
 	
 	/**
-	 * Overrides BrowserPlaySheet createView(). Executes processing/data gathering and loads proper file (capability.html).
+	 * Overrides BrowserPlaySheet createData(). Executes processing/data gathering and loads proper file (capability.html).
 	 */
 	@Override
 	public void createData() {
 		addPanel();
-		
+		String rfi = "";
+		wrapper = new SesameJenaSelectWrapper();
+		if(engine!= null && rs == null){
+			wrapper.setQuery(query);
+			wrapper.setEngine(engine);
+			wrapper.executeQuery();
+		}
+		else if (engine==null && rs!=null){
+			wrapper.setResultSet(rs);
+			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
+		}
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext())
+		{
+			SesameJenaSelectStatement sjss = wrapper.next();
+			rfi = (String) sjss.getVar(names[0]);
+		}
 		updateProgressBar("0%...Generating Queries", 0);
-		//get queries from question sheet
-		//each query will pull task, bus or tech requirement
+		//get queries from question sheet - each query will pull task, business or tech requirement
 		ArrayList<String> queryArray= new ArrayList<String>();
 		int queryCount = 1;
 		String query=DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
+		query = query.replace("*Selected_RFI*", rfi);
 		while(query!=null)
 		{
 			queryArray.add(query);
 			queryCount++;
 			query=DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
+			if(query!=null)
+				query = query.replace("*Selected_RFI*", rfi);
 		}
 
 		//hashtable to hold scoring values
@@ -92,7 +110,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 			}
 			
 			// get the bindings from it
-			String[] names = wrapper.getVariables();
+			names = wrapper.getVariables();
 
 			// now get the bindings and generate the data
 			try {
@@ -312,8 +330,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	public void createView()
 	{
 		browser.navigate(fileName);
-		browser.waitReady();
-		
+		browser.waitReady();		
 		callIt(allHash);
 		updateProgressBar("100%...Heat Map Generation Complete", 100);
 	}
