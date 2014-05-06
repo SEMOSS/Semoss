@@ -161,5 +161,9 @@ public class SelectScrollList  extends JButton {
 		}
 		return unselectedList;
 	}
+	public void clearList()
+	{
+		list.clearSelection();
+	}
 	
 }  
