@@ -6,6 +6,7 @@ UserInterface http://health.mil/ontologies/Concept/UserInterface
 SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
 System http://health.mil/ontologies/Concept/System
 DCSiteIncident http://health.mil/ontologies/Concept/DCSiteIncident
+HealthServiceRegion http://health.mil/ontologies/Concept/HealthServiceRegion
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 TError http://health.mil/ontologies/Concept/TError
 Activity http://health.mil/ontologies/Concept/Activity
@@ -19,6 +20,7 @@ DFreq http://health.mil/ontologies/Concept/DFreq
 SiteHardwareModule http://health.mil/ontologies/Concept/SiteHardwareModule
 SystemDCSite http://health.mil/ontologies/Concept/SystemDCSite
 LifeCycle http://health.mil/ontologies/Concept/LifeCycle
+FacComCode http://health.mil/ontologies/Concept/FacComCode
 DataObject http://health.mil/ontologies/Concept/DataObject
 BLU http://health.mil/ontologies/Concept/BLU
 DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
@@ -42,9 +44,11 @@ SystemDCSite_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 SystemDCSite_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 SystemDCSite_Consists_SiteSoftwareModule http://health.mil/ontologies/Relation/Consists
 SystemDCSite_Provide_BLU http://health.mil/ontologies/Relation/Provide
+InterfaceControlDocument_ImplementedAt_SystemDCSite http://health.mil/ontologies/Relation/ImplementedAt
 DHMSM_Transitions_MTF http://health.mil/ontologies/Relation/Transitions
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
+MTF_Located_HealthServiceRegion http://health.mil/ontologies/Relation/Located
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 SystemDCSiteIncident_Affects_SystemDCSite http://health.mil/ontologies/Relation/Affects
 SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
@@ -53,6 +57,7 @@ InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Co
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SiteHardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
+MTF_Has_FacComCode http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
@@ -95,12 +100,14 @@ SystemDCSiteIncident_CLASS http://semoss.org/ontologies/Concept/SystemDCSiteInci
 Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
 Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
 MTF_CLASS http://semoss.org/ontologies/Concept/MTF
+HealthServiceRegion_CLASS http://semoss.org/ontologies/Concept/HealthServiceRegion
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 SiteHardwareModule_CLASS http://semoss.org/ontologies/Concept/SiteHardwareModule
 City_CLASS http://semoss.org/ontologies/Concept/City
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 SystemDCSite_CLASS http://semoss.org/ontologies/Concept/SystemDCSite
 SystemIncident_CLASS http://semoss.org/ontologies/Concept/SystemIncident
+FacComCode_CLASS http://semoss.org/ontologies/Concept/FacComCode
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
 TError_CLASS http://semoss.org/ontologies/Concept/TError
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
@@ -116,10 +123,12 @@ InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relat
 InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SoftwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSite_Consists_SiteSoftwareModule_CLASS http://semoss.org/ontologies/Relation/Consists
+MTF_Has_FacComCode_CLASS http://semoss.org/ontologies/Relation/Has
 SiteHardwareModule_TypeOf_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 SystemDCSite_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
 InterfaceControlDocument_Implemented_At_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Implemented_At
 SystemDCSite_Provide_BLU_CLASS http://semoss.org/ontologies/Relation/Provide
+MTF_Located_HealthServiceRegion_CLASS http://semoss.org/ontologies/Relation/Located
 MTF_Assigned_NPI_CLASS http://semoss.org/ontologies/Relation/Assigned
 Hardware_Has_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Upgrade
@@ -141,6 +150,7 @@ SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Rel
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
 SystemDCSite_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
+InterfaceControlDocument_ImplementedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/ImplementedAt
 DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 SystemDCSite_DeployedAt_DCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
