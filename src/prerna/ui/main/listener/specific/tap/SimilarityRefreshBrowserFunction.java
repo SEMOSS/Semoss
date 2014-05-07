@@ -9,8 +9,10 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.BrowserFunction;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.BrowserFunction;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 
 /**
  * An browser class for refreshing similarity comparison heat map based on selected parameters.
@@ -31,12 +33,13 @@ public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 	 * @param arg0 Object[]
 	
 	 * @return Object */
+	
 	@Override
-	public Object invoke(Object... arg0){
-		logger.info("args: ");
-		for(Object arg : arg0)
-			System.out.println(arg);
-		String[] selectedVars = gson.fromJson(arg0[0] + "", String[].class);
+	public JSValue invoke(JSValue... arg0){
+//		logger.info("args: ");
+//		for(Object arg : arg0)
+//			System.out.println(arg);
+		String[] selectedVars = gson.fromJson(arg0[0].getString(), String[].class);
 		ArrayList<String> selectedVarsList = new ArrayList<String>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
@@ -46,7 +49,7 @@ public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 		Hashtable<String, Double> specifiedWeights = new Hashtable<String, Double> ();
 		if(arg0.length>1)
 		{
-			specifiedWeights = gson.fromJson(arg0[1] + "", Hashtable.class);
+			specifiedWeights = gson.fromJson(arg0[1].getString(), Hashtable.class);
 			logger.info("Specified Weights are : ");
 			for(String obj : specifiedWeights.keySet()) 
 				logger.info(obj + " " + specifiedWeights.get(obj));
@@ -56,17 +59,17 @@ public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 		sendData(calculatedHash);
 		
 		System.out.println("Java is done -- calling function");
-		browser.executeScript("refreshDataFunction();");
+		browser.executeJavaScript("refreshDataFunction();");
 		System.out.println("Java is REALLY done");
 		
-		return true;
+		return JSValue.create(true);
 	}
 	
 	public void sendData(ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray){
 		for(Hashtable hash : calculatedArray)
 		{
 			System.out.println("Sending hash with " + hash.size());
-			browser.executeScript("dataBuilder('" + gson.toJson(hash) + "');");
+			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
 			System.out.println("Done sending");
 		}
 		
@@ -239,5 +242,6 @@ public class SimilarityRefreshBrowserFunction implements BrowserFunction {
 	public void setKeyHash(Hashtable<String, Hashtable<String, String>> keyHash){
 		this.keyHash = keyHash;
 	}
+
 }
 

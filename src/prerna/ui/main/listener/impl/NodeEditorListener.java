@@ -71,7 +71,24 @@ public class NodeEditorListener implements ActionListener {
 		tabS.setPlaySheet(playSheet);
 		playSheet.jTab.add("Node Editor", tabS);
 		playSheet.jTab.setSelectedComponent(tabS);
-
+		SPARQLExecuteFunction sparqlFunction = new SPARQLExecuteFunction();
+	    sparqlFunction.setEngine(engine);
+	    sparqlFunction.setGps(gps);
+	    tabS.browser.registerFunction("SPARQLExecute", sparqlFunction);
+	    SPARQLExecuteFilterNoBaseFunction filterFunction = new SPARQLExecuteFilterNoBaseFunction();
+	    filterFunction.setFilterHash(playSheet.getGraphData().baseFilterHash);
+	    filterFunction.setEngine(engine);
+	    tabS.browser.registerFunction("SPARQLExecuteFilterNoBase", filterFunction);
+	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
+	    filterBaseFunction.setFilterHash(playSheet.getGraphData().baseFilterHash);
+	    filterBaseFunction.setEngine(engine);
+	    tabS.browser.registerFunction("SPARQLExecuteFilterBase", filterBaseFunction);
+	    InferEngineFunction inferFunction = new InferEngineFunction();
+	    inferFunction.setEngine(engine);
+	    tabS.browser.registerFunction("InferFunction", inferFunction);
+	    RefreshPlaysheetFunction refreshFunction = new RefreshPlaysheetFunction();
+	    refreshFunction.setGps(gps);
+	    tabS.browser.registerFunction("RefreshFunction", refreshFunction);
 		tabS.navigate();
 	}	
 	

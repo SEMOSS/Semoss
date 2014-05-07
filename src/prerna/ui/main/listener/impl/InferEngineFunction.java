@@ -23,6 +23,7 @@ import java.util.Hashtable;
 import prerna.rdf.engine.impl.BigDataEngine;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -34,7 +35,7 @@ public class InferEngineFunction extends AbstractBrowserSPARQLFunction {
 	
 	 * @return Object */
 	@Override
-	public Object invoke(Object... arg0) {
+	public JSValue invoke(JSValue... arg0) {
 		if(engine instanceof BigDataEngine){
 			//((BigDataEngine)engine).commit();
 			((BigDataEngine)engine).infer();
@@ -42,7 +43,7 @@ public class InferEngineFunction extends AbstractBrowserSPARQLFunction {
 		Hashtable retHash = new Hashtable();
 		retHash.put("success", true);
 		Gson gson = new Gson();        
-		return gson.toJson(retHash);
+		return JSValue.create(gson.toJson(retHash));
 	}
 	
 }

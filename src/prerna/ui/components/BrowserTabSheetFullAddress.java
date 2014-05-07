@@ -20,19 +20,22 @@ package prerna.ui.components;
 
 
 import java.awt.BorderLayout;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.swing.JInternalFrame;
 
 import org.apache.log4j.Logger;
 
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+import com.teamdev.jxbrowser.chromium.events.LoadListener;
+
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.BrowserFactory;
-import com.teamdev.jxbrowser.BrowserType;
-import com.teamdev.jxbrowser.events.NavigationListener;
 
 
 /**
@@ -43,7 +46,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 
 	  protected static final String LS = System.getProperty("line.separator");
 	  
-	  NavigationListener navListener = null;
+	  LoadListener navListener = null;
 	  
 	  GraphPlaySheet ps = null;
 	  Logger logger = Logger.getLogger(getClass());
@@ -56,30 +59,24 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	   */
 	  public BrowserTabSheetFullAddress() {
 		super("Charts", true, true, true, true);
-		   // super(new BorderLayout());
-			  if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
-				  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
-			  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
-				  browser = BrowserFactory.createBrowser(BrowserType.IE);
-			  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
-				  browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
-			  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
-				  browser = BrowserFactory.createBrowser(BrowserType.Safari);
+		browser = BrowserFactory.create();
+		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 	  }
 			  
 	  /**
 	   * Used to navigate the browser window.
 	   */
 	  public void navigate(){
-		if(navListener!=null)
-			browser.addNavigationListener(navListener);
 
-	    browser.navigate(fileName);
+		browser.addLoadListener(navListener);
+	    browser.loadURL(fileName);
         //browser.executeScript("resolve: RdfEditCtrl.resolve");
-		
+
 	    setLayout(new BorderLayout());
 	   
-	    add(browser.getComponent(), BorderLayout.CENTER);
+	    add(browser.getView().getComponent(), BorderLayout.CENTER);
 	  }
 	  
 	  /**
@@ -103,7 +100,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	   * Sets the navigation listener.
 	   * @param navListener 	Navigation listener.
 	   */
-	  public void setNavListener(NavigationListener navListener){
+	  public void setNavListener(LoadListener navListener){
 		  this.navListener = navListener;
 	  }
 	  

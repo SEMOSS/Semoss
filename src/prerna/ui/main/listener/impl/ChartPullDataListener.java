@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
+import com.teamdev.jxbrowser.chromium.Browser;
 
 
 /**
@@ -78,7 +78,7 @@ public class ChartPullDataListener implements ActionListener {
 		//newHash.put("Edges", edgeHash);
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(newHash));
-	    browser.executeScript("start('" + gson.toJson(newHash) + "');");
+	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
 	}
 
 

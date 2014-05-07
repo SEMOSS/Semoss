@@ -28,6 +28,7 @@ import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -41,14 +42,14 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	
 	 * @return Object */
 	@Override
-	public Object invoke(Object... arg0) {
+	public JSValue invoke(JSValue... arg0) {
 		Hashtable retHash = new Hashtable();
 		ArrayList ret = new ArrayList();
 		boolean success = true;
 		logger.info("Arguments are " + arg0);
 		
 		//get the query from the args
-		String query = ((String) arg0[0]).trim(); 
+		String query = (arg0[0].getString()).trim(); 
 		
 		//run the query against the set repository
 		try {
@@ -82,7 +83,7 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 
 		Gson gson = new Gson();
         
-		return gson.toJson(retHash);
+		return JSValue.create(gson.toJson(retHash));
 	}
 	
 	/**

@@ -20,51 +20,65 @@ package prerna.ui.components;
 
 import java.awt.BorderLayout;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JPanel;
 
 import org.apache.log4j.Logger;
 
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.BrowserFactory;
-import com.teamdev.jxbrowser.BrowserServices;
-import com.teamdev.jxbrowser.BrowserType;
-import com.teamdev.jxbrowser.UnsupportedBrowserTypeException;
-import com.teamdev.jxbrowser.prompt.SilentPromptService;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+
+import java.util.logging.*;
 
 /**
  * This class is used to create the appropriate window depending on the browser specified (Mozilla, IE, Safari).
  */
 public class BrowserGraphPanel extends JPanel{
 	Logger logger = Logger.getLogger(getClass());
+	
 	public Browser browser = null;
 	/**
 	 * Constructor for BrowserGraphPanel.
 	 * @param fileName 	File name.
 	 * @return boolean 	True if method completed without error.
 	 */
-	public BrowserGraphPanel(String fileName) throws UnsupportedBrowserTypeException
+	public BrowserGraphPanel(String fileName)
 	{
+		 browser = BrowserFactory.create();
+		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 //		try{
-		if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
-			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
-		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
-			  browser = BrowserFactory.createBrowser(BrowserType.IE);
-		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
-			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
-		  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
-			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
+//		if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
+//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
+//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
+//			  browser = BrowserFactory.createBrowser(BrowserType.IE);
+//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
+//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
+//		  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
+//			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
 		 
-		BrowserServices.getInstance().setPromptService(new SilentPromptService());
+		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
+		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.navigate("file://" + workingDir + fileName);
-		browser.waitReady();
+		browser.loadURL("file://" + workingDir + fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		setLayout(new BorderLayout());
-		add(browser.getComponent(), BorderLayout.CENTER);
+		add(browser.getView().getComponent(), BorderLayout.CENTER);
 //		}
 //		catch(UnsupportedBrowserTypeException e){
 //			displayCheckBoxError();
@@ -91,7 +105,7 @@ public class BrowserGraphPanel extends JPanel{
 
 		//webBrowser.executeJavascript("helloWorld('" + gson.toJson(newHash) + "');"); //Please tell me this is awesome !!!!!!');");
 		//Please tell me this is awesome !!!!!!');");
-		browser.executeScript("start('" + gson.toJson(table) + "');");
+		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 	}
 //	/**
 //	 * Method displayCheckBoxError.

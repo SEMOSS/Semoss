@@ -9,7 +9,8 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.BrowserFunction;
+import com.teamdev.jxbrowser.chromium.BrowserFunction;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  * An browser class for refreshing similarity comparison heat map based on selected parameters.
@@ -27,12 +28,12 @@ public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 	
 	 * @return Object */
 	@Override
-	public Object invoke(Object... arg0){
+	public JSValue invoke(JSValue... arg0){
 		Gson gson = new Gson();
-		String cellKey = arg0[0] + "";
+		String cellKey = arg0[0].getString();
 		logger.info("cellKey = " + cellKey);
 		
-		String[] selectedVars = gson.fromJson(arg0[1] + "", String[].class);
+		String[] selectedVars = gson.fromJson(arg0[1].getString(), String[].class);
 		ArrayList<String> selectedVarsList = new ArrayList<String>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
@@ -43,14 +44,14 @@ public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 		Hashtable<String, Double> specifiedWeights = new Hashtable<String, Double> ();
 		if(arg0.length>2)
 		{
-			specifiedWeights = gson.fromJson(arg0[2] + "", Hashtable.class);
+			specifiedWeights = gson.fromJson(arg0[2].getString(), Hashtable.class);
 			logger.info("Specified Weights are : ");
 			for(String obj : specifiedWeights.keySet()) 
 				logger.info(obj + " " + specifiedWeights.get(obj));
 		}
 		
 		ArrayList calculatedHash = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
-		String finalJson = gson.toJson(calculatedHash);
+		JSValue finalJson = JSValue.create(gson.toJson(calculatedHash));
 		System.out.println("Java is done");
 		return finalJson;
 	}

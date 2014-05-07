@@ -18,14 +18,11 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.logging.Level;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
@@ -33,10 +30,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.events.NavigationEvent;
-import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
-import com.teamdev.jxbrowser.events.NavigationListener;
-import com.teamdev.jxbrowser.print.PrintAdapter;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
+import com.teamdev.jxbrowser.chromium.events.LoadAdapter;
 
 /**
  * This class creates the capability fact sheet.
@@ -56,6 +52,9 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	public CapabilityFactSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
+		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 	}
 
 	/**
@@ -69,24 +68,24 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		singleCapFactSheetCall.setCapabilityFactSheet(this);
 		//browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/Capability Fact Sheet.html");
 		//singleCapFactSheetCall.invoke(null);
-		
-		browser.addNavigationListener(new NavigationListener() {
-    	    public void navigationStarted(NavigationEvent event) {
-    	    	logger.info("event.getUrl() = " + event.getUrl());
-    	    }
+		browser.registerFunction("singleCapFactSheet",  singleCapFactSheetCall);
+		browser.addLoadListener(new LoadAdapter() {
 
-    	    public void navigationFinished(NavigationFinishedEvent event) {
-   	    	browser.registerFunction("singleCapFactSheet",  singleCapFactSheetCall);
+    	    public void onFinishLoadingFrame(FinishLoadingEvent event) {
+   	    	
 	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/export.json");
 	   			if(file.exists()) {
 	   				file.delete();
-	   				browser.executeScript("window.location.reload(true);");
+	   				browser.executeJavaScript("window.location.reload(true);");
 	   			}
     			callIt();
     	    }
+
     	});
 	       
-		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/index.html");
+		browser.loadURL("file://" + workingDir + "/html/MHS-FactSheets/index.html");
+		
+		
 	}
 
 	
@@ -157,7 +156,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", dataSeries);
 		allHash.put("capability", capability);
 
-	//	callItAllHash();
+		//callItAllHash();
 		updateProgressBar("100%...Capability Fact Sheet Generation Complete", 100);
 		return allHash;
 	}
@@ -168,7 +167,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
 		String json = gson.toJson(capabilityHash);
-		browser.executeScript("start('" + gson.toJson(capabilityHash) + "');");
+		browser.executeJavaScript("start('" + gson.toJson(capabilityHash) + "');");
 		System.out.println(gson.toJson(capabilityHash));
 	}
 	
@@ -178,8 +177,8 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityData('" + gson.toJson(allHash) + "');");
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.navigate("file://" + workingDir + "/html/MHS-FactSheets/index.html#/cap");
-		browser.executeScript("start('" + gson.toJson(allHash) + "');");
+		browser.loadURL("file://" + workingDir + "/html/MHS-FactSheets/index.html#/cap");
+		browser.executeJavaScript("start('" + gson.toJson(allHash) + "');");
 	}
 	
 }

@@ -21,11 +21,13 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -191,8 +193,15 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		}
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
-		browser.navigate(fileName);
-		browser.waitReady();
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		allHash = new Hashtable();
 
@@ -208,8 +217,16 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 	@Override
 	public void createView()
 	{
-		browser.navigate(fileName);
-		browser.waitReady();
+		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		callIt(allHash);
 		updateProgressBar("100%...Heat Map Generation Complete", 100);
