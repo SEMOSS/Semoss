@@ -352,6 +352,39 @@
 				this.step*100/this.diff
 			];
 			this.layout();
+		},
+		
+		setMin: function(min) {
+			this.min = min;
+			this.diff = this.max - this.min;
+			this.percentage = [
+				(this.value[0]-this.min)*100/this.diff,
+				(this.value[1]-this.min)*100/this.diff,
+				this.step*100/this.diff
+			];
+			this.layout();
+			
+		},
+		setMax: function(max) {
+			this.max = max;
+			this.diff = this.max - this.min;
+			this.percentage = [
+				(this.value[0]-this.min)*100/this.diff,
+				(this.value[1]-this.min)*100/this.diff,
+				this.step*100/this.diff
+			];
+			this.layout();
+		},
+		
+		setStep: function(step) {
+			this.step = step;
+			this.diff = this.max - this.min;
+			this.percentage = [
+				(this.value[0]-this.min)*100/this.diff,
+				(this.value[1]-this.min)*100/this.diff,
+				this.step*100/this.diff
+			];
+			this.layout();
 		}
 	};
 
