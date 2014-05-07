@@ -57,7 +57,7 @@ table tr td.tableCheck {
 }
 
 .tableBody {
-  width: 94%;
+  width: 90%;
 }
 
 .tableFull {
@@ -71,7 +71,7 @@ table tr td.tableCheck {
 }
 
 .tableCheck {
-  width: 6%;
+  width: 10%;
 }
 
 tr.blue th {
