@@ -29,14 +29,19 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.events.NavigationEvent;
-import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
-import com.teamdev.jxbrowser.events.NavigationListener;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.JSValue;
+import com.teamdev.jxbrowser.chromium.events.FailLoadingEvent;
+import com.teamdev.jxbrowser.chromium.events.FinishLoadingEvent;
+import com.teamdev.jxbrowser.chromium.events.FrameLoadEvent;
+import com.teamdev.jxbrowser.chromium.events.LoadEvent;
+import com.teamdev.jxbrowser.chromium.events.LoadListener;
+import com.teamdev.jxbrowser.chromium.events.ProvisionalLoadingEvent;
+import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
 
 /**
  */
-public class NodeEditorNavigationListener implements NavigationListener{
+public class NodeEditorNavigationListener implements LoadListener{
 	
 	Logger logger = Logger.getLogger(getClass());
 
@@ -98,46 +103,6 @@ public class NodeEditorNavigationListener implements NavigationListener{
 	 * Method navigationStarted.  Occurs when the navigation starts.
 	 * @param event NavigationEvent
 	 */
-	public void navigationStarted(NavigationEvent event) {
-        logger.info("event.getUrl() = " + event.getUrl());
-    }
-
-    /**
-     * Method navigationFinished.  Occurs when the navigation ends.
-     * @param event NavigationFinishedEvent
-     */
-    public void navigationFinished(NavigationFinishedEvent event) {
-        logger.info("event.getStatusCode() = " + event.getStatusCode());
-			//browser.waitReady();
-        
-        //register the various functions for javascript to call
-        SPARQLExecuteFunction sparqlFunction = new SPARQLExecuteFunction();
-        sparqlFunction.setEngine(engine);
-        sparqlFunction.setGps(gps);
-        browser.registerFunction("SPARQLExecute", sparqlFunction);
-        SPARQLExecuteFilterNoBaseFunction filterFunction = new SPARQLExecuteFilterNoBaseFunction();
-        filterFunction.setFilterHash(filterHash);
-        filterFunction.setEngine(engine);
-        browser.registerFunction("SPARQLExecuteFilterNoBase", filterFunction);
-        SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
-        filterBaseFunction.setFilterHash(filterHash);
-        filterBaseFunction.setEngine(engine);
-        browser.registerFunction("SPARQLExecuteFilterBase", filterBaseFunction);
-        InferEngineFunction inferFunction = new InferEngineFunction();
-        inferFunction.setEngine(engine);
-        browser.registerFunction("InferFunction", inferFunction);
-        RefreshPlaysheetFunction refreshFunction = new RefreshPlaysheetFunction();
-        refreshFunction.setGps(gps);
-        browser.registerFunction("RefreshFunction", refreshFunction);
-        
-        //get the parameters to pass it
-        String uri = (String) node.getProperty(Constants.URI);
-        String nodeName = (String) node.getProperty(Constants.VERTEX_NAME);
-        String nodeType = getFullNodeType(uri, filterBaseFunction);
-        
-        browser.executeScript("start('" + uri + "', '" + nodeName + "', '" + nodeType + "');");
-        //cp.callIt();
-    }
     
     /**
      * Method getFullNodeType.  Gets the full node type.
@@ -149,7 +114,7 @@ public class NodeEditorNavigationListener implements NavigationListener{
     	String nodeType = "";
     	
     	String query = "SELECT ?type WHERE {<"+uri+"> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type}";
-    	String retHashJson = (String) filterFunction.invoke(query);
+    	String retHashJson = filterFunction.invoke(JSValue.create(query)).getString();
     	Gson gson = new Gson();
     	Hashtable retHash = gson.fromJson(retHashJson, Hashtable.class);
     	ArrayList<ArrayList> retArray = (ArrayList<ArrayList>) retHash.get("results");
@@ -158,4 +123,54 @@ public class NodeEditorNavigationListener implements NavigationListener{
     	
     	return nodeType;
     }
+
+	@Override
+	public void onDocumentLoadedInFrame(FrameLoadEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onDocumentLoadedInMainFrame(LoadEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onFailLoadingFrame(FailLoadingEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onFinishLoadingFrame(FinishLoadingEvent arg0) {
+		
+	    
+	    //register the various functions for javascript to call
+	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
+	    filterBaseFunction.setFilterHash(filterHash);
+	    filterBaseFunction.setEngine(engine);
+
+	    
+	    //get the parameters to pass it
+	    String uri = (String) node.getProperty(Constants.URI);
+	    String nodeName = (String) node.getProperty(Constants.VERTEX_NAME);
+	    String nodeType = getFullNodeType(uri, filterBaseFunction);
+	    
+	    browser.executeJavaScript("start('" + uri + "', '" + nodeName + "', '" + nodeType + "');");
+	    //cp.callIt();
+		
+	}
+
+	@Override
+	public void onProvisionalLoadingFrame(ProvisionalLoadingEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onStartLoadingFrame(StartLoadingEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
 }

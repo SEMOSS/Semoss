@@ -21,6 +21,7 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -228,8 +229,15 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		}
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
-		browser.navigate(fileName);
-		browser.waitReady();
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		allHash = new Hashtable();
 
@@ -247,8 +255,15 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	@Override
 	public void createView()
 	{
-		browser.navigate(fileName);
-		browser.waitReady();		
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}		
 		callIt(allHash);
 		updateProgressBar("100%...Heat Map Generation Complete", 100);
 	}

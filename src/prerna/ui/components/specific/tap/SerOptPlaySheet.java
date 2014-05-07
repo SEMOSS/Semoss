@@ -72,7 +72,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import aurelienribon.ui.css.Style;
 
-import com.teamdev.jxbrowser.UnsupportedBrowserTypeException;
 
 /**
  * This is the playsheet used exclusively for TAP service optimization.
@@ -980,7 +979,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 	 * Calls functions to create param panel and tabbed display panel
 	 * Stitches the param and display panels together.
 	 */
-	public void createUI() throws UnsupportedBrowserTypeException
+	public void createUI()
 	{
 		PlaySheetListener psListener = new PlaySheetListener();
 		this.addInternalFrameListener(psListener);
@@ -1112,7 +1111,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		try{
 			createUI();
 			showAll();
-		}catch(UnsupportedBrowserTypeException e){
+		}catch(Exception e){
 			displayCheckBoxError();
 			PlaySheetListener psListener = (PlaySheetListener)this.getInternalFrameListeners()[0];
 			psListener.internalFrameClosed(new InternalFrameEvent(this,0));

@@ -43,6 +43,7 @@ import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -65,8 +66,8 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 	 * @return Object 
 	 */
 	@Override
-	public Object invoke(Object... arg0) {		
-		String capability = (String) arg0[0];
+	public JSValue invoke(JSValue... arg0) {		
+		String capability = arg0[0].getString();
 //		System.out.println("Capability chosen is "+capability);
 		capability = (String)cfs.capabilityProcessed.get(capability);
 		Hashtable allHash = cfs.processNewCapability(capability);
@@ -88,7 +89,7 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 			}
 		}
 		
-		return gson.toJson(allHash);
+		return JSValue.create(gson.toJson(allHash));
 	}
 	
 }

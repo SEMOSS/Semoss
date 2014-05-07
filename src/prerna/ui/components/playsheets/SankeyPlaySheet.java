@@ -22,6 +22,7 @@ import java.awt.Dimension;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JDesktopPane;
 
@@ -124,8 +125,15 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
 		Hashtable dataHash = new Hashtable();
 		dataHash = processQueryData();
-		browser.navigate(fileName);
-		browser.waitReady();	
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}	
 		
 		callIt(dataHash);
 	}

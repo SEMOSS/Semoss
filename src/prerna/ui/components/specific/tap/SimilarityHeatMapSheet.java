@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import org.apache.log4j.Logger;
 
@@ -33,9 +35,11 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.events.NavigationEvent;
-import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
-import com.teamdev.jxbrowser.events.NavigationListener;
+import com.teamdev.jxbrowser.chromium.BrowserFunction;
+import com.teamdev.jxbrowser.chromium.JSValue;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+import com.teamdev.jxbrowser.chromium.events.LoadListener;
+
 
 /**
  */
@@ -66,20 +70,28 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	public void createView()
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		browser.addNavigationListener(new NavigationListener() {
-    	    public void navigationStarted(NavigationEvent event) {
-    	    	logger.info("event.getUrl() = " + event.getUrl());
-    	    }
 
-    	    public void navigationFinished(NavigationFinishedEvent event) {
-    	    	prepareNavigationFinished();
-    			callIt();
+//    	browser.registerFunction("refreshFunction",  refreshFunction);
+//    	SimilarityBarChartBrowserFunction barChartFunction = new SimilarityBarChartBrowserFunction();
+//    	barChartFunction.setParamDataHash(paramDataHash);
+//    	browser.registerFunction("barChartFunction",  barChartFunction);
+		registerFunctions();
+		browser.loadURL("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
+		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		registerFunctions();
 
-    	    }
-    	});
-	       
-		browser.navigate("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		
+		callIt();
+
 	}
 	
 	/**
@@ -95,7 +107,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	/**
 	 * Adds the refresh and bar chart listeners when navigation has finished.
 	 */
-	public void prepareNavigationFinished()
+	public void registerFunctions()
 	{
     	refreshFunction = new SimilarityRefreshBrowserFunction();
     	refreshFunction.setParamDataHash(paramDataHash);
@@ -169,7 +181,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		//send available dimensions:
 		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
 		System.out.println(availCatString);
-		browser.executeScript(availCatString);
+		browser.executeJavaScript(availCatString);
 		
 		enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
@@ -177,10 +189,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			String key = (String) enumKey.nextElement();
 			Object value = (Object) allHash.get(key);
 			
-			browser.executeScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
+			browser.executeJavaScript("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
 		}
-		browser.executeScript("start();");
+		browser.executeJavaScript("start();");
 		updateProgressBar("100%...Visualization Complete", 100);
 		logger.info("Finished creating the visualization.");
 		allHash.clear();

@@ -26,6 +26,7 @@ import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -46,17 +47,17 @@ public class SPARQLExecuteFilterBaseFunction extends AbstractBrowserSPARQLFuncti
 	
 	 * @return Object */
 	@Override
-	public Object invoke(Object... arg0) {
+	public JSValue invoke(JSValue... arg0) {
 		logger.info("Arguments are " + arg0);
 		
 		//get the query from the args
-		String query = ((String) arg0[0]).trim(); 
+		String query = (arg0[0].getString()).trim(); 
 
 		Hashtable retHash = process(query);
 
 		Gson gson = new Gson();
         
-		return gson.toJson(retHash);
+		return JSValue.create(gson.toJson(retHash));
 	}
 	
 	public Hashtable process(String query){

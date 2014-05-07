@@ -21,9 +21,13 @@ package prerna.ui.components.playsheets;
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyVetoException;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JPanel;
@@ -33,14 +37,12 @@ import javax.swing.JTable;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
-import prerna.ui.main.listener.impl.PlaySheetListener;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.BrowserFactory;
-import com.teamdev.jxbrowser.BrowserType;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.
@@ -48,7 +50,7 @@ import com.teamdev.jxbrowser.BrowserType;
 public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 
 	public Boolean empty = false;
-	public Browser browser = null;
+	public Browser browser = BrowserFactory.create();
 	protected String fileName;
 	JSplitPane splitPane;
 	public Hashtable output = null;
@@ -72,10 +74,10 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	{
 		output = table;
 		Gson gson = new Gson();
-		//logger.info("Converted " + gson.toJson(table));
+		logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
 
-		browser.executeScript("start('" + gson.toJson(table) + "');");
+		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 	}
 
 	/**
@@ -93,13 +95,40 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	{
 		super.createView();
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
+		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 		if(browser==null)
 		{
 			empty = true;
 			return;
 		}
-		browser.navigate(fileName);
-		browser.waitReady();
+//		browser.getView().getComponent().addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseWheelMoved(MouseWheelEvent e) {
+//            	double zoomLevel = browser.getZoomLevel();
+//            	if(e.getPreciseWheelRotation()<=0.0&&zoomLevel <4.0)
+//            	{
+//            		zoomLevel=zoomLevel+0.1;
+//            	}
+//            	else if (e.getPreciseWheelRotation()<=0.0&&zoomLevel >0.25)
+//            	{
+//            		zoomLevel=zoomLevel-0.1;
+//            	}
+//            	browser.setZoomLevel(zoomLevel);
+//            	
+//            }
+//        });
+		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		empty = false;
 		if(dataHash.get("dataSeries") instanceof HashSet)
 		{
@@ -192,15 +221,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
-
-			if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
-				browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
-			else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
-				browser = BrowserFactory.createBrowser(BrowserType.IE);
-			else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
-				browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
-			else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
-				browser = BrowserFactory.createBrowser(BrowserType.Safari);
+			
 			
 			this.controlPanel.setPlaySheet(this);
 //			this.controlPanel.setBrowser(this.browser);
@@ -208,7 +229,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			//callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browser.getComponent(), BorderLayout.CENTER);
+			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;

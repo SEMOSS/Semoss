@@ -109,7 +109,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		//logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
 
-		browser.executeScript("start('" + gson.toJson(table) + "');");
+		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		output.clear();
 		allHash.clear();
 		data.clear();

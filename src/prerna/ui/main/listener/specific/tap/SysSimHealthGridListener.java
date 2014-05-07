@@ -30,6 +30,7 @@ import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -45,9 +46,9 @@ public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 	 * @return Object 
 	 */
 	@Override
-	public Object invoke(Object... arg0) {
+	public JSValue invoke(JSValue... arg0) {
 		Gson gson = new Gson();
-		String sysArrayString = (String) arg0[0];
+		String sysArrayString = arg0[0].getString();
 		String[] sysArray = gson.fromJson(sysArrayString, String[].class);
 		
 		String sysOfInterest = sysArray[0];
@@ -80,7 +81,7 @@ public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 		QuestionPlaySheetStore.getInstance().put(question, hgs);
 		Thread playThread = new Thread(playRunner);
 		playThread.start();
-		return arg0;
+		return arg0[0];
 	}
 	
 }

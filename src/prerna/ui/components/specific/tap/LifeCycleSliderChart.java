@@ -24,6 +24,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
@@ -37,14 +38,14 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.Browser;
-import com.teamdev.jxbrowser.BrowserFactory;
-import com.teamdev.jxbrowser.BrowserType;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
 
 /**
  * This class creates the chart for the lifecycle slider.
@@ -52,7 +53,7 @@ import com.teamdev.jxbrowser.BrowserType;
 public class LifeCycleSliderChart extends GridPlaySheet{
 
 	//public JPanel cheaterPanel = new JPanel();
-	public Browser browser = null;
+	public Browser browser = BrowserFactory.create();
 	Hashtable <String, String[]> hardwareHash;
 	String fileName;
 
@@ -89,21 +90,10 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
 
-			if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
-				browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
-			else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
-				browser = BrowserFactory.createBrowser(BrowserType.IE);
-			else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
-				browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
-			else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
-				browser = BrowserFactory.createBrowser(BrowserType.Safari);
-
-
-
 			//callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browser.getComponent(), BorderLayout.CENTER);
+			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
@@ -192,9 +182,16 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		}
 		updateProgressBar("100%...Table Generation Complete", 100);
 		showAll();
-		
-		browser.navigate(fileName);
-		browser.waitReady();
+		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browser.loadURL(fileName);
+		while (browser.isLoading()) {
+		    try {
+				TimeUnit.MILLISECONDS.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		callIt();
 	}
 	
@@ -209,7 +206,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		Hashtable newHash = hardwareHash;
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(newHash));
-	    browser.executeScript("start('" + gson.toJson(newHash) + "');");
+	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
 	}
 
 	/**

@@ -34,9 +34,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.events.NavigationEvent;
-import com.teamdev.jxbrowser.events.NavigationFinishedEvent;
-import com.teamdev.jxbrowser.events.NavigationListener;
+
 
 /**
  */
@@ -55,9 +53,9 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	 * Adds the health grid, refresh, and bar chart listeners when the navigation has finished.
 	 */
 	@Override
-	public void prepareNavigationFinished()
+	public void registerFunctions()
 	{
-		super.prepareNavigationFinished();
+		super.registerFunctions();
     	SysSimHealthGridListener healthGridCall = new SysSimHealthGridListener();
     	browser.registerFunction("healthGrid",  healthGridCall);
 	}

@@ -82,6 +82,7 @@ public class ChartControlPanel extends JPanel {
 		gbc_btnGraphImageExport.gridx = 0;
 		gbc_btnGraphImageExport.gridy = 0;
 		add(btnGraphImageExport, gbc_btnGraphImageExport);
+		
 	}
 	
 	/**
