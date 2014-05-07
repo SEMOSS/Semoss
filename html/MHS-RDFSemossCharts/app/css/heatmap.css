@@ -10,13 +10,53 @@
 	margin-left: 320px;
 	margin-right: auto;
       }
-      
+	   #heat-chart {
+	background-color: #fff;
+	margin-left: 100px;
+	margin-right: auto;
+      }
+	.xAxis:hover {
+	  text-decoration: underline;
+	  cursor: pointer;
+	}
+		
+	.yAxis:hover {
+	  text-decoration: underline;
+	  cursor: pointer;
+	}
       rect.bordered {
         stroke: #E6E6E6;
         stroke-width:2px;
       }
-      
-  
+      .heatmap-controls .slider{
+  margin-left:20px;
+  margin-right:20px;
+}
+.heatmap-controls #quantile{
+  width:175px;
+  margin-top:0px;
+  margin-left:0px;
+}
+	  .color-selector{
+	  width:150px;
+	  margin-left:20px;
+	  margin-right:20px;
+	margin-top:5px;
+	margin-bottom:5px;
+	}
+	.sm-btn {
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+	.btn-light {
+    color: #444;
+    background-color: white;
+    background: linear-gradient(to bottom, #ffffff 0%,#eeeeee 100%); /* W3C */
+    border: 1px solid #ccc;
+    outline: none;
+	margin-top:5px;
+	margin-bottom:5px;
+}
       text {
         font-size: 9pt;
         font-family: arial, courier;
