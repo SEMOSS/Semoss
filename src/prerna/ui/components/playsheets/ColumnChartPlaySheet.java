@@ -15,7 +15,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/columnchart.html";
 	}
 	
 	public Hashtable<String, Object> processQueryData()
@@ -33,7 +33,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		}
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("xAxis", Arrays.copyOfRange(names, 1, names.length));
+		columnChartHash.put("names", names);
 		columnChartHash.put("type", "column");
 		columnChartHash.put("dataSeries", data);
 		
