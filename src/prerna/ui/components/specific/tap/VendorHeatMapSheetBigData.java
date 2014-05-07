@@ -133,69 +133,10 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 						score = scoreInt*1.0;
 					}
 					
-//					if(!(vendorArray.contains(vendor))
-//					Hashtable<String, Object> requirementCategories;
-//					Hashtable<String, Object> requirementAndWeight;
-//					Hashtable<String, Hashtable<String,Object>> requirements;
-//					Hashtable<String,Object> values;
-
-//					if(!requirementCategory.contains("TechRequirement")||!techReqWithStandard.contains(requirement))
-//					{
-//					
-//						if(capabilities.containsKey(capability))
-//						{
-//							requirementCategories=(Hashtable<String,Object>)capabilities.get(capability);
-//							if(requirementCategories.containsKey(requirementCategory))
-//							{
-//								requirementAndWeight=(Hashtable<String,Object>)requirementCategories.get(requirementCategory);
-//								requirements=(Hashtable<String, Hashtable<String,Object>>)requirementAndWeight.get("requirement");
-//								if(requirements.containsKey(requirement+"-"+vendor))
-//									values=requirements.get(requirement+"-"+vendor);
-//								else
-//								{
-//									values=new Hashtable<String,Object>();
-//									values.put("value", 10.0);
-//									requirements.put(requirement+"-"+vendor,values);
-//								}
-//							}
-//							else
-//							{
-//								values=new Hashtable<String,Object>();
-//								values.put("value", 10.0);
-//								requirements=new Hashtable<String,Hashtable<String,Object>>();
-//								requirements.put(requirement+"-"+vendor,values);
-//								requirementAndWeight = new Hashtable<String,Object>();
-//								requirementAndWeight.put("requirement",requirements);
-//								requirementCategories.put(requirementCategory, requirementAndWeight);
-//							}
-//						}
-//						else
-//						{
-//							values=new Hashtable<String,Object>();
-//							values.put("value", 10.0);
-//							requirements= new Hashtable<String,Hashtable<String,Object>>();
-//							requirements.put(requirement+"-"+vendor,values);
-//							requirementAndWeight = new Hashtable<String,Object>();
-//							requirementCategories=new Hashtable<String,Object>();
-//							requirementAndWeight.put("requirement",requirements);
-//							requirementCategories.put(requirementCategory, requirementAndWeight);
-//							capabilities.put(capability, requirementCategories);
-//						}
-//
-//						values.put("Requirement",requirement);
-//						values.put("Vendor",vendor);
-//						if(score<(Double)values.get("value"))
-//							values.put("value",score);
-//                   	}
-//					if(requirementCategory.contains("TechStandard")&&!techReqWithStandard.contains(requirement))
-//						techReqWithStandard.add((String)sjss.getVar(names[5]));
-					
 					Hashtable<String, Object> reqCategoriesAndVendors;
 					Hashtable<String, Object> requirements;
 					Hashtable<String, Object> children;
 					Hashtable<String,Object> values;
-
-					
 					
 					if(!requirementCategory.contains("TechRequirement")||!techReqWithStandard.contains(requirement))
 					{
@@ -285,29 +226,6 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 				requirements.put("Score",(Double)requirements.get("Score")/numRequirements);
 			}
 		}
-		
-		
-//		for(String cap: capabilities.keySet())
-//		{
-//			Hashtable<String,Object> reqCategories = (Hashtable<String,Object>)capabilities.get(cap);
-//			for(String reqCategory:reqCategories.keySet())
-//			{
-//				Hashtable<String,Object> requirementAndWeight = (Hashtable<String,Object>)reqCategories.get(reqCategory);
-//				requirementAndWeight.put("weight",1);
-//				reqCategories.put(reqCategory, requirementAndWeight);
-//				
-//				Hashtable<String, Hashtable<String,Object>> requirements;
-//				Hashtable<String,Object> values;
-//				
-//				requirements=(Hashtable<String, Hashtable<String,Object>>)requirementAndWeight.get("requirement");
-//				for(String requirementVendor : requirements.keySet())
-//				{
-//					values = requirements.get(requirementVendor);
-//					if(!values.containsKey("Vendor"))
-//						logger.warn("'Vendor' key does not exist.");
-//				}
-//			}
-//		}
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
 		browser.navigate(fileName);
