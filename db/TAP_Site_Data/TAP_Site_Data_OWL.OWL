@@ -64,6 +64,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MTF">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HealthServiceRegion">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataElement">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -80,6 +83,9 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemIncident">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FacComCode">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Activity">
@@ -115,6 +121,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Has">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TypeOf">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -124,10 +133,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Implemented_At">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Assigned">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Located">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Has">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Assigned">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Upgrade">
@@ -142,10 +151,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Located">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/UsedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/UsedBy">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ImplementedAt">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Payload">
@@ -160,6 +169,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DForm"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MTF">
+	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FacComCode"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DCSiteIncident">
 	<Affects xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DCSite"/>
 </rdf:Description>
@@ -171,6 +183,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DCSite">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DCSiteCmdCode"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
+	<ImplementedAt xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SystemDCSite"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemDCSiteIncident">
 	<Affects xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SystemDCSite"/>
 </rdf:Description>
@@ -179,6 +194,11 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Payload xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MTF">
+	<Located xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/HealthServiceRegion"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Consume xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MTF">
