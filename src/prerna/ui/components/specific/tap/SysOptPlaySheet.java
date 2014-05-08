@@ -71,7 +71,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JCheckBox hsdCapButton, hssCapButton, fhpCapButton;
 	public SelectScrollList sysSelectDropDown, capSelectDropDown,dataSelectDropDown,bluSelectDropDown;
 	public JToggleButton updateDataBLUPanelButton;
-	public JButton updateDataBLUButton,updateComplementDataBLUButton;
+	public JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
 
 	 //overall analysis tab
 	public JLabel solutionLbl, annualBudgetLbl, timeTransitionLbl;
@@ -189,10 +189,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_updateDataBLUPanelButton.gridy = 0;
 		systemSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
 		
-		updateDataBLUButton = new CustomButton("Select Data/BLU");
-		updateDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateDataBLUButton,  ".toggleButton");
-		updateDataBLUButton.setVisible(false);		
+		updateProvideDataBLUButton = new CustomButton("Select Provide");
+		updateProvideDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(updateProvideDataBLUButton,  ".toggleButton");
+		updateProvideDataBLUButton.setVisible(false);		
 		
 		GridBagConstraints gbc_updateDataBLUButton = new GridBagConstraints();
 		gbc_updateDataBLUButton.anchor = GridBagConstraints.WEST;
@@ -200,7 +200,20 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_updateDataBLUButton.insets = new Insets(0, 0, 5, 5);
 		gbc_updateDataBLUButton.gridx = 9;
 		gbc_updateDataBLUButton.gridy = 0;
-		systemSelectPanel.add(updateDataBLUButton, gbc_updateDataBLUButton);
+		systemSelectPanel.add(updateProvideDataBLUButton, gbc_updateDataBLUButton);
+		
+		updateConsumeDataBLUButton = new CustomButton("Select Consume");
+		updateConsumeDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(updateConsumeDataBLUButton,  ".toggleButton");
+		updateConsumeDataBLUButton.setVisible(false);		
+		
+		GridBagConstraints gbc_updateConsumeDataBLUButton = new GridBagConstraints();
+		gbc_updateConsumeDataBLUButton.anchor = GridBagConstraints.WEST;
+		gbc_updateConsumeDataBLUButton.gridheight = 2;
+		gbc_updateConsumeDataBLUButton.insets = new Insets(0, 0, 5, 5);
+		gbc_updateConsumeDataBLUButton.gridx = 10;
+		gbc_updateConsumeDataBLUButton.gridy = 0;
+		systemSelectPanel.add(updateConsumeDataBLUButton, gbc_updateConsumeDataBLUButton);		
 		
 		updateComplementDataBLUButton = new CustomButton("Select Complement");
 		updateComplementDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -455,9 +468,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		updateDataBLUListener.setEngine(engine);
 		updateDataBLUListener.setUpDHMSMHelper();
 		updateDataBLUListener.setComponents(sysSelectDropDown,capSelectDropDown,dataSelectDropDown,bluSelectDropDown,lblDataSelectHeader,lblBLUSelectHeader,showSystemSelectBtn);
-		updateDataBLUListener.setUpdateButtons(updateDataBLUPanelButton,updateDataBLUButton,updateComplementDataBLUButton);
+		updateDataBLUListener.setUpdateButtons(updateDataBLUPanelButton,updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton);
 		updateDataBLUPanelButton.addActionListener(updateDataBLUListener);
-		updateDataBLUButton.addActionListener(updateDataBLUListener);
+		updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
+		updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
 		updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
 	}
 	@Override
@@ -660,7 +674,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		updateDataBLUPanelButton.setSelected(false);
 		lblDataSelectHeader.setVisible(false);
 		lblBLUSelectHeader.setVisible(false);
-		updateDataBLUButton.setVisible(false);
+		updateProvideDataBLUButton.setVisible(false);
 		updateComplementDataBLUButton.setVisible(false);
 		dataSelectDropDown.setVisible(false);
 		bluSelectDropDown.setVisible(false);
