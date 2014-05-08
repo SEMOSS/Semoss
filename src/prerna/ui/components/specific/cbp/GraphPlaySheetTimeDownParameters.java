@@ -55,8 +55,12 @@ public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 	public void createForest() throws Exception {
 
 		super.createForest();
-		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+//		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
+//		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+
+		Hashtable<String, SEMOSSVertex> myVertStore = gdm.getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();
+		
 		Enumeration keyList = myVertStore.keys();
 		if(myEdgeStore.keys().hasMoreElements())
 		{
@@ -122,18 +126,33 @@ public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 					if(vert2==null)
 					{
 						vert2 = new SEMOSSVertex(TimeDownType);
+						processControlData(vert2);
 						filterData.addVertex(vert2);
+						forest.addVertex(vert2);
+						graph.addVertex(vert2);
 					}
 					
 					myVertStore.put(TimeDownType, vert2);
 					predicate=predicate+vert1.getProperty(Constants.VERTEX_NAME)+":"+vert2.getProperty(Constants.VERTEX_NAME);
 					edge = new SEMOSSEdge(vert1, vert2, predicate);
 					myEdgeStore.put(predicate, edge);
-					this.forest.addEdge(edge,vert1,vert2);
+					forest.addEdge(edge,vert1,vert2);
+					processControlData(edge);
+					filterData.addEdge(edge);
+					predData.addPredicateAvailable(edge.getURI());
+					predData.addConceptAvailable(vert1.getURI());
+					predData.addConceptAvailable(vert2.getURI());
+					
+					//add to simple graph
+					graph.addVertex(vert1);
+					graph.addVertex(vert2);
+					if(vert2 != vert1) // loops not allowed in simple graph... can we get rid of this simple grpah entirely?
+						graph.addEdge(vert1, vert2, edge);
+
 //					genControlData(vert2);
 //					genControlData(edge);
 
-
+					genAllData();
 			}
 			
 		} 
