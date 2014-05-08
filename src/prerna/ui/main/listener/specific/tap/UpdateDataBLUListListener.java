@@ -44,7 +44,7 @@ import prerna.util.Utility;
 public class UpdateDataBLUListListener extends AbstractListener {
 	IEngine engine;
 	JToggleButton showSystemSelectBtn, updateDataBLUPanelButton;
-	JButton updateDataBLUButton,updateComplementDataBLUButton;
+	JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
 	JLabel lblDataSelectHeader, lblBLUSelectHeader;
 	SelectScrollList sysScrollList,capScrollList, dataScrollList, bluScrollList;
 	DHMSMHelper dhelp;
@@ -61,7 +61,21 @@ public class UpdateDataBLUListListener extends AbstractListener {
 		if((e.getSource().equals(updateDataBLUPanelButton)&&!updateDataBLUPanelButton.isSelected()))
 			setAllVisible(false);
 		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
-		else if(e.getSource().equals(updateDataBLUPanelButton)||e.getSource().equals(updateDataBLUButton))
+		else if(e.getSource().equals(updateDataBLUPanelButton))
+		{
+			setAllVisible(true);
+			if(showSystemSelectBtn.isSelected())
+			{
+				updateProvideDataBLUButton.setText("Select Create");
+				updateProvideDataBLUButton.setText("Select Read");
+			}else{
+				updateProvideDataBLUButton.setText("Select Provide");
+				updateProvideDataBLUButton.setText("Select Consume");
+			}
+			dataScrollList.clearList();
+			bluScrollList.clearList();
+		}
+		else if(e.getSource().equals(updateProvideDataBLUButton)||e.getSource().equals(updateConsumeDataBLUButton))
 		{
 			setAllVisible(true);
 			ArrayList<String> dataList =  new ArrayList<String>();
@@ -77,27 +91,42 @@ public class UpdateDataBLUListListener extends AbstractListener {
 					for(int sysInd = 0;sysInd < systems.size();sysInd++)
 					{
 						String sys = systems.get(sysInd);
-						dataList.addAll(dhelp.getAllDataFromSys(sys, "C"));
+						if(e.getSource().equals(updateProvideDataBLUButton))
+							dataList.addAll(dhelp.getAllDataFromSys(sys, "C"));
+						else
+							dataList.addAll(dhelp.getAllDataFromSys(sys,"R"));
 					}
-					String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
-					bluQuery = addBindings("System",systems, bluQuery);
-					bluList = runListQuery(engine,bluQuery);	
+					if(e.getSource().equals(updateProvideDataBLUButton))
+					{
+						String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
+						bluQuery = addBindings("System",systems, bluQuery);
+						bluList = runListQuery(engine,bluQuery);
+					}
 				}
 			}
 			//otherwise if the system and capability select panel is shown, populate data and blu from the selected capabilities
 			else
 			{
-				String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-				String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-		
+				String dataQuery = "";
+				String bluQuery = "";
+				if(e.getSource().equals(updateProvideDataBLUButton))
+				{
+					dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+					bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+				}
+				else
+					dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
 				ArrayList<String> capabilities = new ArrayList<String>();
 				if(!capScrollList.getSelectedValues().isEmpty())
 				{
 					capabilities = capScrollList.getSelectedValues();
 					dataQuery = addBindings("Capability",capabilities, dataQuery);
-					bluQuery = addBindings("Capability",capabilities, bluQuery);
 					dataList = runListQuery(engine,dataQuery);
-					bluList = runListQuery(engine,bluQuery);	
+					if(e.getSource().equals(updateProvideDataBLUButton))
+					{
+						bluQuery = addBindings("Capability",capabilities, bluQuery);
+						bluList = runListQuery(engine,bluQuery);	
+					}
 				}
 
 			}
@@ -121,7 +150,8 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	{
 		lblDataSelectHeader.setVisible(isVisible);
 		lblBLUSelectHeader.setVisible(isVisible);
-		updateDataBLUButton.setVisible(isVisible);
+		updateProvideDataBLUButton.setVisible(isVisible);
+		updateConsumeDataBLUButton.setVisible(isVisible);
 		updateComplementDataBLUButton.setVisible(isVisible);
 		dataScrollList.setVisible(isVisible);
 		bluScrollList.setVisible(isVisible);
@@ -200,13 +230,14 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	/**
 	 * Sets buttons that could be clicked
 	 * @param updateDataBLUPanelButton 		JToggleButton to show and update data and blu lists
-	 * @param updateDataBLUButton 			JButton to update data and blu lists
+	 * @param updateProvideDataBLUButton 			JButton to update data and blu lists
 	 * @param updateComplementDataBLUButton JButton to update complement of data and blu lists
 	 */
-	public void setUpdateButtons(JToggleButton updateDataBLUPanelButton,JButton updateDataBLUButton,JButton updateComplementDataBLUButton)
+	public void setUpdateButtons(JToggleButton updateDataBLUPanelButton,JButton updateProvideDataBLUButton,JButton updateConsumeDataBLUButton,JButton updateComplementDataBLUButton)
 	{
 		this.updateDataBLUPanelButton = updateDataBLUPanelButton;
-		this.updateDataBLUButton = updateDataBLUButton;
+		this.updateProvideDataBLUButton = updateProvideDataBLUButton;
+		this.updateConsumeDataBLUButton = updateConsumeDataBLUButton;
 		this.updateComplementDataBLUButton = updateComplementDataBLUButton;
 	}
 	/**

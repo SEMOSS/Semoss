@@ -107,12 +107,12 @@ public class DataInterfaceWithDHMSMProcessor {
 	public void processDHMSMInterfaceQueries() {
 
 		//systems that consume data from DHMSM
-		String dataConsumerQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?LowMedProbSystem ?ConsumingProviding_Data_FromTo_DHMSM (COALESCE(?CCD2,'') AS ?CCD) WHERE {BIND('Consuming' AS ?ConsumingProviding_Data_FromTo_DHMSM) {?HighProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?LowMedProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?ICD1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}  {?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?HighProbSystem <http://semoss.org/ontologies/Relation/Provide> ?ICD1} {?ICD1 <http://semoss.org/ontologies/Relation/Consume> ?LowMedProbSystem}{?ICD1 ?payload ?Data}OPTIONAL{{?payload1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}{?ICD1 ?payload1 ?Data}}OPTIONAL{{?CCD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD>;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD2}} } ORDER BY ?Data BINDINGS ?LowMed {('Low')('Medium')}";
+		String dataConsumerQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?LowMedProbSystem ?ConsumingProviding_Data_FromTo_DHMSM (COALESCE(?CCD2,'') AS ?CCD) (COALESCE(?Interface,'Y') AS ?Interface_Needed) WHERE {BIND('Consuming' AS ?ConsumingProviding_Data_FromTo_DHMSM) {?HighProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?LowMedProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?ICD1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}  {?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?HighProbSystem <http://semoss.org/ontologies/Relation/Provide> ?ICD1} {?ICD1 <http://semoss.org/ontologies/Relation/Consume> ?LowMedProbSystem}{?ICD1 ?payload ?Data}OPTIONAL{{?payload1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}{?ICD1 ?payload1 ?Data}}OPTIONAL{{?CCD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD>;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD2}}OPTIONAL{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Interface_Needed> ?Interface} } ORDER BY ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 //		String dataConsumerQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?System ?ConsumingProviding_Data_FromTo_DHMSM ?CCD_Element WHERE { filter( !regex(str(?crm),'R')){?HighSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> }{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> }{?CCD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD> }  {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}  {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}{?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?HighSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighSystem <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?System ;}{?icd ?payload ?Data}{?HighSystem ?provideData ?Data}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD}BIND('Consuming' AS ?ConsumingProviding_Data_FromTo_DHMSM)OPTIONAL{{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?icd ?carries ?Data}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} }  } ORDER BY ?System ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 //		String dataConsumerQuery2 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?System ?ConsumingProviding_Data_FromTo_DHMSM ?CCD_Element WHERE {BIND('Consuming' AS ?ConsumingProviding_Data_FromTo_DHMSM)  {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> } {?HighSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?CCD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD> } {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?HighSystem}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?HighSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighSystem <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?System ;}{?icd ?payload ?Data ;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD}FILTER(!BOUND(?icd2))OPTIONAL{{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?icd ?carries ?Data}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} } } ORDER BY ?System ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 		
 		//systems that provide data to DHMSM
-		String dataProviderQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?LowMedProbSystem ?ConsumingProviding_Data_FromTo_DHMSM (COALESCE(?CCD2,'') AS ?CCD) WHERE {BIND('Providing' AS ?ConsumingProviding_Data_FromTo_DHMSM) {?HighProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?LowMedProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?ICD1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Provide> ?ICD1} {?ICD1 <http://semoss.org/ontologies/Relation/Consume> ?HighProbSystem}{?ICD1 <http://semoss.org/ontologies/Relation/Payload> ?Data}OPTIONAL{{?payload1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?ICD1 ?payload1 ?Data}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}}OPTIONAL{{?CCD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD>;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD2}}} ORDER BY ?Data BINDINGS ?LowMed {('Low')('Medium')}";
+		String dataProviderQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?LowMedProbSystem ?ConsumingProviding_Data_FromTo_DHMSM (COALESCE(?CCD2,'') AS ?CCD) (COALESCE(?Interface,'Y') AS ?Interface_Needed) WHERE {BIND('Providing' AS ?ConsumingProviding_Data_FromTo_DHMSM) {?HighProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?LowMedProbSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?ICD1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?HighProbSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Provide> ?ICD1} {?ICD1 <http://semoss.org/ontologies/Relation/Consume> ?HighProbSystem}{?ICD1 <http://semoss.org/ontologies/Relation/Payload> ?Data}OPTIONAL{{?payload1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?ICD1 ?payload1 ?Data}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?payload1 <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}}OPTIONAL{{?CCD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD>;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD2}}OPTIONAL{?LowMedProbSystem <http://semoss.org/ontologies/Relation/Contains/Interface_Needed> ?Interface}} ORDER BY ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 //		String dataProviderQuery1 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?System ?ConsumingProviding_Data_FromTo_DHMSM ?CCD_Element WHERE { filter( !regex(str(?crm),'R')){?HighSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> }{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> } {?CCD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}  {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}{?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?HighSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?HighSystem ;}{?icd ?payload ?Data}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD}{?HighSystem ?provideData ?Data}BIND('Providing' AS ?ConsumingProviding_Data_FromTo_DHMSM)OPTIONAL{{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?icd ?carries ?Data}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} }  } ORDER BY ?System ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 //		String dataProviderQuery2 = "SELECT DISTINCT ?Data (COALESCE(?Format,'') AS ?Data_Protocol) (COALESCE(?Protocol,'') AS ?Wire_Protocol) ?System ?ConsumingProviding_Data_FromTo_DHMSM ?CCD_Element WHERE {BIND('Providing' AS ?ConsumingProviding_Data_FromTo_DHMSM)  {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> } {?HighSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?CCD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CCD> } {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System}{?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}}{?HighSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?LowMed}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?HighSystem ;}{?icd ?payload ?Data ;}{?Data <http://semoss.org/ontologies/Relation/MapsTo> ?CCD}FILTER(!BOUND(?icd2))OPTIONAL{{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}{?icd ?carries ?Data}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} } } ORDER BY ?System ?Data BINDINGS ?LowMed {('Low')('Medium')}";
 		
@@ -209,66 +209,72 @@ public class DataInterfaceWithDHMSMProcessor {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-				String [] values = new String[2];
-				values[0] = ((String)getVariable(names[0], sjss)).replaceAll("\"","");
-				values[1] = ((String)getVariable(names[4], sjss)).replaceAll("\"","");
-				
-				String identifier = (String)values[0]+values[1];
-				
-				if(!uniqueIds.contains(identifier))
+				String interfaceNeeded = "";
+				if(names.length>=7)
+					interfaceNeeded = ((String)getVariable(names[6], sjss)).replaceAll("\"","");
+				if(interfaceNeeded.equals("") || interfaceNeeded.contains("Y") || interfaceNeeded.contains("?"))
 				{
-					uniqueIds.add(identifier);
-					list.add(values);
-				}
-				
-				String dataProt = ((String)getVariable(names[1], sjss)).replaceAll("\"","");
-				String wireProt = ((String)getVariable(names[2], sjss)).replaceAll("\"","");
-				String system = ((String)getVariable(names[3], sjss)).replaceAll("\"","");
-				String CCD = ((String)getVariable(names[5],sjss)).replaceAll("\"","");
-				
-				if(dataProtHash.containsKey(dataProt))
-					dataProtHash.get(dataProt).add(identifier);
-				else
-				{
-					ArrayList<String> dataList = new ArrayList<String>();
-					dataList.add(identifier);
-					dataProtHash.put(dataProt, dataList);
-				}
-				if(wireProtHash.containsKey(wireProt))
-					wireProtHash.get(wireProt).add(identifier);
-				else
-				{
-					ArrayList<String> wireList = new ArrayList<String>();
-					wireList.add(identifier);
-					wireProtHash.put(wireProt, wireList);
-				}
-				if(sysListHash.containsKey(identifier))
-				{
-					Vector<String> sysList = sysListHash.get(identifier);
-					if(!sysList.contains(system))
+					String [] values = new String[2];
+					values[0] = ((String)getVariable(names[0], sjss)).replaceAll("\"","");
+					values[1] = ((String)getVariable(names[4], sjss)).replaceAll("\"","");
+					
+					String identifier = (String)values[0]+values[1];
+					
+					if(!uniqueIds.contains(identifier))
+					{
+						uniqueIds.add(identifier);
+						list.add(values);
+					}
+					
+					String dataProt = ((String)getVariable(names[1], sjss)).replaceAll("\"","");
+					String wireProt = ((String)getVariable(names[2], sjss)).replaceAll("\"","");
+					String system = ((String)getVariable(names[3], sjss)).replaceAll("\"","");
+					String CCD = ((String)getVariable(names[5],sjss)).replaceAll("\"","");
+					
+					if(dataProtHash.containsKey(dataProt))
+						dataProtHash.get(dataProt).add(identifier);
+					else
+					{
+						ArrayList<String> dataList = new ArrayList<String>();
+						dataList.add(identifier);
+						dataProtHash.put(dataProt, dataList);
+					}
+					if(wireProtHash.containsKey(wireProt))
+						wireProtHash.get(wireProt).add(identifier);
+					else
+					{
+						ArrayList<String> wireList = new ArrayList<String>();
+						wireList.add(identifier);
+						wireProtHash.put(wireProt, wireList);
+					}
+					if(sysListHash.containsKey(identifier))
+					{
+						Vector<String> sysList = sysListHash.get(identifier);
+						if(!sysList.contains(system))
+							sysList.add(system);
+					}
+					else
+					{
+						Vector<String> sysList = new Vector<String>();
 						sysList.add(system);
-				}
-				else
-				{
-					Vector<String> sysList = new Vector<String>();
-					sysList.add(system);
-					sysListHash.put(identifier,sysList);
-				}
-				if(!CCD.equals("")&&ccdListHash.containsKey(identifier))
-				{
-					Vector<String> ccdList = ccdListHash.get(identifier);
-					if(!ccdList.contains(CCD))
+						sysListHash.put(identifier,sysList);
+					}
+					if(!CCD.equals("")&&ccdListHash.containsKey(identifier))
+					{
+						Vector<String> ccdList = ccdListHash.get(identifier);
+						if(!ccdList.contains(CCD))
+							ccdList.add(CCD);
+					}
+					else if(!CCD.equals(""))
+					{
+						Vector<String> ccdList = new Vector<String>();
 						ccdList.add(CCD);
+						ccdListHash.put(identifier,ccdList);
+					}
+					logger.debug("Creating new Value " + values);
+					list.add(count, values);
+					count++;
 				}
-				else if(!CCD.equals(""))
-				{
-					Vector<String> ccdList = new Vector<String>();
-					ccdList.add(CCD);
-					ccdListHash.put(identifier,ccdList);
-				}
-				logger.debug("Creating new Value " + values);
-				list.add(count, values);
-				count++;
 			}
 		} catch (Exception e) {
 			logger.fatal(e);
