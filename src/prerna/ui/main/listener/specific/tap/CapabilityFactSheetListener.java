@@ -89,7 +89,7 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 			}
 		}
 		
-		return JSValue.create(gson.toJson(allHash));
+		return JSValue.create(gson.toJson(allHash).replaceAll("'",""));
 	}
 	
 }
