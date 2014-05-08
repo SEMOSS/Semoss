@@ -73,7 +73,7 @@ public class OWLRefreshListener implements IChakraListener {
 		// run through each one of them
 		// if you dont see it in the prop Hash - remove it from the jenaModel
 		// aggregate all the new concepts
-		PropertySpecData data = ps.getPredicateData();
+		PropertySpecData data = ps.getGraphData().getPredicateData();
 				
 		// finish the subjects first
 		logger.warn("Removing Subjects " + data.subject2bRemoved);
@@ -139,8 +139,10 @@ public class OWLRefreshListener implements IChakraListener {
 		// need to see if there is a neater way to do this
 		if(overlay.isSelected())
 			QuestionPlaySheetStore.getInstance().getActiveSheet().overlayView();			
-		else
+		else{
+			((GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet()).clearStores();
 			QuestionPlaySheetStore.getInstance().getActiveSheet().refineView();
+		}
 	}
 	
 	/**
@@ -154,11 +156,11 @@ public class OWLRefreshListener implements IChakraListener {
 	{
 		Vector <String> subVector = new Vector<String>();
 		
-		String deleteQuery = "DELETE  WHERE {" +
+		String deleteQuery = "DELETE  DATA {" +
 			"<child> " + predicate + " <parent>; " +
 		"}";
 
-		String deleteQuery2 = "DELETE  WHERE {" +
+		String deleteQuery2 = "DELETE  DATA {" +
 		"<child> " + predicate + "  " + parentObj + "; " +
 	"}";
 		

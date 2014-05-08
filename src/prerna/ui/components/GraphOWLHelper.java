@@ -21,6 +21,7 @@ package prerna.ui.components;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.om.GraphDataModel;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
@@ -42,7 +43,7 @@ public class GraphOWLHelper {
 	 * @param objects 	String
 	 * @param ps 		Graph playsheet.
 	 */
-	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphPlaySheet ps)
+	public static void loadConceptHierarchy(RepositoryConnection rc, String subjects, String objects, GraphDataModel ps)
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
@@ -80,7 +81,7 @@ public class GraphOWLHelper {
 	 * @param predicates 	Type of predicates.
 	 * @param ps GraphPlaySheet
 	 */
-	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphPlaySheet ps)
+	public static void loadRelationHierarchy(RepositoryConnection rc, String predicates, GraphDataModel ps)
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
@@ -119,7 +120,7 @@ public class GraphOWLHelper {
 	 * @param containsRelation 	Type of relation.
 	 * @param ps GraphPlaySheet
 	 */
-	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation, GraphPlaySheet ps)
+	public static void loadPropertyHierarchy(RepositoryConnection rc, String predicates, String containsRelation, GraphDataModel ps)
 	{
 		IEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);

@@ -69,6 +69,7 @@ public class SystemBudgetPropInserter {
 		//run the insert
 		UpdateProcessor proc = new UpdateProcessor();
 		proc.setEngine((IEngine) DIHelper.getInstance().getLocalProp(tapEngineName));
+		System.out.println("Running Insert Query: " + insertQuery);
 		proc.setQuery(insertQuery);
 		proc.processQuery();
 		logger.info("Insert complete");
