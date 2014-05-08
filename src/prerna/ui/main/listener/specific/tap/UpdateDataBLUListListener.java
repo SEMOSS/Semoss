@@ -67,10 +67,10 @@ public class UpdateDataBLUListListener extends AbstractListener {
 			if(showSystemSelectBtn.isSelected())
 			{
 				updateProvideDataBLUButton.setText("Select Create");
-				updateProvideDataBLUButton.setText("Select Read");
+				updateConsumeDataBLUButton.setText("Select Read");
 			}else{
 				updateProvideDataBLUButton.setText("Select Provide");
-				updateProvideDataBLUButton.setText("Select Consume");
+				updateConsumeDataBLUButton.setText("Select Consume");
 			}
 			dataScrollList.clearList();
 			bluScrollList.clearList();
@@ -94,7 +94,10 @@ public class UpdateDataBLUListListener extends AbstractListener {
 						if(e.getSource().equals(updateProvideDataBLUButton))
 							dataList.addAll(dhelp.getAllDataFromSys(sys, "C"));
 						else
+						{
 							dataList.addAll(dhelp.getAllDataFromSys(sys,"R"));
+							dataList.removeAll(dhelp.getAllDataFromSys(sys,"C"));
+						}
 					}
 					if(e.getSource().equals(updateProvideDataBLUButton))
 					{
@@ -107,25 +110,29 @@ public class UpdateDataBLUListListener extends AbstractListener {
 			//otherwise if the system and capability select panel is shown, populate data and blu from the selected capabilities
 			else
 			{
-				String dataQuery = "";
-				String bluQuery = "";
+				String dataProvideQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+				String dataConsumeQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+				String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
 				if(e.getSource().equals(updateProvideDataBLUButton))
-				{
-					dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-					bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-				}
-				else
-					dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+				{}
 				ArrayList<String> capabilities = new ArrayList<String>();
 				if(!capScrollList.getSelectedValues().isEmpty())
 				{
 					capabilities = capScrollList.getSelectedValues();
-					dataQuery = addBindings("Capability",capabilities, dataQuery);
-					dataList = runListQuery(engine,dataQuery);
+					dataProvideQuery = addBindings("Capability",capabilities, dataProvideQuery);
+					dataConsumeQuery = addBindings("Capability",capabilities, dataConsumeQuery);
+					ArrayList<String> dataProvideList = runListQuery(engine,dataProvideQuery);
+					ArrayList<String> dataConsumeList = runListQuery(engine,dataConsumeQuery);
 					if(e.getSource().equals(updateProvideDataBLUButton))
 					{
+						dataList = dataProvideList;
 						bluQuery = addBindings("Capability",capabilities, bluQuery);
 						bluList = runListQuery(engine,bluQuery);	
+					}
+					else
+					{
+						dataList = dataConsumeList;
+						dataList.removeAll(dataProvideList);
 					}
 				}
 
