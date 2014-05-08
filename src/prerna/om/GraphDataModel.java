@@ -34,6 +34,7 @@ import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.VertexColorShapeData;
@@ -67,6 +68,7 @@ public class GraphDataModel {
 	Vector <Model> modelStore = new Vector<Model>();
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
+	public PropertySpecData predData = new PropertySpecData();
 	
 	boolean search, prop, sudowl;
 	
@@ -241,23 +243,7 @@ public class GraphDataModel {
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
 			
-			// now add the base relationships to the metamodel
-			// this links the hierarchy that tool needs to the metamodel being queried
-			// eventually this could be a SPIN
-			// need to get the engine name and jam it - Done Baby
-			if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine) {
-				if(this.baseRelEngine == null){
-					this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-				} else {
-					RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
-				}
-
-				this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
-				
-				RDFEngineHelper.addAllData(baseRelEngine, rc);
-				loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
-			}
-			logger.info("BaseQuery");
+			loadBaseData(engine);
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
 			boolean loadHierarchy = !(subjects.equals("") && predicates.equals("") && objects.equals("")); 
@@ -276,11 +262,11 @@ public class GraphDataModel {
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 
 			if(sudowl) {
-				logger.info("Starting to load OWL");
-//				GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
-//				GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
-//				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
-				logger.info("Finished loading OWL");
+				logger.info("Starting to load SUDOWL");
+				GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
+				GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
+				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
+				logger.info("Finished loading SUDOWL");
 			}
 			if(prop) {
 				logger.info("Starting to load properties");
@@ -529,7 +515,7 @@ public class GraphDataModel {
 	 * Method findContainsRelation.
 	 * @return String
 	 */
-	private String findContainsRelation()
+	public String findContainsRelation()
 	{
 		String query2 = "SELECT DISTINCT ?Subject ?subProp ?contains WHERE { BIND( <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subProp) BIND( <http://semoss.org/ontologies/Relation/Contains> AS ?contains) {?Subject ?subProp  ?contains}}";
 
@@ -715,7 +701,7 @@ public class GraphDataModel {
 									  //"VALUES ?Predicate {"  + predicates + "}" +
 									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
 									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-									  //"{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+//									  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 									  "{?Subject ?Predicate ?Object}" +
 									  "}";
 		if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
@@ -986,5 +972,33 @@ public class GraphDataModel {
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore = new Hashtable<String, SEMOSSEdge>();
 		
+	}
+
+	/**
+	 * Method getPredicateData.
+	 * @return PropertySpecData
+	 */
+	public PropertySpecData getPredicateData() {
+		return predData;
+	}
+	
+	public void loadBaseData(IEngine engine){
+		// now add the base relationships to the metamodel
+		// this links the hierarchy that tool needs to the metamodel being queried
+		// eventually this could be a SPIN
+		// need to get the engine name and jam it - Done Baby
+		if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine) {
+			if(this.baseRelEngine == null){
+				this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
+			} else {
+				RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
+			}
+
+			this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
+			
+			RDFEngineHelper.addAllData(baseRelEngine, rc);
+			loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
+		}
+		logger.info("BaseQuery");
 	}
 }

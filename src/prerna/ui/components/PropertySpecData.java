@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
@@ -145,8 +146,8 @@ public class PropertySpecData {
 	 */
 	public void addPredicate2(String parent, String predicateName) {
 		addConcept(parent, predicateName);
-		/*
-		if(stringofEverything.indexOf(predicateName) < 0 )
+		
+	/*	if(stringofEverything.indexOf(predicateName) < 0 )
 		{
 			String childVector = "";
 			if (predicateHash.containsKey(parent)) {
@@ -189,18 +190,21 @@ public class PropertySpecData {
 	 * It shows the boolean, concept hierarchy, predicate, concept, and concept boolean.
 	 */
 	public void genPredList() {
-		Enumeration<String> keys = conceptHash.keys();
+		ArrayList<String> keyArray = new ArrayList<String>();
+		keyArray.addAll(conceptHash.keySet());
+//		keyArray.addAll(predicateHash.keySet());
+//		keyArray.addAll(propertyHash.keySet());
 		// shows the boolean and predicate
 		// shows the boolean, the concept hierarchy, concept, concept bool,
 		// predicate bool, property bool, parent
 		dataList = new Object[conceptHash.size() + conceptSize + predicateHash.size() + predSize + propertyHash.size() + propertySize][6];
 		// shows the predicate, relation boolean, property boolean
 		dataList2 = new Object[predicateHash.size() + propertyHash.size()][3];
-
+		int conceptIndex = -1;
 		// generate the concept list first
-		int conceptIndex = 0;
-		for (; keys.hasMoreElements(); conceptIndex++) {
-			String key = keys.nextElement();
+		for (int keyIdx = 0; keyIdx < keyArray.size(); keyIdx++) {
+			String key = keyArray.get(keyIdx);
+			conceptIndex++;
 			dataList[conceptIndex][2] = new Boolean(false);
 			dataList[conceptIndex][3] = new Boolean(false); // not a predicate
 			dataList[conceptIndex][4] = new Boolean(false); // not a property
@@ -444,7 +448,7 @@ public class PropertySpecData {
 				this.pred2bAdded = this.pred2bAdded.replace(";"+ parentEntity + "@@" + entity, "");
 				this.prop2bAdded = this.prop2bAdded.replace(";"+ parentEntity + "@@" + entity, "");
 				//if(!conceptAvailableHash.containsKey(entity))
-				this.subject2bAdded = this.subject2bAdded + ";" + parentEntity + "@@" + entity;
+				this.subject2bAdded = this.subject2bAdded + ";" + entity + "@@" + entity;
 				
 				// removals
 				this.pred2bRemoved = this.pred2bRemoved  + ";" + parentEntity + "@@" + entity;
@@ -490,7 +494,7 @@ public class PropertySpecData {
 		{
 			if(concept)
 			{
-				this.subject2bAdded = this.subject2bAdded.replace(";"+parentEntity + "@@" + entity, "");
+				this.subject2bAdded = this.subject2bAdded.replace(";"+entity + "@@" + entity, "");
 				this.pred2bRemoved = this.pred2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
 				this.prop2bRemoved = this.prop2bRemoved.replace(";"+parentEntity + "@@" + entity, "");
 				//if(conceptAvailableHash.containsKey(entity))
