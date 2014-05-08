@@ -56,7 +56,6 @@ public class DistanceDownstreamInserter {
 	Hashtable<String, SEMOSSVertex> vertStore = new Hashtable();
 	// references to the main edgeStore
 	Hashtable<String, SEMOSSEdge> edgeStore = new Hashtable();
-	PropertySpecData predData = new PropertySpecData();
 	Hashtable networkValueHash = new Hashtable();
 	Hashtable soaValueHash = new Hashtable();
 
@@ -328,8 +327,6 @@ public class DistanceDownstreamInserter {
 
 					// get the subject, predicate and object
 					// look for the appropriate vertices etc and paint it
-					predData.addConceptAvailable(sct.getSubject());
-					predData.addConceptAvailable(sct.getObject()+"");
 					SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
 					if(vert1 == null)
 					{

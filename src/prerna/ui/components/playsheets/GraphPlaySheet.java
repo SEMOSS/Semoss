@@ -296,7 +296,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				gdm.undoData();
 				filterData = new VertexFilterData();
 				controlData = new ControlData();
-				predData = new PropertySpecData();
+				gdm.predData = new PropertySpecData();
 				updateProgressBar("50%...Graph Undo in Progress", 50);
 				
 				refineView();
@@ -755,10 +755,16 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		Hashtable<String, SEMOSSEdge> edgeStore = gdm.getEdgeStore();
 		Iterator<String> edgeIt = edgeStore.keySet().iterator();
 		while(edgeIt.hasNext()){
+			
 			String edgeURI = edgeIt.next();
 			SEMOSSEdge edge = edgeStore.get(edgeURI);
 			SEMOSSVertex outVert = edge.outVertex;
 			SEMOSSVertex inVert = edge.inVertex;
+			
+			
+			System.out.println("{ u: \""  + outVert.getProperty(Constants.VERTEX_NAME) + "\", v: \"" + inVert.getProperty(Constants.VERTEX_NAME)+ "\", value: { label: \"\" } }," );
+			
+			
 				if ((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(inVert.getURI())
 						&& !filteredNodes.containsKey(outVert.getURI()) && !filterData.edgeFilterNodes.containsKey(edge.getURI()))){
 				//add to forest
@@ -769,9 +775,9 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				filterData.addEdge(edge);
 				
 				//add to pred data
-				predData.addPredicateAvailable(edge.getURI());
-				predData.addConceptAvailable(inVert.getURI());
-				predData.addConceptAvailable(outVert.getURI());
+				gdm.predData.addPredicateAvailable(edge.getURI());
+				gdm.predData.addConceptAvailable(inVert.getURI());
+				gdm.predData.addConceptAvailable(outVert.getURI());
 				
 				//add to simple graph
 				graph.addVertex(outVert);
@@ -786,6 +792,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		Collection<SEMOSSVertex> verts = vertStore.values();
 		for(SEMOSSVertex vert : verts)
 		{
+			System.out.println("\"" + vert.getProperty(Constants.VERTEX_NAME) + "\", ");
 			if((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(vert.getURI()))){
 				processControlData(vert);
 				filterData.addVertex(vert);
@@ -1194,7 +1201,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		filterData.fillEdgeRows();
 		controlData.generateAllRows();
 		if(sudowl)
-			predData.genPredList();
+			gdm.predData.genPredList();
 		colorShapeData.setTypeHash(filterData.typeHash);
 		colorShapeData.setCount(filterData.count);
 		colorShapeData.fillRows();
@@ -1228,13 +1235,11 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		logger.info("Creating the base Graph");
 		gdm.fillStoresFromModel();
 	}
-
-	/**
-	 * Method getPredicateData.
-	 * @return PropertySpecData
-	 */
-	public PropertySpecData getPredicateData() {
-		return predData;
+	
+	public void clearStores(){
+		gdm.getVertStore().clear();
+		gdm.getEdgeStore().clear();
 	}
+
 	
 }

@@ -235,8 +235,8 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 
 						// get the subject, predicate and object
 						// look for the appropriate vertices etc and paint it
-						predData.addConceptAvailable(sct.getSubject());
-						predData.addConceptAvailable(sct.getObject()+"");
+						gdm.predData.addConceptAvailable(sct.getSubject());
+						gdm.predData.addConceptAvailable(sct.getObject()+"");
 //						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
 //						if(vert1 == null)
 //						{

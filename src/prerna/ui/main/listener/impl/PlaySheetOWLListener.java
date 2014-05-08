@@ -57,7 +57,7 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 			return;
 		}
 		// get the filter data
-		PropertySpecData psd = ps.getPredicateData();
+		PropertySpecData psd = ps.getGraphData().getPredicateData();
 		OPropertyTableModel model = new OPropertyTableModel(psd);
 	
 		logger.info("Lable count is " + model.getRowCount());
