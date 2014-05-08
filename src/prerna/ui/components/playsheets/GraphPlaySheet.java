@@ -134,7 +134,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 * parameters c. The composed SPARQL Query d. Perspective selected e. The question selected by the user f. Filter
 	 * criterias including slider values
 	 */
-	GraphDataModel gdm = new GraphDataModel();
+	protected GraphDataModel gdm = new GraphDataModel();
 	public DelegateForest forest = null;
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
 	protected String layoutName = Constants.FR;
@@ -147,7 +147,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public DataLatencyPlayPopup dataLatencyPlayPopUp = null;
 	public ControlData controlData = new ControlData();
 	public PropertySpecData predData = new PropertySpecData();
-	SimpleGraph <SEMOSSVertex, SEMOSSEdge> graph = new SimpleGraph<SEMOSSVertex, SEMOSSEdge>(SEMOSSEdge.class);
+	protected SimpleGraph <SEMOSSVertex, SEMOSSEdge> graph = new SimpleGraph<SEMOSSVertex, SEMOSSEdge>(SEMOSSEdge.class);
 
 	public VertexColorShapeData colorShapeData = new VertexColorShapeData();
 	public VertexFilterData filterData = new VertexFilterData();
@@ -1206,14 +1206,14 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		
 	}
 	
-	private void processControlData(SEMOSSEdge edge){
+	protected void processControlData(SEMOSSEdge edge){
 		String edgeType = edge.getProperty(Constants.EDGE_TYPE)+"";
 		for(String prop : edge.getPropertyKeys()){
 			controlData.addProperty(edgeType, prop);
 		}
 	}
 	
-	private void processControlData(SEMOSSVertex vert){
+	protected void processControlData(SEMOSSVertex vert){
 		String vertType = vert.getProperty(Constants.VERTEX_TYPE)+"";
 		for(String prop : vert.getPropertyKeys()){
 			controlData.addProperty(vertType, prop);
