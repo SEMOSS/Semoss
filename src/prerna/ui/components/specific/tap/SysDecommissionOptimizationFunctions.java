@@ -368,7 +368,7 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		for(String sys : sysToPossibleResourceAllocationHash.keySet())
 		{
-			double numSimultaneousTransform = sysToPossibleResourceAllocationHash.get(sys)*sysToMinTimeHashPerSite.get(sys)/sysToWorkVolHashPerSite.get(sys);		
+			double numSimultaneousTransform = Math.ceil(sysToPossibleResourceAllocationHash.get(sys))*sysToMinTimeHashPerSite.get(sys)/sysToWorkVolHashPerSite.get(sys);		
 			sysToNumSimultaneousTransformHash.put(sys, numSimultaneousTransform);
 		}
 	}
