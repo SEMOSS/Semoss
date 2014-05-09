@@ -26,14 +26,16 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 
 		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
 		
-		names = new String[7];
+		names = new String[9];
 		names[0] = "System";
 		names[1] = "Probability";
-		names[2] ="Time to Transform";
-		names[3] = "Number of Sites Deployed At";
-		names[4] = "Resource Allocation";
-		names[5] = "Number of Systems Transformed Simultaneously";
-		names[6] = "Total Cost for System";
+		names[2] = "Minimum Time to Transform (Years)";
+		names[3] = "Time to Transform at All Sites (Years)";
+		names[4] = "Work Volume for One Site (Years)";
+		names[5] = "Number of Sites Deployed At";
+		names[6] = "Resource Allocation";
+		names[7] = "Number of Systems Transformed Simultaneously";
+		names[8] = "Total Cost for System";
 //		names[5] = "Min time for system";
 		
 		optFunctions.setSysList(sysList);

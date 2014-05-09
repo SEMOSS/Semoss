@@ -410,22 +410,26 @@ public class SysDecommissionOptimizationFunctions {
 		//old version included min time at one site and work volume at one site
 		for(String sys : sortedSysList)
 		{
-			Object[] element = new Object[7];
+			Object[] element = new Object[9];
 			element[0] = sys;
 			element[1] = sysToProbHash.get(sys);
+			element[2] = sysToMinTimeHashPerSite.get(sys) / 365.0;
+			
+			//add a minimum time for system
 			double time1 = sysToWorkVolHashAllSites.get(sys) / 365.0 / Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
-			element[2] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
+			element[3] = Math.max(time1, sysToMinTimeHashPerSite.get(sys) / 365.0);
+			element[4] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 	//		element[1] = sysToMinTimeHashPerSite.get(sys) / 365.0;
 	//		element[2] = sysToWorkVolHashPerSite.get(sys) / 365.0;
 			int numSites= 1;
 			if(sysToSiteHash.containsKey(sys))
 				numSites = sysToSiteHash.get(sys).size();
-			element[3] = numSites;
-			element[4] = Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
+			element[5] = numSites;
+			element[6] = Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
 //			element[2] = sysToResourceAllocationHash.get(sys);
 
-			element[5] = sysToNumSimultaneousTransformHash.get(sys);
-			element[6] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * numSites * hourlyCost;//"still working on...."; // should be total work vol in hours * site * 150
+			element[7] = sysToNumSimultaneousTransformHash.get(sys);
+			element[8] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * numSites * hourlyCost;// should be total work vol in hours * site * 150
 
 			outputList.add(element);
 		}
