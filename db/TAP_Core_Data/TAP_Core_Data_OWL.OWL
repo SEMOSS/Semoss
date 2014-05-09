@@ -173,6 +173,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/MapsTo">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Supports">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Consists">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -230,9 +233,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Carries">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Supports">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Has rdf:resource="http://semoss.org/ontologies/Concept/DForm"/>
 </rdf:Description>
@@ -250,6 +250,7 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Receives-Submits rdf:resource="http://semoss.org/ontologies/Concept/SystemTasker"/>
+	<Supports rdf:resource="http://semoss.org/ontologies/Concept/BusinessProcess"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VISTAUnion">
 	<MappedTo rdf:resource="http://semoss.org/ontologies/Concept/VISTA"/>
@@ -411,6 +412,7 @@
 	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/CDR"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Supports rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
 	<Has rdf:resource="http://semoss.org/ontologies/Concept/HardwareModule"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Software">
