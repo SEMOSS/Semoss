@@ -428,7 +428,7 @@ public class SysDecommissionOptimizationFunctions {
 			element[6] = Math.ceil(sysToPossibleResourceAllocationHash.get(sys));
 //			element[2] = sysToResourceAllocationHash.get(sys);
 
-			element[7] = sysToNumSimultaneousTransformHash.get(sys);
+			element[7] = Math.ceil(sysToNumSimultaneousTransformHash.get(sys));
 			element[8] = sysToWorkVolHashPerSite.get(sys)/7*5*workHoursInDay * numSites * hourlyCost;// should be total work vol in hours * site * 150
 
 			outputList.add(element);
