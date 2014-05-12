@@ -70,14 +70,29 @@ public class SystemTransitionOrganizer {
 	{
 		for (int i=0; i<list.size(); i++)
 		{
+			try{
 			Object[] elementArray = list.get(i);
 			String site = (String) elementArray[0];
-			Double lat = (Double) elementArray[1];
-			Double lon = (Double) elementArray[2];
+			Double latVal;
+			Double longVal;
+			if(elementArray[1] instanceof Double)
+				latVal = (Double) elementArray[1];
+			else
+				latVal = Double.parseDouble((String)elementArray[1]);
+			if(elementArray[2] instanceof Double)
+				longVal = (Double) elementArray[2];
+			else
+				longVal = Double.parseDouble((String)elementArray[2]);
 			Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
-			innerHash.put("LAT", lat);
-			innerHash.put("LONG", lon);
+			innerHash.put("LAT", latVal);
+			innerHash.put("LONG", longVal);
 			siteLatLongHash.put(site, innerHash);
+			}
+			catch(Exception e)
+			{
+				Object[] elementArray = list.get(i);
+				logger.error("Problem with longitude and latitude for "+(String)elementArray[0]);
+			}
 		}
 	}
 
