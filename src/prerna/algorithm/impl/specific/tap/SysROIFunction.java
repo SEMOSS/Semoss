@@ -25,9 +25,13 @@ package prerna.algorithm.impl.specific.tap;
 public class SysROIFunction extends SysNetSavingsFunction{
 	
 	@Override
-	public double calculateRet(double budget, double n)
+	public double calculateRet(double budget, double n,double wAdj)
 	{
-		return ((totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n)/(budget*n);
+		double roi = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
+		roi *= (numMaintenanceSavings - serMainPerc*wAdj);
+		roi -= wAdj;
+		roi /= wAdj;
+		return roi;
 	}
 	
 	@Override
