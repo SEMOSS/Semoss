@@ -28,13 +28,18 @@ import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
  */
 public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	
-	LinearInterpolation linInt;
+//	LinearInterpolation linInt;
 	SysDecommissionOptimizationFunctions yearAdjuster;
 	double numMaintenanceSavings;
 	double serMainPerc;
 	double dataExposeCost;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
+	double inflDiscFactor;
+	double k, sigma;
+	
+	double workNeededAdj;
+	ArrayList<Double> workPerformedArray;
 	public boolean solutionExists = false;
 	
 	
@@ -45,40 +50,115 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	 * @return double	Cumulative Net Savings */
 	@Override
 	public double value(double a) {
+//		count++;
+//		updateProgressBar("Iteration " + count);
+//		linInt.setB(a);
+//		linInt.execute();
+//		double n = linInt.retVal;
+//		if(n<=-1.0E30)
+//		{
+//			consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
+//			consoleArea.setText(consoleArea.getText()+"\nThere is no solution for Budget B: "+a);
+//			return n;
+//		}
+//		solutionExists = true;
+//		
+//		double nAdjusted = yearAdjuster.adjustTimeToTransform(a, n);
+////		if(Math.abs(nAdjusted-n)>.1)
+//// 			System.out.println("N is: "+n+" Adjusted N is: "+nAdjusted);
+//		double savings = calculateRet(a,nAdjusted);
+//		writeToAppConsole(a,n,savings);
+//		return savings;
+		
+
 		count++;
 		updateProgressBar("Iteration " + count);
-		linInt.setB(a);
-		linInt.execute();
-		double n = linInt.retVal;
-		if(n<=-1.0E30)
-		{
-			consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
-			consoleArea.setText(consoleArea.getText()+"\nThere is no solution for Budget B: "+a);
-			return n;
-		}
+		
+		double n=calculateYears(a);
 		solutionExists = true;
+		
 		double nAdjusted = yearAdjuster.adjustTimeToTransform(a, n);
 //		if(Math.abs(nAdjusted-n)>.1)
 // 			System.out.println("N is: "+n+" Adjusted N is: "+nAdjusted);
-		double savings = calculateRet(a,nAdjusted);
+		double savings = calculateRet(a,nAdjusted,workNeededAdj);
 		writeToAppConsole(a,n,savings);
 		return savings;
+		
+		
+		
 	}
-	public double calculateRet(double budget, double n)
+	
+	public double calculateYears(double budget)
 	{
-		return (totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
-		//return (totalYrs-n)*(numMaintenanceSavings)-budget*n;
-
+		int previousN = 0;
+		workPerformedArray = calculateWorkPerformedArray(budget,dataExposeCost);
+		int N = workPerformedArray.size();
+		while(previousN!=N)
+		{
+			previousN = N;
+			workNeededAdj = 0.0;
+			for(int i=0;i<workPerformedArray.size();i++)
+			{
+				workNeededAdj+=workPerformedArray.get(i)*Math.pow(inflDiscFactor, i);
+			}
+			workPerformedArray = calculateWorkPerformedArray(budget,workNeededAdj);
+			N = workPerformedArray.size();			
+		}
+		return N;
 	}
-	public double calculateRetForVariableTotal(double budget, double n,double totalNumYears)
+	
+	public ArrayList<Double> calculateWorkPerformedArray(double budget, double workNeeded)
 	{
-		return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
+		ArrayList<Double> workPerformedArray = new ArrayList<Double>();
+		double totalWorkPerformed = 0.0;
+		while(totalWorkPerformed<workNeeded)
+		{
+			double workPerformedInYearq = calculateWorkPerformedInYearq(budget, workPerformedArray.size()+1);
+			totalWorkPerformed+=workPerformedInYearq;
+			workPerformedArray.add(workPerformedInYearq);
+		}
+		return workPerformedArray;
+	}
+	public double calculateWorkPerformedInYearq(double budget, int q)
+	{
+		double Pq = calculatePq(q); 
+		double hireSum = 0.0;
+		for(int i=1;i<=q-1;i++)
+		{
+			hireSum+=Math.pow(1-attRate,i-1)*calculatePq(i);
+		}
+		double P1 = Pq*Math.pow(1-attRate,q-1)+hireRate*hireSum;
+		double workPerformedInYearq = budget * P1 * inflDiscFactor;
+		return workPerformedInYearq;
+	}
+	public double calculatePq(int q)
+	{
+		return 1+sigma*Math.exp(-1*q*k);
+	}
+	
+	public double calculateRet(double budget, double n,double wAdj)
+	{
+		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
+		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
+		savings -= wAdj;
+		return savings;
+//		return (totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
+	}
+	public double calculateRetForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
+	{
+		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
+		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
+		savings -= wAdj;
+		return savings;
+//		return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
 		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
-
 	}
-	public double calculateSavingsForVariableTotal(double budget, double n,double totalNumYears)
+	public double calculateSavingsForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
 	{
-		return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost);
+		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
+		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
+		return savings;
+	//	return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost);
 		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
 
 	}
@@ -89,13 +169,14 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index+1<n)
+			if(index<n)
 				sustainmentList.add(0.0);
-			else if(index<n)
-				sustainmentList.add((serMainPerc*dataExposeCost)*(Math.ceil(n)-n));
 			else
-				sustainmentList.add((serMainPerc*dataExposeCost));
-				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
+			{
+				double factor = Math.pow(inflDiscFactor,index+1);
+				double sustainment = factor*serMainPerc*workNeededAdj;
+				sustainmentList.add(sustainment);
+			}
 			index++;
 		}
 		return sustainmentList;
@@ -106,13 +187,10 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index+1<n)
-				installList.add(budget);
-			else if(index<n)
-				installList.add(budget*(n-Math.floor(n)));
+			if(index<n)//might need to say zero if null pointer
+				installList.add(workPerformedArray.get(index));
 			else
 				installList.add(0.0);
-				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
 			index++;
 		}
 		return installList;
@@ -127,9 +205,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			if(index+1<n)
 				cumSavingsList.add(0.0);
 			else if(index<n)
-				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,Math.ceil(n)));
+				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,workNeededAdj,Math.ceil(n)));
 			else
-				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1));
+				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,workNeededAdj,index+1));
 				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
 			index++;
 		}
@@ -139,32 +217,35 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	public ArrayList<Double> createBreakEven(double budget, double n)
 	{
 		ArrayList<Double> breakEvenList = new ArrayList<Double>();
+		double workPerformedSum=0.0;
 		int index = 0;
 		while(index<totalYrs)
 		{
 			if(index+1<n)
-				breakEvenList.add(-1*budget*index);
+			{
+				workPerformedSum+= -1*workPerformedArray.get(index);
+				breakEvenList.add(workPerformedSum);
+	//			breakEvenList.add(-1*budget*index); //should this be every Wadj in the list?
+			}
 			else if(index<n)
-				breakEvenList.add(calculateRetForVariableTotal(budget,n,Math.ceil(n)));
+				breakEvenList.add(calculateRetForVariableTotal(budget,n,workNeededAdj,Math.ceil(n)));
 			else
-				breakEvenList.add(calculateRetForVariableTotal(budget,n,index+1.0));
+				breakEvenList.add(calculateRetForVariableTotal(budget,n,workNeededAdj,index+1.0));
 			index++;
 		}
 		return breakEvenList;
 	}
-	public double calculateYear(double budget)
-	{
-		linInt.setB(budget);
-		linInt.execute();
-		return linInt.retVal;
-	}
-	public void setSavingsVariables(double numMaintenanceSavings,double serMainPerc,double dataExposeCost, double preTransitionMaintenanceCost, double postTransitionMaintenanceCost)
+
+	public void setSavingsVariables(double numMaintenanceSavings,double serMainPerc,double dataExposeCost, double preTransitionMaintenanceCost, double postTransitionMaintenanceCost,double scdLT,double iniLC,double scdLC)
 	{
 		this.numMaintenanceSavings = numMaintenanceSavings;
 		this.serMainPerc = serMainPerc;
 		this.dataExposeCost = dataExposeCost;
 		this.preTransitionMaintenanceCost = preTransitionMaintenanceCost;
 		this.postTransitionMaintenanceCost = postTransitionMaintenanceCost;
+		this.k = (1/scdLT)*Math.log(((1-iniLC)/(1-scdLC)));
+		this.sigma = ((1-iniLC)/k)*(1-Math.exp(k));
+		this.inflDiscFactor = (1+infRate) / (1+disRate);
 	}
 	public void writeToAppConsole(double budget, double n, double savings)
 	{
@@ -172,13 +253,13 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		consoleArea.setText(consoleArea.getText()+"\nFor Budget B: "+budget+" the minimum N is "+n+" and the savings are "+savings);
 	}
 	
-	//data Expose is in LOE
-	public void createLinearInterpolation(double initProc, double secondYearProc, double secondYear, double dataExposeCost, double minYears, double maxYears)
-	{
-		 linInt = new LinearInterpolation();
-		 linInt.setValues(initProc, secondYearProc, secondYear, dataExposeCost, minYears, maxYears);
-	}
-	
+//	//data Expose is in LOE
+//	public void createLinearInterpolation(double initProc, double secondYearProc, double secondYear, double dataExposeCost, double minYears, double maxYears)
+//	{
+//		 linInt = new LinearInterpolation();
+//		 linInt.setValues(initProc, secondYearProc, secondYear, dataExposeCost, minYears, maxYears);
+//	}
+
 	public void createYearAdjuster(ArrayList<String> sysList, ArrayList<String> dataList, double hourlyCost)
 	{
 		yearAdjuster = new SysDecommissionOptimizationFunctions();
