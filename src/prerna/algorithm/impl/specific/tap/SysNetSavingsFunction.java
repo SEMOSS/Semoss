@@ -138,25 +138,44 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	
 	public double calculateRet(double budget, double n,double wAdj)
 	{
-		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
-		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
-		savings -= wAdj;
+		if(totalYrs == n)
+			return -1*wAdj;
+		double savings =(numMaintenanceSavings - serMainPerc*wAdj);
+		if(inflDiscFactor==1)
+			savings = savings*(totalYrs-n) -budget*n;
+		else if(inflDiscFactor!=1)
+		{
+			savings *= Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
+			savings -= wAdj;
+		}
 		return savings;
 //		return (totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
 	}
 	public double calculateRetForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
 	{
-		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
-		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
-		savings -= wAdj;
+		if(totalNumYears == n)
+			return -1*wAdj;
+		double savings =(numMaintenanceSavings - serMainPerc*wAdj);
+		if(inflDiscFactor==1)
+			savings = savings*(totalNumYears-n) -budget*n;
+		else if(inflDiscFactor!=1)
+		{
+			savings *= Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
+			savings -= wAdj;
+		}
 		return savings;
 //		return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
 		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
 	}
 	public double calculateSavingsForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
 	{
-		double savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
-		savings *= (numMaintenanceSavings - serMainPerc*wAdj);
+		if(totalNumYears == n)
+			return 0;
+		double savings =(numMaintenanceSavings - serMainPerc*wAdj);
+		if(inflDiscFactor==1)
+			savings = savings*(totalNumYears-n);
+		else if(inflDiscFactor!=1)
+			savings *= Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
 		return savings;
 	//	return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost);
 		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;

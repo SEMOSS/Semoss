@@ -27,10 +27,17 @@ public class SysROIFunction extends SysNetSavingsFunction{
 	@Override
 	public double calculateRet(double budget, double n,double wAdj)
 	{
-		double roi = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
-		roi *= (numMaintenanceSavings - serMainPerc*wAdj);
-		roi -= wAdj;
-		roi /= wAdj;
+		if(totalYrs == n)
+			return -1;
+		double roi =(numMaintenanceSavings - serMainPerc*wAdj);
+		if(inflDiscFactor==1)
+			roi = (roi*(totalYrs-n) -budget*n)/(budget*n);
+		else if(inflDiscFactor!=1)
+		{
+			roi *= Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
+			roi -= wAdj;
+			roi /= wAdj;
+		}
 		return roi;
 	}
 	
