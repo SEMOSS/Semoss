@@ -41,8 +41,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	double workNeededAdj;
 	ArrayList<Double> workPerformedArray;
 	public boolean solutionExists = false;
-	
-	
+		
 	/**
 	 * Given a budget, calculate the years in Savings.
 	 * Gets the lists of potential yearly savings and yearly budgets and can write to the app console for each iteration.
@@ -83,26 +82,16 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		double savings = calculateRet(a,nAdjusted,workNeededAdj);
 		writeToAppConsole(a,n,savings);
 		return savings;
-		
-		
-		
 	}
 	
 	public double calculateYears(double budget)
 	{
-		int previousN = 0;
 		workPerformedArray = calculateWorkPerformedArray(budget,dataExposeCost);
 		int N = workPerformedArray.size();
-		while(previousN!=N)
+		workNeededAdj = 0.0;
+		for(int i=0;i<workPerformedArray.size();i++)
 		{
-			previousN = N;
-			workNeededAdj = 0.0;
-			for(int i=0;i<workPerformedArray.size();i++)
-			{
-				workNeededAdj+=workPerformedArray.get(i)*Math.pow(inflDiscFactor, i);
-			}
-			workPerformedArray = calculateWorkPerformedArray(budget,workNeededAdj);
-			N = workPerformedArray.size();			
+			workNeededAdj+=workPerformedArray.get(i);
 		}
 		return N;
 	}
@@ -128,7 +117,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			hireSum+=Math.pow(1-attRate,i-1)*calculatePq(i);
 		}
 		double P1 = Pq*Math.pow(1-attRate,q-1)+hireRate*hireSum;
-		double workPerformedInYearq = budget * P1 * inflDiscFactor;
+		double workPerformedInYearq = budget * P1;
+		if(inflDiscFactor!=1)
+			workPerformedInYearq = budget * P1 * Math.pow(inflDiscFactor, q-1);//maybe q-1?inflDiscFactor;
 		return workPerformedInYearq;
 	}
 	public double calculatePq(int q)
@@ -149,7 +140,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			savings -= wAdj;
 		}
 		return savings;
-//		return (totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
 	}
 	public double calculateRetForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
 	{
@@ -164,8 +154,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			savings -= wAdj;
 		}
 		return savings;
-//		return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n;
-		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
 	}
 	public double calculateSavingsForVariableTotal(double budget, double n,double wAdj,double totalNumYears)
 	{
@@ -177,9 +165,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		else if(inflDiscFactor!=1)
 			savings *= Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
 		return savings;
-	//	return (totalNumYears-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost);
-		//return (totalNumYears-n)*(numMaintenanceSavings)-budget*n;
-
 	}
 	
 	public ArrayList<Double> createSustainmentCosts(double budget, double n)
@@ -192,7 +177,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 				sustainmentList.add(0.0);
 			else
 			{
-				double factor = Math.pow(inflDiscFactor,index+1);
+				double factor=1.0;
+				if(inflDiscFactor!=1)
+					factor= Math.pow(inflDiscFactor,index+1);
 				double sustainment = factor*serMainPerc*workNeededAdj;
 				sustainmentList.add(sustainment);
 			}
@@ -207,7 +194,13 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		while(index<totalYrs)
 		{
 			if(index<n)//might need to say zero if null pointer
-				installList.add(workPerformedArray.get(index));
+			{
+				double factor = 1.0;
+				if(inflDiscFactor!=1)
+					factor = Math.pow(inflDiscFactor,index);
+				double buildCost = factor*budget;
+				installList.add(buildCost);
+			}
 			else
 				installList.add(0.0);
 			index++;
@@ -227,7 +220,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,workNeededAdj,Math.ceil(n)));
 			else
 				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,workNeededAdj,index+1));
-				//cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,index+1.0));
 			index++;
 		}
 		return cumSavingsList;
@@ -244,7 +236,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			{
 				workPerformedSum+= -1*workPerformedArray.get(index);
 				breakEvenList.add(workPerformedSum);
-	//			breakEvenList.add(-1*budget*index); //should this be every Wadj in the list?
 			}
 			else if(index<n)
 				breakEvenList.add(calculateRetForVariableTotal(budget,n,workNeededAdj,Math.ceil(n)));
