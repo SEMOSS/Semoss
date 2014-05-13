@@ -325,7 +325,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_attRateField.gridx = 0;
 		gbc_attRateField.gridy = 1;
 		advParamPanel.add(attRateField, gbc_attRateField);
-		attRateField.setText("10");
+		attRateField.setText("3");
 		attRateField.setColumns(3);
 
 		JLabel lblYearlyRetentionRate = new JLabel("Attrition Rate (%)");
@@ -364,7 +364,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_hireRateField.gridx = 0;
 		gbc_hireRateField.gridy = 2;
 		advParamPanel.add(hireRateField, gbc_hireRateField);
-		hireRateField.setText("10");
+		hireRateField.setText("3");
 		hireRateField.setColumns(3);
 
 		JLabel lblHiringRate = new JLabel("Hiring Rate (%)");
@@ -409,7 +409,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 
 		infRateField = new JTextField();
 		infRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		infRateField.setText("1.8");
+		infRateField.setText("1.5");
 		infRateField.setColumns(3);
 		GridBagConstraints gbc_infRateField = new GridBagConstraints();
 		gbc_infRateField.insets = new Insets(0, 0, 5, 5);
@@ -450,7 +450,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 
 		disRateField = new JTextField();
 		disRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		disRateField.setText("2.5");
+		disRateField.setText(".25");
 		disRateField.setColumns(3);
 		GridBagConstraints gbc_disRateField = new GridBagConstraints();
 		gbc_disRateField.insets = new Insets(0, 0, 5, 5);

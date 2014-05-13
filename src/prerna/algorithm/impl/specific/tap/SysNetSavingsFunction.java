@@ -118,8 +118,8 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		}
 		double P1 = Pq*Math.pow(1-attRate,q-1)+hireRate*hireSum;
 		double workPerformedInYearq = budget * P1;
-		if(inflDiscFactor!=1)
-			workPerformedInYearq = budget * P1 * Math.pow(inflDiscFactor, q-1);//maybe q-1?inflDiscFactor;
+//		if(inflDiscFactor!=1)
+//			workPerformedInYearq = budget * P1 * Math.pow(inflDiscFactor, q-1);//maybe q-1?inflDiscFactor;
 		return workPerformedInYearq;
 	}
 	public double calculatePq(int q)
