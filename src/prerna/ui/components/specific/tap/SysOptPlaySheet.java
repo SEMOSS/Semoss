@@ -477,7 +477,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	@Override
 	public void createSpecificParamComponents()
 	{
-		yearField.setText("20");
 		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
 		maxBudgetField.setText("500");
 		
