@@ -18,7 +18,7 @@
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
     <script src="lib/underscore.js"></script>
     <script src="lib/bootstrap-slider.js"></script>
-
+    <script src="data/world-countries.js"></script>
 <!--    <script src="data/geoTimelineData.js"></script> -->
         
 </head>
@@ -77,10 +77,8 @@
             
             function createAll (dataString) {
 
-
-                //Load in GeoJSON data
-        d3.json("world-countries.json", function(json) {
-            
+            //Load in GeoJSON data
+                var json = worldData;
 
             //Width and height
             var w = 1500;
@@ -289,7 +287,7 @@ var renderGeoMap = function(dataGeo){
 
            renderGeoMap(dataGeo);
 
-        });
+        
 
 
 
