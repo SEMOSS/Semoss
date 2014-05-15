@@ -46,7 +46,7 @@
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
 		<script src="structure changesJS_V0.4.js"></script>
-
+		<script src="data/us-states.js"></script>
 		
 	</head>
 	<body>
@@ -54,8 +54,6 @@
 			
 			//var dataString = {"dataSeries":[{"size":1000000,"System":"AFCHIPS","Facility":"CHARLESTON_AFB","lat":32.887015,"lon":-80.0235}]}
 
-
-			
 			//Width and height
 			var w = 1500;
 			var h = 1000;
@@ -86,12 +84,7 @@
 				+ d3.event.translate 
 				+ ")scale(" + d3.event.scale + ")");
 			}	
-								
 
-			
-
-			
-			
 //				start(dataString);					
 				function start(dataString) {  
 					var jsonData = jQuery.parseJSON(dataString);
@@ -124,10 +117,8 @@
 					});
 				};
 
-				
-				
 				//Load in GeoJSON data
-				d3.json("us-states.json", function(json) {
+				var json = usData;
 					//Bind data and create one path per GeoJSON feature
 					svg.selectAll("path")
 					   .data(json.features)
@@ -183,7 +174,7 @@
 						   					
 							redCircle.call(tip);
 							
-				});
+				
 			
 			};
 			
