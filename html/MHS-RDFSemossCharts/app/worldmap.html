@@ -36,26 +36,19 @@
 		    top: 98%;
 		    left: 0;
 		  }
-      
-			
+      			
 		</style>
-	
- 
+	 
 		<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
-		<script src="structure changesJS_V0.4.js"></script>
+		<script src="data/world-countries.js"></script>
 
-		
 	</head>
 	<body>
 		<script type="text/javascript">
-			
-			//var dataString = {"dataSeries":[{"size":1000000,"System":"AFCHIPS","Facility":"CHARLESTON_AFB","lat":32.887015,"lon":-80.0235}]}
-
-
-			
+						
 			//Width and height
 			var w = 1500;
 			var h = 1000;
@@ -86,12 +79,7 @@
 				+ d3.event.translate 
 				+ ")scale(" + d3.event.scale + ")");
 			}	
-								
 
-			
-
-			
-			
 //				start(dataString);					
 				function start(dataString) {  
 					var jsonData = jQuery.parseJSON(dataString);
@@ -124,10 +112,8 @@
 					});
 				};
 
-				
-				
 				//Load in GeoJSON data
-				d3.json("world-countries.json", function(json) {
+				json = worldData;
 					//Bind data and create one path per GeoJSON feature
 					svg.selectAll("path")
 					   .data(json.features)
@@ -183,7 +169,7 @@
 						   					
 							redCircle.call(tip);
 							
-				});
+				
 			
 			};
 			
