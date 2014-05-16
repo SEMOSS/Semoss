@@ -38,22 +38,30 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 	
 	public Hashtable<String, Object> processQueryData()
 	{		
-		Hashtable<String, ArrayList<Object>> data = new Hashtable<String, ArrayList<Object>>();
+		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
+		//series name - all objects in that series (x : ... , y : ...)
 		for( int i = 0; i < list.size(); i++)
 		{
 			Object[] elemValues = list.get(i);
-			ArrayList<Object> values = new ArrayList<Object>();
 			for( int j = 1; j < elemValues.length; j++)
 			{
-				values.add(elemValues[j]);
+				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+				if(dataObj.size() >= j)
+					seriesArray = dataObj.get(j-1);
+				else
+					dataObj.add(j-1, seriesArray);
+				Hashtable<String, Object> elementHash = new Hashtable();
+				elementHash.put("x", elemValues[0].toString());
+				elementHash.put("y", elemValues[j]);
+				elementHash.put("seriesName", names[j]);
+				seriesArray.add(elementHash);
 			}
-			data.put(elemValues[0].toString(), values);	
 		}
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("names", names);
 		columnChartHash.put("type", "column");
-		columnChartHash.put("dataSeries", data);
+		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
 	}
