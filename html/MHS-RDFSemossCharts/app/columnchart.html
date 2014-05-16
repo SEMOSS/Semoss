@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <!--<script src="data/heatmap-data.js"></script>-->
+
+    <style>
+        #graphSpace {
+            position: absolute;
+            top: 30px;
+            bottom: 10px;
+            left: 10px;
+            right: 0px;
+        }
+
+        .axis path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .d3-tip {
+            line-height: 1.4;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 3px;
+            margin-top: -7px;
+            font-family: sans-serif;
+            font-size: 12px;
+        }
+
+        /* Creates a small triangle extender for the tooltip */
+        .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: 10px;
+            width: 100%;
+            line-height: 1;
+            color: rgba(0, 0, 0, 0.8);
+            content: "\25BC";
+            position: absolute;
+            text-align: center;
+        }
+
+        /* Style northward tooltips differently */
+        .d3-tip.n:after {
+            margin: -1px 0 0 0;
+            top: 98%;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="logo"><img src="img/logo.png"></div>
+<div class="span12 formContainer">
+    <div style="clear: both"></div>
+    <div id="graphSpace"></div>
+</div>
+
+<script type="text/javascript">
+/*
+var dataString = "{\"type\":\"column\",\"dataSeries\":[[{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CTS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DBSS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/HIP\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DMHRSi\",\"y\":0.8907668005665597},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS\",\"y\":2.370339695686018},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(DCAM)\",\"y\":1.5619757799405265},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(JMAR)\",\"y\":1.7255183605513142},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-HC\",\"y\":2.810360442921715},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-IH\",\"y\":2.7971547099707816},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/EAS_IV\",\"y\":1.3372894684815462},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BDMS\",\"y\":4.632019955350315},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BMBB-TS\",\"y\":6.602546245599237},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/eForms\",\"y\":2.2141307030929416},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/ESSENCE\",\"y\":3.1009728831695083},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/FHIE\",\"y\":1.67715441661197},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/HAIMS\",\"y\":1.36311285215696},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(CUD)\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/EI-DS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/HART\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/SAMS\",\"y\":3.647525357572056},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/PHIMT\",\"y\":0.3835587477984527},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/PMITS\",\"y\":0.43084658635380274},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/PSR\",\"y\":7.272839026583551},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/SNPMIS\",\"y\":5.119028022742855},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TBI-BH\",\"y\":1.6169783026907973},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TC2\",\"y\":5.622702903569204},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TED\",\"y\":1.777654991738859},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TEWLS\",\"y\":2.0015195491588536},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDI\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDS\",\"y\":5.468953424328115},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TOL\",\"y\":4.382814701669283},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TPOCS\",\"y\":0.10071618974338155},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/TRAC2ES\",\"y\":3.1661301008044833},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/SSO-CM\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/UITS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/iAS\",\"y\":2.0361650457578357},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MEDWEB-DTRS\",\"y\":1.571253190766024},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/NMIS\",\"y\":1.9038769977370145},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/M2\",\"y\":0.367995053423136},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR\",\"y\":7.4756144295370826},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Insight\",\"y\":0.010132462005112027},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Learn\",\"y\":0.13360941185862066},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MMM\",\"y\":4.43650430813205},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MSAT\",\"y\":4.004277175523246},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/NCAT\",\"y\":1.0862821901219082},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/PEPR\",\"y\":0.1751776234165781},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MCFAS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR(CBER)\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/MEB\",\"y\":0.862059292197666},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/NCMT\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/PDTS\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/BHIE\",\"y\":3.521373126201289},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE\",\"y\":3.0406002982269005},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE(AF)\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CCQAS\",\"y\":1.0631734831111903},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CHART\",\"y\":0.0},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CHDR\",\"y\":1.2348419465860538},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA\",\"y\":6.710060462838226},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-M\",\"y\":4.319394888305691},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-T\",\"y\":5.905947013352264},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"y\":10.542312943361587},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CIS-Essentris\",\"y\":5.84571768884792},{\"seriesName\":\"BusinessValue\",\"x\":\"http://health.mil/ontologies/Concept/System/CDM\",\"y\":0.0}],[{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CTS\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DBSS\",\"y\":4.955384615384616},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/HIP\",\"y\":9.825},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DMHRSi\",\"y\":4.121804511278196},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS\",\"y\":7.140000000000001},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(DCAM)\",\"y\":3.75},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(JMAR)\",\"y\":7.9},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-HC\",\"y\":2.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-IH\",\"y\":1.2999999999999998},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/EAS_IV\",\"y\":5.5285714285714285},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BDMS\",\"y\":5.76923076923077},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BMBB-TS\",\"y\":3.5211764705882356},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/eForms\",\"y\":3.5872727272727274},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/ESSENCE\",\"y\":5.25},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/FHIE\",\"y\":5.725},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/HAIMS\",\"y\":7.362380952380953},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(CUD)\",\"y\":5.3133333333333335},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/EI-DS\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/HART\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/SAMS\",\"y\":9.1},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/PHIMT\",\"y\":2.35},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/PMITS\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/PSR\",\"y\":4.539999999999999},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/SNPMIS\",\"y\":4.75},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TBI-BH\",\"y\":4.1},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TC2\",\"y\":4.25},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TED\",\"y\":4.8},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TEWLS\",\"y\":4.707692307692308},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDI\",\"y\":8.183333333333334},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDS\",\"y\":7.462857142857143},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TOL\",\"y\":0.8},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TPOCS\",\"y\":8.486666666666666},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/TRAC2ES\",\"y\":9.1},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/SSO-CM\",\"y\":6.604511278195489},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/UITS\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/iAS\",\"y\":2.307142857142857},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MEDWEB-DTRS\",\"y\":0.39230769230769236},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/NMIS\",\"y\":5.039999999999999},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/M2\",\"y\":5.0600000000000005},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR\",\"y\":1.8871428571428572},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Insight\",\"y\":2.90952380952381},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Learn\",\"y\":0.3},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MMM\",\"y\":8.675},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MSAT\",\"y\":5.191666666666666},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/NCAT\",\"y\":6.285714285714286},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/PEPR\",\"y\":4.65},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MCFAS\",\"y\":2.8000000000000003},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR(CBER)\",\"y\":3.75},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/MEB\",\"y\":4.933333333333334},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/NCMT\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/PDTS\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/BHIE\",\"y\":4.0600000000000005},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE\",\"y\":6.428571428571429},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE(AF)\",\"y\":0.0},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CCQAS\",\"y\":10.305},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CHART\",\"y\":0.2888888888888889},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CHDR\",\"y\":10.025974025974026},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA\",\"y\":5.452457469890884},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-M\",\"y\":5.33},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-T\",\"y\":2.4227686156921546},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"y\":4.390000000000001},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CIS-Essentris\",\"y\":3.2928571428571427},{\"seriesName\":\"ExternalStability\",\"x\":\"http://health.mil/ontologies/Concept/System/CDM\",\"y\":2.4641666666666664}],[{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CTS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DBSS\",\"y\":0.9732824427480916},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/HIP\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DMHRSi\",\"y\":1.316793893129771},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS\",\"y\":1.316793893129771},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(DCAM)\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(JMAR)\",\"y\":0.36259541984732824},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-HC\",\"y\":1.0687022900763359},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DOEHRS-IH\",\"y\":1.0687022900763359},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/EAS_IV\",\"y\":1.049618320610687},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BDMS\",\"y\":1.049618320610687},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/EBMS-BMBB-TS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/eForms\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/ESSENCE\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/FHIE\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/HAIMS\",\"y\":0.4961832061068702},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/DMLSS(CUD)\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/EI-DS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/HART\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/SAMS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/PHIMT\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/PMITS\",\"y\":1.4885496183206106},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/PSR\",\"y\":0.5534351145038168},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/SNPMIS\",\"y\":0.07633587786259542},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TBI-BH\",\"y\":0.7442748091603053},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TC2\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TED\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TEWLS\",\"y\":0.6297709923664122},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDI\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TMDS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TOL\",\"y\":0.8396946564885496},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TPOCS\",\"y\":0.11450381679389313},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/TRAC2ES\",\"y\":0.2862595419847328},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/SSO-CM\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/UITS\",\"y\":0.8015267175572519},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/iAS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MEDWEB-DTRS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/NMIS\",\"y\":0.13358778625954199},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/M2\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Insight\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MHS_Learn\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MMM\",\"y\":0.7633587786259542},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MSAT\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/NCAT\",\"y\":0.3816793893129771},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/PEPR\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MCFAS\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MDR(CBER)\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/MEB\",\"y\":1.6221374045801527},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/NCMT\",\"y\":2.5763358778625953},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/PDTS\",\"y\":4.637404580152672},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/BHIE\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE\",\"y\":0.5152671755725191},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CCE(AF)\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CCQAS\",\"y\":1.4312977099236641},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CHART\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CHDR\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA\",\"y\":4.1603053435114505},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-M\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/AHLTA-T\",\"y\":0.0},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"y\":1.8893129770992367},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CIS-Essentris\",\"y\":1.6603053435114503},{\"seriesName\":\"TechnicalStandards\",\"x\":\"http://health.mil/ontologies/Concept/System/CDM\",\"y\":0.0}]],\"names\":[\"System\",\"BusinessValue\",\"ExternalStability\",\"TechnicalStandards\"]}"; */
+//start(dataString);
+
+function start(dataString) {
+    var margin = {top: 20, right: 40, bottom: 80, left: 40},
+            container = {width: 0, height: 0},
+            dataSeriesObject = [],
+            dataSeriesKeys = [],
+            dataSeriesLabels = {},
+            filteredLevels = [], legendArray = [],
+            names = [], nodes = [], edges = [],
+            xAxisText = "", yAxisText = "",
+            standardBarOpacity = .65,
+            barsTransitionDuration = 230, axisTransitionDuration = 1000,
+            axisLabelPadding = 15, currentLeftMargin = 0, currentWidth = 0,
+            absoluteBarPadding = 1, barPadding = 0.05,
+            yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
+
+    //set container width and height
+    containerSize('#graphSpace', container, margin);
+
+    function containerSize(containerClass, containerObj, marginObj) {
+        containerObj.width = parseInt(d3.select(containerClass).style('width'));
+        containerObj.height = parseInt(d3.select(containerClass).style('height'));
+
+        containerObj.width = containerObj.width - marginObj.left - marginObj.right;
+        containerObj.height = containerObj.height - marginObj.top - marginObj.bottom;
+    }
+
+    var jsonData = jQuery.parseJSON(dataString);
+    var data = jsonData.dataSeries;
+
+    dataSeriesObject.length = 0;
+    dataSeriesKeys.length = 0;
+    names.length = 0;
+    dataSeriesObject = data;
+    dataSeriesKeys = dataSeriesObject[0].map(function (d) {
+        return d.x
+    });
+    xAxisText = jsonData.names[0];
+    names = jsonData.names;
+    legendArray.length = 0;
+
+    var color;
+    //d3.scale.linear()
+    //.domain([0, dataSeriesObject.length - 1])
+    //.range(["#aad", "#556"]);
+
+    var createCount = 0;
+
+    //setup x
+    var xScale = d3.scale.ordinal()
+            .rangeRoundBands([0, container.width ], barPadding);
+
+    //setup y
+    var yScale = d3.scale.linear()
+            .range([container.height, 0]);
+
+    var rect;
+
+    var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left")
+            .tickSize(0);
+
+    // add the graph canvas to the body of the webpage
+    var svg = d3.select('#graphSpace').append("svg")
+            .attr("width", container.width + margin.left + margin.right)
+            .attr("height", container.height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("width", container.width)
+            .attr("height", container.height);
+
+    d3.select(window).on("resize", resize);
+    d3.selectAll("input").on("change", change);
+
+    //x axis
+    svg.append("svg:g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + container.height + ")");
+    //x axis text/label
+    svg.selectAll("g.x.axis").append("text")
+            .attr("class", "label")
+            .attr("x", container.width / 2)
+            .attr("y", margin.bottom - 6)
+            .style("text-anchor", "end")
+            .text("");
+    //x axis line
+    svg.selectAll("g.x.axis").append("svg:line")
+            .attr("class", "x-axis-line")
+            .attr("x1", 0)
+            .attr("y1", 0)
+            .attr("x2", 0)
+            .attr("y2", 0)
+            .style("stroke", "black")
+            .style("stroke-width", 1)
+            .style("shape-rendering", "crispEdges");
+
+    //y axis
+    svg.append("g")
+            .attr("class", "y axis");
+    //y axis text/label
+    var yAxisLabel = svg.selectAll("g.y.axis").append("text")
+            .attr("class", "label")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left)
+            .attr("x", 0 - (container.height / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text("");
+
+    svg.selectAll("g.y.axis.line")
+            .style("stroke", "black")
+            .style("stroke-width", 1)
+            .style("shape-rendering", "crispEdges");
+
+    var legendGroup = svg.append("g")
+            .attr("class", "legend");
+
+    /* Initialize tooltip */
+    var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .style("z-index", "10000")
+        //.offset([47, 0])
+            .html(function (d) {
+                return "<div> <span class='light'>" + dataSeriesLabels[d.x] + " " + d.seriesName + ":</span> " + d.y + "</div>";
+            });
+
+    /* Invoke the tooltip in the context of your visualization */
+    svg.call(tip);
+
+    update();
+    //where all the magic happens
+    function update() {
+
+        //reset the color scale
+        color = d3.scale.category20();
+
+        //establish colors
+        setLayers(dataSeriesObject);
+
+        //SET X DOMAIN
+        xScale.domain(dataSeriesObject[0].map(function (d) {
+            return d.x;
+        }));
+
+        //UPDATE CURRENT MARGINS BASED ON LARGEST LABEL
+        //y axis -- left margin
+        var maxWidth = 0;
+        svg.selectAll("text.foo").data(yScale.ticks())
+                .enter().append("text").text(function (d) {
+                    return yScale.tickFormat()(d);
+                })
+                .each(function (d) {
+                    maxWidth = Math.max(this.getBBox().width + yAxis.tickSize() + yAxis.tickPadding(), maxWidth);
+                })
+                .remove();
+        currentLeftMargin = Math.max(margin.left + axisLabelPadding, maxWidth + axisLabelPadding)
+        currentWidth = container.width - (currentLeftMargin - margin.left);
+        svg.attr("transform", "translate(" + currentLeftMargin + "," + margin.top + ")");
+        yAxisLabel.attr("y", -currentLeftMargin);
+        //update xScale based on new margin
+        xScale
+                .rangeRoundBands([0, currentWidth ], barPadding);
+
+        //BUILD AXIS::::::
+        // Truncate Labels
+        for (i = 0; i < dataSeriesKeys.length; i++) {
+            var key = dataSeriesKeys[i];
+            var instanceName = shortenValueFilter(key);
+            if (instanceName.length > 20) {
+                dataSeriesLabels[key] = (instanceName.substring(0, 20) + '...');
+            } else {
+                dataSeriesLabels[key] = instanceName;
+            }
+        }
+
+        function shortenValueFilter(str) {
+            //convert to string
+            str = String(str);
+            if (str.indexOf('"') == 0) {
+                var shortStr = str.substring(1, str.length);
+                var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+                return returnStr;
+            } else if (str.indexOf('http://') !== -1) {
+                var myRe = new RegExp("([^/]*)$");
+                var returnStr = myRe.exec(str);
+                return returnStr[0];
+            } else {
+                return str;
+            }
+        }
+
+        //x axis title
+        var xAxisTitle = svg.selectAll("g.x.axis text")
+                .data([xAxisText]);
+        xAxisTitle
+                .text(function (d) {
+                    return d
+                });
+        xAxisTitle
+                .exit().remove();
+
+        //x axis ticks
+        var xAxis = svg.select("g.x.axis");
+        var xTick = xAxis.selectAll("tick")
+                .data(dataSeriesKeys);
+        xTick.enter().append("text");
+        xTick.text(function (d) {
+            return dataSeriesLabels[d];
+        })
+                .style("text-anchor", "end")
+                .attr("x", 0)
+                .attr("y", 15)
+                .style("font-size", getFontSize())
+                .attr("class", "tick")
+                .attr("transform", function (d, i) {
+                    return "translate(" + (xScale(d) + (xScale.rangeBand()) / 2) + ", 0)rotate(-25)"
+                })
+                .attr("opacity", 0).transition().duration(axisTransitionDuration)
+                .attr("opacity", 1);
+        xTick
+                .exit()
+                .attr("opacity", 1).transition().duration(axisTransitionDuration)
+                .attr("opacity", 0)
+                .remove();
+        svg.selectAll(".x-axis-line")
+                .attr("x2", currentWidth);
+
+        //y axis
+        svg.selectAll("g.y.axis")
+                .transition()
+                .duration(axisTransitionDuration)
+                .call(yAxis);
+
+        //y axis text
+        svg.select("g.y.axis text").text(yAxisText);
+
+        drawLegend();
+
+        //BUILD BARS:::::
+        if (createCount === 0) {
+            buildBars();
+            createCount++;
+        }
+        else {
+            //delay bars
+            svg.selectAll(".bar")
+                    .transition().duration(barsTransitionDuration)
+                    .attr("y", container.height)
+                    .attr("height", 0)
+                    .each("end", buildBars);
+        }
+
+        function drawLegend() {
+            //draw legend
+            positionLegend();
+            var legendData = legendGroup.selectAll("g.legendEntry")
+                    .data(legendArray, function (d) {
+                        return color(d);
+                    })
+                    .attr("transform", function (d, i) {
+                        return "translate(" + currentWidth + ", 0)";
+                    });
+
+            //enter legend g
+            var legendEnter = legendData.enter().append("g");
+            legendEnter
+                    .attr("transform", function (d, i) {
+                        return "translate(0 ," + i * 20 + ")";
+                    })
+                    .attr("class", "legendEntry");
+
+            // enter legend colored rectangles
+            legendEnter.append("rect");
+            legendEnter.append("text");
+
+            legendData.select("rect")
+                    .attr("x", -13)
+                    .attr("y", 0)
+                    .attr("width", 13)
+                    .attr("height", 13)
+                    .attr("fill-opacity", standardBarOpacity)
+                    .style("stroke", color)
+                    .style("stroke-width", "1px")
+                    .style("fill", color)
+                    .on("click", function (d, i) {
+                        var rect = d3.select(this);
+                        var previouslyFiltered = filteredLevels.some(function (entry) {
+                            return entry === i;
+                        });
+                        if (!previouslyFiltered) {
+                            filteredLevels.push(i);
+                            if (filteredLevels.length === dataSeriesObject.length) {
+                                filteredLevels.length = 0;
+                                legendData.selectAll("rect").style("fill", color);
+                            }
+                            else rect.style("fill", "white");
+                        }
+                        else {
+                            filteredLevels.splice(filteredLevels.indexOf(i), 1);
+                            rect.style("fill", color);
+                        }
+                        filterData(d);
+                    });
+
+            // enter legend text
+            legendData.select("text")
+                    .attr("x", -24)
+                    .attr("y", 7)
+                    .attr("dy", ".25em")
+                    .style("text-anchor", "end")
+                    .text(function (d) {
+                        console.log(d);
+                        return d;
+                    });
+
+            legendData.exit().remove();
+        }// end of drawLegend
+    } // end of update
+
+    function buildBars() {
+
+        //this contains all generic bar building
+        //specific building exists in buildStacked and buildGrouped
+        var layer = svg.selectAll(".layer")
+                .data(layers);
+        rect = layer.selectAll(".bar")
+                .data(function (d) {
+                    return d;
+                });
+        rect
+                .enter().append("rect")
+                .attr("y", container.height)
+                .attr("height", 0);
+        rect
+                .attr("class", "bar")
+                .attr("opacity", standardBarOpacity)
+                .on('mouseover', function (d) {
+                    var bar = d3.select(this);
+                    bar.transition()
+                            .duration(100).style("opacity", 1);
+                    tip.show(d);
+                })
+                .on('mouseout', function (d) {
+                    var bar = d3.select(this);
+                    bar.transition()
+                            .duration(400).style("opacity", standardBarOpacity);
+                    tip.hide(d);
+                });
+
+        if (stacked)
+            buildStacked(true);
+        else
+            buildGrouped(true);
+
+
+    } // end of buildBars
+
+    function filterData(d) {
+        console.log("filtering out " + d);
+        var newObject = [];
+        for (var i = 0; i < dataSeriesObject.length; ++i) {
+            var filtered = filteredLevels.some(function (entry) {
+                return entry === i;
+            });
+            if (!filtered) {
+                console.log("adding index " + i);
+                newObject.push(dataSeriesObject[i]);
+            }
+        }
+        setLayers(newObject);
+
+        svg.select('g.y.axis')
+                .transition().duration(axisTransitionDuration)
+                .call(yAxis);
+
+        buildBars();
+
+    }
+
+    function setLayers(data) {
+        var stack = d3.layout.stack();
+        layers = stack(data);
+
+        yGroupMax = d3.max(layers, function (layer) {
+            return d3.max(layer, function (d) {
+                return d.y;
+            });
+        });
+        yStackMax = d3.max(layers, function (layer) {
+            return d3.max(layer, function (d) {
+                return d.y0 + d.y;
+            });
+        });
+
+        if (stacked)
+            yScale.domain([0, yStackMax]);
+        else
+            yScale.domain([0, yGroupMax]);
+
+        var layer = svg.selectAll(".layer")
+                .data(layers);
+        layer
+                .enter().append("g");
+        layer
+                .attr("class", "layer")
+                .style("fill", function (d) {
+                    legendArray.push(d[0].seriesName);
+                    return color(d[0].seriesName);
+                });
+        layer
+                .exit()
+                .selectAll(".bar")
+                .transition().duration(barsTransitionDuration)
+                .delay(function (d, i) {
+                    return i * 10;
+                })
+                .attr("y", container.height)
+                .attr("height", 0)
+                .remove();
+    }
+
+    function positionLegend() {
+        legendGroup
+                .attr("transform", function (d, i) {
+                    return "translate(" + currentWidth + ", 0)";
+                });
+    }
+
+    //this is called when toggle is switched
+    function change() {
+        if (this.value === "grouped") {
+            console.log("transitioning to grouped");
+            stacked = false;
+            transitionGrouped();
+        }
+        else {
+            console.log("transitioning to stacked");
+            stacked = true;
+            transitionStacked();
+        }
+    }
+
+    //this is called when initially building bars or resizing window
+    //this animation is different than transition bars animation--thus different function
+    function buildGrouped(transition) {
+        if (transition) {
+            rect
+                    .transition()
+                    .delay(function (d, i) {
+                        return i * 10;
+                    })
+                    .attr("x", function (d, i, j) {
+                        return xScale(d.x) + xScale.rangeBand() / layers.length * j;
+                    })
+                    .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+                    .attr("y", function (d) {
+                        return yScale(d.y);
+                    })
+                    .attr("height", function (d) {
+                        return container.height - yScale(d.y);
+                    });
+        }
+        else {
+            rect
+                    .attr("x", function (d, i, j) {
+                        return xScale(d.x) + xScale.rangeBand() / layers.length * j;
+                    })
+                    .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+                    .attr("y", function (d) {
+                        return yScale(d.y);
+                    })
+                    .attr("height", function (d) {
+                        return container.height - yScale(d.y);
+                    });
+        }
+    }
+
+    //this is called when the toggle between stacked and grouped is switched
+    //this animation is different than build bars animation--thus different function
+    function transitionGrouped() {
+        yScale.domain([0, yGroupMax]);
+
+        rect.transition()
+                .duration(500)
+                .delay(function (d, i) {
+                    return i * 10;
+                })
+                .attr("x", function (d, i, j) {
+                    return xScale(d.x) + xScale.rangeBand() / layers.length * j;
+                })
+                .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+                .transition()
+                .attr("y", function (d) {
+                    return yScale(d.y);
+                })
+                .attr("height", function (d) {
+                    return container.height - yScale(d.y);
+                });
+
+        //y axis
+        svg.selectAll("g.y.axis")
+                .transition()
+                .duration(axisTransitionDuration)
+                .call(yAxis);
+    }
+
+    //this is called when initially building bars or resizing window
+    //this animation is different than transition bars animation--thus different function
+    function buildStacked(transition) {
+        rect
+                .attr("x", function (d) {
+                    return xScale(d.x);
+                })
+                .attr("width", xScale.rangeBand() - absoluteBarPadding);
+        if (transition) {
+            rect
+                    .transition()
+                    .delay(function (d, i) {
+                        return i * 10;
+                    })
+                    .attr("y", function (d) {
+                        return yScale(d.y0 + d.y);
+                    })
+                    .attr("height", function (d) {
+                        return yScale(d.y0) - yScale(d.y0 + d.y);
+                    });
+        }
+        else {
+            rect
+                    .attr("y", function (d) {
+                        return yScale(d.y0 + d.y);
+                    })
+                    .attr("height", function (d) {
+                        return yScale(d.y0) - yScale(d.y0 + d.y);
+                    });
+        }
+    }
+
+    //this is called when the toggle between stacked and grouped is switched
+    //this animation is different than build bars animation--thus different function
+    function transitionStacked() {
+        yScale.domain([0, yStackMax]);
+
+        rect.transition()
+                .duration(500)
+                .delay(function (d, i) {
+                    return i * 10;
+                })
+                .attr("y", function (d) {
+                    return yScale(d.y0 + d.y);
+                })
+                .attr("height", function (d) {
+                    return yScale(d.y0) - yScale(d.y0 + d.y);
+                })
+                .transition()
+                .attr("x", function (d) {
+                    return xScale(d.x);
+                })
+                .attr("width", xScale.rangeBand() - absoluteBarPadding);
+
+        //y axis
+        svg.selectAll("g.y.axis")
+                .transition()
+                .duration(axisTransitionDuration)
+                .call(yAxis);
+    }
+
+    //font size is dynamically calculated based on bar width (available space)
+    function getFontSize() {
+        var font = Math.round(xScale.rangeBand() / 2);
+        console.log("Range Band: " + xScale.rangeBand());
+        if (font > 12) {
+            font = 12;
+        }
+        if (font < 7) {
+            font = 7;
+        }
+        return font + "px";
+    }
+
+    //this is called when window is resized
+    //adjust positioning of all items
+    function resize() {
+        console.log("resizing");
+        //set container width and height
+        containerSize('#graphSpace', container, margin);
+
+        currentWidth = container.width - (currentLeftMargin - margin.left);
+
+        d3.select('#graphSpace').select("svg")
+                .attr("width", container.width + margin.left + margin.right)
+                .attr("height", container.height + margin.top + margin.bottom);
+        //update xScale based on new margin
+        xScale
+                .rangeRoundBands([0, currentWidth ], barPadding);
+
+        //setup y
+        yScale
+                .range([container.height, 0]);
+        yGroupMax = d3.max(layers, function (lay) {
+            return d3.max(lay, function (d) {
+                return d.y;
+            });
+        });
+        yStackMax = d3.max(layers, function (lay) {
+            return d3.max(lay, function (d) {
+                return d.y0 + d.y;
+            });
+        });
+
+        updatePositioning();
+    }
+
+    //updates positioning based on new scales, height, and currentWidth
+    function updatePositioning() {
+        positionLegend();
+
+        if (stacked) {
+            yScale.domain([0, yStackMax]);
+            buildStacked(false);
+        }
+        else {
+            yScale.domain([0, yGroupMax]);
+            buildGrouped(false);
+        }
+
+        svg.selectAll(".x-axis-line")
+                .attr("x2", currentWidth);
+
+        var xAxis = svg.select("g.x.axis")
+                .attr("transform", "translate(0," + container.height + ")");
+        xAxis.selectAll(".tick")
+                .style("font-size", getFontSize())
+                .attr("transform", function (d, i) {
+                    return "translate(" + (xScale(d) + (xScale.rangeBand()) / 2) + ", 0)rotate(-25)"
+                });
+        xAxis.select(".label")
+                .attr("x", currentWidth / 2)
+
+        yAxisLabel
+                .attr("x", 0 - (container.height / 2));
+        yAxis
+                .ticks(Math.max(container.height / 30, 2));
+        svg.select('g.y.axis')
+                .call(yAxis);
+    }
+}
+;
+</script>
+</body>
+</html>
