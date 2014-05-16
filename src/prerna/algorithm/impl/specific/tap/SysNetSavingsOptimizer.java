@@ -349,13 +349,13 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
         //savingsF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
-        netSavings = savingsF.calculateRet(budget,optNumYears,workNeededAdj);
+        netSavings = savingsF.calculateRet(budget,optNumYears);
         
         SysROIFunction roiF = new SysROIFunction();
         roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
        // roiF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
-        roi = roiF.calculateRet(budget,optNumYears,workNeededAdj);
+        roi = roiF.calculateRet(budget,optNumYears);
 	}
 	
 	/**

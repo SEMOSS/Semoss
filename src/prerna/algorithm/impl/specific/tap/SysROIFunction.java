@@ -25,9 +25,30 @@ package prerna.algorithm.impl.specific.tap;
 public class SysROIFunction extends SysNetSavingsFunction{
 	
 	@Override
-	public double calculateRet(double budget, double n,double wAdj)
+	public double calculateRet(double budget, double n)
 	{
-		return ((totalYrs-n)*(numMaintenanceSavings - serMainPerc*dataExposeCost)-budget*n)/(budget*n);
+		double P1InflationSum = 0.0;
+		for(int q=1;q<=n;q++)
+		{
+			double P1Inflation = 1.0;
+			if(inflDiscFactor!=1)
+				P1Inflation = Math.pow(inflDiscFactor, q-1);
+			P1Inflation *= calculateP1q(q);
+			P1InflationSum += P1Inflation;
+		}
+		investment = budget * P1InflationSum;
+		//if it takes the full time, there is no savings, just return the investment?
+		if(totalYrs == n)
+			return -1*investment;
+		//make the savings inflation/discount factor if applicable
+		double roi =totalYrs-n;
+		if(inflDiscFactor!=1)
+			roi = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
+		//multiply the savings for all years
+		roi = roi * (numMaintenanceSavings - serMainPerc*investment);
+		roi = roi - investment;
+		roi = roi / investment;
+		return roi;
 	}
 	
 	@Override
