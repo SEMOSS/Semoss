@@ -494,7 +494,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		double roiVal = Utility.round(roi*100, 2);
 		playSheet.roiLbl.setText(Double.toString(roiVal)+"%"); 
 		
-		double breakEvenYear = 0.0;
+		int breakEvenYear = 0;
 		for(int i=0;i<breakEvenList.size();i++)
 		{
 			if(breakEvenList.get(i)<0)
@@ -502,8 +502,18 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		}
 		if(breakEvenList.get(breakEvenList.size()-1)<0)
 			playSheet.bkevenLbl.setText("Beyond Max Time");
+		else if(breakEvenYear == 0)
+		{
+
+			playSheet.bkevenLbl.setText("1 Year");
+		}
 		else
-			playSheet.bkevenLbl.setText(Double.toString(breakEvenYear)+" Years");
+		{
+			double amountInLastYear = breakEvenList.get(breakEvenYear+1)-breakEvenList.get(breakEvenYear);
+			double fraction = ( - breakEvenList.get(breakEvenYear))/amountInLastYear;
+			double breakEven = Utility.round(breakEvenYear+fraction,2);
+			playSheet.bkevenLbl.setText(Double.toString(breakEven)+" Years");
+		}
 		
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
 		graphF.setOptimzer(this);

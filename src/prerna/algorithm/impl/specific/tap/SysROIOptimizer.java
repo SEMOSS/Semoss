@@ -37,7 +37,7 @@ public class SysROIOptimizer extends SysNetSavingsOptimizer{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized ROI: "+netSavings);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized ROI: "+roi);
         }
 	}   
 	        
