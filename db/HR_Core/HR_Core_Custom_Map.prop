@@ -98,6 +98,7 @@ Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Prov
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
 System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
+System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
 SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
@@ -129,6 +130,7 @@ Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
 Capability_Consists_Task http://health.mil/ontologies/Relation/Consists
+System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 Service_Replaces_InterfaceControlDocument http://health.mil/ontologies/Relation/Replaces
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 Task_Supports_BusinessRule http://health.mil/ontologies/Relation/Supports
