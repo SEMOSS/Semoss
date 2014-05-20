@@ -27,23 +27,7 @@ public class SysROIFunction extends SysNetSavingsFunction{
 	@Override
 	public double calculateRet(double budget, double n)
 	{
-		double P1InflationSum = 0.0;
-		for(int q=1;q<=n;q++)
-		{
-			double P1Inflation = 1.0;
-			if(inflDiscFactor!=1)
-				P1Inflation = Math.pow(inflDiscFactor, q-1);
-			P1Inflation *= calculateP1q(q);
-			P1InflationSum += P1Inflation;
-		}
-//		
-//		double P1Inflation = 1.0;
-//		if(inflDiscFactor!=1)
-//			P1Inflation = Math.pow(inflDiscFactor, n);
-//		P1Inflation *= calculateP1qFraction(n);
-//		P1InflationSum += P1Inflation;
-//		
-		investment = budget * P1InflationSum;
+		calculateInvestment(budget,n);
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalYrs == n)
 			return -1*investment;
