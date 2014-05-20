@@ -300,18 +300,12 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	            budget = pair.getPoint();
 	            optNumYears = ((SysNetSavingsFunction)f).calculateYears(budget);
 	            if(optNumYears<1)
+	            {
 	            	optNumYears = 1;
-            	if(f instanceof SysROIFunction)
-            	{
-            		roi = pair.getValue();
-            		calculateSavings();
-            	}
-            	else
-            	{
-            		netSavings = pair.getValue();
-            		calculateROI();
-            	}
-	           // calculateSavingsAndROI();
+	            	budget = ((SysNetSavingsFunction)f).calculateBudgetForOneYear();
+	            	//budget = ((SysNetSavingsFunction)f).workPerformedArray.get(0);
+	            }
+	            calculateSavingsAndROI();
             }
             else
             {
@@ -365,6 +359,22 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	}
 	public void calculateROI()
 	{
+        SysROIFunction roiF = new SysROIFunction();
+        roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
+       // roiF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
+        roi = roiF.calculateRet(budget,optNumYears);
+	}
+	
+	public void calculateSavingsAndROI()
+	{
+        SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
+        savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
+        //savingsF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
+        netSavings = savingsF.calculateRet(budget,optNumYears);
+
+        
         SysROIFunction roiF = new SysROIFunction();
         roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
@@ -518,14 +528,13 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			playSheet.bkevenLbl.setText("Beyond Max Time");
 		else if(breakEvenYear == 0)
 		{
-
 			playSheet.bkevenLbl.setText("1 Year");
 		}
 		else
 		{
-			double amountInLastYear = breakEvenList.get(breakEvenYear+1)-breakEvenList.get(breakEvenYear);
+			double amountInLastYear = breakEvenList.get(breakEvenYear)-breakEvenList.get(breakEvenYear-1);
 			double fraction = ( - breakEvenList.get(breakEvenYear))/amountInLastYear;
-			double breakEven = Utility.round(breakEvenYear+fraction,2);
+			double breakEven = Utility.round(breakEvenYear+1+fraction,2);
 			playSheet.bkevenLbl.setText(Double.toString(breakEven)+" Years");
 		}
 		

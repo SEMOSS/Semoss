@@ -52,7 +52,7 @@ public class SysROIFunction extends SysNetSavingsFunction{
 		if(inflDiscFactor!=1)
 			roi = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
 		//multiply the savings for all years
-		roi = roi * (numMaintenanceSavings - serMainPerc*investment);
+		roi = roi * (numMaintenanceSavings - serMainPerc*dataExposeCost);
 		roi = roi - investment;
 		roi = roi / investment;
 		return roi;

@@ -109,6 +109,11 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	{
 		return 1+sigma*Math.exp(-1*q*k);
 	}
+	
+	public double calculateBudgetForOneYear()
+	{
+		return dataExposeCost/calculatePq(1);
+	}
 	public double calculateRet(double budget, double n)
 	{
 		double P1InflationSum = 0.0;
@@ -120,13 +125,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			P1Inflation *= calculateP1q(q);
 			P1InflationSum += P1Inflation;
 		}
-
-//		double P1Inflation = 1.0;
-//		if(inflDiscFactor!=1)
-//			P1Inflation = Math.pow(inflDiscFactor, n);
-//		P1Inflation *= calculateP1qFraction(n);
-//		P1InflationSum += P1Inflation;
-		
 		investment = budget * P1InflationSum;
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalYrs == n)
@@ -136,7 +134,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		if(inflDiscFactor!=1)
 			savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalYrs-n) ) / (1-inflDiscFactor);
 		//multiply the savings for all years
-		savings = savings * (numMaintenanceSavings - serMainPerc*investment);
+		savings = savings * (numMaintenanceSavings - serMainPerc*dataExposeCost);
 		savings = savings - investment;
 		return savings;
 	}
@@ -151,13 +149,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			P1Inflation *= calculateP1q(q);
 			P1InflationSum += P1Inflation;
 		}
-		
-//		double P1Inflation = 1.0;
-//		if(inflDiscFactor!=1)
-//			P1Inflation = Math.pow(inflDiscFactor, n);
-//		P1Inflation *= calculateP1qFraction(n);
-//		P1InflationSum += P1Inflation;
-		
 		double investment = budget * P1InflationSum;
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalNumYears == n)
@@ -167,7 +158,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		if(inflDiscFactor!=1)
 			savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
 		//multiply the savings for all years
-		savings = savings * (numMaintenanceSavings - serMainPerc*investment);
+		savings = savings * (numMaintenanceSavings - serMainPerc*dataExposeCost);
 		savings = savings - investment;
 		return savings;
 	}
@@ -182,12 +173,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			P1Inflation *= calculateP1q(q);
 			P1InflationSum += P1Inflation;
 		}
-//		double P1Inflation = 1.0;
-//		if(inflDiscFactor!=1)
-//			P1Inflation = Math.pow(inflDiscFactor, n);
-//		P1Inflation *= calculateP1qFraction(n);
-//		P1InflationSum += P1Inflation;
-//		
 		double investment = budget * P1InflationSum;
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalNumYears == n)
@@ -197,7 +182,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		if(inflDiscFactor!=1)
 			savings = Math.pow(inflDiscFactor,n+1) * (1-Math.pow(inflDiscFactor,totalNumYears-n) ) / (1-inflDiscFactor);
 		//multiply the savings for all years
-		savings = savings * (numMaintenanceSavings - serMainPerc*investment);
+		savings = savings * (numMaintenanceSavings - serMainPerc*dataExposeCost);
 		return savings;
 	}
 	
@@ -215,7 +200,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 				if(inflDiscFactor!=1)
 					factor= Math.pow(inflDiscFactor,index+1);
 				//double sustainment = factor*(numMaintenanceSavings - serMainPerc*investment)*(n-(index+1));
-				double sustainment = factor*(serMainPerc*investment)*((index+1)-n);
+				double sustainment = factor*(serMainPerc*dataExposeCost)*((index+1)-n);
 				sustainmentList.add(sustainment);
 			}
 			else
@@ -224,7 +209,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 				if(inflDiscFactor!=1)
 					factor= Math.pow(inflDiscFactor,index+1);
 				//double sustainment = factor*(numMaintenanceSavings - serMainPerc*investment);
-				double sustainment = factor*(serMainPerc*investment);
+				double sustainment = factor*(serMainPerc*dataExposeCost);
 				sustainmentList.add(sustainment);
 			}
 			index++;
@@ -237,7 +222,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index+1<n)//might need to say zero if null pointer
+			if(index+1<n)//might need to say zero if null pointer, this should probably be adjusted to investment cost at each year.
 			{
 				double factor = 1.0;
 				if(inflDiscFactor!=1)
@@ -266,7 +251,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index+1<n)
+			if(index+1<n||(index==0&&n==1))
 				cumSavingsList.add(0.0);
 			else if(index<n)
 				cumSavingsList.add(calculateSavingsForVariableTotal(budget,n,Math.ceil(n)));
@@ -280,19 +265,29 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	public ArrayList<Double> createBreakEven(double budget, double n)
 	{
 		ArrayList<Double> breakEvenList = new ArrayList<Double>();
-		double workPerformedSum=0.0;
+		double buildCost=0.0;
 		int index = 0;
 		while(index<totalYrs)
 		{
-			if(index+1<n)
+			if(index+1<n||(index==0&&n==1))
 			{
-				workPerformedSum+= -1*workPerformedArray.get(index);
-				breakEvenList.add(workPerformedSum);
+				double factor = 1.0;
+				if(inflDiscFactor!=1)
+					factor = Math.pow(inflDiscFactor,index);
+				buildCost += -1*factor*budget;
+				breakEvenList.add(buildCost);
 			}
 			else if(index<n)
-				breakEvenList.add(calculateRetForVariableTotal(budget,n,Math.ceil(n)));
+			{
+				double factor = 1.0;
+				if(inflDiscFactor!=1)
+					factor = Math.pow(inflDiscFactor,index);
+				buildCost += -1*factor*budget*(n-(index));
+				breakEvenList.add(buildCost+calculateSavingsForVariableTotal(budget,n,Math.ceil(n)));
+			}
 			else
-				breakEvenList.add(calculateRetForVariableTotal(budget,n,index+1.0));
+				breakEvenList.add(buildCost+calculateSavingsForVariableTotal(budget,n,index+1.0));
+			//breakEvenList.add(buildCost+calculateRetForVariableTotal(budget,n,index+1.0));
 			index++;
 		}
 		return breakEvenList;
