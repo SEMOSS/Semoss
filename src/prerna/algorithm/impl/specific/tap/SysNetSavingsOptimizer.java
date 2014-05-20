@@ -299,6 +299,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
             {
 	            budget = pair.getPoint();
 	            optNumYears = ((SysNetSavingsFunction)f).calculateYears(budget);
+	            optNumYears =  ((SysNetSavingsFunction)f).yearAdjuster.adjustTimeToTransform(budget, optNumYears);
 	            if(optNumYears<1)
 	            {
 	            	optNumYears = 1;
@@ -368,6 +369,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	
 	public void calculateSavingsAndROI()
 	{
+		
         SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
         savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);

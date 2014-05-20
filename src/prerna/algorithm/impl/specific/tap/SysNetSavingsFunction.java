@@ -69,6 +69,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		double workNeededAdj = 0.0;
 		while(workNeededAdj<dataExposeCost)
 		{
+			//year 1, q=1 in index 0.
 			double workPerformedInYearq = calculateWorkPerformedInYearq(budget, workPerformedArray.size()+1);
 			workNeededAdj+=workPerformedInYearq;
 			workPerformedArray.add(workPerformedInYearq);
@@ -83,17 +84,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		double workPerformedInYearq = budget * P1q;
 		return workPerformedInYearq;
 	}
-	public double calculateP1qFraction(double q)
-	{
-		double Pq = calculatePq(q);
-		double hireSum = 0.0;
-		for(int i=1;i<=q;i++)
-		{
-			hireSum+=Math.pow(1-attRate,i-1)*calculatePq(i);
-		}
-		double P1q = Pq*Math.pow(1-attRate,q)+hireRate*hireSum;
-		return P1q;
-	}
 	public double calculateP1q(double q)
 	{
 		double Pq = calculatePq(q);
@@ -105,6 +95,18 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		double P1q = Pq*Math.pow(1-attRate,q-1)+hireRate*hireSum;
 		return P1q;
 	}
+	public double calculateP1qFraction(double q)
+	{
+		double Pq = calculatePq(q);
+		double hireSum = 0.0;
+		for(int i=1;i<=q;i++)
+		{
+			hireSum+=Math.pow(1-attRate,i-1)*calculatePq(i);
+		}
+		double P1q = Pq*Math.pow(1-attRate,q)+hireRate*hireSum;
+		return P1q;
+	}
+
 	public double calculatePq(double q)
 	{
 		return 1+sigma*Math.exp(-1*q*k);
@@ -114,7 +116,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	{
 		return dataExposeCost/calculatePq(1);
 	}
-	public double calculateRet(double budget, double n)
+	public void calculateInvestment(double budget, double n)
 	{
 		double P1InflationSum = 0.0;
 		for(int q=1;q<=n;q++)
@@ -122,12 +124,20 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 			double P1Inflation = 1.0;
 			if(inflDiscFactor!=1)
 				P1Inflation = Math.pow(inflDiscFactor, q-1);
-			P1Inflation *= calculateP1q(q);
+			//P1Inflation *= calculateP1q(q);
 			P1InflationSum += P1Inflation;
 		}
+		double extraYear = 1.0;
+		if(inflDiscFactor!=1)
+			extraYear = Math.pow(inflDiscFactor,n);
+		P1InflationSum+=extraYear*(n-Math.floor(n));
 		investment = budget * P1InflationSum;
+	}
+	public double calculateRet(double budget, double n)
+	{
+		calculateInvestment(budget,n);
 		//if it takes the full time, there is no savings, just return the investment?
-		if(totalYrs == n)
+		if(totalYrs <= n)
 			return -1*investment;
 		//make the savings inflation/discount factor if applicable
 		double savings =totalYrs-n;
@@ -140,16 +150,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	}
 	public double calculateRetForVariableTotal(double budget, double n,double totalNumYears)
 	{
-		double P1InflationSum = 0.0;
-		for(int q=1;q<=n;q++)
-		{
-			double P1Inflation = 1.0;
-			if(inflDiscFactor!=1)
-				P1Inflation = Math.pow(inflDiscFactor, q-1);
-			P1Inflation *= calculateP1q(q);
-			P1InflationSum += P1Inflation;
-		}
-		double investment = budget * P1InflationSum;
+		calculateInvestment(budget,n);
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalNumYears == n)
 			return -1*investment;
@@ -164,16 +165,7 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	}
 	public double calculateSavingsForVariableTotal(double budget, double n,double totalNumYears)
 	{
-		double P1InflationSum = 0.0;
-		for(int q=1;q<=n;q++)
-		{
-			double P1Inflation = 1.0;
-			if(inflDiscFactor!=1)
-				P1Inflation = Math.pow(inflDiscFactor, q-1);
-			P1Inflation *= calculateP1q(q);
-			P1InflationSum += P1Inflation;
-		}
-		double investment = budget * P1InflationSum;
+		calculateInvestment(budget,n);
 		//if it takes the full time, there is no savings, just return the investment?
 		if(totalNumYears == n)
 			return -1*investment;
