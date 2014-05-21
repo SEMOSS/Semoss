@@ -199,6 +199,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	@Override
 	public void addPanel()
 	{
+		browser = BrowserFactory.create();
 		try {
 			table = new JTable();
 			JPanel mainPanel = new JPanel();
@@ -221,7 +222,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
-			browser = BrowserFactory.create();
 			
 //			this.controlPanel.setBrowser(this.browser);
 			

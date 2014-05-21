@@ -14,6 +14,7 @@ public class ColumnChartGroupedStackedListener implements ActionListener{
 	public void setBrowser(Browser b){
 		this.browser = b;
 	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JButton button = (JButton) e.getSource();
