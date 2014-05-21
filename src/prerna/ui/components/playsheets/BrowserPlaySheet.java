@@ -201,9 +201,9 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	{
 		try {
 			table = new JTable();
-			controlPanel = new ChartControlPanel();
 			JPanel mainPanel = new JPanel();
 			setWindow();
+			createControlPanel();
 			
 			splitPane = new JSplitPane();
 			splitPane.setEnabled(false);
@@ -223,7 +223,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			mainPanel.setLayout(gbl_mainPanel);
 			
 			
-			this.controlPanel.setPlaySheet(this);
 //			this.controlPanel.setBrowser(this.browser);
 			
 			//callIt(table);
@@ -259,6 +258,13 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void createControlPanel(){
+		controlPanel = new ChartControlPanel();
+		controlPanel.addExportButton(0);
+
+		this.controlPanel.setPlaySheet(this);
 	}
 	
 	/**

@@ -1,10 +1,14 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Set;
+
+import javax.swing.JButton;
 
 import org.openrdf.model.Literal;
 import org.openrdf.query.parser.ParsedQuery;
@@ -20,7 +24,9 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.util.StatementCollector;
+import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.RDFEngineHelper;
+import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -34,6 +40,26 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/columnchart.html";
+	}
+	
+	@Override
+	public void createControlPanel(){
+		controlPanel = new ChartControlPanel();
+		controlPanel.addExportButton(1);
+		
+		ChartControlPanel ctrlPanel = this.getControlPanel();
+		GridBagConstraints gbc_btnGroupedStacked = new GridBagConstraints();
+		gbc_btnGroupedStacked.insets = new Insets(10, 0, 0, 5);
+		gbc_btnGroupedStacked.anchor = GridBagConstraints.EAST;
+		gbc_btnGroupedStacked.gridx = 0;
+		gbc_btnGroupedStacked.gridy = 0;
+		JButton transitionGroupedStacked = new JButton("Transition Grouped");
+		ColumnChartGroupedStackedListener gsListener = new ColumnChartGroupedStackedListener();
+		gsListener.setBrowser(this.browser);
+		transitionGroupedStacked.addActionListener(gsListener);
+		ctrlPanel.add(transitionGroupedStacked, gbc_btnGroupedStacked);
+
+		this.controlPanel.setPlaySheet(this);
 	}
 	
 	public Hashtable<String, Object> processQueryData()

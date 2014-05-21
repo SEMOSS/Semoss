@@ -59,7 +59,10 @@ public class ChartControlPanel extends JPanel {
 		gridBagLayout.columnWeights = new double[]{1.0};
 		gridBagLayout.rowWeights = new double[]{0.0};
 		setLayout(gridBagLayout);
-		
+	}
+	
+	public void addExportButton(int gridXidx){
+
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		String exportIconLocation = "/pictures/export.png";
@@ -77,12 +80,11 @@ public class ChartControlPanel extends JPanel {
 		btnGraphImageExport.setToolTipText("Export vector image of chart.");
 
 		GridBagConstraints gbc_btnGraphImageExport = new GridBagConstraints();
-		gbc_btnGraphImageExport.insets = new Insets(0, 0, 0, 5);
+		gbc_btnGraphImageExport.insets = new Insets(10, 0, 0, 5);
 		gbc_btnGraphImageExport.anchor = GridBagConstraints.EAST;
-		gbc_btnGraphImageExport.gridx = 0;
+		gbc_btnGraphImageExport.gridx = gridXidx;
 		gbc_btnGraphImageExport.gridy = 0;
 		add(btnGraphImageExport, gbc_btnGraphImageExport);
-		
 	}
 	
 	/**
