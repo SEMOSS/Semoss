@@ -180,7 +180,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 		ctlPanel.add(rdbtnBreakeven, gbc_rdbtnBreakeven);
 		rdbtnProfit.addActionListener(opl);
 		rdbtnBreakeven.addActionListener(opl);
-		opl.setRadioBtn(rdbtnProfit, rdbtnROI, rdbtnBreakeven);
+		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnBreakeven);
 		
 
 	}

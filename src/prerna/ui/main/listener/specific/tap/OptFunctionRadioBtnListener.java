@@ -32,7 +32,8 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 	JRadioButton proRdBtn;
 	JRadioButton roiRdBtn;
 	JRadioButton bkeRdBtn;
-	boolean bkeExists;
+	JRadioButton irrRdBtn;
+	boolean isSerOpt;
 	
 	/**
 	 * Method actionPerformed.
@@ -45,8 +46,10 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 		if (actionevent.getSource().equals(proRdBtn)&& proRdBtn.isSelected())
 		{
 			roiRdBtn.setSelected(!proRdBtn.isSelected());
-			if(bkeExists)
+			if(isSerOpt)
 				bkeRdBtn.setSelected(!proRdBtn.isSelected());
+			else
+				irrRdBtn.setSelected(!proRdBtn.isSelected());
 		}
 		else if (actionevent.getSource().equals(proRdBtn)&& !proRdBtn.isSelected())
 		{
@@ -55,21 +58,32 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 		else if (actionevent.getSource().equals(roiRdBtn)&& roiRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(!roiRdBtn.isSelected());
-			if(bkeExists)
+			if(isSerOpt)
 				bkeRdBtn.setSelected(!roiRdBtn.isSelected());
+			else
+				irrRdBtn.setSelected(!roiRdBtn.isSelected());
 		}
 		else if (actionevent.getSource().equals(roiRdBtn)&& !roiRdBtn.isSelected())
 		{
 			roiRdBtn.setSelected(true);
 		}
-		else if (bkeExists&&actionevent.getSource().equals(bkeRdBtn)&& bkeRdBtn.isSelected())
+		else if (isSerOpt&&actionevent.getSource().equals(bkeRdBtn)&& bkeRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(!bkeRdBtn.isSelected());
 			roiRdBtn.setSelected(!bkeRdBtn.isSelected());
 		}
-		else if (bkeExists&&actionevent.getSource().equals(bkeRdBtn)&& !bkeRdBtn.isSelected())
+		else if (isSerOpt&&actionevent.getSource().equals(bkeRdBtn)&& !bkeRdBtn.isSelected())
 		{
 			bkeRdBtn.setSelected(true);
+		}
+		else if (!isSerOpt&&actionevent.getSource().equals(irrRdBtn)&& irrRdBtn.isSelected())
+		{
+			proRdBtn.setSelected(!irrRdBtn.isSelected());
+			roiRdBtn.setSelected(!irrRdBtn.isSelected());
+		}
+		else if (!isSerOpt&&actionevent.getSource().equals(irrRdBtn)&& !irrRdBtn.isSelected())
+		{
+			irrRdBtn.setSelected(true);
 		}
 		
 	}
@@ -80,12 +94,12 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 	 * @param roi JRadioButton
 	 * @param bke JRadioButton
 	 */
-	public void setRadioBtn(JRadioButton pf, JRadioButton roi, JRadioButton bke)
+	public void setSerOptRadioBtn(JRadioButton pf, JRadioButton roi, JRadioButton bke)
 	{
 		proRdBtn = pf;
 		roiRdBtn = roi;
 		bkeRdBtn = bke;
-		bkeExists = true;
+		isSerOpt = true;
 	}
 	
 	/**
@@ -94,11 +108,12 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 	 * @param roi JRadioButton
 	 * @param bke JRadioButton
 	 */
-	public void setRadioBtn(JRadioButton pf, JRadioButton roi)
+	public void setSysOptRadioBtn(JRadioButton pf, JRadioButton roi,JRadioButton irr)
 	{
 		proRdBtn = pf;
 		roiRdBtn = roi;
-		bkeExists = false;
+		irrRdBtn = irr;
+		isSerOpt = false;
 	}
 	
 	/**

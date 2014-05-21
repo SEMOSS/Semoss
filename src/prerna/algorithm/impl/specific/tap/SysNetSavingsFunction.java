@@ -28,7 +28,6 @@ import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
  */
 public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 	
-//	LinearInterpolation linInt;
 	SysDecommissionOptimizationFunctions yearAdjuster;
 	double numMaintenanceSavings;
 	double serMainPerc;
@@ -54,6 +53,8 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		
 		double n=calculateYears(a);
 		solutionExists = true;
+		if(n==-1)
+			return -1.0E30;
 		
 		double nAdjusted = yearAdjuster.adjustTimeToTransform(a, n);
 //		if(Math.abs(nAdjusted-n)>.1)
@@ -301,13 +302,6 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
 		consoleArea.setText(consoleArea.getText()+"\nFor Budget B: "+budget+" the minimum N is "+n+" and the savings are "+savings);
 	}
-	
-//	//data Expose is in LOE
-//	public void createLinearInterpolation(double initProc, double secondYearProc, double secondYear, double dataExposeCost, double minYears, double maxYears)
-//	{
-//		 linInt = new LinearInterpolation();
-//		 linInt.setValues(initProc, secondYearProc, secondYear, dataExposeCost, minYears, maxYears);
-//	}
 
 	public void createYearAdjuster(ArrayList<String> sysList, ArrayList<String> dataList, double hourlyCost)
 	{
