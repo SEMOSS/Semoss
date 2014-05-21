@@ -50,7 +50,7 @@ import com.teamdev.jxbrowser.chromium.LoggerProvider;
 public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 
 	public Boolean empty = false;
-	public Browser browser = BrowserFactory.create();
+	public Browser browser;
 	protected String fileName;
 	JSplitPane splitPane;
 	public Hashtable output = null;
@@ -221,7 +221,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
-			
+			browser = BrowserFactory.create();
 			
 //			this.controlPanel.setBrowser(this.browser);
 			
