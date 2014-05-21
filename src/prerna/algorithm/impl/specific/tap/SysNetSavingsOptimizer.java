@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
-import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
@@ -92,7 +91,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	double numMaintenanceSavings;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
-	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0;
+	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0,irr=0.0;
 	boolean noErrors=true;
 	String errorMessage = "";
 	boolean reducedFunctionality = false;
@@ -278,7 +277,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         f.setProgressBar(progressBar);
         f.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         ((SysNetSavingsFunction)f).setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost,scdLT, iniLC, scdLC);
-        //((SysNetSavingsFunction)f).createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
+        if(f instanceof SysIRRFunction)
+        	((SysIRRFunction)f).createLinearInterpolation();
         ((SysNetSavingsFunction)f).createYearAdjuster(sysList, dataList, hourlyCost);
 
         //budget in LOE
@@ -306,7 +306,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	            	budget = ((SysNetSavingsFunction)f).calculateBudgetForOneYear();
 	            	//budget = ((SysNetSavingsFunction)f).workPerformedArray.get(0);
 	            }
-	            calculateSavingsAndROI();
+	            calculateSavingsROIAndIRR();
             }
             else
             {
@@ -340,48 +340,46 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nMaximized net cumulative savings: "+netSavings);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nCumulative savings: "+netSavings);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nROI: "+roi);
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nIRR: "+irr);
 	        displayResults();
 	        displaySystemSpecifics();
 	        displayFunctionalitySpecifics();
         }
-
-
+        else
+		{
+        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"No possible Internal Rate of Return. Rationalization solution is not available.");
+			playSheet.progressBar.setVisible(false);
+			Utility.showError("No possible Internal Rate of Return. Rationalization solution is not available.");
+			return;
+		}
 		
-	}
-	public void calculateSavings()
-	{
-        SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
-        savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-        //savingsF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
-        netSavings = savingsF.calculateRet(budget,optNumYears);
-        
-	}
-	public void calculateROI()
-	{
-        SysROIFunction roiF = new SysROIFunction();
-        roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-       // roiF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
-        roi = roiF.calculateRet(budget,optNumYears);
 	}
 	
-	public void calculateSavingsAndROI()
+	public void calculateSavingsROIAndIRR()
 	{
-		
+        SysIRRFunction irrF = new SysIRRFunction();
+        irrF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        irrF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
+        irrF.createLinearInterpolation();
+        irr = irrF.calculateRet(budget,optNumYears);
+        if(f instanceof SysIRRFunction)
+        {
+        	disRate = irr;
+        	if(irr==-1.0E30)
+        		noErrors = false;
+        }
         SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
         savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-        //savingsF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
         netSavings = savingsF.calculateRet(budget,optNumYears);
 
-        
         SysROIFunction roiF = new SysROIFunction();
         roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-       // roiF.createLinearInterpolation(iniLC,scdLC, scdLT, dataExposeCost, 0, maxYears);
         roi = roiF.calculateRet(budget,optNumYears);
+        
 	}
 	
 	/**
@@ -492,17 +490,22 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		if(reducedFunctionality)
 			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with reduced functionality (see functionality analysis tab for details)");
 		else{
-			double savingsOrROI = netSavings;
-			String savingsOrROIString = "savings";
-			String positiveOrNegativeString = "Positive";
+			double savingsROIOrIRR = netSavings;
+			String savingsROIOrIRRString = "savings";
+			String positiveOrNegativeString = "positive";
 			if(f instanceof SysROIFunction)
 			{
-				savingsOrROI = roi;
-				savingsOrROIString = "roi";
+				savingsROIOrIRR = roi;
+				savingsROIOrIRRString = "ROI";
 			}
-			if(savingsOrROI < 0.0)
-				positiveOrNegativeString = "Negative";
-			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsOrROIString);
+			else if(f instanceof SysIRRFunction)
+			{
+				savingsROIOrIRR = irr;
+				savingsROIOrIRRString = "IRR";				
+			}
+			if(savingsROIOrIRR < 0.0)
+				positiveOrNegativeString = "negative";
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsROIOrIRRString);
 		}
 		
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
@@ -513,12 +516,19 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		
 		String netSavingsString = Utility.sciToDollar(netSavings);
 		playSheet.savingLbl.setText(netSavingsString);
-		String annualBudgetString = Utility.sciToDollar(budget);
-		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
+		double roiVal = Utility.round(roi*100, 2);
+		playSheet.roiLbl.setText(Double.toString(roiVal)+"%");
+		if(irr<0||(netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
+			((SysOptPlaySheet)playSheet).irrLbl.setText("N/A");
+		else
+		{
+			double irrVal = Utility.round(irr*100,2);
+			((SysOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrVal)+"%");
+		}
 		double timeTransition = Utility.round(optNumYears,2);
 		((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
-		double roiVal = Utility.round(roi*100, 2);
-		playSheet.roiLbl.setText(Double.toString(roiVal)+"%"); 
+		String annualBudgetString = Utility.sciToDollar(budget);
+		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
 		
 		int breakEvenYear = 0;
 		for(int i=0;i<breakEvenList.size();i++)

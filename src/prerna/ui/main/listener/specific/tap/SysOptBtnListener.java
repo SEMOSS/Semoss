@@ -22,9 +22,9 @@ import java.awt.event.ActionEvent;
 
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.specific.tap.SysIRROptimizer;
 import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
 import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
-import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
 
@@ -51,6 +51,7 @@ public class SysOptBtnListener extends SerOptBtnListener {
 			
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
+			else if(((SysOptPlaySheet)playSheet).rdbtnIRR.isSelected()) this.optimizer = new SysIRROptimizer();
 
 			optimizer.setPlaySheet(playSheet);
 			((SysNetSavingsOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0

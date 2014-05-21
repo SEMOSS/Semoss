@@ -29,7 +29,9 @@ public class LinearInterpolation implements IAlgorithm{
 
 	IPlaySheet playSheet;
 	final double epsilon = 0.00001;
-	double alpha0, k, sigma, dataExposeCost, B, min, max;
+	double min, max;
+	double numMaintenanceSavings, serMainPerc, dataExposeCost, totalYrs, infRate;
+	double N, B;
 	double a, b, m, y_m, y_a, y_b;
 	
 	public double retVal = -1.0;
@@ -41,7 +43,7 @@ public class LinearInterpolation implements IAlgorithm{
 	 * Finds the midpoint and determines what the y value is for this point.
 	 * Sets either the min/max y values to be the midpoint depending on which way it needs to go.
 	 * 
-	 * a and b are the time values
+	 * a and b are the bounds for the value being solved for. In this case, solving for mu.
 	 * y_a and y_b are the years
 	 */
 	public void execute(){
@@ -74,28 +76,55 @@ public class LinearInterpolation implements IAlgorithm{
 	   	 }
 	    
 	   	 retVal = (a+b)/2;
+	   	 if((max-retVal)<.001)
+	   		 retVal =  -1.0E30;
 	}
 	
-	public void setValues(double alpha0,double alpha, double r,double dataExposeCost, double min, double max)
+	public void setValues(double numMaintenanceSavings,double serMainPerc,double dataExposeCost,double totalYrs,double infRate,double min, double max)
 	{
-		this.alpha0 = alpha0;
-		this.k = (1/r)*Math.log(((1-alpha0)/(1-alpha)));
-		this.sigma = ((1-alpha0)/k)*(1-Math.exp(k));
+		this.numMaintenanceSavings=numMaintenanceSavings;
+		this.serMainPerc=serMainPerc;
 		this.dataExposeCost = dataExposeCost;
+		this.totalYrs=totalYrs;
+		this.infRate=infRate;
 		this.min = min;
 		this.max = max;
 	}
-	public void setB(double B)
+	public void setBAndN(double B,double N)
 	{
 		this.B = B;
+		this.N = N;
 	}
 	
-	public Double calcY(double x)
+	public double calculateInvestment(double mu)
+	{
+		double investment = 0.0;
+		double P1InflationSum = 0.0;
+		for(int q=1;q<=N;q++)
+		{
+			double P1Inflation = 1.0;
+			if(mu!=1)
+				P1Inflation = Math.pow(mu, q-1);
+			P1InflationSum += P1Inflation;
+		}
+		double extraYear = 1.0;
+		if(mu!=1)
+			extraYear = Math.pow(mu,Math.ceil(N));
+		P1InflationSum+=extraYear*(N-Math.floor(N));
+		investment = B * P1InflationSum;
+		return investment;
+	}
+	
+	//equation that we are trying to make equal to 0.
+	public Double calcY(double possibleDiscRate)
 	{		
-		double yVal = 0.0;
-		yVal = x;
-		yVal += sigma * (1 - Math.exp(-1*(x+1)*k))/(1-Math.exp(-1*k));
-		yVal -= dataExposeCost / B;
+		double mu = (1+infRate)/(1+possibleDiscRate);
+		double muFactor = totalYrs-N;
+		if(mu!=1)
+			muFactor = Math.pow(mu, N+1)*(1-Math.pow(mu, totalYrs-N))/(1-mu);
+		double sustainSavings = muFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
+		double investment = calculateInvestment(mu);
+		double yVal = sustainSavings - investment;
 		return yVal;
 	}
 

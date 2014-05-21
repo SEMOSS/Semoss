@@ -32,9 +32,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
-import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.BevelBorder;
@@ -74,7 +72,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
 
 	 //overall analysis tab
-	public JLabel solutionLbl, annualBudgetLbl, timeTransitionLbl;
+	public JRadioButton rdbtnIRR;
+	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
 	public BrowserGraphPanel tabModernizedHeatMap;
 	public JPanel specificFuncAlysPanel;
 	
@@ -561,12 +560,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_panel4.gridy = 3;
 		chartPanel.add(tab6,  gbc_panel4);
 		
-		JLabel lblAnnualBudget = new JLabel("Annual Budget During Transition:");
-		GridBagConstraints gbc_lblAnnualBudget = new GridBagConstraints();
-		gbc_lblAnnualBudget.insets = new Insets(0, 0, 5, 5);
-		gbc_lblAnnualBudget.gridx = 4;
-		gbc_lblAnnualBudget.gridy = 1;
-		panel_1.add(lblAnnualBudget, gbc_lblAnnualBudget);		
+
 		
 		solutionLbl = new JLabel("");
 		solutionLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -577,12 +571,19 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_solutionLbl.gridy = 0;
 		panel_1.add(solutionLbl, gbc_solutionLbl);
 		
-		annualBudgetLbl = new JLabel("");
-		GridBagConstraints gbc_annualBudgetLbl = new GridBagConstraints();
-		gbc_annualBudgetLbl.insets = new Insets(0, 0, 5, 5);
-		gbc_annualBudgetLbl.gridx = 5;
-		gbc_annualBudgetLbl.gridy = 1;
-		panel_1.add(annualBudgetLbl, gbc_annualBudgetLbl);
+		JLabel lblIRR = new JLabel("Internal Rate of Return:");
+		GridBagConstraints gbc_lblIRR = new GridBagConstraints();
+		gbc_lblIRR.insets = new Insets(0, 0, 5, 5);
+		gbc_lblIRR.gridx = 4;
+		gbc_lblIRR.gridy = 1;
+		panel_1.add(lblIRR, gbc_lblIRR);
+		
+		irrLbl = new JLabel("");
+		GridBagConstraints gbc_IRRLbl = new GridBagConstraints();
+		gbc_IRRLbl.insets = new Insets(0, 0, 5, 5);
+		gbc_IRRLbl.gridx = 5;
+		gbc_IRRLbl.gridy = 1;
+		panel_1.add(irrLbl, gbc_IRRLbl);
 		
 		JLabel lblTimeSpentTransitioning = new JLabel("Number of Years for Transition:");
 		GridBagConstraints gbc_lblTimeSpentTransitioning = new GridBagConstraints();
@@ -599,6 +600,20 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_timeTransitionLbl.gridx = 1;
 		gbc_timeTransitionLbl.gridy = 2;
 		panel_1.add(timeTransitionLbl, gbc_timeTransitionLbl);
+		
+		JLabel lblAnnualBudget = new JLabel("Annual Budget During Transition:");
+		GridBagConstraints gbc_lblAnnualBudget = new GridBagConstraints();
+		gbc_lblAnnualBudget.insets = new Insets(0, 30, 5, 5);
+		gbc_lblAnnualBudget.gridx = 4;
+		gbc_lblAnnualBudget.gridy = 2;
+		panel_1.add(lblAnnualBudget, gbc_lblAnnualBudget);
+		
+		annualBudgetLbl = new JLabel("");
+		GridBagConstraints gbc_annualBudgetLbl = new GridBagConstraints();
+		gbc_annualBudgetLbl.insets = new Insets(0, 0, 5, 5);
+		gbc_annualBudgetLbl.gridx = 5;
+		gbc_annualBudgetLbl.gridy = 2;
+		panel_1.add(annualBudgetLbl, gbc_annualBudgetLbl);
 		
 		specificSysAlysPanel = new JPanel();
 		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
@@ -646,11 +661,21 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_rdbtnRoi.gridx = 3;
 		gbc_rdbtnRoi.gridy = 4;
 		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
+		
+		rdbtnIRR = new JRadioButton("IRR");
+		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
+		gbc_rdbtnIRR.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnIRR.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnIRR.gridx = 5;
+		gbc_rdbtnIRR.gridy = 4;
+		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
 
 		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
 		rdbtnROI.addActionListener(opl);
 		rdbtnProfit.addActionListener(opl);
-		opl.setRadioBtn(rdbtnProfit, rdbtnROI);
+		rdbtnIRR.addActionListener(opl);
+		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI,rdbtnIRR);
 	}
 	
 	
