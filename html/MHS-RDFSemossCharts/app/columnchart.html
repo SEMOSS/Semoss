@@ -89,6 +89,7 @@ var color;
 
 var xScale;
 var yScale;
+var yAxis;
 var svg;
 
 function start(dataString) {
@@ -133,7 +134,7 @@ function start(dataString) {
             .range([container.height, 0]);
 
 
-    var yAxis = d3.svg.axis()
+    yAxis = d3.svg.axis()
             .scale(yScale)
             .orient("left")
             .tickSize(0);
@@ -515,7 +516,7 @@ function start(dataString) {
                     .attr("x", function (d, i, j) {
                         return xScale(d.x) + xScale.rangeBand() / layers.length * j;
                     })
-                    .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+                    .attr("width", xScale.rangeBand() / layers.length)
                     .attr("y", function (d) {
                         return yScale(d.y);
                     })
@@ -528,7 +529,7 @@ function start(dataString) {
                     .attr("x", function (d, i, j) {
                         return xScale(d.x) + xScale.rangeBand() / layers.length * j;
                     })
-                    .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+                    .attr("width", xScale.rangeBand() / layers.length)
                     .attr("y", function (d) {
                         return yScale(d.y);
                     })
@@ -664,7 +665,7 @@ function transitionGrouped() {
             .attr("x", function (d, i, j) {
                 return xScale(d.x) + xScale.rangeBand() / layers.length * j;
             })
-            .attr("width", xScale.rangeBand() / layers.length - absoluteBarPadding)
+            .attr("width", xScale.rangeBand() / layers.length)
             .transition()
             .attr("y", function (d) {
                 return yScale(d.y);
