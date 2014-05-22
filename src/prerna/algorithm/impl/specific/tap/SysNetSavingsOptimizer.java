@@ -359,6 +359,17 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	
 	public void calculateSavingsROIAndIRR()
 	{
+
+        SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
+        savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
+        netSavings = savingsF.calculateRet(budget,optNumYears);
+
+        SysROIFunction roiF = new SysROIFunction();
+        roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
+        roi = roiF.calculateRet(budget,optNumYears);
+        
         SysIRRFunction irrF = new SysIRRFunction();
         irrF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         irrF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
@@ -370,16 +381,6 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         	if(irr==-1.0E30)
         		noErrors = false;
         }
-        SysNetSavingsFunction savingsF = new SysNetSavingsFunction();
-        savingsF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        savingsF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-        netSavings = savingsF.calculateRet(budget,optNumYears);
-
-        SysROIFunction roiF = new SysROIFunction();
-        roiF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
-        roiF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
-        roi = roiF.calculateRet(budget,optNumYears);
-        
 	}
 	
 	/**
