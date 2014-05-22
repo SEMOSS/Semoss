@@ -263,6 +263,9 @@ public class SystemInfoGenProcessor {
 		//Num of Deployment Sites
 		String sysNumDeploymentQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?DCSite)) as ?Num_Of_Deployment_Sites) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite ?DeployedAt ?DCSite;} {?System ?DeployedAt1 ?SystemDCSite;} } GROUP BY ?System";
 		
+		//Deployment Sites
+		String sysDeploymentQuery = "SELECT DISTINCT ?System ?Site WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite ?DeployedAt ?Site;} {?System ?DeployedAt1 ?SystemDCSite;} }";
+		
 		//Num of Downstream ICDS
 		String sysNumDownstreamICDsQuery = "SELECT DISTINCT ?System (COUNT(DISTINCT(?Interface)) AS ?Num_Of_Downstream_Interfaces) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System ?Upstream ?Interface ;}} GROUP BY ?System";
 		
@@ -342,6 +345,7 @@ public class SystemInfoGenProcessor {
 		headersList.add("Percentage_Of_Business_Logic_Units_Covered_By_DHMSM");
 		runQuery(hrCoreEngine,sysGarrisonTheaterQuery);
 		runQuery(tapSiteEngine,sysNumDeploymentQuery);
+		runQuery(tapSiteEngine,sysDeploymentQuery);
 		logger.info("Completed Description, Owner/User, and Deployment queries");
 		runQuery(hrCoreEngine,sysNumDownstreamICDsQuery);
 		runQuery(hrCoreEngine,sysNumDownstreamSystemsQuery);
