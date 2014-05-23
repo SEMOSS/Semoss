@@ -21,6 +21,7 @@ package prerna.algorithm.impl.specific.tap;
 import java.util.ArrayList;
 
 import prerna.algorithm.impl.LinearInterpolation;
+import prerna.ui.components.specific.tap.SerOptPlaySheet;
 
 
 /**
@@ -29,7 +30,13 @@ import prerna.algorithm.impl.LinearInterpolation;
 public class SysIRRFunction extends SysNetSavingsFunction{
 	
 	LinearInterpolation linInt;
-
+	SerOptPlaySheet playsheet;
+	
+	public void setPlaySheet(SerOptPlaySheet playsheet)
+	{
+		this.playsheet = playsheet;
+		linInt.setPlaySheet(playsheet);
+	}
 	@Override
 	public double calculateRet(double budget, double n)
 	{
@@ -42,6 +49,18 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 		linInt.execute();
 		return linInt.retVal;
 	}
+	
+	public double calculateRet(double budget,double n, double savings)
+	{
+		if(n>totalYrs)
+			return -1.0E30;
+		linInt.setBAndN(budget, n);
+		linInt.setSavings(savings);
+		linInt.execute();
+		linInt.setSavings(0.0);
+		return linInt.retVal;
+	}
+	
 	@Override
 	public double calculateYears(double budget)
 	{
@@ -65,6 +84,11 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 	{
 		consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
 		consoleArea.setText(consoleArea.getText()+"\nFor Budget B: "+budget+" the minimum N is "+n+" and the discount rate is "+savings);
+	}
+	
+	public void turnOnPrintOut()
+	{
+		linInt.shouldPrintOut = true;
 	}
 
 	//data Expose is in LOE
