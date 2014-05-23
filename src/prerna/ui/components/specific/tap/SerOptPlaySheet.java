@@ -450,7 +450,7 @@ public class SerOptPlaySheet extends JInternalFrame implements IPlaySheet{
 
 		disRateField = new JTextField();
 		disRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		disRateField.setText(".25");
+		disRateField.setText("2.5");
 		disRateField.setColumns(3);
 		GridBagConstraints gbc_disRateField = new GridBagConstraints();
 		gbc_disRateField.insets = new Insets(0, 0, 5, 5);

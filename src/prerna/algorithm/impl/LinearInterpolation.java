@@ -30,7 +30,7 @@ public class LinearInterpolation implements IAlgorithm{
 	IPlaySheet playSheet;
 	final double epsilon = 0.00001;
 	double min, max;
-	double numMaintenanceSavings, serMainPerc, dataExposeCost, totalYrs, infRate;
+	double numMaintenanceSavings, serMainPerc, dataExposeCost, totalYrs, infRate,discRate;
 	double N, B;
 	double a, b, m, y_m, y_a, y_b;
 	
@@ -80,13 +80,14 @@ public class LinearInterpolation implements IAlgorithm{
 	   		 retVal =  -1.0E30;
 	}
 	
-	public void setValues(double numMaintenanceSavings,double serMainPerc,double dataExposeCost,double totalYrs,double infRate,double min, double max)
+	public void setValues(double numMaintenanceSavings,double serMainPerc,double dataExposeCost,double totalYrs,double infRate,double discRate,double min, double max)
 	{
 		this.numMaintenanceSavings=numMaintenanceSavings;
 		this.serMainPerc=serMainPerc;
 		this.dataExposeCost = dataExposeCost;
 		this.totalYrs=totalYrs;
 		this.infRate=infRate;
+		this.discRate=discRate;
 		this.min = min;
 		this.max = max;
 	}
@@ -123,7 +124,8 @@ public class LinearInterpolation implements IAlgorithm{
 		if(mu!=1)
 			muFactor = Math.pow(mu, N+1)*(1-Math.pow(mu, totalYrs-N))/(1-mu);
 		double sustainSavings = muFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
-		double investment = calculateInvestment(mu);
+		double muWithDiscount = (1+infRate)/(1+discRate);
+		double investment = calculateInvestment(muWithDiscount);
 		double yVal = sustainSavings - investment;
 		return yVal;
 	}

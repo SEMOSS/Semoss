@@ -71,6 +71,6 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 	public void createLinearInterpolation()
 	{
 		 linInt = new LinearInterpolation();
-		 linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate, 0, 150);
+		 linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, 0, 150);
 	}
 }
