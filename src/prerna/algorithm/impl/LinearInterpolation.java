@@ -37,9 +37,7 @@ public class LinearInterpolation implements IAlgorithm{
 	public boolean shouldPrintOut = false;
 	public String printString = "";
 	
-	public double retVal = -1.0;
-	double savings = 0.0;
-    
+	public double retVal = -1.0;    
 	
 	/**
 	 * Executes the process of estimating a root.
@@ -131,25 +129,21 @@ public class LinearInterpolation implements IAlgorithm{
 		double v = (1+infRate)/(1+possibleDiscRate);
 		double vFactor = totalYrs-N;
 		if(v!=1)
+		{
+			double temp1 = Math.pow(v, N+1);
+			double temp2 = Math.pow(v, totalYrs-N);
+			double temp3 = (1-Math.pow(v, totalYrs-N))/(1-v);
 			vFactor = Math.pow(v, N+1)*(1-Math.pow(v, totalYrs-N))/(1-v);
+		}
 		double sustainSavings = vFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
 		double mu = (1+infRate)/(1+discRate);
-		//double investment = calculateInvestment(muWithDiscount);
 		double investment = B*N;
 		if(mu!=1)
 			investment = B*(1-Math.pow(mu, N))/(1-mu);
 		double yVal = sustainSavings - investment;
 		if(shouldPrintOut)
-		{
 			printString = "\nv: "+v+" v^(N+1)*(1-v^(Q-N))/(1-v) "+vFactor+"\nmu: "+mu+" investment "+investment;
-		}
-		yVal -=savings;
 		return yVal;
-	}
-
-	public void setSavings(double savings)
-	{
-		this.savings = savings;
 	}
 
 	/**
