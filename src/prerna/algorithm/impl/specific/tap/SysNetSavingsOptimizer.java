@@ -519,7 +519,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		playSheet.savingLbl.setText(netSavingsString);
 		double roiVal = Utility.round(roi*100, 2);
 		playSheet.roiLbl.setText(Double.toString(roiVal)+"%");
-		if(irr<0||(netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
+//		if(irr<0||(netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
+		if((netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
 			((SysOptPlaySheet)playSheet).irrLbl.setText("N/A");
 		else
 		{
