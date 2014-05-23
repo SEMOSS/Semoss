@@ -20,6 +20,7 @@ package prerna.algorithm.impl;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
 
 /**
@@ -33,8 +34,11 @@ public class LinearInterpolation implements IAlgorithm{
 	double numMaintenanceSavings, serMainPerc, dataExposeCost, totalYrs, infRate,discRate;
 	double N, B;
 	double a, b, m, y_m, y_a, y_b;
+	public boolean shouldPrintOut = false;
+	public String printString = "";
 	
 	public double retVal = -1.0;
+	double savings = 0.0;
     
 	
 	/**
@@ -74,7 +78,12 @@ public class LinearInterpolation implements IAlgorithm{
 	   	    }
 	                                           // Print progress  
 	   	 }
-	    
+	   	 
+		if(shouldPrintOut)
+		{
+			((SysOptPlaySheet)playSheet).consoleArea.setText(((SysOptPlaySheet)playSheet).consoleArea.getText()+printString);
+		}
+	   	 
 	   	 retVal = (a+b)/2;
 	   	 if((max-retVal)<.001)
 	   		 retVal =  -1.0E30;
@@ -119,17 +128,29 @@ public class LinearInterpolation implements IAlgorithm{
 	//equation that we are trying to make equal to 0.
 	public Double calcY(double possibleDiscRate)
 	{		
-		double mu = (1+infRate)/(1+possibleDiscRate);
-		double muFactor = totalYrs-N;
+		double v = (1+infRate)/(1+possibleDiscRate);
+		double vFactor = totalYrs-N;
+		if(v!=1)
+			vFactor = Math.pow(v, N+1)*(1-Math.pow(v, totalYrs-N))/(1-v);
+		double sustainSavings = vFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
+		double mu = (1+infRate)/(1+discRate);
+		//double investment = calculateInvestment(muWithDiscount);
+		double investment = B*N;
 		if(mu!=1)
-			muFactor = Math.pow(mu, N+1)*(1-Math.pow(mu, totalYrs-N))/(1-mu);
-		double sustainSavings = muFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
-		double muWithDiscount = (1+infRate)/(1+discRate);
-		double investment = calculateInvestment(muWithDiscount);
+			investment = B*(1-Math.pow(mu, N))/(1-mu);
 		double yVal = sustainSavings - investment;
+		if(shouldPrintOut)
+		{
+			printString = "\nv: "+v+" v^(N+1)*(1-v^(Q-N))/(1-v) "+vFactor+"\nmu: "+mu+" investment "+investment;
+		}
+		yVal -=savings;
 		return yVal;
 	}
 
+	public void setSavings(double savings)
+	{
+		this.savings = savings;
+	}
 
 	/**
 	 * Sets playsheet as a graph playsheet.

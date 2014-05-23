@@ -374,7 +374,9 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
         irrF.setVariables(maxYears, hourlyCost, interfaceCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
         irrF.setSavingsVariables(numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost, scdLT, iniLC, scdLC);
         irrF.createLinearInterpolation();
-        irr = irrF.calculateRet(budget,optNumYears);
+        irrF.turnOnPrintOut();
+        irrF.setPlaySheet(playSheet);
+        irr = irrF.calculateRet(budget,optNumYears,netSavings);
         if(f instanceof SysIRRFunction)
         {
         	disRate = irr;
