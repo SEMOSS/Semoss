@@ -55,9 +55,9 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 		if(n>totalYrs)
 			return -1.0E30;
 		linInt.setBAndN(budget, n);
-		linInt.setSavings(savings);
+	//	linInt.setSavings(savings);
 		linInt.execute();
-		linInt.setSavings(0.0);
+	//	linInt.setSavings(0.0);
 		return linInt.retVal;
 	}
 	
@@ -95,6 +95,6 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 	public void createLinearInterpolation()
 	{
 		 linInt = new LinearInterpolation();
-		 linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, 0, 150);
+		 linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, -.95, 1);
 	}
 }
