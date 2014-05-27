@@ -75,23 +75,23 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		//get queries from question sheet - each query will pull task, business or tech requirement
 		ArrayList<String> queryArray= new ArrayList<String>();
 		int queryCount = 1;
-		String query=DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
+		String query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
 		query = query.replace("*Selected_RFI*", rfi);
 		while(query!=null)
 		{
 			queryArray.add(query);
 			queryCount++;
-			query=DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
+			query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
 			if(query!=null)
 				query = query.replace("*Selected_RFI*", rfi);
 		}
 
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
-		options.put("out_of_box".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
-		options.put("out_of_box_with_configuration".toLowerCase(),  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
-		options.put("out_of_box_with_customization".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
-		options.put("does_not_support".toLowerCase(), Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
+		options.put("out_of_box".toLowerCase(), Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
+		options.put("out_of_box_with_configuration".toLowerCase(),  Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
+		options.put("out_of_box_with_customization".toLowerCase(), Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
+		options.put("does_not_support".toLowerCase(), Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
 		
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();

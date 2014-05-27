@@ -71,10 +71,10 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
-		options.put("Supports_out_of_box", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
-		options.put("Supports_with_configuration",  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
-		options.put("Supports_with_customization", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
-		options.put("Does_not_support", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
+		options.put("Supports_out_of_box", Integer.parseInt(this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
+		options.put("Supports_with_configuration",  Integer.parseInt(this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
+		options.put("Supports_with_customization", Integer.parseInt(this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
+		options.put("Does_not_support", Integer.parseInt(this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
 		
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();

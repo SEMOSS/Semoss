@@ -66,14 +66,14 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		// for each tasks's support level
 		// add all of this and we are ready to go
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
-		options.put("Out_of_Box", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
-		options.put("Out_of_box", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
-		options.put("Out_of_Box_with_Configuration",  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
-		options.put("Out_of_box_with_Configuration",  Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
-		options.put("Out_of_Box_with_Customization", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));		
-		options.put("Out_of_box_with_Customization", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
-		options.put("Does_Not_Support", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
-		options.put("Does_not_support", Integer.parseInt(DIHelper.getInstance().getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
+		options.put("Out_of_Box", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
+		options.put("Out_of_box", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_1)));
+		options.put("Out_of_Box_with_Configuration",  Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
+		options.put("Out_of_box_with_Configuration",  Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_2)));
+		options.put("Out_of_Box_with_Customization", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));		
+		options.put("Out_of_box_with_Customization", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_3)));
+		options.put("Does_Not_Support", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
+		options.put("Does_not_support", Integer.parseInt(""+this.engine.getProperty(ConstantsTAP.VENDOR_FULFILL_LEVEL_4)));
 
 		// what I am getting is of the form
 		// vendor capability task fullfillment level
