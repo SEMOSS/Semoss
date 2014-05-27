@@ -77,14 +77,16 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		int queryCount = 1;
 		String query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
 		query = query.replace("*Selected_RFI*", rfi);
-		while(query!=null)
-		{
-			queryArray.add(query);
-			queryCount++;
-			query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
-			if(query!=null)
-				query = query.replace("*Selected_RFI*", rfi);
-		}
+		queryArray.add(query);
+		queryCount++;
+//		while(query!="null")
+//		{
+//			queryArray.add(query);
+//			queryCount++;
+//			query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
+//			if(query!="null")
+//				query = query.replace("*Selected_RFI*", rfi);
+//		}
 
 		//hashtable to hold scoring values
 		Hashtable<String,Integer> options = new Hashtable<String,Integer>();
