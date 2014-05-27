@@ -115,7 +115,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 			elementHash.put(capVar, capName);
 			elementHash.put(supVar, score);
 			
-			dataHash.put(venName+capName, elementHash);
+			dataHash.put(venName+"-"+capName, elementHash);
 			
 		}
 
