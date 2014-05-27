@@ -53,7 +53,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	 */
 	@Override
 	public void createData() {
-		addPanel();
+	//	addPanel();
 		String rfi = "";
 		wrapper = new SesameJenaSelectWrapper();
 		if(engine!= null && rs == null){
@@ -65,7 +65,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
 		}
-		String[] names = wrapper.getVariables();
+		names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
 			SesameJenaSelectStatement sjss = wrapper.next();
@@ -98,6 +98,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();
 		ArrayList<String> vendorArray= new ArrayList<String>();
+		
+		list = new ArrayList();
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
@@ -126,6 +128,13 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 					String requirementCategory = capability;//names[2];
 					String fulfill = (String)sjss.getVar(names[3]);
 					fulfill = fulfill.toLowerCase();
+					
+					Object[] listElement = new Object[4];
+					listElement[0] = vendor;
+					listElement[1] = capability;
+					listElement[2] = requirement;
+					listElement[3] = fulfill;
+					list.add(listElement);
 					double score=0.0;
 					Object scoreObj = options.get(fulfill); //score based on vendor direct response
 					if(scoreObj!=null&&scoreObj instanceof Double)
@@ -231,15 +240,6 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		}
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
 		
 		allHash = new Hashtable();
 
@@ -252,21 +252,13 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		allHash.put("weight","weight");
 		allHash.put("value", "Score");
 		allHash.put("childvalue","Value");
+		
+		dataHash = allHash;
+	}
+	@Override
+	public Hashtable processQueryData()
+	{
+		return allHash;
 	}
 
-	@Override
-	public void createView()
-	{
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}		
-		callIt(allHash);
-		updateProgressBar("100%...Heat Map Generation Complete", 100);
-	}
 }
