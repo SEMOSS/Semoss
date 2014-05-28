@@ -45,7 +45,7 @@
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
-		<script src="structure changesJS_V0.4.js"></script>
+		<script src="data/us-counties.js"></script>
 
 		
 	</head>
@@ -172,7 +172,7 @@
 					});
 							
 				//Load in GeoJSON data
-				d3.json("us-counties.json", function(json) {
+				var json = usCounties;
 					//Bind data and create one path per GeoJSON feature
 					var coloredCountry = svg.selectAll("path")
 					   .data(json.features)
@@ -200,9 +200,7 @@
 					   .on('mouseout', tip.hide);
 						   					
 					coloredCountry.call(tip);
-							
-				});
-			
+
 			};
 			
 		</script>
