@@ -45,7 +45,7 @@
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
-		<script src="structure changesJS_V0.4.js"></script>
+		<script src="data/us-states.js"></script>
 
 		
 	</head>
@@ -157,7 +157,7 @@
 					});
 							
 				//Load in GeoJSON data
-				d3.json("us-states.json", function(json) {
+				var json = usData;
 					//Bind data and create one path per GeoJSON feature
 					var coloredCountry = svg.selectAll("path")
 					   .data(json.features)
@@ -187,7 +187,6 @@
 						   					
 					coloredCountry.call(tip);
 							
-				});
 			
 			};
 			
