@@ -26,6 +26,7 @@ import prerna.ui.components.api.IPlaySheet;
 public class PlaysheetCreateRunner implements Runnable{
 
 	IPlaySheet playSheet = null;
+	boolean createSwingView = true;
 	
 	/**
 	 * Constructor for PlaysheetCreateRunner.
@@ -43,7 +44,8 @@ public class PlaysheetCreateRunner implements Runnable{
 	public void run() {
 		playSheet.createData();
 		playSheet.runAnalytics();
-		playSheet.createView();
+		if(createSwingView)
+			playSheet.createView();
 	}	
 	
 	/**
@@ -55,5 +57,13 @@ public class PlaysheetCreateRunner implements Runnable{
 		this.playSheet = playSheet;
 	}
 	
-
+	/**
+	 * Method setCreateSwingView. Sets the createSwingView boolean which determines whether the createView is called and Java Swing front end created
+	 * @param createSwingView boolean
+	 */
+	public void setCreateSwingView(boolean createSwingView)
+	{
+		this.createSwingView = createSwingView;
+	}
+	
 }
