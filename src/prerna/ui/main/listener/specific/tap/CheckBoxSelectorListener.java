@@ -41,8 +41,8 @@ public class CheckBoxSelectorListener extends AbstractListener {
 	IEngine engine;
 	SelectScrollList scrollList;
 	JCheckBox allElemCheckBox;
-	JCheckBox theaterSysCheckBox, garrisonSysCheckBox,lowProbCheckBox, medProbCheckBox,highProbCheckBox;
-	ArrayList<String> theaterSysList, garrisonSysList, lowProbSysList, medProbSysList, highProbSysList;
+	JCheckBox recdSysButton, intDHMSMSysButton, theaterSysCheckBox, garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox;
+	ArrayList<String> recdSysList, intDHMSMSysList, theaterSysList, garrisonSysList, lowProbSysList, highProbSysList;
 
 	/**
 	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report
@@ -55,49 +55,64 @@ public class CheckBoxSelectorListener extends AbstractListener {
 		{
 			if(allElemCheckBox.isSelected())
 			{
+				recdSysButton.setSelected(false);
+				intDHMSMSysButton.setSelected(false);
 				theaterSysCheckBox.setSelected(false);
 				garrisonSysCheckBox.setSelected(false);
 				lowProbCheckBox.setSelected(false);
-				medProbCheckBox.setSelected(false);
 				highProbCheckBox.setSelected(false);
 				scrollList.selectAll();
 			}
 			else
 			{
+				recdSysButton.setSelected(false);
+				intDHMSMSysButton.setSelected(false);
 				theaterSysCheckBox.setSelected(false);
 				garrisonSysCheckBox.setSelected(false);
 				lowProbCheckBox.setSelected(false);
-				medProbCheckBox.setSelected(false);
 				highProbCheckBox.setSelected(false);
 				scrollList.list.clearSelection();
 			}
 			return;
 		}
 		allElemCheckBox.setSelected(false);
-		Vector<String> systemsTG = new Vector<String>();
-		Vector<String> systemsProb = new Vector<String>();
-		if(theaterSysCheckBox.isSelected())
-			systemsTG.addAll(theaterSysList);
-		if(garrisonSysCheckBox.isSelected())
-			systemsTG.addAll(garrisonSysList);
-		if(lowProbCheckBox.isSelected())
-			systemsProb.addAll(lowProbSysList);
-		if(medProbCheckBox.isSelected())
-			systemsProb.addAll(medProbSysList);
-		if(highProbCheckBox.isSelected())
-			systemsProb.addAll(highProbSysList);
-		Vector<String> systems;
-		if(systemsTG.isEmpty())
-			systems = systemsProb;
-		else if(systemsProb.isEmpty())
-			systems = systemsTG;
-		else
-			systems = addIntersection(systemsTG,systemsProb);
+		Vector<String> systemsToSelect = new Vector<String>();
 		
-		scrollList.setSelectedValues(systems);
-
-	}
+		systemsToSelect = updateSystemsToSelect(recdSysButton,recdSysList,systemsToSelect);
+		systemsToSelect = updateSystemsToSelect(intDHMSMSysButton,intDHMSMSysList,systemsToSelect);
+		systemsToSelect = updateSystemsToSelect(theaterSysCheckBox,theaterSysList,garrisonSysCheckBox,garrisonSysList,systemsToSelect);
+		systemsToSelect = updateSystemsToSelect(lowProbCheckBox,lowProbSysList,highProbCheckBox,highProbSysList,systemsToSelect);
 	
+		scrollList.setSelectedValues(systemsToSelect);
+	}
+	public Vector<String> updateSystemsToSelect(JCheckBox button, ArrayList<String> listToIntersect, Vector<String> listOfAllSelected)
+	{
+		if(button.isSelected())
+		{
+			if(listOfAllSelected.isEmpty())
+				listOfAllSelected.addAll(recdSysList);
+			else
+				listOfAllSelected = addIntersection(new Vector<String>(listToIntersect), listOfAllSelected);
+		}
+		return listOfAllSelected;
+	}
+	public Vector<String> updateSystemsToSelect(JCheckBox button1, ArrayList<String> listToIntersect1,JCheckBox button2, ArrayList<String> listToIntersect2, Vector<String> listOfAllSelected)
+	{
+		ArrayList<String> listToIntersectCombined = new ArrayList<String>();
+		
+		if(button1.isSelected())
+			listToIntersectCombined.addAll(listToIntersect1);
+		if(button2.isSelected())
+			listToIntersectCombined.addAll(listToIntersect2);
+		if(button1.isSelected()||button2.isSelected())
+		{
+			if(listOfAllSelected.isEmpty())
+				listOfAllSelected.addAll(listToIntersectCombined);
+			else
+				listOfAllSelected = addIntersection(new Vector<String>(listToIntersectCombined), listOfAllSelected);
+		}
+		return listOfAllSelected;
+	}
 	public Vector<String> addIntersection(Vector<String> systemsTG, Vector<String> systemsProb)
 	{
 		Vector<String> retList = new Vector<String>();
@@ -149,24 +164,26 @@ public class CheckBoxSelectorListener extends AbstractListener {
 		this.scrollList = scrollList;
 		this.type = "ActiveSystem";
 	}
-	public void setCheckBox(JCheckBox allSysCheckBox,JCheckBox theaterSysCheckBox,JCheckBox garrisonSysCheckBox,JCheckBox lowProbCheckBox,JCheckBox medProbCheckBox,JCheckBox highProbCheckBox)
+	public void setCheckBox(JCheckBox allSysCheckBox,JCheckBox recdSysButton,JCheckBox intDHMSMSysButton,JCheckBox theaterSysCheckBox,JCheckBox garrisonSysCheckBox,JCheckBox lowProbCheckBox,JCheckBox highProbCheckBox)
 	{
 		this.allElemCheckBox = allSysCheckBox;
+		this.recdSysButton = recdSysButton;
+		this.intDHMSMSysButton = intDHMSMSysButton;
 		this.theaterSysCheckBox = theaterSysCheckBox;
 		this.garrisonSysCheckBox = garrisonSysCheckBox;
 		this.lowProbCheckBox = lowProbCheckBox;
-		this.medProbCheckBox = medProbCheckBox;
 		this.highProbCheckBox = highProbCheckBox;
 
 		getQueryResults();
 	}
 	public void getQueryResults()
 	{
+		recdSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}}");
+		intDHMSMSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}}");
 		theaterSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}}BINDINGS ?GT {('Theater')('Both')}");
 		garrisonSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}}BINDINGS ?GT {('Garrison')('Both')}");
-		lowProbSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'Low'}}");
-		medProbSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'Medium'}}");
-		highProbSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}BINDINGS ?Prob {('Medium-High')('High')}");
+		lowProbSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}BINDINGS ?Prob {('Low')('Medium')('Medium-High')('Question')}");
+		highProbSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}BINDINGS ?Prob {('High')}");
 	}
 	/**
 	 * Override method from AbstractListener
