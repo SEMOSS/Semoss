@@ -100,11 +100,8 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 				myEdgeStore.put(edge.getProperty(Constants.URI)+"",edge);
 				
 				}
-
 			}
-			
 		}
-		
 		super.createForest();
 
 	}
