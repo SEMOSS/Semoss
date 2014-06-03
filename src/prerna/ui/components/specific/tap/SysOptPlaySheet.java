@@ -63,7 +63,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JLabel lblDataSelectHeader,lblBLUSelectHeader;
 	
 	//system, capability, data, and blu selects
-	public JCheckBox allSysButton, recdSysButton, intDHMSMSysButton;
+	public JCheckBox allSysButton, recdSysButton, intDHMSMSysButton, notIntDHMSMSysButton;
 	public JCheckBox lowProbButton, highProbButton, theaterSysButton, garrisonSysButton;
 	public JCheckBox allCapButton, dhmsmCapButton;
 	public JCheckBox hsdCapButton, hssCapButton, fhpCapButton;
@@ -146,13 +146,22 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_recdSysButton.gridy = 1;
 		systemSelectPanel.add(recdSysButton, gbc_recdSysButton);
 
-		intDHMSMSysButton = new JCheckBox("DHMSM Interface");
+		intDHMSMSysButton = new JCheckBox("Interface");
 		GridBagConstraints gbc_intDHMSMSysButton = new GridBagConstraints();
 		gbc_intDHMSMSysButton.anchor = GridBagConstraints.WEST;
-		gbc_intDHMSMSysButton.gridwidth = 2;
+		//gbc_intDHMSMSysButton.gridwidth = 2;
 		gbc_intDHMSMSysButton.gridx = 2;
 		gbc_intDHMSMSysButton.gridy = 1;
 		systemSelectPanel.add(intDHMSMSysButton, gbc_intDHMSMSysButton);
+		
+		notIntDHMSMSysButton = new JCheckBox("No Interface");
+		GridBagConstraints gbc_notIntDHMSMSysButton = new GridBagConstraints();
+		gbc_notIntDHMSMSysButton.anchor = GridBagConstraints.WEST;
+//		gbc_notIntDHMSMSysButton.gridwidth = 2;
+		gbc_notIntDHMSMSysButton.gridx = 3;
+		gbc_notIntDHMSMSysButton.gridy = 1;
+		systemSelectPanel.add(notIntDHMSMSysButton, gbc_notIntDHMSMSysButton);
+		
 		
 		lowProbButton = new JCheckBox("Low");
 		GridBagConstraints gbc_lowProbButton = new GridBagConstraints();
@@ -273,10 +282,11 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		CheckBoxSelectorListener sysCheckBoxListener = new CheckBoxSelectorListener();
 		sysCheckBoxListener.setEngine(engine);
 		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-		sysCheckBoxListener.setCheckBox(allSysButton,recdSysButton, intDHMSMSysButton,theaterSysButton,garrisonSysButton,lowProbButton, highProbButton);
+		sysCheckBoxListener.setCheckBox(allSysButton,recdSysButton, intDHMSMSysButton,notIntDHMSMSysButton,theaterSysButton,garrisonSysButton,lowProbButton, highProbButton);
 		allSysButton.addActionListener(sysCheckBoxListener);
 		recdSysButton.addActionListener(sysCheckBoxListener);
 		intDHMSMSysButton.addActionListener(sysCheckBoxListener);
+		notIntDHMSMSysButton.addActionListener(sysCheckBoxListener);
 		theaterSysButton.addActionListener(sysCheckBoxListener);
 		garrisonSysButton.addActionListener(sysCheckBoxListener);
 		lowProbButton.addActionListener(sysCheckBoxListener);
@@ -694,6 +704,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		capScrollPanel.setVisible(false);
 		recdSysButton.setSelected(false);
 		intDHMSMSysButton.setSelected(false);
+		notIntDHMSMSysButton.setSelected(false);
 		allSysButton.setSelected(false);
 		recdSysButton.setSelected(false);
 		intDHMSMSysButton.setSelected(false);
