@@ -50,9 +50,10 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 	@Override
 	public void createForest() throws Exception {
 
-		super.createForest();
-		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> myVertStore = gdm.getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();
+		
+		
 		Enumeration keyList = myVertStore.keys();
 		if(myEdgeStore.keys().hasMoreElements())
 		{
@@ -61,8 +62,8 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 			SEMOSSVertex vert1 = myVertStore.get(currKey);
 			SEMOSSVertex vert2 = null;
 			SEMOSSEdge edge = null;
-			String lifeCycleType ="http://health.mil/ontologies/dbcm/Concept/LifeCycle/";
-			String predicate = "http://health.mil/ontologies/dbcm/Relation/Contains/";
+			String lifeCycleType ="http://health.mil/ontologies/Concept/LifeCycle/";
+			String predicate = "http://health.mil/ontologies/Relation/Contains/";
 			int currYear=year;
 			int currMonth= month;
 
@@ -90,26 +91,22 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 					lifeCycleType+="TBD";
 				vert2=myVertStore.get(lifeCycleType+"");
 				if(vert2==null)
-				{
 					vert2 = new SEMOSSVertex(lifeCycleType);
-					filterData.addVertex(vert2);
-				}
 				
-				myVertStore.put(lifeCycleType, vert2);
 				predicate=predicate+vert1.getProperty(Constants.VERTEX_NAME)+":"+vert2.getProperty(Constants.VERTEX_NAME);
 				edge = new SEMOSSEdge(vert1, vert2, predicate);
-				myEdgeStore.put(predicate, edge);
-				this.forest.addEdge(edge,vert1,vert2);
-//				genControlData(vert2);
-//				genControlData(edge);
+
+				myVertStore.put(vert2.getProperty(Constants.URI) + "",vert2);
+				myEdgeStore.put(edge.getProperty(Constants.URI)+"",edge);
+				
+				}
 
 			}
 			
-		} 
 		}
-//		genBaseConcepts();
-//		genBaseGraph();
-//		genAllData();	
+		
+		super.createForest();
+
 	}
 	
 	/**
