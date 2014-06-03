@@ -63,8 +63,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public JLabel lblDataSelectHeader,lblBLUSelectHeader;
 	
 	//system, capability, data, and blu selects
-	public JCheckBox theaterSysButton, garrisonSysButton, allSysButton;
-	public JCheckBox lowProbButton, medProbButton, highProbButton;
+	public JCheckBox allSysButton, recdSysButton, intDHMSMSysButton;
+	public JCheckBox lowProbButton, highProbButton, theaterSysButton, garrisonSysButton;
 	public JCheckBox allCapButton, dhmsmCapButton;
 	public JCheckBox hsdCapButton, hssCapButton, fhpCapButton;
 	public SelectScrollList sysSelectDropDown, capSelectDropDown,dataSelectDropDown,bluSelectDropDown;
@@ -125,56 +125,62 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		JLabel lblSystemSelectHeader = new JLabel("Select Systems:");
 		lblSystemSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblSystemSelectHeader = new GridBagConstraints();
-		gbc_lblSystemSelectHeader.gridwidth = 3;
+		gbc_lblSystemSelectHeader.gridwidth = 4;
 		gbc_lblSystemSelectHeader.anchor = GridBagConstraints.WEST;
 		gbc_lblSystemSelectHeader.insets = new Insets(10, 0, 5, 5);
 		gbc_lblSystemSelectHeader.gridx = 0;
 		gbc_lblSystemSelectHeader.gridy = 0;
 		systemSelectPanel.add(lblSystemSelectHeader, gbc_lblSystemSelectHeader);
 		
-		allSysButton = new JCheckBox("All Systems");
+		allSysButton = new JCheckBox("All");
 		GridBagConstraints gbc_allSysButton = new GridBagConstraints();
 		gbc_allSysButton.anchor = GridBagConstraints.WEST;
 		gbc_allSysButton.gridx = 0;
 		gbc_allSysButton.gridy = 1;
 		systemSelectPanel.add(allSysButton, gbc_allSysButton);
 		
-		theaterSysButton = new JCheckBox("Theater");
-		GridBagConstraints gbc_theaterSysButton = new GridBagConstraints();
-		gbc_theaterSysButton.anchor = GridBagConstraints.WEST;
-		gbc_theaterSysButton.gridx = 1;
-		gbc_theaterSysButton.gridy = 1;
-		systemSelectPanel.add(theaterSysButton, gbc_theaterSysButton);
+		recdSysButton = new JCheckBox("Rec'd");
+		GridBagConstraints gbc_recdSysButton = new GridBagConstraints();
+		gbc_recdSysButton.anchor = GridBagConstraints.WEST;
+		gbc_recdSysButton.gridx = 1;
+		gbc_recdSysButton.gridy = 1;
+		systemSelectPanel.add(recdSysButton, gbc_recdSysButton);
 
-		garrisonSysButton = new JCheckBox("Garrison");
-		GridBagConstraints gbc_garrisonSysButton = new GridBagConstraints();
-		gbc_garrisonSysButton.anchor = GridBagConstraints.WEST;
-		gbc_garrisonSysButton.gridx = 2;
-		gbc_garrisonSysButton.gridy = 1;
-		systemSelectPanel.add(garrisonSysButton, gbc_garrisonSysButton);
+		intDHMSMSysButton = new JCheckBox("DHMSM Interface");
+		GridBagConstraints gbc_intDHMSMSysButton = new GridBagConstraints();
+		gbc_intDHMSMSysButton.anchor = GridBagConstraints.WEST;
+		gbc_intDHMSMSysButton.gridwidth = 2;
+		gbc_intDHMSMSysButton.gridx = 2;
+		gbc_intDHMSMSysButton.gridy = 1;
+		systemSelectPanel.add(intDHMSMSysButton, gbc_intDHMSMSysButton);
 		
-		lowProbButton = new JCheckBox("Low Prob");
+		lowProbButton = new JCheckBox("Low");
 		GridBagConstraints gbc_lowProbButton = new GridBagConstraints();
 		gbc_lowProbButton.anchor = GridBagConstraints.WEST;
 		gbc_lowProbButton.gridx = 0;
 		gbc_lowProbButton.gridy = 2;
 		systemSelectPanel.add(lowProbButton, gbc_lowProbButton);
 		
-		medProbButton = new JCheckBox("Med Prob");
-		GridBagConstraints gbc_medProbButton = new GridBagConstraints();
-		gbc_medProbButton.anchor = GridBagConstraints.WEST;
-		gbc_medProbButton.gridx = 1;
-		gbc_medProbButton.gridy = 2;
-		systemSelectPanel.add(medProbButton, gbc_medProbButton);
-		
-		highProbButton = new JCheckBox("High Prob");
+		highProbButton = new JCheckBox("High");
 		GridBagConstraints gbc_highProbButton = new GridBagConstraints();
 		gbc_highProbButton.anchor = GridBagConstraints.WEST;
-		gbc_highProbButton.gridx = 2;
+		gbc_highProbButton.gridx = 1;
 		gbc_highProbButton.gridy = 2;
 		systemSelectPanel.add(highProbButton, gbc_highProbButton);		
 
-
+		theaterSysButton = new JCheckBox("Theater");
+		GridBagConstraints gbc_theaterSysButton = new GridBagConstraints();
+		gbc_theaterSysButton.anchor = GridBagConstraints.WEST;
+		gbc_theaterSysButton.gridx = 2;
+		gbc_theaterSysButton.gridy = 2;
+		systemSelectPanel.add(theaterSysButton, gbc_theaterSysButton);
+		
+		garrisonSysButton = new JCheckBox("Garrison");
+		GridBagConstraints gbc_garrisonSysButton = new GridBagConstraints();
+		gbc_garrisonSysButton.anchor = GridBagConstraints.WEST;
+		gbc_garrisonSysButton.gridx = 3;
+		gbc_garrisonSysButton.gridy = 2;
+		systemSelectPanel.add(garrisonSysButton, gbc_garrisonSysButton);		
 		
 		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
 		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -260,18 +266,20 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_sysSelectDropDown.gridy = 3;
 		systemSelectPanel.add(sysSelectDropDown.pane, gbc_sysSelectDropDown);
 		
-		String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {BIND(<http://health.mil/ontologies/Concept/TaskerLifecyclePhase/Submitted> AS ?TaskerStatus) {?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}  {?BeingIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BeingIn> ;}{?TaskerLifecycleSystemPhase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase>;}{?TypeOf2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?TaskerStatus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecyclePhase>;}{?entity ?Submits ?SystemTasker}{?SystemTasker ?BeingIn ?TaskerLifecycleSystemPhase}{?TaskerLifecycleSystemPhase ?TypeOf2 ?TaskerStatus} } ");
+		//String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {BIND(<http://health.mil/ontologies/Concept/TaskerLifecyclePhase/Submitted> AS ?TaskerStatus) {?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}  {?BeingIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BeingIn> ;}{?TaskerLifecycleSystemPhase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase>;}{?TypeOf2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?TaskerStatus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecyclePhase>;}{?entity ?Submits ?SystemTasker}{?SystemTasker ?BeingIn ?TaskerLifecycleSystemPhase}{?TaskerLifecycleSystemPhase ?TypeOf2 ?TaskerStatus} } ");
+		String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}} ");
 		sysSelectDropDown.setupButton(sysArray,40,120); //need to give list of all systems
 
 		CheckBoxSelectorListener sysCheckBoxListener = new CheckBoxSelectorListener();
 		sysCheckBoxListener.setEngine(engine);
 		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-		sysCheckBoxListener.setCheckBox(allSysButton,theaterSysButton, garrisonSysButton,lowProbButton, medProbButton, highProbButton);
+		sysCheckBoxListener.setCheckBox(allSysButton,recdSysButton, intDHMSMSysButton,theaterSysButton,garrisonSysButton,lowProbButton, highProbButton);
 		allSysButton.addActionListener(sysCheckBoxListener);
+		recdSysButton.addActionListener(sysCheckBoxListener);
+		intDHMSMSysButton.addActionListener(sysCheckBoxListener);
 		theaterSysButton.addActionListener(sysCheckBoxListener);
 		garrisonSysButton.addActionListener(sysCheckBoxListener);
 		lowProbButton.addActionListener(sysCheckBoxListener);
-		medProbButton.addActionListener(sysCheckBoxListener);
 		highProbButton.addActionListener(sysCheckBoxListener);
 		
 		
@@ -684,12 +692,15 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		systemSelectPanel.setVisible(false);
 		capSelectDropDown.setVisible(false);
 		capScrollPanel.setVisible(false);
+		recdSysButton.setSelected(false);
+		intDHMSMSysButton.setSelected(false);
+		allSysButton.setSelected(false);
+		recdSysButton.setSelected(false);
+		intDHMSMSysButton.setSelected(false);
+		lowProbButton.setSelected(false);
+		highProbButton.setSelected(false);
 		theaterSysButton.setSelected(false);
 		garrisonSysButton.setSelected(false);
-		allSysButton.setSelected(false);
-		lowProbButton.setSelected(false);
-		medProbButton.setSelected(false);
-		highProbButton.setSelected(false);
 		allCapButton.setSelected(false);
 		dhmsmCapButton.setSelected(false);
 		hsdCapButton.setSelected(false);
