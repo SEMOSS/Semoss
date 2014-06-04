@@ -1,133 +1,122 @@
-/*******************************************************************************
- * Copyright 2013 SEMOSS.ORG
- * 
- * This file is part of SEMOSS.
- * 
- * SEMOSS is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * SEMOSS is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
 import java.text.DateFormatSymbols;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Enumeration;
-import java.util.Hashtable;
 
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.Constants;
 
-/**
- * This class creates the grid playsheet for hardware/software lifecycles.
- */
 public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
 	public int year;
 	public int month;
-	
-	/**
-	 * Constructor for LifeCycleNodeGridPlaySheet.
-	 */
-	public LifeCycleGridPlaySheet() {
-		super();
-	}
 
-	/**
-	 * Creates the display for the lifecycle types.
-	 * These options include retired, sunset, supported, generally available, or TBD.
-	 */
 	@Override
 	public void createData() {
-		super.createData();
-		
-		int numRows = gfd.getNumRows();
-		
-//		for (int i = 0; i < numRows; i++) {
-			
-//			String lifeCycle = gfd.getValueAt(i, 3).toString();
-//			int currYear = year;
-//			int currMonth = month;
-//
-//				if (lifeCycle != "TBD") 
-//				{
-//					String date=vert1.getProperty("EOL").toString();
-//					int year=Integer.parseInt(date.substring(1,5));
-//					int month=Integer.parseInt(date.substring(6,8));
-//					int day=Integer.parseInt(date.substring(9,11));
-//					
-//
-//					if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
-//						gfd[i, 3] = "Retired_(Not_Supported)";
-//					else if(year<=currYear||(year==currYear+1&&month<=currMonth))
-//						lifeCycleType+="Sunset_(End_of_Life)";
-//					else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
-//						lifeCycleType+="Supported";
-//					else
-//						lifeCycleType+="GA_(Generally_Available)";
-//
-//				}
-//				else
-//					lifeCycleType+="TBD";
-//				
-//				}
-//		
-//		super.createView();
-
+		list = new ArrayList<Object[]>();
+		list = processQuery(query);
 	}
-	
+
+	public ArrayList<Object[]> processQuery(String queryString){
+		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
+
+		logger.info("PROCESSING QUERY: " + queryString);
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//run the query against the engine provided
+		sjsw.setEngine(engine);
+		sjsw.setQuery(queryString);
+		sjsw.executeQuery();
+
+		names = sjsw.getVariables();
+
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+
+			String sub = sjss.getVar(names[0]).toString();
+			String pred = sjss.getVar(names[1]).toString();
+			String obj = sjss.getVar(names[2]).toString();
+			obj = obj.replace("\"", "");
+			
+			if(obj.equals("TBD"))
+			{
+				processedList.add(new Object[]{sub, pred, obj});
+			}
+			else
+			{
+				int lifecycleYear = Integer.parseInt(obj.substring(0,4));
+				int lifecycleMonth = Integer.parseInt(obj.substring(5,7));
+				
+				if( (year < lifecycleYear) ||(year == lifecycleYear && month <= lifecycleMonth+6 ) || (year == lifecycleYear+1 && month <= lifecycleMonth+6-12) )
+				{
+					obj = "Retired_(Not_Supported)";
+					processedList.add(new Object[]{sub, pred, obj});
+				}
+				else if(year <= lifecycleYear || (year == lifecycleYear+1 && month <= lifecycleMonth))
+				{
+					obj = "Sunset_(End_of_Life)";
+					processedList.add(new Object[]{sub, pred, obj});
+				}
+				else if(year <= lifecycleYear+2 || (year==lifecycleYear+3 && month <= lifecycleMonth))
+				{
+					obj = "Supported";
+					processedList.add(new Object[]{sub, pred, obj});
+				}
+				else
+				{
+					obj = "GA_(Generally_Available)";
+					processedList.add(new Object[]{sub, pred, obj});
+				}
+
+			}
+
+		}	
+		return processedList;
+	}
+
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet. 
 	 * @param query String
 	 */
 	@Override
-	public void setQuery(String query) {
+	public void setQuery(String query) 
+	{
 		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
 			this.query=query;
-		else{
-		logger.info("New Query " + query);
-		int semi=query.indexOf(";");
-		int semi2=query.indexOf(";",semi+1);
-		Calendar now = Calendar.getInstance();
-		year=now.get(Calendar.YEAR); //replace with current year
-		if(!query.substring(0,semi).equals("Today"))
-			year = Integer.parseInt(query.substring(0,semi));
-		month = getIntForMonth(query.substring(semi+1,semi2));
-		if(month==-1)
-			month=now.get(Calendar.MONTH);
-		this.query = query.substring(semi2+1);
+		else
+		{
+			logger.info("New Query " + query);
+			int semicolon1 = query.indexOf(";");
+			int semicolon2 = query.indexOf(";",semicolon1+1);
+			Calendar now = Calendar.getInstance();
+			year = now.get(Calendar.YEAR); //replace with current year
+			if(!query.substring(0,semicolon1).equals("Today"))
+				year = Integer.parseInt(query.substring(0,semicolon1));
+			month = getIntForMonth(query.substring(semicolon1+1,semicolon2));
+			if(month == -1)
+				month= now.get(Calendar.MONTH);
+			this.query = query.substring(semicolon2+1);
 		}
 	}
-	
+
 	/**
 	 * Reads in a date format symbol and gets the months.
 	 * The string form of the month is checked against the name of months and returns the integer form.
 	 * @param m 		Month in string form.
-	
 	 * @return int		Month in integer form. */
 	public int getIntForMonth(String m) {
-	    DateFormatSymbols dfs = new DateFormatSymbols();
-	    String[] months = dfs.getMonths();
-	    int i=0;
-	    while(i<12)
-	    {
-	    	if(m.equals(months[i]))
-	    		return i;
-	    	i++;
-	    }
-    	return -1;
+		DateFormatSymbols dfs = new DateFormatSymbols();
+		String[] months = dfs.getMonths();
+		int i=0;
+		while(i<12)
+		{
+			if(m.equals(months[i]))
+				return i;
+			i++;
+		}
+		return -1;
 	}
-
 
 }
