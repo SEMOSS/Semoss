@@ -49,17 +49,17 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				int lifecycleYear = Integer.parseInt(obj.substring(0,4));
 				int lifecycleMonth = Integer.parseInt(obj.substring(5,7));
 				
-				if( (year < lifecycleYear) ||(year == lifecycleYear && month <= lifecycleMonth+6 ) || (year == lifecycleYear+1 && month <= lifecycleMonth+6-12) )
+				if( (year > lifecycleYear) ||(year == lifecycleYear && month >= lifecycleMonth+6 ) || (year == lifecycleYear+1 && month >= lifecycleMonth+6-12) )
 				{
 					obj = "Retired_(Not_Supported)";
 					processedList.add(new Object[]{sub, pred, obj});
 				}
-				else if(year <= lifecycleYear || (year == lifecycleYear+1 && month <= lifecycleMonth))
+				else if(year >= lifecycleYear || (year == lifecycleYear+1 && month >= lifecycleMonth))
 				{
 					obj = "Sunset_(End_of_Life)";
 					processedList.add(new Object[]{sub, pred, obj});
 				}
-				else if(year <= lifecycleYear+2 || (year==lifecycleYear+3 && month <= lifecycleMonth))
+				else if(year >= lifecycleYear+2 || (year==lifecycleYear+3 && month >= lifecycleMonth))
 				{
 					obj = "Supported";
 					processedList.add(new Object[]{sub, pred, obj});
