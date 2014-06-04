@@ -39,10 +39,12 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			String pred = sjss.getVar(names[1]).toString();
 			String obj = sjss.getVar(names[2]).toString();
 			obj = obj.replace("\"", "");
+			String cost = sjss.getVar(names[3]).toString();
+			cost = cost.replace("\"", "");
 			
 			if(obj.equals("TBD"))
 			{
-				processedList.add(new Object[]{sub, pred, obj});
+				// do nothing
 			}
 			else
 			{
@@ -52,26 +54,26 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				if( (year > lifecycleYear) ||(year == lifecycleYear && month >= lifecycleMonth+6 ) || (year == lifecycleYear+1 && month >= lifecycleMonth+6-12) )
 				{
 					obj = "Retired_(Not_Supported)";
-					processedList.add(new Object[]{sub, pred, obj});
 				}
 				else if(year >= lifecycleYear || (year == lifecycleYear+1 && month >= lifecycleMonth))
 				{
 					obj = "Sunset_(End_of_Life)";
-					processedList.add(new Object[]{sub, pred, obj});
 				}
 				else if(year >= lifecycleYear+2 || (year==lifecycleYear+3 && month >= lifecycleMonth))
 				{
 					obj = "Supported";
-					processedList.add(new Object[]{sub, pred, obj});
 				}
 				else
 				{
 					obj = "GA_(Generally_Available)";
-					processedList.add(new Object[]{sub, pred, obj});
 				}
-
 			}
-
+			
+			if(cost == null)
+			{
+				cost = "";
+			}
+			processedList.add(new Object[]{sub, pred, obj, cost});
 		}	
 		return processedList;
 	}
