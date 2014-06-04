@@ -54,36 +54,36 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		
 		int numRows = gfd.getNumRows();
 		
-		for (int i = 0; i < numRows; i++) {
+//		for (int i = 0; i < numRows; i++) {
 			
-			String lifeCycle = gfd.getValueAt(i, 3).toString();
-			int currYear = year;
-			int currMonth = month;
-
-				if (lifeCycle != "TBD") 
-				{
-					String date=vert1.getProperty("EOL").toString();
-					int year=Integer.parseInt(date.substring(1,5));
-					int month=Integer.parseInt(date.substring(6,8));
-					int day=Integer.parseInt(date.substring(9,11));
-					
-
-					if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
-						gfd[i, 3] = "Retired_(Not_Supported)";
-					else if(year<=currYear||(year==currYear+1&&month<=currMonth))
-						lifeCycleType+="Sunset_(End_of_Life)";
-					else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
-						lifeCycleType+="Supported";
-					else
-						lifeCycleType+="GA_(Generally_Available)";
-
-				}
-				else
-					lifeCycleType+="TBD";
-				
-				}
-		
-		super.createView();
+//			String lifeCycle = gfd.getValueAt(i, 3).toString();
+//			int currYear = year;
+//			int currMonth = month;
+//
+//				if (lifeCycle != "TBD") 
+//				{
+//					String date=vert1.getProperty("EOL").toString();
+//					int year=Integer.parseInt(date.substring(1,5));
+//					int month=Integer.parseInt(date.substring(6,8));
+//					int day=Integer.parseInt(date.substring(9,11));
+//					
+//
+//					if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
+//						gfd[i, 3] = "Retired_(Not_Supported)";
+//					else if(year<=currYear||(year==currYear+1&&month<=currMonth))
+//						lifeCycleType+="Sunset_(End_of_Life)";
+//					else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
+//						lifeCycleType+="Supported";
+//					else
+//						lifeCycleType+="GA_(Generally_Available)";
+//
+//				}
+//				else
+//					lifeCycleType+="TBD";
+//				
+//				}
+//		
+//		super.createView();
 
 	}
 	
