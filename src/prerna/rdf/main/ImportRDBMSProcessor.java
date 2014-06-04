@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,8 +18,8 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.Vector;
 
+import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
 import org.apache.poi.ss.usermodel.Name;
@@ -27,7 +28,6 @@ import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.log4j.Logger;
 
 import prerna.poi.main.PropFileWriter;
 import prerna.util.Constants;
@@ -73,6 +73,8 @@ public class ImportRDBMSProcessor {
 	private final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
 	private final String SQLSERVER = "MS SQL Server";
 	private final String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+	private final String ASTER = "Aster Database";
+	private final String ASTER_DRIVER = "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver";
 	
 	public ImportRDBMSProcessor() {
 		
@@ -293,6 +295,8 @@ public class ImportRDBMSProcessor {
 			dbConnection += this.ORACLE_DRIVER;
 		} else if(this.type.equalsIgnoreCase(this.SQLSERVER)) {
 			dbConnection += this.SQLSERVER_DRIVER;
+		} else if(this.type.equalsIgnoreCase(this.ASTER)) {
+			dbConnection += this.ASTER_DRIVER;
 		}
 		
 		dbConnection += "\";" + spacer + 
@@ -460,15 +464,15 @@ public class ImportRDBMSProcessor {
 		{
 			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Concept/").append(conceptName).append("\">").append(spacer).append(
 				"rdfs:subClassOf rdf:resource=\"http://semoss.org/ontologies/Concept\"/> \n").append(
-					"</rdf:Description>");
+					"</rdf:Description>\n");
 		}
 		
-		for(String relName : baseRels)
-		{
-			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Relation/").append(relName).append("\">").append(spacer).append(
-				"<rdfs:subPropertyOf rdf:resource=\"http://semoss.org/ontologies/Relation\"/> \n").append(
-					"</rdf:Description>");
-		}
+//		for(String relName : baseRels)
+//		{
+//			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Relation/").append(relName).append("\">").append(spacer).append(
+//				"<rdfs:subPropertyOf rdf:resource=\"http://semoss.org/ontologies/Relation\"/> \n").append(
+//					"</rdf:Description>\n");
+//		}
 		
 		for(String key: baseRelationships.keySet())
 		{
@@ -479,7 +483,7 @@ public class ImportRDBMSProcessor {
 			
 			owlFile.append("<rdf:Description rdf:about=\"http://semoss.org/ontologies/Concept/").append(sub).append("\">").append(spacer).append(
 					"<").append(rel).append(" rdf:resource=\"http://semoss.org/ontologies/Concept/").append(obj).append("\"/> \n").append(
-					"</rdf:Description>");
+					"</rdf:Description>\n");
 		}
 		
 		owlFile.append("</rdf:RDF>");
@@ -515,7 +519,7 @@ public class ImportRDBMSProcessor {
 		
 		if(type.equals(this.MYSQL)) {
 			try {
-				Class.forName("com.mysql.jdbc.Driver");
+				Class.forName(this.MYSQL_DRIVER);
 				
 				//Connection URL format: jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
 				con = DriverManager
@@ -530,7 +534,7 @@ public class ImportRDBMSProcessor {
 			}
 		} else if(type.equals(this.ORACLE)) {
 			try {
-				Class.forName("oracle.jdbc.driver.OracleDriver");
+				Class.forName(this.ORACLE_DRIVER);
 				
 				//Connection URL format: jdbc:oracle:thin:@<hostname>[:port]/<service or sid>
 				con = DriverManager
@@ -545,9 +549,9 @@ public class ImportRDBMSProcessor {
 			}
 		} else if(type.equals(this.SQLSERVER)) {
 			try {
-				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+				Class.forName(this.SQLSERVER_DRIVER);
 				
-				//Connection URL format: jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>;username=username;password=password				
+				//Connection URL format: jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>;user=username;password=password				
 				con = DriverManager
 						.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));
 				if(con.isValid(10)) {
@@ -556,6 +560,18 @@ public class ImportRDBMSProcessor {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		} else if(type.equals(this.ASTER)) {
+			try {
+				Class.forName(this.ASTER_DRIVER);
+				
+				//Connection URL: jdbc:teradata://<HostName>/DATABASE=<DBName>
+				con = DriverManager.getConnection(url, username, new String(password));
+				if(con != null) {
+					isValid = true;
+				}
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -579,7 +595,7 @@ public class ImportRDBMSProcessor {
 		if(type.equals(this.MYSQL)) 
 		{
 			try {
-				Class.forName("com.mysql.jdbc.Driver");
+				Class.forName(this.MYSQL_DRIVER);
 				con = DriverManager
 						.getConnection(url + "?user=" + username + "&password=" + new String(password));
 				//Get DBname from URL
@@ -600,7 +616,7 @@ public class ImportRDBMSProcessor {
 		else if(type.equals(this.ORACLE)) 
 		{
 			try {
-				Class.forName("oracle.jdbc.driver.OracleDriver");
+				Class.forName(this.ORACLE_DRIVER);
 				con = DriverManager
 						.getConnection(url, username, new String(password));
 				//Get DBname from URL
@@ -620,7 +636,7 @@ public class ImportRDBMSProcessor {
 		else if(type.equals(this.SQLSERVER)) 
 		{
 			try {
-				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+				Class.forName(this.SQLSERVER_DRIVER);
 				con = DriverManager
 						.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));				
 				//Get DBname from URL
@@ -636,15 +652,44 @@ public class ImportRDBMSProcessor {
 				e.printStackTrace();
 				return (success = false);
 			}
+		} else if(type.equals(this.ASTER)) {
+			try {
+				Class.forName(this.ASTER_DRIVER);
+				con = DriverManager.getConnection(url, username, new String(password));
+				
+				DatabaseMetaData md = con.getMetaData();
+				resultSet = md.getColumns(null, null, null, null);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+				return (success = false);
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return (success = false);
+			}
 		}
 
 		try {
 			while(resultSet.next())
 			{
-				String tableName = resultSet.getString(1);
-				String columnName = resultSet.getString(2);
-				String dataType = resultSet.getString(3);
-				logger.debug("SQL Result: " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
+				String tableName = "";
+				String columnName = "";
+				String dataType = "";
+				
+				if(type.equals(this.ASTER)) {
+					tableName = resultSet.getString("TABLE_NAME");
+					if(tableName.startsWith("nc_")) {
+						continue;
+					}
+					columnName = resultSet.getString("COLUMN_NAME");
+					System.err.println(tableName + " " + columnName);
+					dataType = resultSet.getString("DATA_TYPE");
+				} else {
+					tableName = resultSet.getString(1);
+					columnName = resultSet.getString(2);
+					dataType = resultSet.getString(3);
+				}
+				
+				logger.debug("SQL Result:     " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
 
 				if(!schemaHash.containsKey(tableName))
 				{
@@ -979,4 +1024,3 @@ public class ImportRDBMSProcessor {
 //		}
 //	}
 }
-

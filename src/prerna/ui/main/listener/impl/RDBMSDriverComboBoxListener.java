@@ -31,6 +31,9 @@ public class RDBMSDriverComboBoxListener extends AbstractListener {
 		{
 			rdbmsUrlField.setText("jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>");
 		}
+		else if(driverType.equals("Aster Database")) {
+			rdbmsUrlField.setText("jdbc:ncluster://192.168.100.100/beehive");
+		}
 		
 		rdbmsDriver.removeItem("Select Relational Database Type");
 	}
