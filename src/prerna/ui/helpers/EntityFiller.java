@@ -27,6 +27,7 @@ import java.util.Vector;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -55,7 +56,7 @@ public class EntityFiller implements Runnable {
 	 */
 	@Override
 	public void run() {
-		
+		logger.setLevel(Level.WARN);
 		logger.info(" Engine Name is  " + engineName);
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
@@ -120,7 +121,7 @@ public class EntityFiller implements Runnable {
 				
 				// try to query for the label
 				
-				System.out.println(" Names " + names);
+				logger.info("Names " + names);
 				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 				if (paramHash.isEmpty())
 				{
