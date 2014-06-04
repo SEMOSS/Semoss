@@ -712,7 +712,7 @@ public class PlayPane extends JFrame {
 		dbImportRDBMSDriverComboBox = new JComboBox();
 		dbImportRDBMSDriverComboBox.setBackground(Color.GRAY);
 		dbImportRDBMSDriverComboBox.setVisible(false);
-		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select Relational Database Type", "MySQL","Oracle","MS SQL Server"}));
+		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select Relational Database Type", "MySQL","Oracle","MS SQL Server","Aster Database"}));
 		dbImportRDBMSDriverComboBox.setPreferredSize(new Dimension(225, 25));
 		GridBagConstraints gbc_dbImportRDBMSDriverComboBox = new GridBagConstraints();
 		gbc_dbImportRDBMSDriverComboBox.gridwidth = 3;
