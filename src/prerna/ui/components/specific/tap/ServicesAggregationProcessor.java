@@ -256,10 +256,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			addToAllConcepts(subject);
 			addToAllConcepts(object);
 			addToAllRelationships(pred);
-			for(int i = 0; i < varNames.length; i++)
+			for(int i = 3; i < varNames.length; i++)
 			{
 				String propPrep = semossPropertyBaseURI + varNames[i];
-				Object propValue = sjss.getVar(vars[3+i]);
+				Object propValue = sjss.getVar(vars[i]);
 				logger.debug("ADDING RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propPrep + " --- " + propValue + "}");
 				addToDataHash(new Object[]{pred, propPrep, propValue});
 			}
@@ -1154,7 +1154,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
 		
-		sub = sub.substring(0,sub.indexOf("-" + user)).concat(sub.substring(sub.indexOf("-" + user) + 1 + user.length()));
+		sub = sub.replace("-" + user, "");
 			
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
