@@ -95,7 +95,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				for (int propIdx=0 ; propIdx<propV.size(); propIdx++)
 				{
 					String propURI = propV.get(propIdx);
-					String propName = varName + "__" + Utility.getInstanceName(propURI);
+					String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
 					SEMOSSQueryHelper.addGenericTriple(varName, TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
 					SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
 				}
@@ -109,7 +109,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				for (int propIdx=0 ; propIdx<propV.size(); propIdx++)
 				{
 					String propURI = propV.get(propIdx);
-					String propName = varName + "__" + Utility.getInstanceName(propURI);
+					String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
 					SEMOSSQueryHelper.addGenericTriple(varName, TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
 					SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
 

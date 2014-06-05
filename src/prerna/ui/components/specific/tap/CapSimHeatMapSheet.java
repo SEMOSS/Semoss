@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 import org.apache.log4j.Logger;
 
@@ -32,6 +33,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 /**
  */
@@ -89,7 +91,7 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
 		paramDataHash.put("Process_Supported", bpHash);
-		paramDataHash.put("Attributes_Supported", attributeHash);
+		//paramDataHash.put("Attributes_Supported", attributeHash);
 		paramDataHash.put("Participants_Supported", participantHash);
 		paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
 		
