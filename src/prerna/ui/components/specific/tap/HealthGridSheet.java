@@ -19,6 +19,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
 import com.google.gson.Gson;
@@ -44,8 +45,9 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String htmlFileName = "/html/MHS-RDFSemossCharts/app/grid.html";
-		fileName = "file://" + workingDir + htmlFileName;
+		//String htmlFileName = "/html/MHS-RDFSemossCharts/app/grid.html";
+		//fileName = "file://" + workingDir + htmlFileName;
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatterplot.html";
 	}
 	/**
 	 * Determines whether a system should be highlighted.
@@ -71,7 +73,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	public Hashtable<String,Object> processQueryData(){
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
 		dataHash = new Hashtable<String,Object>();
-		Object[][] dataSeries = new Object[list.size()][4];
+		ArrayList allData = new ArrayList();
 		String[] names = wrapper.getVariables();
 		String series = names[0];//System or Vendor
 		String xName = names[1];//BusinessValue
@@ -80,32 +82,33 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		String zName = names[4];//Cost
 
 		double maxXAxis = 0.0;
-				
+
 		for(int i=0;i<list.size();i++)
 		{
-			Object[] listElement = list.get(i);							
-			//element should be of the form: x, y, size, system
-			Object[] element = new Object[6];
-			element[0]=(Double)listElement[1];//xvalue business value
+			Hashtable elementHash = new Hashtable();
+			Object[] listElement = list.get(i);
+			
+			elementHash.put("series", ((String)listElement[5]).replaceAll("\"", ""));//lifecycle
+			elementHash.put("label", listElement[0]);//system
+			elementHash.put("x", listElement[1]);//xvalue business value
+			elementHash.put("y-external stability", listElement[2]);//yvalue1 external stability technical maturity
+			elementHash.put("y-tech standards", listElement[3]);//yvalue2 tech standards technical maturity
+			elementHash.put("z", listElement[4]);//size cost
+			allData.add(elementHash);
+
 			if((Double)listElement[1]>maxXAxis)
 				maxXAxis=(Double)listElement[1];
-			element[1]=(Double)listElement[2];//yvalue1 external stability technical maturity
-			element[2]=(Double)listElement[3];//yvalue2 tech standards technical maturity
-			element[3]=(Double)listElement[4];//size cost
-			element[4]=((String)listElement[5]).replaceAll("\"", "");//lifecycle
-			element[5]=(String)listElement[0];//system
-			dataSeries[i]=element;
+			
 			if(i==0&&listElement.length>6)
 			{
 				setSystemHighlight(true);
 				setSystemToHighlight((String)listElement[6]);
 			}
 		}
-		dataHash.put(series, dataSeries);
 		
 
-		 allHash = new Hashtable<String,Object>();
-		allHash.put("dataSeries", dataHash);
+		allHash = new Hashtable<String,Object>();
+		allHash.put("dataSeries", allData);
 		allHash.put("title", "Health Grid");
 		allHash.put("xAxisTitle", xName);
 		allHash.put("yAxisTitle", yName1+" and "+yName2);
