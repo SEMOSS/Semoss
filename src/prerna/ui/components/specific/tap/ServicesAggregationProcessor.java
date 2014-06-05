@@ -372,7 +372,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				{
 					if(prop.equals(semossPropertyBaseURI + "Comments"))
 					{
-						returnTriple = processConcatString(sub, prop, value, user);
+						returnTriple = processConcatCommentString(sub, prop, value, user);
 					}
 
 					// if error occurs
@@ -1118,6 +1118,44 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
 
+		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
+		{
+			if(!user.equals(""))
+			{
+				value = "\"" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
+			}
+			logger.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		else
+		{
+			innerHash = dataHash.get(sub);
+			Object currentString = innerHash.get(prop);
+			if(!user.equals(""))
+			{
+				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + getTextAfterFinalDelimeter(user, "/") + ":" + value.toString().substring(1);
+			}
+			else
+			{
+				value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
+			}
+			logger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+		}
+		return new Object[]{sub, prop, value};
+	}
+	
+	public Object[] processConcatCommentString(String sub, String prop, Object value, String user) 
+	{
+		// replace any tags for properties that are loaded as other data types but should be strings
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#double","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#decimal","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#integer","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
+		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
+		
+		sub = sub.substring(0,sub.indexOf("-" + user)).concat(sub.substring(sub.indexOf("-" + user) + 1 + user.length()));
+			
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
