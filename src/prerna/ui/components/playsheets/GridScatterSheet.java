@@ -37,7 +37,8 @@ public class GridScatterSheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html";
+		//fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singlechartgrid.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatterplot.html";
 	}
 	
 	/**
@@ -46,39 +47,43 @@ public class GridScatterSheet extends BrowserPlaySheet{
 	 * @return Hashtable Includes the data series, graph title, and the x- and y-axis titles.*/
 	public Hashtable processQueryData()
 	{
-		Hashtable dataHash = new Hashtable();
 		ArrayList allData = new ArrayList();
+		String[] var = wrapper.getVariables();
 		for (int i=0;i<list.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
 			Object[] listElement = list.get(i);
-			Object[] dataSet = new Object[4];
-			dataSet[0]=(Double) listElement[1];
-			dataSet[1]=(Double) listElement[2];
-			if (listElement.length<4)
-			{
-				dataSet[2]=0.0;
-			}
-			else
-			{
-			dataSet[2]=(Double) listElement[3];
-			}
-			dataSet[3]=(String) listElement[0];
-			allData.add(dataSet);
+			
+			elementHash.put("series", var[0]);
+			elementHash.put("label", listElement[0]);
+			elementHash.put("x", listElement[1]);
+			if(listElement.length>2)
+				elementHash.put("y", listElement[2]);
+			if(listElement.length>3)
+				elementHash.put("z", listElement[3]);
+//			
+//			Object[] dataSet = new Object[4];
+//			dataSet[0]=(Double) listElement[1];
+//			dataSet[1]=(Double) listElement[2];
+//			if (listElement.length<4)
+//			{
+//				dataSet[2]=0.0;
+//			}
+//			else
+//			{
+//			dataSet[2]=(Double) listElement[3];
+//			}
+//			dataSet[3]=(String) listElement[0];
+			allData.add(elementHash);
 		}
-		Object[][] dataSeries = new Object[allData.size()][4];
-		for(int i=0; i< allData.size();i++)
-		{
-			dataSeries[i]=(Object[]) allData.get(i);
-		}
-		dataHash.put("Series", dataSeries);
 		Hashtable allHash = new Hashtable();
-		allHash.put("dataSeries", dataHash);
-		allHash.put("type",  "scatter");
-		String[] var = wrapper.getVariables();
+		allHash.put("dataSeries", allData);
 		allHash.put("title",  var[1] + " vs " + var[2]);
 		allHash.put("xAxisTitle", var[1]);
-		allHash.put("yAxisTitle", var[2]);
+		if(var.length>2)
+			allHash.put("yAxisTitle", var[2]);
+		if(var.length>3)
+			allHash.put("zAxisTitle", var[3]);
 		return allHash;
 	}
 	
