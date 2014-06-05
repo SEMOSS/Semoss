@@ -10,8 +10,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
-	public int year;
-	public int month;
+	private int year, month;
 
 	@Override
 	public void createData() {
