@@ -77,16 +77,9 @@ public class AggregationHelper implements IAggregationHelper {
 					concept_triple = false;
 				}
 				// must make data conversion from XMLGregorianCalendar to Date in order to be loaded into SEMOSS as a date
-				if(obj.getClass() == XMLGregorianCalendar.class)
-				{
-					Date newObj = (Date) ((XMLGregorianCalendar) obj).toGregorianCalendar().getTime();
-					( (BigDataEngine) engine).addStatement(sub, pred, newObj, concept_triple);
-					logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + newObj + ">>>>>");
-				}
-				else{
-					( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
-					logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
-				}
+				System.out.println(obj.getClass());
+				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
+				logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -382,21 +375,21 @@ public class AggregationHelper implements IAggregationHelper {
 
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
-		{
-			value = ((Literal) value).calendarValue();
+		{	
+			value = (Date) ((XMLGregorianCalendar) ((Literal) value).calendarValue()).toGregorianCalendar().getTime();
 			logger.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
-			XMLGregorianCalendar oldDate = (XMLGregorianCalendar) innerHash.get(prop);
-			XMLGregorianCalendar newDate = ((Literal) value).calendarValue();
+			Date oldDate = (Date) innerHash.get(prop);
+			Date newDate = (Date) ((XMLGregorianCalendar) ((Literal) value).calendarValue()).toGregorianCalendar().getTime();
 			if(!latest)
 			{
-				if(newDate.toGregorianCalendar().getTime().before(oldDate.toGregorianCalendar().getTime()))
+				if(newDate.before(oldDate))
 				{
 					// return the value being passed in
-					value = ((Literal) value).calendarValue();
+					value = newDate;
 					logger.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
@@ -407,10 +400,10 @@ public class AggregationHelper implements IAggregationHelper {
 			}
 			else
 			{
-				if(newDate.toGregorianCalendar().getTime().after(oldDate.toGregorianCalendar().getTime()))
+				if(newDate.after(oldDate))
 				{
 					// return the value being passed in
-					value = ((Literal) value).calendarValue();
+					value = newDate;
 					logger.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
