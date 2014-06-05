@@ -20,6 +20,7 @@ package prerna.ui.components.specific.tap;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 
@@ -75,8 +76,17 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					concept_triple = false;
 				}
-				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
-				logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				// must make data conversion from XMLGregorianCalendar to Date in order to be loaded into SEMOSS as a date
+				if(obj.getClass() == XMLGregorianCalendar.class)
+				{
+					Date newObj = (Date) ((XMLGregorianCalendar) obj).toGregorianCalendar().getTime();
+					( (BigDataEngine) engine).addStatement(sub, pred, newObj, concept_triple);
+					logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + newObj + ">>>>>");
+				}
+				else{
+					( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
+					logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				}
 			}
 		}
 	}
