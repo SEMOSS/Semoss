@@ -22,6 +22,8 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -50,8 +52,12 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	String comparisonObjectTypeX = "";
 	String comparisonObjectTypeY = "";
 	public Hashtable allHash = new Hashtable();
-	public Hashtable paramDataHash = new Hashtable();
+	public Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash = new Hashtable<String, Hashtable<String, Hashtable<String, Object>>>();
 	public Hashtable keyHash = new Hashtable();
+	final String valueString = "Score";
+	final String keyString = "key";
+	int maxDataSize = 20000;
+	ArrayList<String> orderedVars = new ArrayList<String>();
 	
 	SimilarityRefreshBrowserFunction refreshFunction;
 	
@@ -88,6 +94,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 				e.printStackTrace();
 			}
 		}
+
 		registerFunctions();
 
 		callIt();
@@ -110,12 +117,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	public void registerFunctions()
 	{
     	refreshFunction = new SimilarityRefreshBrowserFunction();
-    	refreshFunction.setParamDataHash(paramDataHash);
-    	refreshFunction.setKeyHash(keyHash);
-    	refreshFunction.setBrowser(browser);
+    	refreshFunction.setSimHeatPlaySheet(this);
     	browser.registerFunction("refreshFunction",  refreshFunction);
     	SimilarityBarChartBrowserFunction barChartFunction = new SimilarityBarChartBrowserFunction();
-    	barChartFunction.setParamDataHash(paramDataHash);
+    	barChartFunction.setSimHeatPlaySheet(this);
     	browser.registerFunction("barChartFunction",  barChartFunction);
 	}
 	/**
@@ -166,6 +171,20 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		Gson gson = new Gson();
 		ArrayList args = new ArrayList();
 		Enumeration enumKey = paramDataHash.keys();
+		
+		ArrayList<Integer> sizes = new ArrayList<Integer>();
+		for(String key : paramDataHash.keySet()){
+			int size = paramDataHash.get(key).size();
+			int index = 0;
+			for(int storedSize : sizes){
+				if(size > storedSize)
+					index++;
+			}
+			sizes.add(index, size);
+			orderedVars.add(index, key);
+		}
+		logger.info("Ordered var = " + orderedVars.toString());
+		logger.info("Counts = " + sizes.toString());
 		int count = 0;
 		while (enumKey.hasMoreElements())
 		{
@@ -175,8 +194,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		Hashtable testHash = new Hashtable();
 //		testHash.put("Deployment_(Theater/Garrison)", 0.90);
 //		browser.executeScript("dataBuilder('" + gson.toJson(args) + "', '" + gson.toJson(testHash) + "');");
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray = refreshFunction.calculateHash(args, testHash);
-		refreshFunction.sendData(calculatedArray);
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray = calculateHash(args, testHash);
+		sendData(calculatedArray);
 		
 		//send available dimensions:
 		String availCatString = "dimensionData('" + gson.toJson(args) + "', 'categories');";
@@ -197,5 +216,230 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		logger.info("Finished creating the visualization.");
 		allHash.clear();
 //		paramDataHash.clear();
+	}
+	public String getSimBarChartData(String cellKey, String[] selectedVars, Hashtable<String, Double> specifiedWeights){
+		Gson gson = new Gson();
+		logger.info("cellKey = " + cellKey);
+		
+		ArrayList<String> selectedVarsList = new ArrayList<String>();
+		logger.info("Selected Vars are : ");
+		for(String obj : selectedVars) {
+			logger.info(obj);
+			selectedVarsList.add(obj);
+		}
+
+		if(!specifiedWeights.isEmpty())
+		{
+			logger.info("Specified Weights are : ");
+			for(String obj : specifiedWeights.keySet()) 
+				logger.info(obj + " " + specifiedWeights.get(obj));
+		}
+		
+		ArrayList calculatedHash = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
+		return gson.toJson(calculatedHash);
+	}
+	
+	private ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
+		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
+
+		//for each checked var, get scores for key above minVal for that var
+		for(int varIdx = 0; varIdx < selectedVars.size(); varIdx++){
+			String var = selectedVars.get(varIdx);
+			Double minVal = minimumWeights.get(var);//need to see if minimum weight was specified for this param
+			Hashtable<String, Hashtable<String, Object>> varHash = paramDataHash.get(var);
+			// get the comparison object to object hashtable
+			Hashtable elementHash = varHash.get(key);
+			Double newVal = ((Double)elementHash.get(valueString));
+			//make sure value is valid
+			if(minVal == null || newVal>=minVal){
+				Hashtable newHash = new Hashtable();
+				newHash.put(keyString, var);
+				newHash.put(valueString, newVal);
+				retHash.add(newHash);
+				
+			}
+			logger.info("Bar Chart Hash size = " + retHash.size());
+		}
+			
+		return retHash;
+	}
+	
+	
+	public boolean refreshSimHeat(String[] selectedVars, Hashtable<String, Double> specifiedWeights){
+//		logger.info("args: ");
+//		for(Object arg : arg0)
+//			System.out.println(arg);
+		Gson gson = new Gson();
+		ArrayList<String> selectedVarsList = new ArrayList<String>();
+		logger.info("Selected Vars are : ");
+		for(String obj : selectedVars) {
+			logger.info(obj);
+			selectedVarsList.add(obj);
+		}
+		if(!specifiedWeights.isEmpty())
+		{
+			logger.info("Specified Weights are : ");
+			for(String obj : specifiedWeights.keySet()) 
+				logger.info(obj + " " + specifiedWeights.get(obj));
+		}
+		
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
+		sendData(calculatedHash);
+		
+		System.out.println("Java is done -- calling function");
+		browser.executeJavaScript("refreshDataFunction();");
+		System.out.println("Java is REALLY done");
+		
+		return true;
+	}
+	
+	
+	public void sendData(ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray){
+		Gson gson = new Gson();
+		for(Hashtable hash : calculatedArray)
+		{
+			System.out.println("Sending hash with " + hash.size());
+			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
+			System.out.println("Done sending");
+		}
+		
+//		while(!calculatedHash.isEmpty()){
+//			int count = 0;
+//			Hashtable tempHash = new Hashtable();
+//			while(count < maxDataSize && !calculatedHash.isEmpty()){
+//				String key = calculatedHash.keys().nextElement() + "";
+//				tempHash.put(key, calculatedHash.remove(key));
+//				count ++;
+//			}
+//			System.out.println("Building data.........");
+//			browser.executeScript("dataBuilder('" + gson.toJson(tempHash) + "');");
+//			System.out.println("Done building");
+//		}
+	}
+	
+	public ArrayList<Hashtable<String, Hashtable<String, Double>>> calculateHash(ArrayList<String> selectedVars, Hashtable<String, Double >minimumWeights){
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> retArray = new ArrayList<Hashtable<String, Hashtable<String, Double>>> ();
+		
+		int totalVars = selectedVars.size();
+		
+		//get the smallest variable to start with
+		String minVar = "";
+		int minVarLoc = 0;
+		while(minVar.isEmpty() && minVarLoc<orderedVars.size()){
+			String var = orderedVars.get(minVarLoc);
+			if(selectedVars.contains(var))//this means it is a valid var (aka checked)
+			{
+				minVar = var;
+				break;
+			}
+			minVarLoc++;
+		}
+		if(minVar.isEmpty()){
+			System.out.println("no variables selected");
+			return new ArrayList();
+		}
+		// get the master keyset
+		List<String> masterKeys = new ArrayList<String>(paramDataHash.get(minVar).keySet());
+		
+		//for each cell, for each selected variable, sum the scores
+		//if cell ever doesn't exist for a variable, the cell does not get stored in retHash
+		for(String cellKey : masterKeys){
+			Hashtable finalCellHash = new Hashtable();
+			Double score = 0.;
+			Boolean storeCell = true;
+			
+			for(int orderedVarIdx = minVarLoc; orderedVarIdx < orderedVars.size(); orderedVarIdx++){
+				String var = orderedVars.get(orderedVarIdx);
+				if(selectedVars.contains(var)){//this means it is a valid var (aka checked)
+					Double minVal = minimumWeights.get(var);//need to see if minimum weight was specified for this param
+					Hashtable<String, Hashtable<String, Object>> varHash = paramDataHash.get(var);
+					Hashtable elementHash = varHash.get(cellKey);
+					if(elementHash != null){
+						Double newVal = (Double) elementHash.get(valueString);
+						if(minVal == null || newVal>=minVal){ // then it is valid
+							score = score + (newVal / totalVars);
+						}
+						else{
+							storeCell = false;
+							break;
+						}
+					}
+					else{
+						storeCell = false;
+						break;
+					}
+					
+					//store all information if first time looking at the cell
+					if(orderedVarIdx == minVarLoc)
+						finalCellHash.putAll((Map) keyHash.get(cellKey));
+				}
+			}
+			if(storeCell){
+				finalCellHash.put(valueString, score);
+				retArray = storeCellInArray(cellKey, finalCellHash, retArray);
+			}
+			
+		}		
+//		
+//		for(int orderedVarIdx = 0; orderedVarIdx < orderedVars.size(); orderedVarIdx++){
+//			//not guarenteed every system will have every parameter, but by starting with the smallest, we are most likely good to go
+//			String var = orderedVars.get(orderedVarIdx);
+//			if(selectedVars.contains(var)){//this means it is a valid var (aka checked)
+//				Double minVal = minimumWeights.get(var);//need to see if minimum weight was specified for this param
+//				Hashtable<String, Hashtable<String, Object>> varHash = paramDataHash.get(var);
+//				Hashtable<String, Hashtable<String, Double>> currentlyValidHash = new Hashtable<String, Hashtable<String, Double>>(); // keep track of what is still valid after going through this param (not valid if key did not exist in new hash)
+//				// for each system-system hashtable
+//				for(String key : varHash.keySet())
+//				{
+//					Hashtable elementHash = varHash.get(key);
+//					Double newVal = ((Double)elementHash.get(valueString));
+//					if(minVal == null || newVal>=minVal){
+//					
+//						Hashtable newElementHash = retHash.get(key);
+//						Double oldScore = 0.;
+//						if(validVarCount == 0 && newElementHash == null){
+//							newElementHash = new Hashtable();
+//							newElementHash.putAll(elementHash);
+//							oldScore = 0.;
+//						}
+//						else if (validVarCount !=0 && newElementHash == null)
+//							continue;
+//						else
+//							oldScore = (Double) newElementHash.get(valueString);
+//						
+//						// update elementHash and store in currentlyValidHash
+//						Double additionalScore = newVal / totalVars;
+//						newElementHash.put(valueString, oldScore + additionalScore);
+//						
+//						currentlyValidHash.put(key, newElementHash);
+//					}
+//				}
+//				//clear retHash and fill with currentlyValidHash--those that were not in the last processed param do not get to stay in retHash
+//				retHash.clear();
+//				retHash.putAll(currentlyValidHash);
+//				currentlyValidHash.clear();
+//				validVarCount++;
+//				logger.info("Calculated Hash size = " + retHash.size());
+//			}
+//			
+//		}
+		return retArray;
+	}
+	
+	public ArrayList<Hashtable<String, Hashtable<String, Double>>> storeCellInArray(String key, Hashtable cellHash, ArrayList<Hashtable<String, Hashtable<String, Double>>> arrayStore){
+		Hashtable hash = null;
+		if(arrayStore.size()>0){
+			hash = arrayStore.get(0);
+			if(hash.size()>this.maxDataSize){
+				hash = new Hashtable();
+				arrayStore.add(0, hash);
+			}
+		}
+		else{
+			hash = new Hashtable();
+			arrayStore.add(0, hash);
+		}
+		hash.put(key,  cellHash);
+		return arrayStore;
 	}
 }
