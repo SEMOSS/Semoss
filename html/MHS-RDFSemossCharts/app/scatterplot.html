@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+  
+  	<!-- JS Libraries -->
+  	<script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/d3/d3-v3.4.8.js"></script>
+    <script src="lib/tooltip.js"></script>
+    
+    <!-- Style -->
+    <style>
+	    #graphSpace {
+            position: absolute;
+            top: 30px;
+            bottom: 10px;
+            left: 10px;
+            right: 0px;
+        }
+
+        .axis path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .d3-tip {
+            line-height: 1.4;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 3px;
+            margin-top: -7px;
+            font-family: sans-serif;
+            font-size: 12px;
+        }
+
+        /* Creates a small triangle extender for the tooltip */
+        .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: 10px;
+            width: 100%;
+            line-height: 1;
+            color: rgba(0, 0, 0, 0.8);
+            content: "\25BC";
+            position: absolute;
+            text-align: center;
+        }
+
+        /* Style northward tooltips differently */
+        .d3-tip.n:after {
+            margin: -1px 0 0 0;
+            top: 98%;
+            left: 0;
+        }
+    </style>
+  </head>
+  <body>
+  	<div id="logo">
+  		<img src="img/logo.png">
+  	</div>
+  	<div class="span12 formContainer">
+    	<div style="clear: both"></div>
+    <div id="graphSpace"></div>
+	</div>
+  <script type="text/javascript">
+  	/* test data and call 
+    var dataString = "{\"zAxisTitle\":\"RacialHomogeneity\",\"dataSeries\":[{\"x\":31233.0,\"label\":\"1041\",\"series\":\"fips\",\"z\":98.5,\"y\":18.2},{\"x\":30272.0,\"label\":\"1043\",\"series\":\"fips\",\"z\":98.9,\"y\":18.2},{\"x\":29546.0,\"label\":\"1071\",\"series\":\"fips\",\"z\":97.4,\"y\":17.9},{\"x\":28558.0,\"label\":\"1079\",\"series\":\"fips\",\"z\":95.7,\"y\":18.0},{\"x\":34476.0,\"label\":\"1069\",\"series\":\"fips\",\"z\":98.3,\"y\":17.5},{\"x\":30057.0,\"label\":\"1115\",\"series\":\"fips\",\"z\":98.7,\"y\":17.3},{\"x\":35328.0,\"label\":\"1003\",\"series\":\"fips\",\"z\":98.5,\"y\":13.4},{\"x\":32555.0,\"label\":\"1051\",\"series\":\"fips\",\"z\":98.6,\"y\":13.8},{\"x\":31948.0,\"label\":\"1083\",\"series\":\"fips\",\"z\":98.2,\"y\":13.9},{\"x\":40218.0,\"label\":\"1089\",\"series\":\"fips\",\"z\":97.5,\"y\":13.8},{\"x\":23992.0,\"label\":\"1037\",\"series\":\"fips\",\"z\":99.1,\"y\":25.5},{\"x\":26784.0,\"label\":\"1053\",\"series\":\"fips\",\"z\":98.5,\"y\":25.5},{\"x\":29785.0,\"label\":\"1061\",\"series\":\"fips\",\"z\":98.4,\"y\":24.4},{\"x\":31981.0,\"label\":\"1091\",\"series\":\"fips\",\"z\":99.2,\"y\":24.6},{\"x\":25794.0,\"label\":\"1093\",\"series\":\"fips\",\"z\":98.9,\"y\":25.6},{\"x\":32656.0,\"label\":\"1109\",\"series\":\"fips\",\"z\":98.5,\"y\":25.6},{\"x\":27339.0,\"label\":\"1021\",\"series\":\"fips\",\"z\":98.8,\"y\":18.3},{\"x\":27304.0,\"label\":\"1027\",\"series\":\"fips\",\"z\":98.3,\"y\":18.7},{\"x\":30855.0,\"label\":\"1033\",\"series\":\"fips\",\"z\":98.4,\"y\":18.7},{\"x\":28998.0,\"label\":\"1067\",\"series\":\"fips\",\"z\":99.0,\"y\":18.7},{\"x\":41844.0,\"label\":\"1073\",\"series\":\"fips\",\"z\":98.9,\"y\":18.7},{\"x\":30874.0,\"label\":\"1025\",\"series\":\"fips\",\"z\":99.3,\"y\":26.3},{\"x\":31212.0,\"label\":\"1085\",\"series\":\"fips\",\"z\":99.5,\"y\":27.1},{\"x\":28673.0,\"label\":\"1107\",\"series\":\"fips\",\"z\":98.8,\"y\":26.5},{\"x\":28906.0,\"label\":\"1121\",\"series\":\"fips\",\"z\":98.7,\"y\":26.2},{\"x\":30740.0,\"label\":\"1001\",\"series\":\"fips\",\"z\":98.4,\"y\":14.9},{\"x\":26103.0,\"label\":\"1009\",\"series\":\"fips\",\"z\":98.8,\"y\":14.9},{\"x\":26774.0,\"label\":\"1005\",\"series\":\"fips\",\"z\":99.1,\"y\":29.5},{\"x\":29622.0,\"label\":\"1023\",\"series\":\"fips\",\"z\":99.6,\"y\":27.3},{\"x\":27503.0,\"label\":\"1035\",\"series\":\"fips\",\"z\":99.0,\"y\":27.9},{\"x\":30177.0,\"label\":\"1065\",\"series\":\"fips\",\"z\":99.4,\"y\":28.5},{\"x\":27226.0,\"label\":\"1099\",\"series\":\"fips\",\"z\":98.6,\"y\":28.7},{\"x\":30514.0,\"label\":\"1045\",\"series\":\"fips\",\"z\":97.0,\"y\":18.8},{\"x\":30257.0,\"label\":\"1095\",\"series\":\"fips\",\"z\":98.3,\"y\":19.1},{\"x\":30175.0,\"label\":\"1123\",\"series\":\"fips\",\"z\":99.0,\"y\":18.8},{\"x\":27961.0,\"label\":\"1129\",\"series\":\"fips\",\"z\":98.8,\"y\":18.9},{\"x\":22817.0,\"label\":\"1011\",\"series\":\"fips\",\"z\":99.2,\"y\":32.8},{\"x\":28141.0,\"label\":\"1047\",\"series\":\"fips\",\"z\":99.3,\"y\":35.7},{\"x\":31691.0,\"label\":\"1063\",\"series\":\"fips\",\"z\":99.5,\"y\":35.1},{\"x\":26934.0,\"label\":\"1087\",\"series\":\"fips\",\"z\":98.9,\"y\":30.9},{\"x\":24783.0,\"label\":\"1105\",\"series\":\"fips\",\"z\":99.6,\"y\":33.0},{\"x\":28160.0,\"label\":\"1029\",\"series\":\"fips\",\"z\":98.9,\"y\":17.2},{\"x\":35698.0,\"label\":\"1031\",\"series\":\"fips\",\"z\":97.5,\"y\":16.9},{\"x\":31540.0,\"label\":\"1103\",\"series\":\"fips\",\"z\":98.0,\"y\":16.8},{\"x\":25507.0,\"label\":\"1059\",\"series\":\"fips\",\"z\":98.3,\"y\":19.9},{\"x\":31583.0,\"label\":\"1097\",\"series\":\"fips\",\"z\":98.5,\"y\":19.7},{\"x\":25512.0,\"label\":\"1133\",\"series\":\"fips\",\"z\":98.6,\"y\":19.8},{\"x\":28446.0,\"label\":\"1013\",\"series\":\"fips\",\"z\":99.2,\"y\":24.1},{\"x\":27504.0,\"label\":\"1017\",\"series\":\"fips\",\"z\":98.9,\"y\":23.7},{\"x\":26462.0,\"label\":\"1019\",\"series\":\"fips\",\"z\":98.5,\"y\":23.8},{\"x\":29105.0,\"label\":\"1039\",\"series\":\"fips\",\"z\":98.6,\"y\":24.2},{\"x\":38160.0,\"label\":\"1101\",\"series\":\"fips\",\"z\":98.7,\"y\":23.2},{\"x\":30680.0,\"label\":\"1015\",\"series\":\"fips\",\"z\":98.3,\"y\":20.9},{\"x\":30817.0,\"label\":\"1055\",\"series\":\"fips\",\"z\":98.5,\"y\":21.0},{\"x\":31052.0,\"label\":\"1077\",\"series\":\"fips\",\"z\":98.6,\"y\":16.4},{\"x\":25252.0,\"label\":\"1049\",\"series\":\"fips\",\"z\":97.8,\"y\":20.3},{\"x\":29906.0,\"label\":\"1113\",\"series\":\"fips\",\"z\":97.9,\"y\":20.1},{\"x\":33106.0,\"label\":\"1125\",\"series\":\"fips\",\"z\":98.9,\"y\":20.2},{\"x\":24344.0,\"label\":\"1119\",\"series\":\"fips\",\"z\":99.7,\"y\":39.1},{\"x\":25093.0,\"label\":\"1131\",\"series\":\"fips\",\"z\":99.6,\"y\":39.9},{\"x\":22937.0,\"label\":\"1007\",\"series\":\"fips\",\"z\":99.1,\"y\":22.2},{\"x\":26664.0,\"label\":\"1057\",\"series\":\"fips\",\"z\":99.0,\"y\":22.5},{\"x\":25731.0,\"label\":\"1075\",\"series\":\"fips\",\"z\":98.7,\"y\":22.1},{\"x\":28074.0,\"label\":\"1081\",\"series\":\"fips\",\"z\":98.4,\"y\":21.4},{\"x\":26219.0,\"label\":\"1111\",\"series\":\"fips\",\"z\":98.9,\"y\":22.1},{\"x\":32326.0,\"label\":\"1127\",\"series\":\"fips\",\"z\":98.8,\"y\":22.1},{\"x\":42273.0,\"label\":\"1117\",\"series\":\"fips\",\"z\":98.6,\"y\":8.1}],\"xAxisTitle\":\"IncomePerCapita\",\"title\":\"IncomePerCapita vs PovertyPercent\",\"yAxisTitle\":\"PovertyPercent\"}" 
+    start(dataString);
+    */
+  	var margin = {top: 40, right: 30, bottom: 30, left: 40},
+  		container = {width: 0, height: 0},
+  		width = 0, height = 0,
+  		dataSeriesArray = [], legendArray = [], type = "",
+  		xAxisMin = 0, xAxisText = "", yAxisText = "", xLineVal = 0, yLineVal = 0,
+  		BUSINESS_VALUE_MULTIPLIER = .33;
+  	
+    
+    
+  	function start(dataString) {
+  		
+  	  function containerSize(containerClass, containerObj, marginObj) {
+		containerObj.width = parseInt(d3.select(containerClass).style('width'));
+        containerObj.height = parseInt(d3.select(containerClass).style('height'));
+
+        containerObj.width = containerObj.width - marginObj.left - marginObj.right;
+        containerObj.height = containerObj.height - marginObj.top - marginObj.bottom;
+      }
+  	  
+  	  function callAxesGroup() {
+        //x axis
+        xAxisGroup
+            .transition()
+            .duration(1000)
+            .call(xAxis);
+
+        //y axis
+        yAxisGroup
+            .transition()
+            .duration(1000)
+            .call(yAxis);
+      }
+  	  
+  	  function createLineGuide(xLineValue, yLineValue, dataArray) {
+        //create crosshair based on median x (up/down) 'potentially' passed with data
+        lineGuideX
+            .transition()
+            .duration(1000)
+            .attr("x1", xScale(xLineValue))
+            .attr("y1", yScale(-1))
+            .attr("x2", xScale(xLineValue))
+            .attr("y2", yScale(10));
+        //create crosshair based on median y (left/right) 'potentially' passed with data
+        lineGuideY
+            .transition()
+            .duration(1000)
+            .attr("x1", xScale(xAxisMin - 1))
+            .attr("y1", yScale(yLineValue))
+            .attr("x2", xScale(d3.max(dataArray, function(value) {
+                return value["x"];
+            }) + 1))
+            .attr("y2", yScale(yLineValue));
+      }
+  	
+  	  function resize() {
+		containerSize("#graphSpace", container, margin);
+		
+        var updateSvg = d3.select("#graphSpace").select("svg")
+            .attr("width", container.width + margin.left + margin.right)
+            .attr("height", container.height + margin.top + margin.bottom);
+
+        xScale.rangeRound([0, container.width]);
+        yScale.rangeRound([container.height, 0]);
+
+        //x axis
+        xAxisGroup.attr("transform", "translate(0," + container.height + ")");
+        updateSvg.selectAll("g.x.axis text")
+            .attr("x", container.width);
+
+        callAxesGroup();
+
+        var legendRect = updateSvg.selectAll(".legend rect").attr("x", container.width - 13);
+        var legendText = updateSvg.selectAll(".legend text").attr("x", container.width - 24);
+
+        //call to create crosshair
+        createLineGuide(xLineVal, yLineVal, dataSeriesArray);
+
+        var nodes = updateSvg.selectAll(".node")
+            .attr("cx", xMap)
+            .attr("cy", yMap);
+      }
+  	  
+  	  //set container width and height
+  	  containerSize('#graphSpace', container, margin);
+  	  var jsonData = jQuery.parseJSON(dataString);
+      var data = jsonData.dataSeries;
+      
+      dataSeriesArray.length = 0;
+      dataSeriesArray = data;
+      xAxisMin = jsonData.xAxisMin || 0;
+      xAxisText = jsonData.xAxisTitle; 
+      yAxisText = jsonData.yAxisTitle;
+      xLineVal = jsonData.xLineVal || 0;
+      yLineVal = jsonData.yLineVal || 0;
+      jsonData.xLineVal != undefined ? type = "gridscatter" : type = "scatter";
+      
+      legendArray.length = 0;
+      
+      //node radius scale
+      var rScale = d3.scale.linear()
+               .rangeRound([4.5, 35])
+               .nice();
+      //setup x
+      var xValue = function(d) { return d["x"]; },
+          xScale = d3.scale.linear().rangeRound([0, container.width]),
+          xMap = function(d) { return xScale(xValue(d)); },
+          xAxis = d3.svg.axis().scale(xScale).orient("bottom").ticks(6);
+          
+      //setup y
+      var yValue = function(d) {
+              if(type !== "scatter") {
+                  return d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
+              } else {
+                  return d["y"];
+              }
+          },
+          yScale = d3.scale.linear().rangeRound([container.height, 0]),
+          yMap = function(d) { return yScale(yValue(d)); },
+          yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(10);
+          
+      //setup fill color
+      var colorValue = function(d) { return d["series"]; },
+              color = d3.scale.category10();
+
+      /* Initialize tooltip */
+      var tip = d3.tip().attr('class', 'd3-tip')
+            .html(function(d) {
+                var title = d["label"],
+                    businessValue = 0;
+
+                if(d["y-external stability"]) {
+                    businessValue = d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
+                } else {
+                    businessValue = d["x"];
+                }
+                return "<div> <span class='light'>" + title + ":</span> " + businessValue + "</div>";
+            });
+      
+	  //add the graph canvas to the body of the webpage
+      var svg = d3.select("#graphSpace").append("svg")
+          .attr("width", container.width + margin.left + margin.right)
+          .attr("height", container.height + margin.top + margin.bottom)
+      .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      //x axis
+      var xAxisGroup = svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + container.height + ")");
+      //x axis text/label
+      svg.selectAll("g.x.axis").append("text")
+              .attr("class", "label")
+              .attr("x", container.width)
+              .attr("y", -6)
+              .style("text-anchor", "end")
+              .text("");  
+
+      //y axis
+      var yAxisGroup = svg.append("g")
+          .attr("class", "y axis");
+      //y axis text/label
+      svg.selectAll("g.y.axis").append("text")
+              .attr("class", "label")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 6)
+              .attr("dy", ".71em")
+              .style("text-anchor", "end")
+              .text("");
+      
+      //x line group for crosshair
+      var lineGuideX = svg.append("g")
+          .attr("class", "lineguide x")
+          .append("line")
+              .style("stroke", "gray")
+              .style("stroke-dasharray", ("3, 3"))
+              .style("opacity", .45)
+              .style("fill", "black");
+
+      //y line group for crosshair
+      var lineGuideY = svg.append("g")
+          .attr("class", "lineguide y")
+          .append("line")
+          .style("stroke", "gray")
+          .style("stroke-dasharray", ("3, 3"))
+          .style("opacity", .45)
+          .style("fill", "black");
+
+      d3.select(window).on("resize", resize);
+      
+      update();
+      
+      function update() {
+    	  xScale.domain([
+               d3.min(dataSeriesArray, function(value) {
+                   if(type !== "scatter") {
+                       return xAxisMin;
+                   } else {
+                       return value["x"];
+                   }
+               }) - 1,
+               d3.max(dataSeriesArray, function(value) {
+                   return value["x"];
+               }) + 1
+           ])
+           .nice();
+
+           yScale.domain([d3.min(dataSeriesArray, function(value) {
+               if(type !== "scatter") {
+                   return value["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * value["y-tech standards"];
+               } else {
+                   return value["y"];
+               }
+           }) - 1, d3.max(dataSeriesArray, function(value) {
+               if(type !== "scatter") {
+                   return 10;
+               } else {
+                   return value["y"];
+               }
+           })])
+           .nice();
+
+           rScale.domain([7, d3.max(dataSeriesArray, function(value) { 
+               return value["z"];
+           })]);
+
+           callAxesGroup();
+           //x axis text
+           svg.select("g.x.axis text").text(xAxisText);
+
+           //y axis text
+           svg.select("g.y.axis text").text(yAxisText);
+           //call to create crosshair
+           if(type !== "scatter") {
+               createLineGuide(xLineVal, yLineVal, dataSeriesArray);
+           }
+
+           //sort data in descending order so that smaller nodes put on svg after larger ones 
+           //(allows for tooltip on smaller overlapping nodes)
+           dataSeriesArray = dataSeriesArray.sort(function(a, b) {
+               return d3.descending(a["z"], b["z"]);
+           });
+
+           //draw circles
+           var nodes = svg.selectAll(".node")
+               .data(dataSeriesArray, function(d) {
+                   return d["label"];
+               });
+
+           //entering nodes    
+           var nodesEnter = nodes.enter().insert("circle", ".legend")
+               .attr("class", "node")
+               .attr("cx", xMap)
+               .attr("cy", yMap)
+               .attr("opacity", 0.35)
+               .on("mouseover", function(d) { // Transitions in D3 don't support the 'on' function They only exist on selections. So need to move that event listener above transition and after append
+                   var circle = d3.select(this);
+                   //transition to increase size/opacity of bubble
+                   circle
+                       .transition().duration(100)
+                       .attr("stroke", "#777")
+                       .attr("stroke-width", 1.5)
+                       .style("opacity", 1);
+                   tip.show(d);
+               })
+               .on("mouseout", function(d) {
+                   var circle = d3.select(this);
+
+                   // go back to original size and opacity
+                   circle
+                       .transition().duration(400)
+                       .attr("stroke", "none")
+                       .attr("stroke-width", "none")
+                       .style("opacity", .35);
+
+                   tip.hide(d);
+               })
+               .attr("r", 0)
+               .transition().duration(1000)
+               .attr("r", function(d) {
+                   if(d["z"]) {
+                       return rScale(d["z"]);
+                   } else {
+                       return rScale(0);
+                   }
+               })
+               .style("fill", function(d) {
+                   legendArray.push(d["series"]);
+                   return color(colorValue(d));
+               });
+
+           //exiting nodes
+           var nodesExit = nodes.exit()
+               .transition().duration(1000)
+               .attr("r", 0)
+               .remove();
+
+           //legend array with only unique values
+           legendArray = legendArray.filter(function(elem, pos) {
+               return legendArray.indexOf(elem) == pos;
+           });
+           
+           //draw legend
+           var legend = svg.selectAll(".legend")
+               .data(legendArray, function(d) { return color(d); });
+
+           //update legend
+           legend.attr("transform", function(d, i) { 
+                   return "translate(0," + i * 20 + ")"; 
+               });
+
+           //enter legend g
+           var legendEnter = legend.enter().append("g")
+               .attr("class", "legend")
+               .attr("transform", function(d, i) { 
+                   return "translate(0," + i * 20 + ")"; 
+               });
+
+           // enter legend colored rectangles
+           legendEnter.append("rect")
+               .attr("x", container.width - 13)
+               .attr("width", 13)
+               .attr("height", 13)
+               .attr("fill-opacity", 0.35)
+               .style("fill", color);
+
+           // enter legend text
+           legendEnter.append("text")
+               .attr("x", container.width - 24)
+               .attr("y", 9)
+               .attr("dy", ".25em")
+               .style("text-anchor", "end")
+               .text(function(d) {
+                   return d;
+               });
+
+           var legendExit = legend.exit().remove();
+
+           svg.call(tip);  
+      }
+  	}	
+  </script>
+  </body>
+</html>
