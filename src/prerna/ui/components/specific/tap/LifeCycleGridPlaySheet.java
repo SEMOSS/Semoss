@@ -36,11 +36,12 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
 			String sys = sjss.getVar(names[0]).toString();
 			String ver = sjss.getVar(names[1]).toString();
-			String obj = sjss.getVar(names[2]).toString();
+			String date = sjss.getVar(names[2]).toString();
+			String obj = sjss.getVar(names[3]).toString();
 			obj = obj.replace("\"", "");
-			String cost = sjss.getVar(names[3]).toString();
+			String cost = sjss.getVar(names[4]).toString();
 			cost = cost.replace("\"", "");
-			String date = sjss.getVar(names[4]).toString();
+			
 			
 			if(obj.equals("TBD"))
 			{
@@ -78,7 +79,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			{
 				date = "";
 			}
-			processedList.add(new Object[]{sys, ver, obj, cost, date});
+			processedList.add(new Object[]{sys, ver, date, obj, cost});
 		}	
 		return processedList;
 	}
