@@ -45,7 +45,8 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			
 			if(obj.equals("TBD"))
 			{
-				// do nothing
+				// only display cost if retired or sunset
+				cost = "";
 			}
 			else
 			{
@@ -63,10 +64,12 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				else if(year >= lifecycleYear+2 || (year==lifecycleYear+3 && month >= lifecycleMonth))
 				{
 					obj = "Supported";
+					cost = ""; 
 				}
 				else
 				{
 					obj = "GA_(Generally_Available)";
+					cost = ""; 
 				}
 			}
 			
