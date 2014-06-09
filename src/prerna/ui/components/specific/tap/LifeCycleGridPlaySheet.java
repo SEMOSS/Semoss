@@ -40,6 +40,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			obj = obj.replace("\"", "");
 			String cost = sjss.getVar(names[3]).toString();
 			cost = cost.replace("\"", "");
+			String date = sjss.getVar(names[4]).toString();
 			
 			if(obj.equals("TBD"))
 			{
@@ -72,7 +73,11 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			{
 				cost = "";
 			}
-			processedList.add(new Object[]{sub, pred, obj, cost});
+			if(date == null)
+			{
+				date = "";
+			}
+			processedList.add(new Object[]{sub, pred, obj, cost, date});
 		}	
 		return processedList;
 	}
