@@ -34,8 +34,8 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
 
-			String sub = sjss.getVar(names[0]).toString();
-			String pred = sjss.getVar(names[1]).toString();
+			String sys = sjss.getVar(names[0]).toString();
+			String ver = sjss.getVar(names[1]).toString();
 			String obj = sjss.getVar(names[2]).toString();
 			obj = obj.replace("\"", "");
 			String cost = sjss.getVar(names[3]).toString();
@@ -73,11 +73,12 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			{
 				cost = "";
 			}
+			
 			if(date == null)
 			{
 				date = "";
 			}
-			processedList.add(new Object[]{sub, pred, obj, cost, date});
+			processedList.add(new Object[]{sys, ver, obj, cost, date});
 		}	
 		return processedList;
 	}
