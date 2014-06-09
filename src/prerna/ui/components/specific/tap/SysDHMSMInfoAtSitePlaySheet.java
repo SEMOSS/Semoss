@@ -53,7 +53,7 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 						Hashtable<String, Integer> innerHash = new Hashtable<String, Integer>();
 						innerHash.put("LPI_Count", (Integer) 0);
 						innerHash.put("HPS_Count", (Integer) 0);
-						innerHash.put("NI_Count", (Integer) 0);
+						innerHash.put("LPNI_Count", (Integer) 0);
 
 						if(probability.equals("High")) 
 						{
@@ -69,11 +69,11 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 							innerHash.put("LPI_Count", LPI_Count);
 						} 
 
-						if(integrate.equals("No"))
+						if(probability.equals("Low") && integrate.equals("No"))
 						{
-							Integer NI_Count = innerHash.get("NI_Count");
-							NI_Count = NI_Count + 1;
-							innerHash.put("NI_Count", NI_Count);
+							Integer LPNI_Count = innerHash.get("LPNI_Count");
+							LPNI_Count = LPNI_Count + 1;
+							innerHash.put("LPNI_Count", LPNI_Count);
 						}
 
 						dataToAdd.put(site, innerHash);
@@ -94,11 +94,11 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 							innerHash.put("LPI_Count", LPI_Count);
 						} 
 
-						if(integrate.equals("No"))
+						if(probability.equals("Low") && integrate.equals("No"))
 						{
-							Integer NI_Count = innerHash.get("NI_Count");
-							NI_Count = NI_Count + 1;
-							innerHash.put("NI_Count", NI_Count);
+							Integer LPNI_Count = innerHash.get("LPNI_Count");
+							LPNI_Count = LPNI_Count + 1;
+							innerHash.put("LPNI_Count", LPNI_Count);
 						}
 					}
 				}
@@ -109,13 +109,13 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 			Hashtable<String, Integer> innerHash = dataToAdd.get(site);
 			Integer HPS_Count = innerHash.get("HPS_Count");
 			Integer LPI_Count = innerHash.get("LPI_Count");
-			Integer NI_Count = innerHash.get("NI_Count");
+			Integer LPNI_Count = innerHash.get("LPNI_Count");
 
-			newList.add(new Object[]{site, LPI_Count, HPS_Count, NI_Count});
+			newList.add(new Object[]{site, LPI_Count, LPNI_Count, HPS_Count});
 
 		}
 		// add the new column in output to the names array
-		String[] newNames = new String[]{"Site", "Low Prob Integrate Count", "High Prob Count", "Not Integrate Count"};
+		String[] newNames = new String[]{"Site", "Low Prob Integrated Count", "Low Prob Not Integrate Count", "High Prob Count"};
 		names = newNames;
 
 		return newList;
