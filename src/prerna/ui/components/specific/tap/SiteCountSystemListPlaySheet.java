@@ -12,20 +12,20 @@ import prerna.util.Utility;
 
 public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 
-	private String GET_SYSTEM_SITE_COUNT = "SELECT DISTINCT ?System (COUNT(?SystemDCSite) AS ?SiteCount) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System ?DeployedAt ?SystemDCSite} } GROUP BY ?System";
+	private String GET_SYSTEM_SITE_COUNT = "SELECT DISTINCT ?System (COUNT(?SystemDCSite) AS ?SiteCount) (SAMPLE(?DCSite) AS ?ExampleSite) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System  <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?SystemDCSite  <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite;} } GROUP BY ?System";
 	private String siteEngineName = "TAP_Site_Data";
 	
 	@Override
 	public void createData() {
 		list = new ArrayList<Object[]>();
-		Hashtable<String, Object> siteData = new Hashtable<String, Object>();
+		Hashtable<String, Hashtable<String, Object>> siteData = new Hashtable<String, Hashtable<String, Object>>();
 		siteData = runSiteQuery(); 
 		if(siteData.keySet().size() != 0) {
 			list = processQuery(siteData);
 		}
 	}
 	
-	private ArrayList<Object[]> processQuery(Hashtable<String, Object> siteData) {
+	private ArrayList<Object[]> processQuery(Hashtable<String, Hashtable<String, Object>> siteData) {
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 
 		logger.info("PROCESSING QUERY: " + query);
@@ -41,22 +41,23 @@ public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString();
+			String des = sjss.getVar(names[1]).toString();
 			
 			if(siteData.containsKey(sys))
 			{
-				newList.add(new Object[]{sys, siteData.get(sys)});
+				newList.add(new Object[]{sys, des, siteData.get(sys).get("Count"), siteData.get(sys).get("Site")});
 			}
 		}
 		
 		// add the new column in output to the names array
-		String[] newNames = new String[]{"System", "Count"};
+		String[] newNames = new String[]{"System", "Descriptioin", "Count", "ExampleSite"};
 		names = newNames;
 		
 		return newList;
 	}
 
-	private Hashtable<String, Object> runSiteQuery() {
-		Hashtable<String, Object> siteData = new Hashtable<String, Object>();
+	private Hashtable<String, Hashtable<String, Object>> runSiteQuery() {
+		Hashtable<String, Hashtable<String, Object>> siteData = new Hashtable<String, Hashtable<String, Object>>();
 		
 		logger.info("PROCESSING QUERY: " + GET_SYSTEM_SITE_COUNT);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
@@ -75,9 +76,13 @@ public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 			{
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String sys = sjss.getVar(names[0]).toString();
-				Object cost = sjss.getVar(names[1]);
+				Object count = sjss.getVar(names[1]);
+				String site = sjss.getVar(names[2]).toString();
 				
-				siteData.put(sys, cost);
+				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+				innerHash.put("Count", count);
+				innerHash.put("Site", site);
+				siteData.put(sys, innerHash);
 			}
 			
 			return siteData;
