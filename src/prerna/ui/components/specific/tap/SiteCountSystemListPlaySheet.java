@@ -51,10 +51,17 @@ public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 				prob = "Low";
 			}
 			
-			if(siteData.containsKey(sys))
-			{
-				newList.add(new Object[]{prob, sys, des, siteData.get(sys).get("Count"), siteData.get(sys).get("Site")});
+			Double count;
+			String exSite;
+			if(siteData.containsKey(sys)) {
+				count = (Double) siteData.get(sys).get("Count");
+				exSite = siteData.get(sys).get("Site").toString();
+			} else {
+				count = 0.0;
+				exSite = "";
 			}
+			newList.add(new Object[]{prob, sys, des, count, exSite});
+
 		}
 		
 		String[] newNames = new String[]{"Probability", "System", "Description", "Count", "ExampleSite"};
