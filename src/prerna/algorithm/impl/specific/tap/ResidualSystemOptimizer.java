@@ -73,7 +73,8 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		this.systemDataMatrix=systemDataMatrix;
 		this.systemBLUMatrix=systemBLUMatrix;
 		this.systemCostOfDataMatrix=systemCostOfDataMatrix;
-		this.systemRegionMatrix = systemRegionMatrix;
+		if(includeRegionalization)
+			this.systemRegionMatrix = systemRegionMatrix;
 		
 		//cM_i, cDM_i, s_i
 		this.systemCostOfMaintenance=systemCostOfMaintenance;

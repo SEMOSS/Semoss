@@ -219,13 +219,13 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			return;
 		}
 		if(includeRegionalization)
-			this.regionList = resFunc.runListQuery(engine,regionQuery);
+			this.regionList = resFunc.runListQuery("TAP_Site_Data",regionQuery);
 		if(!dataQuery.equals("NULL"))
 			this.dataList = resFunc.runListQuery(engine,dataQuery);
 		this.bluList = resFunc.runListQuery(engine,bluQuery);
 		if(this.dataList.size()==0 && this.bluList.size()==0 )
 		{
-			errorMessage = "No data objects or business logic unites were selected. Please select at least one under the Select System Functionality tab.";
+			errorMessage = "No data objects or business logic units were selected. Please select at least one under the Select System Functionality tab.";
 			noErrors = false;
 			return;
 		}
