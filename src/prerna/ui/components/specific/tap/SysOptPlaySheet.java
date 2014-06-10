@@ -33,6 +33,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.BevelBorder;
@@ -56,6 +57,8 @@ import prerna.ui.swing.custom.ToggleButton;
  */
 public class SysOptPlaySheet extends SerOptPlaySheet{
 
+	public JCheckBox includeRegionalizationCheckbox;
+	
 	//select functionality panel and toggle button
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
 	public JPanel systemSelectPanel;
@@ -103,6 +106,14 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public void createAdvParamPanels()
 	{
 		super.createAdvParamPanels();
+		
+		includeRegionalizationCheckbox = new JCheckBox("Include Regionalization");
+		GridBagConstraints gbc_includeRegionalizationCheckbox = new GridBagConstraints();
+		gbc_includeRegionalizationCheckbox.gridwidth = 3;
+		gbc_includeRegionalizationCheckbox.insets = new Insets(0, 0, 5, 20);
+		gbc_includeRegionalizationCheckbox.gridx = 2;
+		gbc_includeRegionalizationCheckbox.gridy = 4;
+		advParamPanel.add(includeRegionalizationCheckbox, gbc_includeRegionalizationCheckbox);
 				
 		systemSelectPanel = new JPanel();
 		systemSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
