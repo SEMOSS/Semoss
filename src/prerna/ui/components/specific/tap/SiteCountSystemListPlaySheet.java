@@ -42,15 +42,22 @@ public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString();
 			String des = sjss.getVar(names[1]).toString();
+			String prob = sjss.getVar(names[2]).toString();
+			prob = prob.replace("\"", "");
+			
+			if(prob.equals("High") || prob.equals("Question")) {
+				prob = "High";
+			} else {
+				prob = "Low";
+			}
 			
 			if(siteData.containsKey(sys))
 			{
-				newList.add(new Object[]{sys, des, siteData.get(sys).get("Count"), siteData.get(sys).get("Site")});
+				newList.add(new Object[]{prob, sys, des, siteData.get(sys).get("Count"), siteData.get(sys).get("Site")});
 			}
 		}
 		
-		// add the new column in output to the names array
-		String[] newNames = new String[]{"System", "Descriptioin", "Count", "ExampleSite"};
+		String[] newNames = new String[]{"Probability", "System", "Descriptioin", "Count", "ExampleSite"};
 		names = newNames;
 		
 		return newList;
