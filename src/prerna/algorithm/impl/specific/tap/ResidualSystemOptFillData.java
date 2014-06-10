@@ -380,7 +380,7 @@ public class ResidualSystemOptFillData{
 	}
 	public void fillSystemRequired()
 	{
-		String query = "SELECT DISTINCT ?System ?Required WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Required> ?Required}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		String query = "SELECT DISTINCT ?System ?Required WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> ?Required}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		systemRequired = fillVectorFromQuery(systemEngine,query,systemRequired,sysList,true);
 	}
