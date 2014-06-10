@@ -22,6 +22,8 @@ public class ResidualSystemOptFillData{
 	ArrayList<String> bluList;
 	ArrayList<String> regionList;
 	
+	public boolean includeRegionalization = false;
+	
 	//a_ip, b_iq, c_ip
 	public int[][] systemDataMatrix;
 	public int[][] systemBLUMatrix;
@@ -36,8 +38,8 @@ public class ResidualSystemOptFillData{
 	public double[] systemRequired;
 	
 	//Ap, Bq
-	public int[] dataSORSystemExists;
-	public int[] bluProviderExists;
+	public int[][] dataRegionSORSystemExists;
+	public int[][] bluRegionProviderExists;
 	public int[] dataSORSystemCount;
 	public int[] bluProviderCount;
 	
@@ -116,7 +118,12 @@ public class ResidualSystemOptFillData{
 		systemBLUMatrix = createEmptyMatrix(systemBLUMatrix,sysList.size(),bluList.size());
 		systemCostOfDataMatrix = createEmptyMatrix(systemCostOfDataMatrix,sysList.size(),dataList.size());
 		if(regionList!=null)
+		{
+			includeRegionalization = true;
 			systemRegionMatrix = createEmptyMatrix(systemRegionMatrix,sysList.size(),regionList.size());
+		}
+		else
+			systemRegionMatrix = createEmptyMatrix(systemRegionMatrix,sysList.size(),1);
 
 		systemCostOfMaintenance = createEmptyVector(systemCostOfMaintenance, sysList.size());
 		systemCostOfDB = createEmptyVector(systemCostOfDB, sysList.size());
@@ -127,8 +134,7 @@ public class ResidualSystemOptFillData{
 		fillSystemData();
 		fillSystemBLU();
 		fillSystemCostOfData();
-		if(regionList!=null)
-			fillSystemRegion();
+		fillSystemRegion();
 		
 		fillSystemCost();
 		fillSystemNumOfSites();
@@ -144,8 +150,8 @@ public class ResidualSystemOptFillData{
 			dataRequired = false;
 		}
 
-		dataSORSystemExists = calculateIfProviderExists(systemDataMatrix,dataRequired);
-		bluProviderExists = calculateIfProviderExists(systemBLUMatrix,dataRequired);
+		dataRegionSORSystemExists = calculateIfProviderExistsWithRegion(systemDataMatrix,dataRequired);
+		bluRegionProviderExists = calculateIfProviderExistsWithRegion(systemBLUMatrix,dataRequired);
 		
 		if(playSheet!=null)
 			printToConsole();
@@ -225,10 +231,10 @@ public class ResidualSystemOptFillData{
 		printVector(systemNumOfSites,sysList);
 		
 		System.out.println("New site list must provide data:");
-		printVector(dataSORSystemExists,dataList);
+		printMatrix(dataRegionSORSystemExists,dataList,regionList);
 
 		System.out.println("New site list must provide blu:");
-		printVector(bluProviderExists,bluList);
+		printMatrix(bluRegionProviderExists,bluList,regionList);
 	}
 	
 	private void printMatrix(int[][] matrix, ArrayList<String> rowList,ArrayList<String> colList)
@@ -346,13 +352,18 @@ public class ResidualSystemOptFillData{
 	}
 	public void fillSystemRegion()
 	{
-		String query = "SELECT DISTINCT ?System ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } BINDINGS ?System @SYSTEM-BINDINGS@";
-		
-		sysListBindings = makeBindingString("System",sysList);		
-		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		
-		systemRegionMatrix = fillMatrixFromQuery(siteEngine,query,systemRegionMatrix,sysList,regionList);
-		
+		if(includeRegionalization)
+		{
+			String query = "SELECT DISTINCT ?System ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } BINDINGS ?System @SYSTEM-BINDINGS@";
+			sysListBindings = makeBindingString("System",sysList);		
+			query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
+			systemRegionMatrix = fillMatrixFromQuery(siteEngine,query,systemRegionMatrix,sysList,regionList);
+		}
+		else
+		{
+			for(int i = 0;i<systemRegionMatrix.length;i++)
+				systemRegionMatrix[i][0] = 1;
+		}
 	}
 	
 	public void fillSystemCost()
@@ -548,7 +559,36 @@ public class ResidualSystemOptFillData{
 		bindings+="}";
 		return bindings;
 	}
-	
+	public int[][] calculateIfProviderExistsWithRegion(int[][] sysMatrix,boolean elementRequired)
+	{
+		int[][] retVector = new int[sysMatrix[0].length][1];
+		if(includeRegionalization)
+			retVector = new int[sysMatrix[0].length][regionList.size()];
+		//for every system in the system matrix
+		for(int col=0;col<sysMatrix[0].length;col++)
+		{
+			for(int regionInd=0;regionInd<retVector[0].length;regionInd++)
+			{
+				int numProviders = 0;
+				if(elementRequired)
+					numProviders =1;
+				else
+				{
+					for(int row=0;row<sysMatrix.length;row++)
+					{
+						//check to see if that system is in the region we're currently looking at
+						if(systemRegionMatrix[row][regionInd]>=1.0)
+							numProviders+=sysMatrix[row][col];
+					}
+				}
+				if(numProviders==0)
+					dataOrBLUWithNoProviderExists = true;
+				retVector[col][regionInd] =numProviders;
+			}
+		}
+		return retVector;
+	}	
+
 	public int[] calculateIfProviderExists(int[][] sysMatrix,boolean elementRequired)
 	{
 		int[] retVector = new int[sysMatrix[0].length];
