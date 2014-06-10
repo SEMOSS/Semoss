@@ -57,7 +57,7 @@ public class SiteCountSystemListPlaySheet extends GridPlaySheet {
 			}
 		}
 		
-		String[] newNames = new String[]{"Probability", "System", "Descriptioin", "Count", "ExampleSite"};
+		String[] newNames = new String[]{"Probability", "System", "Description", "Count", "ExampleSite"};
 		names = newNames;
 		
 		return newList;
