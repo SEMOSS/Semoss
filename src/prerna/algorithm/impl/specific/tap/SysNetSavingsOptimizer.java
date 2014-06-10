@@ -85,14 +85,15 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	
 	ResidualSystemOptFillData resFunc;
 	public ResidualSystemOptimizer sysOpt;
-	String sysQuery, dataQuery, bluQuery;
-	public ArrayList<String> sysList, dataList, bluList;
+	String sysQuery, dataQuery, bluQuery, regionQuery;
+	public ArrayList<String> sysList, dataList, bluList, regionList;
 	double dataExposeCost;
 	double numMaintenanceSavings;
 	double preTransitionMaintenanceCost;
 	double postTransitionMaintenanceCost;
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0,irr=0.0;
 	boolean noErrors=true;
+	boolean includeRegionalization = false;
 	String errorMessage = "";
 	boolean reducedFunctionality = false;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
@@ -131,10 +132,16 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		this.infRate = infRate;
 		this.disRate = disRate;
 	}
-	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU)
+	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
 	{
+		this.includeRegionalization = includeRegionalization;
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
+		if(includeRegionalization)
+		{
+			this.regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} }";
+			this.regionQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),regionQuery);
+		}
 		if(useDataBLU)
 		{
 			this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
@@ -178,11 +185,12 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		}
 		return retList;
 	}
-	public void setQueries(String sysQuery, String dataQuery, String bluQuery)
+	public void setQueries(String sysQuery, String dataQuery, String bluQuery, String regionQuery)
 	{
 		this.sysQuery = sysQuery;
 		this.dataQuery = dataQuery;
 		this.bluQuery = bluQuery;
+		this.regionQuery = regionQuery;
 	}
 	public String addBindings(String type, List bindingsList,String query)
 	{
@@ -210,6 +218,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			noErrors = false;
 			return;
 		}
+		if(includeRegionalization)
+			this.regionList = resFunc.runListQuery(engine,regionQuery);
 		if(!dataQuery.equals("NULL"))
 			this.dataList = resFunc.runListQuery(engine,dataQuery);
 		this.bluList = resFunc.runListQuery(engine,bluQuery);
@@ -220,7 +230,10 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			return;
 		}
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
-		resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList));
+		if(includeRegionalization)
+			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),deepCopy(regionList));
+		else
+			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),null);
 		reducedFunctionality = resFunc.fillDataStores(!dataQuery.equals("NULL"));
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
@@ -238,7 +251,10 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
 //		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
-		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
+		if(includeRegionalization)
+			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
+		else
+			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,null,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,null,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
 		noErrors = sysOpt.runOpt();
 		errorMessage = sysOpt.errorMessage;
 
@@ -266,9 +282,11 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		}
 		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
 		{
-        	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+        	//playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
 			playSheet.progressBar.setVisible(false);
-			Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+			//Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+			Utility.showError("Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
 			return;
 		}
 		
