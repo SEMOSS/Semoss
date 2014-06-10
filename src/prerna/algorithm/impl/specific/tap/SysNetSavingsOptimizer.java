@@ -250,11 +250,10 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		playSheet.progressBar.setString("Determining Modernized List");
 		sysOpt = new ResidualSystemOptimizer();
 		sysOpt.setPlaySheet((SysOptPlaySheet)playSheet);
-//		sysOpt.setDataBLUPercent(dataPercent,bluPercent);
-		if(includeRegionalization)
-			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
-		else
-			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,null,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,null,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataSORSystemExists,resFunc.bluProviderExists);
+//		if(includeRegionalization)
+			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
+//		else
+//			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,null,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrixresFunc.systemRegionMatrix,,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
 		noErrors = sysOpt.runOpt();
 		errorMessage = sysOpt.errorMessage;
 
