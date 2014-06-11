@@ -141,14 +141,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_systemSelectPanel.gridx = 1;
 		gbc_systemSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
-		
-		GridBagLayout gbl_systemSelectPanel = new GridBagLayout();
-		gbl_systemSelectPanel.columnWidths = new int[]{0, 0, 0, 0,};
-		gbl_systemSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_systemSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_systemSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		systemSelectPanel.setLayout(gbl_systemSelectPanel);
-
 		systemSelectPanel.addElements();
 		
 		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
