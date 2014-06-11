@@ -46,11 +46,14 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	String engineName2;
 	IEngine engine1;
 	IEngine engine2;
-	Hashtable<Object, ArrayList<Object[]>> dataHash1 = new Hashtable();
-	Hashtable<Object, ArrayList<Object[]>> dataHash2 = new Hashtable();
-	int names1size;
-	int names2size;
-	
+	Hashtable<Object, ArrayList<Object[]>> dataHash1 = new Hashtable<Object, ArrayList<Object[]>>();
+	Hashtable<Object, ArrayList<Object[]>> dataHash2 = new Hashtable<Object, ArrayList<Object[]>>();
+	private int names1size;
+	private int names2size;
+	private Set<String> uniqueNames = new LinkedHashSet<String>();
+	private Integer[] index;
+	private boolean match = true;
+
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -63,9 +66,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 */
 	@Override
 	public void createData() {
-				
-		list = new ArrayList();
-		
+
+		list = new ArrayList<Object[]>();
+
 		//Process query 1
 		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
 		if(engine1!= null){
@@ -91,36 +94,52 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			updateProgressBar("60%...Processing RDF Statements	", 60);
 		}
 		// get the bindings from it
-		String [] names2 = wrapper2.getVariables();
+		String[] names2 = wrapper2.getVariables();
 		names2size = names2.length;
-		
+
 		//find the common variable in the wrapper names (this will be the hashtable key)
-        Set<String> set=new LinkedHashSet<String>(Arrays.asList(names1));
-        set.retainAll(Arrays.asList(names2));
-		String commonVar = set.iterator().next();
-		
+		Set<String> setNames1 = new LinkedHashSet<String> (Arrays.asList(names1));
+		Set<String> setNames2 = new LinkedHashSet<String> (Arrays.asList(names2));
+
+		uniqueNames.addAll(setNames1);
+		uniqueNames.addAll(setNames2);
+		names = uniqueNames.toArray(new String[uniqueNames.size()]);
+
+		index = new Integer[uniqueNames.size()];
+		for(int i = 0; i < names1size; i++) {
+			index[i] = i;
+		}
+		int counter = names1size;
+		for(int i = 0; i < names2size; i++) {
+			if(!setNames1.contains(names2[i])) {
+				index[counter] = i + names1size;
+				counter++;
+			}
+		}
+
+		Set<String> setDifference = new LinkedHashSet<String>();
+		setDifference.addAll(setNames1);
+		setDifference.retainAll(setNames2);
+		String commonVar = setDifference.iterator().next();
+
 		processWrapper(commonVar, wrapper1, dataHash1, names1);
 		processWrapper(commonVar, wrapper2, dataHash2, names2);
-		
+
 		updateProgressBar("60%...Preparing List", 80);
-		
-		prepareList(dataHash1, dataHash2);
-		
-		String[] totalNames = new String [names1.length+names2.length];
-		for(int i = 0; i<totalNames.length; i++){
-			if(i<names1.length) totalNames[i] = names1[i];
-			else totalNames[i] = names2[i-names1.length];
-		}			
+
+		prepareList(dataHash1, dataHash2);		
 
 	}
-	
+
 	/**
 	 * Method prepareList.  This method essentially combines the results of two separate query results.
 	 * Iterates through hash1, gets the list associated with each key, then combines each array in the list with each array in the list of hash2.
 	 * @param hash1 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the first query
 	 * @param hash2 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the second query
 	 */
-	private void prepareList(Hashtable<Object, ArrayList<Object[]>> hash1, Hashtable<Object, ArrayList<Object[]>> hash2){
+	private void prepareList(Hashtable<Object, ArrayList<Object[]>> hash1, Hashtable<Object, ArrayList<Object[]>> hash2)
+	{
+		ArrayList<Object[]> combinedList = new ArrayList<Object[]>();
 
 		Iterator<Object> hash1it = hash1.keySet().iterator();
 		while (hash1it.hasNext()){
@@ -131,48 +150,64 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				if(hash2list == null){
 					Object[] fullRow = new Object[names1size + names2size];
 					//combine the two arrays into one row
-					for(int i = 0; i<fullRow.length; i++){
-						if(i<names1size) fullRow[i] = hash1array[i];
-						else fullRow[i] = null;
+					for(int i = 0; i < names1size; i++){
+						if(i < names1size){
+							fullRow[i] = hash1array[i];
+						}
 					}
 					// add to the list
-					list.add(fullRow);
+					combinedList.add(fullRow);
 				}
 				else{
 					for(Object[] hash2array : hash2list){
 						Object[] fullRow = new Object[names1size + names2size];
-						
+
 						//combine the two arrays into one row
 						for(int i = 0; i<fullRow.length; i++){
-							if(i<names1size) fullRow[i] = hash1array[i];
-							else fullRow[i] = hash2array[i-names1size];
+							if(i < names1size) {
+								fullRow[i] = hash1array[i];
+							} else {
+								fullRow[i] = hash2array[i-names1size];
+							}
 						}
 						// add to the list
-						list.add(fullRow);
+						combinedList.add(fullRow);
 					}
 				}
 			}
 		}
-		// now add any results that were returned from the second query but don't match with the first
-		Iterator hash2it = hash2.keySet().iterator();
-		while(hash2it.hasNext()){
-			Object key = hash2it.next();
-			ArrayList<Object[]> hash2list = hash2.get(key);
-			for(Object[] hash2array : hash2list){
-				Object[] fullRow = new Object[names1size + names2size];
-				
-				//combine the two arrays into one row
-				for(int i = 0; i<fullRow.length; i++){
-					if(i<names1size) fullRow[i] = null;
-					else fullRow[i] = hash2array[i-names1size];
+		if(match)
+		{
+			// now add any results that were returned from the second query but don't match with the first
+			Iterator<Object> hash2it = hash2.keySet().iterator();
+			while(hash2it.hasNext()) {
+				Object key = hash2it.next();
+				ArrayList<Object[]> hash2list = hash2.get(key);
+				for(Object[] hash2array : hash2list){
+					Object[] fullRow = new Object[names1size + names2size];
+	
+					for(int i = names1size; i<fullRow.length; i++){
+						fullRow[i] = hash2array[i-names1size];
+					}
+	
+					// add to the list
+					combinedList.add(fullRow);
 				}
-				// add to the list
-				list.add(fullRow);
 			}
+		}
+
+		Iterator<Object[]> removeDuplicateColumnsIt = combinedList.iterator();
+		while(removeDuplicateColumnsIt.hasNext()) {
+			Object[] fullRow = removeDuplicateColumnsIt.next();
+			Object[] reducedList = new Object[uniqueNames.size()];
+			for(int i = 0; i < index.length; i++) {
+				reducedList[i] = fullRow[index[i]];
+			}
+			list.add(reducedList);
 		}
 		
 	}
-	
+
 	/**
 	 * Method processWrapper.  Processes the wrapper for the results of a query to a specific database, and adds the results to a Hashtable.
 	 * @param commonVar String - the variable name that the two queries have in common.
@@ -186,21 +221,20 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			while(sjw.hasNext())
 			{
 				SesameJenaSelectStatement sjss = sjw.next();
-				
+
 				Object [] values = new Object[names.length];
 				Object commonVal = null;
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
 					values[colIndex] = sjss.getVar(names[colIndex]);
-					if(names[colIndex].equals(commonVar)) commonVal = sjss.getVar(names[colIndex]);
-					logger.debug("Binding Name " + names[colIndex]);
-					logger.debug("Binding Value " + values[colIndex]);
+					if(names[colIndex].equals(commonVar)){ 
+						commonVal = sjss.getVar(names[colIndex]);
+					}
 				}
-				logger.debug("Creating new Value " + values);
 				ArrayList<Object[]> overallArray = new ArrayList<Object[]>();
 				if(hash.containsKey(commonVal))
 					overallArray = hash.get(commonVal);
-				
+
 				overallArray.add(values);
 				hash.put(commonVal, overallArray);
 			}
@@ -236,6 +270,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				this.query1 = token;
 			else if (queryIdx == 3)
 				this.query2 = token;
+			else if (queryIdx == 4)
+				this.match = Boolean.parseBoolean(token);
 		}
 	}
 }
