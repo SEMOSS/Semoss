@@ -51,6 +51,7 @@ public class ConstantsTAP {
 	public static final String DHMSM_ACCESS_NEAR_BUTTON = "nearAccessButton";
 	public static final String DHMSM_ACCESS_ARCHIVE_BUTTON = "archiveAccessButton";
 	public static final String DHMSM_ACCESS_IGNORE_BUTTON = "ignoreAccessButton";
+	public static final String DHMSM_SYSTEM_SELECT_PANEL = "dhmsmSystemSelectPanel";
 	
 	public static final String SYS_DECOM_OPT_RESOURCE_TEXT_FIELD = "sysDecomOptimizationResourceTextField";
 	public static final String SYS_DECOM_OPT_TIME_TEXT_FIELD = "sysDecomOptimizationTimeTextField";
