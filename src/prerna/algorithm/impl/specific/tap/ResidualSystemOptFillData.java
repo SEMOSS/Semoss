@@ -40,8 +40,8 @@ public class ResidualSystemOptFillData{
 	//Ap, Bq
 	public int[][] dataRegionSORSystemExists;
 	public int[][] bluRegionProviderExists;
-	public int[] dataSORSystemCount;
-	public int[] bluProviderCount;
+	public int[][] dataRegionSORSystemCount;
+	public int[][] bluRegionProviderCount;
 	
 	String systemEngine = "";
 	String costEngine = "TAP_Cost_Data";
@@ -141,8 +141,8 @@ public class ResidualSystemOptFillData{
 		fillSystemProb();
 		fillSystemRequired();
 		
-		dataSORSystemCount = calculateIfProviderExists(systemDataMatrix,false);
-		bluProviderCount = calculateIfProviderExists(systemBLUMatrix,false);
+		dataRegionSORSystemCount = calculateIfProviderExistsWithRegion(systemDataMatrix,false);
+		bluRegionProviderCount = calculateIfProviderExistsWithRegion(systemBLUMatrix,false);
 		
 		if(dataRequired && dataOrBLUWithNoProviderExists)
 		{
@@ -172,11 +172,21 @@ public class ResidualSystemOptFillData{
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Objects Considered...");
 		printToConsoleList(dataList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that are SOR of Data Object...");
-		printNumberToConsoleList(deepCopy(dataList),dataSORSystemCount);
+		printNumberToConsoleList(deepCopy(dataList),dataRegionSORSystemCount);
+		if(includeRegionalization)
+		{
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that are SOR of Data Object by region...");
+			printNumberForRegionToConsoleList(deepCopy(dataList),deepCopy(regionList),dataRegionSORSystemCount);
+		}
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered...");
 		printToConsoleList(bluList);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Systems that provide BLU ...");
-		printNumberToConsoleList(deepCopy(bluList),bluProviderCount);
+		printNumberToConsoleList(deepCopy(bluList),bluRegionProviderCount);
+		if(includeRegionalization)
+		{
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Systems that provide BLU by region");
+			printNumberForRegionToConsoleList(deepCopy(bluList),deepCopy(regionList),bluRegionProviderCount);
+		}
 	}
 	public void printMissingInfoToConsoleList(ArrayList<String> sysList,double[] listToCheck)
 	{
@@ -192,25 +202,50 @@ public class ResidualSystemOptFillData{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+entry+", ");
 		}
 	}
-	public void printNumberToConsoleList(ArrayList<String> list,int[] numbers)
+	public void printNumberToConsoleList(ArrayList<String> dataBLUlist,int[][] numbers)
 	{
-		ArrayList<Integer> numList = new ArrayList<Integer>();
-		for(int i=0;i<numbers.length;i++)
-			numList.add(numbers[i]);
-		int numSystemsIndex = 0;
-		while(!numList.isEmpty())
-		{
-			int listLoc = numList.indexOf(numSystemsIndex);
-			if(listLoc>-1)
+			ArrayList<Integer> numList = new ArrayList<Integer>();
+			for(int i=0;i<numbers.length;i++)
+				numList.add(numbers[i][0]);
+			int numSystemsIndex = 0;
+			while(!numList.isEmpty())
 			{
-				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+list.get(listLoc)+": "+numSystemsIndex+", ");
-				list.remove(listLoc);
-				numList.remove(listLoc);
+				int listLoc = numList.indexOf(numSystemsIndex);
+				if(listLoc>-1)
+				{
+					playSheet.consoleArea.setText(playSheet.consoleArea.getText()+dataBLUlist.get(listLoc)+": "+numSystemsIndex+", ");
+					dataBLUlist.remove(listLoc);
+					numList.remove(listLoc);
+				}
+				else
+					numSystemsIndex++;
 			}
-			else
-				numSystemsIndex++;
-		}
 	}
+	
+	public void printNumberForRegionToConsoleList(ArrayList<String> dataOrBLUList,ArrayList<String> regionList,int[][] numbers)
+	{
+		for(int regionInd=0;regionInd<numbers[0].length;regionInd++)
+		{
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nRegion "+regionList.get(regionInd)+": ");
+			ArrayList<Integer> numList = new ArrayList<Integer>();
+			for(int i=0;i<numbers.length;i++)
+				numList.add(numbers[i][regionInd]);
+			int numSystemsIndex = 0;
+			ArrayList<String> dataOrBLUListCopy = deepCopy(dataOrBLUList);
+			while(!numList.isEmpty())
+			{
+				int listLoc = numList.indexOf(numSystemsIndex);
+				if(listLoc>-1)
+				{
+					playSheet.consoleArea.setText(playSheet.consoleArea.getText()+dataOrBLUListCopy.get(listLoc)+": "+numSystemsIndex+", ");
+					dataOrBLUListCopy.remove(listLoc);
+					numList.remove(listLoc);
+				}
+				else
+					numSystemsIndex++;
+			}
+		}
+	}	
 	
 	public void printAll()
 	{

@@ -50,7 +50,7 @@ public class AdvParamListener implements ActionListener {
 			{
 				if(isSysOpt)
 				{
-					((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();//systemSelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
 					showSystemSelectBtn.setSelected(false);
 					showSystemCapSelectBtn.setSelected(false);
 				}
@@ -70,6 +70,7 @@ public class AdvParamListener implements ActionListener {
 				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
 				if(showSystemSelectBtn.isSelected())
 				{
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
 					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
@@ -82,6 +83,7 @@ public class AdvParamListener implements ActionListener {
 				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
 				if(showSystemCapSelectBtn.isSelected())
 				{
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(true);
 					((SysOptPlaySheet)ps).capScrollPanel.setVisible(true);

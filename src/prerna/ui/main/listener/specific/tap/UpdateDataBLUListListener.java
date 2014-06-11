@@ -32,8 +32,10 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.specific.tap.DHMSMHelper;
+import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.ui.swing.custom.SelectScrollList;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -46,7 +48,8 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	JToggleButton showSystemSelectBtn, updateDataBLUPanelButton;
 	JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
 	JLabel lblDataSelectHeader, lblBLUSelectHeader;
-	SelectScrollList sysScrollList,capScrollList, dataScrollList, bluScrollList;
+	SelectScrollList capScrollList, dataScrollList, bluScrollList;
+	DHMSMSystemSelectPanel sysSelectPanel;
 	DHMSMHelper dhelp;
 	/**
 	 * Determines if the user has selected the view data/blu toggle, updateDataBLUButton or updateComplementDataBLUButton
@@ -85,9 +88,9 @@ public class UpdateDataBLUListListener extends AbstractListener {
 			if(showSystemSelectBtn.isSelected())
 			{
 				ArrayList<String> systems = new ArrayList<String>();
-				if(!sysScrollList.getSelectedValues().isEmpty())
+				if(!sysSelectPanel.getSelectedSystems().isEmpty())
 				{
-					systems = sysScrollList.getSelectedValues();
+					systems = sysSelectPanel.getSelectedSystems();
 					for(int sysInd = 0;sysInd < systems.size();sysInd++)
 					{
 						String sys = systems.get(sysInd);
@@ -211,7 +214,6 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	public void setEngine(IEngine engine)
 	{
 		this.engine = engine;
-		
 	}
 	/**
 	 * Sets components
@@ -224,9 +226,9 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 * @param lblBLUSelectHeader JLabel for blu
 	 * @param showSystemSelectBtn JToggleButton to show whether system select only is shown
 	 */
-	public void setComponents(SelectScrollList sysScrollList,SelectScrollList capScrollList,SelectScrollList dataScrollList,SelectScrollList bluScrollList,JLabel lblDataSelectHeader,JLabel lblBLUSelectHeader, JToggleButton showSystemSelectBtn)
+	public void setComponents(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capScrollList,SelectScrollList dataScrollList,SelectScrollList bluScrollList,JLabel lblDataSelectHeader,JLabel lblBLUSelectHeader, JToggleButton showSystemSelectBtn)
 	{
-		this.sysScrollList = sysScrollList;
+		this.sysSelectPanel = sysSelectPanel;
 		this.capScrollList = capScrollList;
 		this.dataScrollList = dataScrollList;
 		this.bluScrollList = bluScrollList;
