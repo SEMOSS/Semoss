@@ -42,7 +42,7 @@ public class SparqlBoxListener extends AbstractListener implements FocusListener
 	public void focusGained(FocusEvent e) {
 		JTextArea area = (JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD);
 		// if playsheet hint is in the sparql area, delete it when focus is gained
-		if(area.getText().contains(" Hint:")){
+		if(area.getText().contains("Hint: ")){
 			area.setText("");
 		}
 		area.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -58,7 +58,7 @@ public class SparqlBoxListener extends AbstractListener implements FocusListener
 	@Override
 	public void focusLost(FocusEvent e) {
 		JTextArea area = (JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD);
-		if(area.getText().startsWith("Hint:")){
+		if(area.getText().contains("Hint: ")){
 			area.setFont(new Font("Tahoma", Font.ITALIC, 11));
 			area.setForeground(Color.GRAY);
 		}
