@@ -45,6 +45,7 @@ import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMHelper;
+import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
 import prerna.ui.components.specific.tap.SerOptPlaySheet;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
@@ -132,15 +133,15 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		this.infRate = infRate;
 		this.disRate = disRate;
 	}
-	public void setSelectDropDowns(SelectScrollList sysSelectDropDown,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
+	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
 	{
 		this.includeRegionalization = includeRegionalization;
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
-		this.sysQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),sysQuery);
+		this.sysQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),sysQuery);
 		if(includeRegionalization)
 		{
 			this.regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} }";
-			this.regionQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),regionQuery);
+			this.regionQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),regionQuery);
 		}
 		if(useDataBLU)
 		{
@@ -155,7 +156,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			DHMSMHelper dhelp = new DHMSMHelper();
 			dhelp.setUseDHMSMOnly(false);
 			dhelp.runData(playSheet.engine);
-			ArrayList<String> systems = sysSelectDropDown.getSelectedValues();
+			ArrayList<String> systems = sysSelectPanel.getSelectedSystems();
 			dataList = new ArrayList<String>();
 			for(int sysInd = 0;sysInd < systems.size();sysInd++)
 			{
@@ -164,7 +165,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			}
 			dataList = removeDuplicates(dataList);
 			this.bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
-			this.bluQuery = addBindings("System",sysSelectDropDown.list.getSelectedValuesList(),bluQuery);
+			this.bluQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),bluQuery);
 		}
 		else if(!useSysList)
 		{
@@ -466,7 +467,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			Object[] newRow = new Object[resFunc.sysList.size()+3];
 			newRow[0] = resFunc.dataList.get(dataInd);
 			newRow[1] = "Data";
-			newRow[2] = resFunc.dataSORSystemCount[dataInd];
+			newRow[2] = resFunc.dataRegionSORSystemCount[dataInd];
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
 					newRow[sysInd+3] = "X";
@@ -477,7 +478,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			Object[] newRow = new Object[resFunc.sysList.size()+3];
 			newRow[0] = resFunc.bluList.get(bluInd);
 			newRow[1] = "BLU";
-			newRow[2] = resFunc.bluProviderCount[bluInd];
+			newRow[2] = resFunc.bluRegionProviderCount[bluInd];
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
 					newRow[sysInd+3] = "X";
