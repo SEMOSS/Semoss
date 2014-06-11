@@ -2,6 +2,7 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Font;
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -18,14 +19,26 @@ import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
 
 public class DHMSMSystemSelectPanel extends JPanel {
-	public IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+	public IEngine engine;
 	
 	public JCheckBox allSysButton, recdSysButton, intDHMSMSysButton, notIntDHMSMSysButton;
 	public JCheckBox lowProbButton, highProbButton, theaterSysButton, garrisonSysButton;
 	public SelectScrollList sysSelectDropDown;
 	
+	public DHMSMSystemSelectPanel()
+	{
+		//addElements();
+	}
+	
 	public void addElements()
 	{
+		this.removeAll();
+		GridBagLayout gbl_systemSelectPanel = new GridBagLayout();
+		gbl_systemSelectPanel.columnWidths = new int[]{0, 0, 0, 0,};
+		gbl_systemSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
+		gbl_systemSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_systemSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		this.setLayout(gbl_systemSelectPanel);
 
 		JLabel lblSystemSelectHeader = new JLabel("Select Systems:");
 		lblSystemSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -123,6 +136,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 	
 	public String[] makeListFromQuery(String type, String query)
 	{
+		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		EntityFiller filler = new EntityFiller();
 		filler.engineName = engine.getEngineName();
 		filler.type = "Capability";
