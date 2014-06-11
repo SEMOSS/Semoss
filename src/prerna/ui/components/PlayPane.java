@@ -89,6 +89,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.FactSheetReportComboBox;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
@@ -98,6 +99,7 @@ import prerna.ui.main.listener.impl.ProcessQueryListener;
 import prerna.ui.main.listener.impl.RepoSelectionListener;
 import prerna.ui.main.listener.impl.ShowPlaySheetsButtonListener;
 import prerna.ui.main.listener.impl.TextUndoListener;
+import prerna.ui.main.listener.specific.tap.ICDServiceCostBtnListener;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
 import prerna.ui.swing.custom.CustomAruiStyle;
 import prerna.ui.swing.custom.CustomButton;
@@ -205,6 +207,7 @@ public class PlayPane extends JFrame {
 	
 	public JTextField sysDecomOptimizationResourceTextField, sysDecomOptimizationTimeTextField;
 	public JButton btnSysDecomOptimization;
+	public DHMSMSystemSelectPanel dhmsmSystemSelectPanel;
 
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -3132,6 +3135,26 @@ public class PlayPane extends JFrame {
 		dhmsmReportMidPanel.add(btnSysDecomOptimization, gbc_btnSysDecomOptimizationResourceConstraint);
 		Style.registerTargetClassName(btnSysDecomOptimization, ".standardButton");
 		
+		JPanel ICDServiceCostPanel = new JPanel();
+		dhmsmSystemSelectPanel = new DHMSMSystemSelectPanel();
+		JButton runButton = new CustomButton("Run ICD Estimates for SOA Services");
+		ICDServiceCostBtnListener serICDListener = new ICDServiceCostBtnListener();
+		serICDListener.setSystemSelectPanel(dhmsmSystemSelectPanel);
+		runButton.addActionListener(serICDListener);
+		Style.registerTargetClassName(runButton, ".standardButton");
+		
+		ICDServiceCostPanel.add(dhmsmSystemSelectPanel);
+		ICDServiceCostPanel.add(runButton);
+		ICDServiceCostPanel.setBackground(SystemColor.control);
+		dhmsmSystemSelectPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_icdSerPanel = new GridBagConstraints();
+		
+		gbc_icdSerPanel.fill = GridBagConstraints.WEST;
+		gbc_icdSerPanel.anchor = GridBagConstraints.WEST;
+		gbc_icdSerPanel.insets = new Insets(0, 5, 5, 5);
+		gbc_icdSerPanel.gridx = 0;
+		gbc_icdSerPanel.gridy = 4;
+		dhmsmReportPanel.add(ICDServiceCostPanel, gbc_icdSerPanel);
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
@@ -3141,6 +3164,7 @@ public class PlayPane extends JFrame {
 		gbc_separator_5.gridx = 0;
 		gbc_separator_5.gridy = 15;
 		financialsPanel.add(separator_5, gbc_separator_5);
+		
 		
 
 		JLabel lblAdvancedFinancialFunctions = new JLabel("Advanced Financial Functions");

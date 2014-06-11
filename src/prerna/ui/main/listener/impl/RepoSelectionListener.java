@@ -29,6 +29,7 @@ import javax.swing.event.ListSelectionListener;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.FactSheetReportComboBox;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.components.specific.tap.ServiceSelectPanel;
@@ -168,6 +169,16 @@ public class RepoSelectionListener implements ListSelectionListener {
 
 				
 			}catch(Exception ex){}
+			
+			try{
+				DHMSMSystemSelectPanel dhmsmSystemSelectPanel = (DHMSMSystemSelectPanel) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_SYSTEM_SELECT_PANEL);
+				dhmsmSystemSelectPanel.addElements();
+
+				
+			}catch(Exception ex){
+				
+				System.out.println(ex);
+			}
 		}
 	}
 }
