@@ -6,6 +6,7 @@ import java.util.Calendar;
 
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class LifeCycleGridPlaySheet extends GridPlaySheet {
@@ -49,6 +50,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			{
 				// only display cost if retired or sunset
 				cost = "";
+				price = "";
 			}
 			else
 			{
