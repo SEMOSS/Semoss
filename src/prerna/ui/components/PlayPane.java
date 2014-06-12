@@ -208,6 +208,7 @@ public class PlayPane extends JFrame {
 	public JTextField sysDecomOptimizationResourceTextField, sysDecomOptimizationTimeTextField;
 	public JButton btnSysDecomOptimization;
 	public DHMSMSystemSelectPanel dhmsmSystemSelectPanel;
+	public JTextField icdServiceSusField, icdServiceICDCostField, icdServiceHourlyRateField;
 
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
@@ -1540,7 +1541,7 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnClearAll, ".standardButton");
 		Style.registerTargetClassName(btnExportNodeLoadSheets,	".standardButton");
 		Style.registerTargetClassName(btnExportRelationshipsLoadSheets, ".standardButton");
-		customUpdateScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		//customUpdateScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 
 		JTabbedPane tapTabPane = new JTabbedPane();
 		rightView.addTab("MHS TAP", null, tapTabPane, null);
@@ -2807,9 +2808,9 @@ public class PlayPane extends JFrame {
 		dhmsmReportPanel.add(dhmsmReportTopPanel, gbc_dhmsmReportTopPanel);
 		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
 		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
-		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
-		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
 
 		JLabel dhmsmDecommissionReportTitleLabel = new JLabel("Generate Decommission Report");
@@ -2836,6 +2837,7 @@ public class PlayPane extends JFrame {
 		
 		dhmsmDataAccessFileImportPanel = new Panel();
 		GridBagConstraints gbc_dhmsmDataAccessFileImportPanel = new GridBagConstraints();
+		gbc_dhmsmDataAccessFileImportPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmDataAccessFileImportPanel.gridwidth = 1;
 		gbc_dhmsmDataAccessFileImportPanel.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmDataAccessFileImportPanel.gridx = 2;
@@ -2878,6 +2880,7 @@ public class PlayPane extends JFrame {
 		
 		dhmsmFunctionalAreaPanel = new Panel();
 		GridBagConstraints gbc_functionalAreaDHMSMPanel = new GridBagConstraints();
+		gbc_functionalAreaDHMSMPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_functionalAreaDHMSMPanel.gridwidth = 2;
 		gbc_functionalAreaDHMSMPanel.anchor = GridBagConstraints.WEST;
 		gbc_functionalAreaDHMSMPanel.gridx = 2;
@@ -2906,6 +2909,16 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmlblCapName.gridx = 2;
 		gbc_dhmsmlblCapName.gridy = 5;
 		dhmsmReportTopPanel.add(dhmsmlblCapName, gbc_dhmsmlblCapName);
+		
+				selectRadioPanel = new SelectRadioButtonPanel();// change this
+				GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints();
+				gbc_selectRadioPanel.insets = new Insets(0, 0, 5, 0);
+				gbc_selectRadioPanel.gridx = 4;
+				gbc_selectRadioPanel.gridy = 6;
+				dhmsmReportTopPanel.add(selectRadioPanel, gbc_selectRadioPanel);
+				FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
+				flowLayout3.setAlignment(FlowLayout.LEFT);
+				selectRadioPanel.setBackground(SystemColor.control);
 
 		dhmsmCapabilitySelectPanel = new SourceSelectPanel();// change this
 		FlowLayout flowLayout2 = (FlowLayout) dhmsmCapabilitySelectPanel.getLayout();
@@ -2917,7 +2930,7 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmCapabilitySelectScrollPane.fill = GridBagConstraints.HORIZONTAL;
 		gbc_dhmsmCapabilitySelectScrollPane.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmCapabilitySelectScrollPane.gridx = 2;
-		gbc_dhmsmCapabilitySelectScrollPane.gridy = 6;
+		gbc_dhmsmCapabilitySelectScrollPane.gridy = 7;
 		dhmsmReportTopPanel.add(dhmsmCapabilitySelectScrollPane, gbc_dhmsmCapabilitySelectScrollPane);
 		dhmsmCapabilitySelectScrollPane.setPreferredSize(new Dimension(300, 300));
 
@@ -2926,7 +2939,7 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmUpdateDataFromFileButton.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmUpdateDataFromFileButton.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmUpdateDataFromFileButton.gridx = 2;
-		gbc_dhmsmUpdateDataFromFileButton.gridy = 7;
+		gbc_dhmsmUpdateDataFromFileButton.gridy = 8;
 		dhmsmReportTopPanel.add(dhmsmUpdateDataFromFileButton, gbc_dhmsmUpdateDataFromFileButton);
 		dhmsmUpdateDataFromFileButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataFromFileButton, ".standardButton");
@@ -2934,15 +2947,16 @@ public class PlayPane extends JFrame {
 		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List from Capabilities");
 		GridBagConstraints gbc_dhmsmUpdateDataButton = new GridBagConstraints();
 		gbc_dhmsmUpdateDataButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmUpdateDataButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmUpdateDataButton.insets = new Insets(0, 0, 0, 5);
 		gbc_dhmsmUpdateDataButton.gridx = 2;
-		gbc_dhmsmUpdateDataButton.gridy = 8;
+		gbc_dhmsmUpdateDataButton.gridy = 9;
 		dhmsmReportTopPanel.add(dhmsmUpdateDataButton, gbc_dhmsmUpdateDataButton);
 		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
 	
 		dhmsmSelectAllAccessTypePanel = new Panel();
 		GridBagConstraints gbc_dhmsmSelectAllAccessTypePanel = new GridBagConstraints();
+		gbc_dhmsmSelectAllAccessTypePanel.insets = new Insets(0, 0, 5, 0);
 		gbc_dhmsmSelectAllAccessTypePanel.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmSelectAllAccessTypePanel.gridx = 4;
 		gbc_dhmsmSelectAllAccessTypePanel.gridy = 4;
@@ -2984,31 +2998,26 @@ public class PlayPane extends JFrame {
 		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_dhmsmLblDataName = new GridBagConstraints();
 		gbc_dhmsmLblDataName.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmLblDataName.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmLblDataName.insets = new Insets(0, 0, 5, 0);
 		gbc_dhmsmLblDataName.gridx = 4;
 		gbc_dhmsmLblDataName.gridy = 5;
 		dhmsmReportTopPanel.add(dhmsmLblDataName, gbc_dhmsmLblDataName);
 
-		selectRadioPanel = new SelectRadioButtonPanel();// change this
-		FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
-		flowLayout3.setAlignment(FlowLayout.LEFT);
-		selectRadioPanel.setBackground(SystemColor.control);
-
-		selectRadioScrollPane = new JScrollPane(selectRadioPanel);
+		selectRadioScrollPane = new JScrollPane();
 		GridBagConstraints gbc_selectRadioScrollPane = new GridBagConstraints();
 		gbc_selectRadioScrollPane.fill = GridBagConstraints.HORIZONTAL;
-		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 5);
+		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 0);
 		gbc_selectRadioScrollPane.gridx = 4;
-		gbc_selectRadioScrollPane.gridy = 6;
+		gbc_selectRadioScrollPane.gridy = 7;
 		dhmsmReportTopPanel.add(selectRadioScrollPane, gbc_selectRadioScrollPane);
 		selectRadioScrollPane.setPreferredSize(new Dimension(750, 300));
 
 		dhmsmDecommissionReportButton = new CustomButton("Generate DHMSM Decommission Report");
 		GridBagConstraints gbc_dhmsmDecommissionReportButton = new GridBagConstraints();
 		gbc_dhmsmDecommissionReportButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmDecommissionReportButton.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmDecommissionReportButton.insets = new Insets(0, 0, 5, 0);
 		gbc_dhmsmDecommissionReportButton.gridx = 4;
-		gbc_dhmsmDecommissionReportButton.gridy = 7;
+		gbc_dhmsmDecommissionReportButton.gridy = 8;
 		dhmsmReportTopPanel.add(dhmsmDecommissionReportButton, gbc_dhmsmDecommissionReportButton);
 		dhmsmDecommissionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmDecommissionReportButton, ".standardButton");
@@ -3016,9 +3025,8 @@ public class PlayPane extends JFrame {
 		dhmsmSystemSORAccessTypeReportButton = new CustomButton("Generate DHMSM System SOR Access Type Report");
 		GridBagConstraints gbc_dhmsmSystemSORAccessTypeReportButton = new GridBagConstraints();
 		gbc_dhmsmSystemSORAccessTypeReportButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmSystemSORAccessTypeReportButton.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmSystemSORAccessTypeReportButton.gridx = 4;
-		gbc_dhmsmSystemSORAccessTypeReportButton.gridy = 8;
+		gbc_dhmsmSystemSORAccessTypeReportButton.gridy = 9;
 		dhmsmReportTopPanel.add(dhmsmSystemSORAccessTypeReportButton, gbc_dhmsmSystemSORAccessTypeReportButton);
 		dhmsmSystemSORAccessTypeReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmSystemSORAccessTypeReportButton, ".standardButton");
@@ -3143,10 +3151,6 @@ public class PlayPane extends JFrame {
 		runButton.addActionListener(serICDListener);
 		Style.registerTargetClassName(runButton, ".standardButton");
 		
-		ICDServiceCostPanel.add(dhmsmSystemSelectPanel);
-		ICDServiceCostPanel.add(runButton);
-		ICDServiceCostPanel.setBackground(SystemColor.control);
-		dhmsmSystemSelectPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_icdSerPanel = new GridBagConstraints();
 		
 		gbc_icdSerPanel.fill = GridBagConstraints.WEST;
@@ -3155,6 +3159,91 @@ public class PlayPane extends JFrame {
 		gbc_icdSerPanel.gridx = 0;
 		gbc_icdSerPanel.gridy = 4;
 		dhmsmReportPanel.add(ICDServiceCostPanel, gbc_icdSerPanel);
+		
+		ICDServiceCostPanel.setLayout(new GridBagLayout());
+		GridBagConstraints gbc_dhmsmSystemSelectPanel = new GridBagConstraints();
+		ICDServiceCostPanel.setBackground(SystemColor.control);
+		dhmsmSystemSelectPanel.setBackground(SystemColor.control);
+		gbc_dhmsmSystemSelectPanel.fill = GridBagConstraints.WEST;
+		gbc_dhmsmSystemSelectPanel.anchor = GridBagConstraints.WEST;
+		gbc_dhmsmSystemSelectPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_dhmsmSystemSelectPanel.gridx = 0;
+		gbc_dhmsmSystemSelectPanel.gridy = 0;
+		gbc_dhmsmSystemSelectPanel.gridheight = 4;
+		ICDServiceCostPanel.add(dhmsmSystemSelectPanel, gbc_dhmsmSystemSelectPanel);
+		
+		GridBagConstraints gbc_runButton = new GridBagConstraints();
+		gbc_runButton.anchor = GridBagConstraints.NORTHWEST;
+		gbc_runButton.insets = new Insets(20, 0, 5, 5);
+		gbc_runButton.gridx = 1;
+		gbc_runButton.gridy = 0;
+		gbc_runButton.gridwidth = 2;
+		gbc_dhmsmSystemSelectPanel.gridwidth = 2;
+		ICDServiceCostPanel.add(runButton, gbc_runButton);
+		
+		JLabel ICDServiceSusPerLabel = new JLabel ("SOA Sustainment Percentage");
+		GridBagConstraints gbc_ICDServiceSusPerLabel = new GridBagConstraints();
+		gbc_ICDServiceSusPerLabel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_ICDServiceSusPerLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_ICDServiceSusPerLabel.gridx = 1;
+		gbc_ICDServiceSusPerLabel.gridy = 1;
+		gbc_ICDServiceSusPerLabel.gridwidth = 1;
+		ICDServiceCostPanel.add(ICDServiceSusPerLabel, gbc_ICDServiceSusPerLabel);
+		
+		JLabel ICDServiceICDSusLabel = new JLabel ("Annual ICD Sustainment Cost ($)");
+		GridBagConstraints gbc_ICDServiceICDSusLabel = new GridBagConstraints();
+		gbc_ICDServiceICDSusLabel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_ICDServiceICDSusLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_ICDServiceICDSusLabel.gridx = 1;
+		gbc_ICDServiceICDSusLabel.gridy = 2;
+		gbc_ICDServiceICDSusLabel.gridwidth = 1;
+		ICDServiceCostPanel.add(ICDServiceICDSusLabel, gbc_ICDServiceICDSusLabel);
+		
+		JLabel ICDServiceHourlyRateLabel = new JLabel ("Hourly Rate ($)");
+		GridBagConstraints gbc_ICDServiceHourlyRateLabel = new GridBagConstraints();
+		gbc_ICDServiceHourlyRateLabel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_ICDServiceHourlyRateLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_ICDServiceHourlyRateLabel.gridx = 1;
+		gbc_ICDServiceHourlyRateLabel.gridy = 3;
+		gbc_ICDServiceHourlyRateLabel.gridwidth = 1;
+		ICDServiceCostPanel.add(ICDServiceHourlyRateLabel, gbc_ICDServiceHourlyRateLabel);
+		
+		icdServiceSusField = new JTextField();
+		icdServiceSusField.setText("0.18");
+		icdServiceSusField.setColumns(5);
+		
+		GridBagConstraints gbc_icdServiceSusField = new GridBagConstraints();
+		gbc_icdServiceSusField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_icdServiceSusField.insets = new Insets(0, 0, 5, 5);
+		gbc_icdServiceSusField.gridx = 2;
+		gbc_icdServiceSusField.gridy = 1;
+		gbc_icdServiceSusField.gridwidth = 1;
+		ICDServiceCostPanel.add(icdServiceSusField, gbc_icdServiceSusField);
+		
+		icdServiceICDCostField = new JTextField();
+		icdServiceICDCostField.setText("100000");
+		icdServiceICDCostField.setColumns(5);
+		
+		GridBagConstraints gbc_icdServiceICDCostField = new GridBagConstraints();
+		gbc_icdServiceICDCostField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_icdServiceICDCostField.insets = new Insets(0, 0, 5, 5);
+		gbc_icdServiceICDCostField.gridx = 2;
+		gbc_icdServiceICDCostField.gridy = 2;
+		gbc_icdServiceICDCostField.gridwidth = 1;
+		ICDServiceCostPanel.add(icdServiceICDCostField, gbc_icdServiceICDCostField);
+		
+		icdServiceHourlyRateField = new JTextField();
+		icdServiceHourlyRateField.setText("150");
+		icdServiceHourlyRateField.setColumns(5);
+		
+		GridBagConstraints gbc_icdServiceHourlyRateField = new GridBagConstraints();
+		gbc_icdServiceHourlyRateField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_icdServiceHourlyRateField.insets = new Insets(0, 0, 5, 5);
+		gbc_icdServiceHourlyRateField.gridx = 2;
+		gbc_icdServiceHourlyRateField.gridy = 3;
+		gbc_icdServiceHourlyRateField.gridwidth = 1;
+		ICDServiceCostPanel.add(icdServiceHourlyRateField, gbc_icdServiceHourlyRateField);
+		
 		
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
@@ -3550,7 +3639,7 @@ public class PlayPane extends JFrame {
 		listScrollPane.setPreferredSize(new Dimension(150, 100));
 		// listScrollPane.setMinimumSize(new Dimension(200,100));
 		listScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		listScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		//listScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		inputPanel.add(listScrollPane, gbc_repoList);
 		// set the listener
 		repoList.addListSelectionListener(RepoSelectionListener.getInstance());
@@ -4163,16 +4252,16 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(htmlTrainingBtn, ".standardButton");
 		CSSApplication css = new CSSApplication(getContentPane());
 
-		scrollPane_1.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_2.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_3.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_4.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_6.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_7.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_8.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_9.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_10.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane_11.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		filterSliders.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_1.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_2.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_3.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_4.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_6.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_7.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_8.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_9.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_10.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		scrollPane_11.getVerticalScrollBar().setUI(new NewScrollBarUI());
+//		filterSliders.getVerticalScrollBar().setUI(new NewScrollBarUI());
 	}
 }
