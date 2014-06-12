@@ -86,7 +86,6 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("names", names);
-		columnChartHash.put("type", "column");
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
