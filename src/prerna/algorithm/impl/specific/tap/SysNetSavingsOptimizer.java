@@ -140,7 +140,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		this.sysQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),sysQuery);
 		if(includeRegionalization)
 		{
-			this.regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} }";
+			this.regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } ORDER BY ASC(?Region) ";
 			this.regionQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),regionQuery);
 		}
 		if(useDataBLU)
@@ -422,14 +422,19 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	public void displaySystemSpecifics()
 	{
 		ArrayList <Object []> list = new ArrayList();
-		String[] colNames = new String[4];
+		int size = 4;
+		if(includeRegionalization)
+			size=5;
+		String[] colNames = new String[size];
 		colNames[0]="System";
 		colNames[1]="Action";
 		colNames[2]="Number Of Data Provided";
 		colNames[3]="Number of BLU Provided";
+		if(includeRegionalization)
+			colNames[4]="Number of Regions";
 		for (int i = 0;i<sysList.size();i++)
 		{
-			Object[] newRow = new Object[4];
+			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.sysList.get(i);
 			if(sysOpt.systemIsModernized[i]>0)
 				newRow[1] = "Modernize";
@@ -437,6 +442,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 				newRow[1] = "Decommission";
 			newRow[2] = sumRow(resFunc.systemDataMatrix[i]);
 			newRow[3] = sumRow(resFunc.systemBLUMatrix[i]);
+			if(includeRegionalization)
+				newRow[4] = sumRow(resFunc.systemRegionMatrix[i]);
 			list.add(newRow);
 		}
 		GridScrollPane pane = new GridScrollPane(colNames, list);
@@ -456,32 +463,63 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 	public void displayFunctionalitySpecifics()
 	{
 		ArrayList <Object []> list = new ArrayList();
-		String[] colNames = new String[resFunc.sysList.size()+3];//number of systems+2
+		int size = resFunc.sysList.size()+3;
+		if(includeRegionalization)
+			size += resFunc.regionList.size()+1;
+		String[] colNames = new String[size];//number of systems+2
 		colNames[0]="Data/BLU";
 		colNames[1]="Type";
 		colNames[2]="Number of Systems Providing";
 		for(int i=0;i<resFunc.sysList.size();i++)
 			colNames[i+3] = resFunc.sysList.get(i);
+		if(includeRegionalization)
+		{
+			colNames[resFunc.sysList.size()+3] = "Number of Regions Provided At";
+			for(int i=0;i<resFunc.regionList.size();i++)
+				colNames[resFunc.sysList.size()+4+i] = "Region "+resFunc.regionList.get(i);
+		}
 		for (int dataInd = 0;dataInd<resFunc.dataList.size();dataInd++)
 		{
-			Object[] newRow = new Object[resFunc.sysList.size()+3];
+			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.dataList.get(dataInd);
 			newRow[1] = "Data";
-			newRow[2] = resFunc.dataRegionSORSystemCount[dataInd];
+			newRow[2] = sumRow(resFunc.dataRegionSORSystemCount[dataInd]);
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
 					newRow[sysInd+3] = "X";
+			if(includeRegionalization)
+			{
+				int numRegions = 0;
+				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
+					if(resFunc.dataRegionSORSystemCount[dataInd][regionInd]>=1)
+					{
+						numRegions++;
+						newRow[resFunc.sysList.size()+4+regionInd] = "X";
+					}
+				newRow[resFunc.sysList.size()+3] = numRegions;
+			}
 			list.add(newRow);
 		}
 		for (int bluInd = 0;bluInd<resFunc.bluList.size();bluInd++)
 		{
-			Object[] newRow = new Object[resFunc.sysList.size()+3];
+			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.bluList.get(bluInd);
 			newRow[1] = "BLU";
-			newRow[2] = resFunc.bluRegionProviderCount[bluInd];
+			newRow[2] = sumRow(resFunc.bluRegionProviderCount[bluInd]);
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
 					newRow[sysInd+3] = "X";
+			if(includeRegionalization);
+			{
+				int numRegions = 0;
+				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
+					if(resFunc.bluRegionProviderCount[bluInd][regionInd]>=1)
+					{
+						numRegions++;
+						newRow[resFunc.sysList.size()+4+regionInd] = "X";
+					}
+				newRow[resFunc.sysList.size()+3] = numRegions;
+			}
 			list.add(newRow);
 		}
 

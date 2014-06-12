@@ -216,35 +216,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_lblBLUSelectHeader.gridx = 12;
 		gbc_lblBLUSelectHeader.gridy = 2;
 		systemDataBLUSelectPanel.add(lblBLUSelectHeader, gbc_lblBLUSelectHeader);
-		
-//		sysSelectDropDown = new SelectScrollList("Select Individual Systems");
-//		sysSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-//		GridBagConstraints gbc_sysSelectDropDown = new GridBagConstraints();
-//		gbc_sysSelectDropDown.gridwidth = 3;
-//		gbc_sysSelectDropDown.insets = new Insets(0, 0, 0, 5);
-//		gbc_sysSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
-//		gbc_sysSelectDropDown.gridx = 0;
-//		gbc_sysSelectDropDown.gridy = 3;
-//		systemSelectPanel.add(sysSelectDropDown.pane, gbc_sysSelectDropDown);
-		
-//		//String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {BIND(<http://health.mil/ontologies/Concept/TaskerLifecyclePhase/Submitted> AS ?TaskerStatus) {?SystemTasker <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemTasker>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Submits <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Receives-Submits> ;}  {?BeingIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BeingIn> ;}{?TaskerLifecycleSystemPhase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase>;}{?TypeOf2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf> ;}{?TaskerStatus <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TaskerLifecyclePhase>;}{?entity ?Submits ?SystemTasker}{?SystemTasker ?BeingIn ?TaskerLifecycleSystemPhase}{?TaskerLifecycleSystemPhase ?TypeOf2 ?TaskerStatus} } ");
-//		String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}} ");
-//		sysSelectDropDown.setupButton(sysArray,40,120); //need to give list of all systems
 
-//		CheckBoxSelectorListener sysCheckBoxListener = new CheckBoxSelectorListener();
-//		sysCheckBoxListener.setEngine(engine);
-//		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-//		sysCheckBoxListener.setCheckBox(allSysButton,recdSysButton, intDHMSMSysButton,notIntDHMSMSysButton,theaterSysButton,garrisonSysButton,lowProbButton, highProbButton);
-//		allSysButton.addActionListener(sysCheckBoxListener);
-//		recdSysButton.addActionListener(sysCheckBoxListener);
-//		intDHMSMSysButton.addActionListener(sysCheckBoxListener);
-//		notIntDHMSMSysButton.addActionListener(sysCheckBoxListener);
-//		theaterSysButton.addActionListener(sysCheckBoxListener);
-//		garrisonSysButton.addActionListener(sysCheckBoxListener);
-//		lowProbButton.addActionListener(sysCheckBoxListener);
-//		highProbButton.addActionListener(sysCheckBoxListener);
-		
-		
 		capScrollPanel = new JPanel();
 		capScrollPanel.setVisible(false);
 		
