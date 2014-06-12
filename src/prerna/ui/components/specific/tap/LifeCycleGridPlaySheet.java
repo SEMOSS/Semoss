@@ -39,7 +39,9 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			String date = sjss.getVar(names[2]).toString();
 			String obj = sjss.getVar(names[3]).toString();
 			obj = obj.replace("\"", "");
-			String cost = sjss.getVar(names[4]).toString();
+			String price = sjss.getVar(names[4]).toString();
+			String quantity = sjss.getVar(names[5]).toString();
+			String cost = sjss.getVar(names[6]).toString();
 			cost = cost.replace("\"", "");
 			
 			
@@ -73,6 +75,16 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				}
 			}
 			
+			if(price == null)
+			{
+				price = "";
+			}
+			
+			if(quantity == null)
+			{
+				quantity = "";
+			}
+			
 			if(cost == null)
 			{
 				cost = "";
@@ -82,7 +94,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			{
 				date = "";
 			}
-			processedList.add(new Object[]{sys, ver, date, obj, cost});
+			processedList.add(new Object[]{sys, ver, date, obj, price, quantity, cost});
 		}	
 		return processedList;
 	}
