@@ -23,12 +23,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -85,7 +87,7 @@ public abstract class AbstractEngine implements IEngine {
 			+ Constants.PERSPECTIVE
 			+ ":" + Constants.LABEL + ">  ?perspective.}" + "}";
 
-	public static final String insights = "SELECT ?insight WHERE {{?perspectiveURI <"
+	public static final String insights = "SELECT ?insight ?output WHERE {{?perspectiveURI <"
 			+ Constants.PERSPECTIVE
 			+ ":"
 			+ Constants.LABEL
@@ -100,6 +102,11 @@ public abstract class AbstractEngine implements IEngine {
 			+ ":"
 			+ Constants.LABEL
 			+ "> ?insight.}"
+			+ "{?insightURI <"
+			+ Constants.INSIGHT
+			+ ":"
+			+ Constants.OUTPUT
+			+ "> ?output.}"
 			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
 
 	public static final String fromSparql = "SELECT DISTINCT ?entity WHERE { "
@@ -759,12 +766,12 @@ public abstract class AbstractEngine implements IEngine {
 		return getSelect(query, insightBase, "perspective");
 	}
 
-	public Vector<String> getInsights(String perspective) {
+	public Vector<Object> getInsights(String perspective) {
 
 		return getInsights(perspective, engineURI2 + "");
 	}
 
-	public Vector<String> getInsights(String perspective, String engine) {
+	public Vector getInsights(String perspective, String engine) {
 
 		if (perspective != null) {
 			Hashtable paramHash = new Hashtable();
@@ -772,6 +779,26 @@ public abstract class AbstractEngine implements IEngine {
 			String query = Utility.fillParam(insights, paramHash);
 			System.err.println("Query " + query);
 			return getSelect(query, insightBase, "insight");
+		}
+		return null;
+	}
+
+	public Vector<Object> getInsights(String perspective, boolean formalObject) {
+
+		return getInsights(perspective, engineURI2 + "", formalObject);
+	}
+
+	public Vector getInsights(String perspective, String engine, boolean formalObject) {
+
+		if (perspective != null) {
+			Hashtable paramHash = new Hashtable();
+			paramHash.put("perspective", perspective);
+			String query = Utility.fillParam(insights, paramHash);
+			System.err.println("Query " + query);
+			if(formalObject)
+				return getSelectObject(query, insightBase);
+			else
+				return getSelect(query, insightBase, "insight");
 		}
 		return null;
 	}
@@ -1165,6 +1192,44 @@ public abstract class AbstractEngine implements IEngine {
 				String tag = res.next().getBinding(variable).getValue() + "";
 				tag = tag.replace("\"", "");
 				retString.addElement(tag);
+			}
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedQueryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return retString;
+
+	}
+	
+	private Vector<Hashtable> getSelectObject(String sparql, RepositoryConnection rc) {
+		Vector<Hashtable> retString = new Vector<Hashtable>();
+
+		try {
+			TupleQuery query = rc.prepareTupleQuery(QueryLanguage.SPARQL,
+					sparql);
+			TupleQueryResult res = query.evaluate();
+			List<String> names = res.getBindingNames();
+
+			if (!res.hasNext())
+				retString = null;
+
+			while (res.hasNext()) {
+				Hashtable rowHash = new Hashtable();
+				BindingSet bs = res.next();
+				for(int colIdx = 0; colIdx < names.size(); colIdx ++){
+					String variable = names.get(colIdx);
+					Object value = ((Value)bs.getBinding(variable).getValue()).stringValue();
+					System.out.println("Variable :: " + variable);
+					System.out.println("Value :: " + value);
+					rowHash.put(variable, value);
+				}
+				retString.addElement(rowHash);
 			}
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
