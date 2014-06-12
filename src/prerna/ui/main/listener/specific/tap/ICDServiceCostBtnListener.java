@@ -61,7 +61,7 @@ public class ICDServiceCostBtnListener implements IChakraListener {
 		
 		
 		ServiceICDCostAnalyzer serCost = new ServiceICDCostAnalyzer(systems);
-		serCost.setConstants(susPer, icdCost, hourlyRate);
+		serCost.setConstants(hourlyRate, icdCost, susPer);
 		serCost.runServiceResults();
 
 	}
