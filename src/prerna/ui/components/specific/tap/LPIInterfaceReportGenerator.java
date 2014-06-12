@@ -132,11 +132,13 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								System.out.println(" We are in 3b");
 								if(sorV.contains(sysData)){
 									System.out.println(" this is a sor : " + sysData);
-									comment = "3b and sor";
+									//Interfaces where SOR system sends data to DHMSM is added
+									comment = "Interface " + values[0] + "->DHMSM is added";
 								}
 								else{
 									System.out.println(" this is NOT a sor : " + sysData);
-									comment = "3b and not sor";
+									//LP should be LPI
+									comment = values[2] + " should be LPI";
 								}
 							}
 							values[count] = comment;
