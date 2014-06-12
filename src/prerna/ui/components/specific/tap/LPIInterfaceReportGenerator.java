@@ -38,11 +38,14 @@ import prerna.util.DIHelper;
 public class LPIInterfaceReportGenerator extends GridPlaySheet {
 
 	String interfaceQuery;
-	String sorQuery;
 	String interfaceQueryEngineName;
-	String sorQueryEngineName;
 	IEngine interfaceEngine;
+	String sorQuery;
+	String sorQueryEngineName;
 	IEngine sorEngine;
+	String lpiQuery;
+	String lpiQueryEngineName;
+	IEngine lpiEngine;
 	String commentKey = "Comment";
 	String lpiSysKey = "LPISystem";
 	String otherSysKey = "InterfacingSystem";
@@ -92,8 +95,22 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 		// get the bindings from it
 		String[] names2 = sorWrapper.getVariables();
 
-		Vector<String> sysDataSOR = processSORWrapper(sorWrapper, names2);
-		processWrapper(wrapper1, names1, sysDataSOR);
+		//process query 2
+		SesameJenaSelectWrapper lpiWrapper = new SesameJenaSelectWrapper();
+		if(lpiEngine!= null){
+			lpiWrapper.setQuery(lpiQuery);
+			updateProgressBar("40%...Querying RDF Repository", 10);
+			lpiWrapper.setEngine(lpiEngine);
+			updateProgressBar("50%...Querying RDF Repository", 30);
+			lpiWrapper.executeQuery();
+			updateProgressBar("60%...Processing RDF Statements	", 60);
+		}
+		// get the bindings from it
+		String[] names3 = lpiWrapper.getVariables();
+
+		Vector<String> sysDataSOR = processPeripheralWrapper(sorWrapper, names2);
+		Vector<String> sysLPI = processPeripheralWrapper(lpiWrapper, names3);
+		processWrapper(wrapper1, names1, sysDataSOR, sysLPI);
 
 	}
 
@@ -104,7 +121,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV){
+	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, Vector<String> lpiV){
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext())
@@ -116,19 +133,31 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
 					if(names[colIndex].contains(commentKey)){ 
-						String lpiSysData = sjss.getRawVar(lpiSysKey) + "" + sjss.getRawVar(dataKey);
 						String comment = sjss.getVar(names[colIndex]) + "";
 						if(comment.contains(sorCheck)) {
+							String lpiSysData = sjss.getRawVar(lpiSysKey) + "" + sjss.getRawVar(dataKey);
+							String otherSysData = sjss.getRawVar(otherSysKey) + "" + sjss.getRawVar(dataKey);
+							String otherSys = sjss.getRawVar(otherSysKey) + "";
 							System.out.println(" We are in 3b");
-							if(sorV.contains(lpiSysData)){
-								System.out.println(" this is a sor : " + lpiSysData);
+							if(sorV.contains(lpiSysData) && sorV.contains(otherSysData) && !lpiV.contains(otherSys)){
+								System.out.println(" this is 3bi AND 3bii");
 								//Interfaces where SOR system sends data to DHMSM is added
-								comment = "Interface " + sjss.getVar(lpiSysKey) + "->DHMSM is added";
+								comment = "\"Interfaces " + sjss.getVar(lpiSysKey) + "->DHMSM and " + sjss.getVar(otherSysKey) +"->DHMSM are added. " + sjss.getVar(otherSysKey) + 
+										" should be LPI\"";
+							}
+							else if(sorV.contains(lpiSysData)){
+								System.out.println(" this is 3bi");
+								comment = "\"Interface " + sjss.getVar(lpiSysKey) + "->DHMSM is added\"";
+							}
+							else if(sorV.contains(otherSysData) && !lpiV.contains(otherSys)){
+								System.out.println(" this is 3bii");
+								comment = "\"Interface " + sjss.getVar(otherSysKey) +"->DHMSM is added. " + sjss.getVar(otherSysKey) + 
+										" should be LPI\"";
 							}
 							else{
-								System.out.println(" this is NOT a sor : " + lpiSysData);
+								System.out.println(" this is neither ");
 								//LP should be LPI
-								comment = sjss.getVar(otherSysKey) + " should be LPI";
+								comment = "\"Stays as-is\"";
 							}
 						}
 						values[count] = comment;
@@ -144,7 +173,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 		}
 	}
 	
-	private Vector<String> processSORWrapper(SesameJenaSelectWrapper sjw, String[] names){
+	private Vector<String> processPeripheralWrapper(SesameJenaSelectWrapper sjw, String[] names){
 		// now get the bindings and generate the data
 		Vector<String> retV = new Vector<String>();
 		try {
@@ -153,9 +182,12 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				SesameJenaSelectStatement sjss = sjw.next();
 
 				int colIndex = 0;
-				String sor = sjss.getRawVar(names[colIndex]) + "";
-				retV.add(sor);
-				System.out.println("adding as SOR: " + sor);
+				String val = sjss.getRawVar(names[colIndex]) + "";
+				if(val.substring(0, 1).equals("\""))
+					val = val.substring(1, val.length()-1);
+					
+				retV.add(val);
+				System.out.println("adding to peripheral list: " + val);
 
 			}
 		} catch (Exception e) {
@@ -188,12 +220,20 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				this.sorEngine = (IEngine) DIHelper.getInstance().getLocalProp(sorQueryEngineName);
 			}
 			else if (queryIdx == 2){
+				this.lpiQueryEngineName = token;
+				this.lpiEngine = (IEngine) DIHelper.getInstance().getLocalProp(lpiQueryEngineName);
+			}
+			else if (queryIdx == 3){
 				System.out.println("query 1 " + token);
 				this.interfaceQuery = token;
 			}
-			else if (queryIdx == 3){
+			else if (queryIdx == 4){
 				System.out.println("query 2 " + token);
 				this.sorQuery = token;
+			}
+			else if (queryIdx == 5){
+				System.out.println("query 3 " + token);
+				this.lpiQuery = token;
 			}
 		}
 	}
