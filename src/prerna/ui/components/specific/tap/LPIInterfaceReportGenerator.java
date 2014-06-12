@@ -35,21 +35,19 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
-/**
- * This class is a temporary fix for queries to run across multiple databases
- * The query passed through this class must have the format engine1&engine2&engine1query&engine2query
- * The two queries must have exactly one variable name in common--which is how this class will line up the table
- */
 public class LPIInterfaceReportGenerator extends GridPlaySheet {
 
-	String query1;
-	String query2;
-	String engineName1;
-	String engineName2;
-	IEngine engine1;
-	IEngine engine2;
+	String interfaceQuery;
+	String sorQuery;
+	String interfaceQueryEngineName;
+	String sorQueryEngineName;
+	IEngine interfaceEngine;
+	IEngine sorEngine;
 	String commentKey = "Comment";
-	String sysDataKey = "sysDataKey";
+	String lpiSysKey = "LPISystem";
+	String otherSysKey = "InterfacingSystem";
+	String interfaceTypeKey = "InterfaceType";
+	String dataKey = "Data";
 	String sorCheck = "This is 3b";
 
 	/**
@@ -69,31 +67,24 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 
 		//Process query 1
 		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
-		if(engine1!= null){
-			wrapper1.setQuery(query1);
+		if(interfaceEngine!= null){
+			wrapper1.setQuery(interfaceQuery);
 			updateProgressBar("10%...Querying RDF Repository", 10);
-			wrapper1.setEngine(engine1);
+			wrapper1.setEngine(interfaceEngine);
 			updateProgressBar("20%...Querying RDF Repository", 30);
 			wrapper1.executeQuery();
 			updateProgressBar("30%...Processing RDF Statements	", 60);
 		}
 		// get the bindings from it
 		String [] names1 = wrapper1.getVariables();
-		names = new String[names1.length-1];
-		int count = 0;
-		for(String name : names1){
-			if(!name.equals(sysDataKey)){
-				names[count] = name;
-				count++;
-			}
-		}
+		names = names1;
 
 		//process query 2
 		SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
-		if(engine2!= null){
-			sorWrapper.setQuery(query2);
+		if(sorEngine!= null){
+			sorWrapper.setQuery(sorQuery);
 			updateProgressBar("40%...Querying RDF Repository", 10);
-			sorWrapper.setEngine(engine2);
+			sorWrapper.setEngine(sorEngine);
 			updateProgressBar("50%...Querying RDF Repository", 30);
 			sorWrapper.executeQuery();
 			updateProgressBar("60%...Processing RDF Statements	", 60);
@@ -120,33 +111,31 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 			{
 				SesameJenaSelectStatement sjss = sjw.next();
 
-				Object [] values = new Object[names.length - 1];
+				Object [] values = new Object[names.length];
 				int count = 0;
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
-					if(!names[colIndex].equals(sysDataKey)){
-						if(names[colIndex].contains(commentKey)){ 
-							String sysData = sjss.getRawVar(sysDataKey) + "";
-							String comment = sjss.getVar(names[colIndex]) + "";
-							if(comment.contains(sorCheck)) {
-								System.out.println(" We are in 3b");
-								if(sorV.contains(sysData)){
-									System.out.println(" this is a sor : " + sysData);
-									//Interfaces where SOR system sends data to DHMSM is added
-									comment = "Interface " + values[0] + "->DHMSM is added";
-								}
-								else{
-									System.out.println(" this is NOT a sor : " + sysData);
-									//LP should be LPI
-									comment = values[2] + " should be LPI";
-								}
+					if(names[colIndex].contains(commentKey)){ 
+						String lpiSysData = sjss.getRawVar(lpiSysKey) + "" + sjss.getRawVar(dataKey);
+						String comment = sjss.getVar(names[colIndex]) + "";
+						if(comment.contains(sorCheck)) {
+							System.out.println(" We are in 3b");
+							if(sorV.contains(lpiSysData)){
+								System.out.println(" this is a sor : " + lpiSysData);
+								//Interfaces where SOR system sends data to DHMSM is added
+								comment = "Interface " + sjss.getVar(lpiSysKey) + "->DHMSM is added";
 							}
-							values[count] = comment;
+							else{
+								System.out.println(" this is NOT a sor : " + lpiSysData);
+								//LP should be LPI
+								comment = sjss.getVar(otherSysKey) + " should be LPI";
+							}
 						}
-						else
-							values[count] = sjss.getVar(names[colIndex]);
-						count++;
+						values[count] = comment;
 					}
+					else
+						values[count] = sjss.getVar(names[colIndex]);
+					count++;
 				}
 				list.add(values);
 			}
@@ -191,20 +180,20 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 		for (int queryIdx = 0; queryTokens.hasMoreTokens(); queryIdx++){
 			String token = queryTokens.nextToken();
 			if (queryIdx == 0){
-				this.engineName1 = token;
-				this.engine1 = (IEngine) DIHelper.getInstance().getLocalProp(engineName1);
+				this.interfaceQueryEngineName = token;
+				this.interfaceEngine = (IEngine) DIHelper.getInstance().getLocalProp(interfaceQueryEngineName);
 			}
 			else if (queryIdx == 1){
-				this.engineName2 = token;
-				this.engine2 = (IEngine) DIHelper.getInstance().getLocalProp(engineName2);
+				this.sorQueryEngineName = token;
+				this.sorEngine = (IEngine) DIHelper.getInstance().getLocalProp(sorQueryEngineName);
 			}
 			else if (queryIdx == 2){
 				System.out.println("query 1 " + token);
-				this.query1 = token;
+				this.interfaceQuery = token;
 			}
 			else if (queryIdx == 3){
 				System.out.println("query 2 " + token);
-				this.query2 = token;
+				this.sorQuery = token;
 			}
 		}
 	}
