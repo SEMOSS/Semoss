@@ -71,27 +71,4 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 			this.query = retString;
 		}
 	}
-
-//	@Override
-//	public void createData() {
-//		list = new ArrayList<Object[]>();
-//		
-//		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-//		sjsw.setEngine(engine);
-//		sjsw.setQuery(query);
-//		sjsw.executeQuery();
-//		
-//		names = sjsw.getVariables();
-//		
-//		while(sjsw.hasNext())
-//		{
-//			SesameJenaSelectStatement sjss = sjsw.next();
-//			Object[] dataToAdd = new Object[names.length];
-//			for(int i = 0; i < names.length; i++)
-//			{
-//				dataToAdd[i] = sjss.getVar(names[i]);
-//			}
-//			list.add(dataToAdd);
-//		}
-//	}
 }
