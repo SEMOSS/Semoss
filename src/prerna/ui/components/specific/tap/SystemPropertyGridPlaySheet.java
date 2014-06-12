@@ -16,24 +16,24 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 		else
 		{
 			logger.info("Query " + query);
-			
+
 			String addConditions = "";
 			String addBindings = "";
-			
+
 			int semicolon1 = query.indexOf(";");
 			int semicolon2 = query.indexOf(";",semicolon1+1);
 			int semicolon3 = query.indexOf(" SELECT",semicolon2+1);
-			
+
 			String probabilityUserResponse = query.substring(0,semicolon1);
 			String interfaceUserResponse = query.substring(semicolon1+1,semicolon2);
 			String archiveUserResponse = query.substring(semicolon2+1, semicolon3);
 			query = query.substring(semicolon3+1);
-			
+
 			if(probabilityUserResponse.equals("All"))
 			{
 				// do nothing
 			} else {
-				addConditions = addConditions.concat("OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} ");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} ");
 				if(probabilityUserResponse.equals("High"))
 				{
 					addBindings = addBindings.concat("BINDINGS ?Probability {('High')('Question')}");
@@ -42,33 +42,56 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 				}
 			}
 
-			
+
 			if(interfaceUserResponse.equals("All"))
 			{
 				// do nothing
 			} else if(interfaceUserResponse.equals("Yes"))
 			{
-				addConditions = addConditions.concat("OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }");
 			} else if(interfaceUserResponse.equals("No"))
 			{
-				addConditions = addConditions.concat("OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' }");
 			}
-			
+
 			if(archiveUserResponse.equals("All"))
 			{
 				// do nothing
 			} else if(archiveUserResponse.equals("Yes"))
 			{
-				addConditions = addConditions.concat("OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'Y' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'Y' }");
 			} else if(archiveUserResponse.equals("No"))
 			{
-				addConditions = addConditions.concat("OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'N' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'N' }");
 			}
-			
+
 			String retString = "";
-			retString = retString.concat(query.substring(0,query.lastIndexOf("}"))).concat(addConditions).concat("} ").concat(addBindings);
+			retString = retString.concat(query.substring(0,query.lastIndexOf("}"))).concat(addConditions).concat("} ").concat("ORDER BY ?System ").concat(addBindings);
 			logger.info("New Query " + retString);
 			this.query = retString;
 		}
 	}
+
+//	@Override
+//	public void createData() {
+//		list = new ArrayList<Object[]>();
+//		
+//		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+//		sjsw.setEngine(engine);
+//		sjsw.setQuery(query);
+//		sjsw.executeQuery();
+//		
+//		names = sjsw.getVariables();
+//		
+//		while(sjsw.hasNext())
+//		{
+//			SesameJenaSelectStatement sjss = sjsw.next();
+//			Object[] dataToAdd = new Object[names.length];
+//			for(int i = 0; i < names.length; i++)
+//			{
+//				dataToAdd[i] = sjss.getVar(names[i]);
+//			}
+//			list.add(dataToAdd);
+//		}
+//	}
 }
