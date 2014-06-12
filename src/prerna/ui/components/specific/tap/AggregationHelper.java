@@ -76,8 +76,6 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					concept_triple = false;
 				}
-				// must make data conversion from XMLGregorianCalendar to Date in order to be loaded into SEMOSS as a date
-				System.out.println(obj.getClass());
 				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
 				logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
@@ -285,7 +283,11 @@ public class AggregationHelper implements IAggregationHelper {
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
-
+		if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
+		{
+			value = value.toString().substring(1, value.toString().length()-1); // remove annoying 
+		}
+		
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
@@ -295,7 +297,7 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			innerHash = dataHash.get(sub);
 			Object currentString = innerHash.get(prop);
-			value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString().substring(1);
+			value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString();
 			logger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
