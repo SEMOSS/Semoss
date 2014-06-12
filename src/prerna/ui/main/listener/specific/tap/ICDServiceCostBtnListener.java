@@ -22,15 +22,18 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 
 import javax.swing.JComponent;
+import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.ServiceICDCostAnalyzer;
 import prerna.util.Constants;
+import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 
 /**
@@ -49,7 +52,16 @@ public class ICDServiceCostBtnListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		ArrayList<String> systems = sysPanel.getSelectedSystems();
+		JTextField susField = (JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.SER_ICD_SUS_FIELD);
+		double susPer = Double.parseDouble(susField.getText());
+		JTextField icdCostField = (JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.SER_ICD_COST_FIELD);
+		double icdCost = Double.parseDouble(icdCostField.getText());
+		JTextField rateField = (JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.SER_ICD_RATE_FIELD);
+		double hourlyRate = Double.parseDouble(rateField.getText());
+		
+		
 		ServiceICDCostAnalyzer serCost = new ServiceICDCostAnalyzer(systems);
+		serCost.setConstants(susPer, icdCost, hourlyRate);
 		serCost.runServiceResults();
 
 	}
