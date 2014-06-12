@@ -52,6 +52,9 @@ public class ConstantsTAP {
 	public static final String DHMSM_ACCESS_ARCHIVE_BUTTON = "archiveAccessButton";
 	public static final String DHMSM_ACCESS_IGNORE_BUTTON = "ignoreAccessButton";
 	public static final String DHMSM_SYSTEM_SELECT_PANEL = "dhmsmSystemSelectPanel";
+	public static final String SER_ICD_SUS_FIELD = "icdServiceSusField";
+	public static final String SER_ICD_COST_FIELD = "icdServiceICDCostField";
+	public static final String SER_ICD_RATE_FIELD = "icdServiceHourlyRateField";
 	
 	public static final String SYS_DECOM_OPT_RESOURCE_TEXT_FIELD = "sysDecomOptimizationResourceTextField";
 	public static final String SYS_DECOM_OPT_TIME_TEXT_FIELD = "sysDecomOptimizationTimeTextField";

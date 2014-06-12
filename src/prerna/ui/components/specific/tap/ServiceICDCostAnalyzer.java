@@ -28,6 +28,8 @@ public class ServiceICDCostAnalyzer {
 	double hourlyRate = 150;
 	double interfaceAnnualCost = 100000;
 	double sustainmentPer = 0.18;
+	
+	//indices for the final table
 	private static int serIdx = 0;
 	private static int dataIdx = 1;
 	private static int fullICDIdx = 2;
@@ -37,14 +39,14 @@ public class ServiceICDCostAnalyzer {
 	private static int icdSavingsIdx = 6;
 	
 	
-	
-	
 	private static String healthMilDataURI = "http://health.mil/ontologies/Concept/System";
+	
+	//queries
 	private String serCostQuery = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?cost) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?data ?ser BINDINGS ?sys {@SYSBINDINGS@}";
 	
 	private String serGenericCostQuery = "SELECT DISTINCT ?ser (SUM(?loe) AS ?loeSUM) WHERE {  {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs) {?GLitem ?belongs ?phase ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?inputElement ?input ?GLitem} BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag). BIND( <http://semoss.org/ontologies/Relation/Output> AS ?output) {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?GLitem ?output ?ser ;}  {?ser <http://www.w3.org/2000/01/rdf-schema#label> ?name;} BIND(\"Generic\" as ?sys)} GROUP BY  ?ser";
 	
-	private String  icdCountQueryUpstream = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?pay ?data}  {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume)  {?icd ?consume ?sys2} BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer BINDINGS ?sys  {@SYSBINDINGS@}";
+	private String  icdCountQueryUpstream = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?pay ?data}  {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume)  {?icd ?consume ?sys2} BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer BINDINGS ?sys {@SYSBINDINGS@}";
 	
 	private String  icdCountQueryDownstream = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?pay ?data}  {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume)  {?icd ?consume ?sys2} BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer BINDINGS ?sys2 {@SYSBINDINGS@}";
 	
@@ -70,14 +72,22 @@ public class ServiceICDCostAnalyzer {
 	public void runServiceResults()
 	{
 		addBindingToQueries(systems);
+		
+		//there are upstream icd counts and downstream icd counts next two query processes combines both
 		SesameJenaSelectWrapper sjswQuery = processQuery(icdCountQueryUpstream, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		processDataSerICD(sjswQuery);
 		sjswQuery = processQuery(icdCountQueryDownstream, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		processDataSerICD(sjswQuery);
+		
+		//organizes dataobjects and services
 		sjswQuery = processQuery(dataSerCountQuery, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		processSerForDataCount(sjswQuery);
+		
+		//get generic service costs
 		sjswQuery = processQuery(serGenericCostQuery, (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
 		processGenericSerCost(sjswQuery);
+		
+		//get system specific service costs
 		sjswQuery = processQuery(serCostQuery, (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data"));
 		processDataSerCost(sjswQuery);
 		
@@ -102,17 +112,20 @@ public class ServiceICDCostAnalyzer {
 			double serForDataCount = dataSerCount.get(data);
 			listElement[serIdx] = service;
 			listElement[dataIdx] = data;
+			
+			//if ser for data = 1, that means this service replaces this data 1 for 1, therefore, you can just multiple icdCount by annual cost savings
 			if(serForDataCount == 1)
 			{
 				listElement[fullICDIdx] = icdCount;
 				listElement[partialIdx] = 0;
-				listElement[icdSavingsIdx] = icdCount * interfaceAnnualCost;
+				listElement[icdSavingsIdx] = Math.round(icdCount * interfaceAnnualCost);
 			}
+			//if more than one ser is needed for a data, need to divide up the annual cost savings
 			else
 			{
 				listElement[partialIdx] = icdCount;
 				listElement[fullICDIdx] = 0;
-				listElement[icdSavingsIdx] = icdCount * interfaceAnnualCost/serForDataCount;
+				listElement[icdSavingsIdx] = Math.round(icdCount * interfaceAnnualCost/serForDataCount);
 			}
 			listElement[costIdx] = dataSerCost*hourlyRate;
 			listElement[susCostIdx] = dataSerCost *0.18*hourlyRate;
@@ -208,6 +221,8 @@ public class ServiceICDCostAnalyzer {
 		return sjsw;
 	}
 	
+	
+	//create the final grid
 	public void createGrid(ArrayList<Object[]> outputList)
 	{
 		String[] columnNames = new String[7];
@@ -245,6 +260,13 @@ public class ServiceICDCostAnalyzer {
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void setConstants(double hourlyRate, double interfaceAnnualCost, double sustainmentPer){
+		this.hourlyRate = hourlyRate;
+		this.interfaceAnnualCost  = interfaceAnnualCost;
+		this.sustainmentPer  = sustainmentPer;
+
 	}
 
 }
