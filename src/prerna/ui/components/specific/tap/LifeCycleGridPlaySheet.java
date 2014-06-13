@@ -46,6 +46,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			Integer price = ((Double)sjss.getVar(names[4])).intValue();
 			Integer quantity = ((Double)sjss.getVar(names[5])).intValue();
 			Integer cost = ((Double)sjss.getVar(names[6])).intValue();
+			Integer	budget = ((Double)sjss.getVar(names[7])).intValue();
 			
 			if(obj.equals("TBD"))
 			{
@@ -79,25 +80,18 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			}
 			
 			if(price == null)
-			{
 				price = 0;
-			}
 			
 			if(quantity == null)
-			{
 				quantity = 0;
-			}
 			
 			if(cost == null)
-			{
 				cost = 0;
-			}
 			
 			if(date == null)
-			{
 				date = "";
-			}
-			processedList.add(new Object[]{sys, ver, date, obj, price, quantity, cost});
+
+			processedList.add(new Object[]{sys, ver, date, obj, price, quantity, cost,budget});
 		}	
 		
 		try{
@@ -116,10 +110,6 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				SesameJenaSelectStatement sjss = sjsw.next();
 
 				String sys = (String)sjss.getVar(names[0]);
-				if(sys.equals("MDR"))
-				{
-					String test = "k";
-				}
 				String glTag = (String)sjss.getVar(names[1]);
 				Integer cost = ((Double)sjss.getVar(names[2])).intValue();
 				String retVarString = queryString.substring(0,queryString.indexOf("WHERE")).toLowerCase();
@@ -129,13 +119,9 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				{
 					for(int i=0;i<processedList.size();i++)
 					{
-						if(processedList.get(i)[0].equals("MDR"))
+						if(processedList.get(i)[0].equals(sys))
 						{
-							String test = "k";
-						}
-						if(processedList.get(i)[0].equals(sys)&& (Integer)processedList.get(i)[6]==0)
-						{
-							processedList.get(i)[6] = cost;
+							processedList.get(i)[7] = cost;
 						}
 					}
 				}
