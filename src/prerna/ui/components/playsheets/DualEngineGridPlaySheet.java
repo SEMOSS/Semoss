@@ -52,7 +52,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	private int names2size;
 	private Set<String> uniqueNames = new LinkedHashSet<String>();
 	private Integer[] index;
-	private boolean match = true;
+	private boolean match1 = true;
+	private boolean match2 = true;
 
 	/**
 	 * This is the function that is used to create the first view 
@@ -147,18 +148,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			ArrayList<Object[]> hash1list = hash1.get(key);
 			ArrayList<Object[]> hash2list = hash2.remove(key);
 			for(Object[] hash1array : hash1list){
-				if(hash2list == null){
-					Object[] fullRow = new Object[names1size + names2size];
-					//combine the two arrays into one row
-					for(int i = 0; i < names1size; i++){
-						if(i < names1size){
-							fullRow[i] = hash1array[i];
-						}
-					}
-					// add to the list
-					combinedList.add(fullRow);
-				}
-				else{
+				if(hash2list != null){
 					for(Object[] hash2array : hash2list){
 						Object[] fullRow = new Object[names1size + names2size];
 
@@ -174,9 +164,20 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 						combinedList.add(fullRow);
 					}
 				}
+				else if(match1){
+					Object[] fullRow = new Object[names1size + names2size];
+					//combine the two arrays into one row
+					for(int i = 0; i < names1size; i++){
+						if(i < names1size){
+							fullRow[i] = hash1array[i];
+						}
+					}
+					// add to the list
+					combinedList.add(fullRow);
+				}
 			}
 		}
-		if(match)
+		if(match2)
 		{
 			// now add any results that were returned from the second query but don't match with the first
 			Iterator<Object> hash2it = hash2.keySet().iterator();
@@ -271,7 +272,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			else if (queryIdx == 3)
 				this.query2 = token;
 			else if (queryIdx == 4)
-				this.match = Boolean.parseBoolean(token);
+				this.match1 = Boolean.parseBoolean(token);
+			else if (queryIdx == 5)
+				this.match2 = Boolean.parseBoolean(token);
 		}
 	}
 }
