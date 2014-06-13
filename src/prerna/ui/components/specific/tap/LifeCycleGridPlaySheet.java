@@ -43,53 +43,25 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			String date = (String)sjss.getVar(names[2]);
 			String obj = (String)sjss.getVar(names[3]);
 			obj = obj.replace("\"", "");
-			Integer price = ((Double)sjss.getVar(names[4])).intValue();
+			Double price = ((Double)sjss.getVar(names[4]));
 			Integer quantity = ((Double)sjss.getVar(names[5])).intValue();
-			Integer cost = ((Double)sjss.getVar(names[6])).intValue();
+			Double cost = ((Double)sjss.getVar(names[6]));
 			Integer	budget = ((Double)sjss.getVar(names[7])).intValue();
 			
-			if(obj.equals("TBD"))
-			{
-				// only display cost if retired or sunset
-				cost = 0;
-				price = 0;
-			}
-			else
+			if(!obj.equals("TBD"))
 			{
 				int lifecycleYear = Integer.parseInt(obj.substring(0,4));
 				int lifecycleMonth = Integer.parseInt(obj.substring(5,7));
 				
 				if( (year > lifecycleYear) ||(year == lifecycleYear && month >= lifecycleMonth+6 ) || (year == lifecycleYear+1 && month >= lifecycleMonth+6-12) )
-				{
 					obj = "Retired_(Not_Supported)";
-				}
 				else if(year >= lifecycleYear || (year == lifecycleYear+1 && month >= lifecycleMonth))
-				{
 					obj = "Sunset_(End_of_Life)";
-				}
 				else if(year >= lifecycleYear+2 || (year==lifecycleYear+3 && month >= lifecycleMonth))
-				{
 					obj = "Supported";
-					cost = 0;
-				}
 				else
-				{
 					obj = "GA_(Generally_Available)";
-					cost = 0;
-				}
 			}
-			
-			if(price == null)
-				price = 0;
-			
-			if(quantity == null)
-				quantity = 0;
-			
-			if(cost == null)
-				cost = 0;
-			
-			if(date == null)
-				date = "";
 
 			processedList.add(new Object[]{sys, ver, date, obj, price, quantity, cost,budget});
 		}	
