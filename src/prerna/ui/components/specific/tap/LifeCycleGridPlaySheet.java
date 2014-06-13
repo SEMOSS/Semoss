@@ -4,10 +4,13 @@ import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
@@ -35,22 +38,20 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
 
-			String sys = sjss.getVar(names[0]).toString();
-			String ver = sjss.getVar(names[1]).toString();
-			String date = sjss.getVar(names[2]).toString();
-			String obj = sjss.getVar(names[3]).toString();
+			String sys = (String)sjss.getVar(names[0]);
+			String ver = (String)sjss.getVar(names[1]);
+			String date = (String)sjss.getVar(names[2]);
+			String obj = (String)sjss.getVar(names[3]);
 			obj = obj.replace("\"", "");
-			String price = sjss.getVar(names[4]).toString();
-			String quantity = sjss.getVar(names[5]).toString();
-			String cost = sjss.getVar(names[6]).toString();
-			cost = cost.replace("\"", "");
-			
+			Integer price = ((Double)sjss.getVar(names[4])).intValue();
+			Integer quantity = ((Double)sjss.getVar(names[5])).intValue();
+			Integer cost = ((Double)sjss.getVar(names[6])).intValue();
 			
 			if(obj.equals("TBD"))
 			{
 				// only display cost if retired or sunset
-				cost = "";
-				price = "";
+				cost = 0;
+				price = 0;
 			}
 			else
 			{
@@ -68,28 +69,28 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				else if(year >= lifecycleYear+2 || (year==lifecycleYear+3 && month >= lifecycleMonth))
 				{
 					obj = "Supported";
-					cost = ""; 
+					cost = 0;
 				}
 				else
 				{
 					obj = "GA_(Generally_Available)";
-					cost = ""; 
+					cost = 0;
 				}
 			}
 			
 			if(price == null)
 			{
-				price = "";
+				price = 0;
 			}
 			
 			if(quantity == null)
 			{
-				quantity = "";
+				quantity = 0;
 			}
 			
 			if(cost == null)
 			{
-				cost = "";
+				cost = 0;
 			}
 			
 			if(date == null)
@@ -98,6 +99,52 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			}
 			processedList.add(new Object[]{sys, ver, date, obj, price, quantity, cost});
 		}	
+		
+		try{
+			IEngine tapCostEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			String tapCostQuery = "SELECT DISTINCT ?System ?GLTag (max(coalesce(?FY15,0)) as ?fy15) WHERE { { {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}  {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?System ?Has ?SystemBudgetGLItem}{?SystemBudgetGLItem ?TaggedBy ?GLTag}{?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15)} UNION {{?SystemServiceBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem> ;} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService> ;}{?ConsistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>;} {?System ?ConsistsOf ?SystemService}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}  {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?SystemService ?Has ?SystemServiceBudgetGLItem}{?SystemServiceBudgetGLItem ?TaggedBy ?GLTag}{?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemServiceBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15) } }GROUP BY ?System ?GLTag BINDINGS ?GLTag {(<http://health.mil/ontologies/Concept/GLTag/SW_Licen>) (<http://health.mil/ontologies/Concept/GLTag/HW>)}";
+			sjsw = new SesameJenaSelectWrapper();
+			//run the query against the engine provided
+			sjsw.setEngine(tapCostEngine);
+			sjsw.setQuery(tapCostQuery);
+			sjsw.executeQuery();
+			
+			String[] names = sjsw.getVariables();
+
+			while(sjsw.hasNext())
+			{
+				SesameJenaSelectStatement sjss = sjsw.next();
+
+				String sys = (String)sjss.getVar(names[0]);
+				if(sys.equals("MDR"))
+				{
+					String test = "k";
+				}
+				String glTag = (String)sjss.getVar(names[1]);
+				Integer cost = ((Double)sjss.getVar(names[2])).intValue();
+				String retVarString = queryString.substring(0,queryString.indexOf("WHERE")).toLowerCase();
+				boolean isHardware = retVarString.contains("hardware")||retVarString.contains("hw");
+				
+				if((glTag.contains("HW")&&isHardware)||(glTag.contains("SW")&&!isHardware))
+				{
+					for(int i=0;i<processedList.size();i++)
+					{
+						if(processedList.get(i)[0].equals("MDR"))
+						{
+							String test = "k";
+						}
+						if(processedList.get(i)[0].equals(sys)&& (Integer)processedList.get(i)[6]==0)
+						{
+							processedList.get(i)[6] = cost;
+						}
+					}
+				}
+				
+			}
+		} catch (Exception e) {
+			logger.error("Cannot find engine: TAP_Cost_Data");
+		}
+
 		return processedList;
 	}
 
