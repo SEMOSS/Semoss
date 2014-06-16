@@ -1,5 +1,6 @@
 package prerna.rdf.engine.api;
 
+import java.util.Hashtable;
 import java.util.Vector;
 
 import org.openrdf.repository.RepositoryConnection;
@@ -18,7 +19,9 @@ public interface IExplorable {
 
 	// get the insight for a given question description
 	public Insight getInsight(String label);
-	
+
+	// get the insight for a given question description
+	public Vector<Hashtable<String, String>> getOutputs4Insights(Vector<String> insightLabels);
 	
 	// gets insights for a given type of entity
 	public Vector <String> getInsight4Type(String type);
