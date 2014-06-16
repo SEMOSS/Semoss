@@ -57,6 +57,7 @@ DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 ConformanceCriteria_Fulfill_DataObject http://health.mil/ontologies/Relation/Fulfill
 HardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
+BusinessLogicUnit_Requires_DataObject http://health.mil/ontologies/Relation/Requires
 JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
 Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
@@ -221,6 +222,7 @@ DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/Bel
 System_OwnedBy_SystemOwner_CLASS http://semoss.org/ontologies/Relation/OwnedBy
 Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+BusinessLogicUnit_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
 Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 CCD_Element_BelongsTo_CCD_CLASS http://semoss.org/ontologies/Relation/BelongsTo
