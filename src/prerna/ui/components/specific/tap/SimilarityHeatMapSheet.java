@@ -37,16 +37,13 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.BrowserFunction;
-import com.teamdev.jxbrowser.chromium.JSValue;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
-import com.teamdev.jxbrowser.chromium.events.LoadListener;
 
 
 /**
  */
 public class SimilarityHeatMapSheet extends BrowserPlaySheet{
-	Logger logger = Logger.getLogger(getClass());
+	protected Logger logger = Logger.getLogger(getClass());
 	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
 	String comparisonObjectTypeX = "";

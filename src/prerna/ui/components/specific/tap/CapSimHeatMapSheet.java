@@ -20,20 +20,7 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-
-import org.apache.log4j.Logger;
-
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 /**
  */
@@ -56,7 +43,7 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		addPanel();
 		// this would be create the data
 		Hashtable dataHash = new Hashtable();
-		Hashtable overallHash;
+//		Hashtable overallHash;
 		//get list of capabilities first
 		updateProgressBar("10%...Getting all capabilities for evaluation", 10);
 		query = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
@@ -82,10 +69,10 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		Hashtable bpHash = sdf.compareObjectParameterScore(hrCoreDB, bpQuery, SimilarityFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
-		String attributeQuery ="SELECT DISTINCT ?Capability ?Attribute WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute>;}{?Capability ?Consists ?Task.}{?Task ?Has ?Attribute.}}";
-		updateProgressBar("55%...Evaluating Capability Supporting Attribute", 55);
-		Hashtable attributeHash = sdf.compareObjectParameterScore(hrCoreDB, attributeQuery, SimilarityFunctions.VALUE);
-		attributeHash = processHashForCharting(attributeHash);	
+//		String attributeQuery ="SELECT DISTINCT ?Capability ?Attribute WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute>;}{?Capability ?Consists ?Task.}{?Task ?Has ?Attribute.}}";
+//		updateProgressBar("55%...Evaluating Capability Supporting Attribute", 55);
+//		Hashtable attributeHash = sdf.compareObjectParameterScore(hrCoreDB, attributeQuery, SimilarityFunctions.VALUE);
+//		attributeHash = processHashForCharting(attributeHash);	
 
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
 		
@@ -96,8 +83,8 @@ public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 		paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
 		
 		allHash.put("title",  "Capability Similarity");
-		allHash.put("xAxisTitle", "Capability");
-		allHash.put("yAxisTitle", "System");
+		allHash.put("xAxisTitle", "Capability1");
+		allHash.put("yAxisTitle", "Capability2");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
 	}
