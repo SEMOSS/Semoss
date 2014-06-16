@@ -215,6 +215,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/OwnedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Requires">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -325,6 +328,9 @@
 			<Connected rdf:resource="http://semoss.org/ontologies/Concept/HL7"/>
 		</rdf:Description>
 	</BelongsTo>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessLogicUnit">
+	<Requires rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Provide rdf:resource="http://semoss.org/ontologies/Concept/BusinessLogicUnit"/>
