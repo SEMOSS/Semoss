@@ -53,9 +53,12 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		
 		double n=calculateYears(a);
 		solutionExists = true;
-		if(n==-1)
+		if(n==-1 )
 			return -1.0E30;
-		
+		if(n>totalYrs)
+		{
+			return 0;
+		}
 		double nAdjusted = yearAdjuster.adjustTimeToTransform(a, n);
 //		if(Math.abs(nAdjusted-n)>.1)
 // 			System.out.println("N is: "+n+" Adjusted N is: "+nAdjusted);

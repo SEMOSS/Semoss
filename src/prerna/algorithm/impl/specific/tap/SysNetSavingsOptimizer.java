@@ -564,7 +564,10 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			}
 			if(savingsROIOrIRR < 0.0)
 				positiveOrNegativeString = "negative";
-			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsROIOrIRRString);
+			if(optNumYears>maxYears)
+				((SysOptPlaySheet)playSheet).solutionLbl.setText("Construction takes longer than allotted "+maxYears+" "+" Years");
+			else
+				((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsROIOrIRRString);
 		}
 		
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
@@ -585,8 +588,13 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			double irrVal = Utility.round(irr*100,2);
 			((SysOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrVal)+"%");
 		}
-		double timeTransition = Utility.round(optNumYears,2);
-		((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
+		if(optNumYears>maxYears)
+			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText("Beyond Max Time");
+		else
+		{
+			double timeTransition = Utility.round(optNumYears,2);
+			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
+		}
 		String annualBudgetString = Utility.sciToDollar(budget);
 		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
 		
