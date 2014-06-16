@@ -359,7 +359,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			String obj = sjss.getRawVar(vars[1]).toString();
 			String pred = sjss.getRawVar(vars[2]).toString();
 			pred = pred.substring(0, pred.lastIndexOf("/")) + "/" + getTextAfterFinalDelimeter(sub, "/") +":" + getTextAfterFinalDelimeter(obj, "/");
-			
+
 			String prop = sjss.getRawVar(vars[3]).toString();
 			Object value = sjss.getRawVar(vars[4]);
 			String user = "";
@@ -417,7 +417,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				// must remove existing triple in TAP Core prior to adding
 				if(TAP_Core)
 				{
-					addToDeleteHash(new String[]{"<" + pred + ">","<" + prop + ">", value.toString()});
+					addToDeleteHash(new String[]{pred, prop, value.toString()});
 				}
 			}
 		}
@@ -461,113 +461,113 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				
-					if(prop.equals(semossPropertyBaseURI + "ATO_Date"))
-					{
-						boolean earliest = false;
-						returnTriple = processMinMaxDate(sub, prop, value, earliest);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "End_of_Support_Date"))
-					{
-						boolean latest = true;
-						returnTriple = processMinMaxDate(sub, prop, value, latest);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Availability-Actual"))
-					{
-						boolean min = false;
-						returnTriple = processMaxMinDouble(sub, prop, value, min);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Availability-Required"))
-					{
-						boolean max = true;
-						returnTriple = processMaxMinDouble(sub, prop, value, max);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Description"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "POC"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Full_System_Name"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Number_of_Users"))
-					{
-						returnTriple = processSumValues(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Transaction_Count"))
-					{
-						returnTriple = processSumValues(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "User_Consoles"))
-					{
-						returnTriple = processSumValues(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "GarrisonTheater"))
-					{
-						returnTriple = processGarrisonTheater(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Transactional"))
-					{
-						returnTriple = processTransactional(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Comments"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
 
-					// if error occurs
-					if(Arrays.equals(returnTriple, new String[]{""}))
-					{
-						String outuptToLog = "";
-						//						XSSFRow row = errSheet.createRow(rowNum);
-						if(!TAP_Core)
-						{
-							//							row.createCell(0).setCellValue("TAP_Services_DB");
-							outuptToLog += "TAP_Services_DB ";
+				if(prop.equals(semossPropertyBaseURI + "ATO_Date"))
+				{
+					boolean earliest = false;
+					returnTriple = processMinMaxDate(sub, prop, value, earliest);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "End_of_Support_Date"))
+				{
+					boolean latest = true;
+					returnTriple = processMinMaxDate(sub, prop, value, latest);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Availability-Actual"))
+				{
+					boolean min = false;
+					returnTriple = processMaxMinDouble(sub, prop, value, min);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Availability-Required"))
+				{
+					boolean max = true;
+					returnTriple = processMaxMinDouble(sub, prop, value, max);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Description"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "POC"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Full_System_Name"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Number_of_Users"))
+				{
+					returnTriple = processSumValues(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Transaction_Count"))
+				{
+					returnTriple = processSumValues(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "User_Consoles"))
+				{
+					returnTriple = processSumValues(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "GarrisonTheater"))
+				{
+					returnTriple = processGarrisonTheater(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Transactional"))
+				{
+					returnTriple = processTransactional(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Comments"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
 
-						}
-						else
-						{
-							//							row.createCell(0).setCellValue("TAP_Core_DB");
-							outuptToLog += "TAP_Core_DB ";
-						}
-						outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
-						fileLogger.info(outuptToLog);
-						//						row.createCell(1).setCellValue(sub);
-						//						row.createCell(2).setCellValue(prop);
-						//						row.createCell(3).setCellValue(value.toString());
-						//						row.createCell(4).setCellValue(this.errorMessage);
-						//						rowNum++;
-
-						aggregationSuccess = false;
-					}
-					// returnTriple never gets a value when the property being passed in isn't in the defined list above
-					else if(returnTriple[0] != null)
-					{
-						logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-						addToDataHash(returnTriple);
-					}
-
-					// sub already exists when going through TAP Core db
+				// if error occurs
+				if(Arrays.equals(returnTriple, new String[]{""}))
+				{
+					String outuptToLog = "";
+					//						XSSFRow row = errSheet.createRow(rowNum);
 					if(!TAP_Core)
 					{
-						addToAllConcepts(sub);
-					}
+						//							row.createCell(0).setCellValue("TAP_Services_DB");
+						outuptToLog += "TAP_Services_DB ";
 
-					// must remove existing triple in TAP Core prior to adding
-					if(TAP_Core)
-					{
-						if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
-						{
-							value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
-						}
-						addToDeleteHash(new String[]{"<" + sub + ">","<" + prop + ">", value.toString()});
 					}
-				
+					else
+					{
+						//							row.createCell(0).setCellValue("TAP_Core_DB");
+						outuptToLog += "TAP_Core_DB ";
+					}
+					outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+					fileLogger.info(outuptToLog);
+					//						row.createCell(1).setCellValue(sub);
+					//						row.createCell(2).setCellValue(prop);
+					//						row.createCell(3).setCellValue(value.toString());
+					//						row.createCell(4).setCellValue(this.errorMessage);
+					//						rowNum++;
+
+					aggregationSuccess = false;
+				}
+				// returnTriple never gets a value when the property being passed in isn't in the defined list above
+				else if(returnTriple[0] != null)
+				{
+					logger.debug("ADDING SYSTEM PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
+					addToDataHash(returnTriple);
+				}
+
+				// sub already exists when going through TAP Core db
+				if(!TAP_Core)
+				{
+					addToAllConcepts(sub);
+				}
+
+				// must remove existing triple in TAP Core prior to adding
+				if(TAP_Core)
+				{
+					if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
+					{
+						value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
+					}
+					addToDeleteHash(new String[]{sub, prop, value.toString()});
+				}
+
 			}
 		}
 	}
@@ -607,93 +607,92 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			{
 				user = sjss.getRawVar(vars[3]).toString();
 			}
-			else
-			{
-				user = "";
-			}
 
 			if(dataHash.containsKey(sub) || !TAP_Core)
 			{
 				Object[] returnTriple = new Object[3];
-				
-					if(prop.equals(semossPropertyBaseURI + "Data"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Format"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Frequency"))
-					{
-						returnTriple = processDFreq(sub, prop, value);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Interface_Name"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Protocol"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Source"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
-					else if(prop.equals(semossPropertyBaseURI + "Type"))
-					{
-						returnTriple = processConcatString(sub, prop, value, user);
-					}
 
-					// if error occurs
-					if(Arrays.equals(returnTriple, new String[]{""}))
-					{
-						String outuptToLog = "";
-						//						XSSFRow row = errSheet.createRow(rowNum);
-						if(!TAP_Core)
-						{
-							//							row.createCell(0).setCellValue("TAP_Services_DB");
-							outuptToLog += "TAP_Services_DB ";
+				if(prop.equals(semossPropertyBaseURI + "Data"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Format"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Frequency"))
+				{
+					returnTriple = processDFreq(sub, prop, value);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Interface_Name"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Protocol"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Source"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Type"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Comments"))
+				{
+					returnTriple = processConcatString(sub, prop, value, user);
+				}
 
-						}
-						else
-						{
-							//							row.createCell(0).setCellValue("TAP_Core_DB");
-							outuptToLog += "TAP_Core_DB ";
-						}
-						outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
-						fileLogger.info(outuptToLog);
-						//						row.createCell(1).setCellValue(sub);
-						//						row.createCell(2).setCellValue(prop);
-						//						row.createCell(3).setCellValue(value.toString());
-						//						row.createCell(4).setCellValue(this.errorMessage);
-						//						rowNum++;
-
-						aggregationSuccess = false;
-					}
-					// returnTriple never gets a value when the property being passed in isn't in the defined list above
-					else if(returnTriple[0] != null)
-					{
-						logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-						addToDataHash(returnTriple);
-					}
-					// sub already exists when going through TAP Core db
+				// if error occurs
+				if(Arrays.equals(returnTriple, new String[]{""}))
+				{
+					String outuptToLog = "";
+					//						XSSFRow row = errSheet.createRow(rowNum);
 					if(!TAP_Core)
 					{
-						addToAllRelationships(sub);
+						//							row.createCell(0).setCellValue("TAP_Services_DB");
+						outuptToLog += "TAP_Services_DB ";
+
 					}
-					// must remove existing triple in TAP Core prior to adding
-					if(TAP_Core)
+					else
 					{
-						if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
-						{
-							value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
-						}
-						addToDeleteHash(new String[]{"<" + sub + ">","<" + prop + ">", value.toString()});
+						//							row.createCell(0).setCellValue("TAP_Core_DB");
+						outuptToLog += "TAP_Core_DB ";
 					}
+					outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+					fileLogger.info(outuptToLog);
+					//						row.createCell(1).setCellValue(sub);
+					//						row.createCell(2).setCellValue(prop);
+					//						row.createCell(3).setCellValue(value.toString());
+					//						row.createCell(4).setCellValue(this.errorMessage);
+					//						rowNum++;
+
+					aggregationSuccess = false;
+				}
+				// returnTriple never gets a value when the property being passed in isn't in the defined list above
+				else if(returnTriple[0] != null)
+				{
+					logger.debug("ADDING ICD PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
+					addToDataHash(returnTriple);
+				}
+				// sub already exists when going through TAP Core db
+				if(!TAP_Core)
+				{
+					addToAllRelationships(sub);
+				}
+				// must remove existing triple in TAP Core prior to adding
+				if(TAP_Core)
+				{
+					if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
+					{
+						value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
+					}
+					addToDeleteHash(new String[]{sub, prop, value.toString()});
 				}
 			}
-		
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -902,88 +901,88 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				if(dataHash.containsKey(module) || !TAP_Core)
 				{
 					Object[] returnTriple = new Object[3];
-					
-						if(prop.equals(semossPropertyBaseURI + "Quantity"))
-						{
-							returnTriple = processSumValues(module, prop, value);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Comments"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "EOL"))
-						{
-							boolean max = true;
-							returnTriple = processMinMaxDate(module, prop, value, max);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Manufacturer"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Model"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Product_Type"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Master_Version"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Major_Version"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
-						else if(prop.equals(semossPropertyBaseURI + "Vendor"))
-						{
-							returnTriple = processConcatString(module, prop, value, user);
-						}
 
-						// if error occurs
-						if(Arrays.equals(returnTriple, new String[]{""}))
-						{
-							String outuptToLog = "";
-							//							XSSFRow row = errSheet.createRow(rowNum);
-							if(!TAP_Core)
-							{
-								//								row.createCell(0).setCellValue("TAP_Services_DB");
-								outuptToLog += "TAP_Services_DB ";
+					if(prop.equals(semossPropertyBaseURI + "Quantity"))
+					{
+						returnTriple = processSumValues(module, prop, value);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Comments"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "EOL"))
+					{
+						boolean max = true;
+						returnTriple = processMinMaxDate(module, prop, value, max);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Manufacturer"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Model"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Product_Type"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Master_Version"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Major_Version"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
+					else if(prop.equals(semossPropertyBaseURI + "Vendor"))
+					{
+						returnTriple = processConcatString(module, prop, value, user);
+					}
 
-							}
-							else
-							{
-								//								row.createCell(0).setCellValue("TAP_Core_DB");
-								outuptToLog += "TAP_Core_DB ";
-							}
-							outuptToLog += module + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
-							fileLogger.info(outuptToLog);
-							//							row.createCell(1).setCellValue(sub);
-							//							row.createCell(2).setCellValue(prop);
-							//							row.createCell(3).setCellValue(value.toString());
-							//							row.createCell(4).setCellValue(this.errorMessage);
-							//							rowNum++;
-
-							aggregationSuccess = false;
-						}
-						// returnTriple never gets a value when the property being passed in isn't in the defined list above
-						else if(returnTriple[0] != null)
+					// if error occurs
+					if(Arrays.equals(returnTriple, new String[]{""}))
+					{
+						String outuptToLog = "";
+						//							XSSFRow row = errSheet.createRow(rowNum);
+						if(!TAP_Core)
 						{
-							logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
-							addToDataHash(returnTriple);
-						}
+							//								row.createCell(0).setCellValue("TAP_Services_DB");
+							outuptToLog += "TAP_Services_DB ";
 
-						// must remove existing triple in TAP Core prior to adding
-						if(TAP_Core)
-						{
-							if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
-							{
-								value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
-							}
-							addToDeleteHash(new String[]{"<" + module + ">","<" + prop + ">", value.toString()});
 						}
-					
+						else
+						{
+							//								row.createCell(0).setCellValue("TAP_Core_DB");
+							outuptToLog += "TAP_Core_DB ";
+						}
+						outuptToLog += module + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
+						fileLogger.info(outuptToLog);
+						//							row.createCell(1).setCellValue(sub);
+						//							row.createCell(2).setCellValue(prop);
+						//							row.createCell(3).setCellValue(value.toString());
+						//							row.createCell(4).setCellValue(this.errorMessage);
+						//							rowNum++;
+
+						aggregationSuccess = false;
+					}
+					// returnTriple never gets a value when the property being passed in isn't in the defined list above
+					else if(returnTriple[0] != null)
+					{
+						logger.debug("ADDING HARDWARE/SOFTWARE MODULE PROPERTY:     " + returnTriple[0] + " -----> {" + returnTriple[1] + " --- " + returnTriple[2].toString() + "}");
+						addToDataHash(returnTriple);
+					}
+
+					// must remove existing triple in TAP Core prior to adding
+					if(TAP_Core)
+					{
+						if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
+						{
+							value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
+						}
+						addToDeleteHash(new String[]{module, prop, value.toString()});
+					}
+
 				}
 			}
 			// perform check to see if must add software/hardware version is software/hardware Module does not exist in TAP Core
@@ -1129,7 +1128,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		{
 			value = value.toString().substring(1, value.toString().length()-1); // remove annoying quotes
 		}
-		
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
@@ -1165,7 +1164,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#float","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#boolean","");
 		value = value.toString().replaceAll("^^<http:--www.w3.org-2001-XMLSchema#dateTime","");
-		
+
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{

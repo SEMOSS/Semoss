@@ -25,7 +25,6 @@ import java.util.Properties;
 import java.util.Vector;
 
 import org.openrdf.model.URI;
-import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
