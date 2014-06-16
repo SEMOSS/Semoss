@@ -87,7 +87,7 @@ public abstract class AbstractEngine implements IEngine {
 			+ Constants.PERSPECTIVE
 			+ ":" + Constants.LABEL + ">  ?perspective.}" + "}";
 
-	public static final String insights = "SELECT ?insight ?output WHERE {{?perspectiveURI <"
+	public static final String insights = "SELECT ?insight WHERE {{?perspectiveURI <"
 			+ Constants.PERSPECTIVE
 			+ ":"
 			+ Constants.LABEL
@@ -102,12 +102,22 @@ public abstract class AbstractEngine implements IEngine {
 			+ ":"
 			+ Constants.LABEL
 			+ "> ?insight.}"
+			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
+
+	public static final String insightsOutputs = "SELECT ?insight ?output WHERE {"
+			+ "{?insightURI <"
+			+ Constants.INSIGHT
+			+ ":"
+			+ Constants.LABEL
+			+ "> ?insight.}"
 			+ "{?insightURI <"
 			+ Constants.INSIGHT
 			+ ":"
 			+ Constants.OUTPUT
 			+ "> ?output.}"
-			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
+			+ "}"
+			+ "BINDINGS ?insight {@insightsBindings@}";
+
 
 	public static final String fromSparql = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
@@ -760,7 +770,7 @@ public abstract class AbstractEngine implements IEngine {
 		Vector<String> retString = new Vector<String>();
 		// using SPARQL to do the same thing
 		Hashtable paramHash = new Hashtable();
-		paramHash.put("engine", engineURI2 + "");
+		paramHash.put("engine", engine + "");
 		String query = Utility.fillParam(perspectives, paramHash);
 		System.err.println("Query is " + query);
 		return getSelect(query, insightBase, "perspective");
@@ -783,24 +793,24 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 
-	public Vector<Object> getInsights(String perspective, boolean formalObject) {
+	public Vector<Hashtable<String, String>> getOutputs4Insights(Vector<String> insights) {
 
-		return getInsights(perspective, engineURI2 + "", formalObject);
-	}
-
-	public Vector getInsights(String perspective, String engine, boolean formalObject) {
-
-		if (perspective != null) {
+		Vector<Hashtable<String, String>> retV = new Vector<Hashtable<String, String>>();
+		if (insights != null) {
+			//prepare bindings set
+			String bindingsSet = "";
+			for (String insight : insights){
+				bindingsSet = bindingsSet + "(\"" + insight + "\")";
+			}
+			
 			Hashtable paramHash = new Hashtable();
-			paramHash.put("perspective", perspective);
-			String query = Utility.fillParam(insights, paramHash);
+			paramHash.put("insightsBindings", bindingsSet);
+			String unfilledQuery = this.insightsOutputs;
+			String query = Utility.fillParam(unfilledQuery, paramHash);
 			System.err.println("Query " + query);
-			if(formalObject)
-				return getSelectObject(query, insightBase);
-			else
-				return getSelect(query, insightBase, "insight");
+			retV = getSelectObject(query, insightBase);
 		}
-		return null;
+		return retV;
 	}
 
 	public Vector<String> getInsights() {
@@ -1207,8 +1217,8 @@ public abstract class AbstractEngine implements IEngine {
 
 	}
 	
-	private Vector<Hashtable> getSelectObject(String sparql, RepositoryConnection rc) {
-		Vector<Hashtable> retString = new Vector<Hashtable>();
+	private Vector<Hashtable<String, String>> getSelectObject(String sparql, RepositoryConnection rc) {
+		Vector<Hashtable<String, String>> retString = new Vector<Hashtable<String, String>>();
 
 		try {
 			TupleQuery query = rc.prepareTupleQuery(QueryLanguage.SPARQL,
