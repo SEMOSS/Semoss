@@ -20,7 +20,7 @@ package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -46,8 +46,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	String engineName2;
 	IEngine engine1;
 	IEngine engine2;
-	Hashtable<Object, ArrayList<Object[]>> dataHash1 = new Hashtable<Object, ArrayList<Object[]>>();
-	Hashtable<Object, ArrayList<Object[]>> dataHash2 = new Hashtable<Object, ArrayList<Object[]>>();
+	HashMap<Object, ArrayList<Object[]>> dataHash1 = new HashMap<Object, ArrayList<Object[]>>();
+	HashMap<Object, ArrayList<Object[]>> dataHash2 = new HashMap<Object, ArrayList<Object[]>>();
 	private int names1size;
 	private int names2size;
 	private Set<String> uniqueNames = new LinkedHashSet<String>();
@@ -138,7 +138,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 * @param hash1 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the first query
 	 * @param hash2 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the second query
 	 */
-	private void prepareList(Hashtable<Object, ArrayList<Object[]>> hash1, Hashtable<Object, ArrayList<Object[]>> hash2)
+	private void prepareList(HashMap<Object, ArrayList<Object[]>> hash1, HashMap<Object, ArrayList<Object[]>> hash2)
 	{
 		ArrayList<Object[]> combinedList = new ArrayList<Object[]>();
 
@@ -196,7 +196,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				}
 			}
 		}
-
+		// remove the duplicated columns
 		Iterator<Object[]> removeDuplicateColumnsIt = combinedList.iterator();
 		while(removeDuplicateColumnsIt.hasNext()) {
 			Object[] fullRow = removeDuplicateColumnsIt.next();
@@ -206,7 +206,6 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			}
 			list.add(reducedList);
 		}
-		
 	}
 
 	/**
@@ -216,7 +215,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(String commonVar, SesameJenaSelectWrapper sjw, Hashtable<Object, ArrayList<Object[]>> hash, String[] names){
+	private void processWrapper(String commonVar, SesameJenaSelectWrapper sjw, HashMap<Object, ArrayList<Object[]>> hash, String[] names){
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext())

@@ -61,7 +61,6 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private String TAP_SERVICES_ICD_CONSUME_SYS_QUERY = "SELECT DISTINCT ?icd ?pred ?sys WHERE{{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?pred <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>} {?icd ?pred ?sys}}";
 
 	private String TAP_CORE_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?ICD ?Payload ?Data} {?Payload ?prop ?value}}";
-
 	private String TAP_SERVICES_AGGREGATE_ICD_PROP_QUERY = "SELECT DISTINCT ?Payload ?prop ?value ?user WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?user a <http://semoss.org/ontologies/Concept/SystemUser>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?Payload ?prop ?value} {?ICD ?Payload ?Data} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService <http://semoss.org/ontologies/Relation/Implemented_At> ?ICD}}";
 
 	private String TAP_SERVICES_AGGREGATE_ICD_DATAOBJECT_QUERY = "SELECT DISTINCT ?ICD ?Payload ?data WHERE{{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?data} }";
@@ -447,7 +446,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		while(sjsw.hasNext())
 		{
 			this.errorMessage = "";
-
+			boolean aggregatedProp = false;
+			
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
@@ -466,57 +466,70 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				{
 					boolean earliest = false;
 					returnTriple = processMinMaxDate(sub, prop, value, earliest);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "End_of_Support_Date"))
 				{
 					boolean latest = true;
 					returnTriple = processMinMaxDate(sub, prop, value, latest);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Availability-Actual"))
 				{
 					boolean min = false;
 					returnTriple = processMaxMinDouble(sub, prop, value, min);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Availability-Required"))
 				{
 					boolean max = true;
 					returnTriple = processMaxMinDouble(sub, prop, value, max);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Description"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "POC"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Full_System_Name"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Number_of_Users"))
 				{
 					returnTriple = processSumValues(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Transaction_Count"))
 				{
 					returnTriple = processSumValues(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "User_Consoles"))
 				{
 					returnTriple = processSumValues(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "GarrisonTheater"))
 				{
 					returnTriple = processGarrisonTheater(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Transactional"))
 				{
 					returnTriple = processTransactional(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Comments"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 
 				// if error occurs
@@ -559,7 +572,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				}
 
 				// must remove existing triple in TAP Core prior to adding
-				if(TAP_Core)
+				if(TAP_Core && aggregatedProp)
 				{
 					if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
 					{
@@ -597,6 +610,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		while(sjsw.hasNext())
 		{
 			this.errorMessage = "";
+			boolean aggregatedProp = false;
 
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
@@ -615,34 +629,42 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				if(prop.equals(semossPropertyBaseURI + "Data"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Format"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Frequency"))
 				{
 					returnTriple = processDFreq(sub, prop, value);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Interface_Name"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Protocol"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Source"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Type"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Comments"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
 				}
 
 				// if error occurs
@@ -683,7 +705,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					addToAllRelationships(sub);
 				}
 				// must remove existing triple in TAP Core prior to adding
-				if(TAP_Core)
+				if(TAP_Core & aggregatedProp)
 				{
 					if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
 					{
@@ -881,7 +903,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		while(sjsw.hasNext())
 		{
 			this.errorMessage = "";
-
+			boolean aggregatedProp = false;
+			
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String module = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
@@ -905,39 +928,48 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					if(prop.equals(semossPropertyBaseURI + "Quantity"))
 					{
 						returnTriple = processSumValues(module, prop, value);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Comments"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "EOL"))
 					{
 						boolean max = true;
 						returnTriple = processMinMaxDate(module, prop, value, max);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Manufacturer"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Model"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Product_Type"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Master_Version"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Major_Version"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 					else if(prop.equals(semossPropertyBaseURI + "Vendor"))
 					{
 						returnTriple = processConcatString(module, prop, value, user);
+						aggregatedProp = true;
 					}
 
 					// if error occurs
@@ -974,7 +1006,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					}
 
 					// must remove existing triple in TAP Core prior to adding
-					if(TAP_Core)
+					if(TAP_Core & aggregatedProp)
 					{
 						if(value.toString().startsWith("\"") || value.toString().endsWith("\""))
 						{
