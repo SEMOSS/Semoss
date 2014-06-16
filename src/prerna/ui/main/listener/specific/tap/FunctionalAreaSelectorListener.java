@@ -28,6 +28,8 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -47,6 +49,8 @@ public class FunctionalAreaSelectorListener extends AbstractListener {
 	JCheckBox FHPCheckBox;
 	JCheckBox DHMSMCheckBox;
 	IEngine engine;
+	
+	protected Logger logger = Logger.getLogger(getClass());
 
 	/**
 	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report
@@ -97,7 +101,10 @@ public class FunctionalAreaSelectorListener extends AbstractListener {
 		for (int i = 0; i< capabilities.size(); i++)
 		{
 			JCheckBox checkBox = (JCheckBox) sourcePanel.checkBoxHash.get(capabilities.get(i));
-			checkBox.setSelected(true);
+			if(checkBox!=null)
+				checkBox.setSelected(true);
+			else
+				logger.info("Capability not included:" + capabilities.get(i));
 		}
 	}
 		
