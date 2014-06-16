@@ -509,7 +509,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
 					newRow[sysInd+3] = "X";
-			if(includeRegionalization);
+			if(includeRegionalization)
 			{
 				int numRegions = 0;
 				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
