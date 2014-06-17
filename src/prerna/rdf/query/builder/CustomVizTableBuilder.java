@@ -29,8 +29,8 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	static final String varKey = "varKey";
 	String nodeInstanceQuery = "SELECT DISTINCT ?instance WHERE {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>}";
 	String relInstanceQuery = "SELECT DISTINCT ?instance WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?instance <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?instance ?outNode}}";
-	String nodePropQuery = "SELECT DISTINCT ?instance WHERE {{?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>} {?node @PROP_TYPE@ ?instance }}";
-	String relPropQuery = "SELECT DISTINCT ?instance WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?rel ?outNode} {?rel @PROP_TYPE@ ?instance}}";
+	String nodePropQuery = "SELECT DISTINCT ?instance WHERE {{?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>} {?node <@PROP_TYPE@> ?instance }}";
+	String relPropQuery = "SELECT DISTINCT ?instance WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?rel ?outNode} {?rel <@PROP_TYPE@> ?instance}}";
 	Logger logger = Logger.getLogger(getClass());
 
 
