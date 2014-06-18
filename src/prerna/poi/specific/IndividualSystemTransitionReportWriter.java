@@ -19,22 +19,17 @@
 package prerna.poi.specific;
 
 import java.io.File;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -44,22 +39,28 @@ import prerna.util.Utility;
 public class IndividualSystemTransitionReportWriter {
 
 	Logger logger = Logger.getLogger(getClass());
-	XSSFWorkbook wb;
-	String templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + "Individual_System_Transition_Report_Template.xlsx";
-	String systemName;
-	String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+	private XSSFWorkbook wb;
+	private String systemName = "";
+	private static String fileLoc = "";
+	private static String templateLoc = "";
 	
-	String beginIOCString = "June 10, 2016";
-	String iocString = "April 20, 2017";
-	String focString = "July 21, 2022";
-/**
+	private String beginIOCString = "June 10, 2016";
+	private String iocString = "April 20, 2017";
+	private String focString = "July 21, 2022";
+	
+	public IndividualSystemTransitionReportWriter(){
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + "Individual_System_Transition_Report_Template.xlsx";
+	}
+	
+	/**
 	 * Creates a new workbook, sets the file location, and creates the styles to be used.
 	 * @param systemName		String containing the name of the system to create the report for
 	 */
 	public void makeWorkbook(String systemName)
 	{
 		this.systemName = systemName;
-		this.fileLoc += fileLoc + systemName+"_Transition_Report";
+		fileLoc += systemName+"_Transition_Report.xlsx";
 		wb =new XSSFWorkbook();
 
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
@@ -71,16 +72,26 @@ public class IndividualSystemTransitionReportWriter {
 			wb=new XSSFWorkbook();
 		}
 		else wb=new XSSFWorkbook();
-		
 	}
 	
 	/**
 	 * Writes the workbook to the file location.
 	 */
-	public void writeWorkbook()
+	public boolean writeWorkbook()
 	{
-		wb.setForceFormulaRecalculation(true);
-		Utility.writeWorkbook(wb, fileLoc);
+		boolean success = false;
+		try{
+			wb.setForceFormulaRecalculation(true);
+			Utility.writeWorkbook(wb, fileLoc);
+			success = true;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return success;
+	}
+	
+	public static String getFileLoc(){
+		return fileLoc;
 	}
 	
 	/**
@@ -106,12 +117,14 @@ public class IndividualSystemTransitionReportWriter {
 		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
-			XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart+row);
+			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
 
 			for (int col=0; col< resultRowValues.length; col++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.getCell(col);
+				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
 				if(resultRowValues[col] instanceof Double)
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+				else if(resultRowValues[col] instanceof Integer)
+					cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
 				else
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 			}
@@ -135,12 +148,14 @@ public class IndividualSystemTransitionReportWriter {
 		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
-			XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList+row);
-
+			
+			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStartList+row);
 			for (int col=0; col< resultRowValues.length; col++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.getCell(col);
+				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
 				if(resultRowValues[col] instanceof Double)
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+				else if(resultRowValues[col] instanceof Integer)
+					cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
 				else
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 			}
@@ -155,16 +170,12 @@ public class IndividualSystemTransitionReportWriter {
 
 		int indRowToWriteSystemName = 3;
 		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(indRowToWriteSystemName);
-		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
-		//String currString = cellToWriteSystemName.getStringCellValue();
-		//currString = currString.replace("@SYSTEM@",(String)resultRowValues[0]);
+		XSSFCell cellToWriteSystemName = rowToWriteSystemName.createCell(0);
 		cellToWriteSystemName.setCellValue((String)resultRowValues[0]);
 		
 		int indRowToWriteSystemDes = 6;
 		XSSFRow rowToWriteSystemDes = sheetToWriteOver.getRow(indRowToWriteSystemDes);
-		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.getCell(3);
-//		String currString = cellToWriteSystemDes.getStringCellValue();
-//		currString = currString.replace("@SYSTEM@",(String)resultRowValues[0]);
+		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.createCell(3);
 		if(resultRowValues[1]!=null && ((String)resultRowValues[1]).length()>0)
 			cellToWriteSystemDes.setCellValue((String)resultRowValues[1]);
 		
@@ -172,9 +183,11 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
 
 		for (int col=2; col< resultRowValues.length; col++) {
-			XSSFCell cellToWriteOn = rowToWriteOn.getCell(col-2);
+			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col-2);
 			if(resultRowValues[col] instanceof Double)
 				cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+			else if(resultRowValues[col] instanceof Integer)
+				cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
 			else
 				cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 		}
