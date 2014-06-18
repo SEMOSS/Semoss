@@ -58,15 +58,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
 			
-			JScrollPane scrollPane = new JScrollPane(table);
-			scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-			scrollPane.setAutoscrolls(true);
-			
-			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
-			gbc_scrollPane.fill = GridBagConstraints.BOTH;
-			gbc_scrollPane.gridx = 0;
-			gbc_scrollPane.gridy = 0;
-			mainPanel.add(scrollPane, gbc_scrollPane);
+			addScrollPanel(mainPanel);
 
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
@@ -91,6 +83,18 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void addScrollPanel(JPanel mainPanel) {
+		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+		
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		mainPanel.add(scrollPane, gbc_scrollPane);
 	}
 
 }
