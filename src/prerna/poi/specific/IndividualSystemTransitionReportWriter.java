@@ -151,8 +151,8 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
 		cellToWriteSystemName.setCellValue(systemName);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),41,iocString,45);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),78,focString,82);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),41,iocString,45);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),78,focString,82);
 	}
 	
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
