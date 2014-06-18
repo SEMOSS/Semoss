@@ -49,8 +49,10 @@ public class IndividualSystemTransitionReportWriter {
 	String systemName;
 	String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
 	
-	
-	/**
+	String beginIOCString = "June 10, 2016";
+	String iocString = "April 20, 2017";
+	String focString = "July 21, 2022";
+/**
 	 * Creates a new workbook, sets the file location, and creates the styles to be used.
 	 * @param systemName		String containing the name of the system to create the report for
 	 */
@@ -89,8 +91,18 @@ public class IndividualSystemTransitionReportWriter {
 	public void writeListSheet(String sheetName, HashMap<String,Object> result){
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		int rowToStart = 6;
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
+		
+		int indRowToWriteSystem = 3;
+		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
+		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(1);
+		if(sheetName.contains("Interface"))
+			cellToWriteSystem = rowToWriteSystem.getCell(3);
+		String currString = cellToWriteSystem.getStringCellValue();
+		currString = currString.replace("@SYSTEM@",systemName);
+		cellToWriteSystem.setCellValue(currString);
+		
+		int rowToStart = 6;
 		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
@@ -108,15 +120,22 @@ public class IndividualSystemTransitionReportWriter {
 	
 	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),8);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),37);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),66);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),33,iocString,37);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),62,focString,66);
 	}
 	
-	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList, int rowToStart){
+	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
+
+		XSSFRow rowToWriteDate = sheetToWriteOver.getRow(rowToWriteData);
+		XSSFCell cellToWriteDate = rowToWriteDate.getCell(2);
+		String currString = cellToWriteDate.getStringCellValue();
+		currString = currString.replace("@DATE@",date);
+		cellToWriteDate.setCellValue(currString);
+		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
-			XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart+row);
+			XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList+row);
 
 			for (int col=0; col< resultRowValues.length; col++) {
 				XSSFCell cellToWriteOn = rowToWriteOn.getCell(col);
@@ -131,14 +150,29 @@ public class IndividualSystemTransitionReportWriter {
 	public void writeSystemInfoSheet(String sheetName, HashMap<String,Object> result){
 		
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		int rowToStart = 9;
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
-		
-		Object[] resultRowValues = dataList.get(0);
-		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart);
+		Object[] resultRowValues = dataList.get(0);		
 
-		for (int col=0; col< resultRowValues.length; col++) {
-			XSSFCell cellToWriteOn = rowToWriteOn.getCell(col);
+		int indRowToWriteSystemName = 3;
+		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(indRowToWriteSystemName);
+		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
+		//String currString = cellToWriteSystemName.getStringCellValue();
+		//currString = currString.replace("@SYSTEM@",(String)resultRowValues[0]);
+		cellToWriteSystemName.setCellValue((String)resultRowValues[0]);
+		
+		int indRowToWriteSystemDes = 6;
+		XSSFRow rowToWriteSystemDes = sheetToWriteOver.getRow(indRowToWriteSystemDes);
+		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.getCell(3);
+//		String currString = cellToWriteSystemDes.getStringCellValue();
+//		currString = currString.replace("@SYSTEM@",(String)resultRowValues[0]);
+		if(resultRowValues[1]!=null && ((String)resultRowValues[1]).length()>0)
+			cellToWriteSystemDes.setCellValue((String)resultRowValues[1]);
+		
+		int rowToStartList = 9;
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
+
+		for (int col=2; col< resultRowValues.length; col++) {
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(col-2);
 			if(resultRowValues[col] instanceof Double)
 				cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 			else
