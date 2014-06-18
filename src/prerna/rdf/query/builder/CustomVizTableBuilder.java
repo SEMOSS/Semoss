@@ -27,10 +27,10 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	static final String uriKey = "uriKey";
 	static final String queryKey = "queryKey";
 	static final String varKey = "varKey";
-	String nodeInstanceQuery = "SELECT DISTINCT ?instance WHERE {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>}";
-	String relInstanceQuery = "SELECT DISTINCT ?instance WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?instance <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?instance ?outNode}}";
-	String nodePropQuery = "SELECT DISTINCT ?instance WHERE {{?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>} {?node <@PROP_TYPE@> ?instance }}";
-	String relPropQuery = "SELECT DISTINCT ?instance WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?rel ?outNode} {?rel <@PROP_TYPE@> ?instance}}";
+	String nodeInstanceQuery = "SELECT DISTINCT ?@INSTANCE@ WHERE {?@INSTANCE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>}";
+	String relInstanceQuery = "SELECT DISTINCT ?@INSTANCE@ WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?@INSTANCE@ <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?@INSTANCE@ ?outNode}}";
+	String nodePropQuery = "SELECT DISTINCT ?@INSTANCE@ WHERE {{?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@NODE_TYPE@>} {?node @PROP_TYPE@ ?@INSTANCE@ }}";
+	String relPropQuery = "SELECT DISTINCT ?@INSTANCE@ WHERE {{?inNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@IN_NODE_TYPE@>} {?outNode <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@OUT_NODE_TYPE@>}{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <@REL_TYPE@>} {?inNode ?rel ?outNode} {?rel @PROP_TYPE@ ?@INSTANCE@}}";
 	Logger logger = Logger.getLogger(getClass());
 
 
@@ -47,8 +47,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 
 	private void buildQueryForSelectedPath()
 	{
-
-
 		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
 		ArrayList<ArrayList<String>> tripleVarArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relVarArrayKey);
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
@@ -70,7 +68,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, subjectName);
 				elementHash.put(uriKey, subjectURI);
-				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", subjectURI);
+				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", subjectURI).replace("@INSTANCE@", subjectName);
 				logger.info("NODE QUERY : " + query);
 				elementHash.put(queryKey, query);
 				varObjHash.put(subjectName, elementHash);
@@ -86,7 +84,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, predName);
 				elementHash.put(uriKey, predURI);
-				String query = this.relInstanceQuery.replace("@IN_NODE_TYPE@", subjectURI).replace("@OUT_NODE_TYPE@", objectURI).replace("@REL_TYPE@", predURI);
+				String query = this.relInstanceQuery.replace("@IN_NODE_TYPE@", subjectURI).replace("@OUT_NODE_TYPE@", objectURI).replace("@REL_TYPE@", predURI).replace("@INSTANCE@", predName);
 				logger.info("REL QUERY : " + query);
 				elementHash.put(queryKey, query);
 				varObjHash.put(predName, elementHash);
@@ -100,7 +98,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, objectName);
 				elementHash.put(uriKey, objectURI);
-				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", objectURI);
+				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", objectURI).replace("@INSTANCE@", objectName);
 				logger.info("NODE QUERY : " + query);
 				elementHash.put(queryKey, query);
 				varObjHash.put(objectName, elementHash);
@@ -139,7 +137,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 					Hashtable<String, String> elementHash = new Hashtable<String, String>();
 					elementHash.put(varKey, propName);
 					elementHash.put(uriKey, propURI);
-					String query = this.nodePropQuery.replace("@NODE_TYPE@", varURI).replace("@PROP_TYPE@", propURI);
+					String query = this.nodePropQuery.replace("@NODE_TYPE@", varURI).replace("@PROP_TYPE@", propURI).replace("@INSTANCE@", propName);
 					logger.info("NODE PROP QUERY : " + query);
 					elementHash.put(queryKey, query);
 					varObjHash.put(propName, elementHash);
@@ -162,18 +160,13 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 					Hashtable<String, String> elementHash = new Hashtable<String, String>();
 					elementHash.put(varKey, propName);
 					elementHash.put(uriKey, propURI);
-					String query = this.relPropQuery.replace("@IN_NODE_TYPE@", predInfoHash.get("Subject")).replace("@OUT_NODE_TYPE@", predInfoHash.get("Object")).replace("@REL_TYPE@", predInfoHash.get("Pred")).replace("@PROP_TYPE@", propURI);
-					logger.info("REL QUERY : " + query);
+					String query = this.relPropQuery.replace("@IN_NODE_TYPE@", predInfoHash.get("Subject")).replace("@OUT_NODE_TYPE@", predInfoHash.get("Object")).replace("@REL_TYPE@", predInfoHash.get("Pred")).replace("@PROP_TYPE@", propURI).replace("@INSTANCE@", propName);
+					logger.info("REL PROP QUERY : " + query);
 					elementHash.put(queryKey, query);
 					varObjHash.put(propName, elementHash);
-
 				}
 			}
 		}
-
-
-
-
 	}
 
 	public void setEngine(IEngine coreEngine)

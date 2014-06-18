@@ -118,8 +118,8 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		else
 		{
 			logger.info("New Query " + query);
-			int semicolon1 = query.indexOf(";");
-			int semicolon2 = query.indexOf(";",semicolon1+1);
+			int semicolon1 = query.indexOf("&");
+			int semicolon2 = query.indexOf("&",semicolon1+1);
 			Calendar now = Calendar.getInstance();
 			year = now.get(Calendar.YEAR); //replace with current year
 			if(!query.substring(0,semicolon1).equals("Today"))
@@ -148,5 +148,8 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		}
 		return -1;
 	}
-
+	
+	public String[] getNames(){
+		return this.names;
+	}
 }
