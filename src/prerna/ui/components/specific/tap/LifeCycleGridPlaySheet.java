@@ -148,8 +148,4 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		}
 		return -1;
 	}
-	
-	public String[] getNames(){
-		return this.names;
-	}
 }

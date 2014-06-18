@@ -46,7 +46,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	protected GridFilterData gfd = new GridFilterData();
 	protected String [] names = null;
 	public JTable table = null;
-	public ArrayList <Object []> list = null;
+	protected ArrayList <Object []> list = null;
 	public SesameJenaSelectWrapper wrapper;
 
 	/**
@@ -217,6 +217,14 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
 
+	}
+	
+	public String[] getNames(){
+		return this.names;
+	}
+	
+	public ArrayList<Object[]> getList(){
+		return this.list;
 	}
 
 }

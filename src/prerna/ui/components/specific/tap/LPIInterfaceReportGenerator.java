@@ -19,11 +19,6 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -236,5 +231,5 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				this.lpiQuery = token;
 			}
 		}
-	}
+	}	
 }
