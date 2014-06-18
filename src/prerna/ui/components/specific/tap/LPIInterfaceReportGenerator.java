@@ -41,13 +41,23 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	String lpiQuery;
 	String lpiQueryEngineName;
 	IEngine lpiEngine;
-	String commentKey = "Comment";
+	String hieQuery;
+	String hieQueryEngineName;
+	IEngine hieEngine;
+	
 	String lpiSysKey = "LPISystem";
-	String otherSysKey = "InterfacingSystem";
 	String interfaceTypeKey = "InterfaceType";
+	String interfacingSystemKey = "InterfacingSystem";
+	String probabilityKey = "Probability";
+	String dhmsmSORKey = "DHMSM";
+	String commentKey = "Comment";
+	String interfaceKey = "Interface";
+	
+	String hpKey = "High";
+	String downstreamKey = "Downstream";
+	String sorKey = "Provide";	
 	String dataKey = "Data";
-	String sorCheck = "This is 3b";
-
+	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -90,7 +100,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 		// get the bindings from it
 		String[] names2 = sorWrapper.getVariables();
 
-		//process query 2
+		//process query 3
 		SesameJenaSelectWrapper lpiWrapper = new SesameJenaSelectWrapper();
 		if(lpiEngine!= null){
 			lpiWrapper.setQuery(lpiQuery);
@@ -102,10 +112,24 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 		}
 		// get the bindings from it
 		String[] names3 = lpiWrapper.getVariables();
+		
+		//process query 4
+		SesameJenaSelectWrapper hieWrapper = new SesameJenaSelectWrapper();
+		if(hieEngine!= null){
+			hieWrapper.setQuery(hieQuery);
+			updateProgressBar("40%...Querying RDF Repository", 10);
+			hieWrapper.setEngine(hieEngine);
+			updateProgressBar("50%...Querying RDF Repository", 30);
+			hieWrapper.executeQuery();
+			updateProgressBar("60%...Processing RDF Statements	", 60);
+		}
+		// get the bindings from it
+		String[] names4 = hieWrapper.getVariables();
 
 		Vector<String> sysDataSOR = processPeripheralWrapper(sorWrapper, names2);
 		Vector<String> sysLPI = processPeripheralWrapper(lpiWrapper, names3);
-		processWrapper(wrapper1, names1, sysDataSOR, sysLPI);
+		Vector<String> hieSystems = processPeripheralWrapper(hieWrapper, names4);
+		processWrapper(wrapper1, names1, sysDataSOR, sysLPI, hieSystems);
 
 	}
 
@@ -116,46 +140,102 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, Vector<String> lpiV){
+	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, Vector<String> lpiV, Vector<String> hieV){
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext())
 			{
 				SesameJenaSelectStatement sjss = sjw.next();
+							
+				String lpiSys = sjss.getVar(lpiSysKey) + "";
+				String interfacingSys = sjss.getVar(interfacingSystemKey) + ""; 
+				
+				String lpiSystem = sjss.getRawVar(lpiSysKey) + "";
+				String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
+				String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
+				String interfaceVar = sjss.getRawVar(interfaceKey) + "";
+				String probability = sjss.getRawVar(probabilityKey) + "";
+				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
+				String comment = sjss.getRawVar(commentKey) + "";
+				String data = sjss.getRawVar(dataKey) + "";
+				
+				String lpiSysData = lpiSystem + "" + data;
+				String interfacingSysData = interfacingSystem + "" + data;				
 
-				Object [] values = new Object[names.length];
+				Object[] values = new Object[names.length];
 				int count = 0;
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
 					if(names[colIndex].contains(commentKey)){ 
-						String comment = sjss.getVar(names[colIndex]) + "";
-						if(comment.contains(sorCheck)) {
-							String lpiSysData = sjss.getRawVar(lpiSysKey) + "" + sjss.getRawVar(dataKey);
-							String otherSysData = sjss.getRawVar(otherSysKey) + "" + sjss.getRawVar(dataKey);
-							String otherSys = sjss.getRawVar(otherSysKey) + "";
-							System.out.println(" We are in 3b");
-							if(sorV.contains(lpiSysData) && sorV.contains(otherSysData) && !lpiV.contains(otherSys)){
-								System.out.println(" this is 3bi AND 3bii");
-								//Interfaces where SOR system sends data to DHMSM is added
-								comment = "\"Interfaces " + sjss.getVar(lpiSysKey) + "->DHMSM and " + sjss.getVar(otherSysKey) +"->DHMSM are added. " + sjss.getVar(otherSysKey) + 
-										" should be LPI\"";
+						if (probability.length() < 3) {
+							if (interfaceVar.length() < 3) {
+								comment = "\"No interfaces identified.\"";
 							}
-							else if(sorV.contains(lpiSysData)){
-								System.out.println(" this is 3bi");
-								comment = "\"Interface " + sjss.getVar(lpiSysKey) + "->DHMSM is added\"";
+							else {comment = "\"Stays as-is.\""; }								
+						}
+						else if (probability.contains(hpKey)) {
+							if (hieV.contains(interfacingSystem)) {
+								comment = "\"Replaced by DHMSM HIE service.\"";
 							}
-							else if(sorV.contains(otherSysData) && !lpiV.contains(otherSys)){
-								System.out.println(" this is 3bii");
-								comment = "\"Interface " + sjss.getVar(otherSysKey) +"->DHMSM is added. " + sjss.getVar(otherSysKey) + 
-										" should be LPI\"";
+							else {
+								if (interfaceType.contains(downstreamKey)) {
+									if (dhmsmSOR.length() < 3) {
+										comment = "\"Kill the interface.\"";
+									}
+									else {
+										comment = "\"Need to add interface " + lpiSys + "->DHMSM.\"";
+									}
+								}
+								else { //LPI is downstream of HP
+									if (dhmsmSOR.length() < 3) {
+										comment = "\"LPI IS LOSING DATA.\"";
+									}
+									else {
+										comment = "\"Need to add interface DHMSM->" + lpiSys + "\"";
+									}
+								}
 							}
-							else{
-								System.out.println(" this is neither ");
-								//LP should be LPI
-								comment = "\"Stays as-is\"";
+						}
+						else { //probability is low
+							if (lpiSys.equals("DMLSS") && interfacingSys.equals("AIDC")) {
+								System.out.println("Test.");
+							}
+							if (dhmsmSOR.contains(sorKey)) {
+								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
+								if (interfaceType.contains(downstreamKey)) {
+									upStreamSys = lpiSys; upStreamSysRaw = lpiSystem;									
+									downStreamSys = interfacingSys; downStreamSysRaw = interfacingSystem;
+								}
+								else {
+									upStreamSys = interfacingSys; upStreamSysRaw = interfacingSystem;	
+									downStreamSys = lpiSys; downStreamSysRaw = lpiSystem;
+								}
+								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) {
+									comment = "\"Need to add interface DHMSM->" + upStreamSys + ".\"";
+								}
+								else {
+									comment = "\"Need to add interface DHMSM->" + downStreamSys + ".\"";
+								}
+							}
+							else {
+								if(sorV.contains(lpiSysData)){
+									System.out.println(" this is 3bi");
+									comment = "\"Need to add interface " + lpiSys + "->DHMSM.\"";
+								}
+								else if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
+									System.out.println(" this is 3bii");
+									comment = "\"Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
+											" should be LPI.\"";
+								}
+								else{
+									System.out.println(" this is neither ");
+									//LP should be LPI
+									comment = "\"Stays as-is.\"";
+								}
 							}
 						}
 						values[count] = comment;
+						System.out.println("This is the comment: " + comment);
 					}
 					else
 						values[count] = sjss.getVar(names[colIndex]);
@@ -219,16 +299,24 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				this.lpiEngine = (IEngine) DIHelper.getInstance().getLocalProp(lpiQueryEngineName);
 			}
 			else if (queryIdx == 3){
+				this.hieQueryEngineName = token;
+				this.hieEngine = (IEngine) DIHelper.getInstance().getLocalProp(hieQueryEngineName);
+			}
+			else if (queryIdx == 4){
 				System.out.println("query 1 " + token);
 				this.interfaceQuery = token;
 			}
-			else if (queryIdx == 4){
+			else if (queryIdx == 5){
 				System.out.println("query 2 " + token);
 				this.sorQuery = token;
 			}
-			else if (queryIdx == 5){
+			else if (queryIdx == 6){
 				System.out.println("query 3 " + token);
 				this.lpiQuery = token;
+			}
+			else if (queryIdx == 7){
+				System.out.println("query 4 " + token);
+				this.hieQuery = token;
 			}
 		}
 	}	
