@@ -117,7 +117,9 @@ public class IndividualSystemTransitionReportWriter {
 		
 		int indRowToWriteSystem = 3;
 		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
-		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(1);
+		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
+		cellToWriteSystem.setCellValue(systemName);
+		cellToWriteSystem = rowToWriteSystem.getCell(1);
 		if(sheetName.contains("Interface"))
 			cellToWriteSystem = rowToWriteSystem.getCell(3);
 		String currString = cellToWriteSystem.getStringCellValue();
@@ -145,6 +147,9 @@ public class IndividualSystemTransitionReportWriter {
 	
 	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(2);
+		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
+		cellToWriteSystemName.setCellValue(systemName);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),41,iocString,45);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),78,focString,82);
@@ -169,6 +174,12 @@ public class IndividualSystemTransitionReportWriter {
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				else if(resultRowValues[col] instanceof Integer)
 					cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
+				else if(col==1)
+				{
+					String dateString = (String)resultRowValues[col];
+					dateString = dateString.substring(0,dateString.indexOf("T"));
+					cellToWriteOn.setCellValue(dateString.replaceAll("\"", "").replaceAll("_"," "));
+				}
 				else
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 			}
@@ -198,8 +209,8 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
 
 		for (int col=0; col< resultRowValues.length-1; col++) {
-			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col*2+1);
-			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(col*2+1);
+			//cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 			if(resultRowValues[col+1] instanceof Double)
 				cellToWriteOn.setCellValue((Double)resultRowValues[col+1]);
 			else if(resultRowValues[col+1] instanceof Integer)
