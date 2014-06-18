@@ -21,10 +21,17 @@ package prerna.poi.specific;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -47,6 +54,8 @@ public class IndividualSystemTransitionReportWriter {
 	private String beginIOCString = "June 10, 2016";
 	private String iocString = "April 20, 2017";
 	private String focString = "July 21, 2022";
+	
+	public Hashtable<String,XSSFCellStyle> myStyles;
 	
 	public IndividualSystemTransitionReportWriter(){
 		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
@@ -72,6 +81,8 @@ public class IndividualSystemTransitionReportWriter {
 			wb=new XSSFWorkbook();
 		}
 		else wb=new XSSFWorkbook();
+		
+		makeStyles(wb);
 	}
 	
 	/**
@@ -121,6 +132,7 @@ public class IndividualSystemTransitionReportWriter {
 
 			for (int col=0; col< resultRowValues.length; col++) {
 				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
+				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 				if(resultRowValues[col] instanceof Double)
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				else if(resultRowValues[col] instanceof Integer)
@@ -134,8 +146,8 @@ public class IndividualSystemTransitionReportWriter {
 	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),33,iocString,45);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),62,focString,74);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),41,iocString,45);
+		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),78,focString,82);
 	}
 	
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
@@ -152,6 +164,7 @@ public class IndividualSystemTransitionReportWriter {
 			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStartList+row);
 			for (int col=0; col< resultRowValues.length; col++) {
 				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
+				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 				if(resultRowValues[col] instanceof Double)
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				else if(resultRowValues[col] instanceof Integer)
@@ -170,27 +183,85 @@ public class IndividualSystemTransitionReportWriter {
 
 		int indRowToWriteSystemName = 3;
 		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(indRowToWriteSystemName);
-		XSSFCell cellToWriteSystemName = rowToWriteSystemName.createCell(0);
-		cellToWriteSystemName.setCellValue((String)resultRowValues[0]);
+		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(1);
+		cellToWriteSystemName.setCellValue(systemName);
 		
 		int indRowToWriteSystemDes = 6;
 		XSSFRow rowToWriteSystemDes = sheetToWriteOver.getRow(indRowToWriteSystemDes);
-		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.createCell(3);
+		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.getCell(3);
 		if(resultRowValues[1]!=null && ((String)resultRowValues[1]).length()>0)
-			cellToWriteSystemDes.setCellValue((String)resultRowValues[1]);
+			cellToWriteSystemDes.setCellValue(((String)resultRowValues[0]).replaceAll("\"", "").replaceAll("_"," "));
+		else
+			cellToWriteSystemDes.setCellValue("");
 		
-		int rowToStartList = 9;
+		int rowToStartList = 10;
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
 
-		for (int col=2; col< resultRowValues.length; col++) {
-			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col-2);
-			if(resultRowValues[col] instanceof Double)
-				cellToWriteOn.setCellValue((Double)resultRowValues[col]);
-			else if(resultRowValues[col] instanceof Integer)
-				cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
+		for (int col=0; col< resultRowValues.length-1; col++) {
+			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col*2+1);
+			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+			if(resultRowValues[col+1] instanceof Double)
+				cellToWriteOn.setCellValue((Double)resultRowValues[col+1]);
+			else if(resultRowValues[col+1] instanceof Integer)
+				cellToWriteOn.setCellValue((Integer)resultRowValues[col+1]);
 			else
-				cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+				cellToWriteOn.setCellValue(((String)resultRowValues[col+1]).replaceAll("\"", "").replaceAll("_"," "));
 		}
 	}
+	/**
+	 * Creates a cell boarder style in an Excel workbook
+	 * @param wb 		Workbook to create the style
+	 * @return style	XSSFCellStyle containing the format
+	 */
+	private static XSSFCellStyle createBorderedStyle(Workbook wb){
+		XSSFCellStyle style = (XSSFCellStyle)wb.createCellStyle();
+		style.setBorderRight(CellStyle.BORDER_THIN);
+		style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+		style.setBorderBottom(CellStyle.BORDER_THIN);
+		style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+		style.setBorderLeft(CellStyle.BORDER_THIN);
+		style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+		style.setBorderTop(CellStyle.BORDER_THIN);
+		style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+		return style;
+	}
 
+	/**
+	 * Creates a cell format style for an excel workbook
+	 * @param workbook 	XSSFWorkbook to create the format
+	 */
+	private void makeStyles(XSSFWorkbook workbook)
+	{
+		myStyles = new Hashtable<String,XSSFCellStyle>();
+		XSSFCellStyle headerStyle = createBorderedStyle(workbook);
+		Font boldFont = workbook.createFont();
+		boldFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldFont.setColor(IndexedColors.WHITE.getIndex());
+		boldFont.setFontHeightInPoints((short) 10);
+		headerStyle.setFont(boldFont);
+		headerStyle.setAlignment(CellStyle.ALIGN_CENTER);
+		headerStyle.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
+		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		myStyles.put("headerStyle",headerStyle);
+	
+		Font normalFont = workbook.createFont();
+		normalFont.setFontHeightInPoints((short) 10);
+	
+		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
+		normalStyle.setWrapText(true);
+		normalStyle.setFont(normalFont);
+		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		myStyles.put("normalStyle",normalStyle);
+	
+		Font boldBodyFont = workbook.createFont();
+		boldBodyFont.setFontHeightInPoints((short) 10);
+		boldBodyFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+	
+		XSSFCellStyle boldStyle = createBorderedStyle(workbook);
+		boldStyle.setWrapText(true);
+		boldStyle.setFont(boldBodyFont);
+		boldStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		myStyles.put("boldStyle",boldStyle);
+	}
 }
