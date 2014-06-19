@@ -10,14 +10,14 @@ import java.util.Vector;
 
 import javax.swing.JPanel;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
+/** 
+ * Given two variables, this class creates X's in a table if there is a relationship between them.
+ */
 public class GenericXGridPlaySheet extends GridPlaySheet {
 
 	private int year, month;
@@ -27,25 +27,14 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 		list = new ArrayList<Object[]>();
 		list = processQuery(query);
 	}
-	
-	@Override
-	public void addScrollPanel(JPanel mainPanel) {
-		GridScrollPane pane = new GridScrollPane(names, list);
-		pane.addHorizontalScroll();
-		
-		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
-		gbc_scrollPane.fill = GridBagConstraints.BOTH;
-		gbc_scrollPane.gridx = 0;
-		gbc_scrollPane.gridy = 0;
-		mainPanel.add(pane, gbc_scrollPane);
-	}
 
 	public ArrayList<Object[]> processQuery(String queryString){
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
 
 		logger.info("PROCESSING QUERY: " + queryString);
+		
+		//executes the query on a specified engine
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
 		sjsw.executeQuery();
@@ -62,8 +51,10 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 			String var1 = (String) sjss.getVar(names[0]);
 			String var2 = (String) sjss.getVar(names[1]);
 			
-		processedList.add(new Object[]{var1, var2});
-	
+			// variables 1 and 2 have a relationship between them if they are added to the processed list
+			processedList.add(new Object[]{var1, var2});
+			
+			// row and column names for the table 
 			if (!rowNames.contains(var1)) {
 				rowNames.add(var1);
 			}
@@ -73,6 +64,8 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 			}
 		}
 		
+		// convert the row and column arraylists to vectors
+		// sort alphabetically and convert back to string arraylists		
 		Vector <String> rowNamesAsVector = new Vector<String>(rowNames);
 		Collections.sort(rowNamesAsVector);
 		rowNames = new ArrayList<String>(rowNamesAsVector);
@@ -81,6 +74,7 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 		Collections.sort(colNamesAsVector);
 		colNames = new ArrayList<String>(colNamesAsVector);
 		
+		// set the column names in the global names variable
 		String[] colNamesArray = new String[colNames.size()+1];
 		colNamesArray[0] = "";
 		for (int i=0; i<colNames.size(); i++) {
@@ -88,6 +82,8 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 		}
 		names = colNamesArray;
 		
+		// create a matrix with row and column names
+		// iterate through processed list, implement logic to create X's based on relationship
 		String[][] variableMatrix = new String[rowNames.size()+1][colNames.size()+1];
 		
 		for (int i=0; i<rowNames.size(); i++) {
@@ -105,12 +101,24 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 			variableMatrix[rowInd][colInd] = "X";
 		}
 		
+		// convert the matrix back into an arraylist
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
-		arrayList.remove(0);
+		arrayList.remove(0); 
 		
-		return arrayList;
+		return arrayList;	
+	}
+	
+	@Override
+	public void addScrollPanel(JPanel mainPanel) {
+		// adds horizontal scrolling functionality to display in SEMOSS
+		GridScrollPane pane = new GridScrollPane(names, list);
+		pane.addHorizontalScroll();
 		
-		
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		mainPanel.add(pane, gbc_scrollPane);
 	}
 
 	/**
