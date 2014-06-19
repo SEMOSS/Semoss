@@ -72,8 +72,7 @@ public class AdvParamListener implements ActionListener {
 				{
 					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
-					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(false);
-					((SysOptPlaySheet)ps).capScrollPanel.setVisible(false);
+					((SysOptPlaySheet)ps).capabilitySelectPanel.setVisible(false);
 				}
 
 			}
@@ -85,8 +84,7 @@ public class AdvParamListener implements ActionListener {
 				{
 					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
-					((SysOptPlaySheet)ps).capSelectDropDown.setVisible(true);
-					((SysOptPlaySheet)ps).capScrollPanel.setVisible(true);
+					((SysOptPlaySheet)ps).capabilitySelectPanel.setVisible(true);
 				}
 			}	
 		}

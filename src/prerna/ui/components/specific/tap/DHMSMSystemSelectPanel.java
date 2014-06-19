@@ -110,7 +110,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		sysSelectDropDown = new SelectScrollList("Select Individual Systems");
 		sysSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		GridBagConstraints gbc_sysSelectDropDown = new GridBagConstraints();
-		gbc_sysSelectDropDown.gridwidth = 3;
+		gbc_sysSelectDropDown.gridwidth = 4;
 		gbc_sysSelectDropDown.insets = new Insets(0, 0, 0, 5);
 		gbc_sysSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
 		gbc_sysSelectDropDown.gridx = 0;

@@ -55,7 +55,7 @@ public class SysOptBtnListener extends SerOptBtnListener {
 
 			optimizer.setPlaySheet(playSheet);
 			((SysNetSavingsOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
-			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).systemSelectPanel,((SysOptPlaySheet)playSheet).capSelectDropDown,((SysOptPlaySheet)playSheet).dataBLUSelectPanel,((SysOptPlaySheet)playSheet).showSystemSelectBtn.isSelected(),((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected(),((SysOptPlaySheet)playSheet).includeRegionalizationCheckbox.isSelected());
+			((SysNetSavingsOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).systemSelectPanel,((SysOptPlaySheet)playSheet).capabilitySelectPanel,((SysOptPlaySheet)playSheet).dataBLUSelectPanel,((SysOptPlaySheet)playSheet).showSystemSelectBtn.isSelected(),((SysOptPlaySheet)playSheet).updateDataBLUPanelButton.isSelected(),((SysOptPlaySheet)playSheet).includeRegionalizationCheckbox.isSelected());
 
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			Thread playThread = new Thread(runner);
