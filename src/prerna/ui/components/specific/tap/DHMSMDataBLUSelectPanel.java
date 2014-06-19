@@ -162,6 +162,19 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		}
 	}
 	
+	public void setFromSystem(boolean isPullFromSystem)
+	{
+			if(isPullFromSystem)
+			{
+  				updateProvideDataBLUButton.setText("Select Create");
+  				updateConsumeDataBLUButton.setText("Select Read");
+			}else{
+ 				updateProvideDataBLUButton.setText("Select Provide");
+	  			updateConsumeDataBLUButton.setText("Select Consume");
+			}
+	}
+	
+	
 	public ArrayList<String> getSelectedData()
 	{
 		return dataSelectDropDown.getSelectedValues();

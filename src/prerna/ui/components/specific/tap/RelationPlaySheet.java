@@ -23,6 +23,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
@@ -218,14 +220,11 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 
 	public void createListeners()
 	{
-		JToggleButton temp = new JToggleButton();
-		
 		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
 		updateDataBLUListener.setEngine(engine);
 		updateDataBLUListener.setUpDHMSMHelper();
 		updateDataBLUListener.setComponents(systemSelectPanel,null,dataBLUSelectPanel,showSystemSelectBtn);
-		updateDataBLUListener.setUpdateButtons(temp,dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
-//		updateDataBLUPanelButton.addActionListener(updateDataBLUListener);
+		updateDataBLUListener.setUpdateButtons(dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
 		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);

@@ -23,6 +23,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Vector;
@@ -235,12 +237,32 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		showSystemSelectBtn.addActionListener(saLis);
 		showSystemCapSelectBtn.addActionListener(saLis);
 		
+		ActionListener viewDataBLUPanelListener = new ActionListener() {
+		      public void actionPerformed(ActionEvent e) {
+		    	  
+		  		//if the updateDataBLUPanelButton is unselected by user, hide the panel
+		  		if(!updateDataBLUPanelButton.isSelected())
+		  			dataBLUSelectPanel.setVisible(false);
+		  		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
+		  		else
+		  		{
+		  			dataBLUSelectPanel.setVisible(true);
+		  			if(showSystemSelectBtn.isSelected())
+		  				dataBLUSelectPanel.setFromSystem(true);
+		  			else
+		  				dataBLUSelectPanel.setFromSystem(false);
+		  			dataBLUSelectPanel.dataSelectDropDown.clearList();
+		  			dataBLUSelectPanel.bluSelectDropDown.clearList();
+		  		}
+		      }
+		    };
+		updateDataBLUPanelButton.addActionListener(viewDataBLUPanelListener);
+		
 		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
 		updateDataBLUListener.setEngine(engine);
 		updateDataBLUListener.setUpDHMSMHelper();
 		updateDataBLUListener.setComponents(systemSelectPanel,capabilitySelectPanel,dataBLUSelectPanel,showSystemSelectBtn);
-		updateDataBLUListener.setUpdateButtons(updateDataBLUPanelButton,dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
-		updateDataBLUPanelButton.addActionListener(updateDataBLUListener);
+		updateDataBLUListener.setUpdateButtons(dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
 		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
