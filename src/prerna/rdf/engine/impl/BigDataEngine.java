@@ -24,7 +24,9 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
@@ -261,7 +263,14 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					while(sparqlResults.hasNext())
 					{
 						try {
-							String next = "" + sparqlResults.next().getValue(Constants.ENTITY);
+							Value val = sparqlResults.next().getValue(Constants.ENTITY);
+							String next = null;
+							if (val instanceof Literal) {
+								next = ((Literal)val).getLabel();
+							}
+							else {
+								next = "" + val;
+							}
 							//System.out.print(".");
 							//if(count < 100)
 								strVector.add(next);
