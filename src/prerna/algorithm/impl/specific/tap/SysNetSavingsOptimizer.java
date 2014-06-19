@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.specific.tap.DHMSMCapabilitySelectPanel;
 import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
@@ -134,7 +135,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		this.infRate = infRate;
 		this.disRate = disRate;
 	}
-	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capSelectDropDown,DHMSMDataBLUSelectPanel dataBLUSelectPanel,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
+	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,DHMSMCapabilitySelectPanel capabilitySelectPanel,DHMSMDataBLUSelectPanel dataBLUSelectPanel,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
 	{
 		this.includeRegionalization = includeRegionalization;
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
@@ -172,8 +173,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		{
 			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
 			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-			this.dataQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),dataQuery);
-			this.bluQuery = addBindings("Capability",capSelectDropDown.list.getSelectedValuesList(),bluQuery);
+			this.dataQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),dataQuery);
+			this.bluQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),bluQuery);
 		}
 
 	}

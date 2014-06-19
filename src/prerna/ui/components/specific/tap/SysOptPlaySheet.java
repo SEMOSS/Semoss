@@ -33,24 +33,17 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import javax.swing.JTextField;
 import javax.swing.JToggleButton;
-import javax.swing.ListSelectionModel;
 import javax.swing.border.BevelBorder;
 
 import aurelienribon.ui.css.Style;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.AdvParamListener;
-import prerna.ui.main.listener.specific.tap.CapCheckBoxSelectorListener;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
-import prerna.ui.swing.custom.CustomButton;
-import prerna.ui.swing.custom.SelectScrollList;
 import prerna.ui.swing.custom.ToggleButton;
-
 
 /**
  * This is the playsheet used exclusively for TAP service optimization.
@@ -59,21 +52,17 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 
 	public JCheckBox includeRegionalizationCheckbox;
 	
-	//select functionality panel and toggle button
+	//toggles to show the system Functionality and Capability Functionality panels
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
+	//panel that holds the system,data,blu and capability selectors if needed
 	public JPanel systemDataBLUSelectPanel;
+	//individual components of the panel
 	public DHMSMSystemSelectPanel systemSelectPanel;
+	public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
-	
-	//capability functionality
-	public JPanel capScrollPanel;
-	public JCheckBox allCapButton, dhmsmCapButton;
-	public JCheckBox hsdCapButton, hssCapButton, fhpCapButton;
-	public SelectScrollList capSelectDropDown; 
-	
-	//toggle to view on dataBLUPanel
+		
+	//toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
-	
 
 	 //overall analysis tab
 	public JRadioButton rdbtnIRR;
@@ -135,15 +124,22 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		systemDataBLUSelectPanel.setLayout(gbl_systemDataBLUSelectPanel);
 		
 		systemSelectPanel = new DHMSMSystemSelectPanel();
-		
 		GridBagConstraints gbc_systemSelectPanel = new GridBagConstraints();
-		gbc_systemSelectPanel.gridwidth = 4;
 		gbc_systemSelectPanel.gridheight = 6;
 		gbc_systemSelectPanel.fill = GridBagConstraints.BOTH;
-		gbc_systemSelectPanel.gridx = 1;
+		gbc_systemSelectPanel.gridx = 0;
 		gbc_systemSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
 		systemSelectPanel.addElements();
+		
+		capabilitySelectPanel = new DHMSMCapabilitySelectPanel();
+		GridBagConstraints gbc_capabilitySelectPanel = new GridBagConstraints();
+		gbc_capabilitySelectPanel.gridheight = 6;
+		gbc_capabilitySelectPanel.fill = GridBagConstraints.BOTH;
+		gbc_capabilitySelectPanel.gridx = 1;
+		gbc_capabilitySelectPanel.gridy = 0;
+		systemDataBLUSelectPanel.add(capabilitySelectPanel, gbc_capabilitySelectPanel);
+		capabilitySelectPanel.addElements();
 		
 		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
 		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -153,105 +149,18 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_updateDataBLUPanelButton.anchor = GridBagConstraints.WEST;
 		gbc_updateDataBLUPanelButton.gridheight = 2;
 		gbc_updateDataBLUPanelButton.insets = new Insets(10, 0, 5, 5);
-		gbc_updateDataBLUPanelButton.gridx = 8;
+		gbc_updateDataBLUPanelButton.gridx = 2;
 		gbc_updateDataBLUPanelButton.gridy = 0;
 		systemDataBLUSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
 		
 		dataBLUSelectPanel = new DHMSMDataBLUSelectPanel();
-		
 		GridBagConstraints gbc_dataBLUSelectPanel = new GridBagConstraints();
-		gbc_dataBLUSelectPanel.gridwidth = 4;
 		gbc_dataBLUSelectPanel.gridheight = 6;
 		gbc_dataBLUSelectPanel.fill = GridBagConstraints.BOTH;
-		gbc_dataBLUSelectPanel.gridx = 9;
+		gbc_dataBLUSelectPanel.gridx = 3;
 		gbc_dataBLUSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(dataBLUSelectPanel, gbc_dataBLUSelectPanel);
 		dataBLUSelectPanel.addElements(systemSelectPanel);
-
-		capScrollPanel = new JPanel();
-		capScrollPanel.setVisible(false);
-		
-		GridBagConstraints gbc_capScrollPanel = new GridBagConstraints();
-		gbc_capScrollPanel.gridheight = 6;
-		gbc_capScrollPanel.fill = GridBagConstraints.BOTH;
-		gbc_capScrollPanel.gridx = 5;
-		gbc_capScrollPanel.gridy = 0;
-		systemDataBLUSelectPanel.add(capScrollPanel, gbc_capScrollPanel);
-		
-		GridBagLayout gbl_capScrollPanel = new GridBagLayout();
-		gbl_capScrollPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_capScrollPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_capScrollPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_capScrollPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		capScrollPanel.setLayout(gbl_capScrollPanel);
-		
-		JLabel lblCapSelectHeader = new JLabel("Select Capabilities:");
-		lblCapSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblCapSelectHeader = new GridBagConstraints();
-		gbc_lblCapSelectHeader.gridwidth = 3;
-		gbc_lblCapSelectHeader.anchor = GridBagConstraints.WEST;
-		gbc_lblCapSelectHeader.insets = new Insets(10, 0, 5, 5);
-		gbc_lblCapSelectHeader.gridx = 0;
-		gbc_lblCapSelectHeader.gridy = 0;
-		capScrollPanel.add(lblCapSelectHeader, gbc_lblCapSelectHeader);
-		
-		allCapButton = new JCheckBox("All Cap");
-		GridBagConstraints gbc_allCapButton = new GridBagConstraints();
-		gbc_allCapButton.anchor = GridBagConstraints.WEST;
-		gbc_allCapButton.gridx = 0;
-		gbc_allCapButton.gridy = 1;
-		capScrollPanel.add(allCapButton, gbc_allCapButton);
-
-		dhmsmCapButton = new JCheckBox("DHMSM");
-		GridBagConstraints gbc_dhmsmCapButton = new GridBagConstraints();
-		gbc_dhmsmCapButton.anchor = GridBagConstraints.WEST;
-		gbc_dhmsmCapButton.gridx = 1;
-		gbc_dhmsmCapButton.gridy = 1;
-		capScrollPanel.add(dhmsmCapButton, gbc_dhmsmCapButton);
-
-		hsdCapButton = new JCheckBox("HSD");
-		GridBagConstraints gbc_hsdCapButton = new GridBagConstraints();
-		gbc_hsdCapButton.anchor = GridBagConstraints.WEST;
-		gbc_hsdCapButton.gridx = 0;
-		gbc_hsdCapButton.gridy = 2;
-		capScrollPanel.add(hsdCapButton, gbc_hsdCapButton);
-		
-		hssCapButton = new JCheckBox("HSS");
-		GridBagConstraints gbc_hssCapButton = new GridBagConstraints();
-		gbc_hssCapButton.anchor = GridBagConstraints.WEST;
-		gbc_hssCapButton.gridx = 1;
-		gbc_hssCapButton.gridy = 2;
-		capScrollPanel.add(hssCapButton, gbc_hssCapButton);
-		
-		fhpCapButton = new JCheckBox("FHP");
-		GridBagConstraints gbc_fhpCapButton = new GridBagConstraints();
-		gbc_fhpCapButton.anchor = GridBagConstraints.WEST;
-		gbc_fhpCapButton.gridx = 2;
-		gbc_fhpCapButton.gridy = 2;
-		capScrollPanel.add(fhpCapButton, gbc_fhpCapButton);
-		
-		capSelectDropDown = new SelectScrollList("Select Individual Capabilities");
-		capSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		GridBagConstraints gbc_capSelectDropDown = new GridBagConstraints();
-		gbc_capSelectDropDown.gridwidth = 3;
-		gbc_capSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
-		gbc_capSelectDropDown.insets = new Insets(0, 0, 0, 5);
-		gbc_capSelectDropDown.gridx = 0;
-		gbc_capSelectDropDown.gridy = 3;
-		capScrollPanel.add(capSelectDropDown.pane, gbc_capSelectDropDown);
-		
-		String[] capArray = makeListFromQuery("Capability","SELECT DISTINCT ?entity WHERE {{?CapabilityTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityTag>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/Capability> ;}{?CapabilityTag ?TaggedBy ?entity}}");
-		capSelectDropDown.setupButton(capArray,40,120); //need to give list of all systems
-		
-		CapCheckBoxSelectorListener capCheckBoxListener = new CapCheckBoxSelectorListener();
-		capCheckBoxListener.setEngine(engine);
-		capCheckBoxListener.setScrollList(capSelectDropDown);
-		capCheckBoxListener.setCheckBox(allCapButton,dhmsmCapButton, hsdCapButton,hssCapButton, fhpCapButton);
-		allCapButton.addActionListener(capCheckBoxListener);
-		dhmsmCapButton.addActionListener(capCheckBoxListener);
-		hsdCapButton.addActionListener(capCheckBoxListener);
-		hssCapButton.addActionListener(capCheckBoxListener);
-		fhpCapButton.addActionListener(capCheckBoxListener);
 
 		
 		final JComponent contentPane = (JComponent) this.getContentPane();
@@ -315,8 +224,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_showSystemCapSelectBtn.gridx = 6;
 		gbc_showSystemCapSelectBtn.gridy = 4;
 		ctlPanel.add(showSystemCapSelectBtn, gbc_showSystemCapSelectBtn);
-		
-		
 	}
 	@Override
 	public void createAdvParamPanelsToggleListeners()
@@ -331,7 +238,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
 		updateDataBLUListener.setEngine(engine);
 		updateDataBLUListener.setUpDHMSMHelper();
-		updateDataBLUListener.setComponents(systemSelectPanel,capSelectDropDown,dataBLUSelectPanel,showSystemSelectBtn);
+		updateDataBLUListener.setComponents(systemSelectPanel,capabilitySelectPanel,dataBLUSelectPanel,showSystemSelectBtn);
 		updateDataBLUListener.setUpdateButtons(updateDataBLUPanelButton,dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
 		updateDataBLUPanelButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
@@ -424,8 +331,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_panel4.gridx = 1;
 		gbc_panel4.gridy = 3;
 		chartPanel.add(tab6,  gbc_panel4);
-		
-
 		
 		solutionLbl = new JLabel("");
 		solutionLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -548,16 +453,9 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	{
 		systemDataBLUSelectPanel.setVisible(false);
 		systemSelectPanel.setVisible(false);
+		capabilitySelectPanel.setVisible(false);
 		dataBLUSelectPanel.setVisible(false);
-		capSelectDropDown.setVisible(false);
-		capScrollPanel.setVisible(false);
-		allCapButton.setSelected(false);
-		dhmsmCapButton.setSelected(false);
-		hsdCapButton.setSelected(false);
-		hssCapButton.setSelected(false);
-		fhpCapButton.setSelected(false);
 		updateDataBLUPanelButton.setSelected(false);
-		capSelectDropDown.clearList();
 	}
 	
 	

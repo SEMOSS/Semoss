@@ -8,35 +8,23 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
-import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
-import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
+import aurelienribon.ui.css.Style;
 
 public class DHMSMDataBLUSelectPanel extends JPanel {
 	public IEngine engine;
 	
-	public boolean includeCapability = false;
-	
-	
-	DHMSMSystemSelectPanel systemSelectPanel;
-	//capability selects
-	public SelectScrollList sysSelectDropDown, capSelectDropDown;
-	
-	// data, and blu selects
 	public JLabel lblDataSelectHeader,lblBLUSelectHeader;
 	public SelectScrollList dataSelectDropDown,bluSelectDropDown;
 	public JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
-	
 	
 	public DHMSMDataBLUSelectPanel()
 	{
@@ -45,7 +33,6 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 	
 	public void addElements(DHMSMSystemSelectPanel systemSelectPanel)
 	{
-		this.systemSelectPanel = systemSelectPanel;
 		
 		this.removeAll();
 		GridBagLayout gbl_dataBLUSelectPanel = new GridBagLayout();
@@ -62,7 +49,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_lblDataSelectHeader.gridwidth = 3;
 		gbc_lblDataSelectHeader.anchor = GridBagConstraints.WEST;
 		gbc_lblDataSelectHeader.insets = new Insets(0, 5, 5, 5);
-		gbc_lblDataSelectHeader.gridx = 0;//changed from 8
+		gbc_lblDataSelectHeader.gridx = 0;
 		gbc_lblDataSelectHeader.gridy = 2;
 		this.add(lblDataSelectHeader, gbc_lblDataSelectHeader);
 		
@@ -73,11 +60,9 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_lblBLUSelectHeader.gridwidth = 3;
 		gbc_lblBLUSelectHeader.anchor = GridBagConstraints.WEST;
 		gbc_lblBLUSelectHeader.insets = new Insets(0, 0, 5, 5);
-		gbc_lblBLUSelectHeader.gridx = 12;
+		gbc_lblBLUSelectHeader.gridx = 4;
 		gbc_lblBLUSelectHeader.gridy = 2;
 		this.add(lblBLUSelectHeader, gbc_lblBLUSelectHeader);
-		
-		
 		
 		updateProvideDataBLUButton = new CustomButton("Select Provide");
 		updateProvideDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -88,7 +73,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_updateDataBLUButton.anchor = GridBagConstraints.WEST;
 		gbc_updateDataBLUButton.gridheight = 2;
 		gbc_updateDataBLUButton.insets = new Insets(10, 0, 5, 5);
-		gbc_updateDataBLUButton.gridx = 9;
+		gbc_updateDataBLUButton.gridx = 1;
 		gbc_updateDataBLUButton.gridy = 0;
 		this.add(updateProvideDataBLUButton, gbc_updateDataBLUButton);
 		
@@ -101,7 +86,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_updateConsumeDataBLUButton.anchor = GridBagConstraints.WEST;
 		gbc_updateConsumeDataBLUButton.gridheight = 2;
 		gbc_updateConsumeDataBLUButton.insets = new Insets(10, 0, 5, 5);
-		gbc_updateConsumeDataBLUButton.gridx = 10;
+		gbc_updateConsumeDataBLUButton.gridx = 2;
 		gbc_updateConsumeDataBLUButton.gridy = 0;
 		this.add(updateConsumeDataBLUButton, gbc_updateConsumeDataBLUButton);		
 		
@@ -115,7 +100,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_updateComplementDataBLUButton.gridwidth = 3;
 		gbc_updateComplementDataBLUButton.gridheight = 2;
 		gbc_updateComplementDataBLUButton.insets = new Insets(10, 0, 5, 5);
-		gbc_updateComplementDataBLUButton.gridx = 11;
+		gbc_updateComplementDataBLUButton.gridx = 3;
 		gbc_updateComplementDataBLUButton.gridy = 0;
 		this.add(updateComplementDataBLUButton, gbc_updateComplementDataBLUButton);
 
@@ -125,7 +110,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_dataSelectDropDown.gridwidth = 3;
 		gbc_dataSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
 		gbc_dataSelectDropDown.insets = new Insets(0, 0, 0, 5);
-		gbc_dataSelectDropDown.gridx = 8;
+		gbc_dataSelectDropDown.gridx = 0;
 		gbc_dataSelectDropDown.gridy = 3;
 		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
 
@@ -140,7 +125,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_bluSelectDropDown.gridwidth = 3;
 		gbc_bluSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
 		gbc_bluSelectDropDown.insets = new Insets(0, 0, 0, 5);
-		gbc_bluSelectDropDown.gridx = 12;
+		gbc_bluSelectDropDown.gridx = 4;
 		gbc_bluSelectDropDown.gridy = 3;
 		this.add(bluSelectDropDown.pane, gbc_bluSelectDropDown);
 		
