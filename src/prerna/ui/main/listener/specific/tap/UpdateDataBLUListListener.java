@@ -44,8 +44,10 @@ import prerna.util.Utility;
  */
 public class UpdateDataBLUListListener extends AbstractListener {
 	IEngine engine;
-	JToggleButton showSystemSelectBtn, updateDataBLUPanelButton;
+	JToggleButton showSystemSelectBtn;
 	JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
+	
+	boolean includeCapabilityPanel = false;
 
 	DHMSMSystemSelectPanel sysSelectPanel;
 	DHMSMCapabilitySelectPanel capSelectPanel;
@@ -60,32 +62,14 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		//if the updateDataBLUPanelButton is unselected by user, hide the panel
-		if((e.getSource().equals(updateDataBLUPanelButton)&&!updateDataBLUPanelButton.isSelected()))
-			dataBLUSelectPanel.setVisible(false);
-		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
-		else if(e.getSource().equals(updateDataBLUPanelButton))
-		{
-			dataBLUSelectPanel.setVisible(true);
-			if(showSystemSelectBtn.isSelected())
-			{
-				updateProvideDataBLUButton.setText("Select Create");
-				updateConsumeDataBLUButton.setText("Select Read");
-			}else{
-				updateProvideDataBLUButton.setText("Select Provide");
-				updateConsumeDataBLUButton.setText("Select Consume");
-			}
-			dataBLUSelectPanel.dataSelectDropDown.clearList();
-			dataBLUSelectPanel.bluSelectDropDown.clearList();
-		}
-		else if(e.getSource().equals(updateProvideDataBLUButton)||e.getSource().equals(updateConsumeDataBLUButton))
+		if(e.getSource().equals(updateProvideDataBLUButton)||e.getSource().equals(updateConsumeDataBLUButton))
 		{
 			dataBLUSelectPanel.setVisible(true);
 			ArrayList<String> dataList =  new ArrayList<String>();
 			ArrayList<String> bluList =  new ArrayList<String>();
 			
-			//if the system only select panel is shown, populate data and blu from the selected systems
-			if(showSystemSelectBtn.isSelected())
+			//if capabilities are not included or the system only select panel is shown, populate data and blu from the selected systems
+			if(!includeCapabilityPanel||showSystemSelectBtn.isSelected())
 			{
 				ArrayList<String> systems = new ArrayList<String>();
 				if(!sysSelectPanel.getSelectedSystems().isEmpty())
@@ -215,7 +199,10 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	public void setComponents(DHMSMSystemSelectPanel sysSelectPanel,DHMSMCapabilitySelectPanel capSelectPanel,DHMSMDataBLUSelectPanel dataBLUSelectPanel, JToggleButton showSystemSelectBtn)
 	{
 		this.sysSelectPanel = sysSelectPanel;
-		this.capSelectPanel = capSelectPanel;
+		if(capSelectPanel == null)
+			includeCapabilityPanel = false;
+		else
+			this.capSelectPanel = capSelectPanel;
 		this.dataBLUSelectPanel = dataBLUSelectPanel;
 		this.showSystemSelectBtn = showSystemSelectBtn;
 	}
@@ -225,9 +212,8 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 * @param updateProvideDataBLUButton 			JButton to update data and blu lists
 	 * @param updateComplementDataBLUButton JButton to update complement of data and blu lists
 	 */
-	public void setUpdateButtons(JToggleButton updateDataBLUPanelButton,JButton updateProvideDataBLUButton,JButton updateConsumeDataBLUButton,JButton updateComplementDataBLUButton)
+	public void setUpdateButtons(JButton updateProvideDataBLUButton,JButton updateConsumeDataBLUButton,JButton updateComplementDataBLUButton)
 	{
-		this.updateDataBLUPanelButton = updateDataBLUPanelButton;
 		this.updateProvideDataBLUButton = updateProvideDataBLUButton;
 		this.updateConsumeDataBLUButton = updateConsumeDataBLUButton;
 		this.updateComplementDataBLUButton = updateComplementDataBLUButton;
@@ -240,6 +226,11 @@ public class UpdateDataBLUListListener extends AbstractListener {
 		dhelp = new DHMSMHelper();
 		dhelp.setUseDHMSMOnly(false);
 		dhelp.runData(engine);
+	}
+	
+	public void setIncludeCapabilityPanel(boolean includeCapabilityPanel)
+	{
+		this.includeCapabilityPanel = includeCapabilityPanel;
 	}
 	/**
 	 * Override method from AbstractListener
