@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
@@ -133,7 +134,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		this.infRate = infRate;
 		this.disRate = disRate;
 	}
-	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capSelectDropDown,SelectScrollList dataSelectDropDown,SelectScrollList bluSelectDropDown,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
+	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capSelectDropDown,DHMSMDataBLUSelectPanel dataBLUSelectPanel,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
 	{
 		this.includeRegionalization = includeRegionalization;
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
@@ -147,8 +148,8 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		{
 			this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
 			this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
-			this.dataQuery = addBindings("DataObject",dataSelectDropDown.list.getSelectedValuesList(),dataQuery);
-			this.bluQuery = addBindings("BusinessLogicUnit",bluSelectDropDown.list.getSelectedValuesList(),bluQuery);
+			this.dataQuery = addBindings("DataObject",dataBLUSelectPanel.getSelectedData(),dataQuery);
+			this.bluQuery = addBindings("BusinessLogicUnit",dataBLUSelectPanel.getSelectedBLU(),bluQuery);
 		}
 		else if(useSysList)
 		{
