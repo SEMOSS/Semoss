@@ -219,13 +219,27 @@ public class IndividualSystemTransitionReportWriter {
 		}
 		
 		XSSFSheet sheetToWriteOver = wb.getSheet("Modernization Timeline");
+		
+		int indRowToWriteSystem = 3;
+		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
+		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
+		cellToWriteSystem.setCellValue(systemName);
+		cellToWriteSystem = rowToWriteSystem.getCell(1);
+		String currString = cellToWriteSystem.getStringCellValue();
+		currString = currString.replace("@SYSTEM@",systemName);
+		cellToWriteSystem.setCellValue(currString);
+		
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToWriteList);
 		
+		double totalCost = 0.0;
 		for (int budgetInd=0; budgetInd<budgetList.size(); budgetInd++) {
 				XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetInd+1);
-				//cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 				cellToWriteOn.setCellValue(budgetList.get(budgetInd));
+				totalCost+=budgetList.get(budgetInd);
 		}
+		XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetList.size()+1);
+		cellToWriteOn.setCellValue(totalCost);
+		
 		
 	}
 	
