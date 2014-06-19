@@ -31,6 +31,7 @@ import javax.swing.JToggleButton;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -47,9 +48,10 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	IEngine engine;
 	JToggleButton showSystemSelectBtn, updateDataBLUPanelButton;
 	JButton updateProvideDataBLUButton,updateConsumeDataBLUButton,updateComplementDataBLUButton;
-	JLabel lblDataSelectHeader, lblBLUSelectHeader;
-	SelectScrollList capScrollList, dataScrollList, bluScrollList;
+
 	DHMSMSystemSelectPanel sysSelectPanel;
+	DHMSMDataBLUSelectPanel dataBLUSelectPanel;
+	SelectScrollList capScrollList;
 	DHMSMHelper dhelp;
 	/**
 	 * Determines if the user has selected the view data/blu toggle, updateDataBLUButton or updateComplementDataBLUButton
@@ -62,11 +64,11 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	public void actionPerformed(ActionEvent e) {
 		//if the updateDataBLUPanelButton is unselected by user, hide the panel
 		if((e.getSource().equals(updateDataBLUPanelButton)&&!updateDataBLUPanelButton.isSelected()))
-			setAllVisible(false);
+			dataBLUSelectPanel.setVisible(false);
 		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
 		else if(e.getSource().equals(updateDataBLUPanelButton))
 		{
-			setAllVisible(true);
+			dataBLUSelectPanel.setVisible(true);
 			if(showSystemSelectBtn.isSelected())
 			{
 				updateProvideDataBLUButton.setText("Select Create");
@@ -75,12 +77,12 @@ public class UpdateDataBLUListListener extends AbstractListener {
 				updateProvideDataBLUButton.setText("Select Provide");
 				updateConsumeDataBLUButton.setText("Select Consume");
 			}
-			dataScrollList.clearList();
-			bluScrollList.clearList();
+			dataBLUSelectPanel.dataSelectDropDown.clearList();
+			dataBLUSelectPanel.bluSelectDropDown.clearList();
 		}
 		else if(e.getSource().equals(updateProvideDataBLUButton)||e.getSource().equals(updateConsumeDataBLUButton))
 		{
-			setAllVisible(true);
+			dataBLUSelectPanel.setVisible(true);
 			ArrayList<String> dataList =  new ArrayList<String>();
 			ArrayList<String> bluList =  new ArrayList<String>();
 			
@@ -140,32 +142,31 @@ public class UpdateDataBLUListListener extends AbstractListener {
 				}
 
 			}
-			dataScrollList.setSelectedValues(new Vector<String>(dataList));
-			bluScrollList.setSelectedValues(new Vector<String>(bluList));
+			dataBLUSelectPanel.dataSelectDropDown.setSelectedValues(new Vector<String>(dataList));
+			dataBLUSelectPanel.bluSelectDropDown.setSelectedValues(new Vector<String>(bluList));
 		}
 		//if the complement button is clicked, then get all the unselected data and blu values and set them as selected
 		else
 		{
-			ArrayList<String> dataList =  dataScrollList.getUnselectedValues();
-			ArrayList<String> bluList =  bluScrollList.getUnselectedValues();
-			dataScrollList.setSelectedValues(new Vector<String>(dataList));
-			bluScrollList.setSelectedValues(new Vector<String>(bluList));
+			ArrayList<String> dataList =  dataBLUSelectPanel.dataSelectDropDown.getUnselectedValues();
+			ArrayList<String> bluList =  dataBLUSelectPanel.bluSelectDropDown.getUnselectedValues();
+			dataBLUSelectPanel.dataSelectDropDown.setSelectedValues(new Vector<String>(dataList));
+			dataBLUSelectPanel.bluSelectDropDown.setSelectedValues(new Vector<String>(bluList));
 		}
 	}
-	/**
-	 * Marks all components as visible or invisible.
-	 * @param isVisible boolean that is true when setting all to visible
-	 */
-	public void setAllVisible(boolean isVisible)
-	{
-		lblDataSelectHeader.setVisible(isVisible);
-		lblBLUSelectHeader.setVisible(isVisible);
-		updateProvideDataBLUButton.setVisible(isVisible);
-		updateConsumeDataBLUButton.setVisible(isVisible);
-		updateComplementDataBLUButton.setVisible(isVisible);
-		dataScrollList.setVisible(isVisible);
-		bluScrollList.setVisible(isVisible);
-	}
+//	/**
+//	 * Marks all components as visible or invisible.
+//	 * @param isVisible boolean that is true when setting all to visible
+//	 */
+//	public void setAllVisible(boolean isVisible)
+//	{
+//		dataBLUSelectPanel.setVisible(isVisible);
+////		updateProvideDataBLUButton.setVisible(isVisible);
+////		updateConsumeDataBLUButton.setVisible(isVisible);
+////		updateComplementDataBLUButton.setVisible(isVisible);
+////		dataBLUSelectPanel.dataSelectDropDown.setVisible(isVisible);
+////		dataBLUSelectPanel.bluSelectDropDown.setVisible(isVisible);
+//	}
 	/**
 	 * Adds a list of bindings to a query
 	 * @param type			String representing the type of node to include in the bindings, must be the same as the retvariable name in the query
@@ -226,14 +227,11 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 * @param lblBLUSelectHeader JLabel for blu
 	 * @param showSystemSelectBtn JToggleButton to show whether system select only is shown
 	 */
-	public void setComponents(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capScrollList,SelectScrollList dataScrollList,SelectScrollList bluScrollList,JLabel lblDataSelectHeader,JLabel lblBLUSelectHeader, JToggleButton showSystemSelectBtn)
+	public void setComponents(DHMSMSystemSelectPanel sysSelectPanel,SelectScrollList capScrollList,DHMSMDataBLUSelectPanel dataBLUSelectPanel, JToggleButton showSystemSelectBtn)
 	{
 		this.sysSelectPanel = sysSelectPanel;
 		this.capScrollList = capScrollList;
-		this.dataScrollList = dataScrollList;
-		this.bluScrollList = bluScrollList;
-		this.lblDataSelectHeader = lblDataSelectHeader;
-		this.lblBLUSelectHeader = lblBLUSelectHeader;
+		this.dataBLUSelectPanel = dataBLUSelectPanel;
 		this.showSystemSelectBtn = showSystemSelectBtn;
 	}
 	/**
