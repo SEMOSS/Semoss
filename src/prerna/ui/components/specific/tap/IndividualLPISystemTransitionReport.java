@@ -79,7 +79,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 		for(int i = 0; i < dates.length; i++)
 		{
-			getSoftwareHardwareData.setQuery(dates[i] + "&" + softwareLifeCycleQuery);
+			getSoftwareHardwareData.setQuery(dates[i] + "&" + hardwareLifeCycleQuery);
 			String[] names = getSoftwareHardwareData.getNames();
 			ArrayList<Object[]> dataRow = getSoftwareHardwareData.processQuery(getSoftwareHardwareData.getQuery());
 			dataRow  = removeSystemFromArrayList(dataRow);

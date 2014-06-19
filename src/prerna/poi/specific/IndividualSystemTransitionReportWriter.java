@@ -153,6 +153,10 @@ public class IndividualSystemTransitionReportWriter {
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),41,iocString,45);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),78,focString,82);
+		if(sheetName.contains("Software"))
+			writeModernizationTimeline(6,(ArrayList<Object[]>)resultBeforeIOC.get("data"));
+		else
+			writeModernizationTimeline(7,(ArrayList<Object[]>)resultBeforeIOC.get("data"));
 	}
 	
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
@@ -184,6 +188,45 @@ public class IndividualSystemTransitionReportWriter {
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 			}
 		}
+	}
+	public void writeModernizationTimeline(int rowToWriteList,ArrayList<Object[]> dataList)
+	{
+		ArrayList<Integer> yearList = new ArrayList<Integer>();
+		ArrayList<Double> budgetList = new ArrayList<Double>();
+		for(int year=2015;year<=2022;year++)
+		{
+			yearList.add(year);
+			budgetList.add(0.0);
+		}
+		for(int i=0;i<dataList.size();i++)
+		{
+			Object[] swHWRow = dataList.get(i);
+			String date = (String)swHWRow[1];
+			if(date!=null&&date.length()>0)
+			{
+				double cost = (Double)swHWRow[5];
+				int indexOfHyphen = date.indexOf("-");
+				if(indexOfHyphen>0)
+				{
+					int year = Integer.parseInt(date.substring(0,indexOfHyphen));
+					int yearIndex = yearList.indexOf(year);
+					if(year<yearList.get(0))
+						yearIndex = 0;
+					if(yearIndex>-1)
+						budgetList.set(yearIndex, budgetList.get(yearIndex)+cost);
+				}
+			}
+		}
+		
+		XSSFSheet sheetToWriteOver = wb.getSheet("Modernization Timeline");
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToWriteList);
+		
+		for (int budgetInd=0; budgetInd<budgetList.size(); budgetInd++) {
+				XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetInd+1);
+				//cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+				cellToWriteOn.setCellValue(budgetList.get(budgetInd));
+		}
+		
 	}
 	
 	public void writeSystemInfoSheet(String sheetName, HashMap<String,Object> result){
