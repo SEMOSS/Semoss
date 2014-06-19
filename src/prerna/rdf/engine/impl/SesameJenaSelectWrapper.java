@@ -23,8 +23,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.util.Utility;
@@ -152,11 +154,15 @@ public class SesameJenaSelectWrapper {
 					Object val = bs.getValue(var[colIndex]);
 					Double weightVal = null;
 					String dateStr=null;
+					String stringVal = null;
 					try
 					{
 						if(val != null && val instanceof Literal)
 						{
-							if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
+							if(QueryEvaluationUtil.isStringLiteral((Value) val)){
+								stringVal = ((Literal)val).getLabel();
+							}
+							else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
 								dateStr = (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
 							}
 							else{
@@ -174,12 +180,14 @@ public class SesameJenaSelectWrapper {
 					}
 					String value = bs.getValue(var[colIndex])+"";
 					String instanceName = Utility.getInstanceName(value);
-					if(weightVal == null && dateStr==null && val != null)
+					if(weightVal == null && dateStr==null && stringVal==null && val != null)
 						retSt.setVar(var[colIndex], instanceName);
 					else if (weightVal != null)
 						retSt.setVar(var[colIndex], weightVal);
 					else if (dateStr != null)
 						retSt.setVar(var[colIndex], dateStr);
+					else if (stringVal != null)
+						retSt.setVar(var[colIndex], stringVal);
 					else if(val == null) {
 						retSt.setVar(var[colIndex], "");
 						continue;
