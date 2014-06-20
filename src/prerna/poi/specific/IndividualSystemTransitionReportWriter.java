@@ -127,7 +127,6 @@ public class IndividualSystemTransitionReportWriter {
 		cellToWriteSystem.setCellValue(currString);
 		
 		int rowToStart = 6;
-		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
@@ -145,6 +144,23 @@ public class IndividualSystemTransitionReportWriter {
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
 				}
 			}
+		}
+		
+		// for System Interfaces Sheet
+		if(result.get("cost") != null)
+		{
+			Double cost = (Double) result.get("cost");
+			int lastRowNum = sheetToWriteOver.getLastRowNum();
+			XSSFRow lastRow = sheetToWriteOver.getRow(lastRowNum);
+			int lastCellNum = lastRow.getLastCellNum();
+			
+			lastRow = sheetToWriteOver.createRow(lastRowNum+1);
+			XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-2);
+			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
+			cellToWriteOn.setCellValue("Total Cost");
+			cellToWriteOn = lastRow.createCell(lastCellNum-1);
+			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
+			cellToWriteOn.setCellValue(cost);
 		}
 	}
 	
