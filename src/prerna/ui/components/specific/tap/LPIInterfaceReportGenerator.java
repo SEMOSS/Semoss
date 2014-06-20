@@ -197,7 +197,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							}
 						}
 						else { //probability is low
-							if (lpiSys.equals("DMLSS") && interfacingSys.equals("AIDC")) {
+							if (lpiSys.equals("ABACUS") && interfacingSys.equals("MDR")) {
 								System.out.println("Test.");
 							}
 							if (dhmsmSOR.contains(sorKey)) {
