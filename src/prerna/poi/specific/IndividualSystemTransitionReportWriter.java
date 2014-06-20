@@ -135,12 +135,15 @@ public class IndividualSystemTransitionReportWriter {
 			for (int col=0; col< resultRowValues.length; col++) {
 				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
 				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
-				if(resultRowValues[col] instanceof Double)
+				if(resultRowValues[col] instanceof Double) {
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
-				else if(resultRowValues[col] instanceof Integer)
+				}
+				else if(resultRowValues[col] instanceof Integer) {
 					cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
-				else
+				}
+				else {
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+				}
 			}
 		}
 	}
