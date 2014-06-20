@@ -228,8 +228,12 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 									if(glTagSerArr[0].contains("Consume"))
 									{
 										String ser = glTagSerArr[1];
-										servicesConsumeList.add(ser);
-
+										if(!servicesConsumeList.contains(ser))
+										{
+											servicesConsumeList.add(ser);
+											sysGLItemProviderCost += sysGLItem.get(glTagSer);
+										}
+										
 										sysGLItemConsumerCost += sysGLItem.get(glTagSer);
 									}
 									// else do nothing - do not care about provide loe
@@ -241,7 +245,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 						}
 						
 						// null in array causes error - set to empty string
-						if(newRow[i+1] == null) {
+						if(newRow[i+1] == null || (Double) newRow[i+1] == (double) 0) {
 							newRow[i+1] = "";
 						}
 					}
