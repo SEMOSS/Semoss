@@ -130,6 +130,7 @@ Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
 Capability_Consists_Task http://health.mil/ontologies/Relation/Consists
+BusinessLogicUnit_Requires_DataObject http://health.mil/ontologies/Relation/Requires
 System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 Service_Replaces_InterfaceControlDocument http://health.mil/ontologies/Relation/Replaces
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
