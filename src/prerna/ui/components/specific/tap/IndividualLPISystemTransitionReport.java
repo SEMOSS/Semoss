@@ -172,7 +172,6 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		{
 			Object[] newRow = new Object[oldHeaders.length + 1];
 			String dataObject = "";
-			String service = "";
 			for(int i = 0; i < row.length; i++)
 			{
 				if(i == 4) 
@@ -180,12 +179,6 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 					dataObject = row[i].toString();
 					newRow[i] = dataObject;
 				} 
-				else if(i == 5)
-				{
-					service = row[i].toString();
-					newRow[i] = service;
-				}
-				
 				else if(i == row.length - 1) 
 				{
 					String comment = row[i].toString().replaceAll("\"", "");
