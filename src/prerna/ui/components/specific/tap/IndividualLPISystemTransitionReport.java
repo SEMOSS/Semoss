@@ -219,6 +219,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 							HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
 							HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
 							
+							Boolean useAverage = true;
 							Boolean servicesAllUsed = false;
 							if(sysGLItem != null)
 							{
@@ -227,6 +228,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 									String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
 									if(glTagSerArr[1].contains("Provider"))
 									{
+										useAverage = false;
 										String ser = glTagSerArr[0];
 										if(!servicesProvideList.contains(ser)) {
 											sysGLItemServices.add(ser);
@@ -240,7 +242,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 							}
 							// else get the average system cost
-							else if(avgSysGLItem != null)
+							if(useAverage)
 							{
 								for(String glTagSer : avgSysGLItem.keySet())
 								{
@@ -288,7 +290,8 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 							// get sysGlItem for consumer lpi systems
 							HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
 							HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
-
+							
+							Boolean useAverage = true;
 							Boolean servicesAllUsed = false;
 							if(sysGLItem != null)
 							{
@@ -297,6 +300,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 									String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
 									if(glTagSerArr[1].contains("Consume"))
 									{
+										useAverage = false;
 										String ser = glTagSerArr[0];
 										if(!servicesConsumeList.contains(ser)) {
 											servicesConsumeList.add(ser);
@@ -309,7 +313,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 							}
 							// else get the average system cost
-							else if(avgSysGLItem != null)
+							if(useAverage)
 							{
 								for(String glTagSer : avgSysGLItem.keySet())
 								{
