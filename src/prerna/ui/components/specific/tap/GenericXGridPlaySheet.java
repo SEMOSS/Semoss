@@ -1,10 +1,8 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.GridBagConstraints;
-import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Vector;
 
@@ -19,8 +17,6 @@ import prerna.ui.components.playsheets.GridPlaySheet;
  * Given two variables, this class creates X's in a table if there is a relationship between them.
  */
 public class GenericXGridPlaySheet extends GridPlaySheet {
-
-	private int year, month;
 	
 	@Override
 	public void createData() {
@@ -130,38 +126,6 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 	{
 		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
 			this.query=query;
-		else
-		{
-			logger.info("New Query " + query);
-			int semicolon1 = query.indexOf(";");
-			int semicolon2 = query.indexOf(";",semicolon1+1);
-			Calendar now = Calendar.getInstance();
-			year = now.get(Calendar.YEAR); //replace with current year
-			if(!query.substring(0,semicolon1).equals("Today"))
-				year = Integer.parseInt(query.substring(0,semicolon1));
-			month = getIntForMonth(query.substring(semicolon1+1,semicolon2));
-			if(month == -1)
-				month= now.get(Calendar.MONTH);
-			this.query = query.substring(semicolon2+1);
-		}
-	}
-
-	/**
-	 * Reads in a date format symbol and gets the months.
-	 * The string form of the month is checked against the name of months and returns the integer form.
-	 * @param m 		Month in string form.
-	 * @return int		Month in integer form. */
-	public int getIntForMonth(String m) {
-		DateFormatSymbols dfs = new DateFormatSymbols();
-		String[] months = dfs.getMonths();
-		int i=0;
-		while(i<12)
-		{
-			if(m.equals(months[i]))
-				return i;
-			i++;
-		}
-		return -1;
 	}
 
 }

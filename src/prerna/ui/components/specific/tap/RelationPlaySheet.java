@@ -23,47 +23,35 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
 import java.util.Vector;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextField;
 import javax.swing.JToggleButton;
-import javax.swing.ListSelectionModel;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
 import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.PlaySheetListener;
-import prerna.ui.main.listener.specific.tap.AdvParamListener;
-import prerna.ui.main.listener.specific.tap.CapCheckBoxSelectorListener;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
-import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
-import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
+import prerna.ui.main.listener.specific.tap.RelationBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
 import prerna.ui.swing.custom.CustomButton;
-import prerna.ui.swing.custom.SelectScrollList;
-import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -82,9 +70,6 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	public DHMSMSystemSelectPanel systemSelectPanel;
 	// public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
-			
-	//toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
-	//public JToggleButton updateDataBLUPanelButton;
 	
 	public IEngine engine;
 	
@@ -94,6 +79,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	
 	public JTabbedPane tabbedPane;
 	public JPanel specificFuncAlysPanel;
+	public JProgressBar progressBar;
 	
 	/**
 	 * Constructor for RelationPlaySheet.
@@ -192,6 +178,33 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		systemDataBLUSelectPanel.add(dataBLUSelectPanel, gbc_dataBLUSelectPanel);
 		dataBLUSelectPanel.addElements(systemSelectPanel);
 		
+		Object hidePopupKey = new JComboBox().getClientProperty("doNotCancelPopup");  
+		JButton btnGenerateRelations = new CustomButton("Generate Relations");
+		btnGenerateRelations.putClientProperty("doNotCancelPopup", hidePopupKey);
+
+		btnGenerateRelations.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnGenerateRelations = new GridBagConstraints();
+		gbc_btnGenerateRelations.gridwidth = 4;
+		gbc_btnGenerateRelations.insets = new Insets(10, 0, 5, 5);
+		gbc_btnGenerateRelations.anchor = GridBagConstraints.WEST;
+		gbc_btnGenerateRelations.gridx = 4;
+		gbc_btnGenerateRelations.gridy = 5;
+		ctlPanel.add(btnGenerateRelations, gbc_btnGenerateRelations);
+		addRelationBtnListener(btnGenerateRelations);
+		Style.registerTargetClassName(btnGenerateRelations,  ".createBtn");
+		
+		progressBar = new JProgressBar();
+		progressBar.setFont(new Font("Tahoma", Font.BOLD, 13));
+		GridBagConstraints gbc_progressBar = new GridBagConstraints();
+		gbc_progressBar.anchor = GridBagConstraints.SOUTH;
+		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
+		gbc_progressBar.gridwidth = 2;
+		gbc_progressBar.insets = new Insets(0, 0, 0, 5);
+		gbc_progressBar.gridx = 6;
+		gbc_progressBar.gridy = 5;
+		ctlPanel.add(progressBar, gbc_progressBar);
+		progressBar.setVisible(false);
+		
 		final JComponent contentPane = (JComponent) this.getContentPane();
 		contentPane.addMouseListener(new MouseAdapter() {  
 
@@ -230,12 +243,12 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
 	}
 
-//	public void addOptimizationBtnListener(JButton btnRunOptimization)
-//	{
-//		SysOptBtnListener obl = new SysOptBtnListener();
-//		obl.setOptPlaySheet(this);
-//		btnRunOptimization.addActionListener(obl);
-//	}
+	public void addRelationBtnListener(JButton btnGenerateRelations)
+	{
+		RelationBtnListener rbl = new RelationBtnListener();
+		rbl.setPlaySheet(this);
+		btnGenerateRelations.addActionListener(rbl);
+	}
 	
 	public void createGenericDisplayPanel()
 	{	
@@ -272,7 +285,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		
 		createGenericParamPanel();
 		createGenericDisplayPanel();
-//		createListeners();
+		createListeners();
 
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{723, 0};
@@ -392,7 +405,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	}
 	@Override
 	public void setRDFEngine(IEngine engine) {
-		// TODO Auto-generated method stub
+		this.engine = engine;
 		
 	}
 	@Override
@@ -414,6 +427,12 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public void setTitle(String title) {
+		super.setTitle(title);
+		this.title = title;
 	}
 	
 	
