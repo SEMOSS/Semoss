@@ -169,37 +169,34 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 					if(names[colIndex].contains(commentKey)){ 
 						if (probability.length() < 3) {
 							if (interfaceVar.length() < 3) {
-								comment = "\"No interfaces identified.\"";
+								comment = "No interfaces identified.";
 							}
-							else {comment = "\"Stays as-is.\""; }								
+							else {comment = "Stays as-is."; }								
 						}
 						else if (probability.contains(hpKey)) {
 							if (hieV.contains(interfacingSystem)) {
-								comment = "\"Replaced by DHMSM HIE service.\"";
+								comment = "Replaced by DHMSM HIE service.";
 							}
 							else {
 								if (interfaceType.contains(downstreamKey)) {
 									if (dhmsmSOR.length() < 3) {
-										comment = "\"Kill the interface.\"";
+										comment = "Kill the interface.";
 									}
 									else {
-										comment = "\"Need to add interface " + lpiSys + "->DHMSM.\"";
+										comment = "Need to add interface " + lpiSys + "->DHMSM.";
 									}
 								}
 								else { //LPI is downstream of HP
 									if (dhmsmSOR.length() < 3) {
-										comment = "\"LPI IS LOSING DATA.\"";
+										comment = "LPI IS LOSING DATA.";
 									}
 									else {
-										comment = "\"Need to add interface DHMSM->" + lpiSys + "\"";
+										comment = "Need to add interface DHMSM->" + lpiSys + ".";
 									}
 								}
 							}
 						}
 						else { //probability is low
-							if (lpiSys.equals("ABACUS") && interfacingSys.equals("MDR")) {
-								System.out.println("Test.");
-							}
 							if (dhmsmSOR.contains(sorKey)) {
 								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
 								if (interfaceType.contains(downstreamKey)) {
@@ -211,31 +208,30 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 									downStreamSys = lpiSys; downStreamSysRaw = lpiSystem;
 								}
 								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) {
-									comment = "\"Need to add interface DHMSM->" + upStreamSys + ".\"";
+									comment = "Need to add interface DHMSM->" + upStreamSys + ".";
 								}
 								else {
-									comment = "\"Need to add interface DHMSM->" + downStreamSys + ".\"";
+									comment = "Need to add interface DHMSM->" + downStreamSys + ".";
 								}
 							}
 							else {
 								if(sorV.contains(lpiSysData)){
 									System.out.println(" this is 3bi");
-									comment = "\"Need to add interface " + lpiSys + "->DHMSM.\"";
+									comment = "Need to add interface " + lpiSys + "->DHMSM.";
 								}
 								else if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
 									System.out.println(" this is 3bii");
-									comment = "\"Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
-											" should be LPI.\"";
+									comment = "Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
+											" should be LPI.";
 								}
 								else{
 									System.out.println(" this is neither ");
 									//LP should be LPI
-									comment = "\"Stays as-is.\"";
+									comment = "Stays as-is.";
 								}
 							}
 						}
 						values[count] = comment;
-						System.out.println("This is the comment: " + comment);
 					}
 					else
 						values[count] = sjss.getVar(names[colIndex]);
