@@ -9,6 +9,7 @@ public class TriplePart {
 	public final static TriplePartConstant VARIABLE = new TriplePartConstant("VARIABLE");
 	public final static TriplePartConstant URI = new TriplePartConstant("URI");
 	public final static TriplePartConstant LITERAL = new TriplePartConstant("LITERAL");
+	
 	public TriplePart (Object value, TriplePartConstant type)
 	{	
 		if (type == TriplePart.VARIABLE || type == TriplePart.URI || type == TriplePart.LITERAL)

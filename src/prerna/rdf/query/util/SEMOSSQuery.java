@@ -4,10 +4,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-import org.openrdf.model.URI;
-
-
-
 public class SEMOSSQuery {
 	private static final String main = "Main";
 	private ArrayList<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
@@ -15,6 +11,7 @@ public class SEMOSSQuery {
 	private Hashtable<TriplePart, ISPARQLReturnModifier> retModifyPhrase = new Hashtable<TriplePart,ISPARQLReturnModifier>();
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
+	private SPARQLBindings bindings = null;
 	private String retVarString, wherePatternString, postWhereString;
 	private String customQueryStructure ="";
 	private String queryType;
@@ -78,8 +75,6 @@ public class SEMOSSQuery {
 		}
 	}
 	
-
-	
 	public void createPatternClauses()
 	{
 		if(customQueryStructure.equals(""))
@@ -125,10 +120,8 @@ public class SEMOSSQuery {
 		}
 	}
 	
-	
 	public void createPostPatternString()
 	{
-		
 		if(groupBy != null)
 		{
 			postWhereString = groupBy.getString();
@@ -136,6 +129,10 @@ public class SEMOSSQuery {
 		else
 		{
 			postWhereString = "";
+		}
+		if(bindings != null)
+		{
+			postWhereString += " " + bindings.getBindingString();
 		}
 	}
 	
@@ -204,7 +201,7 @@ public class SEMOSSQuery {
 		}
 		SPARQLBind newBind = new SPARQLBind(bindSubject, bindObject);
 		clause.addBind(newBind);
-		clauseHash.put(main,  clause);
+		clauseHash.put(main, clause);
 	}
 	
 	public void addBind(TriplePart bindSubject, TriplePart bindObject, String clauseName)
@@ -223,13 +220,66 @@ public class SEMOSSQuery {
 		clauseHash.put(clauseName,  clause);
 	}
 	
+	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or)
+	{
+		ArrayList<Object> addToFilter = new ArrayList<Object>();
+		for(TriplePart bindVar : filterData)
+		{
+			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString);
+			addToFilter.add(regex);
+		}
+		addFilter(addToFilter, or);
+	}
+	
+	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName)
+	{
+		ArrayList<Object> addToFilter = new ArrayList<Object>();
+		for(TriplePart bindVar : filterData)
+		{
+			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString);
+			addToFilter.add(regex);
+		}
+		addFilter(addToFilter, or, clauseName);
+	}
+	
+	public void addFilter(ArrayList<Object> filterData, boolean or)
+	{
+		SPARQLPatternClause clause;
+		if(clauseHash.containsKey(main))
+		{
+			clause = clauseHash.get(main);
+		}
+		else
+		{
+			clause = new SPARQLPatternClause();
+		}
+		SPARQLFilter newFilter = new SPARQLFilter(filterData, or);
+		clause.addFilter(newFilter);
+		clauseHash.put(main, clause);
+	}
+	
+	public void addFilter(ArrayList<Object> filterData, boolean or, String clauseName)
+	{
+		SPARQLPatternClause clause;
+		if(clauseHash.containsKey(clauseName))
+		{
+			clause = clauseHash.get(clauseName);
+		}
+		else
+		{
+			clause = new SPARQLPatternClause();
+		}
+		SPARQLFilter newFilter = new SPARQLFilter(filterData, or);
+		clause.addFilter(newFilter);
+		clauseHash.put(clauseName,  clause);
+	}
+	
 	public String createRetStringWithMod(TriplePart var, ISPARQLReturnModifier mod)
 	{
 		String retString = "("+mod.getModifierAsString()+ " AS " + SPARQLQueryHelper.createComponentString(var)+ ")";
 		return retString;
 	}
 	
-
 	public String getQuery()
 	{
 		return query;
@@ -253,7 +303,6 @@ public class SEMOSSQuery {
 	{
 		return triples;
 	}
-
 	
 	public ArrayList<TriplePart> getRetVars()
 	{
@@ -278,6 +327,11 @@ public class SEMOSSQuery {
 	public SPARQLGroupBy getGroupBy()
 	{
 		return this.groupBy;
+	}
+	
+	public void setBindings(SPARQLBindings bindings)
+	{
+		this.bindings = bindings;
 	}
 	
 }
