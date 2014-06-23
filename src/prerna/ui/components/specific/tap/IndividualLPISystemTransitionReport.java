@@ -40,7 +40,9 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 	private IEngine hr_Core;
 	private IEngine TAP_Cost_Data;
 
-	private String[] dates = new String[]{"2016&June","2017&April","2022&July"}; 
+	private String[] dates = new String[]{"2016&June","2017&April","2022&July"};
+	
+	private boolean showMessages = true;
 
 	Logger logger = Logger.getLogger(getClass());
 
@@ -130,11 +132,19 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		writer.writeListSheet("DHMSM Data Requirements", sysSORDataWithDHMSMCapHash);
 		writer.writeListSheet("System Interfaces", sysLPIInterfaceWithCostHash);
 		boolean success = writer.writeWorkbook();
-		if(success){
-			Utility.showMessage("System Export Finished! File located in:\n" + IndividualSystemTransitionReportWriter.getFileLoc() );
-		} else {
-			Utility.showError("Error Creating Report!");
+		if(showMessages)
+		{
+			if(success){
+				Utility.showMessage("System Export Finished! File located in:\n" + IndividualSystemTransitionReportWriter.getFileLoc() );
+			} else {
+				Utility.showError("Error Creating Report!");
+			}
 		}
+	}
+	
+	public void enableMessages(boolean showMessages)
+	{
+		this.showMessages = showMessages;
 	}
 
 	private HashMap<String, Object> createLPIInterfaceWithCostHash(HashMap<String, Object> sysLPIInterfaceHash, HashMap<String, HashMap<String, Double>> loeForSysGlItemHash, HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash) {
