@@ -25,11 +25,17 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 	private String hardwareLifeCycleQuery = "SELECT DISTINCT ?System ?HardwareVersion (COALESCE(xsd:dateTime(?HardMEOL), COALESCE(xsd:dateTime(?HardVEOL),'TBD')) AS ?SupportDate) (COALESCE(xsd:dateTime(?HardMEOL), COALESCE(xsd:dateTime(?HardVEOL),'TBD')) AS ?LifeCycle) (COALESCE(?unitcost,0) AS ?UnitCost) (COALESCE(?quantity,0) AS ?Quantity) (COALESCE(?UnitCost*?Quantity,0) AS ?TotalCost) (COALESCE(?budget,0) AS ?SystemHWBudget) WHERE { BIND(@SYSTEM@ AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?HardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?HardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?System ?Has ?HardwareModule} {?HardwareModule ?TypeOf ?HardwareVersion } OPTIONAL {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/EOL> ?HardVEOL} OPTIONAL {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/EOL> ?HardMEOL} OPTIONAL {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } ORDER BY ?System ?HardwareVersion";
 	private String sysInterfacesQuery = "HR_Core$HR_Core$HR_Core$HR_Core$ SELECT DISTINCT ?LPISystem ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Comment WHERE { {SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?LPISystem) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem) (COALESCE(IF(BOUND(?y),IF(!REGEX(STR(?UpstreamSysProb1),'High'),'Low','High'),IF(BOUND(?x),IF(!REGEX(STR(?DownstreamSysProb1),'High'),'Low','High'),'')), '') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) (COALESCE(?HIEsys, '') AS ?HIE) ?DHMSMcrm WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} LET(?d := 'd') OPTIONAL{ { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;}OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}}{?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION {{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} }} FILTER(REGEX(STR(?LPISystem), '@SYSTEMNAME@')) } ORDER BY ?Data $ SELECT DISTINCT (CONCAT(STR(?system), STR(?data)) AS ?sysDataKey) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system$ SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}}$ SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;} } BINDINGS ?HIEsys {('Y')}";
 
-	private String loeForSysGlItemQuery = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?Loe) ?gltag1 WHERE { SELECT DISTINCT ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag1";
-	private String loeForGenericGlItemQuery = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?Loe) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } GROUP BY ?data ?ser";
+	private String loeForSysGlItemQuery = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?Loe) ?gltag1 WHERE { SELECT DISTINCT ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) WHERE { BIND(@SYSTEM@ AS ?sys) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag1";
 	
-	private HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
+	private String loeForGenericGlItemQuery = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?Loe) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } GROUP BY ?data ?ser";
 	private HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash = new HashMap<String, HashMap<String, Double>>();
+
+	private String avgLoeForSysGLItemQuery = "SELECT DISTINCT ?data ?ser (ROUND(SUM(?loe)/COUNT(?sys)) AS ?Loe) ?gltag1 WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag1";
+	private HashMap<String, HashMap<String, Double>> avgLoeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
+
+	private String serviceToDataQuery = "SELECT DISTINCT ?data (GROUP_CONCAT(?Ser; SEPARATOR = '; ') AS ?service) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data } BIND(SUBSTR(STR(?ser),46) AS ?Ser) } GROUP BY ?data";
+	private HashMap<String, String> serviceToDataHash = new HashMap<String, String>();
+
 
 	private int costPerHr = 150;
 
@@ -57,12 +63,16 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 			Utility.showError("Could not find necessary databases:\nHR_Core, TAP_Cost_Data");
 		}
 		
-		if(loeForSysGlItemHash.isEmpty()) {
-			loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
-		}
-		
 		if(loeForGenericGlItemHash.isEmpty()) {
 			loeForGenericGlItemHash = getGenericGLItem(TAP_Cost_Data, loeForGenericGlItemQuery);
+		}
+		
+		if(avgLoeForSysGlItemHash.isEmpty()) {
+			avgLoeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, avgLoeForSysGLItemQuery);
+		}
+
+		if(serviceToDataHash.isEmpty()) {
+			serviceToDataHash = getServiceToData(TAP_Cost_Data, serviceToDataQuery);
 		}
 
 		String systemURI = this.query;
@@ -76,7 +86,6 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		sysInterfacesQuery = sysInterfacesQuery.replaceAll("@SYSTEM@", systemURI);
 		sysInterfacesQuery = sysInterfacesQuery.replaceAll("@SYSTEMNAME@", systemURI.substring(systemURI.lastIndexOf("/")+1,systemURI.lastIndexOf(">")));
 		loeForSysGlItemQuery = loeForSysGlItemQuery.replace("@SYSTEM@", systemURI);
-		loeForGenericGlItemQuery = loeForGenericGlItemQuery.replace("@SYSTEM@", systemURI);
 
 		HashMap<String, Object> sysInfoHash = getQueryDataWithHeaders(hr_Core, sysInfoQuery);
 		HashMap<String, Object> sysDataConsumeProvideHash = getQueryDataWithHeaders(hr_Core, sysDataConsumeProvideQuery);
@@ -120,6 +129,8 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		sysLPIInterfaceHash.put(headerKey, removeSystemFromStringArray(getSysLPIInterfaceData.getNames()));
 		sysLPIInterfaceHash.put(dataKey, removeSystemFromArrayList(getSysLPIInterfaceData.getList()));
 
+		HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
+		
 		HashMap<String, Object> sysLPIInterfaceWithCostHash = createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
@@ -153,13 +164,15 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		String[] oldHeaders = (String[]) sysLPIInterfaceHash.get(headerKey);
 		ArrayList<Object[]> oldData = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
 
-		String[] newHeaders = new String[oldHeaders.length + 1];
-		for(int i = 0; i < newHeaders.length; i++)
+		String[] newHeaders = new String[oldHeaders.length + 2];
+		for(int i = 0; i < oldHeaders.length; i++)
 		{
-			if(i != newHeaders.length - 1) {
+			if(i < oldHeaders.length - 1) {
 				newHeaders[i] = oldHeaders[i];
 			} else {
-				newHeaders[i] = "Cost";
+				newHeaders[i] = "Services";
+				newHeaders[i+1] = "Comments";
+				newHeaders[i+2] = "Cost";
 			}
 		}
 
@@ -170,7 +183,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		
 		for(Object[] row : oldData)
 		{
-			Object[] newRow = new Object[oldHeaders.length + 1];
+			Object[] newRow = new Object[oldHeaders.length + 2];
 			String dataObject = "";
 			for(int i = 0; i < row.length; i++)
 			{
@@ -181,11 +194,14 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 				} 
 				else if(i == row.length - 1) 
 				{
+					String servicesList = serviceToDataHash.get(dataObject);
+					newRow[i] = servicesList;
+					
 					String comment = row[i].toString().replaceAll("\"", "");
-					newRow[i] = comment;
+					newRow[i+1] = comment;
 					if(!comment.contains("->"))
 					{
-						newRow[i+1] = "";
+						newRow[i+2] = "";
 					}
 					else
 					{
@@ -201,6 +217,8 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 
 							// get sysGlItem for provider lpi systems
 							HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
+							HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
+							
 							Boolean servicesAllUsed = false;
 							if(sysGLItem != null)
 							{
@@ -214,6 +232,26 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 											sysGLItemServices.add(ser);
 											servicesProvideList.add(ser);
 											sysGLItemProviderCost += sysGLItem.get(glTagSer);
+										} else {
+											servicesAllUsed = true;
+										}
+									}
+									// else do nothing - do not care about consume loe
+								}
+							}
+							// else get the average system cost
+							else if(avgSysGLItem != null)
+							{
+								for(String glTagSer : avgSysGLItem.keySet())
+								{
+									String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
+									if(glTagSerArr[1].contains("Provider"))
+									{
+										String ser = glTagSerArr[0];
+										if(!servicesProvideList.contains(ser)) {
+											sysGLItemServices.add(ser);
+											servicesProvideList.add(ser);
+											sysGLItemProviderCost += avgSysGLItem.get(glTagSer);
 										} else {
 											servicesAllUsed = true;
 										}
@@ -236,12 +274,12 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 							
 							Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
 							if(finalCost != (double) 0){
-								newRow[i+1] = finalCost;
+								newRow[i+2] = finalCost;
 								totalCost += finalCost;
 							} else if(servicesAllUsed){
-								newRow[i+1] = "Cost already taken into consideration";
+								newRow[i+2] = "Cost already taken into consideration";
 							} else {
-								newRow[i+1] = "No data present to calculate loe";
+								newRow[i+2] = "No data present to calculate loe";
 							}
 						}
 
@@ -249,6 +287,8 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 						{
 							// get sysGlItem for consumer lpi systems
 							HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
+							HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
+
 							Boolean servicesAllUsed = false;
 							if(sysGLItem != null)
 							{
@@ -268,20 +308,40 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 									// else do nothing - do not care about provide loe
 								}
 							}
+							// else get the average system cost
+							else if(avgSysGLItem != null)
+							{
+								for(String glTagSer : avgSysGLItem.keySet())
+								{
+									String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
+									if(glTagSerArr[1].contains("Consume"))
+									{
+										String ser = glTagSerArr[0];
+										if(!servicesConsumeList.contains(ser)) {
+											servicesConsumeList.add(ser);
+											sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
+										} else {
+											servicesAllUsed = true;
+										}
+									}
+									// else do nothing - do not care about provide loe
+								}
+							}
+							
 							Double finalCost = (sysGLItemConsumerCost) * costPerHr;
 							if(finalCost != (double) 0){
-								newRow[i+1] = finalCost;
+								newRow[i+2] = finalCost;
 								totalCost += finalCost;
 							} else if(servicesAllUsed){
-								newRow[i+1] = "Cost already taken into consideration";
+								newRow[i+2] = "Cost already taken into consideration";
 							} else {
-								newRow[i+1] = "No data present to calculate loe";
+								newRow[i+2] = "No data present to calculate loe";
 							}
 						}
 						
 						// null in array causes error - set to empty string
-						if(newRow[i+1] == null) {
-							newRow[i+1] = "";
+						if(newRow[i+2] == null) {
+							newRow[i+2] = "";
 						}
 					}
 				} else {
@@ -378,6 +438,24 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 				innerHash = dataHash.get(data);
 				innerHash.put(ser, loe);
 			}
+		}
+		return dataHash;
+	}
+	
+	private HashMap<String, String> getServiceToData(IEngine engine, String query)
+	{
+		HashMap<String, String> dataHash = new HashMap<String, String>();
+
+		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		String[] names = sjsw.getVariables();
+
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String data = sjss.getVar(names[0]).toString().replace("\"", "");
+			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
+			
+			dataHash.put(data, ser);
 		}
 		return dataHash;
 	}
