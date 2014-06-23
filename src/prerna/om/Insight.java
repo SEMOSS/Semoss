@@ -1,74 +1,82 @@
 package prerna.om;
 
-public class Insight {
-	
-	// ID of the question
-	String id = null;
-	
-	// name of the question
-	String label = null;
-	
-	public String getId() {
-		return id;
-	}
+import java.util.Hashtable;
 
-	public void setId(String id) {
-		this.id = id;
-	}
-
-	//sparql for the question
-	String sparql = null;
+public class Insight extends Hashtable {
 	
+
+	String labelKey = "label";	// Label of the question
+	
+	Hashtable<String, String> propHash = new Hashtable<String, String>();
+	String idKey = "id";	// ID of the question
+	String engineKey = "engine";	// Engine question is associated with
+	String outputKey = "output";	// Output type of the question
+	String sparqlKey = "sparql";	// Sparql of the question
+	String descrKey = "description";	// Sparql of the question
+
 	// database id where this insight is
 	// this may be a URL
 	// in memory
 	// or a file
-	String databaseID = null;
+	String databaseIDkey = "databaseID";
 	
-	// type of entity this insight has
-	String entityType = null;
-	
-	// the layout this insight uses to render itself
-	String output = null;
-	
-	public String getEntityType() {
-		return entityType;
+	public Insight(){
+		this.put("Prop", propHash);
 	}
-
-	public void setEntityType(String entityType) {
-		this.entityType = entityType;
+	
+	public String getId() {
+		return this.propHash.get(this.idKey);
 	}
-
+	public void setId(String id) {
+		this.propHash.put(this.idKey, id);
+	}
+	
 	public String getOutput() {
-		return output;
+		return this.propHash.get(this.outputKey);
 	}
 
 	public void setOutput(String output) {
-		this.output = output;
+		this.propHash.put(this.outputKey, output);
 	}
 
 	public String getLabel() {
-		return label;
+		return (String) this.get(this.labelKey);
 	}
 
 	public void setLabel(String label) {
-		this.label = label;
+		this.put(this.labelKey, label);
 	}
 
 	public String getSparql() {
-		return sparql;
+		return this.propHash.get(this.sparqlKey);
 	}
 
 	public void setSparql(String sparql) {
-		this.sparql = sparql;
+		this.propHash.put(this.sparqlKey, sparql);
+	}
+
+	public String getEngine() {
+		return this.propHash.get(this.engineKey);
+	}
+
+	public void setEngine(String engine) {
+		this.propHash.put(this.engineKey, engine);
+	}
+
+	public String getDescription() {
+		return this.propHash.get(this.descrKey);
+	}
+
+	public void setDescription(String descr) {
+		this.propHash.put(this.descrKey, descr);
 	}
 
 	public String getDatabaseID() {
-		return databaseID;
+		return this.propHash.get(this.databaseIDkey);
 	}
 
 	public void setDatabaseID(String databaseID) {
-		this.databaseID = databaseID;
+		this.propHash.put(this.databaseIDkey, databaseID);
 	}
 
 	// type of database where it is
