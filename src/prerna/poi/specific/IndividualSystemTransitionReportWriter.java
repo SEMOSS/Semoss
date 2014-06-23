@@ -172,10 +172,7 @@ public class IndividualSystemTransitionReportWriter {
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),41,iocString,45);
 		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),78,focString,82);
-		if(sheetName.contains("Software"))
-			writeModernizationTimeline(6,(ArrayList<Object[]>)resultBeforeIOC.get("data"));
-		else
-			writeModernizationTimeline(7,(ArrayList<Object[]>)resultBeforeIOC.get("data"));
+
 	}
 	
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
@@ -208,7 +205,45 @@ public class IndividualSystemTransitionReportWriter {
 			}
 		}
 	}
-	public void writeModernizationTimeline(int rowToWriteList,ArrayList<Object[]> dataList)
+	public void writeModernizationTimelineSheet(String sheetName, HashMap<String,Object> software, HashMap<String,Object> hardware, HashMap<String,Object> budget)
+	{
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		
+		int indRowToWriteSystem = 3;
+		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
+		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
+		cellToWriteSystem.setCellValue(systemName);
+		cellToWriteSystem = rowToWriteSystem.getCell(1);
+		String currString = cellToWriteSystem.getStringCellValue();
+		currString = currString.replace("@SYSTEM@",systemName);
+		cellToWriteSystem.setCellValue(currString);
+		
+		writeModernizationTimeline(sheetName,6,(ArrayList<Object[]>)software.get("data"));
+		writeModernizationTimeline(sheetName,7,(ArrayList<Object[]>)hardware.get("data"));
+		
+		ArrayList<Object[]> budgetList = (ArrayList<Object[]>)budget.get("data");
+		
+		int indRowToWriteBudget = 9;
+		for(int i=0;i<budgetList.size();i++)
+		{
+			Object[] budgetRow = budgetList.get(i);
+			XSSFRow rowToWriteOn;
+			if(((String)budgetRow[1]).contains("SW"))
+				rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget);
+			else
+				rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget+1);
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
+			if(budgetRow[2] instanceof Double)
+				cellToWriteOn.setCellValue((Double)budgetRow[2]);
+			else if(budgetRow[2] instanceof Integer)
+				cellToWriteOn.setCellValue((Integer)budgetRow[2]);
+			else
+				cellToWriteOn.setCellValue((String)budgetRow[2]);
+			
+		}
+		
+	}
+	public void writeModernizationTimeline(String sheetName,int rowToWriteList,ArrayList<Object[]> dataList)
 	{
 		ArrayList<Integer> yearList = new ArrayList<Integer>();
 		ArrayList<Double> budgetList = new ArrayList<Double>();
@@ -237,16 +272,7 @@ public class IndividualSystemTransitionReportWriter {
 			}
 		}
 		
-		XSSFSheet sheetToWriteOver = wb.getSheet("Modernization Timeline");
-		
-		int indRowToWriteSystem = 3;
-		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
-		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
-		cellToWriteSystem.setCellValue(systemName);
-		cellToWriteSystem = rowToWriteSystem.getCell(1);
-		String currString = cellToWriteSystem.getStringCellValue();
-		currString = currString.replace("@SYSTEM@",systemName);
-		cellToWriteSystem.setCellValue(currString);
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToWriteList);
 		
