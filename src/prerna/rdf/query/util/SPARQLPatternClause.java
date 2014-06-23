@@ -63,6 +63,10 @@ public class SPARQLPatternClause{
 	
 	private void addAllFiltersToClause()
 	{
-		
+		for (int filterIdx=0; filterIdx<filters.size();filterIdx++)
+		{
+			//space out the variables
+			clauseString = clauseString + filters.get(filterIdx).getFilterString()+" ";
+		}
 	}
 }

@@ -4,8 +4,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.openrdf.query.algebra.Var;
-
 public abstract class SPARQLQueryHelper {
 	
 	public static String createComponentString(TriplePart triplePart)
