@@ -93,7 +93,7 @@ public abstract class AbstractEngine implements IEngine {
 			+ Constants.LABEL
 			+ "> ?perspective .}"
 			+ "{?perspectiveURI <"
-			+ Constants.INSIGHT
+			+ Constants.PERSPECTIVE
 			+ ":"
 			+ Constants.ID
 			+ "> ?insightURI.}"
@@ -367,11 +367,13 @@ public abstract class AbstractEngine implements IEngine {
 
 					URI qURI = insightVF.createURI(engineName + ":"
 							+ perspective + ":" + qsKey);
-					URI qPred = insightVF.createURI(Constants.INSIGHT + ":"
+					URI qPred = insightVF.createURI(Constants.PERSPECTIVE + ":"
+							+ Constants.ID);
+					URI ePred = insightVF.createURI(Constants.ENGINE + ":"
 							+ Constants.ID);
 
 					// add the question to the engine
-					insightBase.add(engineURI, qPred, qURI);
+					insightBase.add(engineURI, ePred, qURI);
 
 					// add question to perspective
 					// perspective INSIGHT:ID id_of_question(ID)
@@ -816,7 +818,7 @@ public abstract class AbstractEngine implements IEngine {
 	public Vector<String> getInsights() {
 		URI perspectivePred = insightVF.createURI(Constants.PERSPECTIVE + ":"
 				+ Constants.PERSPECTIVE);
-		URI qPred = insightVF.createURI(Constants.INSIGHT + ":" + Constants.ID);
+		URI qPred = insightVF.createURI(Constants.PERSPECTIVE + ":" + Constants.ID);
 		URI insightPred = insightVF.createURI(Constants.INSIGHT + ":"
 				+ Constants.LABEL);
 
@@ -924,7 +926,91 @@ public abstract class AbstractEngine implements IEngine {
 		return retParam;
 	}
 	
+
 	
+	public Vector<Insight> getInsight2(String... labels) {
+		// replace this with the query
+		String bindingsSet = "";
+		for (String insight : labels){
+			bindingsSet = bindingsSet + "(\"" + insight + "\")";
+		}
+		
+		Vector<Insight> insightV = new Vector<Insight>();
+		try {
+			URI insightPred = insightVF.createURI(Constants.INSIGHT + ":"
+					+ Constants.LABEL);
+
+			String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+					+ "{?insightURI <"
+					+ insightPred
+					+ "> ?insight.}"
+					+ "{?insightURI <" 
+					+ Constants.INSIGHT + ":" + Constants.SPARQL
+					+ "> ?sparql.}"
+					+ "{?insightURI <"
+					+ Constants.INSIGHT + ":" + Constants.OUTPUT
+					+ "> ?output.}"
+					+ "{?engine <"
+					+ Constants.ENGINE + ":" + Constants.ID
+					+ "> ?insightURI.}"
+					+ "OPTIONAL {?insightURI <"
+					+ Constants.INSIGHT + ":" + Constants.DESCR
+					+ "> ?description.}"
+					+ "}"
+					+ "BINDINGS ?insight {"+ bindingsSet + "}";
+			System.err.println("Insighter... " + insightSparql + labels);
+			System.err.println("Lable is " + labels);
+			TupleQuery query = insightBase.prepareTupleQuery(
+					QueryLanguage.SPARQL, insightSparql);
+			TupleQueryResult res = query.evaluate();
+
+			while (res.hasNext()) {
+				Insight in = new Insight();
+				BindingSet bs = res.next();
+				in.setId(bs.getBinding("insightURI").getValue() + "");
+				String sparql = bs.getBinding("sparql").getValue() + "";
+				sparql = sparql.replace("\"", "");
+				in.setSparql(sparql);
+				String label = bs.getBinding("insight").getValue() + "";
+				in.setLabel(label);
+				String output = bs.getBinding("output").getValue() + "";
+				output = output.replace("\"", "");
+				in.setOutput(output);
+				String engine = bs.getBinding("engine").getValue() + "";
+				engine = engine.replace("\"", "");
+				in.setEngine(engine);
+				if(bs.getBinding("description") != null){
+					String description = bs.getBinding("description").getValue() + "";
+					description = description.replace("\"", "");
+					in.setDescription(description);
+				}
+				insightV.add(in);
+				System.err.println(in.toString());
+			}
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedQueryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (insightV.isEmpty()) {
+			// in = labelIdHash.get(label);
+			Insight in = new Insight();
+			in = new Insight();
+			in.setLabel("");
+			in.setOutput("Unknown");
+			in.setId("DN");
+			in.setSparql("This will not work");
+			insightV.add(in);
+			System.err.println("Using Label ID Hash ");
+		}
+		return insightV;
+		// return labelIdHash.get(label);
+	}
 	
 	public Insight getInsight(String label) {
 		// replace this with the query
