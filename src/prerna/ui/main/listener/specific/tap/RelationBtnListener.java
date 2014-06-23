@@ -29,6 +29,8 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IAlgorithm;
 import prerna.algorithm.impl.specific.tap.RelationFunction;
 import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
+import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.RelationPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
 import prerna.util.Utility;
@@ -42,7 +44,7 @@ public class RelationBtnListener implements IChakraListener {
 	RelationPlaySheet playSheet;
 	JTextArea consoleArea;
 	
-	IAlgorithm optimizer;
+	RelationFunction optimizer;
 	
 	/**
 	 * Method actionPerformed.
@@ -54,6 +56,8 @@ public class RelationBtnListener implements IChakraListener {
 		
 		this.optimizer = new RelationFunction();
 		optimizer.setPlaySheet(playSheet);
+		optimizer.setSysList(playSheet.systemSelectPanel.getSelectedSystems());
+		optimizer.setDataList(playSheet.dataBLUSelectPanel.getSelectedData());
 		AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 		Thread playThread = new Thread(runner);
 		playThread.start();
