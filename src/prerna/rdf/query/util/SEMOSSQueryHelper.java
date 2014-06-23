@@ -3,8 +3,6 @@ package prerna.rdf.query.util;
 import java.util.ArrayList;
 import java.util.Date;
 
-import org.openrdf.model.URI;
-
 public abstract class SEMOSSQueryHelper {
 
 	public static void addSingleReturnVarToQuery(String varString, SEMOSSQuery seQuery) 
@@ -243,7 +241,7 @@ public abstract class SEMOSSQueryHelper {
 		TriplePart objectPart = new TriplePart(object, objectType);
 		seQuery.addTriple(subjectPart, predicatePart, objectPart, clauseName);
 	}
-
+	
 	public static void addBindPhrase(String bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
 	{
 		addBindToQueryFromCall(bindSubject, bindSubjectType, bindObject, seQuery);
@@ -295,7 +293,7 @@ public abstract class SEMOSSQueryHelper {
 			throw new IllegalArgumentException("Cannot put Date as variable or URI, use String");
 		addBindToQueryFromCall(bindSubject, bindSubjectType, bindObject, seQuery, clauseName);
 	}
-
+	
 	private static void addBindToQueryFromCall(Object bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
 	{
 		TriplePart subjectBindPart = new TriplePart(bindSubject, bindSubjectType);
@@ -310,6 +308,30 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addBind(subjectBindPart, objectBindPart, clauseName);
 	}
 	
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery)
+	{
+		TriplePart varBindPart = new TriplePart(var, varType);
+		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
+		for(Object filterElem : filterData)
+		{
+			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
+			filterDataPart.add(filterElemPart);
+		}
+		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or);
+	}
+	
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName)
+	{
+		TriplePart varBindPart = new TriplePart(var, varType);
+		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
+		for(Object filterElem : filterData)
+		{
+			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
+			filterDataPart.add(filterElemPart);
+		}
+		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, clauseName);
+	}
+	
 	public static void addGroupByToQuery(ArrayList<String> list, SEMOSSQuery seQuery)
 	{
 		ArrayList<TriplePart> varsList = new ArrayList<TriplePart>();
@@ -321,4 +343,18 @@ public abstract class SEMOSSQueryHelper {
 		SPARQLGroupBy groupBy = new SPARQLGroupBy(varsList);
 		seQuery.setGroupBy(groupBy);
 	}
+	
+	public static void addBindingsToQuery(ArrayList<Object> subjectList, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
+	{
+		ArrayList<TriplePart> bindList = new ArrayList<TriplePart>();
+		for(int bindIdx = 0; bindIdx < subjectList.size(); bindIdx++)
+		{
+			TriplePart bind = new TriplePart(subjectList.get(bindIdx), bindSubjectType);
+			bindList.add(bindIdx, bind);
+		}
+		TriplePart bindVar = new TriplePart(bindObject, TriplePart.VARIABLE);
+		SPARQLBindings bindings = new SPARQLBindings(bindList, bindVar);
+		seQuery.setBindings(bindings);
+	}
+	
 }
