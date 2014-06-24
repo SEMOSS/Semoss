@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.hssf.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -129,11 +130,27 @@ public class IndividualSystemTransitionReportWriter {
 		int rowToStart = 6;
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
-			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
-
+			XSSFRow rowToWriteOn;
+			XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(rowToStart);
+			if(row==0)
+			{
+				rowToWriteOn = sheetToWriteOver.getRow(rowToStart+row);
+			}
+			else
+			{
+				rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
+				rowToWriteOn.setRowStyle(rowToCopyFormat.getRowStyle());
+			}
 			for (int col=0; col< resultRowValues.length; col++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
-				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+				XSSFCell cellToWriteOn;
+				if(row==0)
+					cellToWriteOn = rowToWriteOn.getCell(col);
+				else
+				{
+					cellToWriteOn = rowToWriteOn.createCell(col);
+					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(col);
+					cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
+				}
 				if(resultRowValues[col] instanceof Double) {
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				}
@@ -155,16 +172,33 @@ public class IndividualSystemTransitionReportWriter {
 			XSSFRow lastRow = sheetToWriteOver.getRow(lastRowNum);
 			int lastCellNum = lastRow.getLastCellNum();
 			
-			lastRow = sheetToWriteOver.createRow(lastRowNum+1);
-			XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-3);
-			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
-			cellToWriteOn.setCellValue("Total Cost");
-			cellToWriteOn = lastRow.createCell(lastCellNum-2);
-			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
-			cellToWriteOn.setCellValue(totalDirectCost);
-			cellToWriteOn = lastRow.createCell(lastCellNum-1);
-			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
-			cellToWriteOn.setCellValue(totalIndirectCost);
+			if(dataList.size()>0)
+			{				
+				XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(lastRowNum-1);
+				XSSFCell cellToCopyFormat = rowToCopyFormat.createCell(lastCellNum-1);
+				XSSFCellStyle accountStyle = cellToCopyFormat.getCellStyle();
+				Font accountFont = accountStyle.getFont();
+				accountFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+				accountStyle.setFont(accountFont);
+				accountStyle.setBorderRight(CellStyle.BORDER_THIN);
+				accountStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+				accountStyle.setBorderBottom(CellStyle.BORDER_THIN);
+				accountStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+				accountStyle.setBorderLeft(CellStyle.BORDER_THIN);
+				accountStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+				accountStyle.setBorderTop(CellStyle.BORDER_THIN);
+				accountStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+				lastRow = sheetToWriteOver.createRow(lastRowNum+1);
+				XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-3);
+				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
+				cellToWriteOn.setCellValue("Total Cost");
+				cellToWriteOn = lastRow.createCell(lastCellNum-2);
+				cellToWriteOn.setCellStyle(accountStyle);
+				cellToWriteOn.setCellValue(totalDirectCost);
+				cellToWriteOn = lastRow.createCell(lastCellNum-1);
+				cellToWriteOn.setCellStyle(accountStyle);
+				cellToWriteOn.setCellValue(totalIndirectCost);
+			}
 		}
 	}
 	
@@ -173,12 +207,74 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(2);
 		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
 		cellToWriteSystemName.setCellValue(systemName);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,8);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),41,iocString,45);
-		writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),78,focString,82);
-
+		
+		int numRows = ((ArrayList<Object[]>)resultBeforeIOC.get("data")).size();
+		int numCols = 7;
+		XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(7);
+		
+		for(int i=1;i<numRows;i++)
+		{
+			XSSFRow newRow = sheetToWriteOver.createRow(7+i);
+			newRow.setRowStyle(rowToCopyFormat.getRowStyle());
+			for(int j=0;j<numCols;j++)
+			{
+				XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(j);
+				XSSFCell newCell = newRow.createCell(j);
+				newCell.setCellStyle(cellToCopyFormat.getCellStyle());
+			}
+		}
+		XSSFRow newRow = sheetToWriteOver.createRow(7+numRows);
+		
+		if(numRows==0)
+		{
+			createFormatedHWSWCells(sheetToWriteOver,"IOC",4,4+numRows,9+numRows, numCols);
+			createFormatedHWSWCells(sheetToWriteOver,"FOC",4,4+numRows,4+2*(5+numRows), numCols);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,7);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),9+numRows,iocString,12+numRows);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),14+2*(numRows),focString,17+2*(numRows));
+		}
+		else
+		{
+			createFormatedHWSWCells(sheetToWriteOver,"IOC",4,4+numRows,9+numRows-1, numCols);
+			createFormatedHWSWCells(sheetToWriteOver,"FOC",4,4+numRows,4+2*(5+numRows-1), numCols);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,7);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),9+numRows-1,iocString,12+numRows-1);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),14+2*(numRows-1),focString,17+2*(numRows-1));
+		}
 	}
-	
+	public void createFormatedHWSWCells(XSSFSheet sheetToWriteOver,String timeline,int rowToStartCopy, int numRowsToCopy, int rowToStartWrite, int numCols)
+	{
+		for(int i=0;i<numRowsToCopy;i++)
+		{
+			XSSFRow rowToCopy = sheetToWriteOver.getRow(rowToStartCopy+i);
+			if(rowToCopy!=null)
+			{
+				XSSFRow newRow = sheetToWriteOver.createRow(rowToStartWrite+i);
+				newRow.setRowStyle(rowToCopy.getRowStyle());
+				for(int j=0;j<numCols;j++)
+				{
+					XSSFCell cellToCopy = rowToCopy.getCell(j);
+					if(cellToCopy!=null)
+					{
+						XSSFCell newCell = newRow.createCell(j);
+						newCell.setCellStyle(cellToCopy.getCellStyle());
+						if(i!=0)
+							newCell.setCellValue(cellToCopy.getStringCellValue());
+						else
+						{
+							if(j==0)
+								newCell.setCellValue(timeline);
+							if(j==2)
+								newCell.setCellValue(cellToCopy.getStringCellValue().replace("the start of IOC",timeline));
+						}
+					}
+				}
+			}
+		}
+		sheetToWriteOver.addMergedRegion(new CellRangeAddress(rowToStartWrite, rowToStartWrite, 0, 1));
+		sheetToWriteOver.addMergedRegion(new CellRangeAddress(rowToStartWrite, rowToStartWrite, 2, 6));
+		
+	}
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
 
 		XSSFRow rowToWriteDate = sheetToWriteOver.getRow(rowToWriteData);
@@ -189,11 +285,11 @@ public class IndividualSystemTransitionReportWriter {
 		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
-			
-			XSSFRow rowToWriteOn = sheetToWriteOver.createRow(rowToStartList+row);
+			XSSFRow rowToWriteOn;
+			rowToWriteOn = sheetToWriteOver.getRow(rowToStartList+row);
 			for (int col=0; col< resultRowValues.length; col++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
-				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+				XSSFCell cellToWriteOn;
+				cellToWriteOn = rowToWriteOn.getCell(col);
 				if(resultRowValues[col] instanceof Double)
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				else if(resultRowValues[col] instanceof Integer)

@@ -14,7 +14,7 @@ import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
+public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	// list of queries to run
 	private String sysInfoQuery = "SELECT DISTINCT ?Description (COALESCE(?GT, 'Garrison') AS ?GarrisonTheater) (IF(BOUND(?MU),'Yes','No') AS ?MHS_Specific) ?Transaction_Count (COALESCE(SUBSTR(STR(?ATO),0,10),'NA') AS ?ATO_Date) (COALESCE(SUBSTR(STR(?ES),0,10),'NA') AS ?End_Of_Support) ?Num_Users WHERE { BIND(@SYSTEM@ AS ?System){?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> ?MU}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Transaction_Count> ?Transaction_Count}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> ?ES}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Number_of_Users> ?Num_Users}} }";
@@ -54,6 +54,7 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 	private String systemName = "";
 
 	private boolean showMessages = true;
+	private boolean isLPIReport = true;
 
 	Logger logger = Logger.getLogger(getClass());
 
@@ -129,18 +130,20 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 			innerMap.put(dataKey, dataRow);
 			storeHardwareData.put(i, innerMap);
 		}
-
-		LPIInterfaceReportGenerator getSysLPIInterfaceData = new LPIInterfaceReportGenerator();
-		getSysLPIInterfaceData.setQuery(sysInterfacesQuery);
-		getSysLPIInterfaceData.createData();
-		HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-		sysLPIInterfaceHash.put(headerKey, removeSystemFromStringArray(getSysLPIInterfaceData.getNames()));
-		sysLPIInterfaceHash.put(dataKey, removeSystemFromArrayList(getSysLPIInterfaceData.getList()));
-
-		HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
-
-		HashMap<String, Object> sysLPIInterfaceWithCostHash = createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
-
+		
+		HashMap<String, Object> sysLPIInterfaceWithCostHash = new HashMap<String,Object>();
+		if(isLPIReport)
+		{
+			LPIInterfaceReportGenerator getSysLPIInterfaceData = new LPIInterfaceReportGenerator();
+			getSysLPIInterfaceData.setQuery(sysInterfacesQuery);
+			getSysLPIInterfaceData.createData();
+			HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
+			sysLPIInterfaceHash.put(headerKey, removeSystemFromStringArray(getSysLPIInterfaceData.getNames()));
+			sysLPIInterfaceHash.put(dataKey, removeSystemFromArrayList(getSysLPIInterfaceData.getList()));
+			HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
+			sysLPIInterfaceWithCostHash = createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
+		}
+		
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
 		writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")));
 		writer.writeSystemInfoSheet("System Overview",sysInfoHash);
@@ -150,7 +153,8 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		writer.writeListSheet("System Data", sysDataConsumeProvideHash);
 		writer.writeListSheet("Data Provenance", sysSORDataWithDHMSMHash);
 		writer.writeListSheet("DHMSM Data Requirements", sysSORDataWithDHMSMCapHash);
-		writer.writeListSheet("System Interfaces", sysLPIInterfaceWithCostHash);
+		if(isLPIReport)
+			writer.writeListSheet("System Interfaces", sysLPIInterfaceWithCostHash);
 		boolean success = writer.writeWorkbook();
 		if(showMessages)
 		{
@@ -602,6 +606,34 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 		return sjsw;
 	}
 
+	/**
+	 * Sets the string version of the SPARQL query on the playsheet. 
+	 * @param query String
+	 */
+	@Override
+	public void setQuery(String query) 
+	{
+		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
+			this.query=query;
+		else
+		{
+			logger.info("Query " + query);
+			int selectIndex = query.indexOf("$");
+			String systemTypesResponse = query.substring(0,selectIndex);
+			query = query.substring(selectIndex+1);
+
+			if(systemTypesResponse.equals("LPI"))
+			{
+				this.isLPIReport = true;
+			} else {
+				this.isLPIReport = false;
+			}
+
+			logger.info("New Query " + query);
+			this.query = query;
+		}
+	}
+	
 	@Override
 	public void refineView() {
 		// TODO Auto-generated method stub
