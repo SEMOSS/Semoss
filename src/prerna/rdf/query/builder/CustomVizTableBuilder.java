@@ -147,7 +147,12 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		// add filtering
 		for(String s : bindDataHash.keySet())
 		{
-				SEMOSSQueryHelper.addBindPhrase(bindDataHash.get(s).toString(), TriplePart.LITERAL, s, semossQuery);
+			String bindValue = bindDataHash.get(s).toString();
+			if(bindValue.startsWith("http")) {
+				SEMOSSQueryHelper.addBindPhrase(bindValue, TriplePart.URI, s, semossQuery);
+			} else {
+				SEMOSSQueryHelper.addBindPhrase(bindValue, TriplePart.LITERAL, s, semossQuery);
+			}
 		}
 		for(String s : bindingsDataHash.keySet())
 		{
