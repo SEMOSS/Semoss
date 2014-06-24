@@ -44,13 +44,17 @@ public abstract class SPARQLQueryHelper {
 	
 	public static String createLiteralString(TriplePart triplePart)
 	{
-
 		if(!triplePart.getType().equals(TriplePart.LITERAL))
 		{
 			throw new IllegalArgumentException("TriplePart is not set as a Literal");
 		}
 		if(triplePart.getValue() instanceof String)
-			return "'"+triplePart.getValue()+"'";
+			// if getting back a raw literal value, do not add quotes around
+			if(triplePart.getValue().toString().contains("http://www.w3.org/2001")) {
+				return triplePart.getValue().toString();
+			} else {
+				return "'"+triplePart.getValue()+"'";
+			}
 		else if(triplePart.getValue() instanceof Double)
 			//looks something like "1.0"^^<http://www.w3.org/2001/XMLSchema#double>
 			return "\"" +((Double)triplePart.getValue()).toString() + "\""+"^^<"+SPARQLConstants.LIT_DOUBLE_URI+">";
