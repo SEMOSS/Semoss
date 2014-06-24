@@ -58,6 +58,7 @@ public class RelationBtnListener implements IChakraListener {
 		optimizer.setPlaySheet(playSheet);
 		optimizer.setSysList(playSheet.systemSelectPanel.getSelectedSystems());
 		optimizer.setDataList(playSheet.dataBLUSelectPanel.getSelectedData());
+		optimizer.setRDFEngine(playSheet.engine);
 		AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 		Thread playThread = new Thread(runner);
 		playThread.start();

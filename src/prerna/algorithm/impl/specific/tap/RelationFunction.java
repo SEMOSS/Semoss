@@ -83,7 +83,7 @@ public class RelationFunction implements IAlgorithm {
 			String sys = (String) sjss.getVar(names[0]);
 			String data = (String) sjss.getVar(names[1]);
 			
-			if (rowNames.contains(sys)) {
+			if (colNames.contains(sys)) {
 				processedList.add(new Object[]{sys, data});
 			}
 		}
@@ -110,14 +110,16 @@ public class RelationFunction implements IAlgorithm {
 
 		for (int i=0; i<processedList.size(); i++) {
 			Object[] row = processedList.get(i);
-			int rowInd = rowNames.indexOf(row[0])+1;
-			int colInd = colNames.indexOf(row[1])+1;			
+			int rowInd = rowNames.indexOf(row[1])+1;
+			int colInd = colNames.indexOf(row[0])+1;			
 			variableMatrix[rowInd][colInd] = "X";
 		}
 		
+		// convert matrix back into array
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0); 
 		
+		// display output
 		GridScrollPane pane = new GridScrollPane(names, arrayList);
 		pane.addHorizontalScroll();
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.removeAll();
@@ -151,7 +153,7 @@ public class RelationFunction implements IAlgorithm {
 
 	@Override
 	public void execute() {
-		
+		processRelations();
 	}
 
 	@Override
