@@ -35,7 +35,7 @@ public class LPISystemTransitionReport extends AbstractRDFPlaySheet{
 			BigdataURIImpl sysRawURI = (BigdataURIImpl)sjss.getRawVar(names[0]);
 			String sysURI = "<"+sysRawURI.stringValue()+">";
 			logger.info("Creating LPI System Transition Report for system >>> "+sysURI);
-			IndividualLPISystemTransitionReport lpiReport = new IndividualLPISystemTransitionReport();
+			IndividualSystemTransitionReport lpiReport = new IndividualSystemTransitionReport();
 			lpiReport.enableMessages(false);
 			lpiReport.setQuery(sysURI);
 			lpiReport.createData();
