@@ -7,11 +7,9 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
-import prerna.rdf.query.util.TriplePartConstant;
 import prerna.util.Utility;
 
 import com.google.gson.internal.StringMap;
@@ -83,51 +81,11 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 						}
 					} else {
 						// this means there is only 1 element so we use bind for sparql efficiency
-						bindDataHash.put(varName, results.get(0));
+						String bindValue = (String) results.get(0);
+						bindDataHash.put(varName, bindValue);
 					}
 				}
 			}
-
-			// add filtering results into strings
-//			if(!bindDataHash.isEmpty())
-//			{
-//				for(String varName : bindDataHash.keySet()){
-//					Object bindValue = bindDataHash.get(varName);
-//					bindString += "BIND(<" + bindValue + "> AS ?" + varName + ") ";
-//				}
-//			}
-//			if(!filterDataHash.isEmpty())
-//			{
-//				for(String varName : filterDataHash.keySet()){
-//					ArrayList<Object> bindValues = filterDataHash.get(varName);
-//					filterString += "FILTER( !BOUND(?" + varName + ") || ";
-//					for(int i = 0; i < bindValues.size(); i++)
-//					{
-//						if(i == bindValues.size() - 1)
-//						{
-//							filterString += "REGEX(STR(?" + varName + "),'^" + bindValues.get(i) + "$'))";
-//						} else {
-//							filterString += "REGEX(STR(?" + varName + "),'^" + bindValues.get(i) + "$') || ";
-//						}
-//					}
-//				}
-//			}
-//			if(!bindingsDataHash.isEmpty())
-//			{
-//				for(String varName : bindingsDataHash.keySet()){
-//					ArrayList<Object> bindValues = bindingsDataHash.get(varName);
-//					bindingsString += "BINDINGS ?" + varName + " {";
-//					for(int i = 0; i < bindValues.size(); i++)
-//					{
-//						if(i == bindValues.size() - 1)
-//						{
-//							bindingsString += "(<" + bindValues.get(i) + ">)}";
-//						} else {
-//							bindingsString += "(<" + bindValues.get(i) + ">)";
-//						}
-//					}
-//				}
-//			}
 		}
 	}
 
@@ -154,10 +112,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, subjectName);
 				elementHash.put(uriKey, subjectURI);
-//				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", subjectURI).replace("@INSTANCE@", subjectName);
-//				query = addFiltering(query);
-//				logger.info("NODE QUERY : " + query);
-//				elementHash.put(queryKey, query);
 				varObjHash.put(subjectName, elementHash);
 			}
 			if (!varList.contains(predName))
@@ -171,10 +125,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, predName);
 				elementHash.put(uriKey, predURI);
-//				String query = this.relInstanceQuery.replace("@IN_NODE_TYPE@", subjectURI).replace("@OUT_NODE_TYPE@", objectURI).replace("@REL_TYPE@", predURI).replace("@INSTANCE@", predName);
-//				query = addFiltering(query);
-//				logger.info("REL QUERY : " + query);
-//				elementHash.put(queryKey, query);
 				varObjHash.put(predName, elementHash);
 
 				predHash.put(predName,  predInfoHAsh);
@@ -186,10 +136,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
 				elementHash.put(varKey, objectName);
 				elementHash.put(uriKey, objectURI);
-//				String query = this.nodeInstanceQuery.replace("@NODE_TYPE@", objectURI).replace("@INSTANCE@", objectName);
-//				query = addFiltering(query);
-//				logger.info("NODE QUERY : " + query);
-//				elementHash.put(queryKey, query);
 				varObjHash.put(objectName, elementHash);
 			}
 		}
@@ -201,17 +147,13 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		// add filtering
 		for(String s : bindDataHash.keySet())
 		{
-			// TODO: find better logic to determine if dealing with URI or Literal
-			if(bindDataHash.get(s).toString().startsWith("http")) {
-				SEMOSSQueryHelper.addBindPhrase(bindDataHash.get(s).toString(), TriplePart.URI, s, semossQuery);
-			} else {
 				SEMOSSQueryHelper.addBindPhrase(bindDataHash.get(s).toString(), TriplePart.LITERAL, s, semossQuery);
-			}
 		}
 		for(String s : bindingsDataHash.keySet())
 		{
+			String bindValue = bindingsDataHash.get(s).get(0).toString();
 			// TODO: find better logic to determine if dealing with URI or Literal
-			if(bindingsDataHash.get(s).get(0).toString().startsWith("http")) {
+			if(bindValue.startsWith("http")) {
 				SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), TriplePart.URI, s.toString(), semossQuery);
 			} else {
 				SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), TriplePart.LITERAL, s.toString(), semossQuery);
@@ -249,10 +191,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 					Hashtable<String, String> elementHash = new Hashtable<String, String>();
 					elementHash.put(varKey, propName);
 					elementHash.put(uriKey, propURI);
-//					String query = this.nodePropQuery.replace("@NODE@", varName).replace("@NODE_TYPE@", varURI).replace("@PROP_TYPE@", propURI).replace("@INSTANCE@", propName);
-//					query = addFiltering(query);
-//					logger.info("NODE PROP QUERY : " + query);
-//					elementHash.put(queryKey, query);
 					varObjHash.put(propName, elementHash);
 				}
 			}
@@ -273,19 +211,11 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 					Hashtable<String, String> elementHash = new Hashtable<String, String>();
 					elementHash.put(varKey, propName);
 					elementHash.put(uriKey, propURI);
-//					String query = this.relPropQuery.replace("@IN_NODE_TYPE@", predInfoHash.get("Subject")).replace("@OUT_NODE_TYPE@", predInfoHash.get("Object")).replace("@REL_TYPE@", predInfoHash.get("Pred")).replace("@PROP_TYPE@", propURI).replace("@INSTANCE@", propName);
-//					query = addFiltering(query);
-//					logger.info("REL PROP QUERY : " + query);
-//					elementHash.put(queryKey, query);
 					varObjHash.put(propName, elementHash);
 				}
 			}
 		}
 	}
-
-//	private String addFiltering(String query) {
-//		return query.replace("@BIND@", bindString).replace("@FILTER@", filterString).replace("@BINDINGS@", bindingsString);
-//	}
 
 	public void setEngine(IEngine coreEngine)
 	{
