@@ -33,6 +33,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFDataFormat;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -177,6 +178,8 @@ public class IndividualSystemTransitionReportWriter {
 				XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(lastRowNum-1);
 				XSSFCell cellToCopyFormat = rowToCopyFormat.createCell(lastCellNum-1);
 				XSSFCellStyle accountStyle = cellToCopyFormat.getCellStyle();
+				XSSFDataFormat df = wb.createDataFormat();
+				accountStyle.setDataFormat(df.getFormat("$* #,##0.00"));
 				Font accountFont = accountStyle.getFont();
 				accountFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
 				accountStyle.setFont(accountFont);
@@ -188,11 +191,9 @@ public class IndividualSystemTransitionReportWriter {
 				accountStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
 				accountStyle.setBorderTop(CellStyle.BORDER_THIN);
 				accountStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+				
 				lastRow = sheetToWriteOver.createRow(lastRowNum+1);
-				XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-3);
-				cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
-				cellToWriteOn.setCellValue("Total Cost");
-				cellToWriteOn = lastRow.createCell(lastCellNum-2);
+				XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-2);
 				cellToWriteOn.setCellStyle(accountStyle);
 				cellToWriteOn.setCellValue(totalDirectCost);
 				cellToWriteOn = lastRow.createCell(lastCellNum-1);
