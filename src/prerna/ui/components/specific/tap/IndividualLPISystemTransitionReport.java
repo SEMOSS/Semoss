@@ -220,8 +220,12 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 				else if(i == row.length - 1) 
 				{
 					String servicesList = serviceToDataHash.get(dataObject);
-					newRow[i] = servicesList;
-
+					if(servicesList != null) {
+						newRow[i] = servicesList;
+					} else {
+						newRow[i] = "No Services";
+					}
+					
 					String comment = row[i].toString().replaceAll("\"", "");
 					newRow[i+1] = comment;
 					if(!comment.contains("->"))
@@ -270,21 +274,24 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 							// else get the average system cost
 							if(useAverage)
 							{
-								for(String glTagSer : avgSysGLItem.keySet())
+								if(avgSysGLItem != null)
 								{
-									String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
-									if(glTagSerArr[1].contains("Provider"))
+									for(String glTagSer : avgSysGLItem.keySet())
 									{
-										String ser = glTagSerArr[0];
-										if(!servicesProvideList.contains(ser)) {
-											sysGLItemServices.add(ser);
-											servicesProvideList.add(ser);
-											sysGLItemProviderCost += avgSysGLItem.get(glTagSer);
-										} else {
-											servicesAllUsed = true;
+										String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
+										if(glTagSerArr[1].contains("Provider"))
+										{
+											String ser = glTagSerArr[0];
+											if(!servicesProvideList.contains(ser)) {
+												sysGLItemServices.add(ser);
+												servicesProvideList.add(ser);
+												sysGLItemProviderCost += avgSysGLItem.get(glTagSer);
+											} else {
+												servicesAllUsed = true;
+											}
 										}
+										// else do nothing - do not care about consume loe
 									}
-									// else do nothing - do not care about consume loe
 								}
 							}
 
@@ -347,20 +354,23 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 								// else get the average system cost
 								if(useAverage)
 								{
-									for(String glTagSer : avgSysGLItem.keySet())
+									if(avgSysGLItem != null)
 									{
-										String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
-										if(glTagSerArr[1].contains("Consume"))
+										for(String glTagSer : avgSysGLItem.keySet())
 										{
-											String ser = glTagSerArr[0];
-											if(!servicesConsumeList.contains(ser)) {
-												servicesConsumeList.add(ser);
-												sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
-											} else {
-												servicesAllUsed = true;
+											String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
+											if(glTagSerArr[1].contains("Consume"))
+											{
+												String ser = glTagSerArr[0];
+												if(!servicesConsumeList.contains(ser)) {
+													servicesConsumeList.add(ser);
+													sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
+												} else {
+													servicesAllUsed = true;
+												}
 											}
+											// else do nothing - do not care about provide loe
 										}
-										// else do nothing - do not care about provide loe
 									}
 								}
 
@@ -414,14 +424,17 @@ public class IndividualLPISystemTransitionReport extends AbstractRDFPlaySheet{
 								// else get the average system cost
 								if(useAverage)
 								{
-									for(String glTagSer : avgSysGLItem.keySet())
+									if(avgSysGLItem != null)
 									{
-										String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
-										if(glTagSerArr[1].contains("Consume"))
+										for(String glTagSer : avgSysGLItem.keySet())
 										{
-											sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
-										} 
-										// else do nothing - do not care about provide loe
+											String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
+											if(glTagSerArr[1].contains("Consume"))
+											{
+												sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
+											} 
+											// else do nothing - do not care about provide loe
+										}
 									}
 								}
 
