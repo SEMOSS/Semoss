@@ -50,7 +50,7 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.RelationBtnListener;
-import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
+import prerna.ui.main.listener.specific.tap.UpdateDataListListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -69,7 +69,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	//individual components of the panel
 	public DHMSMSystemSelectPanel systemSelectPanel;
 	// public DHMSMCapabilitySelectPanel capabilitySelectPanel;
-	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
+	public DHMSMDataSelectPanel dataSelectPanel;
 	
 	public IEngine engine;
 	
@@ -169,14 +169,14 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 //		gbc_updateDataBLUPanelButton.gridy = 0;
 //		systemDataBLUSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
 		
-		dataBLUSelectPanel = new DHMSMDataBLUSelectPanel();
-		GridBagConstraints gbc_dataBLUSelectPanel = new GridBagConstraints();
-		gbc_dataBLUSelectPanel.gridheight = 6;
-		gbc_dataBLUSelectPanel.fill = GridBagConstraints.BOTH;
-		gbc_dataBLUSelectPanel.gridx = 3;
-		gbc_dataBLUSelectPanel.gridy = 0;
-		systemDataBLUSelectPanel.add(dataBLUSelectPanel, gbc_dataBLUSelectPanel);
-		dataBLUSelectPanel.addElements(systemSelectPanel);
+		dataSelectPanel = new DHMSMDataSelectPanel();
+		GridBagConstraints gbc_dataSelectPanel = new GridBagConstraints();
+		gbc_dataSelectPanel.gridheight = 6;
+		gbc_dataSelectPanel.fill = GridBagConstraints.BOTH;
+		gbc_dataSelectPanel.gridx = 3;
+		gbc_dataSelectPanel.gridy = 0;
+		systemDataBLUSelectPanel.add(dataSelectPanel, gbc_dataSelectPanel);
+		dataSelectPanel.addElements(systemSelectPanel);
 		
 		Object hidePopupKey = new JComboBox().getClientProperty("doNotCancelPopup");  
 		JButton btnGenerateRelations = new CustomButton("Generate Relations");
@@ -233,14 +233,13 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 
 	public void createListeners()
 	{
-		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
-		updateDataBLUListener.setEngine(engine);
-		updateDataBLUListener.setUpDHMSMHelper();
-		updateDataBLUListener.setComponents(systemSelectPanel,null,dataBLUSelectPanel,showSystemSelectBtn);
-		updateDataBLUListener.setUpdateButtons(dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
-		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
-		dataBLUSelectPanel.updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
-		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
+		UpdateDataListListener updateDataListListener = new UpdateDataListListener();
+		updateDataListListener.setEngine(engine);
+		updateDataListListener.setUpDHMSMHelper();
+		updateDataListListener.setDataComponents(systemSelectPanel,null,dataSelectPanel,showSystemSelectBtn);
+		updateDataListListener.setDataUpdateButtons(dataSelectPanel.updateProvideDataButton,dataSelectPanel.updateConsumeDataButton);
+		dataSelectPanel.updateProvideDataButton.addActionListener(updateDataListListener);
+		dataSelectPanel.updateConsumeDataButton.addActionListener(updateDataListListener);
 	}
 
 	public void addRelationBtnListener(JButton btnGenerateRelations)
