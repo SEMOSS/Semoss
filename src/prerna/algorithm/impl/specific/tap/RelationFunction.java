@@ -42,12 +42,12 @@ import prerna.ui.components.specific.tap.RelationPlaySheet;
  * This class is used to process through two variables to identify relationships.
  */
 public class RelationFunction implements IAlgorithm {
-	
+
 	Logger logger = Logger.getLogger(getClass());
 	RelationPlaySheet playSheet;
 	IEngine engine;
 	String[] names; 
-	
+
 	ArrayList<String> rowNames = new ArrayList<String>();
 	ArrayList<String> colNames = new ArrayList<String>();
 
@@ -61,33 +61,33 @@ public class RelationFunction implements IAlgorithm {
 		Vector <String> colNamesAsVector = new Vector<String>(colNames);
 		Collections.sort(colNamesAsVector);
 		colNames = new ArrayList<String>(colNamesAsVector);
-		
+
 		// get systems that are source of record for data objects
 		String queryString = "SELECT DISTINCT ?system ?data WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system";
 		logger.info("PROCESSING QUERY: " + queryString);
-		
+
 		//executes the query on a specified engine
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
 		sjsw.executeQuery();
-		
+
 		names = sjsw.getVariables();
-		
+
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
-		
+
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
 
 			String sys = (String) sjss.getVar(names[0]);
 			String data = (String) sjss.getVar(names[1]);
-			
+
 			if (colNames.contains(sys)) {
 				processedList.add(new Object[]{sys, data});
 			}
 		}
-		
+
 		// set the column names in the global names variable
 		String[] colNamesArray = new String[colNames.size()+1];
 		colNamesArray[0] = "";
@@ -95,15 +95,15 @@ public class RelationFunction implements IAlgorithm {
 			colNamesArray[i+1] = colNames.get(i);
 		}
 		names = colNamesArray;
-		
+
 		// create a matrix with row and column names
 		// iterate through processed list, implement logic to create X's based on relationship
 		String[][] variableMatrix = new String[rowNames.size()+1][colNames.size()+1];
-		
+
 		for (int i=0; i<rowNames.size(); i++) {
 			variableMatrix[i+1][0] = rowNames.get(i);
 		}
-		
+
 		for (int i=0; i<colNames.size(); i++) {
 			variableMatrix[0][i+1] = colNames.get(i);
 		}
@@ -114,11 +114,11 @@ public class RelationFunction implements IAlgorithm {
 			int colInd = colNames.indexOf(row[0])+1;			
 			variableMatrix[rowInd][colInd] = "X";
 		}
-		
+
 		// convert matrix back into array
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0); 
-		
+
 		// display output
 		GridScrollPane pane = new GridScrollPane(names, arrayList);
 		pane.addHorizontalScroll();
@@ -134,7 +134,7 @@ public class RelationFunction implements IAlgorithm {
 		gbc_panel_1_1.gridy = 0;
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.add(pane, gbc_panel_1_1);
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.repaint();
- 
+
 	}
 
 	/**
@@ -160,16 +160,16 @@ public class RelationFunction implements IAlgorithm {
 	public String getAlgoName() {
 		return null;
 	}
-	
+
 	public void setRDFEngine(IEngine engine) {
 		this.engine = engine;	
 	}
-	
+
 	public void setDataList(ArrayList<String> dataList)
 	{
 		this.rowNames = dataList;
 	}
-	
+
 	public void setSysList(ArrayList<String> sysList)
 	{
 		this.colNames = sysList;

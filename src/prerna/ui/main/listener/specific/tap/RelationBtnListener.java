@@ -38,14 +38,14 @@ import prerna.util.Utility;
 /**
  */
 public class RelationBtnListener implements IChakraListener {
-	
+
 	Logger logger = Logger.getLogger(getClass());
 
 	RelationPlaySheet playSheet;
 	JTextArea consoleArea;
-	
+
 	RelationFunction optimizer;
-	
+
 	/**
 	 * Method actionPerformed.
 	 * @param arg0 ActionEvent
@@ -53,17 +53,17 @@ public class RelationBtnListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		logger.info("Generate Relations Button Pushed");
-		
+
 		this.optimizer = new RelationFunction();
 		optimizer.setPlaySheet(playSheet);
 		optimizer.setSysList(playSheet.systemSelectPanel.getSelectedSystems());
-		optimizer.setDataList(playSheet.dataBLUSelectPanel.getSelectedData());
+		optimizer.setDataList(playSheet.dataSelectPanel.getSelectedData());
 		optimizer.setRDFEngine(playSheet.engine);
 		AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 		Thread playThread = new Thread(runner);
 		playThread.start();
-		}
-		
+	}
+
 	/**
 	 * Method setOptPlaySheet.
 	 * @param sheet RelationPlaySheet
@@ -72,13 +72,13 @@ public class RelationBtnListener implements IChakraListener {
 	{
 		this.playSheet = sheet;
 	}
-	
+
 	/**
 	 * @param view JComponent
 	 */
 	@Override
 	public void setView(JComponent view) {
-		
+
 	}
 
 }
