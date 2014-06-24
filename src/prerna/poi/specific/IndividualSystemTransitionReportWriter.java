@@ -147,20 +147,24 @@ public class IndividualSystemTransitionReportWriter {
 		}
 		
 		// for System Interfaces Sheet
-		if(result.get("cost") != null)
+		if(result.get("directCost") != null && result.get("indirectCost") != null)
 		{
-			Double cost = (Double) result.get("cost");
+			double totalDirectCost = (Double) result.get("directCost");
+			double totalIndirectCost = (Double) result.get("indirectCost");
 			int lastRowNum = sheetToWriteOver.getLastRowNum();
 			XSSFRow lastRow = sheetToWriteOver.getRow(lastRowNum);
 			int lastCellNum = lastRow.getLastCellNum();
 			
 			lastRow = sheetToWriteOver.createRow(lastRowNum+1);
-			XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-2);
+			XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-3);
 			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
 			cellToWriteOn.setCellValue("Total Cost");
+			cellToWriteOn = lastRow.createCell(lastCellNum-2);
+			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
+			cellToWriteOn.setCellValue(totalDirectCost);
 			cellToWriteOn = lastRow.createCell(lastCellNum-1);
 			cellToWriteOn.setCellStyle((XSSFCellStyle)myStyles.get("boldStyle"));
-			cellToWriteOn.setCellValue(cost);
+			cellToWriteOn.setCellValue(totalIndirectCost);
 		}
 	}
 	
