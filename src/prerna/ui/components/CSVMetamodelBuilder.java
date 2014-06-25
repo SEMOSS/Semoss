@@ -49,6 +49,8 @@ public class CSVMetamodelBuilder {
 	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes()
 	{
 		//TODO: loop through multiple files?
+		
+		boolean successful = true;
 		File fileName = files.get(0);
 		CsvListReader listReader = null;
 		try {
@@ -56,17 +58,20 @@ public class CSVMetamodelBuilder {
 			this.header = listReader.getHeader(true);
 		}		
 		catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			successful = false;
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			successful = false;
 			e.printStackTrace();
 		}
-
-		initiateDataTypeHash();
-		getAllDataType(listReader);
-		getAllowedDataType();
-
+		
+		if(successful) {
+			initiateDataTypeHash();
+			getAllDataType(listReader);
+			getAllowedDataType();
+			return dataType;
+		}
+		
 		return dataType;
 	}
 

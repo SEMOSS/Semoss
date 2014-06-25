@@ -70,6 +70,10 @@ public abstract class AbstractFileReader {
 	SailConnection scOWL;
 	String owlFile = "";
 	
+	//reload base data
+	RDFFileSesameEngine baseDataEngine;
+	Hashtable baseDataHash = new Hashtable();
+	
 	/**
 	 * Creates and adds the triple into the repository connection
 	 * @param subject		URI for the subject of the triple
@@ -184,8 +188,10 @@ public abstract class AbstractFileReader {
 		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
 		vfOWL = rcOWL.getValueFactory();
 
-		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
-		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseRelEngine).getRc();
+		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
+		baseDataHash = ((AbstractEngine)engine).getBaseHash();
+		
+		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseDataEngine).getRc();
 		// load pre-existing base data
 		RepositoryResult<Statement> rcBase = existingRC.getStatements(null, null, null, false);
 		List<Statement> rcBaseList = rcBase.asList();
@@ -193,7 +199,7 @@ public abstract class AbstractFileReader {
 		while(iterator.hasNext()){
 			logger.info(iterator.next());
 		}
-		rcOWL.add(rcBaseList);		
+		rcOWL.add(rcBaseList);
 	}
 
 	/**
@@ -202,6 +208,22 @@ public abstract class AbstractFileReader {
 	protected void closeOWL() throws Exception {
 		scOWL.close();
 		rcOWL.close();
+	}
+	
+	protected void storeBaseStatement(String sub, String pred, String obj){
+		try {
+			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+			if(baseDataEngine != null && baseDataHash != null)
+			{
+				baseDataEngine.addStatement(sub, pred, obj, true);
+				baseDataHash.put(sub, sub);
+				baseDataHash.put(pred, pred);
+				baseDataHash.put(obj,obj);
+			}
+		} catch (SailException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	/**
@@ -214,20 +236,20 @@ public abstract class AbstractFileReader {
 		String pred = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
 		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-		scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+		storeBaseStatement(sub, pred, obj);
 		// necessary triple saying Relation is a type of Property
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		pred = RDF.TYPE.stringValue();
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-		scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+		storeBaseStatement(sub, pred, obj);
 
 		if(basePropURI.equals("")){
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 		}
-		scOWL.addStatement(vf.createURI(basePropURI), vf.createURI(Constants.SUBPROPERTY_URI), vf.createURI(basePropURI));
+		storeBaseStatement(basePropURI, Constants.SUBPROPERTY_URI, basePropURI);
 
-		Iterator baseHashIt = baseConceptURIHash.keySet().iterator();
+		Iterator<String> baseHashIt = baseConceptURIHash.keySet().iterator();
 		//now add all of the base relations that have been stored in the hash.
 		while(baseHashIt.hasNext()){
 			String subjectInstance = baseHashIt.next() +"";
@@ -238,7 +260,7 @@ public abstract class AbstractFileReader {
 			// create the statement now
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relations URIs to OWL
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(subject, predicate, object);
 		}
 		baseHashIt = baseRelationURIHash.keySet().iterator();
 		while(baseHashIt.hasNext()){
@@ -250,7 +272,7 @@ public abstract class AbstractFileReader {
 			// create the statement now
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relationship URIs to OWL
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(subject, predicate, object);
 		}
 		for(String[] relArray : baseRelations.values()){
 			String subject = relArray[0];
@@ -258,11 +280,14 @@ public abstract class AbstractFileReader {
 			String object = relArray[2];
 
 //			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			scOWL.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(subject, predicate, object);
 			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 		
 		scOWL.commit();
+		if(baseDataEngine != null) {
+			baseDataEngine.commit();
+		}
 		// create the OWL File
 		FileWriter fWrite = new FileWriter(owlFile);
 		RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 

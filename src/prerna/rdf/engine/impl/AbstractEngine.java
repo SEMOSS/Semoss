@@ -1120,7 +1120,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @param Engine
 	 *            to set
 	 */
-	protected void createBaseRelationEngine() {
+	public void createBaseRelationEngine() {
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
 		Hashtable baseHash = new Hashtable();
 		// If OWL file doesn't exist, go the old way and create the base
@@ -1128,27 +1128,28 @@ public abstract class AbstractEngine implements IEngine {
 		// String owlFileName =
 		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
 		// + "_" + Constants.OWL);
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String owlFileName = owl;
 		if (owl == null) {
-			String baseFolder = DIHelper.getInstance()
-					.getProperty("BaseFolder");
-			owl = baseFolder + "/db/" + getEngineName() + "/" + getEngineName()
-					+ ".OWL";
+			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			owl = baseFolder + "/db/" + getEngineName() + "/" + getEngineName()	+ "_OWL.OWL";
 		}
-		if (ontoProp.containsKey("BaseData")) {
-			// TODO: Need to find a way to write this into the prop file
-			try {
-				System.err.println("Executed this block");
-				baseHash = createBaseRelations(ontoProp, baseRelEngine);
-			} catch (Exception e) {
-				// TODO: Specify exception
-				e.printStackTrace();
+		if(ontoProp != null)
+		{
+			if (ontoProp.containsKey("BaseData")) {
+				// TODO: Need to find a way to write this into the prop file
+				try {
+					System.err.println("Executed this block");
+					baseHash = createBaseRelations(ontoProp, baseRelEngine);
+				} catch (Exception e) {
+					// TODO: Specify exception
+					e.printStackTrace();
+				}
 			}
 		}
 		baseRelEngine.fileName = owl;
 		baseRelEngine.openDB(null);
-		addConfiguration(Constants.OWL, owl);
+		if(prop != null) {
+			addConfiguration(Constants.OWL, owl);
+		}
 		
 		try {
 			baseHash.putAll(RDFEngineHelper.loadBaseRelationsFromOWL(owl));
@@ -1161,7 +1162,7 @@ public abstract class AbstractEngine implements IEngine {
 		baseRelEngine.commit();
 		setBaseData(baseRelEngine);
 	}
-
+	
 	/**
 	 * Creates base relations for a specific engine and RDF Map. Splits RDF map
 	 * values into tokens in order to obtain the subject/predicate/object
@@ -1175,8 +1176,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * 
 	 * @return Hashtable containing base triple relations
 	 */
-	private Hashtable createBaseRelations(Properties rdfMap,
-			RDFFileSesameEngine baseRelEngine) throws Exception {
+	private Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) throws Exception {
 		String relationName = "BaseData";
 		Hashtable baseFilterHash = new Hashtable();
 		if (rdfMap.containsKey(relationName)) { // load using what is on the map
@@ -1191,8 +1191,7 @@ public abstract class AbstractEngine implements IEngine {
 				while (rdfTokens.hasMoreTokens()) {
 					String nextToken = rdfTokens.nextToken();
 					// System.err.println(" Next token ... " + nextToken);
-					StringTokenizer stmtTokens = new StringTokenizer(nextToken,
-							"+");
+					StringTokenizer stmtTokens = new StringTokenizer(nextToken, "+");
 					String subject = stmtTokens.nextToken();
 					String predicate = stmtTokens.nextToken();
 					String object = stmtTokens.nextToken();
@@ -1200,8 +1199,7 @@ public abstract class AbstractEngine implements IEngine {
 					baseFilterHash.put(object, object);
 					baseFilterHash.put(predicate, predicate);
 					// create the statement now
-					baseRelEngine
-							.addStatement(subject, predicate, object, true);
+					baseRelEngine.addStatement(subject, predicate, object, true);
 				}// statement while
 			}// relationship while
 		}// if using map
