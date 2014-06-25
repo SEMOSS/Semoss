@@ -43,7 +43,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	public ArrayList<String> systemNamesList = new ArrayList<String>();
 
 	String masterQuery = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?ProbabilityNeeded} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} FILTER(?ProbabilityNeeded != 'High') } } } BINDINGS ?Probability {('Medium')('Low')('Medium-High')}";
-//	String BLUListQuery = "SELECT DISTINCT ?BLU WHERE {{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}}";
+	String BLUListQuery = "SELECT DISTINCT ?BLU WHERE {{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}}";
 	String systemKey = "System";
 	String BLUKey = "BLU";
 	String dataKey = "Data";
@@ -68,7 +68,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 		
 		//Creating ArrayList of BLUs
-//		BLUList = simfns.createComparisonObjectList(hrCoreDB, BLUListQuery);
+		BLUList = simfns.createComparisonObjectList(hrCoreDB, BLUListQuery);
 		updateProgressBar("35%...Querying Data", 35);
 		
 		//Creating hashtable from main query 
@@ -145,7 +145,8 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 					systemBLUHash.put("System", systemTemp);
 					systemBLUHash.put("BLU", BLUTemp);
 					systemBLUHash.put("Data", innerDataHash);
-					BLUDataHash.put(sysBLUTemp, systemBLUHash);					 
+					BLUDataHash.put(sysBLUTemp, systemBLUHash);
+					
 				}
 				else{
 					systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(sysBLUTemp);
@@ -215,29 +216,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		}
 	}
 	
-	public String getSimBarChartData(String cellKey, String[] selectedVars, Hashtable<String, Double> specifiedWeights){
-		Gson gson = new Gson();
-		logger.info("cellKey = " + cellKey);
-		
-		ArrayList<String> selectedVarsList = new ArrayList<String>();
-		logger.info("Selected Vars are : ");
-		for(String obj : selectedVars) {
-			logger.info(obj);
-			selectedVarsList.add(obj);
-		}
-
-		if(!specifiedWeights.isEmpty())
-		{
-			logger.info("Specified Weights are : ");
-			for(String obj : specifiedWeights.keySet()) 
-				logger.info(obj + " " + specifiedWeights.get(obj));
-		}
-		
-		ArrayList calculatedHash = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
-		return gson.toJson(calculatedHash);
-	}
-	
-	private ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
+	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
 		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
 		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
 		BLUDataHash = (Hashtable<String, Hashtable<String, Object>>) paramDataHash.get("BLU-Data");
