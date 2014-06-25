@@ -236,7 +236,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		return gson.toJson(calculatedHash);
 	}
 	
-	private ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
+	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
 		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
 
 		//for each checked var, get scores for key above minVal for that var
@@ -289,7 +289,6 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		
 		return true;
 	}
-	
 	
 	public void sendData(ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray){
 		Gson gson = new Gson();
@@ -418,7 +417,6 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 //				validVarCount++;
 //				logger.info("Calculated Hash size = " + retHash.size());
 //			}
-//			
 //		}
 		return retArray;
 	}
@@ -436,7 +434,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			hash = new Hashtable();
 			arrayStore.add(0, hash);
 		}
-		hash.put(key,  cellHash);
+		hash.put(key, cellHash);
 		return arrayStore;
 	}
 }
