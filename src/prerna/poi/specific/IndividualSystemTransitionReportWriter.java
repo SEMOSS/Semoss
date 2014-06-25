@@ -107,6 +107,32 @@ public class IndividualSystemTransitionReportWriter {
 		return fileLoc;
 	}
 	
+	public void writeSORSheet(String sheetName, HashMap<String,Object> result){
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		String[] headersList = (String[])result.get("headers");
+		
+		int rowToStart = 5;
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart);
+		XSSFCell cellToCopyFormat = rowToWriteOn.getCell(1);
+		for(int col=2;col<headersList.length;col++)
+		{
+			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
+			cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
+			cellToWriteOn.setCellValue(((String)headersList[col]).replaceAll("\"", "").replaceAll("_"," "));
+		}
+		
+		rowToStart++;
+		rowToWriteOn = sheetToWriteOver.getRow(rowToStart);
+		cellToCopyFormat = rowToWriteOn.getCell(1);
+		for(int col=2;col<headersList.length;col++)
+		{
+			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
+			cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
+		}
+		
+		writeListSheet(sheetName,result);
+	}
+	
 	/**
 	 * Writes a generic list sheet from hashtable
 	 * @param sheetName	String containing the name of the sheet to populate
@@ -125,7 +151,7 @@ public class IndividualSystemTransitionReportWriter {
 		if(sheetName.contains("Interface"))
 			cellToWriteSystem = rowToWriteSystem.getCell(3);
 		String currString = cellToWriteSystem.getStringCellValue();
-		currString = currString.replace("@SYSTEM@",systemName);
+		currString = currString.replaceAll("@SYSTEM@",systemName);
 		cellToWriteSystem.setCellValue(currString);
 		
 		int rowToStart = 6;
