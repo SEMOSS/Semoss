@@ -27,6 +27,7 @@ import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -76,6 +77,7 @@ public class RelationFunction implements IAlgorithm {
 		names = sjsw.getVariables();
 
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
+		ArrayList<Object[]> sorCount = new ArrayList<Object[]>();
 
 		while(sjsw.hasNext())
 		{
@@ -90,35 +92,46 @@ public class RelationFunction implements IAlgorithm {
 		}
 
 		// set the column names in the global names variable
-		String[] colNamesArray = new String[colNames.size()+1];
+		String[] colNamesArray = new String[colNames.size()+2];
 		colNamesArray[0] = "";
+		colNamesArray[1] = "SOR";
 		for (int i=0; i<colNames.size(); i++) {
-			colNamesArray[i+1] = colNames.get(i);
+			colNamesArray[i+2] = colNames.get(i);
 		}
 		names = colNamesArray;
 
 		// create a matrix with row and column names
 		// iterate through processed list, implement logic to create X's based on relationship
-		String[][] variableMatrix = new String[rowNames.size()+1][colNames.size()+1];
+		Object[][] variableMatrix = new Object[rowNames.size()+1][colNames.size()+2];
 
 		for (int i=0; i<rowNames.size(); i++) {
 			variableMatrix[i+1][0] = rowNames.get(i);
 		}
 
 		for (int i=0; i<colNames.size(); i++) {
-			variableMatrix[0][i+1] = colNames.get(i);
+			variableMatrix[0][i+2] = colNames.get(i);
 		}
 
 		for (int i=0; i<processedList.size(); i++) {
 			Object[] row = processedList.get(i);
 			int rowInd = rowNames.indexOf(row[1])+1;
-			int colInd = colNames.indexOf(row[0])+1;			
+			int colInd = colNames.indexOf(row[0])+2;			
 			variableMatrix[rowInd][colInd] = "X";
 		}
+		
+		for (int i=0; i<rowNames.size()+1; i++) {
+			int count = 0;
+			for (int j=0; j<colNames.size()+2; j++) {
+				if (variableMatrix[i][j] == "X") {
+					count++;	
+				}
+			}
+			variableMatrix[i][1] = count;
+		}
 
-		// convert matrix back into array
+		// convert matrix back into arraylist
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
-		arrayList.remove(0); 
+		arrayList.remove(0);
 
 		// display output
 		GridScrollPane pane = new GridScrollPane(names, arrayList);
