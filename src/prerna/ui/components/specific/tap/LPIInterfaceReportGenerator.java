@@ -178,11 +178,11 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								comment = "No interfaces identified.";
 							}
 							else {comment = "Stays as-is."; }								
-						}
-						else if (!(lpiV.contains(lpSystem)))
-							{ comment = "Confirm removal of interface."; }
+						}						 
 						else if (probability.contains(hpKey)) {
-							if (hieV.contains(interfacingSystem)) {
+							if (!(lpiV.contains(lpSystem)))
+								{ comment = "Confirm removal of interface."; }
+							else if (hieV.contains(interfacingSystem)) {
 								comment = "Replaced by DHMSM HIE service.";
 							}
 							else {
