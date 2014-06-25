@@ -167,7 +167,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				String comment = sjss.getRawVar(commentKey) + "";
 				String data = sjss.getRawVar(dataKey) + "";
 				
-				String lpiSysData = lpSystem + "" + data;
+				String lpSysData = lpSystem + "" + data;
 				String interfacingSysData = interfacingSystem + "" + data;				
 
 				Object[] values = new Object[names.length];
@@ -211,26 +211,8 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								}
 							}
 						}
-						else { //probability is low
-							if (!(lpiV.contains(lpSystem))) { //LP is LPNI
-								if (dhmsmSOR.contains(sorKey)) {
-									if (lpiV.contains(interfacingSystem)) {
-										comment = "Need to add interface DHMSM->" + interfacingSys + ".";
-									}
-									else {
-										comment = "Stays as-is.";
-									}
-								}
-								else {
-									if (!(interfaceType.contains(downstreamKey))) {
-										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
-									}
-									else {
-										comment = "Need to add interface " + lpSys +"->DHMSM.";
-									}
-								}
-							}							
-							else if (dhmsmSOR.contains(sorKey)) {
+						else { //probability is low -- we are in section 3
+							if (dhmsmSOR.contains(sorKey)) {
 								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
 								if (interfaceType.contains(downstreamKey)) {
 									upStreamSys = lpSys; upStreamSysRaw = lpSystem;									
@@ -243,21 +225,31 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) {
 									comment = "Need to add interface DHMSM->" + upStreamSys + ".";
 								}
-								else {
+								else if (lpiV.contains(downStreamSysRaw)){
 									comment = "Need to add interface DHMSM->" + downStreamSys + ".";
+								}
+								else {
+									comment = "Stays as-is.";
 								}
 							}
 							else {
-								if(sorV.contains(lpiSysData)){
+								if(sorV.contains(lpSysData) && !lpiV.contains(lpSystem)){
 									//this is 3bi
-									comment = "Need to add interface " + lpSys + "->DHMSM.";
+									comment = "Need to add interface " + lpSys + "->DHMSM. " + lpSys + " should be LPI. ";
 								}
-								else if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
+								else if(sorV.contains(lpSysData) && lpiV.contains(lpSystem)){
 									//this is 3bii
-									comment = "Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
-											" should be LPI.";
+									comment = "Need to add interface " + lpSys +"->DHMSM. ";
 								}
-								else {
+								if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
+									//this is 3bi
+									comment = comment + "Need to add interface " + interfacingSys + "->DHMSM. " + interfacingSys + " should be LPI. ";
+								}
+								else if(sorV.contains(interfacingSysData) && lpiV.contains(interfacingSystem)){
+									//this is 3bii
+									comment = comment + "Need to add interface " + interfacingSys +"->DHMSM.";
+								}
+								else if(comment == null || comment.isEmpty()){
 									comment = "Stays as-is.";
 								}
 							}
