@@ -152,10 +152,12 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 			while(sjw.hasNext())
 			{
 				SesameJenaSelectStatement sjss = sjw.next();
-							
+				
+				//For comment writing
 				String lpSys = sjss.getVar(lpSysKey) + "";
 				String interfacingSys = sjss.getVar(interfacingSystemKey) + ""; 
 				
+				//For logic
 				String lpSystem = sjss.getRawVar(lpSysKey) + "";
 				String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
 				String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
@@ -172,6 +174,9 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				int count = 0;
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
+					if (lpSys.equals("TED") && interfacingSys.equals("MDR")) {
+						System.out.println("Test");
+					}
 					if(names[colIndex].contains(commentKey)){ 
 						if (probability.length() < 3) {
 							if (interfaceVar.length() < 3) {
@@ -180,32 +185,52 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							else {comment = "Stays as-is."; }								
 						}						 
 						else if (probability.contains(hpKey)) {
-							if (!(lpiV.contains(lpSystem)))
+							if (!(lpiV.contains(lpSystem))) //LP is LPNI
 								{ comment = "Confirm removal of interface."; }
-							else if (hieV.contains(interfacingSystem)) {
-								comment = "Replaced by DHMSM HIE service.";
-							}
-							else {
-								if (interfaceType.contains(downstreamKey)) {
-									if (dhmsmSOR.length() < 3) {
-										comment = "Kill the interface.";
-									}
-									else {
-										comment = "Need to add interface " + lpSys + "->DHMSM.";
-									}
+							else { //LP is LPI
+								if (hieV.contains(interfacingSystem)) {
+									comment = "Replaced by DHMSM HIE service.";
 								}
-								else { //LPI is downstream of HP
-									if (dhmsmSOR.length() < 3) {
-										comment = "LPI IS LOSING DATA.";
+								else {
+									if (interfaceType.contains(downstreamKey)) {
+										if (dhmsmSOR.length() < 3) {
+											comment = "Kill the interface.";
+										}
+										else {
+											comment = "Need to add interface " + lpSys + "->DHMSM.";
+										}
 									}
-									else {
-										comment = "Need to add interface DHMSM->" + lpSys + ".";
+									else { //LPI is downstream of HP
+										if (dhmsmSOR.length() < 3) {
+											comment = "LPI IS LOSING DATA.";
+										}
+										else {
+											comment = "Need to add interface DHMSM->" + lpSys + ".";
+										}
 									}
 								}
 							}
 						}
 						else { //probability is low
-							if (dhmsmSOR.contains(sorKey)) {
+							if (!(lpiV.contains(lpSystem))) { //LP is LPNI
+								if (dhmsmSOR.contains(sorKey)) {
+									if (lpiV.contains(interfacingSystem)) {
+										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
+									}
+									else {
+										comment = "Stays as-is.";
+									}
+								}
+								else {
+									if (!(interfaceType.contains(downstreamKey))) {
+										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
+									}
+									else {
+										comment = "Need to add interface " + lpSys +"->DHMSM.";
+									}
+								}
+							}							
+							else if (dhmsmSOR.contains(sorKey)) {
 								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
 								if (interfaceType.contains(downstreamKey)) {
 									upStreamSys = lpSys; upStreamSysRaw = lpSystem;									
@@ -232,8 +257,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 									comment = "Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
 											" should be LPI.";
 								}
-								else{
-									//LP should be LPI
+								else {
 									comment = "Stays as-is.";
 								}
 							}
