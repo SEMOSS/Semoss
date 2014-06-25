@@ -215,7 +215,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							if (!(lpiV.contains(lpSystem))) { //LP is LPNI
 								if (dhmsmSOR.contains(sorKey)) {
 									if (lpiV.contains(interfacingSystem)) {
-										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
+										comment = "Need to add interface DHMSM->" + interfacingSys + ".";
 									}
 									else {
 										comment = "Stays as-is.";
@@ -223,7 +223,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								}
 								else {
 									if (!(interfaceType.contains(downstreamKey))) {
-										comment = "Need to add interface DHMSM->" + interfacingSys +".";
+										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
 									}
 									else {
 										comment = "Need to add interface " + lpSys +"->DHMSM.";
