@@ -23,6 +23,7 @@ package prerna.algorithm.impl.specific.tap;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -134,6 +135,12 @@ public class RelationFunction implements IAlgorithm {
 		gbc_panel_1_1.gridy = 0;
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.add(pane, gbc_panel_1_1);
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.repaint();
+		try {
+			((RelationPlaySheet) playSheet).setSelected(false);
+			((RelationPlaySheet) playSheet).setSelected(true);
+		} catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
 
 	}
 
