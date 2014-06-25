@@ -45,7 +45,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	String hieQueryEngineName;
 	IEngine hieEngine;
 	
-	String lpiSysKey = "LPISystem";
+	String lpSysKey = "LPSystem";
 	String interfaceTypeKey = "InterfaceType";
 	String interfacingSystemKey = "InterfacingSystem";
 	String probabilityKey = "Probability";
@@ -57,6 +57,8 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	String downstreamKey = "Downstream";
 	String sorKey = "Provide";	
 	String dataKey = "Data";
+	
+	String lpniQuery = "";
 	
 	/**
 	 * This is the function that is used to create the first view 
@@ -147,10 +149,10 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 			{
 				SesameJenaSelectStatement sjss = sjw.next();
 							
-				String lpiSys = sjss.getVar(lpiSysKey) + "";
+				String lpSys = sjss.getVar(lpSysKey) + "";
 				String interfacingSys = sjss.getVar(interfacingSystemKey) + ""; 
 				
-				String lpiSystem = sjss.getRawVar(lpiSysKey) + "";
+				String lpSystem = sjss.getRawVar(lpSysKey) + "";
 				String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
 				String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
 				String interfaceVar = sjss.getRawVar(interfaceKey) + "";
@@ -159,7 +161,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				String comment = sjss.getRawVar(commentKey) + "";
 				String data = sjss.getRawVar(dataKey) + "";
 				
-				String lpiSysData = lpiSystem + "" + data;
+				String lpiSysData = lpSystem + "" + data;
 				String interfacingSysData = interfacingSystem + "" + data;				
 
 				Object[] values = new Object[names.length];
@@ -173,6 +175,8 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							}
 							else {comment = "Stays as-is."; }								
 						}
+						else if (!(lpiV.contains(lpSystem)))
+							{ comment = "Confirm removal of interface."; }
 						else if (probability.contains(hpKey)) {
 							if (hieV.contains(interfacingSystem)) {
 								comment = "Replaced by DHMSM HIE service.";
@@ -183,7 +187,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 										comment = "Kill the interface.";
 									}
 									else {
-										comment = "Need to add interface " + lpiSys + "->DHMSM.";
+										comment = "Need to add interface " + lpSys + "->DHMSM.";
 									}
 								}
 								else { //LPI is downstream of HP
@@ -191,7 +195,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 										comment = "LPI IS LOSING DATA.";
 									}
 									else {
-										comment = "Need to add interface DHMSM->" + lpiSys + ".";
+										comment = "Need to add interface DHMSM->" + lpSys + ".";
 									}
 								}
 							}
@@ -200,12 +204,12 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							if (dhmsmSOR.contains(sorKey)) {
 								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
 								if (interfaceType.contains(downstreamKey)) {
-									upStreamSys = lpiSys; upStreamSysRaw = lpiSystem;									
+									upStreamSys = lpSys; upStreamSysRaw = lpSystem;									
 									downStreamSys = interfacingSys; downStreamSysRaw = interfacingSystem;
 								}
 								else {
 									upStreamSys = interfacingSys; upStreamSysRaw = interfacingSystem;	
-									downStreamSys = lpiSys; downStreamSysRaw = lpiSystem;
+									downStreamSys = lpSys; downStreamSysRaw = lpSystem;
 								}
 								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) {
 									comment = "Need to add interface DHMSM->" + upStreamSys + ".";
@@ -216,16 +220,15 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							}
 							else {
 								if(sorV.contains(lpiSysData)){
-									System.out.println(" this is 3bi");
-									comment = "Need to add interface " + lpiSys + "->DHMSM.";
+									//this is 3bi
+									comment = "Need to add interface " + lpSys + "->DHMSM.";
 								}
 								else if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
-									System.out.println(" this is 3bii");
+									//this is 3bii
 									comment = "Need to add interface " + interfacingSys +"->DHMSM. " + interfacingSys + 
 											" should be LPI.";
 								}
 								else{
-									System.out.println(" this is neither ");
 									//LP should be LPI
 									comment = "Stays as-is.";
 								}
@@ -247,6 +250,8 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	private Vector<String> processPeripheralWrapper(SesameJenaSelectWrapper sjw, String[] names){
 		// now get the bindings and generate the data
 		Vector<String> retV = new Vector<String>();
+		//String output = "";
+		
 		try {
 			while(sjw.hasNext())
 			{
@@ -258,12 +263,14 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 					val = val.substring(1, val.length()-1);
 					
 				retV.add(val);
-				System.out.println("adding to peripheral list: " + val);
+				//output = output + "(<" + val + ">)";
+				//System.out.println("adding to peripheral list: " + val);
 
 			}
 		} catch (Exception e) {
 			logger.fatal(e);
 		}
+		//System.out.println(output);
 		return retV;
 	}
 	
@@ -278,7 +285,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 	 */
 	@Override
 	public void setQuery(String query) {
-
+		boolean reportType;
 		StringTokenizer queryTokens = new StringTokenizer(query, "$");
 		for (int queryIdx = 0; queryTokens.hasMoreTokens(); queryIdx++){
 			String token = queryTokens.nextToken();
@@ -314,6 +321,16 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				System.out.println("query 4 " + token);
 				this.hieQuery = token;
 			}
+			else if (queryIdx == 8) {
+				if (token.equals("LPNI")) {
+					this.interfaceQuery = (this.interfaceQuery).replace("BIND('Y' AS ?InterfaceDHMSM)", "BIND('N' AS ?InterfaceDHMSM)");
+				}
+			}
 		}
+		/*String modQuery;
+		if () {
+			re
+			this.interfaceQuery = modQuery;
+		}*/
 	}	
 }
