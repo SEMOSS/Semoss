@@ -223,7 +223,7 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 								}
 								else {
 									if (!(interfaceType.contains(downstreamKey))) {
-										comment = "Need to add interface " + interfacingSys +"->DHMSM.";
+										comment = "Need to add interface DHMSM->" + interfacingSys +".";
 									}
 									else {
 										comment = "Need to add interface " + lpSys +"->DHMSM.";
