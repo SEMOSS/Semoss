@@ -15,7 +15,6 @@ import javax.swing.ListSelectionModel;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
 import prerna.ui.main.listener.specific.tap.DataCheckBoxSelectorListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
