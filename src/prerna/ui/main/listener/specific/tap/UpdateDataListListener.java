@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JToggleButton;
 

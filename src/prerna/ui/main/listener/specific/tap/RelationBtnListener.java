@@ -19,21 +19,15 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-
 import javax.swing.JComponent;
 import javax.swing.JTextArea;
 
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAlgorithm;
 import prerna.algorithm.impl.specific.tap.RelationFunction;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
-import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.RelationPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
-import prerna.util.Utility;
 
 /**
  */
