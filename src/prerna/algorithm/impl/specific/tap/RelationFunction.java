@@ -65,7 +65,7 @@ public class RelationFunction implements IAlgorithm {
 		colNames = new ArrayList<String>(colNamesAsVector);
 
 		// get systems that are source of record for data objects
-		String queryString = "SELECT DISTINCT ?system ?data WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system";
+		String queryString = "SELECT DISTINCT ?system ?data (COUNT(DISTINCT ?icd) as ?icdCount) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } GROUP BY ?system ?data";
 		logger.info("PROCESSING QUERY: " + queryString);
 
 		//executes the query on a specified engine
@@ -77,7 +77,6 @@ public class RelationFunction implements IAlgorithm {
 		names = sjsw.getVariables();
 
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
-		ArrayList<Object[]> sorCount = new ArrayList<Object[]>();
 
 		while(sjsw.hasNext())
 		{
@@ -85,9 +84,10 @@ public class RelationFunction implements IAlgorithm {
 
 			String sys = (String) sjss.getVar(names[0]);
 			String data = (String) sjss.getVar(names[1]);
+			double count = (double) sjss.getVar(names[2]);
 
 			if (colNames.contains(sys)) {
-				processedList.add(new Object[]{sys, data});
+				processedList.add(new Object[]{sys, data, count});
 			}
 		}
 
@@ -116,13 +116,14 @@ public class RelationFunction implements IAlgorithm {
 			Object[] row = processedList.get(i);
 			int rowInd = rowNames.indexOf(row[1])+1;
 			int colInd = colNames.indexOf(row[0])+2;			
-			variableMatrix[rowInd][colInd] = "X";
+			variableMatrix[rowInd][colInd] = row[2];
 		}
 		
+		// counts how many systems are SOR for each data object
 		for (int i=0; i<rowNames.size()+1; i++) {
-			int count = 0;
+			int count = -1;
 			for (int j=0; j<colNames.size()+2; j++) {
-				if (variableMatrix[i][j] == "X") {
+				if (variableMatrix[i][j] != null) {
 					count++;	
 				}
 			}
