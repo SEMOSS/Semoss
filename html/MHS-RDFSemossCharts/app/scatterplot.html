@@ -81,8 +81,6 @@
   		xAxisMin = 0, xAxisMax = 0, yAxisMin = 0, yAxisMax = 0, xLineVal = 0, yLineVal = 0,
   		xAxisText = "", yAxisText = "", zAxisText = "", BUSINESS_VALUE_MULTIPLIER = .33;
   	
-  	
-    
   	function start(dataString) {
   		
   	  function containerSize(containerClass, containerObj, marginObj) {
@@ -185,9 +183,9 @@
       
       dataSeriesArray.length = 0;
       dataSeriesArray = data;
-      xAxisText = jsonData.xAxisTitle; 
-      yAxisText = jsonData.yAxisTitle;
-      zAxisText = jsonData.zAxisTitle;
+      xAxisText = jsonData.xAxisTitle || "Not given"; 
+      yAxisText = jsonData.yAxisTitle || "Not given";
+      zAxisText = jsonData.zAxisTitle || "Not given";
       
       xAxisMin = jsonData.xAxisMin || calculateMin(dataSeriesArray, "x"); //xAxisMin
       yAxisMin = jsonData.yAxisMin || calculateMin(dataSeriesArray, "y"); //yAxisMin
