@@ -64,21 +64,24 @@
   	</div>
   	<div class="span12 formContainer">
     	<div style="clear: both"></div>
-    <div id="graphSpace"></div>
+    	
+    	<div id="graphSpace"></div>
 	</div>
   <script type="text/javascript">
   	/* test data and call 
-    var dataString = "{\"zAxisTitle\":\"RacialHomogeneity\",\"dataSeries\":[{\"x\":31233.0,\"label\":\"1041\",\"series\":\"fips\",\"z\":98.5,\"y\":18.2},{\"x\":30272.0,\"label\":\"1043\",\"series\":\"fips\",\"z\":98.9,\"y\":18.2},{\"x\":29546.0,\"label\":\"1071\",\"series\":\"fips\",\"z\":97.4,\"y\":17.9},{\"x\":28558.0,\"label\":\"1079\",\"series\":\"fips\",\"z\":95.7,\"y\":18.0},{\"x\":34476.0,\"label\":\"1069\",\"series\":\"fips\",\"z\":98.3,\"y\":17.5},{\"x\":30057.0,\"label\":\"1115\",\"series\":\"fips\",\"z\":98.7,\"y\":17.3},{\"x\":35328.0,\"label\":\"1003\",\"series\":\"fips\",\"z\":98.5,\"y\":13.4},{\"x\":32555.0,\"label\":\"1051\",\"series\":\"fips\",\"z\":98.6,\"y\":13.8},{\"x\":31948.0,\"label\":\"1083\",\"series\":\"fips\",\"z\":98.2,\"y\":13.9},{\"x\":40218.0,\"label\":\"1089\",\"series\":\"fips\",\"z\":97.5,\"y\":13.8},{\"x\":23992.0,\"label\":\"1037\",\"series\":\"fips\",\"z\":99.1,\"y\":25.5},{\"x\":26784.0,\"label\":\"1053\",\"series\":\"fips\",\"z\":98.5,\"y\":25.5},{\"x\":29785.0,\"label\":\"1061\",\"series\":\"fips\",\"z\":98.4,\"y\":24.4},{\"x\":31981.0,\"label\":\"1091\",\"series\":\"fips\",\"z\":99.2,\"y\":24.6},{\"x\":25794.0,\"label\":\"1093\",\"series\":\"fips\",\"z\":98.9,\"y\":25.6},{\"x\":32656.0,\"label\":\"1109\",\"series\":\"fips\",\"z\":98.5,\"y\":25.6},{\"x\":27339.0,\"label\":\"1021\",\"series\":\"fips\",\"z\":98.8,\"y\":18.3},{\"x\":27304.0,\"label\":\"1027\",\"series\":\"fips\",\"z\":98.3,\"y\":18.7},{\"x\":30855.0,\"label\":\"1033\",\"series\":\"fips\",\"z\":98.4,\"y\":18.7},{\"x\":28998.0,\"label\":\"1067\",\"series\":\"fips\",\"z\":99.0,\"y\":18.7},{\"x\":41844.0,\"label\":\"1073\",\"series\":\"fips\",\"z\":98.9,\"y\":18.7},{\"x\":30874.0,\"label\":\"1025\",\"series\":\"fips\",\"z\":99.3,\"y\":26.3},{\"x\":31212.0,\"label\":\"1085\",\"series\":\"fips\",\"z\":99.5,\"y\":27.1},{\"x\":28673.0,\"label\":\"1107\",\"series\":\"fips\",\"z\":98.8,\"y\":26.5},{\"x\":28906.0,\"label\":\"1121\",\"series\":\"fips\",\"z\":98.7,\"y\":26.2},{\"x\":30740.0,\"label\":\"1001\",\"series\":\"fips\",\"z\":98.4,\"y\":14.9},{\"x\":26103.0,\"label\":\"1009\",\"series\":\"fips\",\"z\":98.8,\"y\":14.9},{\"x\":26774.0,\"label\":\"1005\",\"series\":\"fips\",\"z\":99.1,\"y\":29.5},{\"x\":29622.0,\"label\":\"1023\",\"series\":\"fips\",\"z\":99.6,\"y\":27.3},{\"x\":27503.0,\"label\":\"1035\",\"series\":\"fips\",\"z\":99.0,\"y\":27.9},{\"x\":30177.0,\"label\":\"1065\",\"series\":\"fips\",\"z\":99.4,\"y\":28.5},{\"x\":27226.0,\"label\":\"1099\",\"series\":\"fips\",\"z\":98.6,\"y\":28.7},{\"x\":30514.0,\"label\":\"1045\",\"series\":\"fips\",\"z\":97.0,\"y\":18.8},{\"x\":30257.0,\"label\":\"1095\",\"series\":\"fips\",\"z\":98.3,\"y\":19.1},{\"x\":30175.0,\"label\":\"1123\",\"series\":\"fips\",\"z\":99.0,\"y\":18.8},{\"x\":27961.0,\"label\":\"1129\",\"series\":\"fips\",\"z\":98.8,\"y\":18.9},{\"x\":22817.0,\"label\":\"1011\",\"series\":\"fips\",\"z\":99.2,\"y\":32.8},{\"x\":28141.0,\"label\":\"1047\",\"series\":\"fips\",\"z\":99.3,\"y\":35.7},{\"x\":31691.0,\"label\":\"1063\",\"series\":\"fips\",\"z\":99.5,\"y\":35.1},{\"x\":26934.0,\"label\":\"1087\",\"series\":\"fips\",\"z\":98.9,\"y\":30.9},{\"x\":24783.0,\"label\":\"1105\",\"series\":\"fips\",\"z\":99.6,\"y\":33.0},{\"x\":28160.0,\"label\":\"1029\",\"series\":\"fips\",\"z\":98.9,\"y\":17.2},{\"x\":35698.0,\"label\":\"1031\",\"series\":\"fips\",\"z\":97.5,\"y\":16.9},{\"x\":31540.0,\"label\":\"1103\",\"series\":\"fips\",\"z\":98.0,\"y\":16.8},{\"x\":25507.0,\"label\":\"1059\",\"series\":\"fips\",\"z\":98.3,\"y\":19.9},{\"x\":31583.0,\"label\":\"1097\",\"series\":\"fips\",\"z\":98.5,\"y\":19.7},{\"x\":25512.0,\"label\":\"1133\",\"series\":\"fips\",\"z\":98.6,\"y\":19.8},{\"x\":28446.0,\"label\":\"1013\",\"series\":\"fips\",\"z\":99.2,\"y\":24.1},{\"x\":27504.0,\"label\":\"1017\",\"series\":\"fips\",\"z\":98.9,\"y\":23.7},{\"x\":26462.0,\"label\":\"1019\",\"series\":\"fips\",\"z\":98.5,\"y\":23.8},{\"x\":29105.0,\"label\":\"1039\",\"series\":\"fips\",\"z\":98.6,\"y\":24.2},{\"x\":38160.0,\"label\":\"1101\",\"series\":\"fips\",\"z\":98.7,\"y\":23.2},{\"x\":30680.0,\"label\":\"1015\",\"series\":\"fips\",\"z\":98.3,\"y\":20.9},{\"x\":30817.0,\"label\":\"1055\",\"series\":\"fips\",\"z\":98.5,\"y\":21.0},{\"x\":31052.0,\"label\":\"1077\",\"series\":\"fips\",\"z\":98.6,\"y\":16.4},{\"x\":25252.0,\"label\":\"1049\",\"series\":\"fips\",\"z\":97.8,\"y\":20.3},{\"x\":29906.0,\"label\":\"1113\",\"series\":\"fips\",\"z\":97.9,\"y\":20.1},{\"x\":33106.0,\"label\":\"1125\",\"series\":\"fips\",\"z\":98.9,\"y\":20.2},{\"x\":24344.0,\"label\":\"1119\",\"series\":\"fips\",\"z\":99.7,\"y\":39.1},{\"x\":25093.0,\"label\":\"1131\",\"series\":\"fips\",\"z\":99.6,\"y\":39.9},{\"x\":22937.0,\"label\":\"1007\",\"series\":\"fips\",\"z\":99.1,\"y\":22.2},{\"x\":26664.0,\"label\":\"1057\",\"series\":\"fips\",\"z\":99.0,\"y\":22.5},{\"x\":25731.0,\"label\":\"1075\",\"series\":\"fips\",\"z\":98.7,\"y\":22.1},{\"x\":28074.0,\"label\":\"1081\",\"series\":\"fips\",\"z\":98.4,\"y\":21.4},{\"x\":26219.0,\"label\":\"1111\",\"series\":\"fips\",\"z\":98.9,\"y\":22.1},{\"x\":32326.0,\"label\":\"1127\",\"series\":\"fips\",\"z\":98.8,\"y\":22.1},{\"x\":42273.0,\"label\":\"1117\",\"series\":\"fips\",\"z\":98.6,\"y\":8.1}],\"xAxisTitle\":\"IncomePerCapita\",\"title\":\"IncomePerCapita vs PovertyPercent\",\"yAxisTitle\":\"PovertyPercent\"}" 
-    	start(dataString);
+  		var dataString = "{\"zAxisTitle\":\"Avg_Medicare_Allowed_Amount\",\"dataSeries\":[{\"x\":\"289.22608696\",\"label\":\"NORMANSESHOO\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.539565217\"},{\"x\":\"30\",\"label\":\"MARKPHINRICHS\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.772727273\"},{\"x\":\"85\",\"label\":\"CRAIGRKOUBA\",\"series\":\"Physician_Name\",\"z\":\"14.56826087\",\"y\":\"11.372028986\"},{\"x\":\"85\",\"label\":\"CRAIGRKOUBA\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.525789474\"},{\"x\":\"59\",\"label\":\"KARTHIK_REDDY\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.611008646\"},{\"x\":\"43\",\"label\":\"RABEEA_ABOUFAKHER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.39516129\"},{\"x\":\"63.542372881\",\"label\":\"NICHOLASCMAHR\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.676610169\"},{\"x\":\"287.48275862\",\"label\":\"NICHOLASCMAHR\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.237068966\"},{\"x\":\"65\",\"label\":\"PATRICIAWANDERSON\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.398666667\"},{\"x\":\"59\",\"label\":\"PATRICIAWANDERSON\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.06\"},{\"x\":\"43.55\",\"label\":\"A._(ALLAN)MNIELSEN\",\"series\":\"Physician_Name\",\"z\":\"21.74\",\"y\":\"16.052307692\"},{\"x\":\"28.6\",\"label\":\"A._(ALLAN)MNIELSEN\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"10.7525\"},{\"x\":\"66\",\"label\":\"DAVIDJCLARDY\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.8672\"},{\"x\":\"85\",\"label\":\"DAVIDJCLARDY\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.1\"},{\"x\":\"85\",\"label\":\"DAVIDJCLARDY\",\"series\":\"Physician_Name\",\"z\":\"14.809411765\",\"y\":\"11.718823529\"},{\"x\":\"54.2\",\"label\":\"RICKJGEIER\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.479818182\"},{\"x\":\"35.8\",\"label\":\"RICKJGEIER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.203636364\"},{\"x\":\"54.32\",\"label\":\"TODDWSCHAFFER\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.1644\"},{\"x\":\"35.88\",\"label\":\"TODDWSCHAFFER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.902\"},{\"x\":\"66\",\"label\":\"JOELLENMKOHLMAN_PETRICK\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.398666667\"},{\"x\":\"85\",\"label\":\"JOELLENMKOHLMAN_PETRICK\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.394230769\"},{\"x\":\"161\",\"label\":\"GARFIELDMGRIMMETT\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.59787234\"},{\"x\":\"64.076923077\",\"label\":\"MYLAPANAHALLIGSANATHANAMURTHY\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.894230769\"},{\"x\":\"289.84615385\",\"label\":\"MYLAPANAHALLIGSANATHANAMURTHY\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.394230769\"},{\"x\":\"44\",\"label\":\"BRUCEWOLIN\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.593888889\"},{\"x\":\"30\",\"label\":\"BRUCEWOLIN\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.191666667\"},{\"x\":\"66\",\"label\":\"SARAHLSCHATZ\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"41.875\",\"label\":\"ORLANDJACKSON\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"28.4375\",\"label\":\"ORLANDJACKSON\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"74\",\"label\":\"ABDELHAMIDMAHMED\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"43\",\"label\":\"ABDELHAMIDMAHMED\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"98\",\"label\":\"SURESHKPATEL\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"98\",\"label\":\"SURESHKPATEL\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"66\",\"label\":\"SUSANIFARKAS\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.033507463\"},{\"x\":\"85\",\"label\":\"SUSANIFARKAS\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.180803571\"},{\"x\":\"85\",\"label\":\"SUSANIFARKAS\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.592391304\"},{\"x\":\"98\",\"label\":\"EMADMDODIN\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"11.423296703\"},{\"x\":\"132\",\"label\":\"ROBERTLPERCELL\",\"series\":\"Physician_Name\",\"z\":\"21.74\",\"y\":\"17.39\"},{\"x\":\"66\",\"label\":\"CHRISTINAAMCDOWELL\",\"series\":\"Physician_Name\",\"z\":\"21.839130435\",\"y\":\"17.096521739\"},{\"x\":\"145\",\"label\":\"JAMESRTORRANCE\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.771363636\"},{\"x\":\"98\",\"label\":\"ROBERTLPERCELL\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"11.001666667\"},{\"x\":\"85\",\"label\":\"CHRISTINAAMCDOWELL\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.622115385\"},{\"x\":\"85\",\"label\":\"CHRISTINAAMCDOWELL\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.495882353\"},{\"x\":\"161\",\"label\":\"JAMESRTORRANCE\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.311363636\"},{\"x\":\"74\",\"label\":\"SUMIT_BHANDARI\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.9425\"},{\"x\":\"43\",\"label\":\"SUMIT_BHANDARI\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.426785714\"},{\"x\":\"103\",\"label\":\"MARKGYOHE\",\"series\":\"Physician_Name\",\"z\":\"21.74\",\"y\":\"16.665416667\"},{\"x\":\"103\",\"label\":\"MARKGYOHE\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"11.24125\"},{\"x\":\"132\",\"label\":\"VALENTINECCHIKWENDU\",\"series\":\"Physician_Name\",\"z\":\"21.74\",\"y\":\"16.985581395\"},{\"x\":\"98\",\"label\":\"VALENTINECCHIKWENDU\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"11.206715328\"},{\"x\":\"66\",\"label\":\"HEERAIMANGALORESMANJUNATH\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.73992126\"},{\"x\":\"85\",\"label\":\"HEERAIMANGALORESMANJUNATH\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.364594595\"},{\"x\":\"85\",\"label\":\"HEERAIMANGALORESMANJUNATH\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.5209375\"},{\"x\":\"63.839160839\",\"label\":\"STANLEYTDIEDE\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"15.581398601\"},{\"x\":\"288.77622378\",\"label\":\"STANLEYTDIEDE\",\"series\":\"Physician_Name\",\"z\":\"14.751678322\",\"y\":\"10.51034965\"},{\"x\":\"66\",\"label\":\"JOSHUA_WYNNE\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.714615385\"},{\"x\":\"62.910869565\",\"label\":\"MATTHEWRNELSON\",\"series\":\"Physician_Name\",\"z\":\"21.781956522\",\"y\":\"16.66326087\"},{\"x\":\"265.25\",\"label\":\"MATTHEWRNELSON\",\"series\":\"Physician_Name\",\"z\":\"14.817608696\",\"y\":\"11.340217391\"},{\"x\":\"74\",\"label\":\"MOHAMED_CHEBACLO\",\"series\":\"Physician_Name\",\"z\":\"21.843519553\",\"y\":\"16.78424581\"},{\"x\":\"43\",\"label\":\"MOHAMED_CHEBACLO\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.319222462\"},{\"x\":\"74\",\"label\":\"ISMAILLOAIBEKDASH\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"43\",\"label\":\"ISMAILLOAIBEKDASH\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"132\",\"label\":\"SHARONAWRIGHT\",\"series\":\"Physician_Name\",\"z\":\"18.48\",\"y\":\"14.043073171\"},{\"x\":\"66\",\"label\":\"MISTYKAYANDERSON\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"66\",\"label\":\"MISTYKAYANDERSON\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.886\"},{\"x\":\"85\",\"label\":\"MISTYKAYANDERSON\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"74\",\"label\":\"ROBERTOHMORALEDA\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.278088235\"},{\"x\":\"43\",\"label\":\"ROBERTOHMORALEDA\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.978676471\"},{\"x\":\"74\",\"label\":\"JASONSGO\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.8672\"},{\"x\":\"43\",\"label\":\"JASONSGO\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"63.939130435\",\"label\":\"NORMANSESHOO\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.828347826\"},{\"x\":\"44\",\"label\":\"MARKPHINRICHS\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"15.972727273\"},{\"x\":\"161\",\"label\":\"YASSAR_ALMANASEER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.729081633\"},{\"x\":\"54.5\",\"label\":\"MICHAELJPAGE\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"15.896666667\"},{\"x\":\"36\",\"label\":\"MICHAELJPAGE\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.721428571\"},{\"x\":\"64.023809524\",\"label\":\"BOBAN_MATHEW\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"15.948571429\"},{\"x\":\"289.60714286\",\"label\":\"BOBAN_MATHEW\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.8625\"},{\"x\":\"161\",\"label\":\"DONALDBJENNY\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.473809524\"},{\"x\":\"85\",\"label\":\"DEBRAAGEIER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"44\",\"label\":\"BRIANEOHARA\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"13.987857143\"},{\"x\":\"30\",\"label\":\"BRIANEOHARA\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.157142857\"},{\"x\":\"63.81443299\",\"label\":\"ROBERTGOATFIELD\",\"series\":\"Physician_Name\",\"z\":\"21.874020619\",\"y\":\"15.546597938\"},{\"x\":\"288.66494845\",\"label\":\"ROBERTGOATFIELD\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"10.749742268\"},{\"x\":\"43.55\",\"label\":\"CORY_MILLER\",\"series\":\"Physician_Name\",\"z\":\"21.728333333\",\"y\":\"16.896666667\"},{\"x\":\"28.6\",\"label\":\"CORY_MILLER\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.52972973\"},{\"x\":\"49\",\"label\":\"AMITPKULKARNI\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.315\"},{\"x\":\"33\",\"label\":\"AMITPKULKARNI\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.003571429\"},{\"x\":\"46\",\"label\":\"MICHAELRBLACKSMITH\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"31\",\"label\":\"MICHAELRBLACKSMITH\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.85\"},{\"x\":\"132\",\"label\":\"SAMIRMTURK\",\"series\":\"Physician_Name\",\"z\":\"21.74\",\"y\":\"15.21625\"},{\"x\":\"98\",\"label\":\"SAMIRMTURK\",\"series\":\"Physician_Name\",\"z\":\"14.66\",\"y\":\"10.963125\"},{\"x\":\"145\",\"label\":\"JOHNJRAGAN\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"17.57\"},{\"x\":\"161\",\"label\":\"JOHNJRAGAN\",\"series\":\"Physician_Name\",\"z\":\"14.81\",\"y\":\"11.61553719\"},{\"x\":\"66\",\"label\":\"VANI_NAGALA\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.964137931\"},{\"x\":\"66\",\"label\":\"CRAIGRKOUBA\",\"series\":\"Physician_Name\",\"z\":\"21.728333333\",\"y\":\"16.569444444\"},{\"x\":\"74\",\"label\":\"RABEEA_ABOUFAKHER\",\"series\":\"Physician_Name\",\"z\":\"21.96\",\"y\":\"16.934686347\"},{\"x\":\"119\",\"label\":\"SARAHLSCHATZ\",\"series\":\"Physician_Name\",\"z\":\"51.23\",\"y\":\"40.98\"},{\"x\":\"119\",\"label\":\"JOSHUA_WYNNE\",\"series\":\"Physician_Name\",\"z\":\"51.77\",\"y\":\"39.225\"},{\"x\":\"550.83\",\"label\":\"NOAHNCHELLIAH\",\"series\":\"Physician_Name\",\"z\":\"87.12\",\"y\":\"67.459363868\"},{\"x\":\"119\",\"label\":\"VANI_NAGALA\",\"series\":\"Physician_Name\",\"z\":\"51.23\",\"y\":\"39.049655172\"}],\"xAxisTitle\":\"Avg_Charges_Provider_Submitted_for_Service\",\"title\":\"Avg_Charges_Provider_Submitted_for_Service vs Avg_Medicare_Payment_Amount\",\"yAxisTitle\":\"Avg_Medicare_Payment_Amount\"}";    	
+
+		start(dataString);
     */
+    
   	var margin = {top: 40, right: 30, bottom: 30, left: 40},
   		container = {width: 0, height: 0},
   		width = 0, height = 0,
-  		dataSeriesArray = [], legendArray = [], type = "",
-  		xAxisMin = 0, xAxisText = "", yAxisText = "", xLineVal = 0, yLineVal = 0,
-  		BUSINESS_VALUE_MULTIPLIER = .33;
+  		dataSeriesArray = [], legendArray = [], type = "", LINEGUIDEOPACITY = .45,
+  		xAxisMin = 0, xAxisMax = 0, yAxisMin = 0, yAxisMax = 0, xLineVal = 0, yLineVal = 0,
+  		xAxisText = "", yAxisText = "", zAxisText = "", BUSINESS_VALUE_MULTIPLIER = .33;
   	
-    
+  	
     
   	function start(dataString) {
   		
@@ -110,18 +113,16 @@
             .transition()
             .duration(1000)
             .attr("x1", xScale(xLineValue))
-            .attr("y1", yScale(-1))
+            .attr("y1", yScale(yScale.domain()[0]))
             .attr("x2", xScale(xLineValue))
-            .attr("y2", yScale(10));
+            .attr("y2", yScale(yScale.domain()[1]));
         //create crosshair based on median y (left/right) 'potentially' passed with data
         lineGuideY
             .transition()
             .duration(1000)
-            .attr("x1", xScale(xAxisMin - 1))
+            .attr("x1", xScale(xScale.domain()[0]))
             .attr("y1", yScale(yLineValue))
-            .attr("x2", xScale(d3.max(dataArray, function(value) {
-                return value["x"];
-            }) + 1))
+            .attr("x2", xScale(xScale.domain()[1]))
             .attr("y2", yScale(yLineValue));
       }
   	
@@ -144,7 +145,7 @@
 
         var legendRect = updateSvg.selectAll(".legend rect").attr("x", container.width - 13);
         var legendText = updateSvg.selectAll(".legend text").attr("x", container.width - 24);
-
+		var zIndexText = updateSvg.selectAll(".scattercontrols text").attr("x", container.width);
         //call to create crosshair
         createLineGuide(xLineVal, yLineVal, dataSeriesArray);
 
@@ -153,6 +154,30 @@
             .attr("cy", yMap);
       }
   	  
+  	  function calculateAvg(dataSeriesArray, propKey) {
+        var temp = d3.mean(dataSeriesArray, function(value) {
+            return +value[propKey];
+        });
+        //alert("average for x: " + temp);
+        return temp;
+      }
+  	  
+  	  function calculateMin(dataSeriesArray, propKey) {
+  		var temp = d3.min(dataSeriesArray, function(value) {
+  			return +value[propKey];
+  		});
+  	    console.log("min for " + propKey + ": " + temp);
+  		return temp;
+  	  }
+  	  
+  	  function calculateMax(dataSeriesArray, propKey) {
+  		var temp = d3.max(dataSeriesArray, function(value) {
+  			return +value[propKey];
+  		});
+  	    console.log("max for " + propKey + ": " + temp);
+  		return temp;
+  	  }
+  	  
   	  //set container width and height
   	  containerSize('#graphSpace', container, margin);
   	  var jsonData = jQuery.parseJSON(dataString);
@@ -160,11 +185,16 @@
       
       dataSeriesArray.length = 0;
       dataSeriesArray = data;
-      xAxisMin = jsonData.xAxisMin || 0;
       xAxisText = jsonData.xAxisTitle; 
       yAxisText = jsonData.yAxisTitle;
-      xLineVal = jsonData.xLineVal || 0;
-      yLineVal = jsonData.yLineVal || 0;
+      zAxisText = jsonData.zAxisTitle;
+      
+      xAxisMin = jsonData.xAxisMin || calculateMin(dataSeriesArray, "x"); //xAxisMin
+      yAxisMin = jsonData.yAxisMin || calculateMin(dataSeriesArray, "y"); //yAxisMin
+      xAxisMax = jsonData.xAxisMax || calculateMax(dataSeriesArray, "x"); //xAxisMax
+      yAxisMax = jsonData.yAxisMax || calculateMax(dataSeriesArray, "y"); //yAxisMax
+      xLineVal = jsonData.xLineVal || calculateAvg(dataSeriesArray, "x"); //xAxisAvg
+      yLineVal = jsonData.yLineVal || calculateAvg(dataSeriesArray, "y"); //yAxisAvg
       jsonData.xLineVal != undefined ? type = "gridscatter" : type = "scatter";
       
       legendArray.length = 0;
@@ -203,10 +233,12 @@
 
                 if(d["y-external stability"]) {
                     businessValue = d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
+                    return "<div> <span class='light'>" + title + ":</span> " + businessValue + "</div>";
                 } else {
                     businessValue = d["x"];
+                    return "<div><span class='light'>Label: " + title + "</span><br/>X: " + businessValue + "<br/> Y: " + d["y"] + "<br/> Z: " + d["z"] + "</div>";
                 }
-                return "<div> <span class='light'>" + title + ":</span> " + businessValue + "</div>";
+                
             });
       
 	  //add the graph canvas to the body of the webpage
@@ -246,7 +278,7 @@
           .append("line")
               .style("stroke", "gray")
               .style("stroke-dasharray", ("3, 3"))
-              .style("opacity", .45)
+              .style("opacity", LINEGUIDEOPACITY)
               .style("fill", "black");
 
       //y line group for crosshair
@@ -255,7 +287,7 @@
           .append("line")
           .style("stroke", "gray")
           .style("stroke-dasharray", ("3, 3"))
-          .style("opacity", .45)
+          .style("opacity", LINEGUIDEOPACITY)
           .style("fill", "black");
 
       d3.select(window).on("resize", resize);
@@ -263,16 +295,17 @@
       update();
       
       function update() {
+    	  
     	  xScale.domain([
                d3.min(dataSeriesArray, function(value) {
                    if(type !== "scatter") {
                        return xAxisMin;
                    } else {
-                       return value["x"];
+                       return +value["x"];
                    }
                }) - 1,
                d3.max(dataSeriesArray, function(value) {
-                   return value["x"];
+                   return +value["x"];
                }) + 1
            ])
            .nice();
@@ -281,18 +314,20 @@
                if(type !== "scatter") {
                    return value["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * value["y-tech standards"];
                } else {
-                   return value["y"];
+                   return +value["y"];
                }
            }) - 1, d3.max(dataSeriesArray, function(value) {
                if(type !== "scatter") {
                    return 10;
                } else {
-                   return value["y"];
+                   return +value["y"];
                }
            })])
            .nice();
 
-           rScale.domain([7, d3.max(dataSeriesArray, function(value) { 
+           rScale.domain([d3.min(dataSeriesArray, function(value) {
+        	   return value["z"];
+           }), d3.max(dataSeriesArray, function(value) { 
                return value["z"];
            })]);
 
@@ -303,9 +338,9 @@
            //y axis text
            svg.select("g.y.axis text").text(yAxisText);
            //call to create crosshair
-           if(type !== "scatter") {
-               createLineGuide(xLineVal, yLineVal, dataSeriesArray);
-           }
+           //if(type !== "scatter") {
+           createLineGuide(xLineVal, yLineVal, dataSeriesArray);
+           //}
 
            //sort data in descending order so that smaller nodes put on svg after larger ones 
            //(allows for tooltip on smaller overlapping nodes)
@@ -357,7 +392,7 @@
                    }
                })
                .style("fill", function(d) {
-            	   legendArray.push({"color": d["series"], "zIndexFlag":false});
+            	   legendArray.push({"color": d["series"], "zIndexFlag":null});
                    return color(colorValue(d));
                });
 
@@ -398,51 +433,7 @@
             	   return color(d.color);
                })
                .on("click", function(d) {
-            	   //apply or not the z-index to circle radius
-                        var circles = d3.selectAll(".node"),
-                            selectedRect = d3.select(this);
-
-                        if(d.zIndexFlag) {
-                            selectedRect
-                                .transition().duration(400)
-                                .attr("stroke", "none")
-                                .style("fill", function(d) {
-                                    return color(d.color);
-                                });
-
-                            circles
-                                .transition().duration(400)
-                                .attr("r", function(circleData) {
-                                    if(circleData.series === d.color) {
-                                        if(circleData["z"]) {
-                                            return rScale(circleData["z"]);
-                                        } else {
-                                            return rScale(0);
-                                        }
-                                    } else {
-                                        return d3.select(this).attr("r");
-                                    }
-                                });
-                            d.zIndexFlag = false;
-                        } else {
-                            selectedRect
-                                .transition().duration(400)
-                                .attr("stroke", function(d) {
-                                    return color(d.color);
-                                })
-                                .style("fill", "white");
-
-                            circles
-                                .transition().duration(400)
-                                .attr("r", function(circleData) {
-                                    if(circleData.series === d.color) {
-                                        return 7;
-                                    } else {
-                                        return d3.select(this).attr("r");
-                                    }
-                                });
-                            d.zIndexFlag = true;
-                        }
+            	   //TODO: show/hide selected legend nodes
                });
 
            // enter legend text
@@ -456,7 +447,90 @@
                });
 
            var legendExit = legend.exit().remove();
-
+           
+           //draw zindex
+           var zIndex = svg.selectAll(".scattercontrols")
+               .data([{"title": "Health Grid: Quadrants", "zIndexFlag": null}, {"title": "Z-Index: " + zAxisText, "zIndexFlag": false}], function(d) { return d.title; });
+           
+           //update zindex
+           zIndex.attr("transform", function(d, i) { 
+                   return "translate(0," + i * 20 + ")"; 
+               });
+           //enter zindex g
+           var zIndexEnter = zIndex.enter().append("g")
+               .attr("class", "scattercontrols")
+               .attr("transform", function(d, i) { 
+                   return "translate(0," + (legendArray.length + i) * 20 + ")"; 
+               });
+           zIndexEnter.append("text")
+           .attr("x", container.width)
+           .attr("y", 9)
+           .attr("dy", ".25em")
+           .style("text-anchor", "end")
+           .text(function(d) {
+               return d.title;
+           })
+           .on("click", function(d, i) {
+        	   //apply or not the z-index to circle radius
+               var circles = d3.selectAll(".node"),
+                   selectedZIndexText = d3.select(this),
+                   lineguideXOp = d3.select(".lineguide.x").select("line").style("opacity"),
+       	   	   	   lineguideYOp = d3.select(".lineguide.y").select("line").style("opacity");
+        	   
+        	   function styleText(textDecorationValue) {
+        		   selectedZIndexText
+                   .transition().duration(400)
+                   .style("text-decoration", textDecorationValue);
+        	   }
+			   if(d.zIndexFlag == null) {
+				   if(selectedZIndexText.style("text-decoration").split(" ")[0] == "none") {
+					   styleText("line-through");
+				   } else {
+					   styleText("none");
+				   }
+				   
+	        	   lineGuideX
+	        	   	.transition()
+	        	   	.duration(500)
+	        	   	.style("opacity", function(d, i) {
+	        	   		return lineguideXOp != 0 ? 0 : LINEGUIDEOPACITY;
+	        	   	});
+	        	   lineGuideY
+	        	   	.transition()
+	       	   		.duration(500)
+	        	   	.style("opacity", function(d, i) {
+	        	   		return lineguideYOp != 0 ? 0 : LINEGUIDEOPACITY;
+	        	   	});
+			   } else {
+				   if(d.zIndexFlag) {
+					   styleText("none");
+					   
+	                   circles
+	                       .transition().duration(400)
+	                       .attr("r", function(circleData) {
+	                           
+		                       if(circleData["z"]) {
+		                           return rScale(circleData["z"]);
+		                       } else {
+		                           return rScale(0);
+		                       }
+	                       });
+	                   d.zIndexFlag = false;
+	               } else {
+	            	   styleText("line-through");
+				
+	                   circles
+	                       .transition().duration(400)
+	                       .attr("r", function(circleData) {
+	                           return 7;
+	                       });
+	                   d.zIndexFlag = true;
+	               }	   
+			   }	
+               
+				
+           });
+           
            svg.call(tip);  
       }
   	}	
