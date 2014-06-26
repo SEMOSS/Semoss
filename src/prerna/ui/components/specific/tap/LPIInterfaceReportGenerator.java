@@ -164,47 +164,55 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 				String interfaceVar = sjss.getRawVar(interfaceKey) + "";
 				String probability = sjss.getRawVar(probabilityKey) + "";
 				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
-				String comment = sjss.getRawVar(commentKey) + "";
+				String comment = "";
 				String data = sjss.getRawVar(dataKey) + "";
 				
 				String lpSysData = lpSystem + "" + data;
-				String interfacingSysData = interfacingSystem + "" + data;				
+				String interfacingSysData = interfacingSystem + "" + data;		
+				if (lpSys.contains("MMM") && data.contains("Facility")) {
+					System.out.println("Test");
+				}		
 
 				Object[] values = new Object[names.length];
 				int count = 0;
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
-					if (lpSys.equals("TED") && interfacingSys.equals("MDR")) {
-						System.out.println("Test");
-					}
 					if(names[colIndex].contains(commentKey)){ 
-						if (probability.length() < 3) {
-							if (interfaceVar.length() < 3) {
+						if (probability.equals("\"\"") || probability.equals("null")) {// if interfacing system has no probability
+							System.out.println(interfaceVar);
+							if (interfaceVar.equals("\"\"") || interfaceVar.equals("null")) {// if there is no interface at all
 								comment = "No interfaces identified.";
 							}
 							else {comment = "Stays as-is."; }								
 						}						 
-						else if (probability.contains(hpKey)) {
+						else if (probability.contains(hpKey)) {// if the interfacing system is high probability
 							if (!(lpiV.contains(lpSystem))) //LP is LPNI
-								{ comment = "Confirm removal of interface."; }
+							{ 
+								if (dhmsmSOR.contains(sorKey) && sorV.contains(lpSystem)) {
+									comment = "Need to add interface " + lpSys + "->DHMSM. " + lpSys + " should be LPI. Confirm removal of original interface";
+								}
+								else {
+									comment = "Confirm removal of interface."; 
+								}
+							}
 							else { //LP is LPI
 								if (hieV.contains(interfacingSystem)) {
 									comment = "Replaced by DHMSM HIE service.";
 								}
-								else {
-									if (interfaceType.contains(downstreamKey)) {
-										if (dhmsmSOR.length() < 3) {
-											comment = "Kill the interface.";
+								else {//LPI interfacing with NOT HIE
+									if (interfaceType.contains(downstreamKey)) { // LPI is upstream of interface
+										if (dhmsmSOR.length() < 3) { // DHMSM does not read or create
+											comment = "This interface can be removed.";
 										}
-										else {
+										else { // DHMSM reads or creates, so we need interface
 											comment = "Need to add interface " + lpSys + "->DHMSM.";
 										}
 									}
 									else { //LPI is downstream of HP
-										if (dhmsmSOR.length() < 3) {
+										if (dhmsmSOR.length() < 3) { //DHMSM does not read or create
 											comment = "LPI IS LOSING DATA.";
 										}
-										else {
+										else { // DHMSM reads or creates, so it can send the data
 											comment = "Need to add interface DHMSM->" + lpSys + ".";
 										}
 									}
@@ -212,7 +220,8 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 							}
 						}
 						else { //probability is low -- we are in section 3
-							if (dhmsmSOR.contains(sorKey)) {
+							if (dhmsmSOR.contains(sorKey)) { //DHMS is sor
+								//DETERMINE UPSTREAM AND DOWNSTREAM SYSTEMS
 								String upStreamSys, downStreamSys, upStreamSysRaw, downStreamSysRaw = "";
 								if (interfaceType.contains(downstreamKey)) {
 									upStreamSys = lpSys; upStreamSysRaw = lpSystem;									
@@ -222,36 +231,40 @@ public class LPIInterfaceReportGenerator extends GridPlaySheet {
 									upStreamSys = interfacingSys; upStreamSysRaw = interfacingSystem;	
 									downStreamSys = lpSys; downStreamSysRaw = lpSystem;
 								}
-								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) {
+								
+								if (lpiV.contains(upStreamSysRaw) || (lpiV.contains(upStreamSysRaw) && lpiV.contains(downStreamSysRaw)) ) { // if upstream is LPI or both
 									comment = "Need to add interface DHMSM->" + upStreamSys + ".";
 								}
-								else if (lpiV.contains(downStreamSysRaw)){
+								else if (lpiV.contains(downStreamSysRaw)){ // if downstream is LPI
 									comment = "Need to add interface DHMSM->" + downStreamSys + ".";
 								}
 								else {
 									comment = "Stays as-is.";
 								}
 							}
-							else {
-								if(sorV.contains(lpSysData) && !lpiV.contains(lpSystem)){
-									//this is 3bi
-									comment = "Need to add interface " + lpSys + "->DHMSM. " + lpSys + " should be LPI. ";
+							else if (dhmsmSOR.length() > 3){//DHMSM needs to read this
+								if(sorV.contains(lpSysData) ) { // if first system is sor
+									if(!lpiV.contains(lpSystem)){ // and not lpi
+										comment = "Need to add interface " + lpSys + "->DHMSM. " + lpSys + " should be LPI. ";
+									}
+									else { // else it is sor and is lpi
+										comment = "Need to add interface " + lpSys +"->DHMSM. ";
+									}
 								}
-								else if(sorV.contains(lpSysData) && lpiV.contains(lpSystem)){
-									//this is 3bii
-									comment = "Need to add interface " + lpSys +"->DHMSM. ";
+								if(sorV.contains(interfacingSysData)){ // if second system is sor
+									if(!lpiV.contains(interfacingSystem)){ // and not lpi
+										comment = comment + "Need to add interface " + interfacingSys + "->DHMSM. " + interfacingSys + " should be LPI. ";
+									}
+									else { // else it is sor and lpi
+										comment = comment + "Need to add interface " + interfacingSys +"->DHMSM.";
+									}
 								}
-								if(sorV.contains(interfacingSysData) && !lpiV.contains(interfacingSystem)){
-									//this is 3bi
-									comment = comment + "Need to add interface " + interfacingSys + "->DHMSM. " + interfacingSys + " should be LPI. ";
-								}
-								else if(sorV.contains(interfacingSysData) && lpiV.contains(interfacingSystem)){
-									//this is 3bii
-									comment = comment + "Need to add interface " + interfacingSys +"->DHMSM.";
-								}
-								else if(comment == null || comment.isEmpty()){
+								else if(comment == null || comment.isEmpty()){ //if neither system is sor, just let it be
 									comment = "Stays as-is.";
 								}
+							}
+							else {//DHMSM doesn't care
+								comment = "Stays as-is.";
 							}
 						}
 						values[count] = comment;
