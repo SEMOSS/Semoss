@@ -28,7 +28,12 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 			Utility.showError("Could not find necessary databases:\nHR_Core, TAP_Cost_Data");
 		}
 		
-		SesameJenaSelectWrapper sjsw = processQuery(hr_Core, query);
+		String[] systemAndReport = query.split("\\$");
+		this.query = systemAndReport[0];
+		String reportType = systemAndReport[1];
+		
+		SesameJenaSelectWrapper sjsw = processQuery(hr_Core, systemAndReport[0]);
+		
 		String[] names = sjsw.getVariables();
 		ArrayList<String> systemList = new ArrayList<String>();
 		String systemListString = "";
@@ -45,10 +50,10 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		for(int i=0;i<systemList.size();i++)
 		{
 			String sysURI = systemList.get(i);
-			logger.info("Creating System Transition Report for system >>> "+sysURI);
+			logger.info("Creating System Transition Report for system >>> " + sysURI + "$" + reportType);
 			IndividualSystemTransitionReport sysTransReport = new IndividualSystemTransitionReport();
 			sysTransReport.enableMessages(false);
-			sysTransReport.setQuery(sysURI);
+			sysTransReport.setQuery(sysURI + "$" + reportType);
 			sysTransReport.createData();
 		}
 		
@@ -65,33 +70,6 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		sjsw.executeQuery();	
 		return sjsw;
 	}
-	/**
-	 * Sets the string version of the SPARQL query on the playsheet. 
-	 * @param query String
-	 */
-/*	@Override
-	public void setQuery(String query) 
-	{
-		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
-			this.query=query;
-		else
-		{
-			logger.info("Query " + query);
-			int selectIndex = query.indexOf("$");
-			String systemTypesResponse = query.substring(0,selectIndex);
-			query = query.substring(selectIndex+1);
-
-			if(systemTypesResponse.equals("LPI"))
-			{
-				this.isLPIReport = true;
-			} else {
-				this.isLPIReport = false;
-			}
-
-			logger.info("New Query " + query);
-			this.query = query;
-		}
-	}*/
 
 	@Override
 	public void refineView() {
