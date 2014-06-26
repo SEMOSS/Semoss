@@ -156,7 +156,6 @@
         var temp = d3.mean(dataSeriesArray, function(value) {
             return +value[propKey];
         });
-        //alert("average for x: " + temp);
         return temp;
       }
   	  
@@ -164,7 +163,6 @@
   		var temp = d3.min(dataSeriesArray, function(value) {
   			return +value[propKey];
   		});
-  	    console.log("min for " + propKey + ": " + temp);
   		return temp;
   	  }
   	  
@@ -172,7 +170,6 @@
   		var temp = d3.max(dataSeriesArray, function(value) {
   			return +value[propKey];
   		});
-  	    console.log("max for " + propKey + ": " + temp);
   		return temp;
   	  }
   	  
