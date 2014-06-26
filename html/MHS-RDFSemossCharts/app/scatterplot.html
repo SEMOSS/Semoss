@@ -197,6 +197,7 @@
       yLineVal = jsonData.yLineVal || calculateAvg(dataSeriesArray, "y"); //yAxisAvg
       jsonData.xLineVal != undefined ? type = "gridscatter" : type = "scatter";
       
+      alert("y axis min: " + yAxisMin);
       legendArray.length = 0;
       
       //node radius scale
@@ -316,7 +317,7 @@
                } else {
                    return +value["y"];
                }
-           }) - 1, d3.max(dataSeriesArray, function(value) {
+           }), d3.max(dataSeriesArray, function(value) {
                if(type !== "scatter") {
                    return 10;
                } else {
