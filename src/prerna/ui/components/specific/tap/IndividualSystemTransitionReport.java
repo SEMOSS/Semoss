@@ -40,8 +40,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashMap<String, String> serviceToDataHash = new HashMap<String, String>();
 
 	//making the SOR sheet
-	private String sysSORDataQuery = "SELECT DISTINCT ?Data (SAMPLE(?Provide) AS ?ProvidedOrConsumed) (COUNT(?icd) AS ?DownstreamInterfaces) WHERE { BIND('Provides' as ?Provide){BIND(@SYSTEM@ AS ?System){?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?downstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?downstreamSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?downstreamSystem} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} {?System ?provideData ?Data} }UNION {BIND(@SYSTEM@ AS ?System){?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?downstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?downstreamSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd }{?icd <http://semoss.org/ontologies/Relation/Consume> ?downstreamSystem}{?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data} } FILTER(!BOUND(?icd2)) }} GROUP BY ?System ?Data ORDER BY ?Data ?System BINDINGS ?Probability {('Low') ('Medium') ('Medium-High')}";
-	private String sysConsumedDataQuery = "SELECT DISTINCT ?Data ?ProvidedOrConsumed ?NoInterfaces WHERE {BIND('Consumed' as ?ProvidedOrConsumed)BIND('NA' as ?NoInterfaces) BIND(@SYSTEM@ AS ?System){?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'} {?System ?provideData ?Data}} ORDER BY ?Data ?System";
+	private String sysSORDataQuery = "SELECT DISTINCT ?Data ?ProvideOrConsume ?otherSystem WHERE {{SELECT DISTINCT ?Data ?ProvideOrConsume ?otherSystem WHERE {BIND(@SYSTEM@ AS ?System){?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?otherSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} {?System ?provideData ?Data} FILTER( !regex(str(?crm),'R')) BIND('Provide' AS ?ProvideOrConsume)}} UNION {SELECT DISTINCT ?Data ?ProvideOrConsume ?otherSystem WHERE {BIND(@SYSTEM@ AS ?System){?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} OPTIONAL {{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}} {?otherSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data}   FILTER(!BOUND(?icd2)) BIND('Provide' AS ?ProvideOrConsume)}} UNION {SELECT DISTINCT ?Data ?ProvideOrConsume ?otherSystem WHERE {BIND(@SYSTEM@ AS ?System){?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?otherSystem <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} BIND('Consume' AS ?ProvideOrConsume)}} } ORDER BY ?ProvideOrConsume ?Data BINDINGS ?Probability {('Low') ('Medium') ('Medium-High')}";
+//	private String sysConsumedDataQuery = "SELECT DISTINCT ?Data ?ProvidedOrConsumed ?NoInterfaces WHERE {BIND('Consumed' as ?ProvidedOrConsumed)BIND('NA' as ?NoInterfaces) BIND(@SYSTEM@ AS ?System){?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'} {?System ?provideData ?Data}} ORDER BY ?Data ?System";
 	private String otherSysSORDataQuery = "SELECT DISTINCT ?System ?Data (COUNT(?icd) AS ?DownstreamInterfaces) WHERE { {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>}{?downstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?downstreamSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?downstreamSystem} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} {?System ?provideData ?Data} }UNION {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?downstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?downstreamSystem <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?System <http://semoss.org/ontologies/Relation/Provide> ?icd }{?icd <http://semoss.org/ontologies/Relation/Consume> ?downstreamSystem}{?icd <http://semoss.org/ontologies/Relation/Payload> ?Data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data} } FILTER(!BOUND(?icd2)) }FILTER (?System != @SYSTEM@)} GROUP BY ?System ?Data ORDER BY ?Data ?System BINDINGS ?Probability {('Low') ('Medium') ('Medium-High')}";
 	
 	private int costPerHr = 150;
@@ -102,14 +102,14 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		loeForSysGlItemQuery = loeForSysGlItemQuery.replace("@SYSTEM@", systemURI);
 
 		sysSORDataQuery = sysSORDataQuery.replace("@SYSTEM@", systemURI);
-		sysConsumedDataQuery = sysConsumedDataQuery.replace("@SYSTEM@", systemURI);
+//		sysConsumedDataQuery = sysConsumedDataQuery.replace("@SYSTEM@", systemURI);
 		otherSysSORDataQuery = otherSysSORDataQuery.replace("@SYSTEM@", systemURI);
 		HashMap<String, Object> sysInfoHash = getQueryDataWithHeaders(hr_Core, sysInfoQuery);
 		HashMap<String, Object> sysDataConsumeProvideHash = getQueryDataWithHeaders(hr_Core, sysDataConsumeProvideQuery);
 		HashMap<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMQuery);
 		HashMap<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMCapQuery);
 		HashMap<String, Object> hwSWBudgetHash = getQueryDataWithHeaders(TAP_Cost_Data, hwSWBudgetQuery);
-		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(hr_Core,sysSORDataQuery,sysConsumedDataQuery,otherSysSORDataQuery);
+		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(hr_Core,sysSORDataQuery,otherSysSORDataQuery);
 
 		HashMap<Integer, HashMap<String, Object>> storeSoftwareData = new HashMap<Integer, HashMap<String, Object>>();
 		HashMap<Integer, HashMap<String, Object>> storeHardwareData = new HashMap<Integer, HashMap<String, Object>>();
@@ -479,7 +479,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return dataHash;
 	}
 
-	private HashMap<String, Object> getSysSORTableWithHeaders(IEngine engine,String sysSORDataQuery,String sysConsumedDataQuery,String otherSysSORDataQuery)
+	private HashMap<String, Object> getSysSORTableWithHeaders(IEngine engine,String sysSORDataQuery,String otherSysSORDataQuery)
 	{
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
@@ -493,67 +493,32 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			Object[] dataRow = new Object[names.length];
-
-			for(int i=0;i<names.length;i++)
+			String data = (String)sjss.getVar(names[0]);
+			String provideConsume = (String)sjss.getVar(names[1]);
+			String otherSystem = (String)sjss.getVar(names[2]);
+			if(provideConsume.startsWith("\"") && provideConsume.endsWith("\""))
+				provideConsume = provideConsume.substring(1, provideConsume.toString().length()-1); // remove annoying quotes
+			Object[] dataRow;
+			int dataIndex = dataObjects.indexOf(data);
+			if(dataIndex<0)
 			{
-				Object dataElem = sjss.getVar(names[i]);
-				if(dataElem.toString().startsWith("\"") && dataElem.toString().endsWith("\""))
-				{
-					dataElem = dataElem.toString().substring(1, dataElem.toString().length()-1); // remove annoying quotes
-				}
-				if(i==0)
-					dataObjects.add((String)dataElem);
-				if(i==2)
-					dataElem = ((Double)dataElem).intValue();
-				dataRow[i] = dataElem;
-			}
-			dataToAddArr.add(dataRow);
-		}
-		
-		SesameJenaSelectWrapper sjsw2 = processQuery(engine,sysConsumedDataQuery);
-		String[] names2 = sjsw2.getVariables();
-		while(sjsw2.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw2.next();
-			Object[] dataRow = new Object[names2.length];
-			boolean toAdd = false;
-			for(int i=0;i<names2.length;i++)
-			{
-				Object dataElem = sjss.getVar(names2[i]);
-				if(dataElem.toString().startsWith("\"") && dataElem.toString().endsWith("\""))
-				{
-					dataElem = dataElem.toString().substring(1, dataElem.toString().length()-1); // remove annoying quotes
-				}
-				if(i==0&&!dataObjects.contains((String)dataElem))
-				{
-					toAdd = true;
-					dataObjects.add((String)dataElem);
-				}
-				dataRow[i] = dataElem;
-			}
-			//only add the row if the data object is not already in our list
-			if(toAdd)
+				if(provideConsume.toLowerCase().contains("consume"))
+					dataRow = new Object[]{data,provideConsume,0};
+				else
+					dataRow = new Object[]{data,provideConsume,1};
+				dataObjects.add(data);
 				dataToAddArr.add(dataRow);
-		}
-		
-		ArrayList<Object[]> otherSysList = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper sjsw3 = processQuery(engine,otherSysSORDataQuery);
-		String[] names3 = sjsw3.getVariables();
-		while(sjsw3.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw3.next();
-			Object[] dataRow = new Object[names3.length];
-			for(int i=0;i<names3.length;i++)
-			{
-				Object dataElem = sjss.getVar(names3[i]);
-				if(dataElem.toString().startsWith("\"") && dataElem.toString().endsWith("\""))
-					dataElem = dataElem.toString().substring(1, dataElem.toString().length()-1); // remove annoying quotes
-				if(i==0&&!systems.contains((String)dataElem))
-					systems.add((String)dataElem);
-				dataRow[i] = dataElem;
 			}
-			otherSysList.add(dataRow);
+			else
+			{
+				dataRow = dataToAddArr.get(dataIndex);
+				dataRow[2]= (Integer)dataRow[2]+1;
+				dataToAddArr.set(dataIndex, dataRow);
+			}
+
+			if(!systems.contains(otherSystem))
+				systems.add(otherSystem);
+
 		}
 		
 		// sort selected systems
@@ -573,6 +538,23 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			dataToAddArr.set(i,newRow);
 		}
 		
+		ArrayList<Object[]> otherSysList = new ArrayList<Object[]>();
+		SesameJenaSelectWrapper sjsw3 = processQuery(engine,otherSysSORDataQuery);
+		String[] names3 = sjsw3.getVariables();
+		while(sjsw3.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw3.next();
+			Object[] dataRow = new Object[names3.length];
+			for(int i=0;i<names3.length;i++)
+			{
+				Object dataElem = sjss.getVar(names3[i]);
+				if(dataElem.toString().startsWith("\"") && dataElem.toString().endsWith("\""))
+					dataElem = dataElem.toString().substring(1, dataElem.toString().length()-1); // remove annoying quotes
+				dataRow[i] = dataElem;
+			}
+			otherSysList.add(dataRow);
+		}
+
 		for(Object[] row : otherSysList)
 		{
 			int indSys = systems.indexOf(row[0]);
