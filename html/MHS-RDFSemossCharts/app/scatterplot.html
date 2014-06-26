@@ -197,7 +197,6 @@
       yLineVal = jsonData.yLineVal || calculateAvg(dataSeriesArray, "y"); //yAxisAvg
       jsonData.xLineVal != undefined ? type = "gridscatter" : type = "scatter";
       
-      alert("y axis min: " + yAxisMin);
       legendArray.length = 0;
       
       //node radius scale
@@ -311,13 +310,9 @@
            ])
            .nice();
 
-           yScale.domain([d3.min(dataSeriesArray, function(value) {
-               if(type !== "scatter") {
-                   return value["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * value["y-tech standards"];
-               } else {
-                   return +value["y"];
-               }
-           }), d3.max(dataSeriesArray, function(value) {
+    	   if(yAxisMin > 1) { yAxisMin = yAxisMin + 1; }
+    	   
+           yScale.domain([yAxisMin, d3.max(dataSeriesArray, function(value) {
                if(type !== "scatter") {
                    return 10;
                } else {
