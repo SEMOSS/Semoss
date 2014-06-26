@@ -183,9 +183,9 @@
       
       dataSeriesArray.length = 0;
       dataSeriesArray = data;
-      xAxisText = jsonData.xAxisTitle || "Not given"; 
-      yAxisText = jsonData.yAxisTitle || "Not given";
-      zAxisText = jsonData.zAxisTitle || "Not given";
+      xAxisText = jsonData.xAxisTitle || "No xAxisTitle given"; 
+      yAxisText = jsonData.yAxisTitle || "No yAxisTitle given";
+      zAxisText = jsonData.zAxisTitle || "No zAxisTitle given";
       
       xAxisMin = jsonData.xAxisMin || calculateMin(dataSeriesArray, "x"); //xAxisMin
       yAxisMin = jsonData.yAxisMin || calculateMin(dataSeriesArray, "y"); //yAxisMin
