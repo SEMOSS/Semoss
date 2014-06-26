@@ -75,8 +75,7 @@
     */
     
   	var margin = {top: 40, right: 30, bottom: 30, left: 40},
-  		container = {width: 0, height: 0},
-  		width = 0, height = 0,
+  		container = {width: 0, height: 0}, width = 0, height = 0,
   		dataSeriesArray = [], legendArray = [], type = "", LINEGUIDEOPACITY = .45,
   		xAxisMin = 0, xAxisMax = 0, yAxisMin = 0, yAxisMax = 0, xLineVal = 0, yLineVal = 0,
   		xAxisText = "", yAxisText = "", zAxisText = "", BUSINESS_VALUE_MULTIPLIER = .33;
@@ -141,7 +140,7 @@
 
         callAxesGroup();
 
-        var legendRect = updateSvg.selectAll(".legend rect").attr("x", container.width - 13);
+        var legendRect = updateSvg.selectAll(".legend circle").attr("cx", container.width - 13);
         var legendText = updateSvg.selectAll(".legend text").attr("x", container.width - 24);
 		var zIndexText = updateSvg.selectAll(".scattercontrols text").attr("x", container.width);
         //call to create crosshair
@@ -305,7 +304,7 @@
            ])
            .nice();
 
-    	   if(yAxisMin > 1) { yAxisMin = yAxisMin + 1; }
+    	   if(yAxisMax >= 1) { yAxisMin = yAxisMin - 1; }
     	   
            yScale.domain([yAxisMin, d3.max(dataSeriesArray, function(value) {
                if(type !== "scatter") {
@@ -317,12 +316,13 @@
            .nice();
 
            rScale.domain([d3.min(dataSeriesArray, function(value) {
-        	   return value["z"];
+        	   return +value["z"];
            }), d3.max(dataSeriesArray, function(value) { 
-               return value["z"];
+               return +value["z"];
            })]);
 
            callAxesGroup();
+           
            //x axis text
            svg.select("g.x.axis text").text(xAxisText);
 
@@ -345,6 +345,18 @@
                    return d["label"];
                });
 
+           //update
+           nodes.attr("cx", xMap)
+                .attr("cy", yMap)
+                .transition().duration(1000)
+                .attr("r", function(d) {
+                   if(d["z"]) {
+                       return rScale(+d["z"]);
+                   } else {
+                       return rScale(0);
+                   }
+               });
+         
            //entering nodes    
            var nodesEnter = nodes.enter().insert("circle", ".legend")
                .attr("class", "node")
@@ -377,7 +389,7 @@
                .transition().duration(1000)
                .attr("r", function(d) {
                    if(d["z"]) {
-                       return rScale(d["z"]);
+                       return rScale(+d["z"]);
                    } else {
                        return rScale(0);
                    }
@@ -426,10 +438,8 @@
             	   return color(d.color);
                })
                .on("click", function(d) {
-            	   //TODO: show/hide selected legend nodes
             	   var circles = d3.selectAll(".node"),
-            	   	   selectedLgdCircle = d3.select(this),
-            	   	   zIndexText = svg.selectAll(".scattercontrols text")[0];
+            	   	   selectedLgdCircle = d3.select(this);
                    
                	   circles
                	   	.transition().duration(500)
@@ -551,6 +561,9 @@
 				
            });
            
+           //remove old zindex controls
+           zIndex.exit().remove();
+         
            svg.call(tip);  
       }
   	}	
