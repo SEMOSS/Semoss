@@ -21,7 +21,7 @@ public class Insight extends Hashtable {
 	String databaseIDkey = "databaseID";
 	
 	public Insight(){
-		this.put("Prop", propHash);
+		this.put("propHash", propHash);
 	}
 	
 	public String getId() {
