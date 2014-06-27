@@ -3,17 +3,10 @@
 package prerna.poi.main;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.net.URL; 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.net.URL;
 
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -26,17 +19,6 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xml.sax.ContentHandler;
-import org.xml.sax.InputSource;
-
-import de.l3s.boilerpipe.extractors.ArticleExtractor;
-import de.l3s.boilerpipe.BoilerpipeExtractor;
-import de.l3s.boilerpipe.document.TextDocument;
-import de.l3s.boilerpipe.extractors.ArticleExtractor;
-import de.l3s.boilerpipe.extractors.CommonExtractors;
-import de.l3s.boilerpipe.sax.BoilerpipeSAXInput;
-import de.l3s.boilerpipe.sax.HTMLDocument;
-import de.l3s.boilerpipe.sax.HTMLFetcher;
-
 
 class TextExtractor { 
     private OutputStream outputstream;
@@ -72,7 +54,7 @@ class TextExtractor {
     public String getString() throws IOException {
         //Get the text into a String object
         extractedText = outputstream.toString();
-        extractedText = extractedText.replace("\n", " @ ").replace("\r", " ");
+        extractedText = extractedText.replace("\n", " ").replace("\r", " "); //MUST COME BACK
         //Do whatever you want with this String object.
         System.out.println("Extractedtext "+extractedText);
   //      String docname = "PKrequest\\PKuseCase.txt";
@@ -92,7 +74,7 @@ class TextExtractor {
 		org.jsoup.nodes.Document doc = Jsoup.connect(url).get();
 		String extractedtext = "";
 		
-		if(url.contains("nytimes.com") && false){
+		if(url.contains("nytimes.com")){
 		knownwebsite = true;
 			for( Element element : doc.select("p.story-body-text") )
 		{
@@ -103,24 +85,12 @@ class TextExtractor {
 		    }
 		}
 		}
-		if(knownwebsite){
-			System.out.println("NON USED WEB READER");
+		if(!knownwebsite){
 			extractedtext = doc.text();
 		}
-		if(!knownwebsite){
-			System.out.println("USED WEB READER");
-			URL urlobj = new URL(url);
-			// NOTE: Use ArticleExtractor unless DefaultExtractor gives better results for you   
-		   String text = ArticleExtractor.INSTANCE.getText(urlobj);
-		 	extractedtext = text;   
-		   System.out.println(text);
-					}
-    //	}
 		extractedtext = extractedtext.replace("\n", " @ ").replace("\r", " ");
 		System.out.println("extracted text being sent back"+extractedtext);
     	return extractedtext;
-    	
-    	
     	
     }
 
@@ -132,11 +102,15 @@ class TextExtractor {
         return extractedText;
     	
     }
-    private String Resumeprocessing(String extractedText2) {
-    	Scanner scan;
-    	scan = new Scanner(extractedText2);
-		return null;
-	}
+    
+    public String TextDocExtractor(String docin) throws Exception{
+    	
+    	TextExtractor textExtractor = new TextExtractor();
+         textExtractor.process(docin);
+        String extractedText = textExtractor.getString();
+        return extractedText;
+    	
+    }
 
 	public String MasterResumeExtractor(String docin) throws Exception{
     	TextExtractor textExtractor = new TextExtractor();
@@ -146,17 +120,5 @@ class TextExtractor {
        return extractedText;
    	
     }
-    public static void main(String[] args) throws Exception {
-    //    if (args.length == 1) {
-       //     TextExtractor textExtractor = new TextExtractor();
-       //     textExtractor.process("PKrequest\\PKuseCase.docx");
-       //     textExtractor.getString();
-   //     } else { 
-   //         throw new Exception();
-   //     }
-    	URL url = new URL("http://www.washingtonpost.com/world/currencies-of-russia-ukraine-fall-monday/2014/03/03/5f3af2c2-a2c9-11e3-a5fa-55f0c77bf39c_story.html?hpid=z1");  
- 	   // NOTE: Use ArticleExtractor unless DefaultExtractor gives better results for you   
-   String text = ArticleExtractor.INSTANCE.getText(url);
- 	   System.out.println(text);
-    }
+   
 }
