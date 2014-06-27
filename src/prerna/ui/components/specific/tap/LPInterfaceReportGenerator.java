@@ -166,6 +166,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
 				String comment = "";
 				String data = sjss.getRawVar(dataKey) + "";
+				String probability = sjss.getRawVar(probabilityKey) + "";
 
 				//				if (lpSysName.contains("MMM") && data.contains("Facility")) {
 				//					System.out.println("Test");
@@ -198,7 +199,10 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							if(lpiV.contains(upstreamSystemURI)) { // upstream system is LPI
 								comment = "Need to add interface DHMSM->" + upstreamSysName + ".";
 							} else if(lpiV.contains(downstreamSystemURI)) { // upstream system is not LPI and downstream system is LPI
-								comment = "Need to add interface DHMSM->" + downstreamSysName + ". Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ".";
+								comment = "Need to add interface DHMSM->" + downstreamSysName + "."; 
+								if(upstreamSysName.equals(lpSysName) || ( !probability.equals("null") && !probability.equals("")) ) {
+									comment = comment + " Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ".";
+								}
 							} else {
 								comment = "Stay as-is.";
 							}
@@ -222,12 +226,20 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							}
 							if(lpiV.contains(upstreamSystemURI) && sorV.contains(upstreamSystemURI + data)) { // upstream system is LPI and SOR of data
 								comment = "Need to add interface " + upstreamSysName  + " -> DHMSM.";
-							} else if(sorV.contains(upstreamSystemURI + data)) { // upstream system is LPNI or HP and SOR
-								comment = "Recommend review of developing interface between " + upstreamSysName  + " -> DHMSM.";
+							} else if(sorV.contains(upstreamSystemURI + data)) { // upstream system is SOR
+								if( (upstreamSysName.equals(lpSysName) || (!probability.equals("null") && !probability.equals(""))) ) { 
+									comment = "Recommend review of developing interface between " + upstreamSysName  + " -> DHMSM.";
+								} else { //upstream system does not have a probability
+									comment = "Stay as-is.";
+								}
 							} else if(lpiV.contains(downstreamSystemURI) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
 								comment = "Need to add interface " + downstreamSysName  + " -> DHMSM.";
-							} else if(sorV.contains(downstreamSystemURI + data)) { // downstream system is LPNI or HP system
-								comment = "Recommend review of developing interface between " + downstreamSysName  + " -> DHMSM.";
+							} else if(sorV.contains(downstreamSystemURI + data)) { // downstream system is SOR 
+								if( (downstreamSysName.equals(lpSysName) || (!probability.equals("null") && !probability.equals(""))) ) { // downstream system is LPNI or HP system
+									comment = "Recommend review of developing interface between " + downstreamSysName  + " -> DHMSM.";
+								} else { // downstream system does not have a probability
+									comment = "Stay as-is.";
+								}
 							} else {
 								comment = "Stay as-is.";
 							}
