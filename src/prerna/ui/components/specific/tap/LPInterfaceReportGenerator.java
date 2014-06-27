@@ -166,7 +166,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
 				String comment = "";
 				String data = sjss.getRawVar(dataKey) + "";
-				String probability = sjss.getRawVar(probabilityKey) + "";
+				String probability = sjss.getVar(probabilityKey) + "";
 
 				//				if (lpSysName.contains("MMM") && data.contains("Facility")) {
 				//					System.out.println("Test");
