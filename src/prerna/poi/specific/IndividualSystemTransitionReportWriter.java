@@ -148,7 +148,7 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
 		cellToWriteSystem.setCellValue(systemName);
 		cellToWriteSystem = rowToWriteSystem.getCell(1);
-		if(sheetName.contains("Interface")||sheetName.contains("SOR"))
+		if(sheetName.contains("Interface") || sheetName.contains("System Data"))
 			cellToWriteSystem = rowToWriteSystem.getCell(3);
 		String currString = cellToWriteSystem.getStringCellValue();
 		currString = currString.replaceAll("@SYSTEM@",systemName);
