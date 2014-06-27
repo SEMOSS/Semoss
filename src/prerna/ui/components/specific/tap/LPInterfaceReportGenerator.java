@@ -161,19 +161,14 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 				//For logic
 				String lpSystem = sjss.getRawVar(lpSysKey) + "";
-				String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
 				String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
-				String interfaceVar = sjss.getRawVar(interfaceKey) + "";
-				String probability = sjss.getRawVar(probabilityKey) + "";
 				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
 				String comment = "";
 				String data = sjss.getRawVar(dataKey) + "";
 
-				String lpSysData = lpSystem + "" + data;
-				String interfacingSysData = interfacingSystem + "" + data;		
-				if (lpSysName.contains("MMM") && data.contains("Facility")) {
-					System.out.println("Test");
-				}		
+				//				if (lpSysName.contains("MMM") && data.contains("Facility")) {
+				//					System.out.println("Test");
+				//				}		
 
 				Object[] values = new Object[names.length];
 				int count = 0;
@@ -181,37 +176,62 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				{
 					if(names[colIndex].contains(commentKey))
 					{ 
-						if(probability.equals("\"\"") || probability.equals("null")) {// if interfacing system has no probability
-							if (interfaceVar.equals("\"\"") || interfaceVar.equals("null")) {// if there is no interface at all
-								comment = "No interfaces identified.";
-							}
-							else {comment = "Stays as-is."; }								
-						}
 						// DHMSM is SOR of data
-						else if(dhmsmSOR.contains(dhmsmProvideKey)) {
+						if(dhmsmSOR.contains(dhmsmProvideKey)) {
+							boolean interfacingSystemCommentAdded = false;
+							boolean stayAsIsCommentAdded = false;
 							if(lpiV.contains(lpSystem)) { // system is LPI
-								comment = "Need to add interface DHMSM -> " + lpSysName;
-							} else if(lpiV.contains(interfacingSystem)) {
-								comment = "Need to add interface DHMSM -> " + interfacingSysName + ". Also recommend review of removing interface " + lpSysName + " -> " + interfacingSysName;
+								comment = "Need to add interface DHMSM->" + lpSysName + ".";
+							} else if(lpiV.contains(interfacingSystem)) { // system is not LPI and interfacing system is LPI
+								interfacingSystemCommentAdded = true;
+								comment = "Need to add interface DHMSM->" + interfacingSysName + ". Also recommend review of removing interface " + lpSysName + "->" + interfacingSysName + ".";
 							} else {
-								comment = "Stay as is.";
+								stayAsIsCommentAdded = true;
+								comment = "Stay as-is.";
+							}
+							// get complete picture by reviewing interfacing system
+							if(lpiV.contains(interfacingSystem)) { // if interfacing system is LPI
+								if(!interfacingSystemCommentAdded && !stayAsIsCommentAdded) { // addition of interface not already present and "Stay as-is." comment not present
+									comment = comment + " Need to add interface DHMSM->" + interfacingSysName + ".";
+								} else if(!interfacingSystemCommentAdded) { // addition of interface not already present and "Stay as-is." needs to be removed
+									comment = "Need to add interface DHMSM->" + interfacingSysName + ".";
+								}
 							}
 						} // DHMSM is consumer of data
 						else if(dhmsmSOR.contains(dhmsmConsumeKey)) {
+							boolean interfacingSystemCommentAdded = false;
+							boolean stayAsIsCommentAdded = false;
 							if(lpiV.contains(lpSystem) && sorV.contains(lpSystem + data)) { // system is LPI and SOR of data
 								comment = "Need to add interface " + lpSysName  + " -> DHMSM.";
-							} else if(sorV.contains(lpSystem + data)) { // system is LPNI or HP system
+							} else if(sorV.contains(lpSystem + data)) { // system is LPNI or HP and SOR
 								comment = "Recommend review of developing interface between " + lpSysName  + " -> DHMSM.";
 							} else if(lpiV.contains(interfacingSystem) && sorV.contains(interfacingSystem + data)) { // interfacing system is LPI and SOR of data
+								interfacingSystemCommentAdded = true;
 								comment = "Need to add interface " + interfacingSysName  + " -> DHMSM.";
-							} else if(sorV.contains(interfacingSystem + data)) { // system is LPNI or HP system
+							} else if(sorV.contains(interfacingSystem + data)) { // interfacing system is LPNI or HP system
+								interfacingSystemCommentAdded = true;
 								comment = "Recommend review of developing interface between " + interfacingSysName  + " -> DHMSM.";
 							} else {
-								comment = "Stay as is.";
+								stayAsIsCommentAdded = true;
+								comment = "Stay as-is.";
 							}
-						} // DHMSM doesn't touch data object
+							// get complete picture by reviewing interfacing system
+							if(lpiV.contains(interfacingSystem) && sorV.contains(interfacingSystem + data)) { // if interfacing system is LPI and SOR of data
+								if(!interfacingSystemCommentAdded && !stayAsIsCommentAdded) { // addition of interface not already present and "Stay as-is." comment not present
+									comment = comment + " Need to add interface " + interfacingSysName  + " -> DHMSM.";
+								} else if(!interfacingSystemCommentAdded) { // addition of interface not already present and "Stay as-is." needs to be removed
+									comment = "Need to add interface " + interfacingSysName  + " -> DHMSM.";
+								}
+							} else if(sorV.contains(interfacingSystem + data)) { // if interfacing system is LPNI or HP and SOR
+								if(!interfacingSystemCommentAdded && !stayAsIsCommentAdded) { // addition of interface not already present and "Stay as-is." comment not present
+									comment = comment + " Recommend review of developing interface between " + lpSysName  + " -> DHMSM.";
+								} else if(!interfacingSystemCommentAdded) { // addition of interface not already present and "Stay as-is." needs to be removed
+									comment = "Recommend review of developing interface between " + lpSysName  + " -> DHMSM.";
+								}
+							}
+						} // other cases DHMSM doesn't touch data object
 						else {
-							comment = "Stay as is.";
+							comment = "Stay as-is.";
 						}
 						values[count] = comment;
 					} else {
