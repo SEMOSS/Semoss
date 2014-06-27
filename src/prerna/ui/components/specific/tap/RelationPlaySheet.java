@@ -76,12 +76,12 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	public IEngine engine;
 	
 	public JScrollPane ctlScrollPane;
-	public JPanel ctlPanel, chartPanel;
+	public JPanel ctlPanel;
 	public JPanel displayPanel;
 	
 	public JTabbedPane tabbedPane;
 	public JPanel specificFuncAlysPanel, heatMapPanel;
-	public BrowserGraphPanel tabHeatMap;
+	public BrowserGraphPanel heatMap;
 	
 	/**
 	 * Constructor for RelationPlaySheet.
@@ -259,32 +259,18 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		gbl_heatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_heatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		heatMapPanel.setLayout(gbl_heatMapPanel);
-		
-		tabHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-		tabHeatMap.setPreferredSize(new Dimension(500, 400));
-		tabHeatMap.setMinimumSize(new Dimension(500, 400));
-		tabHeatMap.setVisible(false);
-		
-		chartPanel = new JPanel();
-		chartPanel.setBackground(Color.WHITE);
-		GridBagConstraints gbc_chartPanel = new GridBagConstraints();
-		gbc_chartPanel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_chartPanel.gridx = 0;
-		gbc_chartPanel.gridy = 0;
-		heatMapPanel.add(chartPanel, gbc_chartPanel);
-		GridBagLayout gbl_chartPanel = new GridBagLayout();
-		gbl_chartPanel.columnWidths = new int[]{0,0};
-		gbl_chartPanel.rowHeights = new int[]{0,0};
-		gbl_chartPanel.columnWeights = new double[]{0.0};
-		gbl_chartPanel.rowWeights = new double[]{0.0};
-		chartPanel.setLayout(gbl_chartPanel);
+
+		heatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
+		heatMap.setMinimumSize(new Dimension(500, 400));
+		heatMap.setVisible(false);
 		
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 1;
-		chartPanel.add(tabHeatMap, gbc_panel);
+		gbc_panel.gridy = 0;
+		heatMapPanel.add(heatMap, gbc_panel);
+		heatMapPanel.setVisible(false);
 	}
 	
 	public void createUI()

@@ -212,8 +212,8 @@ public class RelationFunction implements IAlgorithm {
 		}
 		
 		// display output for heatmap tab
-		((RelationPlaySheet) playSheet).tabHeatMap.callIt(allHash);
-		((RelationPlaySheet) playSheet).tabHeatMap.setVisible(true);
+		((RelationPlaySheet) playSheet).heatMap.callIt(allHash);
+		((RelationPlaySheet) playSheet).heatMap.setVisible(true);
 
 	}
 
