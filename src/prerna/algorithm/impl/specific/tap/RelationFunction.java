@@ -83,7 +83,7 @@ public class RelationFunction implements IAlgorithm {
 
 			String sys = (String) sjss.getVar(names[0]);
 			String data = (String) sjss.getVar(names[1]);
-			double count = (double) sjss.getVar(names[2]);
+			double count = (Double) sjss.getVar(names[2]);
 
 			if (colNames.contains(sys)) {
 				processedList.add(new Object[]{sys, data, count});
