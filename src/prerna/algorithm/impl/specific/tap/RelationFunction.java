@@ -68,7 +68,7 @@ public class RelationFunction implements IAlgorithm {
 		String queryString = "SELECT DISTINCT ?system ?data (COUNT(DISTINCT ?icd) as ?icdCount) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } GROUP BY ?system ?data";
 		logger.info("PROCESSING QUERY: " + queryString);
 
-		//executes the query on a specified engine
+		// execute the query on a specified engine
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
@@ -134,18 +134,43 @@ public class RelationFunction implements IAlgorithm {
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0);
 		
+		// update the counts so that they are percentages
+		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
+		Hashtable processList = new Hashtable();
+		
+		for (int i=0; i<processedList.size(); i++) {
+			Object[] row = processedList.get(i);
+			String data = (String) row[1];
+			double count = (double) row[2];
+			if(!processList.containsKey(data)) {
+				processList.put(data, count);
+			}
+			if(count > (Double) processList.get(data)) {
+				processList.put(data, count);
+			}
+		}
+		
+		for (int i=0; i<processedList.size(); i++) {
+			Object[] row = processedList.get(i);
+			String sys = (String) row[0];
+			String data = (String) row[1];
+			double count = (double) row[2];
+			count = count / (Double) processList.get(data);
+			processedList2.add(new Object[]{sys, data, count});
+		}
+		
 		// let's make a heatmap
 		Hashtable dataHash = new Hashtable();
 		Hashtable dataSeries = new Hashtable();
 		String[] var = new String[]{"Systems","Data Objects","Value"};
-		String xName = var[0];
-		String yName = var[1];
-		for (int i=0;i<processedList.size();i++)
+		String xName = var[0]; //system
+		String yName = var[1]; //data objects
+		for (int i=0;i<processedList2.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
-			Object[] listElement = processedList.get(i);			
-			String methodName = (String) listElement[0];
-			String groupName = (String) listElement[1];
+			Object[] listElement = processedList2.get(i);			
+			String methodName = (String) listElement[0]; //system
+			String groupName = (String) listElement[1]; //data
 			methodName = methodName.replaceAll("\"", "");
 			groupName = groupName.replaceAll("\"", "");
 			String key = methodName +"-"+groupName;
@@ -186,7 +211,7 @@ public class RelationFunction implements IAlgorithm {
 			e.printStackTrace();
 		}
 		
-		// display heatmap output
+		// display output for heatmap tab
 		((RelationPlaySheet) playSheet).tabHeatMap.callIt(allHash);
 		((RelationPlaySheet) playSheet).tabHeatMap.setVisible(true);
 
