@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -46,6 +47,7 @@ import javax.swing.event.InternalFrameEvent;
 
 import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.PlaySheetListener;
@@ -73,13 +75,13 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	
 	public IEngine engine;
 	
-	JScrollPane ctlScrollPane;
-	JPanel ctlPanel;
-	JPanel displayPanel;
+	public JScrollPane ctlScrollPane;
+	public JPanel ctlPanel, chartPanel;
+	public JPanel displayPanel;
 	
 	public JTabbedPane tabbedPane;
-	public JPanel specificFuncAlysPanel;
-	public JProgressBar progressBar;
+	public JPanel specificFuncAlysPanel, heatMapPanel;
+	public BrowserGraphPanel tabHeatMap;
 	
 	/**
 	 * Constructor for RelationPlaySheet.
@@ -92,22 +94,6 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		this.setIconifiable(true);
 		this.setResizable(true);
 		this.setPreferredSize(new Dimension(800, 600));
-	}
-	
-	public String[] makeListFromQuery(String type, String query)
-	{
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = "Capability";
-		filler.setExternalQuery(query);
-		filler.run();
-		Vector names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
-		}
-		return listArray;
 	}
 
 	public void createGenericParamPanel()
@@ -193,18 +179,6 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		addRelationBtnListener(btnGenerateRelations);
 		Style.registerTargetClassName(btnGenerateRelations,  ".createBtn");
 		
-		progressBar = new JProgressBar();
-		progressBar.setFont(new Font("Tahoma", Font.BOLD, 13));
-		GridBagConstraints gbc_progressBar = new GridBagConstraints();
-		gbc_progressBar.anchor = GridBagConstraints.SOUTH;
-		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
-		gbc_progressBar.gridwidth = 2;
-		gbc_progressBar.insets = new Insets(0, 0, 0, 5);
-		gbc_progressBar.gridx = 6;
-		gbc_progressBar.gridy = 5;
-		ctlPanel.add(progressBar, gbc_progressBar);
-		progressBar.setVisible(false);
-		
 		final JComponent contentPane = (JComponent) this.getContentPane();
 		contentPane.addMouseListener(new MouseAdapter() {  
 
@@ -251,6 +225,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	
 	public void createGenericDisplayPanel()
 	{	
+		
 		displayPanel = new JPanel();
 
 		GridBagLayout gbl_displayPanel = new GridBagLayout();
@@ -275,6 +250,41 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		gbl_specificFuncAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_specificFuncAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		specificFuncAlysPanel.setLayout(gbl_specificFuncAlysPanel);
+		
+		heatMapPanel = new JPanel();
+		tabbedPane.addTab("Heat Map", null, heatMapPanel, null);
+		GridBagLayout gbl_heatMapPanel = new GridBagLayout();
+		gbl_heatMapPanel.columnWidths = new int[]{0, 0};
+		gbl_heatMapPanel.rowHeights = new int[]{0, 0};
+		gbl_heatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_heatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		heatMapPanel.setLayout(gbl_heatMapPanel);
+		
+		tabHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
+		tabHeatMap.setPreferredSize(new Dimension(500, 400));
+		tabHeatMap.setMinimumSize(new Dimension(500, 400));
+		tabHeatMap.setVisible(false);
+		
+		chartPanel = new JPanel();
+		chartPanel.setBackground(Color.WHITE);
+		GridBagConstraints gbc_chartPanel = new GridBagConstraints();
+		gbc_chartPanel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_chartPanel.gridx = 1;
+		gbc_chartPanel.gridy = 1;
+		heatMapPanel.add(chartPanel, gbc_chartPanel);
+		GridBagLayout gbl_chartPanel = new GridBagLayout();
+		gbl_chartPanel.columnWidths = new int[]{0,0};
+		gbl_chartPanel.rowHeights = new int[]{0,0};
+		gbl_chartPanel.columnWeights = new double[]{0.0};
+		gbl_chartPanel.rowWeights = new double[]{0.0};
+		chartPanel.setLayout(gbl_chartPanel);
+		
+		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.insets = new Insets(0, 0, 0, 5);
+		gbc_panel.fill = GridBagConstraints.BOTH;
+		gbc_panel.gridx = 0;
+		gbc_panel.gridy = 1;
+		chartPanel.add(tabHeatMap, gbc_panel);
 	}
 	
 	public void createUI()
