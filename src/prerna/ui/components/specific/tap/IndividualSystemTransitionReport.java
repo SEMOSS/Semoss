@@ -251,10 +251,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					}
 
 					String comment = row[i].toString().replaceAll("\"", "");
+					newRow[i+1] = comment;
+					
 					String[] commentSplit = comment.split("\\."); 
 					String sysSpecificComment = commentSplit[0];
-					
-					newRow[i+1] = sysSpecificComment + ".";
 					if(!sysSpecificComment.contains("->"))
 					{
 						newRow[i+2] = "";
@@ -561,10 +561,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					}
 
 					String comment = row[i].toString().replaceAll("\"", "");
+					newRow[i+1] = comment;
+
 					String[] commentSplit = comment.split("\\."); 
 					String sysSpecificComment = commentSplit[0];
-					
-					newRow[i+1] = sysSpecificComment + ".";
 					if(!sysSpecificComment.contains("->"))
 					{
 						newRow[i+2] = "";
