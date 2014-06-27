@@ -27,6 +27,7 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -36,6 +37,7 @@ import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -47,6 +49,7 @@ import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.RelationBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataListListener;
@@ -240,7 +243,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		displayPanel.add(tabbedPane, gbc_tabbedPane);
 		
 		specificFuncAlysPanel = new JPanel();
-		tabbedPane.addTab("Functionality Analysis", null, specificFuncAlysPanel, null);
+		tabbedPane.addTab("SOR Analysis", null, specificFuncAlysPanel, null);
 		GridBagLayout gbl_specificFuncAlysPanel = new GridBagLayout();
 		gbl_specificFuncAlysPanel.columnWidths = new int[]{0, 0};
 		gbl_specificFuncAlysPanel.rowHeights = new int[]{0, 0};

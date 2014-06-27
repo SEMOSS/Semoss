@@ -126,6 +126,9 @@ public class RelationFunction implements IAlgorithm {
 				if (variableMatrix[i][j] != null) {
 					count++;	
 				}
+				if (variableMatrix[i][j] == null) {
+					variableMatrix[i][j] = 0;
+				}
 			}
 			variableMatrix[i][1] = count;
 		}
@@ -214,12 +217,6 @@ public class RelationFunction implements IAlgorithm {
 		// display output for heatmap tab
 		((RelationPlaySheet) playSheet).heatMap.callIt(allHash);
 		((RelationPlaySheet) playSheet).heatMap.setVisible(true);
-		try {
-			((RelationPlaySheet) playSheet).setSelected(false);
-			((RelationPlaySheet) playSheet).setSelected(true);
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
 
 	}
 
