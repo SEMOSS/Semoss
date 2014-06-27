@@ -255,6 +255,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					
 					String[] commentSplit = comment.split("\\."); 
 					String sysSpecificComment = commentSplit[0];
+					// only used when recommending the removal of a system
+					String sysRecommendationComment = "";
+					if(commentSplit.length > 1) {
+						sysRecommendationComment = commentSplit[1];
+					}
 					if(!sysSpecificComment.contains("->"))
 					{
 						newRow[i+2] = "";
@@ -434,13 +439,13 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
 									{
 										Object[] modifyCost = newData.get(index);
-										modifyCost[i+1] = "Recommend review of interface.";
+										modifyCost[i+1] = sysRecommendationComment + ".";
 										modifyCost[i+2] = "";
 										modifyCost[i+3] = "";
 									}
 								}
 							} else if(deleteOtherInterfaces) {
-								newRow[i+1] = "Recommend review of interface.";
+								newRow[i+1] = sysRecommendationComment + ".";
 								newRow[i+2] = "";
 								newRow[i+3] = "";
 							} else {
