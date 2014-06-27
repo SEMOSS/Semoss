@@ -184,7 +184,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 								comment = "Need to add interface DHMSM->" + lpSysName + ".";
 							} else if(lpiV.contains(interfacingSystem)) { // system is not LPI and interfacing system is LPI
 								interfacingSystemCommentAdded = true;
-								comment = "Need to add interface DHMSM->" + interfacingSysName + ". Also recommend review of removing interface " + lpSysName + "->" + interfacingSysName + ".";
+								comment = "Need to add interface DHMSM->" + interfacingSysName + " and recommend review of removing interface " + lpSysName + "->" + interfacingSysName + ".";
 							} else {
 								stayAsIsCommentAdded = true;
 								comment = "Stay as-is.";

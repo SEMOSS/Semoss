@@ -251,21 +251,24 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					}
 
 					String comment = row[i].toString().replaceAll("\"", "");
-					newRow[i+1] = comment;
-					if(!comment.contains("->"))
+					String[] commentSplit = comment.split("\\."); 
+					String sysSpecificComment = commentSplit[0];
+					
+					newRow[i+1] = sysSpecificComment + ".";
+					if(!sysSpecificComment.contains("->"))
 					{
 						newRow[i+2] = "";
 						newRow[i+3] = "";
 					}
 					else
 					{
-						String[] commentSplit = comment.split("->");
+						String[] sysSpecificCommentSplit = sysSpecificComment.split("->");
 
 						double sysGLItemProviderCost = 0;
 						double sysGLItemConsumerCost = 0;
 						double genericCost = 0;
 
-						if(commentSplit[1].contains("DHMSM")) // this means LPI provide data to DHMSM 
+						if(sysSpecificCommentSplit[1].contains("DHMSM")) // this means LPI provide data to DHMSM 
 						{
 							ArrayList<String> sysGLItemServices = new ArrayList<String>();
 							// get sysGlItem for provider lpi systems
@@ -363,7 +366,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 						//////////////////////////////////////////////////////////////////////////////////////////////
 						else // this means LPI consume from DHMSM
 						{
-							if(commentSplit[1].contains(systemName) && !deleteOtherInterfaces)
+							if(sysSpecificCommentSplit[1].contains(systemName) && !deleteOtherInterfaces)
 							{
 								HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
 								HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
@@ -558,23 +561,26 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					}
 
 					String comment = row[i].toString().replaceAll("\"", "");
-					newRow[i+1] = comment;
-					if(!comment.contains("->"))
+					String[] commentSplit = comment.split("\\."); 
+					String sysSpecificComment = commentSplit[0];
+					
+					newRow[i+1] = sysSpecificComment + ".";
+					if(!sysSpecificComment.contains("->"))
 					{
 						newRow[i+2] = "";
 						newRow[i+3] = "";
 					}
 					else
 					{
-						String[] commentSplit = comment.split("->");
-
+						String[] sysSpecificCommentSplit = sysSpecificComment.split("->");
+						
 						double sysGLItemProviderCost = 0;
 						double sysGLItemConsumerCost = 0;
 						double genericCost = 0;
 
 						// DHMSM is providing information to an LPI system  
 						// DHMSM is receiving information from LPNI which is a SOR of the data object
-						if(commentSplit[0].contains("DHMSM") || (commentSplit[0].contains("review of developing interface between") && commentSplit[1].contains("DHMSM")) )
+						if(sysSpecificCommentSplit[0].contains("DHMSM") || (sysSpecificCommentSplit[0].contains("review of developing interface between") && sysSpecificCommentSplit[1].contains("DHMSM")) )
 						{
 							ArrayList<String> sysGLItemServices = new ArrayList<String>();
 
