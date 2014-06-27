@@ -22,13 +22,20 @@ public class TripleWrapper {
 	//normalized predicate
 	String NormPred;
 	String FrameNetPred;
-	Tree TreeObj1;
-	Tree TreePred;
-	Tree TreeObj2;
+//	Tree TreeObj1;
+//	Tree TreePred;
+//	Tree TreeObj2;
 	String ArticleNum;
+	String Sentence;
 	double Obj1num;
 	double Prednum;
 	double Obj2num;
+	public String getSentence() {
+		return Sentence;
+	}
+	public void setSentence(String sentence) {
+		Sentence = sentence;
+	}
 	public double getObj1num() {
 		return Obj1num;
 	}
@@ -188,24 +195,24 @@ public class TripleWrapper {
 	public void setFrameNetPred(String frameNetPred) {
 		FrameNetPred = frameNetPred;
 	}
-	public Tree getTreeObj1() {
-		return TreeObj1;
-	}
-	public void setTreeObj1(Tree treeObj1) {
-		TreeObj1 = treeObj1;
-	}
-	public Tree getTreePred() {
-		return TreePred;
-	}
-	public void setTreePred(Tree treePred) {
-		TreePred = treePred;
-	}
-	public Tree getTreeObj2() {
-		return TreeObj2;
-	}
-	public void setTreeObj2(Tree treeObj2) {
-		TreeObj2 = treeObj2;
-	}
+//	public Tree getTreeObj1() {
+//		return TreeObj1;
+//	}
+//	public void setTreeObj1(Tree treeObj1) {
+//		TreeObj1 = treeObj1;
+//	}
+//	public Tree getTreePred() {
+//		return TreePred;
+//	}
+//	public void setTreePred(Tree treePred) {
+//		TreePred = treePred;
+//	}
+//	public Tree getTreeObj2() {
+//		return TreeObj2;
+//	}
+//	public void setTreeObj2(Tree treeObj2) {
+//		TreeObj2 = treeObj2;
+//	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
