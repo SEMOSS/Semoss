@@ -348,6 +348,9 @@ public abstract class AbstractEngine implements IEngine {
 					String sparql = dreamerProp.getProperty(qsKey + "_"
 							+ Constants.QUERY);
 
+					String description = dreamerProp.getProperty(qsKey + "_"
+							+ Constants.DESCR);
+
 					// load it with the entity keys
 					Hashtable paramHash = Utility.getParams(sparql);
 					// the paramhash keys contains
@@ -371,6 +374,8 @@ public abstract class AbstractEngine implements IEngine {
 							+ Constants.ID);
 					URI ePred = insightVF.createURI(Constants.ENGINE + ":"
 							+ Constants.ID);
+					URI descriptionPred = insightVF.createURI(Constants.INSIGHT + ":"
+							+ Constants.DESCR);
 
 					// add the question to the engine
 					insightBase.add(engineURI, ePred, qURI);
@@ -378,6 +383,10 @@ public abstract class AbstractEngine implements IEngine {
 					// add question to perspective
 					// perspective INSIGHT:ID id_of_question(ID)
 					insightBase.add(perspectiveURI, qPred, qURI);
+					// add description to insight
+					// insight INSIGHT:DESCRIPTION description
+					if(description != null)
+						insightBase.add(qURI, descriptionPred, insightVF.createLiteral(description));
 					// perspective INSIGHT:INSIGHT label_of_question - I bet I
 					// never use this.. :D
 					insightBase.add(
@@ -971,7 +980,7 @@ public abstract class AbstractEngine implements IEngine {
 				String sparql = bs.getBinding("sparql").getValue() + "";
 				sparql = sparql.replace("\"", "");
 				in.setSparql(sparql);
-				String label = bs.getBinding("insight").getValue() + "";
+				String label = bs.getBinding("insight").getValue().stringValue();
 				in.setLabel(label);
 				String output = bs.getBinding("output").getValue() + "";
 				output = output.replace("\"", "");
