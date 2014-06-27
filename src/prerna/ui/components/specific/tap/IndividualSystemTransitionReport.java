@@ -172,7 +172,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		writer.writeHWSWSheet("Hardware Lifecycles", storeHardwareData.get(0), storeHardwareData.get(1), storeHardwareData.get(2));
 		writer.writeModernizationTimelineSheet("Modernization Timeline", storeSoftwareData.get(0), storeHardwareData.get(0), hwSWBudgetHash);
 //		writer.writeListSheet("System Data", sysDataConsumeProvideHash);
-		writer.writeListSheet("Data Provenance", sysSORDataWithDHMSMHash);
+		writer.writeListSheet("SOR Overlap with DHMSM", sysSORDataWithDHMSMHash);
 		writer.writeListSheet("DHMSM Data Requirements", sysSORDataWithDHMSMCapHash);
 		writer.writeListSheet("System Interfaces", sysLPInterfaceWithCostHash);
 		writer.writeSORSheet("System Data",sysSORTableHash);
