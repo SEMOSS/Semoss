@@ -269,8 +269,8 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		chartPanel.setBackground(Color.WHITE);
 		GridBagConstraints gbc_chartPanel = new GridBagConstraints();
 		gbc_chartPanel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_chartPanel.gridx = 1;
-		gbc_chartPanel.gridy = 1;
+		gbc_chartPanel.gridx = 0;
+		gbc_chartPanel.gridy = 0;
 		heatMapPanel.add(chartPanel, gbc_chartPanel);
 		GridBagLayout gbl_chartPanel = new GridBagLayout();
 		gbl_chartPanel.columnWidths = new int[]{0,0};
