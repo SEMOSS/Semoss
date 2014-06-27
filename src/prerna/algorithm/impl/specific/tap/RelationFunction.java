@@ -144,7 +144,7 @@ public class RelationFunction implements IAlgorithm {
 		for (int i=0; i<processedList.size(); i++) {
 			Object[] row = processedList.get(i);
 			String data = (String) row[1];
-			double count = (double) row[2];
+			double count = (Double) row[2];
 			if(!processList.containsKey(data)) {
 				processList.put(data, count);
 			}
@@ -157,7 +157,7 @@ public class RelationFunction implements IAlgorithm {
 			Object[] row = processedList.get(i);
 			String sys = (String) row[0];
 			String data = (String) row[1];
-			double count = (double) row[2];
+			double count = (Double) row[2];
 			count = count / (Double) processList.get(data);
 			processedList2.add(new Object[]{sys, data, count});
 		}
