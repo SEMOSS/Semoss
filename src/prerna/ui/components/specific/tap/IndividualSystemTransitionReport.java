@@ -543,7 +543,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			Object[] newRow = new Object[oldHeaders.length + 3];
 			for(int i = 0; i < row.length; i++)
 			{
-				if(i == 3) 
+				if(i == 1) 
 				{
 					interfacingSystem= row[i].toString(); 
 					newRow[i] = interfacingSystem;
@@ -582,7 +582,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 						// DHMSM is providing information to an LPI system  
 						// DHMSM is receiving information from LPNI which is a SOR of the data object
-						if(sysSpecificCommentSplit[0].contains("DHMSM") || (sysSpecificCommentSplit[0].contains("review of developing interface between") && sysSpecificCommentSplit[1].contains("DHMSM")) )
+						if( (sysSpecificCommentSplit[0].contains("DHMSM") && lpiSystemList.contains(systemName)) || (sysSpecificCommentSplit[0].contains("review of developing interface between") && sysSpecificCommentSplit[1].contains("DHMSM")) )
 						{
 							ArrayList<String> sysGLItemServices = new ArrayList<String>();
 
@@ -647,8 +647,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									} 
 								}
 							}
-
-
+							
 							Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
 							if(finalCost != (double) 0){
 								newRow[i+2] = finalCost;
@@ -677,7 +676,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									for(String glTagSer : sysGLItem.keySet())
 									{
 										String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
-										if(glTagSerArr[1].contains("Provide"))
+										if(glTagSerArr[1].contains("Consume"))
 										{
 											useAverage = false;
 											sysGLItemConsumerCost += sysGLItem.get(glTagSer);
@@ -693,7 +692,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 										for(String glTagSer : avgSysGLItem.keySet())
 										{
 											String[] glTagSerArr = glTagSer.split("\\+\\+\\+");
-											if(glTagSerArr[1].contains("Provide"))
+											if(glTagSerArr[1].contains("Consume"))
 											{
 												sysGLItemConsumerCost += avgSysGLItem.get(glTagSer);
 											} 
