@@ -162,7 +162,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				//For logic
 				String lpSystem = sjss.getRawVar(lpSysKey) + "";
 				String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
-				String interfaceType = sjss.getRawVar(interfacingSystemKey) + "";
+				String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
 				String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
 				String comment = "";
 				String data = sjss.getRawVar(dataKey) + "";
@@ -184,7 +184,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							String upstreamSystemURI = "";
 							String downstreamSysName = "";
 							String downstreamSystemURI = "";
-							if(interfaceType.equals(downstreamKey)) { // lp system is providing data to interfacing system
+							if(interfaceType.contains(downstreamKey)) { // lp system is providing data to interfacing system
 								upstreamSystemURI = lpSystem;
 								upstreamSysName = lpSysName;
 								downstreamSystemURI = interfacingSystem;
@@ -209,7 +209,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							String upstreamSystemURI = "";
 							String downstreamSysName = "";
 							String downstreamSystemURI = "";
-							if(interfaceType.equals(downstreamKey)) { // lp system is providing data to interfacing system
+							if(interfaceType.contains(downstreamKey)) { // lp system is providing data to interfacing system
 								upstreamSystemURI = lpSystem;
 								upstreamSysName = lpSysName;
 								downstreamSystemURI = interfacingSystem;
