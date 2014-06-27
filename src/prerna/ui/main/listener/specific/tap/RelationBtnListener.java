@@ -30,6 +30,7 @@ import prerna.ui.components.specific.tap.RelationPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
 
 /**
+ * Activates when "Generate Relations" button is pushed
  */
 public class RelationBtnListener implements IChakraListener {
 

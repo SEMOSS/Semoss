@@ -27,6 +27,7 @@ import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -132,8 +133,38 @@ public class RelationFunction implements IAlgorithm {
 		// convert matrix back into arraylist
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0);
+		
+		// let's make a heatmap
+		Hashtable dataHash = new Hashtable();
+		Hashtable dataSeries = new Hashtable();
+		String[] var = new String[]{"Systems","Data Objects","Value"};
+		String xName = var[0];
+		String yName = var[1];
+		for (int i=0;i<processedList.size();i++)
+		{
+			Hashtable elementHash = new Hashtable();
+			Object[] listElement = processedList.get(i);			
+			String methodName = (String) listElement[0];
+			String groupName = (String) listElement[1];
+			methodName = methodName.replaceAll("\"", "");
+			groupName = groupName.replaceAll("\"", "");
+			String key = methodName +"-"+groupName;
+			double count = (Double) listElement[2];
+			elementHash.put(xName, methodName);
+			elementHash.put(yName, groupName);
+			elementHash.put(var[2], count);
+			dataHash.put(key, elementHash);
+			
+		}
 
-		// display output
+		Hashtable allHash = new Hashtable();
+		allHash.put("dataSeries", dataHash);
+		allHash.put("title",  var[0] + " vs " + var[1]);
+		allHash.put("xAxisTitle", var[0]);
+		allHash.put("yAxisTitle", var[1]);
+		allHash.put("value", var[2]);
+
+		// display output for functionality analysis tab
 		GridScrollPane pane = new GridScrollPane(names, arrayList);
 		pane.addHorizontalScroll();
 		((RelationPlaySheet) playSheet).specificFuncAlysPanel.removeAll();
@@ -154,6 +185,10 @@ public class RelationFunction implements IAlgorithm {
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
+		
+		// display heatmap output
+		((RelationPlaySheet) playSheet).tabHeatMap.callIt(allHash);
+		((RelationPlaySheet) playSheet).tabHeatMap.setVisible(true);
 
 	}
 
