@@ -255,10 +255,12 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					
 					String[] commentSplit = comment.split("\\."); 
 					String sysSpecificComment = commentSplit[0];
-					// only used when recommending the removal of a system
 					String sysRecommendationComment = "";
 					if(commentSplit.length > 1) {
 						sysRecommendationComment = commentSplit[1];
+						if(sysRecommendationComment.startsWith(" ")){
+							sysRecommendationComment = sysRecommendationComment.substring(1);
+						}
 					}
 					if(!sysSpecificComment.contains("->"))
 					{
@@ -338,35 +340,18 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 							}
 
-							// if current system is lpi sys - then cost is direct
-//							if(commentSplit[0].contains(systemName))
-//							{
-								Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
-								if(finalCost != (double) 0){
-									newRow[i+2] = finalCost;
-									totalDirectCost += finalCost;
-									newRow[i+3] = "";
-								} else if(servicesAllUsed){
-									newRow[i+2] = "Cost already taken into consideration.";
-									newRow[i+3] = "";
-								} else {
-									newRow[i+2] = "No data present to calculate loe.";
-									newRow[i+3] = "";
-								}
-//							} else { // current system is not lpi sys - the cost is indirect
-//								Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
-//								if(finalCost != (double) 0){
-//									newRow[i+3] = finalCost;
-//									totalIndirectCost += finalCost;
-//									newRow[i+2] = "";
-//								} else if(servicesAllUsed){
-//									newRow[i+3] = "Cost already taken into consideration.";
-//									newRow[i+2] = "";
-//								} else {
-//									newRow[i+3] = "No data present to calculate loe.";
-//									newRow[i+2] = "";
-//								}
-//							}
+							Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
+							if(finalCost != (double) 0){
+								newRow[i+2] = finalCost;
+								totalDirectCost += finalCost;
+								newRow[i+3] = "";
+							} else if(servicesAllUsed){
+								newRow[i+2] = "Cost already taken into consideration.";
+								newRow[i+3] = "";
+							} else {
+								newRow[i+2] = "No data present to calculate loe.";
+								newRow[i+3] = "";
+							}
 						}
 						//////////////////////////////////////////////////////////////////////////////////////////////
 						else // this means LPI consume from DHMSM
@@ -439,13 +424,25 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
 									{
 										Object[] modifyCost = newData.get(index);
-										modifyCost[i+1] = sysRecommendationComment + ".";
+										if(!sysRecommendationComment.equals("")) {
+											newRow[i+1] = sysRecommendationComment + ".";
+										} else if(sysRecommendationComment.contains("Stay as-is")) {
+											newRow[i+1] = sysSpecificComment + ".";
+										} else {
+											newRow[i+1] = "Interface already taken into consideration.";
+										}
 										modifyCost[i+2] = "";
 										modifyCost[i+3] = "";
 									}
 								}
 							} else if(deleteOtherInterfaces) {
-								newRow[i+1] = sysRecommendationComment + ".";
+								if(!sysRecommendationComment.equals("")) {
+									newRow[i+1] = sysRecommendationComment + ".";
+								} else if(sysRecommendationComment.contains("Stay as-is")) {
+									newRow[i+1] = sysSpecificComment + ".";
+								} else {
+									newRow[i+1] = "Interface already taken into consideration.";
+								}
 								newRow[i+2] = "";
 								newRow[i+3] = "";
 							} else {
