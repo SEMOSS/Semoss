@@ -4,8 +4,6 @@ import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
-
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -14,11 +12,13 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import com.bigdata.rdf.model.BigdataURIImpl;
+
 public class SystemTransitionReport extends AbstractRDFPlaySheet{
 
 	Logger logger = Logger.getLogger(getClass());
 	private IEngine hr_Core;
-	
+
 	@Override
 	public void createData() {
 		try{
@@ -27,13 +27,13 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 			e.printStackTrace();
 			Utility.showError("Could not find necessary databases:\nHR_Core, TAP_Cost_Data");
 		}
-		
+
 		String[] systemAndReport = query.split("\\$");
 		this.query = systemAndReport[0];
 		String reportType = systemAndReport[1];
-		
+
 		SesameJenaSelectWrapper sjsw = processQuery(hr_Core, systemAndReport[0]);
-		
+
 		String[] names = sjsw.getVariables();
 		ArrayList<String> systemList = new ArrayList<String>();
 		String systemListString = "";
@@ -56,7 +56,7 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 			sysTransReport.setQuery(sysURI + "$" + reportType);
 			sysTransReport.createData();
 		}
-		
+
 		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
 		Utility.showMessage("System Transition Reports Finished! Files located in:\n" +fileLoc);
 	}

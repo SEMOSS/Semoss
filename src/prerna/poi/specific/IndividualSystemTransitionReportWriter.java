@@ -52,18 +52,18 @@ public class IndividualSystemTransitionReportWriter {
 	private String systemName = "";
 	private static String fileLoc = "";
 	private static String templateLoc = "";
-	
+
 	private String beginIOCString = "June 10, 2016";
 	private String iocString = "April 20, 2017";
 	private String focString = "July 21, 2022";
-	
+
 	public Hashtable<String,XSSFCellStyle> myStyles;
-	
+
 	public IndividualSystemTransitionReportWriter(){
 		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
 		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + "Individual_System_Transition_Report_Template.xlsx";
 	}
-	
+
 	/**
 	 * Creates a new workbook, sets the file location, and creates the styles to be used.
 	 * @param systemName		String containing the name of the system to create the report for
@@ -83,10 +83,10 @@ public class IndividualSystemTransitionReportWriter {
 			wb=new XSSFWorkbook();
 		}
 		else wb=new XSSFWorkbook();
-		
+
 		makeStyles(wb);
 	}
-	
+
 	/**
 	 * Writes the workbook to the file location.
 	 */
@@ -102,15 +102,15 @@ public class IndividualSystemTransitionReportWriter {
 		}
 		return success;
 	}
-	
+
 	public static String getFileLoc(){
 		return fileLoc;
 	}
-	
+
 	public void writeSORSheet(String sheetName, HashMap<String,Object> result){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		String[] headersList = (String[])result.get("headers");
-		
+
 		int rowToStart = 5;
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart);
 		XSSFCell cellToCopyFormat = rowToWriteOn.getCell(1);
@@ -120,7 +120,7 @@ public class IndividualSystemTransitionReportWriter {
 			cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 			cellToWriteOn.setCellValue(((String)headersList[col]).replaceAll("\"", "").replaceAll("_"," "));
 		}
-		
+
 		rowToStart++;
 		rowToWriteOn = sheetToWriteOver.getRow(rowToStart);
 		cellToCopyFormat = rowToWriteOn.getCell(1);
@@ -129,10 +129,10 @@ public class IndividualSystemTransitionReportWriter {
 			XSSFCell cellToWriteOn = rowToWriteOn.createCell(col);
 			cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 		}
-		
+
 		writeListSheet(sheetName,result);
 	}
-	
+
 	/**
 	 * Writes a generic list sheet from hashtable
 	 * @param sheetName	String containing the name of the sheet to populate
@@ -142,7 +142,7 @@ public class IndividualSystemTransitionReportWriter {
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
-		
+
 		int indRowToWriteSystem = 3;
 		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
@@ -153,7 +153,7 @@ public class IndividualSystemTransitionReportWriter {
 		String currString = cellToWriteSystem.getStringCellValue();
 		currString = currString.replaceAll("@SYSTEM@",systemName);
 		cellToWriteSystem.setCellValue(currString);
-		
+
 		int rowToStart = 6;
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
@@ -189,7 +189,7 @@ public class IndividualSystemTransitionReportWriter {
 				}
 			}
 		}
-		
+
 		// for System Interfaces Sheet
 		if(result.get("directCost") != null && result.get("indirectCost") != null)
 		{
@@ -198,7 +198,7 @@ public class IndividualSystemTransitionReportWriter {
 			int lastRowNum = sheetToWriteOver.getLastRowNum();
 			XSSFRow lastRow = sheetToWriteOver.getRow(lastRowNum);
 			int lastCellNum = lastRow.getLastCellNum();
-			
+
 			if(dataList.size()>0)
 			{				
 				XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(lastRowNum-1);
@@ -217,7 +217,7 @@ public class IndividualSystemTransitionReportWriter {
 				accountStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
 				accountStyle.setBorderTop(CellStyle.BORDER_THIN);
 				accountStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
-				
+
 				lastRow = sheetToWriteOver.createRow(lastRowNum+1);
 				XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-2);
 				cellToWriteOn.setCellStyle(accountStyle);
@@ -228,17 +228,17 @@ public class IndividualSystemTransitionReportWriter {
 			}
 		}
 	}
-	
+
 	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(2);
 		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
 		cellToWriteSystemName.setCellValue(systemName);
-		
+
 		int numRows = ((ArrayList<Object[]>)resultBeforeIOC.get("data")).size();
 		int numCols = 7;
 		XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(7);
-		
+
 		for(int i=1;i<numRows;i++)
 		{
 			XSSFRow newRow = sheetToWriteOver.createRow(7+i);
@@ -251,7 +251,7 @@ public class IndividualSystemTransitionReportWriter {
 			}
 		}
 		XSSFRow newRow = sheetToWriteOver.createRow(7+numRows);
-		
+
 		if(numRows==0)
 		{
 			createFormatedHWSWCells(sheetToWriteOver,"IOC",4,4+numRows,9+numRows, numCols);
@@ -300,7 +300,7 @@ public class IndividualSystemTransitionReportWriter {
 		}
 		sheetToWriteOver.addMergedRegion(new CellRangeAddress(rowToStartWrite, rowToStartWrite, 0, 1));
 		sheetToWriteOver.addMergedRegion(new CellRangeAddress(rowToStartWrite, rowToStartWrite, 2, 6));
-		
+
 	}
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
 
@@ -309,7 +309,7 @@ public class IndividualSystemTransitionReportWriter {
 		String currString = cellToWriteDate.getStringCellValue();
 		currString = currString.replace("@DATE@",date);
 		cellToWriteDate.setCellValue(currString);
-		
+
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 			XSSFRow rowToWriteOn;
@@ -335,7 +335,7 @@ public class IndividualSystemTransitionReportWriter {
 	public void writeModernizationTimelineSheet(String sheetName, HashMap<String,Object> software, HashMap<String,Object> hardware, HashMap<String,Object> budget)
 	{
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		
+
 		int indRowToWriteSystem = 3;
 		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
@@ -344,12 +344,12 @@ public class IndividualSystemTransitionReportWriter {
 		String currString = cellToWriteSystem.getStringCellValue();
 		currString = currString.replace("@SYSTEM@",systemName);
 		cellToWriteSystem.setCellValue(currString);
-		
+
 		writeModernizationTimeline(sheetName,6,(ArrayList<Object[]>)software.get("data"));
 		writeModernizationTimeline(sheetName,7,(ArrayList<Object[]>)hardware.get("data"));
-		
+
 		ArrayList<Object[]> budgetList = (ArrayList<Object[]>)budget.get("data");
-		
+
 		int indRowToWriteBudget = 9;
 		for(int i=0;i<budgetList.size();i++)
 		{
@@ -366,9 +366,9 @@ public class IndividualSystemTransitionReportWriter {
 				cellToWriteOn.setCellValue((Integer)budgetRow[2]);
 			else
 				cellToWriteOn.setCellValue((String)budgetRow[2]);
-			
+
 		}
-		
+
 	}
 	public void writeModernizationTimeline(String sheetName,int rowToWriteList,ArrayList<Object[]> dataList)
 	{
@@ -398,25 +398,25 @@ public class IndividualSystemTransitionReportWriter {
 				}
 			}
 		}
-		
+
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		
+
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToWriteList);
-		
+
 		double totalCost = 0.0;
 		for (int budgetInd=0; budgetInd<budgetList.size(); budgetInd++) {
-				XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetInd+1);
-				cellToWriteOn.setCellValue(budgetList.get(budgetInd));
-				totalCost+=budgetList.get(budgetInd);
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetInd+1);
+			cellToWriteOn.setCellValue(budgetList.get(budgetInd));
+			totalCost+=budgetList.get(budgetInd);
 		}
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(budgetList.size()+1);
 		cellToWriteOn.setCellValue(totalCost);
-		
-		
+
+
 	}
-	
+
 	public void writeSystemInfoSheet(String sheetName, HashMap<String,Object> result){
-		
+
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
 		Object[] resultRowValues = dataList.get(0);		
@@ -425,7 +425,7 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(indRowToWriteSystemName);
 		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(1);
 		cellToWriteSystemName.setCellValue(systemName);
-		
+
 		int indRowToWriteSystemDes = 6;
 		XSSFRow rowToWriteSystemDes = sheetToWriteOver.getRow(indRowToWriteSystemDes);
 		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.getCell(3);
@@ -433,7 +433,7 @@ public class IndividualSystemTransitionReportWriter {
 			cellToWriteSystemDes.setCellValue(((String)resultRowValues[0]).replaceAll("\"", "").replaceAll("_"," "));
 		else
 			cellToWriteSystemDes.setCellValue("");
-		
+
 		int rowToStartList = 10;
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
 
@@ -484,20 +484,20 @@ public class IndividualSystemTransitionReportWriter {
 		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
 		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		myStyles.put("headerStyle",headerStyle);
-	
+
 		Font normalFont = workbook.createFont();
 		normalFont.setFontHeightInPoints((short) 10);
-	
+
 		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
 		normalStyle.setWrapText(true);
 		normalStyle.setFont(normalFont);
 		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
 		myStyles.put("normalStyle",normalStyle);
-	
+
 		Font boldBodyFont = workbook.createFont();
 		boldBodyFont.setFontHeightInPoints((short) 10);
 		boldBodyFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
-	
+
 		XSSFCellStyle boldStyle = createBorderedStyle(workbook);
 		boldStyle.setWrapText(true);
 		boldStyle.setFont(boldBodyFont);

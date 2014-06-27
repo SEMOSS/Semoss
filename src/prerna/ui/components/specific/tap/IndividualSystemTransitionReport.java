@@ -156,7 +156,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		HashMap<String, Object> sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
-			HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
+		HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
 
 		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 		if(reportType.equals("LPI")) {
@@ -247,7 +247,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					if(servicesList != null) {
 						newRow[i] = servicesList;
 					} else {
-						newRow[i] = "No Services";
+						newRow[i] = "No Services.";
 					}
 
 					String comment = row[i].toString().replaceAll("\"", "");
@@ -268,7 +268,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 						if(commentSplit[1].contains("DHMSM")) // this means LPI provide data to DHMSM 
 						{
 							ArrayList<String> sysGLItemServices = new ArrayList<String>();
-
 							// get sysGlItem for provider lpi systems
 							HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
 							HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
@@ -331,21 +330,36 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 							}
 
-							Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
-							if(finalCost != (double) 0){
-								newRow[i+2] = finalCost;
-								totalDirectCost += finalCost;
-								newRow[i+3] = "";
-							} else if(servicesAllUsed){
-								newRow[i+2] = "Cost already taken into consideration";
-								newRow[i+3] = "";
-							} else {
-								newRow[i+2] = "No data present to calculate loe";
-								newRow[i+3] = "";
-							}
+							// if current system is lpi sys - then cost is direct
+//							if(commentSplit[0].contains(systemName))
+//							{
+								Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
+								if(finalCost != (double) 0){
+									newRow[i+2] = finalCost;
+									totalDirectCost += finalCost;
+									newRow[i+3] = "";
+								} else if(servicesAllUsed){
+									newRow[i+2] = "Cost already taken into consideration.";
+									newRow[i+3] = "";
+								} else {
+									newRow[i+2] = "No data present to calculate loe.";
+									newRow[i+3] = "";
+								}
+//							} else { // current system is not lpi sys - the cost is indirect
+//								Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
+//								if(finalCost != (double) 0){
+//									newRow[i+3] = finalCost;
+//									totalIndirectCost += finalCost;
+//									newRow[i+2] = "";
+//								} else if(servicesAllUsed){
+//									newRow[i+3] = "Cost already taken into consideration.";
+//									newRow[i+2] = "";
+//								} else {
+//									newRow[i+3] = "No data present to calculate loe.";
+//									newRow[i+2] = "";
+//								}
+//							}
 						}
-
-						//////////////////////////////////////////////////////////////////////////////////////////////
 						//////////////////////////////////////////////////////////////////////////////////////////////
 						else // this means LPI consume from DHMSM
 						{
@@ -404,10 +418,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									totalDirectCost += finalCost;
 									newRow[i+3] = "";
 								} else if(servicesAllUsed) {
-									newRow[i+2] = "Cost already taken into consideration";
+									newRow[i+2] = "Cost already taken into consideration.";
 									newRow[i+3] = "";
 								} else {
-									newRow[i+2] = "No data present to calculate loe";
+									newRow[i+2] = "No data present to calculate loe.";
 									newRow[i+3] = "";
 								}
 
@@ -417,13 +431,13 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
 									{
 										Object[] modifyCost = newData.get(index);
-										modifyCost[i+1] = "Remove existing Interface";
+										modifyCost[i+1] = "Recommend review of interface.";
 										modifyCost[i+2] = "";
 										modifyCost[i+3] = "";
 									}
 								}
 							} else if(deleteOtherInterfaces) {
-								newRow[i+1] = "Remove existing Interface";
+								newRow[i+1] = "Recommend review of interface.";
 								newRow[i+2] = "";
 								newRow[i+3] = "";
 							} else {
@@ -441,10 +455,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 										{
 											useAverage = false;
 											sysGLItemConsumerCost += sysGLItem.get(glTagSer);
-											}
 										}
-										// else do nothing - do not care about provide loe
 									}
+									// else do nothing - do not care about provide loe
+								}
 								// else get the average system cost
 								if(useAverage)
 								{
@@ -468,10 +482,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									totalIndirectCost += finalCost;
 									newRow[i+2] = "";
 								} else if(servicesAllUsed){
-									newRow[i+3] = "Cost already taken into consideration";
+									newRow[i+3] = "Cost already taken into consideration.";
 									newRow[i+2] = "";
 								} else {
-									newRow[i+3] = "No data present to calculate loe";
+									newRow[i+3] = "No data present to calculate loe.";
 									newRow[i+2] = "";
 								}
 
@@ -560,7 +574,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 						// DHMSM is providing information to an LPI system  
 						// DHMSM is receiving information from LPNI which is a SOR of the data object
-						if(commentSplit[0].contains("DHMSM") || commentSplit[1].contains("should be LPI")) 
+						if(commentSplit[0].contains("DHMSM") || (commentSplit[0].contains("review of developing interface between") && commentSplit[1].contains("DHMSM")) )
 						{
 							ArrayList<String> sysGLItemServices = new ArrayList<String>();
 
@@ -626,6 +640,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 							}
 
+
 							Double finalCost = (sysGLItemProviderCost + genericCost) * costPerHr;
 							if(finalCost != (double) 0){
 								newRow[i+2] = finalCost;
@@ -639,7 +654,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 								newRow[i+3] = "";
 							}
 						} 
-						//////////////////////////////////////////////////////////////////////////////////////////////
 						//////////////////////////////////////////////////////////////////////////////////////////////
 						else 
 						{
@@ -733,7 +747,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			if(provideConsume.startsWith("\"") && provideConsume.endsWith("\""))
 				provideConsume = provideConsume.substring(1, provideConsume.toString().length()-1); // remove annoying quotes
 			Object[] dataRow;
-			
+
 			if(provideConsume.toLowerCase().contains("consume")){
 				int dataIndex = dataObjectsConsumed.indexOf(data);
 				if(dataIndex<0){
