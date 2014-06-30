@@ -60,17 +60,19 @@ public class IndividualSystemTransitionReportWriter {
 	public Hashtable<String,XSSFCellStyle> myStyles;
 
 	public IndividualSystemTransitionReportWriter(){
-		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
-		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + "Individual_System_Transition_Report_Template.xlsx";
 	}
-
+	
 	/**
 	 * Creates a new workbook, sets the file location, and creates the styles to be used.
 	 * @param systemName		String containing the name of the system to create the report for
 	 */
-	public void makeWorkbook(String systemName)
+	public void makeWorkbook(String systemName,String templateName)
 	{
 		this.systemName = systemName;
+		
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
+
 		fileLoc += systemName+"_Transition_Report.xlsx";
 		wb =new XSSFWorkbook();
 
@@ -148,7 +150,7 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
 		cellToWriteSystem.setCellValue(systemName);
 		cellToWriteSystem = rowToWriteSystem.getCell(1);
-		if(sheetName.contains("Interface") || sheetName.contains("System Data"))
+		if(sheetName.contains("Interface"))
 			cellToWriteSystem = rowToWriteSystem.getCell(3);
 		String currString = cellToWriteSystem.getStringCellValue();
 		currString = currString.replaceAll("@SYSTEM@",systemName);
@@ -342,7 +344,7 @@ public class IndividualSystemTransitionReportWriter {
 		cellToWriteSystem.setCellValue(systemName);
 		cellToWriteSystem = rowToWriteSystem.getCell(1);
 		String currString = cellToWriteSystem.getStringCellValue();
-		currString = currString.replace("@SYSTEM@",systemName);
+		currString = currString.replaceAll("@SYSTEM@",systemName);
 		cellToWriteSystem.setCellValue(currString);
 
 		writeModernizationTimeline(sheetName,6,(ArrayList<Object[]>)software.get("data"));

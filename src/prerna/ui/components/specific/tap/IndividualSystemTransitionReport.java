@@ -166,7 +166,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
-		writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")));
+		String templateFileName = "Individual_System_LPI_Transition_Report_Template.xlsx";
+		if(!reportType.equals("LPI"))
+			templateFileName = "Individual_System_LPNI_Transition_Report_Template.xlsx";
+		writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),templateFileName);
 		writer.writeSystemInfoSheet("System Overview",sysInfoHash);
 		writer.writeHWSWSheet("Software Lifecycles", storeSoftwareData.get(0), storeSoftwareData.get(1), storeSoftwareData.get(2));
 		writer.writeHWSWSheet("Hardware Lifecycles", storeHardwareData.get(0), storeHardwareData.get(1), storeHardwareData.get(2));
