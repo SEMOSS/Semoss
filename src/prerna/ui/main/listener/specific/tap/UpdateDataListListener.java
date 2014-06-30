@@ -115,7 +115,9 @@ public class UpdateDataListListener extends AbstractListener {
 				}
 				else 
 				{
-					dataList.addAll(dhmsmConsumeList);
+					dataSelectPanel.dataSelectDropDown.setSelectedValues(new Vector<String>(dhmsmProvideList));
+					ArrayList<String> dhmsmConsume = dataSelectPanel.dataSelectDropDown.getUnselectedValues();
+					dataList.addAll(dhmsmConsume);
 				}
 			}
 
