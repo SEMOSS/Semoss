@@ -286,24 +286,28 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 						//////////////////////////////////////////////////////////////////////////////////////////////
 						if(sysSpecificCommentSplit[1].contains("DHMSM")) // this means DHMSM consumes data, direct provider cost for system
 						{
-							Double finalCost;
-							if(sysSpecificCommentSplit[0].contains(systemName)) // if system providing is our system
-							{
+							Double finalCost = null;
+							boolean interfacingSysProvider = false;
+							if(sysSpecificCommentSplit[0].contains(systemName)) { // if system providing is our system
 								finalCost = calculateCost(dataObject, systemName, "Provider", true);
-
-							} else { // if system providing is the interfacing system
-								finalCost = calculateCost(dataObject, interfacingSystem, "Provider", true);
-							}			
-							if(finalCost == null) {
-								newRow[i+2] = "Cost already taken into consideration.";
+							} else { // if system providing is the interfacing system, no cost
+								interfacingSysProvider = true;
+								newRow[i+2] = "";
 								newRow[i+3] = "";
-							} else if(finalCost != (double) 0){
-								newRow[i+2] = finalCost;
-								totalDirectCost += finalCost;
-								newRow[i+3] = "";
-							} else {
-								newRow[i+2] = "No data present to calculate loe.";
-								newRow[i+3] = "";
+							}
+							if(!interfacingSysProvider)
+							{
+								if(finalCost == null) {
+									newRow[i+2] = "Cost already taken into consideration.";
+									newRow[i+3] = "";
+								} else if(finalCost != (double) 0){
+									newRow[i+2] = finalCost;
+									totalDirectCost += finalCost;
+									newRow[i+3] = "";
+								} else {
+									newRow[i+2] = "No data present to calculate loe.";
+									newRow[i+3] = "";
+								}
 							}
 						}
 						//////////////////////////////////////////////////////////////////////////////////////////////
