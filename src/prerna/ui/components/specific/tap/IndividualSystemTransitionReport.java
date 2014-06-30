@@ -534,7 +534,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 							servicesAllUsed = true;
 						}
 					} // else do nothing - do not care about consume loe
-
 				}
 			}
 		}
@@ -548,9 +547,15 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					String[] serGLTagArr = serGLTag.split("\\+\\+\\+");
 					if(serGLTagArr[1].contains(tag))
 					{
-						sysGLItemCost += avgSysGLItem.get(serGLTag);
-					} 
-					// else do nothing - do not care about provide loe
+						String ser = serGLTagArr[0];
+						if(!servicesProvideList.contains(ser)) {
+							sysGLItemServices.add(ser);
+							servicesProvideList.add(ser);
+							sysGLItemCost += avgSysGLItem.get(serGLTag);
+						} else {
+							servicesAllUsed = true;
+						}
+					}
 				}
 			}
 		}
