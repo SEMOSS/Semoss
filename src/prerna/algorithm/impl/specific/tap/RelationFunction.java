@@ -115,10 +115,12 @@ public class RelationFunction implements IAlgorithm {
 		for (int i=0; i<processedList.size(); i++) {
 			Object[] row = processedList.get(i);
 			int rowInd = rowNames.indexOf(row[1])+1;
-			int colInd = colNames.indexOf(row[0])+2;			
-			variableMatrix[rowInd][colInd] = row[2];
+			int colInd = colNames.indexOf(row[0])+2;
+			if (rowInd != 0) {
+				variableMatrix[rowInd][colInd] = row[2];
+			}
 		}
-		
+
 		// counts how many systems are SOR for each data object
 		for (int i=0; i<rowNames.size()+1; i++) {
 			int count = -1;
@@ -129,19 +131,31 @@ public class RelationFunction implements IAlgorithm {
 			}
 			variableMatrix[i][1] = count;
 		}
-
+		
+		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
+		
+		for (int i=1; i<rowNames.size()+1; i++) {
+			for (int j=2; j<colNames.size()+2; j++) {
+				if (variableMatrix[i][j] == null) {
+					processedList2.add(new Object[]{variableMatrix[0][j], variableMatrix[i][0], 0.0});
+				} else {
+					processedList2.add(new Object[]{variableMatrix[0][j], variableMatrix[i][0], variableMatrix[i][j]});
+				}
+			}
+		}
+		
 		// convert matrix back into arraylist
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0);
-		
+
 		// update the counts so that they are percentages
-		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
+		ArrayList<Object[]> percentList = new ArrayList<Object[]>();
 		Hashtable processList = new Hashtable();
-		
-		for (int i=0; i<processedList.size(); i++) {
-			Object[] row = processedList.get(i);
+
+		for (int i=0; i<processedList2.size(); i++) {
+			Object[] row = processedList2.get(i);
 			String data = (String) row[1];
-			double count = (Double) row[2];
+			Double count = (Double) row[2];
 			if(!processList.containsKey(data)) {
 				processList.put(data, count);
 			}
@@ -149,26 +163,28 @@ public class RelationFunction implements IAlgorithm {
 				processList.put(data, count);
 			}
 		}
-		
-		for (int i=0; i<processedList.size(); i++) {
-			Object[] row = processedList.get(i);
+
+		for (int i=0; i<processedList2.size(); i++) {
+			Object[] row = processedList2.get(i);
 			String sys = (String) row[0];
 			String data = (String) row[1];
-			double count = (Double) row[2];
-			count = count / (Double) processList.get(data);
-			processedList2.add(new Object[]{sys, data, count});
+			Double count = (Double) row[2];
+			if ((Double) processList.get(data) != 0) {
+				count = count / (Double) processList.get(data);
+			}
+			percentList.add(new Object[]{sys, data, count});
 		}
-		
+
 		// let's make a heatmap
 		Hashtable dataHash = new Hashtable();
 		Hashtable dataSeries = new Hashtable();
 		String[] var = new String[]{"Systems","Data Objects","Value"};
 		String xName = var[0]; //system
 		String yName = var[1]; //data objects
-		for (int i=0;i<processedList2.size();i++)
+		for (int i=0;i<percentList.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
-			Object[] listElement = processedList2.get(i);			
+			Object[] listElement = percentList.get(i);			
 			String methodName = (String) listElement[0]; //system
 			String groupName = (String) listElement[1]; //data
 			methodName = methodName.replaceAll("\"", "");
@@ -179,7 +195,7 @@ public class RelationFunction implements IAlgorithm {
 			elementHash.put(yName, groupName);
 			elementHash.put(var[2], count);
 			dataHash.put(key, elementHash);
-			
+
 		}
 
 		Hashtable allHash = new Hashtable();
@@ -210,7 +226,7 @@ public class RelationFunction implements IAlgorithm {
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
-		
+
 		// display output for heatmap tab
 		((RelationPlaySheet) playSheet).heatMap.callIt(allHash);
 		((RelationPlaySheet) playSheet).heatMap.setVisible(true);
