@@ -224,7 +224,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		double totalDirectCost = 0;
 		double totalIndirectCost = 0;
 		String dataObject = "";
-
+		String interfacingSystem = "";
+		
 		// used to keep track of rows that have the same data object
 		ArrayList<Integer> indexArr = new ArrayList<Integer>();
 		int rowNum = -1;
@@ -236,6 +237,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			Object[] newRow = new Object[oldHeaders.length + 3];
 			for(int i = 0; i < row.length; i++)
 			{
+				if(i == 1) 
+				{
+					interfacingSystem= row[i].toString(); 
+					newRow[i] = interfacingSystem;
+				}
 				if(i == 4) 
 				{
 					// test if data object of last row is the same of this row
@@ -277,11 +283,17 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					else
 					{
 						String[] sysSpecificCommentSplit = sysSpecificComment.split("->");
-
-						if(sysSpecificCommentSplit[1].contains("DHMSM") && sysSpecificCommentSplit[0].contains(systemName)) // this means LPI provide data to DHMSM 
+						//////////////////////////////////////////////////////////////////////////////////////////////
+						if(sysSpecificCommentSplit[1].contains("DHMSM")) // this means DHMSM consumes data, direct provider cost for system
 						{
-							Double finalCost = calculateCost(dataObject, systemName, "provider", true);
+							Double finalCost;
+							if(sysSpecificCommentSplit[0].contains(systemName)) // if system providing is our system
+							{
+								finalCost = calculateCost(dataObject, systemName, "Provider", true);
 
+							} else { // if system providing is the interfacing system
+								finalCost = calculateCost(dataObject, interfacingSystem, "Provider", true);
+							}			
 							if(finalCost == null) {
 								newRow[i+2] = "Cost already taken into consideration.";
 								newRow[i+3] = "";
@@ -295,12 +307,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 							}
 						}
 						//////////////////////////////////////////////////////////////////////////////////////////////
-						else // this means LPI consume from DHMSM
+						else // this means DHMSM provides data
 						{
-							if(sysSpecificCommentSplit[1].contains(systemName) && !deleteOtherInterfaces)
+							if(sysSpecificCommentSplit[1].contains(systemName) && !deleteOtherInterfaces) // direct consumer cost if our system is consuming
 							{
 								Double finalCost = calculateCost(dataObject, systemName, "Consume", false);
-
 								if(finalCost == null) {
 									newRow[i+2] = "Cost already taken into consideration.";
 									newRow[i+3] = "";
@@ -313,7 +324,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 									newRow[i+3] = "";
 								}
 
-								deleteOtherInterfaces = true;
+								deleteOtherInterfaces = true; 
 								for(Integer index : indexArr)
 								{
 									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
@@ -340,8 +351,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 								}
 								newRow[i+2] = "";
 								newRow[i+3] = "";
-							} else {
-								Double finalCost = calculateCost(dataObject, systemName, "Consume", false);
+							} else { // indirect consumer cost if not our system
+								Double finalCost = calculateCost(dataObject, interfacingSystem, "Consume", false);
 								if(finalCost == null) {
 									newRow[i+3] = "Cost already taken into consideration.";
 									newRow[i+2] = "";
@@ -362,7 +373,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			}
 			newData.add(newRow);
 		}
-
 		dataHash.put(dataKey, newData);
 		dataHash.put(headerKey, newHeaders);
 		dataHash.put(totalDirectCostKey, totalDirectCost);
@@ -506,7 +516,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			for(String sysSerGLTag : sysGLItem.keySet())
 			{
 				String[] sysSerGLTagArr = sysSerGLTag.split("\\+\\+\\+");
-				if(sysSerGLTagArr[0].equals(systemName))
+				if(sysSerGLTagArr[0].equals(system))
 				{
 					if(sysSerGLTagArr[2].contains(tag))
 					{
@@ -532,7 +542,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				for(String serGLTag : avgSysGLItem.keySet())
 				{
 					String[] serGLTagArr = serGLTag.split("\\+\\+\\+");
-					if(serGLTagArr[1].contains("Consume"))
+					if(serGLTagArr[1].contains(tag))
 					{
 						sysGLItemCost += avgSysGLItem.get(serGLTag);
 					} 
