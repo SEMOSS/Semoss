@@ -278,7 +278,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					{
 						String[] sysSpecificCommentSplit = sysSpecificComment.split("->");
 
-						if(sysSpecificCommentSplit[1].contains("DHMSM")) // this means LPI provide data to DHMSM 
+						if(sysSpecificCommentSplit[1].contains("DHMSM") && sysSpecificCommentSplit[0].contains(systemName)) // this means LPI provide data to DHMSM 
 						{
 							Double finalCost = calculateCost(dataObject, systemName, "provider", true);
 
