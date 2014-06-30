@@ -180,6 +180,10 @@ public class IndividualSystemTransitionReportWriter {
 					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(col);
 					cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 				}
+				if(col==resultRowValues.length - 1)
+				{
+					String k = "k";
+				}
 				if(resultRowValues[col] instanceof Double) {
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
 				}
@@ -203,29 +207,12 @@ public class IndividualSystemTransitionReportWriter {
 
 			if(dataList.size()>0)
 			{				
-				XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(lastRowNum-1);
-				XSSFCell cellToCopyFormat = rowToCopyFormat.createCell(lastCellNum-1);
-				XSSFCellStyle accountStyle = cellToCopyFormat.getCellStyle();
-				XSSFDataFormat df = wb.createDataFormat();
-				accountStyle.setDataFormat(df.getFormat("$* #,##0.00"));
-				Font accountFont = accountStyle.getFont();
-				accountFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
-				accountStyle.setFont(accountFont);
-				accountStyle.setBorderRight(CellStyle.BORDER_THIN);
-				accountStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
-				accountStyle.setBorderBottom(CellStyle.BORDER_THIN);
-				accountStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
-				accountStyle.setBorderLeft(CellStyle.BORDER_THIN);
-				accountStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
-				accountStyle.setBorderTop(CellStyle.BORDER_THIN);
-				accountStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
-
 				lastRow = sheetToWriteOver.createRow(lastRowNum+1);
 				XSSFCell cellToWriteOn = lastRow.createCell(lastCellNum-2);
-				cellToWriteOn.setCellStyle(accountStyle);
+				cellToWriteOn.setCellStyle(myStyles.get("accountStyle"));
 				cellToWriteOn.setCellValue(totalDirectCost);
 				cellToWriteOn = lastRow.createCell(lastCellNum-1);
-				cellToWriteOn.setCellStyle(accountStyle);
+				cellToWriteOn.setCellStyle(myStyles.get("accountStyle"));
 				cellToWriteOn.setCellValue(totalIndirectCost);
 			}
 		}
@@ -505,5 +492,14 @@ public class IndividualSystemTransitionReportWriter {
 		boldStyle.setFont(boldBodyFont);
 		boldStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
 		myStyles.put("boldStyle",boldStyle);
+		
+		XSSFCellStyle accountStyle = createBorderedStyle(workbook);
+		accountStyle.setFont(boldBodyFont);
+		accountStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		XSSFDataFormat df = wb.createDataFormat();
+		accountStyle.setDataFormat(df.getFormat("$* #,##0.00"));
+		myStyles.put("accountStyle", accountStyle);
+		
+
 	}
 }
