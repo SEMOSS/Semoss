@@ -129,30 +129,17 @@ public class RelationFunction implements IAlgorithm {
 			}
 			variableMatrix[i][1] = count;
 		}
-		
-		// goes through matrix to get all information to make the heatmap
-		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
-		
-		for (int i=1; i<rowNames.size()+1; i++) {
-			for (int j=2; j<colNames.size()+2; j++) {
-				if (variableMatrix[i][j] == null) {
-					processedList2.add(new Object[]{variableMatrix[0][j], variableMatrix[i][0], 0.0});
-				} else {
-					processedList2.add(new Object[]{variableMatrix[0][j], variableMatrix[i][0], variableMatrix[i][j]});
-				}
-			}
-		}
 
 		// convert matrix back into arraylist
 		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
 		arrayList.remove(0);
 		
 		// update the counts so that they are percentages
-		ArrayList<Object[]> valuesAsPercent = new ArrayList<Object[]>();
+		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
 		Hashtable processList = new Hashtable();
 		
-		for (int i=0; i<processedList2.size(); i++) {
-			Object[] row = processedList2.get(i);
+		for (int i=0; i<processedList.size(); i++) {
+			Object[] row = processedList.get(i);
 			String data = (String) row[1];
 			double count = (Double) row[2];
 			if(!processList.containsKey(data)) {
@@ -163,15 +150,13 @@ public class RelationFunction implements IAlgorithm {
 			}
 		}
 		
-		for (int i=0; i<processedList2.size(); i++) {
-			Object[] row = processedList2.get(i);
+		for (int i=0; i<processedList.size(); i++) {
+			Object[] row = processedList.get(i);
 			String sys = (String) row[0];
 			String data = (String) row[1];
 			double count = (Double) row[2];
-			if ((Double) processList.get(data) != 0) {
-				count = count / (Double) processList.get(data);
-			}
-			valuesAsPercent.add(new Object[]{sys, data, count});
+			count = count / (Double) processList.get(data);
+			processedList2.add(new Object[]{sys, data, count});
 		}
 		
 		// let's make a heatmap
@@ -180,10 +165,10 @@ public class RelationFunction implements IAlgorithm {
 		String[] var = new String[]{"Systems","Data Objects","Value"};
 		String xName = var[0]; //system
 		String yName = var[1]; //data objects
-		for (int i=0;i<valuesAsPercent.size();i++)
+		for (int i=0;i<processedList2.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
-			Object[] listElement = valuesAsPercent.get(i);			
+			Object[] listElement = processedList2.get(i);			
 			String methodName = (String) listElement[0]; //system
 			String groupName = (String) listElement[1]; //data
 			methodName = methodName.replaceAll("\"", "");
