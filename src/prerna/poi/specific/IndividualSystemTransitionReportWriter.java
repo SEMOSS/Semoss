@@ -226,11 +226,11 @@ public class IndividualSystemTransitionReportWriter {
 
 		int numRows = ((ArrayList<Object[]>)resultBeforeIOC.get("data")).size();
 		int numCols = 7;
-		XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(7);
+		XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(9);
 
 		for(int i=1;i<numRows;i++)
 		{
-			XSSFRow newRow = sheetToWriteOver.createRow(7+i);
+			XSSFRow newRow = sheetToWriteOver.createRow(9+i);
 			newRow.setRowStyle(rowToCopyFormat.getRowStyle());
 			for(int j=0;j<numCols;j++)
 			{
@@ -239,23 +239,23 @@ public class IndividualSystemTransitionReportWriter {
 				newCell.setCellStyle(cellToCopyFormat.getCellStyle());
 			}
 		}
-		XSSFRow newRow = sheetToWriteOver.createRow(7+numRows);
+		XSSFRow newRow = sheetToWriteOver.createRow(9+numRows);
 
 		if(numRows==0)
 		{
-			createFormatedHWSWCells(sheetToWriteOver,"IOC",4,4+numRows,9+numRows, numCols);
-			createFormatedHWSWCells(sheetToWriteOver,"FOC",4,4+numRows,4+2*(5+numRows), numCols);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,7);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),9+numRows,iocString,12+numRows);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),14+2*(numRows),focString,17+2*(numRows));
+			createFormatedHWSWCells(sheetToWriteOver,"IOC",6,4+numRows,11+numRows, numCols);
+			createFormatedHWSWCells(sheetToWriteOver,"FOC",6,4+numRows,6+2*(5+numRows), numCols);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),6,beginIOCString,9);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),11+numRows,iocString,14+numRows);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),16+2*(numRows),focString,19+2*(numRows));
 		}
 		else
 		{
-			createFormatedHWSWCells(sheetToWriteOver,"IOC",4,4+numRows,9+numRows-1, numCols);
-			createFormatedHWSWCells(sheetToWriteOver,"FOC",4,4+numRows,4+2*(5+numRows-1), numCols);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),4,beginIOCString,7);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),9+numRows-1,iocString,12+numRows-1);
-			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),14+2*(numRows-1),focString,17+2*(numRows-1));
+			createFormatedHWSWCells(sheetToWriteOver,"IOC",6,4+numRows,11+numRows-1, numCols);
+			createFormatedHWSWCells(sheetToWriteOver,"FOC",6,4+numRows,6+2*(5+numRows-1), numCols);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultBeforeIOC.get("data"),6,beginIOCString,9);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultIOC.get("data"),11+numRows-1,iocString,14+numRows-1);
+			writeHWSWComponent(sheetToWriteOver,(ArrayList<Object[]>)resultFOC.get("data"),16+2*(numRows-1),focString,19+2*(numRows-1));
 		}
 	}
 	public void createFormatedHWSWCells(XSSFSheet sheetToWriteOver,String timeline,int rowToStartCopy, int numRowsToCopy, int rowToStartWrite, int numCols)
