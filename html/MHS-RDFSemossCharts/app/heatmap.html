@@ -72,14 +72,18 @@
                 valueArrayDiff = roundValueArray[Math.floor(roundValueArray.length*3/4)]-roundValueArray[Math.floor(roundValueArray.length/4)];
                 if(valueArrayDiff > 10){
                     decimalToKeepFlag = false;
-                }
-                else
-                {
-                valueArrayDiff = valueArrayDiff.toPrecision(2);
-                while(valueArrayDiff < 10){
-                    valueArrayDiff = valueArrayDiff*10;
-                    decimalToKeep++
-                  }
+                } else {
+					valueArrayDiff = valueArrayDiff.toPrecision(2);
+					if (valueArrayDiff == 0) {
+						decimalToKeep = 3;
+						quantiles = false;
+						jQuery('#quantile').html('Change to Quantile');
+					} else {
+						while(valueArrayDiff < 10) {
+							valueArrayDiff = valueArrayDiff*10;
+							decimalToKeep++
+						}
+					}
                 }
 
                 //business as usual
