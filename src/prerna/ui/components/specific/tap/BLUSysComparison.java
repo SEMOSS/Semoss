@@ -33,17 +33,14 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 
 /**
- * Heat Map that shows how much a System Supports a Capability
+ * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
  */
 public class BLUSysComparison extends SimilarityHeatMapSheet{
 
 	String hrCoreDB = "HR_Core";
 	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
-	public ArrayList<String> BLUList = new ArrayList<String>();
 	public ArrayList<String> systemNamesList = new ArrayList<String>();
-
-	String masterQuery = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?ProbabilityNeeded} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} FILTER(?ProbabilityNeeded != 'High') } } } BINDINGS ?Probability {('Medium')('Low')('Medium-High')}";
-	String BLUListQuery = "SELECT DISTINCT ?BLU WHERE {{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}}";
+	String masterQuery = "SELECT DISTINCT ?System ?BLU ?Data (IF (BOUND (?Provide), 'Needed and Present', IF( BOUND(?ICD), 'Needed and Present', 'Needed but not Present')) AS ?Status) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{ { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?Consume <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?ICD ?Consume ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?ICD ?Payload ?Data} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide ?Data} } } { SELECT DISTINCT ?System ?BLU ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System ?Provide2 ?BLU} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?Requires <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Requires>;} {?BLU ?Requires ?Data} } } }";
 	String systemKey = "System";
 	String BLUKey = "BLU";
 	String dataKey = "Data";
@@ -51,6 +48,8 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	String statusTrueKey = "Needed and Present";
 	final String valueString = "Score";
 	final String keyString = "key";
+	ArrayList<String> BLUNames = new ArrayList<String>();
+	ArrayList<String> sysNames = new ArrayList<String>();
 	
 	/**
 	 * Constructor for CapSimHeatMapSheet.
@@ -58,8 +57,13 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	public BLUSysComparison() {
 		super();	
 	}	
+
+//	@Override
+//	public void addPanel(){
+//		
+//	}
 	
-	public void createData() {
+	public void createData(ArrayList<String> BLUNames, ArrayList<String> sysNames) {
 
 		addPanel();
 		SimilarityFunctions simfns = new SimilarityFunctions();	
@@ -67,25 +71,18 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		logger.info("Creating " + comparisonType + " Heat Map.");
 		updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 		
-		//Creating ArrayList of BLUs
-		BLUList = simfns.createComparisonObjectList(hrCoreDB, BLUListQuery);
-		updateProgressBar("35%...Querying Data", 35);
-		
 		//Creating hashtable from main query 
 		SesameJenaSelectWrapper mainWrapper = new SesameJenaSelectWrapper();
 		mainWrapper.setQuery(masterQuery);
 		mainWrapper.setEngine(coreDB);
 		mainWrapper.executeQuery();
 		names = mainWrapper.getVariables();
-		processWrapper(mainWrapper, names);
+		processWrapper(mainWrapper, names, BLUNames, sysNames);
 		averageAdder();
-		updateProgressBar("50%...Evaluating Data Objects Created for a " + comparisonType, 50);
 		
 		//Creating keyHash from paramDataHash
-		keyHashExtractor();
 		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);		
 		
-
 		logger.info(systemNamesList);
 
 		allHash.put("xAxisTitle", "BLU");
@@ -96,65 +93,56 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		
 	}
 	
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names){
-		// now get the bindings and generate the data
+	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, ArrayList<String> BLUNames, ArrayList<String> sysNames){
 		
 		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
-
-
 		try {
-			while(sjw.hasNext()) //while still row beneath (while data left)
+			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next(); //go to new row
+				SesameJenaSelectStatement sjss = sjw.next();
 				
 				Hashtable<String, Object> systemBLUHash = new Hashtable<String, Object>();
+				Hashtable<String, Object> keySystemBLUHash = new Hashtable<String, Object>();
 				Hashtable<String, Double> innerDataHash = new Hashtable<String, Double>();
-				String systemTemp = "";
-				String BLUTemp = "";
+				String systemTemp = sjss.getVar(systemKey) + "";
+				String BLUTemp = sjss.getVar(BLUKey) + "";
 				String dataTemp = "";
 				String statusTemp = "";
 				String sysBLUTemp = "";
 				Double dataValueTemp = 0.0;
 				
-				for(int colIndex = 0;colIndex < names.length;colIndex++)
-				{
-					if(names[colIndex].contains(systemKey)){
-						systemTemp = sjss.getVar(names[colIndex]) + "";
+				if(BLUNames.contains(sjss.getVar(BLUKey)) && sysNames.contains(sjss.getVar(systemKey))){
+					dataTemp = sjss.getVar(dataKey) + "";
+					statusTemp = sjss.getVar(statusKey) + "";
+				
+					if(statusTemp.equals(statusTrueKey)){
+						dataValueTemp = 100.0;
 					}
-					else if(names[colIndex].contains(BLUKey)){
-						BLUTemp = sjss.getVar(names[colIndex]) + "";
-					}
-					else if(names[colIndex].contains(dataKey)){
-						dataTemp = sjss.getVar(names[colIndex]) + "";
-					}
-					else if(names[colIndex].contains(statusKey)){
-						statusTemp = sjss.getVar(names[colIndex]) + "";
+					
+					sysBLUTemp = systemTemp + "-" + BLUTemp;
+					
+					if(!BLUDataHash.containsKey(sysBLUTemp)){
+						innerDataHash.put(dataTemp, dataValueTemp);
+						systemBLUHash.put("System", systemTemp);
+						systemBLUHash.put("BLU", BLUTemp);
+						systemBLUHash.put("Data", innerDataHash);
+						BLUDataHash.put(sysBLUTemp, systemBLUHash);
+						
+						//for keyHash
+						keySystemBLUHash.put("System", systemTemp);
+						keySystemBLUHash.put("BLU", BLUTemp);
+						keyHash.put(sysBLUTemp, keySystemBLUHash);
+
 					}
 					else{
-						logger.info("failed to identify expected key in query");
+						systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(sysBLUTemp);
+						innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
+						innerDataHash.put(dataTemp, dataValueTemp);
 					}
-				}
-				if(statusTemp.equals(statusTrueKey)){
-					dataValueTemp = 100.0;
-				}
-				
-				sysBLUTemp = systemTemp + "-" + BLUTemp;
-				
-				if(!BLUDataHash.containsKey(sysBLUTemp)){
-					innerDataHash.put(dataTemp, dataValueTemp);
-					systemBLUHash.put("System", systemTemp);
-					systemBLUHash.put("BLU", BLUTemp);
-					systemBLUHash.put("Data", innerDataHash);
-					BLUDataHash.put(sysBLUTemp, systemBLUHash);
-					
-				}
-				else{
-					systemBLUHash = (Hashtable<String, Object>) BLUDataHash.get(sysBLUTemp);
-					innerDataHash = (Hashtable<String, Double>) systemBLUHash.get("Data");
-					innerDataHash.put(dataTemp, dataValueTemp);
 				}
 			}
 			paramDataHash.put("BLU-Data", BLUDataHash);
+
 		} 
 		catch (Exception e) {
 			logger.fatal(e);
@@ -189,33 +177,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 			logger.fatal(e);
 		}
 	}
-		
-	private void keyHashExtractor(){
-		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
-		
-		BLUDataHash = (Hashtable<String, Hashtable<String, Object>>) paramDataHash.get("BLU-Data"); 
-		
-		Set<String> sysBLUKeys = BLUDataHash.keySet();
-		try {		
-			for(String sysBLUKey: sysBLUKeys){
-				Hashtable<String, Object> paramSysBLUHashTemp = new Hashtable<String, Object>();
-				Hashtable<String, String> sysBLUHashTemp = new Hashtable<String, String>();
-				String systemTemp = "";
-				String bluTemp = "";
-				
-				paramSysBLUHashTemp = (Hashtable<String, Object>) BLUDataHash.get(sysBLUKey);
-				systemTemp = (String) paramSysBLUHashTemp.get("System");
-				bluTemp = (String) paramSysBLUHashTemp.get("BLU");
-				sysBLUHashTemp.put("System", systemTemp);
-				sysBLUHashTemp.put("BLU", bluTemp);
-				
-				keyHash.put(sysBLUKey, sysBLUHashTemp);
-			}
-		} catch (Exception e) {
-			logger.fatal(e);
-		}
-	}
-	
+
 	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
 		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
 		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
@@ -234,9 +196,5 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		return retHash;
 	}
 }
-	
-
-
-
 
 
