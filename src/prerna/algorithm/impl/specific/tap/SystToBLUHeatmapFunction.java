@@ -84,6 +84,7 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		colNames = new ArrayList<String>(colNamesAsVector);
 		
 		BLUSysComparison bsc = null;
+
 		try {
 			bsc = (BLUSysComparison)Class.forName("prerna.ui.components.specific.tap.BLUSysComparison").getConstructor(null).newInstance(null);
 		} catch (InstantiationException e) {
@@ -103,14 +104,16 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		}
 		playSheet.HeatPanel.removeAll();
 		playSheet.HeatPanel.setLayout(new GridLayout(1, 0, 0, 0));
-		JDesktopPane jdp = new JDesktopPane();
-		playSheet.HeatPanel.add(jdp);
-
-		bsc.setRDFEngine((IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
-		bsc.setJDesktopPane(jdp);
-		bsc.setQuestionID("Graph Analysis PlaySheet");
+//		JDesktopPane jdp = new JDesktopPane();
+//		playSheet.HeatPanel.add(jdp);
 		
-		bsc.setTitle("Graph Analysis");
+		playSheet.HeatPanel.add(bsc);
+		
+		bsc.setRDFEngine((IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
+		bsc.setPlaySheet(playSheet);
+//		bsc.setJDesktopPane(jdp);
+//		bsc.setQuestionID("Graph Analysis PlaySheet");
+//		bsc.setTitle("Graph Analysis");
 
 		bsc.createData(rowNames, colNames);
 		bsc.runAnalytics();

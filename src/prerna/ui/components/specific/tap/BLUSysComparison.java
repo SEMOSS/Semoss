@@ -18,18 +18,30 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.JTable;
+
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.ChartControlPanel;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 import prerna.util.DIHelper;
 
 /**
@@ -50,7 +62,10 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	final String keyString = "key";
 	ArrayList<String> BLUNames = new ArrayList<String>();
 	ArrayList<String> sysNames = new ArrayList<String>();
-	
+	ChartControlPanel controlPanel;
+	SysToBLUDataGapsPlaySheet playSheet;
+
+
 	/**
 	 * Constructor for CapSimHeatMapSheet.
 	 */
@@ -58,10 +73,59 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		super();	
 	}	
 
-//	@Override
-//	public void addPanel(){
-//		
-//	}
+	@Override
+	public void addPanel()
+	{
+		browser = BrowserFactory.create();
+		try {
+//			table = new JTable();
+			JPanel mainPanel = new JPanel();
+//			setWindow();
+//			createControlPanel();
+			
+			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
+			this.addInternalFrameListener(psListener);
+			this.setContentPane(mainPanel);
+			GridBagLayout gbl_mainPanel = new GridBagLayout();
+			gbl_mainPanel.columnWidths = new int[]{0, 0};
+			gbl_mainPanel.rowHeights = new int[]{0, 0};
+			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+			mainPanel.setLayout(gbl_mainPanel);
+			
+			JPanel panel = new JPanel();
+			panel.setLayout(new BorderLayout());
+			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+			gbc_scrollPane.fill = GridBagConstraints.BOTH;
+			gbc_scrollPane.gridx = 0;
+			gbc_scrollPane.gridy = 0;
+			mainPanel.add(panel, gbc_scrollPane);
+
+			updateProgressBar("0%...Preprocessing", 0);
+			resetProgressBar();
+			JPanel barPanel = new JPanel();
+
+			GridBagConstraints gbc_barPanel = new GridBagConstraints();
+			gbc_barPanel.fill = GridBagConstraints.BOTH;
+			gbc_barPanel.gridx = 0;
+			gbc_barPanel.gridy = 1;
+			mainPanel.add(barPanel, gbc_barPanel);
+			barPanel.setLayout(new BorderLayout(0, 0));
+			barPanel.add(jBar, BorderLayout.CENTER);
+
+			playSheet.HeatPanel.add(this);
+
+//			this.pack();
+			this.setVisible(true);
+			this.setSelected(false);
+			this.setSelected(true);
+			logger.debug("Added the main pane");
+		}
+		catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public void createData(ArrayList<String> BLUNames, ArrayList<String> sysNames) {
 
@@ -194,6 +258,10 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 			retHash.add(newHash);
 		}			
 		return retHash;
+	}
+	
+	public void setPlaySheet(IPlaySheet playSheet) {
+		this.playSheet = (SysToBLUDataGapsPlaySheet) playSheet;
 	}
 }
 
