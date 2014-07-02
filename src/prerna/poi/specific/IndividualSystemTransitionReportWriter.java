@@ -158,15 +158,16 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
 
-		int indRowToWriteSystem = 3;
-		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
-		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
-		cellToWriteSystem.setCellValue(systemName);
+//		int indRowToWriteSystem = 3;
+//		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
+//		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
+//		cellToWriteSystem.setCellValue(systemName);
+		fillStringInText(sheetToWriteOver,3,0,null,systemName);
 		
 		if(!sheetName.contains("Interface"))
-			setSystemNameInText(sheetToWriteOver, 3,1);
+			fillStringInText(sheetToWriteOver, 3,1,"@SYSTEM@",systemName);
 		else
-			setSystemNameInText(sheetToWriteOver, 3,3);
+			fillStringInText(sheetToWriteOver, 3,3,"@SYSTEM@",systemName);
 
 		int rowToStart = 6;
 		for (int row=0; row<dataList.size(); row++) {
@@ -232,10 +233,9 @@ public class IndividualSystemTransitionReportWriter {
 
 	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(2);
-		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(0);
-		cellToWriteSystemName.setCellValue(systemName);
-
+		
+		fillStringInText(sheetToWriteOver,2,0,null,systemName);
+		
 		int numRows = ((ArrayList<Object[]>)resultBeforeIOC.get("data")).size();
 		int numCols = 7;
 		XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(9);
@@ -305,11 +305,7 @@ public class IndividualSystemTransitionReportWriter {
 	}
 	public void writeHWSWComponent(XSSFSheet sheetToWriteOver, ArrayList<Object[]> dataList,int rowToWriteData,String date, int rowToStartList){
 
-		XSSFRow rowToWriteDate = sheetToWriteOver.getRow(rowToWriteData);
-		XSSFCell cellToWriteDate = rowToWriteDate.getCell(2);
-		String currString = cellToWriteDate.getStringCellValue();
-		currString = currString.replace("@DATE@",date);
-		cellToWriteDate.setCellValue(currString);
+		fillStringInText(sheetToWriteOver,rowToWriteData,2,"@DATE@",date);
 
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
@@ -338,10 +334,9 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 
 		int indRowToWriteSystem = 3;
-		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
-		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
-		cellToWriteSystem.setCellValue(systemName);
-		setSystemNameInText(sheetToWriteOver, indRowToWriteSystem,1);
+
+		fillStringInText(sheetToWriteOver,indRowToWriteSystem,0,null,systemName);
+		fillStringInText(sheetToWriteOver, indRowToWriteSystem,1,"@SYSTEM@",systemName);
 
 		writeModernizationTimeline(sheetName,6,(ArrayList<Object[]>)software.get("data"));
 		writeModernizationTimeline(sheetName,7,(ArrayList<Object[]>)hardware.get("data"));
@@ -420,18 +415,12 @@ public class IndividualSystemTransitionReportWriter {
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
 		Object[] resultRowValues = dataList.get(0);		
 
-		int indRowToWriteSystemName = 3;
-		XSSFRow rowToWriteSystemName = sheetToWriteOver.getRow(indRowToWriteSystemName);
-		XSSFCell cellToWriteSystemName = rowToWriteSystemName.getCell(1);
-		cellToWriteSystemName.setCellValue(systemName);
+		fillStringInText(sheetToWriteOver,3,1,null,systemName);
 
-		int indRowToWriteSystemDes = 6;
-		XSSFRow rowToWriteSystemDes = sheetToWriteOver.getRow(indRowToWriteSystemDes);
-		XSSFCell cellToWriteSystemDes = rowToWriteSystemDes.getCell(3);
+		String sysDescription = "";
 		if(resultRowValues[1]!=null && ((String)resultRowValues[1]).length()>0)
-			cellToWriteSystemDes.setCellValue(((String)resultRowValues[0]).replaceAll("\"", "").replaceAll("_"," "));
-		else
-			cellToWriteSystemDes.setCellValue("");
+			sysDescription =((String)resultRowValues[0]).replaceAll("\"", "").replaceAll("_"," ");
+		fillStringInText(sheetToWriteOver,6,3,null,sysDescription);
 
 		int rowToStartList = 10;
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
@@ -446,17 +435,22 @@ public class IndividualSystemTransitionReportWriter {
 			else
 				cellToWriteOn.setCellValue(((String)resultRowValues[col+1]).replaceAll("\"", "").replaceAll("_"," "));
 		}
-		setSystemNameInText(sheetToWriteOver, 13, 1);
-		setSystemNameInText(sheetToWriteOver, 33, 1);
+		fillStringInText(sheetToWriteOver, 13, 1,"@SYSTEM@",systemName);
+		fillStringInText(sheetToWriteOver, 33, 1,"@SYSTEM@",systemName);
+		fillStringInText(sheetToWriteOver,13,1,"@DATE@",beginIOCString);
 		
 	}
 	
-	public void setSystemNameInText(XSSFSheet sheetToWriteOver, int row, int col){
+	public void fillStringInText(XSSFSheet sheetToWriteOver, int row, int col,String textToFind,String textToReplace){
 		XSSFRow rowToSetSystemName = sheetToWriteOver.getRow(row);
 		XSSFCell cellToSetSystemName = rowToSetSystemName.getCell(col);
-		String currString = cellToSetSystemName.getStringCellValue();
-		currString = currString.replaceAll("@SYSTEM@",systemName);
-		cellToSetSystemName.setCellValue(currString);
+		if(textToFind == null)
+			cellToSetSystemName.setCellValue(textToReplace);
+		else{
+			String currString = cellToSetSystemName.getStringCellValue();
+			currString = currString.replaceAll(textToFind,textToReplace);
+			cellToSetSystemName.setCellValue(currString);
+		}
 	}
 
 	/**
