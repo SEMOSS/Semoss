@@ -215,23 +215,17 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
 			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
-			//if it says need to add interface to or from another system (not our current system), then the current system we're looking at is supposed to stay as is
 			//if it says need to add interface from dhmsm to our system, then legacy - consumer
 			//if it says need to add interface from our system to dhmsm, then legacy - provider
-			if(comment.contains("need to add interface"))
-			{
-				if(!comment.contains(systemName.toLowerCase()))
-					barChartVals[2] = barChartVals[2]+1;
-				else if(comment.contains("dhmsm->"))
-					barChartVals[1] = barChartVals[1]+1;
-				else
-					barChartVals[0] = barChartVals[0]+1;
-			}
-			//if its a stay, our system stays
-			if(comment.contains("stay"))
+			if(comment.contains("need to add interface dhmsm->"+systemName.toLowerCase()))
+				barChartVals[1] = barChartVals[1]+1;
+			else if(comment.contains("need to add interface "+systemName.toLowerCase()+"->dhmsm"))
+				barChartVals[0] = barChartVals[0]+1;
+			//if its a stay, our system stays or our system is not in the interface to add
+			else if(comment.contains("need to add interface")||comment.contains("stay"))
 				barChartVals[2] = barChartVals[2]+1;
 			//if it says developing, check if it has our system, otherwise it stays the same
-			if(comment.contains("developing"))
+			else if(comment.contains("developing"))
 			{
 				if(!comment.contains(systemName.toLowerCase()))
 					barChartVals[2] = barChartVals[2]+1;
