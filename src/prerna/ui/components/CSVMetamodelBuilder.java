@@ -80,10 +80,13 @@ public class CSVMetamodelBuilder {
 		for(int i = 0; i < header.length; i++)
 		{
 			headerSet.add(header[i]);
-			Hashtable<String, LinkedHashSet<String>> innerHash = new Hashtable<String, LinkedHashSet<String>>();
-			innerHash.put("AllDataTypes", new LinkedHashSet<String>());
-			innerHash.put("AllowedDataTypes", new LinkedHashSet<String>());
-			dataType.put(header[i], innerHash);
+			if(header[i] != null) 
+			{
+				Hashtable<String, LinkedHashSet<String>> innerHash = new Hashtable<String, LinkedHashSet<String>>();
+				innerHash.put("AllDataTypes", new LinkedHashSet<String>());
+				innerHash.put("AllowedDataTypes", new LinkedHashSet<String>());
+				dataType.put(header[i], innerHash);
+			}
 		}
 		
 		Hashtable<String, LinkedHashSet<String>> headerHash = new Hashtable<String, LinkedHashSet<String>>();
@@ -96,7 +99,6 @@ public class CSVMetamodelBuilder {
 	{
 		List<String> instances;
 		try {
-			instances = listReader.read();
 			while((instances = listReader.read()) != null)
 			{
 				for(int i = 0; i < header.length; i++)
@@ -115,61 +117,79 @@ public class CSVMetamodelBuilder {
 		}
 	}
 
+	//This method determines what data types are available in the dropdown for each property
 	private void getAllowedDataType()
 	{
-		HashSet<String> numSet = new HashSet<String>();
-		numSet.add("DOUBLE");
-		numSet.add("INTEGER");
-
 		for(int i = 0; i < header.length; i++)
 		{
-			if(dataType.get(header[i]).get("AllowedDataTypes").isEmpty())
-			{
-				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
-			}
-			else if(dataType.get(header[i]).get("AllowedDataTypes").size() == 1)
-			{
-				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
-			}
-			else if(dataType.get(header[i]).get("AllowedDataTypes").size() == 2)
-			{
-				if(dataType.get(header[i]).get("AllowedDataTypes").equals(numSet))
+			if(header[i] != null){
+				Hashtable<String, LinkedHashSet<String>> headerObj = dataType.get(header[i]);
+				LinkedHashSet<String> allowedTypes = headerObj.get("AllowedDataTypes");
+	
+				if(allowedTypes.isEmpty()) // it should never come in here, but as default, String is the only thing available
 				{
-					dataType.get(header[i]).get("AllowedDataTypes").remove("INTEGER");
-					dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+					allowedTypes.add("STRING");
 				}
-				else
+				else if(allowedTypes.size() == 1) // if all cells of that column are the same type, you can load as that specific type, or string
 				{
-					dataType.get(header[i]).get("AllowedDataTypes").clear();
-					dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
+					allowedTypes.add("STRING");
+				}
+				else if(allowedTypes.size() >= 2) // if cell of that column are two different types
+				{
+					allowedTypes.clear();
+					allowedTypes.add("STRING");
 				}
 			}
-			else if(dataType.get(header[i]).get("AllowedDataTypes").size() > 2)
-			{
-				Iterator<String> typeIt = dataType.get(header[i]).get("AllowedDataTypes").iterator();
-				while(typeIt.hasNext())
-				{
-					typeIt.next();
-					typeIt.remove();
-				}
-				dataType.get(header[i]).get("AllowedDataTypes").add("STRING");
-			}
+
+//			HashSet<String> numSet = new HashSet<String>();
+//			numSet.add("DOUBLE");
+//			numSet.add("INTEGER");
+//			if(allowedTypes.isEmpty()) // it should never come in here, but as default, String is the only thing available
+//			{
+//				allowedTypes.add("STRING");
+//			}
+//			else if(allowedTypes.size() == 1) // if all cells of that column are the same type, you can load as that specific type, or string
+//			{
+//				allowedTypes.add("STRING");
+//			}
+//			else if(allowedTypes.size() == 2) // if cell of that column are two different types
+//			{
+//				if(allowedTypes.equals(numSet)) // if the two options are double and int, int is not an option as doubles cannot be cast to int
+//				{
+//					allowedTypes.remove("INTEGER");
+//					allowedTypes.add("STRING");
+//				}
+//				else // otherwise only string is available as anything else would have cast exception
+//				{
+//					allowedTypes.clear();
+//					allowedTypes.add("STRING");
+//				}
+//			}
+//			else if(allowedTypes.size() > 2) // if more than two types, only string is available
+//			{
+//				Iterator<String> typeIt = allowedTypes.iterator();
+//				while(typeIt.hasNext())
+//				{
+//					typeIt.next();
+//					typeIt.remove();
+//				}
+//				allowedTypes.add("STRING");
+//			}
 		}
 	}
 
 	public static String determineProcessor(String s) {
-		String processor = "";
-
-		boolean isInt = true;
-		try { 
-			Integer.parseInt(s); 
-		} catch(NumberFormatException e) { 
-			isInt = false;
-		}
-
-		if(isInt){
-			return (processor = "INTEGER");
-		}
+		
+//		boolean isInt = true;
+//		try { 
+//			Integer.parseInt(s); 
+//		} catch(NumberFormatException e) { 
+//			isInt = false;
+//		}
+//
+//		if(isInt){
+//			return ("INTEGER");
+//		}
 
 		boolean isDouble = true;
 		try {
@@ -179,7 +199,7 @@ public class CSVMetamodelBuilder {
 		}
 
 		if(isDouble) {
-			return (processor = "DOUBLE");
+			return ("DOUBLE");
 		}
 
 		//TODO: combine determining long date vs. simple date into a loop
@@ -195,7 +215,7 @@ public class CSVMetamodelBuilder {
 		}
 
 		if(isLongDate){
-			return (processor = "DATE");
+			return ("DATE");
 		}
 
 		Boolean isSimpleDate = true;
@@ -209,13 +229,13 @@ public class CSVMetamodelBuilder {
 		}
 
 		if(isSimpleDate){
-			return (processor = "SIMPLEDATE");
+			return ("SIMPLEDATE");
 		}
 
 		if(Boolean.parseBoolean(s)){
-			return (processor = "BOOLEAN");
+			return ("BOOLEAN");
 		}
 
-		return (processor = "STRING");
+		return ("STRING");
 	}
 }
