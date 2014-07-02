@@ -97,6 +97,7 @@ public class IndividualSystemTransitionReportWriter {
 		boolean success = false;
 		try{
 			wb.setForceFormulaRecalculation(true);
+			wb.setSheetHidden(wb.getSheetIndex("Summary Charts"), true);
 			Utility.writeWorkbook(wb, fileLoc);
 			success = true;
 		} catch (Exception ex) {
@@ -107,6 +108,18 @@ public class IndividualSystemTransitionReportWriter {
 
 	public static String getFileLoc(){
 		return fileLoc;
+	}
+	
+	public void writeBarChartData(String sheetName,int rowToStart,HashMap<String,Object> barHash) {
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		int[] dataList = (int[])barHash.get("data");
+		
+		for(int i=0;i<dataList.length;i++)
+		{
+			XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStart+i);
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
+			cellToWriteOn.setCellValue(dataList[i]);
+		}
 	}
 
 	public void writeSORSheet(String sheetName, HashMap<String,Object> result){
@@ -149,12 +162,11 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
 		cellToWriteSystem.setCellValue(systemName);
-		cellToWriteSystem = rowToWriteSystem.getCell(1);
-		if(sheetName.contains("Interface"))
-			cellToWriteSystem = rowToWriteSystem.getCell(3);
-		String currString = cellToWriteSystem.getStringCellValue();
-		currString = currString.replaceAll("@SYSTEM@",systemName);
-		cellToWriteSystem.setCellValue(currString);
+		
+		if(!sheetName.contains("Interface"))
+			setSystemNameInText(sheetToWriteOver, 3,1);
+		else
+			setSystemNameInText(sheetToWriteOver, 3,3);
 
 		int rowToStart = 6;
 		for (int row=0; row<dataList.size(); row++) {
@@ -329,10 +341,7 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
 		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
 		cellToWriteSystem.setCellValue(systemName);
-		cellToWriteSystem = rowToWriteSystem.getCell(1);
-		String currString = cellToWriteSystem.getStringCellValue();
-		currString = currString.replaceAll("@SYSTEM@",systemName);
-		cellToWriteSystem.setCellValue(currString);
+		setSystemNameInText(sheetToWriteOver, indRowToWriteSystem,1);
 
 		writeModernizationTimeline(sheetName,6,(ArrayList<Object[]>)software.get("data"));
 		writeModernizationTimeline(sheetName,7,(ArrayList<Object[]>)hardware.get("data"));
@@ -403,6 +412,7 @@ public class IndividualSystemTransitionReportWriter {
 
 
 	}
+	
 
 	public void writeSystemInfoSheet(String sheetName, HashMap<String,Object> result){
 
@@ -436,7 +446,19 @@ public class IndividualSystemTransitionReportWriter {
 			else
 				cellToWriteOn.setCellValue(((String)resultRowValues[col+1]).replaceAll("\"", "").replaceAll("_"," "));
 		}
+		setSystemNameInText(sheetToWriteOver, 13, 1);
+		setSystemNameInText(sheetToWriteOver, 33, 1);
+		
 	}
+	
+	public void setSystemNameInText(XSSFSheet sheetToWriteOver, int row, int col){
+		XSSFRow rowToSetSystemName = sheetToWriteOver.getRow(row);
+		XSSFCell cellToSetSystemName = rowToSetSystemName.getCell(col);
+		String currString = cellToSetSystemName.getStringCellValue();
+		currString = currString.replaceAll("@SYSTEM@",systemName);
+		cellToSetSystemName.setCellValue(currString);
+	}
+
 	/**
 	 * Creates a cell boarder style in an Excel workbook
 	 * @param wb 		Workbook to create the style
