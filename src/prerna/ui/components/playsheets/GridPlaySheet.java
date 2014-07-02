@@ -49,7 +49,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			logger.debug("Created the table");
 			this.addInternalFrameListener(gridPSListener);
 			logger.debug("Added the internal frame listener ");
-			table.setAutoCreateRowSorter(true);
+			//table.setAutoCreateRowSorter(true);
 			this.setContentPane(mainPanel);
 			GridBagLayout gbl_mainPanel = new GridBagLayout();
 			gbl_mainPanel.columnWidths = new int[]{0, 0};
