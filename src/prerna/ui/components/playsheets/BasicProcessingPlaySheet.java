@@ -30,6 +30,7 @@ import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
+import prerna.ui.components.GridTableRowSorter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
@@ -91,6 +92,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		gfd.setDataList(list);
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
+		table.setRowSorter(new GridTableRowSorter(model));
 
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
