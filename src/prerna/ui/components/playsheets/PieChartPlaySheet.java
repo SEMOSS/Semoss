@@ -17,24 +17,6 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/piechart.html";
 	}
 	
-	/*public Hashtable<String, Object> processQueryData()
-	{		
-		Hashtable<String, ArrayList<Object[]>> data = new Hashtable<String, ArrayList<Object[]>>();
-		ArrayList<Object[]> values = new ArrayList<Object[]>();
-		for( int i = 0; i < list.size(); i++)
-		{
-			values.add(list.get(i));
-		}
-		data.put(names[1], values);
-		
-		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("type", "pie");
-		columnChartHash.put("dataSeries", data);
-		
-		return columnChartHash;
-	}*/
-	
-	
 	
 	public Hashtable<String, Object> processQueryData()
 	{		
@@ -52,18 +34,16 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 					dataObj.add(j-1, seriesArray);
 				Hashtable<String, Object> elementHash = new Hashtable();
 				elementHash.put("pieCat", elemValues[0].toString());
-				//elementHash.put("pieVal", elemValues[j]);
-				System.out.println(elemValues[0].toString() + elemValues[j]);
 				elementHash.put("pieVal", elemValues[j]);
 				seriesArray.add(elementHash);
 			}
 		}
 		
-		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("names", names);
-		columnChartHash.put("type", "pie");
-		columnChartHash.put("dataSeries", dataObj);
+		Hashtable<String, Object> pieChartHash = new Hashtable<String, Object>();
+		pieChartHash.put("names", names);
+		pieChartHash.put("type", "pie");
+		pieChartHash.put("dataSeries", dataObj);
 		
-		return columnChartHash;
+		return pieChartHash;
 	}
 }
