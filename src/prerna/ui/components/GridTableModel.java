@@ -104,30 +104,33 @@ public class GridTableModel extends AbstractTableModel {
 	@Override
 	public Class getColumnClass(int column)
 	{
-		Class returnValue = null;
-		if ((column >= 0) && (column < getColumnCount())) {
-
-			boolean exit = false;
-			int rowCount = 0;
-			while (!exit && rowCount<getRowCount())
-			{
-				if (getValueAt(rowCount, column)!=null)
-				{
-					exit = true;
-					returnValue = getValueAt(rowCount, column).getClass();
-				}
-				rowCount++;
-			}
-			if (!exit)
-			{
-				returnValue = String.class;
-			}
-			
-		} 
-		else {
-			returnValue = Object.class;
-		}
-		return returnValue;
+		//Need to return everything as object so the built-in swing table renderers do not break with cast exceptions
+		//Up to the row sorter to handle all objects and sort accordingly
+		return Object.class;
+//		Class returnValue = null;
+//		if ((column >= 0) && (column < getColumnCount())) {
+//
+//			boolean exit = false;
+//			int rowCount = 0;
+//			while (!exit && rowCount<getRowCount())
+//			{
+//				if (getValueAt(rowCount, column)!=null)
+//				{
+//					exit = true;
+//					returnValue = getValueAt(rowCount, column).getClass();
+//				}
+//				rowCount++;
+//			}
+//			if (!exit)
+//			{
+//				returnValue = String.class;
+//			}
+//			
+//		} 
+//		else {
+//			returnValue = Object.class;
+//		}
+//		return returnValue;
 	}
 	/**
 	 * Checks whether the cell is editable at a particular row and column index.
