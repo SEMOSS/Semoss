@@ -161,13 +161,16 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		HashMap<String, Object> sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 
-
-		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
+ 		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 		if(reportType.equals("LPI")) {
 			sysLPInterfaceWithCostHash = createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 		} else {
 			sysLPInterfaceWithCostHash = createLPNIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash, dhmsmSORList, lpiSystemList);
 		}
+		
+		HashMap<String, Object> interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
+		HashMap<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
+		HashMap<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
 
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
 		String templateFileName = "Individual_System_LPI_Transition_Report_Template.xlsx";
@@ -182,6 +185,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		writer.writeListSheet("DHMSM Data Requirements", sysSORDataWithDHMSMCapHash);
 		writer.writeListSheet("System Interfaces", sysLPInterfaceWithCostHash);
 		writer.writeSORSheet("System Data",sysSORTableHash);
+		writer.writeBarChartData("Summary Charts",3,softwareBarHash);
+		writer.writeBarChartData("Summary Charts",11,hardwareBarHash);
+		writer.writeBarChartData("Summary Charts",19,interfaceBarHash);
 		boolean success = writer.writeWorkbook();
 		if(showMessages)
 		{
@@ -196,6 +202,60 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	public void enableMessages(boolean showMessages)
 	{
 		this.showMessages = showMessages;
+	}
+	
+	private HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
+	{
+		HashMap<String, Object> barHash = new HashMap<String, Object>();
+		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider"};
+		int[] barChartVals = new int[]{0,0,0,0,0};
+		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
+		
+		for(int i=0;i<interfaceRowList.size();i++)
+		{
+			Object[] interfaceRow = interfaceRowList.get(i);
+			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
+			if(comment.contains("need to add interface"))
+			{
+				if(comment.contains("dhmsm->"))
+					barChartVals[1] = barChartVals[1]+1;
+				else
+					barChartVals[0] = barChartVals[0]+1;
+			}
+			if(comment.contains("stay"))
+				barChartVals[2] = barChartVals[2]+1;
+			if(comment.contains("removing"))
+				barChartVals[3] = barChartVals[3]+1;
+			if(comment.contains("developing"))
+				barChartVals[4] = barChartVals[4]+1;
+		}
+		barHash.put("headers", headers);
+		barHash.put("data", barChartVals);
+		return barHash;
+	}
+	private HashMap<String, Object> createHWSWBarHash(HashMap<String, Object> storeData)
+	{
+		HashMap<String, Object> barHash = new HashMap<String, Object>();
+		String[] headers = new String[]{"Retired (Not Supported)","Supported","GA (Generally Available)","TBD"};
+		int[] barChartVals = new int[]{0,0,0,0};
+
+		ArrayList<Object[]> data = (ArrayList<Object[]>) storeData.get(dataKey);
+		for(int i=0;i<data.size();i++)
+		{
+			Object[] row = data.get(i);
+			String lifecycle = ((String)row[2]).toLowerCase();
+			if(lifecycle.contains("retired"))
+				barChartVals[0] = barChartVals[0]+1;
+			else if(lifecycle.contains("supported"))
+				barChartVals[1] = barChartVals[1]+1;
+			else if(lifecycle.contains("ga"))
+				barChartVals[2] = barChartVals[2]+1;
+			else if(lifecycle.contains("tbd"))
+				barChartVals[3] = barChartVals[3]+1;
+		}
+		barHash.put("headers", headers);
+		barHash.put("data", barChartVals);
+		return barHash;		
 	}
 
 	private HashMap<String, Object> createLPIInterfaceWithCostHash(HashMap<String, Object> sysLPIInterfaceHash, HashMap<String, HashMap<String, Double>> loeForSysGlItemHash, HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash) 
