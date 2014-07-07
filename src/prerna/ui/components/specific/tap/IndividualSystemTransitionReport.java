@@ -289,7 +289,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				newHeaders[i] = oldHeaders[i];
 			} else {
 				newHeaders[i] = "Services";
-				newHeaders[i+1] = "Comments";
+				newHeaders[i+1] = "Recommendation";
 				newHeaders[i+2] = "Direct Cost";
 				newHeaders[i+3] = "Indirect Cost";
 			}
@@ -476,7 +476,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				newHeaders[i] = oldHeaders[i];
 			} else {
 				newHeaders[i] = "Services";
-				newHeaders[i+1] = "Comments";
+				newHeaders[i+1] = "Recommendation";
 				newHeaders[i+2] = "Direct Cost";
 				newHeaders[i+3] = "Indirect Cost";
 			}
