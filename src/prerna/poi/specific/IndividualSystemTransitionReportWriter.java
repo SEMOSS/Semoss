@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.hssf.record.CFRuleRecord.ComparisonOperator;
 import org.apache.poi.hssf.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -33,9 +34,12 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFConditionalFormattingRule;
 import org.apache.poi.xssf.usermodel.XSSFDataFormat;
+import org.apache.poi.xssf.usermodel.XSSFPatternFormatting;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFSheetConditionalFormatting;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.util.Constants;
@@ -146,8 +150,26 @@ public class IndividualSystemTransitionReportWriter {
 		}
 
 		writeListSheet(sheetName,result);
+		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
+		addConditionalFormatting(sheetName,result,rowToStart,rowToStart+dataList.size(),3,headersList.length);
 	}
 
+	public void addConditionalFormatting(String sheetName, HashMap<String,Object> result,int startRow, int lastRow, int firstCol, int lastCol)
+	{
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+	    XSSFSheetConditionalFormatting sheetCF = sheetToWriteOver.getSheetConditionalFormatting();
+
+	    XSSFConditionalFormattingRule rule1 = sheetCF.createConditionalFormattingRule(ComparisonOperator.GT, "0");
+	    XSSFPatternFormatting patternFmt = rule1.createPatternFormatting();
+	    patternFmt.setFillBackgroundColor(IndexedColors.GREEN.index);
+
+//	    ConditionalFormattingRule rule2 = sheetCF.createConditionalFormattingRule(ComparisonOperator.BETWEEN, "-10", "10");
+//	    XSSFConditionalFormattingRule [] cfRules ={rule1};
+
+	    CellRangeAddress[] regions = new CellRangeAddress[]{new CellRangeAddress(startRow,lastRow,firstCol,lastCol)};
+	    sheetCF.addConditionalFormatting(regions, rule1);
+
+	}
 	/**
 	 * Writes a generic list sheet from hashtable
 	 * @param sheetName	String containing the name of the sheet to populate
@@ -158,10 +180,6 @@ public class IndividualSystemTransitionReportWriter {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
 
-//		int indRowToWriteSystem = 3;
-//		XSSFRow rowToWriteSystem = sheetToWriteOver.getRow(indRowToWriteSystem);
-//		XSSFCell cellToWriteSystem = rowToWriteSystem.getCell(0);
-//		cellToWriteSystem.setCellValue(systemName);
 		fillStringInText(sheetToWriteOver,3,0,null,systemName);
 		
 		if(!sheetName.contains("Interface"))
