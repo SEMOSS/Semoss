@@ -7,16 +7,16 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:\\Users\\bkirk\\workspace\\SEMOSS\\db
+
+SMSSWatcher_DIR	C:\\Users\\mvenkataraman\\Desktop\\workspace\\SEMOSS\\db
 SMSSWatcher_EXT	.smss
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\Users\\bkirk\\workspace\\SEMOSS\\db
+
+SMSSWebWatcher_DIR	C:\\Users\\mvenkataraman\\Desktop\\workspace\\SEMOSS\\db
 SMSSWebWatcher_EXT	.smss
-
-LOG4J	C:\\Users\\bkirk\\workspace\\SEMOSS\\log4j.prop
-BaseFolder	C:\\Users\\bkirk\\workspace\\SEMOSS
-
+LOG4J	C:\\Users\\mvenkataraman\\Desktop\\workspace\\SEMOSS\\log4j.prop
+BaseFolder	C:\\Users\\mvenkataraman\\Desktop\\workspace\\SEMOSS
 GPS_SUDOWL_DEFAULT	false
 GPS_SEARCH_DEFAULT	true
 GPS_PROPERTIES_DEFAULT	true
