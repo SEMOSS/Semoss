@@ -217,7 +217,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
 			boolean addedInterface = false;		
 			boolean removedInterface = false;
-			boolean developedInterface = false;
 			//if it says need to add interface from dhmsm to our system, then legacy - consumer
 			//if it says need to add interface from our system to dhmsm, then legacy - provider
 			if(comment.contains("need to add interface "+systemName.toLowerCase()+"->dhmsm"))
@@ -237,14 +236,14 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				barChartVals[3] = barChartVals[3]+1;
 			}
 			
-			if(comment.contains("developing")&&comment.contains(systemName.toLowerCase()))
+			if(comment.contains("developing"))
 			{
-				developedInterface = true;
-				barChartVals[4] = barChartVals[4]+1;
+				if(comment.contains(systemName.toLowerCase()))
+					barChartVals[4] = barChartVals[4]+1;
 			}
 
 			//stayAsIs if neither need to add interface or remove interface involve the system we're looking at
-			if((!addedInterface && !removedInterface && !developedInterface)|| comment.contains("stay"))
+			if((!addedInterface && !removedInterface)|| comment.contains("stay"))
 				barChartVals[2] = barChartVals[2]+1;
 
 		}
