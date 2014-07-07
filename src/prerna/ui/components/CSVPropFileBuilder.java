@@ -41,7 +41,9 @@ public class CSVPropFileBuilder{
 	public void addRelationship(ArrayList<String> sub, String pred, ArrayList<String> obj) {
 		String subject = "";
 		String object = "";
-
+		// remove brackets around predicates
+		pred = pred.substring(1, pred.length()-1);
+		
 		Iterator<String> subIt = sub.iterator();
 		while(subIt.hasNext()){
 			subject = subject + subIt.next() + "+";
