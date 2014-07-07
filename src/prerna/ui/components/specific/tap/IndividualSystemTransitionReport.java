@@ -215,26 +215,38 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
 			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
+			boolean addedInterface = false;		
+			boolean removedInterface = false;
+			boolean developedInterface = false;
 			//if it says need to add interface from dhmsm to our system, then legacy - consumer
 			//if it says need to add interface from our system to dhmsm, then legacy - provider
-			if(comment.contains("need to add interface dhmsm->"+systemName.toLowerCase()))
-				barChartVals[1] = barChartVals[1]+1;
-			else if(comment.contains("need to add interface "+systemName.toLowerCase()+"->dhmsm"))
-				barChartVals[0] = barChartVals[0]+1;
-			//if its a stay, our system stays or our system is not in the interface to add
-			else if(comment.contains("need to add interface")||comment.contains("stay"))
-				barChartVals[2] = barChartVals[2]+1;
-			//if it says developing, check if it has our system, otherwise it stays the same
-			else if(comment.contains("developing"))
+			if(comment.contains("need to add interface "+systemName.toLowerCase()+"->dhmsm"))
 			{
-				if(!comment.contains(systemName.toLowerCase()))
-					barChartVals[2] = barChartVals[2]+1;
-				else
-					barChartVals[4] = barChartVals[4]+1;
+				addedInterface = true;
+				barChartVals[0] = barChartVals[0]+1;
 			}
-			//if there is an additional piece on removing, include it
-			if(comment.contains("removing")&&comment.contains(systemName.toLowerCase()))
+			else if(comment.contains("need to add interface dhmsm->"+systemName.toLowerCase()))
+			{
+				addedInterface = true;
+				barChartVals[1] = barChartVals[1]+1;
+			}
+			
+			if(comment.contains("recommend review of removing interface "+systemName.toLowerCase()))
+			{
+				removedInterface = true;
 				barChartVals[3] = barChartVals[3]+1;
+			}
+			
+			if(comment.contains("developing")&&comment.contains(systemName.toLowerCase()))
+			{
+				developedInterface = true;
+				barChartVals[4] = barChartVals[4]+1;
+			}
+
+			//stayAsIs if neither need to add interface or remove interface involve the system we're looking at
+			if((!addedInterface && !removedInterface && !developedInterface)|| comment.contains("stay"))
+				barChartVals[2] = barChartVals[2]+1;
+
 		}
 		barHash.put("headers", headers);
 		barHash.put("data", barChartVals);
