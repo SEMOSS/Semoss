@@ -20,41 +20,36 @@ public class CSVPropFileBuilder{
 	}
 	
 	public void addProperty(ArrayList<String> sub, ArrayList<String> obj, String dataType) {
-		String subject = "";
-		String object = "";
-
 		Iterator<String> subIt = sub.iterator();
+		String subject = subIt.next();
 		while(subIt.hasNext()){
-			subject = subject + subIt.next() + "+";
+			subject = subject + "+" + subIt.next();
 		}
-		subject = subject.substring(0, subject.length()-1);
+		
 		Iterator<String> objIt = obj.iterator();
+		String object = objIt.next();
 		while(objIt.hasNext()){
-			object = object + objIt.next() + "+";
+			object = object + "+" + objIt.next();
 		}
-		object = object.substring(0, object.length()-1);
 		
 		dataTypeHash.put(object, dataType);
 		node_properties.append(subject+"%"+object+";");
 	}
 
-	public void addRelationship(ArrayList<String> sub, String pred, ArrayList<String> obj) {
-		String subject = "";
-		String object = "";
-		// remove brackets around predicates
-		pred = pred.substring(1, pred.length()-1);
-		
+	public void addRelationship(ArrayList<String> sub, String pred, ArrayList<String> obj) {		
 		Iterator<String> subIt = sub.iterator();
+		String subject = subIt.next();
 		while(subIt.hasNext()){
-			subject = subject + subIt.next() + "+";
+			subject = subject + "+" + subIt.next();
 		}
 
 		Iterator<String> objIt = obj.iterator();
+		String object = objIt.next();
 		while(objIt.hasNext()){
-			object = object + objIt.next() + "+";
+			object = object + "+" + objIt.next();
 		}
 
-		relationships.append(subject.substring(0, subject.length()-1)+"@"+pred+"@"+object.substring(0, object.length()-1)+";");
+		relationships.append(subject+"@"+pred+"@"+object+";");
 	}
 
 	public void columnTypes(ArrayList<String> header){
