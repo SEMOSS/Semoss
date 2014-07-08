@@ -80,8 +80,8 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	public JPanel displayPanel;
 	
 	public JTabbedPane tabbedPane;
-	public JPanel specificFuncAlysPanel, heatMapPanel;
-	public BrowserGraphPanel heatMap;
+	public JPanel specificFuncAlysPanel, sorHeatMapPanel, consumerHeatMapPanel;
+	public BrowserGraphPanel sorHeatMap, consumerHeatMap;
 	
 	/**
 	 * Constructor for RelationPlaySheet.
@@ -251,26 +251,47 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		gbl_specificFuncAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		specificFuncAlysPanel.setLayout(gbl_specificFuncAlysPanel);
 		
-		heatMapPanel = new JPanel();
-		tabbedPane.addTab("Heat Map", null, heatMapPanel, null);
-		GridBagLayout gbl_heatMapPanel = new GridBagLayout();
-		gbl_heatMapPanel.columnWidths = new int[]{0, 0};
-		gbl_heatMapPanel.rowHeights = new int[]{0, 0};
-		gbl_heatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_heatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		heatMapPanel.setLayout(gbl_heatMapPanel);
+		sorHeatMapPanel = new JPanel();
+		tabbedPane.addTab("SOR Heat Map", null, sorHeatMapPanel, null);
+		GridBagLayout gbl_sorHeatMapPanel = new GridBagLayout();
+		gbl_sorHeatMapPanel.columnWidths = new int[]{0, 0};
+		gbl_sorHeatMapPanel.rowHeights = new int[]{0, 0};
+		gbl_sorHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_sorHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		sorHeatMapPanel.setLayout(gbl_sorHeatMapPanel);
 
-		heatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-		heatMap.setMinimumSize(new Dimension(500, 400));
-		heatMap.setVisible(false);
+		sorHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
+		sorHeatMap.setMinimumSize(new Dimension(500, 400));
+		sorHeatMap.setVisible(false);
 		
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 0;
-		heatMapPanel.add(heatMap, gbc_panel);
-		heatMapPanel.setVisible(false);
+		GridBagConstraints gbc_sorPanel = new GridBagConstraints();
+		gbc_sorPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_sorPanel.fill = GridBagConstraints.BOTH;
+		gbc_sorPanel.gridx = 0;
+		gbc_sorPanel.gridy = 0;
+		sorHeatMapPanel.add(sorHeatMap, gbc_sorPanel);
+		sorHeatMapPanel.setVisible(false);
+		
+		consumerHeatMapPanel = new JPanel();
+		tabbedPane.addTab("Consumer Heat Map", null, consumerHeatMapPanel, null);
+		GridBagLayout gbl_consumerHeatMapPanel = new GridBagLayout();
+		gbl_consumerHeatMapPanel.columnWidths = new int[]{0, 0};
+		gbl_consumerHeatMapPanel.rowHeights = new int[]{0, 0};
+		gbl_consumerHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_consumerHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		consumerHeatMapPanel.setLayout(gbl_consumerHeatMapPanel);
+
+		consumerHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
+		consumerHeatMap.setMinimumSize(new Dimension(500, 400));
+		consumerHeatMap.setVisible(false);
+		
+		GridBagConstraints gbc_consumerPanel = new GridBagConstraints();
+		gbc_consumerPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_consumerPanel.fill = GridBagConstraints.BOTH;
+		gbc_consumerPanel.gridx = 0;
+		gbc_consumerPanel.gridy = 0;
+		consumerHeatMapPanel.add(consumerHeatMap, gbc_consumerPanel);
+		consumerHeatMapPanel.setVisible(false);
 	}
 	
 	public void createUI()
