@@ -63,34 +63,7 @@ public class RelationFunction implements IAlgorithm {
 		Vector <String> colNamesAsVector = new Vector<String>(colNames);
 		Collections.sort(colNamesAsVector);
 		colNames = new ArrayList<String>(colNamesAsVector);
-
-		// get systems that are source of record for data objects
-		String queryString = "SELECT DISTINCT ?system ?data (COUNT(DISTINCT ?icd) as ?icdCount) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } GROUP BY ?system ?data";
-		logger.info("PROCESSING QUERY: " + queryString);
-
-		// execute the query on a specified engine
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		sjsw.setEngine(engine);
-		sjsw.setQuery(queryString);
-		sjsw.executeQuery();
-
-		names = sjsw.getVariables();
-
-		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
-
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sjsw.next();
-
-			String sys = (String) sjss.getVar(names[0]);
-			String data = (String) sjss.getVar(names[1]);
-			double count = (Double) sjss.getVar(names[2]);
-
-			if (colNames.contains(sys)) {
-				processedList.add(new Object[]{sys, data, count});
-			}
-		}
-
+		
 		// set the column names in the global names variable
 		String[] colNamesArray = new String[colNames.size()+2];
 		colNamesArray[0] = "";
@@ -100,6 +73,127 @@ public class RelationFunction implements IAlgorithm {
 		}
 		names = colNamesArray;
 
+		// get systems that are source of record for data objects
+		String sorQueryString = "SELECT DISTINCT ?system ?data (COUNT(DISTINCT ?icd) as ?icdCount) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } GROUP BY ?system ?data";
+		logger.info("PROCESSING QUERY: " + sorQueryString);
+		
+		// get systems that are source of record for data objects
+		String consumerQueryString = "SELECT DISTINCT ?System ?Data ?Count WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?otherSystem <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data}  BIND( 1 AS ?Count)}";
+		logger.info("PROCESSING QUERY: " + consumerQueryString);
+
+		ArrayList<Object[]> processedList = processQuery(sorQueryString);
+		ArrayList<Object[]> processedConsumerList = processQuery(consumerQueryString);
+
+		Object[][] sorVariableMatrix = createVariableMatrix(processedList);
+		Object[][] consumerVariableMatrix = createVariableMatrix(processedConsumerList);
+
+		// convert matrix back into arraylist
+		ArrayList<Object[]> sorArrayList = new ArrayList<Object[]>(Arrays.asList(sorVariableMatrix));
+		sorArrayList.remove(0);
+		
+		Hashtable sorAllHash = createHashtable(sorVariableMatrix);
+		Hashtable consumerAllHash = createHashtable(consumerVariableMatrix);
+		
+		display(sorArrayList,sorAllHash,consumerAllHash);
+	}
+	public void display(ArrayList<Object[]> sorArrayList,Hashtable sorAllHash,Hashtable consumerAllHash)
+	{
+		// display output for functionality analysis tab
+		GridScrollPane pane = new GridScrollPane(names, sorArrayList);
+		pane.addHorizontalScroll();
+		((RelationPlaySheet) playSheet).specificFuncAlysPanel.removeAll();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		((RelationPlaySheet) playSheet).specificFuncAlysPanel.setLayout(gridBagLayout);
+		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
+		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1_1.gridx = 0;
+		gbc_panel_1_1.gridy = 0;
+		((RelationPlaySheet) playSheet).specificFuncAlysPanel.add(pane, gbc_panel_1_1);
+		((RelationPlaySheet) playSheet).specificFuncAlysPanel.repaint();
+		try {
+			((RelationPlaySheet) playSheet).setSelected(false);
+			((RelationPlaySheet) playSheet).setSelected(true);
+		} catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
+
+		// display output for heatmap tab
+		((RelationPlaySheet) playSheet).sorHeatMap.callIt(sorAllHash);
+		((RelationPlaySheet) playSheet).sorHeatMap.setVisible(true);
+		// display output for heatmap tab
+		((RelationPlaySheet) playSheet).consumerHeatMap.callIt(consumerAllHash);
+		((RelationPlaySheet) playSheet).consumerHeatMap.setVisible(true);
+	}
+
+	/**
+	 * Casts a given playsheet as a relation playsheet.
+	 * @param playSheet 	Playsheet to be cast.
+	 */
+
+	public void setPlaySheet(IPlaySheet playSheet) {
+		this.playSheet = (RelationPlaySheet) playSheet;
+	}
+
+	@Override
+	public String[] getVariables() {
+		return null;
+	}
+
+	@Override
+	public void execute() {
+		processRelations();
+	}
+
+	@Override
+	public String getAlgoName() {
+		return null;
+	}
+
+	public void setRDFEngine(IEngine engine) {
+		this.engine = engine;	
+	}
+
+	public void setDataList(ArrayList<String> dataList)
+	{
+		this.rowNames = dataList;
+	}
+
+	public void setSysList(ArrayList<String> sysList)
+	{
+		this.colNames = sysList;
+	}
+
+	public ArrayList<Object[]> processQuery(String query) {
+		// execute the query on a specified engine
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();
+		
+		String[] names = sjsw.getVariables();
+		
+		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
+		
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+		
+			String sys = (String) sjss.getVar(names[0]);
+			String data = (String) sjss.getVar(names[1]);
+			double count = (Double) sjss.getVar(names[2]);
+		
+			if (colNames.contains(sys)) {
+				processedList.add(new Object[]{sys, data, count});
+			}
+		}
+		return processedList;
+	}
+	
+	public Object[][] createVariableMatrix(ArrayList<Object[]> processedList)
+	{
 		// create a matrix with row and column names
 		// iterate through processed list, implement logic to create X's based on relationship
 		Object[][] variableMatrix = new Object[rowNames.size()+1][colNames.size()+2];
@@ -132,8 +226,13 @@ public class RelationFunction implements IAlgorithm {
 			variableMatrix[i][1] = count;
 		}
 		
+
+		return variableMatrix;
+	}
+	
+	public Hashtable createHashtable(Object[][] variableMatrix){
 		ArrayList<Object[]> processedList2 = new ArrayList<Object[]>();
-		
+
 		for (int i=1; i<rowNames.size()+1; i++) {
 			for (int j=2; j<colNames.size()+2; j++) {
 				if (variableMatrix[i][j] == null) {
@@ -143,10 +242,6 @@ public class RelationFunction implements IAlgorithm {
 				}
 			}
 		}
-		
-		// convert matrix back into arraylist
-		ArrayList<Object[]> arrayList = new ArrayList<Object[]>(Arrays.asList(variableMatrix));
-		arrayList.remove(0);
 
 		// update the counts so that they are percentages
 		ArrayList<Object[]> percentList = new ArrayList<Object[]>();
@@ -204,71 +299,6 @@ public class RelationFunction implements IAlgorithm {
 		allHash.put("xAxisTitle", var[0]);
 		allHash.put("yAxisTitle", var[1]);
 		allHash.put("value", var[2]);
-
-		// display output for functionality analysis tab
-		GridScrollPane pane = new GridScrollPane(names, arrayList);
-		pane.addHorizontalScroll();
-		((RelationPlaySheet) playSheet).specificFuncAlysPanel.removeAll();
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		((RelationPlaySheet) playSheet).specificFuncAlysPanel.setLayout(gridBagLayout);
-		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
-		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
-		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
-		gbc_panel_1_1.gridx = 0;
-		gbc_panel_1_1.gridy = 0;
-		((RelationPlaySheet) playSheet).specificFuncAlysPanel.add(pane, gbc_panel_1_1);
-		((RelationPlaySheet) playSheet).specificFuncAlysPanel.repaint();
-		try {
-			((RelationPlaySheet) playSheet).setSelected(false);
-			((RelationPlaySheet) playSheet).setSelected(true);
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
-
-		// display output for heatmap tab
-		((RelationPlaySheet) playSheet).heatMap.callIt(allHash);
-		((RelationPlaySheet) playSheet).heatMap.setVisible(true);
-
+		return allHash;
 	}
-
-	/**
-	 * Casts a given playsheet as a relation playsheet.
-	 * @param playSheet 	Playsheet to be cast.
-	 */
-
-	public void setPlaySheet(IPlaySheet playSheet) {
-		this.playSheet = (RelationPlaySheet) playSheet;
-	}
-
-	@Override
-	public String[] getVariables() {
-		return null;
-	}
-
-	@Override
-	public void execute() {
-		processRelations();
-	}
-
-	@Override
-	public String getAlgoName() {
-		return null;
-	}
-
-	public void setRDFEngine(IEngine engine) {
-		this.engine = engine;	
-	}
-
-	public void setDataList(ArrayList<String> dataList)
-	{
-		this.rowNames = dataList;
-	}
-
-	public void setSysList(ArrayList<String> sysList)
-	{
-		this.colNames = sysList;
-	}
-
 }
