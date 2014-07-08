@@ -628,14 +628,15 @@
                          colorScale = d3.scale.quantile()
                         .domain(valueArray)
                     .range(colors);
-
-                        heatMap
+						 heatMap
                         .transition()
                         .duration(transitionTime)
                         .style("fill", function(d) {
                             if (domainArray.length === 0 || (d.Value >= domainArray[0] && d.Value <= domainArray[1])) {
                                 return colorScale(d.Value);
-                            }else {
+                            }else if(roundValueArray[0] === roundValueArray[roundValueArray.length-1]) {
+								return colors[0];
+							}else {
                                 return "white"
                             }
                         
@@ -650,7 +651,9 @@
                         .style("fill", function(d) {
                         if (domainArray.length === 0 || (d.Value >= domainArray[0] && d.Value <= domainArray[1])) {
                             return getQuantizedColor(quantizedArray, d.Value);
-                        }else {return "white"}
+                        }else if(roundValueArray[0] === roundValueArray[roundValueArray.length-1]) {
+								return colors[0];
+						}else {return "white"}
                         
                         });
                     }
