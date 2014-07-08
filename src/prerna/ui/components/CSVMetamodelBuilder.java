@@ -42,19 +42,19 @@ public class CSVMetamodelBuilder {
 	private String[] header;
 	private ArrayList<File> propFiles;
 	private Hashtable<String, ArrayList<Hashtable<String, String[]>>> propFileData = new Hashtable<String, ArrayList<Hashtable<String, String[]>>>();
-	
+
 	private String[] keys = new String[]{"RELATION", "NODE_PROP"};
 	private String[] tripleRelKeys = new String[]{"sub", "pred", "obj"};
 	private String[] tripleNodePropKeys = new String[]{"sub", "prop"};
-	
+
 	public void setFiles(ArrayList<File> files) {
 		this.files = files;
 	}
-	
+
 	public void setPropFiles(ArrayList<File> propFiles) {
 		this.propFiles = propFiles;
 	}
-	
+
 	public Hashtable<String, ArrayList<Hashtable<String, String[]>>> returnPropFileDataResults() {
 		if(propFiles != null)
 		{
@@ -70,11 +70,11 @@ public class CSVMetamodelBuilder {
 				successful = false;
 				e.printStackTrace();
 			}
-			
+
 			if(successful)
 			{
 				initaiatePropFileData();
-				
+
 				String relationList = propDataProp.getProperty(keys[0]).toString();
 				String[] relationListSplit = relationList.split(";");
 				for(Integer relIdx = 0; relIdx < relationListSplit.length; relIdx++) 
@@ -99,16 +99,16 @@ public class CSVMetamodelBuilder {
 					ArrayList<Hashtable<String, String[]>> currRelHash = propFileData.get(keys[0]);
 					currRelHash.add(innerHash);
 				}
-				
+
 				String nodePropList = propDataProp.getProperty(keys[1]).toString();
 				String [] nodePropListSplit = nodePropList.split(";");
 				for(int nodePropIdx = 0; nodePropIdx < nodePropListSplit.length; nodePropIdx++)
 				{
 					String[] tripleParts = nodePropListSplit[nodePropIdx].split("%");
-					Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
-					String[] subject;
+					String[] subject = null;
 					for(int idx = 0; idx < tripleParts.length; idx++)
 					{
+						Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
 						String[] value;
 						if(idx == 0) {
 							String triplePart = tripleParts[idx];
@@ -117,43 +117,29 @@ public class CSVMetamodelBuilder {
 							} else {
 								subject = new String[]{triplePart};
 							}
-							innerHash.put(tripleNodePropKeys[0], subject);
 						} else {
+							innerHash.put(tripleNodePropKeys[0], subject);
 							String triplePart = tripleParts[idx];
 							if(triplePart.contains("+")) {
 								value = triplePart.split("\\+");
 							} else {
 								value = new String[]{triplePart};
 							}
-							if(innerHash.get(tripleNodePropKeys[1]) == null) {
-								innerHash.put(tripleNodePropKeys[1], value);	
-							} else {
-								String[] propList = innerHash.get(tripleNodePropKeys[1]);
-								String[] newValue = combine(propList, value);
-								innerHash.put(tripleNodePropKeys[1], newValue);	
-							}
+							innerHash.put(tripleNodePropKeys[1], value);	
+							ArrayList<Hashtable<String, String[]>> currNodePropHash = propFileData.get(keys[1]);
+							currNodePropHash.add(innerHash);
 						}
 					}
-					ArrayList<Hashtable<String, String[]>> currNodePropHash = propFileData.get(keys[1]);
-					currNodePropHash.add(innerHash);
 				}
 			}
 		}
 		return propFileData;
 	}
-	
-	public String[] combine(String[] string1, String[] string2) {
-        int length = string1.length + string2.length;
-        String[] result = new String[length];
-        System.arraycopy(string1, 0, result, 0, string1.length);
-        System.arraycopy(string2, 0, result, string1.length, string2.length);
-        return result;
-    }
 
 	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes()
 	{
 		//TODO: loop through multiple files?
-		
+
 		if(files != null)
 		{
 			boolean successful = true;
@@ -170,7 +156,7 @@ public class CSVMetamodelBuilder {
 				successful = false;
 				e.printStackTrace();
 			}
-			
+
 			if(successful) {
 				initiateDataTypeHash();
 				getAllDataType(listReader);
@@ -178,7 +164,7 @@ public class CSVMetamodelBuilder {
 				return dataType;
 			}
 		}
-		
+
 		return dataType;
 	}
 
@@ -195,12 +181,12 @@ public class CSVMetamodelBuilder {
 				dataType.put(header[i], innerHash);
 			}
 		}
-		
+
 		Hashtable<String, LinkedHashSet<String>> headerHash = new Hashtable<String, LinkedHashSet<String>>();
 		headerHash.put("AllHeaders", headerSet);
 		dataType.put("AllHeaders", headerHash);
 	}
-	
+
 	private void initaiatePropFileData() {
 		for(int i = 0; i < 2; i++) {
 			ArrayList<Hashtable<String, String[]>> innerListHash = new ArrayList<Hashtable<String, String[]>>();
@@ -238,7 +224,7 @@ public class CSVMetamodelBuilder {
 			if(header[i] != null){
 				Hashtable<String, LinkedHashSet<String>> headerObj = dataType.get(header[i]);
 				LinkedHashSet<String> allowedTypes = headerObj.get("AllowedDataTypes");
-	
+
 				if(allowedTypes.isEmpty()) // it should never come in here, but as default, String is the only thing available
 				{
 					allowedTypes.add("STRING");
@@ -254,55 +240,55 @@ public class CSVMetamodelBuilder {
 				}
 			}
 
-//			HashSet<String> numSet = new HashSet<String>();
-//			numSet.add("DOUBLE");
-//			numSet.add("INTEGER");
-//			if(allowedTypes.isEmpty()) // it should never come in here, but as default, String is the only thing available
-//			{
-//				allowedTypes.add("STRING");
-//			}
-//			else if(allowedTypes.size() == 1) // if all cells of that column are the same type, you can load as that specific type, or string
-//			{
-//				allowedTypes.add("STRING");
-//			}
-//			else if(allowedTypes.size() == 2) // if cell of that column are two different types
-//			{
-//				if(allowedTypes.equals(numSet)) // if the two options are double and int, int is not an option as doubles cannot be cast to int
-//				{
-//					allowedTypes.remove("INTEGER");
-//					allowedTypes.add("STRING");
-//				}
-//				else // otherwise only string is available as anything else would have cast exception
-//				{
-//					allowedTypes.clear();
-//					allowedTypes.add("STRING");
-//				}
-//			}
-//			else if(allowedTypes.size() > 2) // if more than two types, only string is available
-//			{
-//				Iterator<String> typeIt = allowedTypes.iterator();
-//				while(typeIt.hasNext())
-//				{
-//					typeIt.next();
-//					typeIt.remove();
-//				}
-//				allowedTypes.add("STRING");
-//			}
+			//			HashSet<String> numSet = new HashSet<String>();
+			//			numSet.add("DOUBLE");
+			//			numSet.add("INTEGER");
+			//			if(allowedTypes.isEmpty()) // it should never come in here, but as default, String is the only thing available
+			//			{
+			//				allowedTypes.add("STRING");
+			//			}
+			//			else if(allowedTypes.size() == 1) // if all cells of that column are the same type, you can load as that specific type, or string
+			//			{
+			//				allowedTypes.add("STRING");
+			//			}
+			//			else if(allowedTypes.size() == 2) // if cell of that column are two different types
+			//			{
+			//				if(allowedTypes.equals(numSet)) // if the two options are double and int, int is not an option as doubles cannot be cast to int
+			//				{
+			//					allowedTypes.remove("INTEGER");
+			//					allowedTypes.add("STRING");
+			//				}
+			//				else // otherwise only string is available as anything else would have cast exception
+			//				{
+			//					allowedTypes.clear();
+			//					allowedTypes.add("STRING");
+			//				}
+			//			}
+			//			else if(allowedTypes.size() > 2) // if more than two types, only string is available
+			//			{
+			//				Iterator<String> typeIt = allowedTypes.iterator();
+			//				while(typeIt.hasNext())
+			//				{
+			//					typeIt.next();
+			//					typeIt.remove();
+			//				}
+			//				allowedTypes.add("STRING");
+			//			}
 		}
 	}
 
 	private static String determineProcessor(String s) {
-		
-//		boolean isInt = true;
-//		try { 
-//			Integer.parseInt(s); 
-//		} catch(NumberFormatException e) { 
-//			isInt = false;
-//		}
-//
-//		if(isInt){
-//			return ("INTEGER");
-//		}
+
+		//		boolean isInt = true;
+		//		try { 
+		//			Integer.parseInt(s); 
+		//		} catch(NumberFormatException e) { 
+		//			isInt = false;
+		//		}
+		//
+		//		if(isInt){
+		//			return ("INTEGER");
+		//		}
 
 		boolean isDouble = true;
 		try {
