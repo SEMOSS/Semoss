@@ -433,6 +433,29 @@ public class SysDecommissionOptimizationFunctions {
 
 			outputList.add(element);
 		}
+		
+		for(String sys : sysList)
+		{
+			//adding in any systems that we were missing information for
+			if(!sortedSysList.contains(sys))
+			{
+				Object[] element = new Object[9];
+				element[0] = sys;
+				element[1] = sysToProbHash.get(sys);
+				element[2] = -1;
+				element[3] = -1;
+				element[4] = -1;
+				int numSites= 1;
+				if(sysToSiteHash.containsKey(sys))
+					numSites = sysToSiteHash.get(sys).size();
+				element[5] = numSites;
+				element[6] = -1;
+				element[7] = -1;
+				element[8] = -1;
+				outputList.add(element);
+			}
+				
+		}
 	}
 	
 	
