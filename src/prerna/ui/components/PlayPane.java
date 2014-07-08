@@ -2911,12 +2911,12 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmlblCapName, gbc_dhmsmlblCapName);
 		
 				selectRadioPanel = new SelectRadioButtonPanel();// change this
-				GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints();
+/*				GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints();
 				gbc_selectRadioPanel.insets = new Insets(0, 0, 5, 0);
 				gbc_selectRadioPanel.gridx = 4;
 				gbc_selectRadioPanel.gridy = 6;
 				dhmsmReportTopPanel.add(selectRadioPanel, gbc_selectRadioPanel);
-				FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
+*/				FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
 				flowLayout3.setAlignment(FlowLayout.LEFT);
 				selectRadioPanel.setBackground(SystemColor.control);
 
@@ -3003,7 +3003,7 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmLblDataName.gridy = 5;
 		dhmsmReportTopPanel.add(dhmsmLblDataName, gbc_dhmsmLblDataName);
 
-		selectRadioScrollPane = new JScrollPane();
+		selectRadioScrollPane = new JScrollPane(selectRadioPanel);
 		GridBagConstraints gbc_selectRadioScrollPane = new GridBagConstraints();
 		gbc_selectRadioScrollPane.fill = GridBagConstraints.HORIZONTAL;
 		gbc_selectRadioScrollPane.insets = new Insets(0, 0, 5, 0);
