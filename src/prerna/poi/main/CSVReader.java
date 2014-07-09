@@ -181,8 +181,11 @@ public class CSVReader extends AbstractFileReader {
 		typeHash.put("STRING", new NotNull());
 		typeHash.put("DATE", new ParseDate("yyyy-mm-dd hh:mm:ss"));
 		typeHash.put("SIMPLEDATE", new ParseDate("mm/dd/yyyy"));
-		typeHash.put("NUMBER", new ParseInt());
-		typeHash.put("INTEGER", new ParseInt());
+		// currently only add in numbers as doubles
+		typeHash.put("NUMBER", new ParseDouble());
+		typeHash.put("INTEGER", new ParseDouble());
+//		typeHash.put("NUMBER", new ParseInt());
+//		typeHash.put("INTEGER", new ParseInt());
 		typeHash.put("BOOLEAN", new ParseBool());
 
 		// now the optionals
@@ -191,8 +194,11 @@ public class CSVReader extends AbstractFileReader {
 		typeHash.put("STRING_OPTIONAL", new Optional());
 		typeHash.put("DATE_OPTIONAL", new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")));
 		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("mm/dd/yyyy")));
-		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
-		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
+		// currently only add in numbers as doubles
+		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseDouble()));
+		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseDouble()));
+//		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
+//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
 		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
 	}
 
