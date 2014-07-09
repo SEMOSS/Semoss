@@ -25,10 +25,6 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private HashSet<String> allSoftwareModules = new HashSet<String>();
 	private HashSet<String> allHardwareModules = new HashSet<String>();
 
-	//	private XSSFWorkbook wb = new XSSFWorkbook();
-	//	private XSSFSheet errSheet = wb.createSheet();
-	//	private int rowNum = 1;
-
 	public String errorMessage = "";
 	private boolean addedToOwl = false;
 	private boolean aggregationSuccess;
@@ -50,7 +46,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private String TAP_SERVICES_AGGREGATE_ACTIVITY_COMMENTS_QUERY = "SELECT DISTINCT ?system ?activity ?supports ?pred ?prop1 ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService ?supports ?activity} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?supports ?pred ?prop1}}";
 	private String TAP_CORE_AGGREGATE_ACTIVITY_COMMENTS_QUERY = "SELECT DISTINCT ?system ?activity ?supports ?pred ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} {?system ?supports ?activity} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?supports ?pred ?prop1}}";
 
-	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?BLU} }";
+	private String TAP_SERVICES_AGGREGATE_BLU_QUERY = "SELECT DISTINCT ?system ?provide ?BLU ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?BLU} {?provide <http://semoss.org/ontologies/Relation/Contains/weight> ?prop1} }";
 	private String TAP_SERVICES_AGGREGATE_BLU_COMMENTS_QUERY = "SELECT DISTINCT ?system ?BLU ?provide ?pred ?prop1 ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService ?provide ?BLU} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1 } }";
 	private String TAP_CORE_AGGREGATE_BLU_COMMENTS_QUERY = "SELECT DISTINCT ?system ?BLU ?provide ?pred ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?system ?provide ?BLU} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1 } }";
 
@@ -83,7 +79,9 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private String TAP_CORE_AGGREGATE_DATAOBJECT_CRM_QUERY = "SELECT DISTINCT ?system ?provide ?data ?crm WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm}}";
 	private String TAP_SERVICER_AGGREGATE_DATAOBJECT_COMMENTS_QUERY = "SELECT DISTINCT ?system ?data ?provide ?pred ?prop1 ?user WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?user <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemUser>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService <http://semoss.org/ontologies/Relation/UsedBy> ?user} {?systemService ?provide ?data} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1} }";
 	private String TAP_CORE_AGGREGATE_DATAOBJECT_COMMENTS_QUERY = "SELECT DISTINCT ?system ?data ?provide ?pred ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1} }";
-
+	
+	private String TAP_SERVICES_AGGRATE_DATAOBJECT_REPORTED_QUERY = "SELECT DISTINCT ?system ?provide ?data ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/Reported> ?prop1}}";
+	
 	private String TAP_CORE_SOFTWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?softwareModule WHERE{{?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} }";
 
 	private String TAP_CORE_HARDWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?hardwareModule WHERE{{?hardwareModule a <http://semoss.org/ontologies/Concept/HardwareModule>} }";
@@ -175,6 +173,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND CRM PROPERTY AND AGGREGATING INTO TAP CORE");
 		logger.info("QUERIES BOTH TAP SERVICES AND TAP CORE TO DETERMINE CRM");
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_CRM_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_CRM_QUERY);
+		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND REPORTED COMMENT INTO TAP CORE");
+		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGRATE_DATAOBJECT_REPORTED_QUERY, new String[]{"Reported"});
 		logger.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND COMMENTS PROPERTY AND AGGREGATING INTO TAP CORE");
 		runCommentAggregationForRelationships(TAP_SERVICER_AGGREGATE_DATAOBJECT_COMMENTS_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_COMMENTS_QUERY);
 
@@ -189,26 +189,9 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 		((BigDataEngine) coreDB).infer();
 
-		if(addedToOwl)
-		{
+		if(addedToOwl) {
 			writeToOWL(coreDB);
 		}
-
-		//		XSSFRow row = errSheet.createRow(0);
-		//		row.createCell(0).setCellValue("DB Name");
-		//		row.createCell(1).setCellValue("Subject");
-		//		row.createCell(2).setCellValue("Predicate");
-		//		row.createCell(3).setCellValue("Object");
-		//		row.createCell(4).setCellValue("Error Messge");
-		//		
-		//		String workspace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		//		try {
-		//			wb.write(new FileOutputStream(workspace + "/" + "ServiceAggreagationErrorLog.xlsx"));
-		//		} catch (FileNotFoundException e) {
-		//			e.printStackTrace();
-		//		} catch (IOException e) {
-		//			e.printStackTrace();
-		//		}
 
 		return this.aggregationSuccess;
 	}
@@ -380,26 +363,16 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				if(Arrays.equals(returnTriple, new String[]{""}))
 				{
 					String outuptToLog = "";
-					//						XSSFRow row = errSheet.createRow(rowNum);
 					if(!TAP_Core)
 					{
-						//							row.createCell(0).setCellValue("TAP_Services_DB");
 						outuptToLog += "TAP_Services_DB ";
-
 					}
 					else
 					{
-						//							row.createCell(0).setCellValue("TAP_Core_DB");
 						outuptToLog += "TAP_Core_DB ";
 					}
 					outuptToLog += pred + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
 					fileLogger.info(outuptToLog);
-					//						row.createCell(1).setCellValue(sub);
-					//						row.createCell(2).setCellValue(prop);
-					//						row.createCell(3).setCellValue(value.toString());
-					//						row.createCell(4).setCellValue(this.errorMessage);
-					//						rowNum++;
-
 					aggregationSuccess = false;
 				}
 				// returnTriple never gets a value when the property being passed in isn't in the defined list above
@@ -541,26 +514,16 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				if(Arrays.equals(returnTriple, new String[]{""}))
 				{
 					String outuptToLog = "";
-					//						XSSFRow row = errSheet.createRow(rowNum);
 					if(!TAP_Core)
 					{
-						//							row.createCell(0).setCellValue("TAP_Services_DB");
 						outuptToLog += "TAP_Services_DB ";
-
 					}
 					else
 					{
-						//							row.createCell(0).setCellValue("TAP_Core_DB");
 						outuptToLog += "TAP_Core_DB ";
 					}
 					outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
 					fileLogger.info(outuptToLog);
-					//						row.createCell(1).setCellValue(sub);
-					//						row.createCell(2).setCellValue(prop);
-					//						row.createCell(3).setCellValue(value.toString());
-					//						row.createCell(4).setCellValue(this.errorMessage);
-					//						rowNum++;
-
 					aggregationSuccess = false;
 				}
 				// returnTriple never gets a value when the property being passed in isn't in the defined list above
@@ -676,26 +639,16 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				if(Arrays.equals(returnTriple, new String[]{""}))
 				{
 					String outuptToLog = "";
-					//						XSSFRow row = errSheet.createRow(rowNum);
 					if(!TAP_Core)
 					{
-						//							row.createCell(0).setCellValue("TAP_Services_DB");
 						outuptToLog += "TAP_Services_DB ";
-
 					}
 					else
 					{
-						//							row.createCell(0).setCellValue("TAP_Core_DB");
 						outuptToLog += "TAP_Core_DB ";
 					}
 					outuptToLog += sub + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
 					fileLogger.info(outuptToLog);
-					//						row.createCell(1).setCellValue(sub);
-					//						row.createCell(2).setCellValue(prop);
-					//						row.createCell(3).setCellValue(value.toString());
-					//						row.createCell(4).setCellValue(this.errorMessage);
-					//						rowNum++;
-
 					aggregationSuccess = false;
 				}
 				// returnTriple never gets a value when the property being passed in isn't in the defined list above
@@ -777,17 +730,9 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 						}
 						catch(NumberFormatException e)
 						{
-							//e.printStackTrace();
 							this.errorMessage = this.errorMessage + "Error Processing TError! " 
 									+ "Error occured processing: " + pred + " >>>> " + propertyURI + " >>>> " + valueAsObject + " " 	
 									+ "Check that value is parsable as a double";	
-							//							XSSFRow row = errSheet.createRow(rowNum);
-							//							row.createCell(0).setCellValue("Not Sure");
-							//							row.createCell(1).setCellValue(pred);
-							//							row.createCell(2).setCellValue(propertyURI);
-							//							row.createCell(3).setCellValue(valueAsObject.toString());
-							//							row.createCell(4).setCellValue(this.errorMessage);
-							//							rowNum++;
 							String outputToLog = "Unsure About DB" + " >>>>> " + pred + " >>>>> " + propertyURI + " >>>>> " + valueAsObject.toString() + " >>>>> " + this.errorMessage;
 							fileLogger.info(outputToLog);
 
@@ -981,26 +926,16 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					if(Arrays.equals(returnTriple, new String[]{""}))
 					{
 						String outuptToLog = "";
-						//							XSSFRow row = errSheet.createRow(rowNum);
 						if(!TAP_Core)
 						{
-							//								row.createCell(0).setCellValue("TAP_Services_DB");
 							outuptToLog += "TAP_Services_DB ";
-
 						}
 						else
 						{
-							//								row.createCell(0).setCellValue("TAP_Core_DB");
 							outuptToLog += "TAP_Core_DB ";
 						}
 						outuptToLog += module + " >>>>> " + prop + " >>>>> " + value.toString() + " >>>>> " + this.errorMessage;
 						fileLogger.info(outuptToLog);
-						//							row.createCell(1).setCellValue(sub);
-						//							row.createCell(2).setCellValue(prop);
-						//							row.createCell(3).setCellValue(value.toString());
-						//							row.createCell(4).setCellValue(this.errorMessage);
-						//							rowNum++;
-
 						aggregationSuccess = false;
 					}
 					// returnTriple never gets a value when the property being passed in isn't in the defined list above
