@@ -182,12 +182,17 @@ public class IndividualSystemTransitionReportWriter {
 
 		fillStringInText(sheetToWriteOver,3,0,null,systemName);
 		
+		int rowToStart = 6;
+		
 		if(!sheetName.contains("Interface"))
 			fillStringInText(sheetToWriteOver, 3,1,"@SYSTEM@",systemName);
 		else
+		{
 			fillStringInText(sheetToWriteOver, 3,3,"@SYSTEM@",systemName);
+			rowToStart = 9;
+		}
 
-		int rowToStart = 6;
+
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 			XSSFRow rowToWriteOn;
@@ -210,10 +215,6 @@ public class IndividualSystemTransitionReportWriter {
 					cellToWriteOn = rowToWriteOn.createCell(col);
 					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(col);
 					cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
-				}
-				if(col==resultRowValues.length - 1)
-				{
-					String k = "k";
 				}
 				if(resultRowValues[col] instanceof Double) {
 					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
@@ -360,24 +361,26 @@ public class IndividualSystemTransitionReportWriter {
 		writeModernizationTimeline(sheetName,7,(ArrayList<Object[]>)hardware.get("data"));
 
 		ArrayList<Object[]> budgetList = (ArrayList<Object[]>)budget.get("data");
-
-		int indRowToWriteBudget = 9;
-		for(int i=0;i<budgetList.size();i++)
+		if(budgetList!=null)
 		{
-			Object[] budgetRow = budgetList.get(i);
-			XSSFRow rowToWriteOn;
-			if(((String)budgetRow[1]).contains("SW"))
-				rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget);
-			else
-				rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget+1);
-			XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
-			if(budgetRow[2] instanceof Double)
-				cellToWriteOn.setCellValue((Double)budgetRow[2]);
-			else if(budgetRow[2] instanceof Integer)
-				cellToWriteOn.setCellValue((Integer)budgetRow[2]);
-			else
-				cellToWriteOn.setCellValue((String)budgetRow[2]);
-
+			int indRowToWriteBudget = 9;
+			for(int i=0;i<budgetList.size();i++)
+			{
+				Object[] budgetRow = budgetList.get(i);
+				XSSFRow rowToWriteOn;
+				if(((String)budgetRow[1]).contains("SW"))
+					rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget);
+				else
+					rowToWriteOn = sheetToWriteOver.getRow(indRowToWriteBudget+1);
+				XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
+				if(budgetRow[2] instanceof Double)
+					cellToWriteOn.setCellValue((Double)budgetRow[2]);
+				else if(budgetRow[2] instanceof Integer)
+					cellToWriteOn.setCellValue((Integer)budgetRow[2]);
+				else
+					cellToWriteOn.setCellValue((String)budgetRow[2]);
+		
+			}
 		}
 
 	}

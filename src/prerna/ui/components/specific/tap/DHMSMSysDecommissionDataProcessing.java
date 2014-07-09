@@ -97,7 +97,7 @@ public class DHMSMSysDecommissionDataProcessing {
 					sysAtSite.put(sys, new Hashtable<String, Object>());
 					Hashtable<String, Object> sysAtSitePropHash = (Hashtable<String, Object>) sysAtSite.get(sys);
 					sysAtSitePropHash.put("Cost", loeForSiteSystem.get(site).get(sys)*costPerHr);
-					sysAtSitePropHash.put("Rescources", resourceForSiteSystem.get(site).get(sys));
+					sysAtSitePropHash.put("Resources", resourceForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("Pilot", pilotForSiteSystem.get(site).get(sys));
 					sysAtSitePropHash.put("AccessType", accessTypeForSiteSystem.get(site).get(sys));
 
