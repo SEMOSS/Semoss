@@ -25,8 +25,6 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import javax.swing.JList;
-
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
@@ -59,23 +57,21 @@ public class DHMSMSystemCapabilityOverlapProcessor {
 	 */
 	public void runCapabilityListQuery() {
 		try {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine);
-		
-		String query = "SELECT DISTINCT ?Capability ?CapabilityFunctionalArea WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
-
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-
-		String[] names = wrapper.getVariables();
-
-			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
-				capToFunctionalAreaHash.put((String) sjss.getVar(names[0]),(String) sjss.getVar(names[1]));
-			}
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine);
+			
+			String query = "SELECT DISTINCT ?Capability ?CapabilityFunctionalArea WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
+	
+			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			wrapper.setQuery(query);
+			wrapper.setEngine(engine);
+			wrapper.executeQuery();
+	
+			String[] names = wrapper.getVariables();
+	
+				while (wrapper.hasNext()) {
+					SesameJenaSelectStatement sjss = wrapper.next();
+					capToFunctionalAreaHash.put((String) sjss.getVar(names[0]),(String) sjss.getVar(names[1]));
+				}
 		} catch (Exception e) {
 			Utility.showError("Cannot find engine: "+hrCoreEngine);
 		}
