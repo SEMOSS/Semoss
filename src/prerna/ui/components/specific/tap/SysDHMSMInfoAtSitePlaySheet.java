@@ -10,6 +10,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+@SuppressWarnings("serial")
 public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 
 	private String GET_SYSTEMS_AT_SITE = "SELECT DISTINCT ?DCSite ?System WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite;} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?DCSite";

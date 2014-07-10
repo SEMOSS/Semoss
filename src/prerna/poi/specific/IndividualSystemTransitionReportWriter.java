@@ -25,12 +25,12 @@ import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.record.CFRuleRecord.ComparisonOperator;
-import org.apache.poi.hssf.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
@@ -460,6 +460,28 @@ public class IndividualSystemTransitionReportWriter {
 		fillStringInText(sheetToWriteOver, 33, 1,"@SYSTEM@",systemName);
 		fillStringInText(sheetToWriteOver,13,1,"@DATE@",beginIOCString);
 		
+	}
+	
+	public void writeSystemSiteDetails(String sheetName, HashMap<String,Object> result){
+
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
+		if(dataList==null || dataList.size()==0)
+			return;
+		Object[] resultRowValues = dataList.get(0);
+
+		int rowToStartList = 53;
+		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(rowToStartList);
+
+		for (int col=0; col< resultRowValues.length; col++) {
+			XSSFCell cellToWriteOn = rowToWriteOn.getCell(col*4+1);
+			if(resultRowValues[col] instanceof Double)
+				cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+			else if(resultRowValues[col] instanceof Integer)
+				cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
+			else
+				cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+		}		
 	}
 	
 	public void fillStringInText(XSSFSheet sheetToWriteOver, int row, int col,String textToFind,String textToReplace){
