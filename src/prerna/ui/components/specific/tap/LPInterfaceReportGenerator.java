@@ -201,7 +201,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							} 
 							if(hpiV.contains(upstreamSystemURI)) { // upstream is HPI
 								comment += "Provide temporary integration between DHMSM->" + upstreamSysName + " until all deployment sites for " + upstreamSysName + " field DHMSM (and any additional legal requirements). ";
-							} else if(hpiV.contains(downstreamSystemURI)) { // upstream sys is not HPI and downstream is HPI
+							} else if(!lpiV.contains(upstreamSystemURI) && !hpiV.contains(upstreamSystemURI) && hpiV.contains(downstreamSystemURI)) { // upstream sys is not HPI and downstream is HPI
 								comment += "Provide temporary integration between DHMSM->" + downstreamSysName + " until all deployment sites for " + downstreamSysName + " field DHMSM (and any additional legal requirements)." +
 										" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ". ";
 							} 
