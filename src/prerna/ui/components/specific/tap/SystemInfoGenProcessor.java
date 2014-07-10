@@ -22,7 +22,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
-import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
@@ -57,8 +56,6 @@ public class SystemInfoGenProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runQuery(String engineName, String query) {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		try{
@@ -77,7 +74,7 @@ public class SystemInfoGenProcessor {
 				String sys = (String)sjss.getVar(names[0]);
 				if(masterHash.containsKey(sys))
 				{
-					Hashtable sysHash = masterHash.get(sys);
+					Hashtable<String, Object> sysHash = (Hashtable<String, Object>)masterHash.get(sys);
 					for (int colIndex = 1; colIndex < names.length; colIndex++) {
 						String varName = names[colIndex];
 						Object val = sjss.getVar(names[colIndex]);
@@ -115,8 +112,7 @@ public class SystemInfoGenProcessor {
 	 */
 	public void runSystemListQuery(String engineName, String query) {
 		try {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
+
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -128,7 +124,7 @@ public class SystemInfoGenProcessor {
 
 			while (wrapper.hasNext()) {
 				SesameJenaSelectStatement sjss = wrapper.next();
-				Hashtable<String,Object> sysHash = new Hashtable<String,Object>();
+				Hashtable sysHash = new Hashtable();
 				masterHash.put((String) sjss.getVar(names[0]),sysHash);
 				sysList.add((String) sjss.getVar(names[0]));
 			}
@@ -146,8 +142,6 @@ public class SystemInfoGenProcessor {
 	public void runCostQueries(String engineName, ArrayList<String> queryList) {
 		try{
 			headersList.add("Transition_Cost");
-			JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-			Object[] repo = (Object[]) repoList.getSelectedValues();
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			
 			Hashtable<String,Double> sysAndCostHash = new Hashtable<String,Double>();

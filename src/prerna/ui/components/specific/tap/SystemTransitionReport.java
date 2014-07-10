@@ -24,6 +24,8 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 	public void createData() {
 		try{
 			hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			if(hr_Core==null)
+				throw new Exception();
 		} catch(Exception e) {
 			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
 			return;

@@ -9,6 +9,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+@SuppressWarnings("serial")
 public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 
 	public int resource;

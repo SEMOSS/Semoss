@@ -50,6 +50,7 @@ import prerna.ui.swing.custom.ToggleButton;
 /**
  * This is the playsheet used exclusively for TAP service optimization.
  */
+@SuppressWarnings("serial")
 public class SysOptPlaySheet extends SerOptPlaySheet{
 
 	public JCheckBox includeRegionalizationCheckbox;
@@ -86,7 +87,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector names = filler.nameVector;
+		Vector<String> names = filler.nameVector;
 		String[] listArray=new String[names.size()];
 		for (int i = 0;i<names.size();i++)
 		{
