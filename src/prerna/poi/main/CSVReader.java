@@ -18,7 +18,9 @@
  ******************************************************************************/
 package prerna.poi.main;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -28,11 +30,13 @@ import java.util.StringTokenizer;
 
 import org.apache.log4j.Level;
 import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.sail.SailException;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
 import org.supercsv.cellprocessor.ParseDouble;
-import org.supercsv.cellprocessor.ParseInt;
 import org.supercsv.cellprocessor.constraint.NotNull;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 import org.supercsv.io.CsvMapReader;
@@ -63,52 +67,20 @@ public class CSVReader extends AbstractFileReader {
 	boolean propFileExist = true;
 	
 	/**
-	 * The main method is never called within SEMOSS
-	 * Used to load data without having to start SEMOSS
-	 * User must specify location of all files manually inside the method
-	 * @param args String[]
-	 */
-	public void main(String[] args) throws Exception
-	{
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		this.customBaseURI = "http://health.mil/ontologies";
-		this.semossURI = "http://semoss.org/ontologies";
-		
-		String engineName = "dbName";
-		openEngineWithoutConnection(engineName);
-		createTypes();
-		
-		String fileNames = workingDir+"/JEAD_Systems_SEMOSS_Test2.csv";
-		
-		String[] files = prepareReader(fileNames, customBaseURI, owlFile);
-		for(int i = 0; i < files.length; i++)
-		{
-			String fileName = files[i];
-			openCSVFile(fileName);
-			// load the prop file for the CSV file 
-			openProp(propFile);
-			// load the big data properties file
-			// create processors based on property file
-			createProcessors();
-			processConceptRelationURIs();
-			processNodePropURIs();
-			processRelationPropURIs();
-			skipRows();
-			processRelationShips();
-		}
-		createBaseRelations();
-		closeDB();
-	}
-
-	/**
 	 * Loading data into SEMOSS to create a new database
 	 * @param dbName 		String grabbed from the user interface that would be used as the name for the database
 	 * @param fileNames		Absolute paths of files the user wants to load into SEMOSS, paths are separated by ";"
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws IOException 
+	 * @throws RepositoryException 
+	 * @throws FileNotFoundException 
+	 * @throws RDFHandlerException 
+	 * @throws SailException 
+	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception  
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, RepositoryException, IOException, SailException, RDFHandlerException, HeaderClassException  
 	{
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
@@ -142,8 +114,14 @@ public class CSVReader extends AbstractFileReader {
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path specified in the CSV file that determines the location of the prop file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws HeaderClassException 
+	 * @throws SailException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception 
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException, HeaderClassException, SailException, RepositoryException, RDFHandlerException 
 	{
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
@@ -240,10 +218,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Specifies which rows in the CSV to load based on user input in the prop file
+	 * @throws IOException 
 	 */
-	public void skipRows() throws Exception
+	public void skipRows() throws IOException
 	{
-		Map<String, Object> jcrMap;
 		//start count at 1 just row 1 is the header
 		count = 1;
 		int startRow = 2;
@@ -258,8 +236,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create all the triples associated with the relationships specified in the prop file
+	 * @throws IOException 
+	 * @throws SailException 
 	 */
-	public void processRelationShips() throws Exception
+	public void processRelationShips() throws SailException, IOException
 	{
 		// get all the relation
 		Map<String, Object> jcrMap;
@@ -449,8 +429,11 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create and store concept and relation URIs at the SEMOSS base and instance levels
+	 * @throws HeaderClassException 
+	 * @throws Exception 
 	 */
-	public void processConceptRelationURIs() throws Exception{
+	public void processConceptRelationURIs() throws HeaderClassException
+	{
 		// get the list of relationships from the prop file
 		if(rdfMap.get("RELATION") != null)
 		{
@@ -487,7 +470,7 @@ public class CSVReader extends AbstractFileReader {
 						headException = false;
 				}
 				if(headException = false)
-					throw new Exception();
+					throw new HeaderClassException(sub + " cannot be found as a header");
 	
 				if(obj.contains("+"))
 				{
@@ -499,7 +482,7 @@ public class CSVReader extends AbstractFileReader {
 						headException = false;
 				}
 				if(headException = false)
-					throw new Exception();
+					throw new HeaderClassException(sub + " cannot be found as a header");
 	
 				// create concept uris
 				String relURI = "";
@@ -619,8 +602,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create and store node property URIs at the SEMOSS base and instance levels 
+	 * @throws SailException 
+	 * @throws HeaderClassException 
 	 */
-	public void processNodePropURIs() throws Exception
+	public void processNodePropURIs() throws SailException, HeaderClassException 
 	{
 		if(rdfMap.get("NODE_PROP") != null)
 		{
@@ -664,7 +649,7 @@ public class CSVReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException = false)
-						throw new Exception();
+						throw new HeaderClassException(sub + " cannot be found as a header");
 	
 					if(prop.contains("+"))
 					{
@@ -676,7 +661,7 @@ public class CSVReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException = false)
-						throw new Exception();
+						throw new HeaderClassException(sub + " cannot be found as a header");
 	
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
@@ -751,8 +736,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create and store relationship property URIs at the SEMOSS base and instance levels 
+	 * @throws SailException 
+	 * @throws HeaderClassException 
 	 */
-	public void processRelationPropURIs() throws Exception
+	public void processRelationPropURIs() throws SailException, HeaderClassException 
 	{
 		if(rdfMap.get("RELATION_PROP") != null)
 		{
@@ -789,7 +776,7 @@ public class CSVReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException = false)
-						throw new Exception();
+						throw new HeaderClassException(prop + " cannot be found as a header");
 					
 					String propURI = "";
 					String property = "";
@@ -936,8 +923,9 @@ public class CSVReader extends AbstractFileReader {
 	 * Load the CSV file
 	 * Gets the headers for each column and reads the property file
 	 * @param fileName String
+	 * @throws FileNotFoundException 
 	 */
-	public void openCSVFile(String fileName) throws Exception
+	public void openCSVFile(String fileName) throws FileNotFoundException, IOException
 	{
 		mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);		
 		// store the headers of each of the columns

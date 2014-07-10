@@ -19,6 +19,7 @@
 package prerna.poi.specific;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -51,6 +52,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
+import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
@@ -68,6 +70,7 @@ import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
 import prerna.poi.main.CSVReader;
+import prerna.poi.main.HeaderClassException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
@@ -83,7 +86,7 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
  */
-public class D3CSVLoader extends CSVReader{
+public class D3CSVLoader extends CSVReader {
 
 	Logger logger = Logger.getLogger(getClass());
 
@@ -327,8 +330,14 @@ public class D3CSVLoader extends CSVReader{
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws RepositoryException 
+	 * @throws RDFHandlerException 
+	 * @throws SailException 
+	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String owlFile) throws Exception  
+	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException, RepositoryException, SailException, RDFHandlerException, HeaderClassException  
 	{
 		String[] files = fileNames.split(";");
 		this.semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
@@ -365,8 +374,11 @@ public class D3CSVLoader extends CSVReader{
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path specified in the CSV file that determines the location of the prop file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws RepositoryException 
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws Exception 
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws RepositoryException, FileNotFoundException, IOException  
 	{
 		String[] files = fileNames.split(";");
 		semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
@@ -398,9 +410,13 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Creates all base relationships in the metamodel to add into the database and creates the OWL file
+	 * @throws SailException 
+	 * @throws IOException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
 	 */
-	public void createBaseRelations() throws Exception{
-
+	public void createBaseRelations() throws SailException, IOException, RepositoryException, RDFHandlerException 
+	{
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
@@ -508,8 +524,9 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Specifies which rows in the CSV to load based on user input in the prop file
+	 * @throws IOException 
 	 */
-	public void skipRows() throws Exception
+	public void skipRows() throws IOException
 	{
 		Map<String, Object> jcrMap;
 		//start count at 1 just row 1 is the header
@@ -526,8 +543,10 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Create all the triples associated with the relationships specified in the prop file
+	 * @throws SailException 
+	 * @throws IOException 
 	 */
-	public void processRelationShips() throws Exception
+	public void processRelationShips() throws SailException, IOException
 	{
 		// get all the relation
 		Map<String, Object> jcrMap;
@@ -636,8 +655,10 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Create and store concept and relation URIs at the SEMOSS base and instance levels
+	 * @throws HeaderClassException 
 	 */
-	public void processConceptRelationURIs() throws Exception{
+	public void processConceptRelationURIs() throws HeaderClassException
+	{
 		// get the list of relationships from the prop file
 		String relationNames = rdfMap.getProperty("RELATION");
 		StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
@@ -662,7 +683,6 @@ public class D3CSVLoader extends CSVReader{
 			if(predicate.startsWith("dynamic"))
 				System.err.println("Creating Dynamic ");
 			
-			
 			// check if prop file entries are not in excel and if nodes are concatenations
 			// throw exception if prop file entries not in excel
 			boolean headException = true;
@@ -676,7 +696,7 @@ public class D3CSVLoader extends CSVReader{
 					headException = false;
 			}
 			if(headException = false)
-				throw new Exception();
+				throw new HeaderClassException(subject + " cannot be found as a header");
 
 			if(object.contains("+"))
 			{
@@ -688,7 +708,7 @@ public class D3CSVLoader extends CSVReader{
 					headException = false;
 			}
 			if(headException = false)
-				throw new Exception();
+				throw new HeaderClassException(subject + " cannot be found as a header");
 
 			// create concept uris
 			String relURI = "";
@@ -794,15 +814,15 @@ public class D3CSVLoader extends CSVReader{
 				relURI = customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + predicate;
 				relationURIHash.put(relPropString, relURI);
 			}
-			
-			
 		}		
 	}
 
 	/**
 	 * Create and store node property URIs at the SEMOSS base and instance levels 
+	 * @throws SailException 
+	 * @throws HeaderClassException 
 	 */
-	public void processNodePropURIs() throws Exception
+	public void processNodePropURIs() throws SailException, HeaderClassException
 	{
 		String nodePropNames = rdfMap.getProperty("NODE_PROP");
 		StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
@@ -843,7 +863,7 @@ public class D3CSVLoader extends CSVReader{
 						headException = false;
 				}
 				if(headException = false)
-					throw new Exception();
+					throw new HeaderClassException(subject + " cannot be found as a header");
 
 				if(prop.contains("+"))
 				{
@@ -855,7 +875,7 @@ public class D3CSVLoader extends CSVReader{
 						headException = false;
 				}
 				if(headException = false)
-					throw new Exception();
+					throw new HeaderClassException(subject + " cannot be found as a header");
 
 				// see if subject node SEMOSS base URI exists in prop file
 				if(rdfMap.containsKey(subject+Constants.CLASS))
@@ -889,8 +909,10 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Create and store relationship property URIs at the SEMOSS base and instance levels 
+	 * @throws HeaderClassException 
+	 * @throws SailException 
 	 */
-	public void processRelationPropURIs() throws Exception
+	public void processRelationPropURIs() throws HeaderClassException, SailException
 	{
 		String propNames = rdfMap.getProperty("RELATION_PROP");
 		StringTokenizer propTokens = new StringTokenizer(propNames, ";");
@@ -900,7 +922,6 @@ public class D3CSVLoader extends CSVReader{
 		}
 		for(int relIndex = 0;propTokens.hasMoreElements();relIndex++)
 		{
-
 			String relation = propTokens.nextToken();
 			//just in case the end of the prop string is empty string or spaces
 			if(!relation.contains("%"))
@@ -925,7 +946,8 @@ public class D3CSVLoader extends CSVReader{
 						headException = false;
 				}
 				if(headException = false)
-					throw new Exception();
+					throw new HeaderClassException(prop + " cannot be found as a header");
+				
 				String propURI = "";
 				propURI = basePropURI+"/"+prop;
 				createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
@@ -977,8 +999,9 @@ public class D3CSVLoader extends CSVReader{
 	 * @param propPredBaseURI 	String containing the URI of the relationship 
 	 * @param propName 			String containing the name of the property
 	 * @param jcrMap 			Map containing the data in the CSV file
+	 * @throws SailException 
 	 */
-	public void createProperty(String subjectURI, String propPredBaseURI, String propName, Map jcrMap) throws Exception
+	public void createProperty(String subjectURI, String propPredBaseURI, String propName, Map jcrMap) throws SailException
 	{
 		if(jcrMap.containsKey(propName) && jcrMap.get(propName)!= null)
 		{
@@ -1014,8 +1037,9 @@ public class D3CSVLoader extends CSVReader{
 	 * @param subject		URI for the subject of the triple
 	 * @param predicate		URI for the predicate of the triple
 	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
+	 * @throws SailException 
 	 */
-	protected void createStatement(URI subject, URI predicate, Value object) throws Exception
+	protected void createStatement(URI subject, URI predicate, Value object) throws SailException
 	{
 		URI newSub;
 		URI newPred;
@@ -1100,8 +1124,9 @@ public class D3CSVLoader extends CSVReader{
 	/**
 	 * Loading engine properties in order to create the database 
 	 * @param fileName String containing the fileName of the temp file that contains the information of the smss file
+	 * @throws FileNotFoundException 
 	 */
-	public void loadBDProperties(String fileName) throws Exception
+	public void loadBDProperties(String fileName) throws FileNotFoundException, IOException
 	{
 		InputStream fis = new FileInputStream(fileName);
 		bdProp.load(fis);
@@ -1110,11 +1135,12 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Creates the database based on the engine properties 
+	 * @throws RepositoryException 
 	 */
-	public void openDB() throws Exception {
+	public void openDB() throws RepositoryException 
+	{
 		// create database based on engine properties
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-				
 		String fileName = baseFolder + "/" + bdProp.getProperty("com.bigdata.journal.AbstractJournal.file");
 		bdProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
 		bdSail = new BigdataSail(bdProp);
@@ -1128,8 +1154,10 @@ public class D3CSVLoader extends CSVReader{
 	/**
 	 * Loads the prop file for the CSV file
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
-	public void openProp(String fileName) throws Exception
+	public void openProp(String fileName) throws FileNotFoundException, IOException
 	{
 		rdfMap = new Properties();
 		rdfMap.load(new FileInputStream(fileName));
@@ -1139,8 +1167,9 @@ public class D3CSVLoader extends CSVReader{
 	 * Load the CSV file
 	 * Gets the headers for each column and reads the property file
 	 * @param fileName String
+	 * @throws FileNotFoundException 
 	 */
-	public void openCSVFile(String fileName) throws Exception
+	public void openCSVFile(String fileName) throws FileNotFoundException, IOException
 	{
 		mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);		
 		// store the headers of each of the columns
@@ -1193,16 +1222,20 @@ public class D3CSVLoader extends CSVReader{
 
 	/**
 	 * Close the OWL engine
+	 * @throws SailException 
+	 * @throws RepositoryException 
 	 */
-	protected void closeOWL() throws Exception {
+	protected void closeOWL() throws SailException, RepositoryException
+	{
 		scOWL.close();
 		rcOWL.close();
 	}
 
 	/**
 	 * Close the database engine
+	 * @throws SailException 
 	 */
-	public void closeDB() throws Exception
+	public void closeDB() throws SailException
 	{
 		logger.warn("Closing....");
 		sc.commit();
