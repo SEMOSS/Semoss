@@ -14,6 +14,7 @@ import prerna.util.Utility;
 
 import com.bigdata.rdf.model.BigdataURIImpl;
 
+@SuppressWarnings("serial")
 public class SystemTransitionReport extends AbstractRDFPlaySheet{
 
 	Logger logger = Logger.getLogger(getClass());

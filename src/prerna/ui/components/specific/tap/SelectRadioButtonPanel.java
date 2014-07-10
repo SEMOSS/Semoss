@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.ButtonGroup;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -37,30 +36,25 @@ import javax.swing.JRadioButton;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.main.listener.specific.tap.SourceSelectAllListener;
-import prerna.ui.main.listener.specific.tap.SourceSelectListener;
-import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Used in the starter class to create checkboxes that are used to select a source.
  */
+@SuppressWarnings("serial")
 public class SelectRadioButtonPanel extends JPanel {
 	
 	public IEngine engine;
-	public Hashtable radioIntegratedBoxHash = new Hashtable();
-	public Hashtable radioHybridBoxHash = new Hashtable();
-	public Hashtable radioManualBoxHash = new Hashtable();
+	public Hashtable<String, JRadioButton> radioIntegratedBoxHash = new Hashtable<String, JRadioButton>();
+	public Hashtable<String, JRadioButton> radioHybridBoxHash = new Hashtable<String, JRadioButton>();
+	public Hashtable<String, JRadioButton> radioManualBoxHash = new Hashtable<String, JRadioButton>();
 	
-	public Hashtable radioRealBoxHash = new Hashtable();
-	public Hashtable radioNearBoxHash = new Hashtable();
-	public Hashtable radioArchiveBoxHash = new Hashtable();
-	public Hashtable radioIgnoreBoxHash = new Hashtable();
+	public Hashtable<String, JRadioButton> radioRealBoxHash = new Hashtable<String, JRadioButton>();
+	public Hashtable<String, JRadioButton> radioNearBoxHash = new Hashtable<String, JRadioButton>();
+	public Hashtable<String, JRadioButton> radioArchiveBoxHash = new Hashtable<String, JRadioButton>();
+	public Hashtable<String, JRadioButton> radioIgnoreBoxHash = new Hashtable<String, JRadioButton>();
 	
-	public Hashtable dataToDataAccessHash;
-	public Hashtable dataToDataLatencyHash;
+	public Hashtable<String, String> dataToDataAccessHash;
+	public Hashtable<String, String> dataToDataLatencyHash;
 	/**
 	 * Constructor for SourceSelectPanel.
 	 */
@@ -80,14 +74,14 @@ public class SelectRadioButtonPanel extends JPanel {
 	{
 		removeAll();
 
-		radioIntegratedBoxHash = new Hashtable();
-		radioHybridBoxHash = new Hashtable();
-		radioManualBoxHash = new Hashtable();
+		radioIntegratedBoxHash = new Hashtable<String, JRadioButton>();
+		radioHybridBoxHash = new Hashtable<String, JRadioButton>();
+		radioManualBoxHash = new Hashtable<String, JRadioButton>();
 		
-		radioRealBoxHash = new Hashtable();
-		radioNearBoxHash = new Hashtable();
-		radioArchiveBoxHash = new Hashtable();
-		radioIgnoreBoxHash = new Hashtable();
+		radioRealBoxHash = new Hashtable<String, JRadioButton>();
+		radioNearBoxHash = new Hashtable<String, JRadioButton>();
+		radioArchiveBoxHash = new Hashtable<String, JRadioButton>();
+		radioIgnoreBoxHash = new Hashtable<String, JRadioButton>();
 		
 		dataToDataAccessHash = new Hashtable<String,String>();
 		dataToDataLatencyHash = new Hashtable<String,String>();
@@ -95,10 +89,6 @@ public class SelectRadioButtonPanel extends JPanel {
 		runCapabilityQuery(capabilities);
 		Vector<String> names = makeVectorOfDataObjects(dataToDataAccessHash,dataToDataLatencyHash);
 
-//		Set nameC = dataToDataAccessHash.keySet();
-//		Set nameLat = dataToDataLatencyHash.keySet();
-//		nameC.addAll(nameLat);
-//		Vector<String> names = new Vector(nameC);
 		Collections.sort(names);
 		removeAll();
 		repaint();
@@ -119,19 +109,19 @@ public class SelectRadioButtonPanel extends JPanel {
 	{
 		removeAll();
 
-		radioIntegratedBoxHash = new Hashtable();
-		radioHybridBoxHash = new Hashtable();
-		radioManualBoxHash = new Hashtable();
+		radioIntegratedBoxHash = new Hashtable<String, JRadioButton>();
+		radioHybridBoxHash = new Hashtable<String, JRadioButton>();
+		radioManualBoxHash = new Hashtable<String, JRadioButton>();
 		
-		radioRealBoxHash = new Hashtable();
-		radioNearBoxHash = new Hashtable();
-		radioArchiveBoxHash = new Hashtable();
-		radioIgnoreBoxHash = new Hashtable();
+		radioRealBoxHash = new Hashtable<String, JRadioButton>();
+		radioNearBoxHash = new Hashtable<String, JRadioButton>();
+		radioArchiveBoxHash = new Hashtable<String, JRadioButton>();
+		radioIgnoreBoxHash = new Hashtable<String, JRadioButton>();
 		
 		dataToDataAccessHash=dataAccessTypeHash;
 		dataToDataLatencyHash=dataLatencyTypeHash;
-		Set nameC = dataToDataAccessHash.keySet();
-		Vector<String> names = new Vector(nameC);
+		Set<String> nameC = dataToDataAccessHash.keySet();
+		Vector<String> names = new Vector<String>(nameC);
 		Collections.sort(names);
 		removeAll();
 		repaint();
@@ -181,7 +171,7 @@ public class SelectRadioButtonPanel extends JPanel {
 	 * Creates radio buttons for all of the data objects.
 	 * @param dataV 	Vector containing all of the data objects.
 	 */
-	public void createCheckBoxes(Vector dataV)
+	public void createCheckBoxes(Vector<String> dataV)
 	{
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		this.setLayout(gridBagLayout);
@@ -267,8 +257,6 @@ public class SelectRadioButtonPanel extends JPanel {
 		gbc_elementLabelIgnore.gridy = 1;
 		this.add(labelIgnore, gbc_elementLabelIgnore);
 		
-		Font f = new Font("Tahoma", Font.PLAIN, 12);
-		Font newF = new Font(f.getName(), Font.BOLD, f.getSize());
 		
 		for (int i=0; i < dataV.size(); i++)
 		{

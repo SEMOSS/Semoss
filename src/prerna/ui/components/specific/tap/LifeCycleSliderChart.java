@@ -26,7 +26,6 @@ import java.beans.PropertyVetoException;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -50,6 +49,7 @@ import com.teamdev.jxbrowser.chromium.BrowserFactory;
 /**
  * This class creates the chart for the lifecycle slider.
  */
+@SuppressWarnings("serial")
 public class LifeCycleSliderChart extends GridPlaySheet{
 
 	//public JPanel cheaterPanel = new JPanel();
@@ -156,7 +156,6 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		// get the bindings from it
 		String [] colNames = wrapper.getVariables();
 		hardwareHash = new Hashtable<String, String[]>();		
-		int count = 0;
 
 		// now get the bindings and generate the data
 		try {
@@ -173,7 +172,6 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 					values[colIndex-1] = val;
 				}
 				hardwareHash.put(key,values);
-				count++;
 			}
 			updateProgressBar("80%...Creating Visualization", 80);
 			
@@ -203,7 +201,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	 */
 	public void callIt()
 	{
-		Hashtable newHash = hardwareHash;
+		Hashtable<String, String[]> newHash = hardwareHash;
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(newHash));
 	    browser.executeJavaScript("start('" + gson.toJson(newHash) + "');");
@@ -213,8 +211,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	 * Shows all properties on the desktop pane.
 	 */
 	public void showAll() {
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(
-				Constants.DESKTOP_PANE);
+//		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 
 		this.setVisible(true);
 

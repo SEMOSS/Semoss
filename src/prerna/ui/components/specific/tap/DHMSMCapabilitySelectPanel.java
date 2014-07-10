@@ -15,10 +15,10 @@ import javax.swing.ListSelectionModel;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.CapCheckBoxSelectorListener;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
 
+@SuppressWarnings("serial")
 public class DHMSMCapabilitySelectPanel extends JPanel {
 	public IEngine engine;
 	
@@ -118,7 +118,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector names = filler.nameVector;
+		Vector<String> names = filler.nameVector;
 		String[] listArray=new String[names.size()];
 		for (int i = 0;i<names.size();i++)
 		{

@@ -49,7 +49,7 @@ public class EntityFiller implements Runnable {
 	public String engineName;
 	public Vector<String> names;
 	public String extQuery;
-	public Vector nameVector;
+	public Vector<String> nameVector;
 	
 	/**
 	 * Method run. Gets access to engine, gets the type query based on the type of engine, fills query parameters, and runs the query.

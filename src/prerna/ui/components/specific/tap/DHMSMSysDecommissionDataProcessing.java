@@ -9,8 +9,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
-import com.google.gson.Gson;
-
 public class DHMSMSysDecommissionDataProcessing {
 
 	private Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>> allData = new Hashtable<String, Hashtable<String, Hashtable<String, Hashtable<String, Object>>>>();
@@ -278,7 +276,7 @@ public class DHMSMSysDecommissionDataProcessing {
 					// iterate across all properties for a given data object and aggregate at the site-sys lvl
 					for (String prop : propHash.keySet())
 					{
-						if(prop.equals(dataSource.resourceKey))
+						if(prop.equals(DHMSMSysDecommissionReport.resourceKey))
 						{
 							if(!resourceForSiteSystem.containsKey(site))
 							{
@@ -292,7 +290,7 @@ public class DHMSMSysDecommissionDataProcessing {
 								innerHash.put(system, (Integer) propHash.get(prop));
 							}
 						}
-						else if(prop.equals(dataSource.pilotKey))
+						else if(prop.equals(DHMSMSysDecommissionReport.pilotKey))
 						{
 							if(!pilotForSiteSystem.containsKey(site))
 							{
@@ -306,7 +304,7 @@ public class DHMSMSysDecommissionDataProcessing {
 								innerHash.put(system, (Boolean) propHash.get(prop));
 							}
 						}
-						else if(prop.equals(dataSource.accessTypeKey))
+						else if(prop.equals(DHMSMSysDecommissionReport.accessTypeKey))
 						{
 							if(!accessTypeForSiteSystem.containsKey(site))
 							{
@@ -320,7 +318,7 @@ public class DHMSMSysDecommissionDataProcessing {
 								innerHash.put(system, (String) propHash.get(prop));
 							}
 						}
-						else if(prop.equals(dataSource.startKey))
+						else if(prop.equals(DHMSMSysDecommissionReport.startKey))
 						{
 							if(!startDateForSiteSystem.containsKey(site))
 							{
@@ -334,7 +332,7 @@ public class DHMSMSysDecommissionDataProcessing {
 								innerHash.put(system, (Date) propHash.get(prop));
 							}
 						}
-						else if(prop.equals(dataSource.endKey))
+						else if(prop.equals(DHMSMSysDecommissionReport.endKey))
 						{
 							if(!endDateForSiteSystem.containsKey(site))
 							{
@@ -351,14 +349,14 @@ public class DHMSMSysDecommissionDataProcessing {
 							{
 								Hashtable<String, Date> innerHash = endDateForSiteSystem.get(site);
 								Date oldEndDate = innerHash.get(system);
-								Date newEndDate = (Date) propHash.get(dataSource.endKey);
+								Date newEndDate = (Date) propHash.get(DHMSMSysDecommissionReport.endKey);
 								if(newEndDate.after(oldEndDate))
 								{
 									innerHash.put(system, newEndDate);
 								}
 							}
 						}
-						else if(prop.equals(dataSource.loeKey))
+						else if(prop.equals(DHMSMSysDecommissionReport.loeKey))
 						{
 							if(!loeForSiteSystem.containsKey(site))
 							{
@@ -375,7 +373,7 @@ public class DHMSMSysDecommissionDataProcessing {
 							{
 								Hashtable<String, Double> innerHash = loeForSiteSystem.get(site);
 								Double oldLOE = innerHash.get(system);
-								Double addLOE = (Double) propHash.get(dataSource.loeKey);
+								Double addLOE = (Double) propHash.get(DHMSMSysDecommissionReport.loeKey);
 								innerHash.put(system, oldLOE + addLOE);
 							}
 
@@ -394,12 +392,12 @@ public class DHMSMSysDecommissionDataProcessing {
 							// determine overall site cost
 							if(!siteCost.containsKey(site))
 							{
-								siteCost.put(site, (Double) propHash.get(dataSource.loeKey));
+								siteCost.put(site, (Double) propHash.get(DHMSMSysDecommissionReport.loeKey));
 							}
 							else
 							{
 								Double oldLOW = siteCost.get(site);
-								Double addLOE = (Double) propHash.get(dataSource.loeKey);
+								Double addLOE = (Double) propHash.get(DHMSMSysDecommissionReport.loeKey);
 								siteCost.put(site, oldLOW + addLOE);
 							}
 						}

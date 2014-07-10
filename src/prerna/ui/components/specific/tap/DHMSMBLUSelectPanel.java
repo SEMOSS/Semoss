@@ -16,11 +16,10 @@ import javax.swing.ListSelectionModel;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.BLUCheckBoxSelectorListener;
-import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
-import aurelienribon.ui.css.Style;
 
+@SuppressWarnings("serial")
 public class DHMSMBLUSelectPanel extends JPanel {
 	public IEngine engine;
 
@@ -123,7 +122,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		filler.type = "Business Logic";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector names = filler.nameVector;
+		Vector<String> names = filler.nameVector;
 		String[] listArray=new String[names.size()];
 		for (int i = 0;i<names.size();i++)
 		{

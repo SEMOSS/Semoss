@@ -18,6 +18,7 @@ import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
 
+@SuppressWarnings("serial")
 public class DHMSMSystemSelectPanel extends JPanel {
 	public IEngine engine;
 	
@@ -142,7 +143,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector names = filler.nameVector;
+		Vector<String> names = filler.nameVector;
 		String[] listArray=new String[names.size()];
 		for (int i = 0;i<names.size();i++)
 		{
