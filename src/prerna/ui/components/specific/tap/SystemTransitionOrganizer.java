@@ -17,13 +17,14 @@ public class SystemTransitionOrganizer {
 	private static String costDB = "TAP_Cost_Data";
 	//private static String coreDB = "TAP_Core_Data";
 	private static String hrCoreDB = "HR_Core";
-	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} FILTER(?HighProb in('High','Question'))}";
+	private static String systemProbQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} FILTER(?HighProb in('High','Question'))}";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 	private static String systemCostQuery = "SELECT DISTINCT ?sys ?data ?ser (SUM(?loe) AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data ?ser BINDINGS ?data {@DATABINDINGS@}";
 	private static String systemDataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} }BINDINGS ?Data {@DATABINDINGS@}";
 	private static String capDataQuery = "SELECT DISTINCT ?Capability ?Data ?Crm WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} {?Capability <http://semoss.org/ontologies/Relation/Contains/Source> \"HSD\"}}";
     private static String siteLocationQuery = "SELECT DISTINCT ?dcSite ?lat ?long WHERE { {?dcSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?dcSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat }  {?dcSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?long } }";
     
+    ArrayList<String> highProbSystemsList = new ArrayList<String>();
     //hashtable storing all the sites and the systems they have
     //and the reverse, hashtable storing all the systems and their sites
     Hashtable<String, ArrayList<String>> siteToSysHash = new Hashtable<String, ArrayList<String>>();
@@ -57,7 +58,9 @@ public class SystemTransitionOrganizer {
 	
 	private void createAllData()
 	{
-		ArrayList <Object []> list = createData(siteDB, systemSiteQuery);
+		ArrayList <Object []> list = createData(hrCoreDB, systemProbQuery);
+		processHighProbSystemList(list);
+		list = createData(siteDB, systemSiteQuery);
 		processSystemSiteHashTables(list);
 		list = createData(costDB, systemCostQuery);
 		processSystemDataLOE(list);
@@ -67,6 +70,14 @@ public class SystemTransitionOrganizer {
 		processSiteLocationData(list);
 	}
 	
+	private void processHighProbSystemList(ArrayList<Object[]> list)
+	{
+		for (int i=0; i<list.size(); i++)
+		{
+			highProbSystemsList.add((String)list.get(i)[0]);
+		}
+	}
+	
 	private void processSiteLocationData(ArrayList<Object[]> list) 
 	{
 		for (int i=0; i<list.size(); i++)
@@ -74,6 +85,7 @@ public class SystemTransitionOrganizer {
 			try{
 			Object[] elementArray = list.get(i);
 			String site = (String) elementArray[0];
+
 			Double latVal;
 			Double longVal;
 			if(elementArray[1] instanceof Double)
@@ -103,35 +115,37 @@ public class SystemTransitionOrganizer {
 		{
 			Object[] elementArray= list.get(i);
 			String system = (String) elementArray[0];
-			String site = (String) elementArray[1];
-			if(siteToSysHash.containsKey(site))
+			if(highProbSystemsList.contains(system))
 			{
-				ArrayList<String> sysList = siteToSysHash.get(site);
-				sysList.add(system);
-			}
-			else
-			{
-				ArrayList<String> sysList = new ArrayList<String>();
-				sysList.add(system);
-				siteToSysHash.put(site, sysList);
-			}
-			if(sysToSiteHash.containsKey(system))
-			{
-				ArrayList<String> siteList = sysToSiteHash.get(system);
-				siteList.add(site);
-			}
-			else
-			{
-				ArrayList<String> siteList = new ArrayList<String>();
-				siteList.add(site);
-				sysToSiteHash.put(system, siteList);
+				String site = (String) elementArray[1];
+				if(siteToSysHash.containsKey(site))
+				{
+					ArrayList<String> sysList = siteToSysHash.get(site);
+					sysList.add(system);
+				}
+				else
+				{
+					ArrayList<String> sysList = new ArrayList<String>();
+					sysList.add(system);
+					siteToSysHash.put(site, sysList);
+				}
+				if(sysToSiteHash.containsKey(system))
+				{
+					ArrayList<String> siteList = sysToSiteHash.get(system);
+					siteList.add(site);
+				}
+				else
+				{
+					ArrayList<String> siteList = new ArrayList<String>();
+					siteList.add(site);
+					sysToSiteHash.put(system, siteList);
+				}
 			}
 		}
 	}
 	
 	private void processSystemDataLOE(ArrayList <Object []> list)
 	{
-		System.out.println(systemCostQuery);
 		for (int i=0; i<list.size(); i++)
 		{
 			Object[] elementArray= list.get(i);
