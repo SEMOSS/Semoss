@@ -12,7 +12,6 @@ public class SEMOSSQuery {
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
 	private SPARQLBindings bindings = null;
-	private String retVarString, wherePatternString, postWhereString;
 	private String customQueryStructure ="";
 	private String queryType;
 	private boolean distinct = false;
@@ -43,11 +42,27 @@ public class SEMOSSQuery {
 		query = queryType + " ";
 		if(distinct)
 			query= query+ "DISTINCT ";
-		createReturnVariableString();
-		createPatternClauses();
-		createPostPatternString();
+		String retVarString = createReturnVariableString();
+		String wherePatternString = createPatternClauses();
+		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
 		
+	}
+	
+	public String getCountQuery()
+	{
+		String countQuery = "SELECT ";
+		String retVarString = createCountReturnVariableString();
+		String wherePatternString = createPatternClauses();
+		String postWhereString = createPostPatternString();
+		countQuery=countQuery+retVarString + wherePatternString +postWhereString;
+		return countQuery;
+	}
+	
+	public String getQueryPattern(){
+		String wherePatternString = createPatternClauses();
+		String postWhereString = createPostPatternString();
+		return wherePatternString + postWhereString;
 	}
 	
 	public void addSingleReturnVariable(TriplePart var) 
@@ -75,8 +90,9 @@ public class SEMOSSQuery {
 		}
 	}
 	
-	public void createPatternClauses()
+	public String createPatternClauses()
 	{
+		String wherePatternString;
 		if(customQueryStructure.equals(""))
 		{
 			Enumeration clauseKeys = clauseHash.keys();
@@ -100,11 +116,12 @@ public class SEMOSSQuery {
 				wherePatternString = wherePatternString.replaceAll(key, clause.getClauseString());
 			}
 		}
+		return wherePatternString;
 	}
 	
-	public void createReturnVariableString()
+	public String createReturnVariableString()
 	{
-		retVarString = "";
+		String retVarString = "";
 		for (int varIdx=0; varIdx<retVars.size();varIdx++)
 		{
 			//space out the variables
@@ -118,10 +135,28 @@ public class SEMOSSQuery {
 			retVarString = retVarString + SPARQLQueryHelper.createComponentString(retVars.get(varIdx))+" ";
 			}
 		}
+		return retVarString;
 	}
 	
-	public void createPostPatternString()
+	public String createCountReturnVariableString()
 	{
+		String retVarString = "(COUNT(CONCAT(" ;
+		for (int varIdx=0; varIdx<retVars.size();varIdx++)
+		{
+			if(varIdx != 0){
+				retVarString = retVarString + ", ";
+			}
+			String varVal = retVars.get(varIdx).getValue() + "";
+			retVarString = retVarString + "STR(?" + varVal + ")";
+			
+		}
+		retVarString = retVarString + ")) AS ?entity)";
+		return retVarString;
+	}
+	
+	public String createPostPatternString()
+	{
+		String postWhereString = "";
 		if(groupBy != null)
 		{
 			postWhereString = groupBy.getString();
@@ -134,6 +169,7 @@ public class SEMOSSQuery {
 		{
 			postWhereString += " " + bindings.getBindingString();
 		}
+		return postWhereString;
 	}
 	
 	public void addTriple(TriplePart subject, TriplePart predicate, TriplePart object)
