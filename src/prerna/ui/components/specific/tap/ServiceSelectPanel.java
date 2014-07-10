@@ -41,9 +41,10 @@ import prerna.util.Utility;
 /**
  * This class is used to select services using checkboxes.
  */
+@SuppressWarnings("serial")
 public class ServiceSelectPanel extends JPanel {
 	public IEngine engine;
-	public Hashtable checkBoxHash = new Hashtable();
+	public Hashtable<String, JCheckBox> checkBoxHash = new Hashtable<String, JCheckBox>();
 	public JCheckBox selectAllCheck = new JCheckBox();
 	
 	/**
@@ -62,15 +63,15 @@ public class ServiceSelectPanel extends JPanel {
 		String sparqlQuery = DIHelper.getInstance().getProperty(
 				"TYPE" + "_" + Constants.QUERY);
 		
-		Hashtable paramTable = new Hashtable();
+		Hashtable<String, String> paramTable = new Hashtable<String, String>();
 		String entityNS = DIHelper.getInstance().getProperty("Service"+Constants.CLASS);
 		paramTable.put(Constants.ENTITY, entityNS );
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 		
 		names = engine.getEntityOfType(sparqlQuery);
-		Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-		Set nameC = paramHash.keySet();
-		names = new Vector(nameC);
+		Hashtable<String, String> paramHash = Utility.getInstanceNameViaQuery(names);
+		Set<String> nameC = paramHash.keySet();
+		names = new Vector<String>(nameC);
 		Collections.sort(names);
 		removeAll();
 		createCheckBoxes(names);
@@ -80,7 +81,7 @@ public class ServiceSelectPanel extends JPanel {
 	 * Method createCheckBoxes.
 	 * @param serviceV 	Vector containing a list of all the services.
 	 */
-	public void createCheckBoxes(Vector serviceV)
+	public void createCheckBoxes(Vector<String> serviceV)
 	{
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		this.setLayout(gridBagLayout);

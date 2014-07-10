@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 
-import javax.swing.JList;
-
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
@@ -45,7 +43,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
 	String hrCoreEngine = "HR_Core";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	Hashtable<String,Hashtable> masterHash;
+	Hashtable<String,Hashtable<String,Object>> masterHash;
 	ArrayList<String> sysList;
 	ArrayList<String> headersList;
 	
@@ -65,8 +63,6 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runQuery(String engineName, String query) {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -84,7 +80,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 				String sys = (String)sjss.getVar(names[0]);
 				if(masterHash.containsKey(sys))
 				{
-					Hashtable sysHash = masterHash.get(sys);
+					Hashtable<String, Object> sysHash = (Hashtable<String,Object>) masterHash.get(sys);
 					for (int colIndex = 1; colIndex < names.length; colIndex++) {
 						String varName = names[colIndex];
 						Object val = sjss.getVar(names[colIndex]);
@@ -112,8 +108,6 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public void runSystemListQuery(String engineName, String query) {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -138,7 +132,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	 * Processes and stores the system info queries and calls the system info writer to output the system info report
 	 */
 	public void runReport() {
-		masterHash = new Hashtable<String,Hashtable>();
+		masterHash = new Hashtable<String,Hashtable<String,Object>>();
 		sysList = new ArrayList<String>();
 		headersList = new ArrayList<String>();
 		
@@ -187,7 +181,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 
 		for(String system : sysList)
 		{
-			Hashtable sysHash = masterHash.get(system);
+			Hashtable<String, Object> sysHash = masterHash.get(system);
 			ArrayList<String> dataObjectList = dhelp.getAllDataFromSys(system, "C");
 			String integrated="";
 			String hybrid="";

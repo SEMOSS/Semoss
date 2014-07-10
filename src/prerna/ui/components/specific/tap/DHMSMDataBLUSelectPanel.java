@@ -19,6 +19,7 @@ import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
 import aurelienribon.ui.css.Style;
 
+@SuppressWarnings("serial")
 public class DHMSMDataBLUSelectPanel extends JPanel {
 	public IEngine engine;
 	
@@ -143,7 +144,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector names = filler.nameVector;
+		Vector<String> names = filler.nameVector;
 		String[] listArray=new String[names.size()];
 		for (int i = 0;i<names.size();i++)
 		{

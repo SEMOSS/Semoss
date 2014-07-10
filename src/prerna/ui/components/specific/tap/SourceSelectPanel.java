@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
-import javax.swing.JList;
 import javax.swing.JPanel;
 
 import prerna.rdf.engine.api.IEngine;
@@ -42,10 +41,11 @@ import prerna.util.Utility;
 /**
  * Used in the starter class to create checkboxes that are used to select a source.
  */
+@SuppressWarnings("serial")
 public class SourceSelectPanel extends JPanel {
 	
 	public IEngine engine;
-	public Hashtable checkBoxHash = new Hashtable();
+	public Hashtable<String, JCheckBox> checkBoxHash = new Hashtable<String, JCheckBox>();
 	public JCheckBox selectAllCheck = new JCheckBox();
 //	public boolean shouldPopulateData = false;
 	
@@ -72,21 +72,21 @@ public class SourceSelectPanel extends JPanel {
 	public void getCapabilities()
 	{
 		removeAll();
-		checkBoxHash = new Hashtable();
+		checkBoxHash = new Hashtable<String, JCheckBox>();
 		Vector <String> names = new Vector<String>();
 		try{
 		String sparqlQuery = DIHelper.getInstance().getProperty(ConstantsTAP.SOURCE_SELECT_REPORT_QUERY);
 		if(sparqlQuery==null)
 			return;
-		Hashtable paramTable = new Hashtable();
+		Hashtable<String, String> paramTable = new Hashtable<String, String>();
 		String entityNS = DIHelper.getInstance().getProperty("Capability"+Constants.CLASS);
 		paramTable.put(Constants.ENTITY, entityNS );
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 		
 		names = engine.getEntityOfType(sparqlQuery);
-		Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-		Set nameC = paramHash.keySet();
-		names = new Vector(nameC);
+		Hashtable<String, String> paramHash = Utility.getInstanceNameViaQuery(names);
+		Set<String> nameC = paramHash.keySet();
+		names = new Vector<String>(nameC);
 		Collections.sort(names);
 		removeAll();
 		repaint();
@@ -99,7 +99,7 @@ public class SourceSelectPanel extends JPanel {
 	 * Creates check boxes for all of the capabilities.
 	 * @param capabilityV 	Vector containing all of the capabilities.
 	 */
-	public void createCheckBoxes(Vector capabilityV)
+	public void createCheckBoxes(Vector<String> capabilityV)
 	{
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		this.setLayout(gridBagLayout);

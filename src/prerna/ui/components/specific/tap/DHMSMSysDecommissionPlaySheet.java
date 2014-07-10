@@ -8,6 +8,7 @@ import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
+@SuppressWarnings("serial")
 public class DHMSMSysDecommissionPlaySheet extends BrowserPlaySheet{
 
 	private DHMSMSysDecommissionReport data;
@@ -16,7 +17,7 @@ public class DHMSMSysDecommissionPlaySheet extends BrowserPlaySheet{
 	//TODO: this class should not extend BrowserPlaySheet and should create new methods to send information to JS
 	public void setData(DHMSMSysDecommissionReport data) {
 		this.data = data;
-		this.list = new ArrayList();
+		this.list = new ArrayList<Object[]>();
 		this.list.add(new Object[1]);
 		this.names = new String[1];
 	}

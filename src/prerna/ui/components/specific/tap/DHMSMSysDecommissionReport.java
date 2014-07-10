@@ -588,45 +588,43 @@ public class DHMSMSysDecommissionReport {
 	}
 	
 	
-	private void convertToArrayListSmaller()
-	{
-		ArrayList<ArrayList<Object>> masterList = new ArrayList<ArrayList<Object>>();
-		for(String site : masterHash.keySet())
-		{
-			Hashtable<String, Hashtable<String, Hashtable<String,Object>>> systemHash = masterHash.get(site);
-			for(String system : systemHash.keySet())
-			{
-				Hashtable<String, Hashtable<String,Object>> dataHash = systemHash.get(system);
-				Date startDate = null;
-				Date latestEndDate = null;
-				double totalLOE = 0.0;
-				int resources = 0;
-				for(String data : dataHash.keySet())
-				{
-					Hashtable<String,Object> propHash = dataHash.get(data);
-					Date currDate = (Date) propHash.get(endKey);
-					if(latestEndDate==null ||latestEndDate.before(currDate))
-					{
-						startDate = (Date) propHash.get(startKey);
-						latestEndDate = currDate;
-					}
-					totalLOE = totalLOE + (Double)propHash.get(loeKey);
-					resources = (Integer) propHash.get(resourceKey);
-				}
-
-				DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-				String startDateString = df.format(startDate);
-				Date endDate = latestEndDate;      
-				String endDateString = df.format(endDate);
-				String sysToRec = sysToRecHash.get(system);
-				String siteStartDateString = df.format(getStartDateForSite(site));
-				
-				System.out.println(system + "$" + site + "$" + sysToRec + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + totalLOE + "$" + resources);
-
-			}
-		}
-//		System.out.println(masterList);
-	}
+//	private void convertToArrayListSmaller()
+//	{
+//		for(String site : masterHash.keySet())
+//		{
+//			Hashtable<String, Hashtable<String, Hashtable<String,Object>>> systemHash = masterHash.get(site);
+//			for(String system : systemHash.keySet())
+//			{
+//				Hashtable<String, Hashtable<String,Object>> dataHash = systemHash.get(system);
+//				Date startDate = null;
+//				Date latestEndDate = null;
+//				double totalLOE = 0.0;
+//				int resources = 0;
+//				for(String data : dataHash.keySet())
+//				{
+//					Hashtable<String,Object> propHash = dataHash.get(data);
+//					Date currDate = (Date) propHash.get(endKey);
+//					if(latestEndDate==null ||latestEndDate.before(currDate))
+//					{
+//						startDate = (Date) propHash.get(startKey);
+//						latestEndDate = currDate;
+//					}
+//					totalLOE = totalLOE + (Double)propHash.get(loeKey);
+//					resources = (Integer) propHash.get(resourceKey);
+//				}
+//
+//				DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+//				String startDateString = df.format(startDate);
+//				Date endDate = latestEndDate;      
+//				String endDateString = df.format(endDate);
+//				String sysToRec = sysToRecHash.get(system);
+//				String siteStartDateString = df.format(getStartDateForSite(site));
+//				
+//			//	System.out.println(system + "$" + site + "$" + sysToRec + "$" + siteStartDateString + "$" + startDateString + "$" + endDateString + "$" + totalLOE + "$" + resources);
+//
+//			}
+//		}
+//	}
 	
 	public Hashtable<String, Hashtable<String, Double>> getSiteLatLongHash() 
 	{

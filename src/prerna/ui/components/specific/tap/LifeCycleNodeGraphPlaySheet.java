@@ -31,6 +31,7 @@ import prerna.util.Constants;
 /**
  * This class creates the graph playsheet for lifecycle nodes.
  */
+@SuppressWarnings("serial")
 public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 
 	public int year;
@@ -54,7 +55,7 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();
 		
 		
-		Enumeration keyList = myVertStore.keys();
+		Enumeration<String> keyList = myVertStore.keys();
 		if(myEdgeStore.keys().hasMoreElements())
 		{
 		while(keyList.hasMoreElements()) {
@@ -74,7 +75,6 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 					String date=vert1.getProperty("EOL").toString();
 					int year=Integer.parseInt(date.substring(1,5));
 					int month=Integer.parseInt(date.substring(6,8));
-					int day=Integer.parseInt(date.substring(9,11));
 					
 
 					if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))

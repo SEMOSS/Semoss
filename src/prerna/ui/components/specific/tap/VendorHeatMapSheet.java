@@ -35,6 +35,7 @@ import prerna.util.DIHelper;
 /**
  * Vendor selection-specific heat map playsheet.
  */
+@SuppressWarnings("serial")
 public class VendorHeatMapSheet extends HeatMapPlaySheet {
 
 	Hashtable allHash;
@@ -103,7 +104,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 					String vendor = (String)sjss.getVar(names[0]);
 					String capability = (String)sjss.getVar(names[1]);
 					//TODO: the variable underneath is not used?
-					String task = (String)sjss.getVar(names[2]);
+					//String task = (String)sjss.getVar(names[2]);
 					String requirement = ((String)sjss.getVar(names[3]));
 					String requirementCategory = names[3];
 					String fulfill = (String)sjss.getVar(names[4]);

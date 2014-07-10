@@ -18,7 +18,6 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -27,7 +26,6 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
-import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -37,7 +35,6 @@ import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -49,7 +46,6 @@ import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.RelationBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataListListener;
@@ -62,6 +58,7 @@ import prerna.util.DIHelper;
 /**
  * This is the playsheet used to examine whether a relationship exists between two variables.
  */
+@SuppressWarnings("serial")
 public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	
 	//toggles to show the system Functionality and Capability Functionality panels
@@ -134,27 +131,6 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
 		systemSelectPanel.addElements();
 		
-//		capabilitySelectPanel = new DHMSMCapabilitySelectPanel();
-//		GridBagConstraints gbc_capabilitySelectPanel = new GridBagConstraints();
-//		gbc_capabilitySelectPanel.gridheight = 6;
-//		gbc_capabilitySelectPanel.fill = GridBagConstraints.BOTH;
-//		gbc_capabilitySelectPanel.gridx = 1;
-//		gbc_capabilitySelectPanel.gridy = 0;
-//		systemDataBLUSelectPanel.add(capabilitySelectPanel, gbc_capabilitySelectPanel);
-//		capabilitySelectPanel.addElements();
-		
-//		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
-//		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-//		Style.registerTargetClassName(updateDataBLUPanelButton,  ".toggleButton");
-//		
-//		GridBagConstraints gbc_updateDataBLUPanelButton = new GridBagConstraints();
-//		gbc_updateDataBLUPanelButton.anchor = GridBagConstraints.WEST;
-//		gbc_updateDataBLUPanelButton.gridheight = 2;
-//		gbc_updateDataBLUPanelButton.insets = new Insets(10, 0, 5, 5);
-//		gbc_updateDataBLUPanelButton.gridx = 2;
-//		gbc_updateDataBLUPanelButton.gridy = 0;
-//		systemDataBLUSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
-		
 		dataSelectPanel = new DHMSMDataSelectPanel();
 		GridBagConstraints gbc_dataSelectPanel = new GridBagConstraints();
 		gbc_dataSelectPanel.gridheight = 6;
@@ -164,7 +140,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		systemDataBLUSelectPanel.add(dataSelectPanel, gbc_dataSelectPanel);
 		dataSelectPanel.addElements(systemSelectPanel);
 		
-		Object hidePopupKey = new JComboBox().getClientProperty("doNotCancelPopup");  
+		Object hidePopupKey = new JComboBox<Object>().getClientProperty("doNotCancelPopup");  
 		JButton btnGenerateRelations = new CustomButton("Generate Relations");
 		btnGenerateRelations.putClientProperty("doNotCancelPopup", hidePopupKey);
 

@@ -21,7 +21,6 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.concurrent.TimeUnit;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -34,6 +33,7 @@ import prerna.util.DIHelper;
 /**
  * Vendor selection-specific heat map playsheet.
  */
+@SuppressWarnings("serial")
 public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 
 	Hashtable allHash;
@@ -97,9 +97,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();
-		ArrayList<String> vendorArray= new ArrayList<String>();
 		
-		list = new ArrayList();
+		list = new ArrayList<Object[]>();
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
