@@ -19,6 +19,8 @@
 package prerna.poi.main;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
@@ -29,11 +31,15 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.sail.SailException;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -44,101 +50,19 @@ import prerna.util.DIHelper;
 public class POIReader extends AbstractFileReader {
 
 	/**
-	 * The main method is never called within SEMOSS
-	 * Used to load data without having to start SEMOSS
-	 * User must specify location of all files manually inside the method
-	 * @param args String[]
-	 */
-	public static void main(String[] args) throws Exception {
-		// try to load the file and see the worksheets
-
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String propFile = ""; //DO NOT EDIT HERE---it is now specified in the loops below, depending on what db you are loading
-		String bdPropFile = ""; //DO NOT EDIT HERE---it is now specified in the loops below, depending on what db you are loading
-		ArrayList<String> files = new ArrayList<String>();
-
-		// UPDATE THESE FOUR THINGS TO SPECIFY WHAT YOU WANT/HOW TO LOAD::::::::::::::::::::::::::::::::::
-		String customBase = "http://health.mil/ontologies";
-		boolean runCoreLoadingSheets = false;
-		boolean runFinancialLoadingSheets = true;
-		boolean runCustomLoadSheets = false;
-
-
-		if(runCoreLoadingSheets){
-			propFile = workingDir + "/RDF_Map.prop";
-			bdPropFile = workingDir + "/db/coreTest.smss";
-
-			String coreFile1 = workingDir + "/Version_5main.xlsm";
-			//files.add(coreFile1);
-			String coreFile2 = workingDir + "/Version_5p2.xlsx";
-			//files.add(coreFile2);
-			String coreFile3 = workingDir + "/Version_5ser.xlsx";
-			//files.add(coreFile3);
-			String coreFile4 = workingDir + "/Version_5req.xlsx";
-			//files.add(coreFile4);
-			String coreFile5 = workingDir + "/DataElementsLoadSheet.xlsx";
-			files.add(coreFile5);	
-			String coreFile6 = workingDir + "/TransitionCostLoadingSheetsv2.xlsx";
-			files.add(coreFile6);
-			String coreFile7 = workingDir + "/HWSW loadsheet.xlsx";
-			files.add(coreFile7);
-		}
-
-		if(runFinancialLoadingSheets){
-			propFile = workingDir + "/RDF_Map.prop";
-			bdPropFile = workingDir + "/db/TAP_Cost_Data.smss";
-
-			String financialFile1 = workingDir + "/LoadingSheets1.xlsx";
-			files.add(financialFile1);
-			String financialFile2 = workingDir + "/TransitionCostLoadingSheetsv2.xlsx";
-			//files.add(financialFile2);
-			String financialFile3 = workingDir + "/Site_HWSW.xlsx";
-			//files.add(financialFile3);
-			String financialFile4 = workingDir + "/AncillaryGLItems.xlsx";
-			//files.add(financialFile4);
-			String financialFile5 = workingDir + "/SDLCLoadingSheets.xlsx";
-			//files.add(financialFile5);
-			String financialFile6 = workingDir +"/PFFinancialLoadingSheets2.xlsx";
-			//files.add(financialFile6);
-			String financialFile7 = workingDir + "/Version_5p2.xlsx";
-			//files.add(financialFile7);
-		}
-
-		if(runCustomLoadSheets){
-			propFile = workingDir + "/RDF_Map.prop";
-			bdPropFile = workingDir + "/db/financial/CostData.Properties";
-
-			String fileName1 = workingDir + "/CustomSheet.xlsx";
-			files.add(fileName1);
-		}
-
-
-		POIReader reader = new POIReader();
-		if(customBase!=null) {
-			reader.customBaseURI = customBase;
-		}
-		reader.semossURI= "http://semoss.org/ontologies";
-//		reader.loadBDProperties(bdPropFile);
-//		reader.openDB();
-//		reader.openOWLWithOutConnection();
-		if(reader.customBaseURI == null)
-			reader.openProp(propFile);
-		for(String fileName : files){
-			reader.importFile(fileName);
-		}
-		reader.createBaseRelations();
-		reader.closeDB();
-	}
-
-	/**
 	 * Load data into SEMOSS into an existing database
 	 * @param engineName 	String grabbed from the user interface specifying which database to add the data
 	 * @param fileNames 	Absolute paths of files the user wants to load into SEMOSS, paths are separated by ";"
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path that determines the location of the current db map file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws IOException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
+	 * @throws SailException 
+	 * @throws InvalidFormatException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws SailException, RepositoryException, RDFHandlerException, IOException, InvalidFormatException  
 	{
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
@@ -164,8 +88,14 @@ public class POIReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		Absolute path that determines the location of a custom map file for the data
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws SailException 
+	 * @throws InvalidFormatException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileNotFoundException, IOException, InvalidFormatException, SailException, RepositoryException, RDFHandlerException
 	{
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
@@ -187,8 +117,9 @@ public class POIReader extends AbstractFileReader {
 	 * Load subclassing information into the db and the owl file
 	 * Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes in the first column and child nodes in the second column
 	 * @param subclassSheet		Excel sheet with the subclassing information
+	 * @throws SailException 
 	 */
-	private void createSubClassing(XSSFSheet subclassSheet) throws Exception {
+	private void createSubClassing(XSSFSheet subclassSheet) throws SailException {
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
 
@@ -200,13 +131,11 @@ public class POIReader extends AbstractFileReader {
 		if (!parentNode.equalsIgnoreCase("Parent")){
 			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in parent node column.</html>");
-			throw new Exception();
 		}
 		// check to make sure child column is in the correct column
 		if(!childNode.equalsIgnoreCase("Child")){
 			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in child node column.</html>");
-			throw new Exception();
 		}
 		// loop through and create all the triples for subclassing
 		int lastRow = subclassSheet.getLastRowNum();
@@ -225,8 +154,11 @@ public class POIReader extends AbstractFileReader {
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName		String containing the absolute path to the excel workbook to load
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws SailException 
 	 */
-	public void importFile(String fileName) throws Exception {
+	public void importFile(String fileName) throws InvalidFormatException, FileNotFoundException, IOException, SailException {
 
 		XSSFWorkbook workbook = new XSSFWorkbook(new FileInputStream(fileName));
 		// load the Loader tab to determine which sheets to load
@@ -278,8 +210,11 @@ public class POIReader extends AbstractFileReader {
 	 * Load specific sheet in workbook
 	 * @param sheetToLoad 	String containing the name of the sheet to load
 	 * @param workbook		XSSFWorkbook containing the sheet to load
+	 * @throws SailException 
 	 */
-	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws Exception{
+	@SuppressWarnings("null")
+	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws SailException 
+	{
 
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		logger.info("Loading Sheet: " + sheetToLoad);
@@ -417,8 +352,9 @@ public class POIReader extends AbstractFileReader {
 	 * Load excel sheet in matrix format
 	 * @param sheetToLoad 	String containing the name of the excel sheet to load
 	 * @param workbook		XSSFWorkbook containing the name of the excel workbook
+	 * @throws SailException 
 	 */
-	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) throws Exception
+	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) throws SailException
 	{
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
