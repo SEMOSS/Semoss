@@ -97,7 +97,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		// get the bindings from it
 		otherNames1 = sorWrapper.getVariables();
 		Vector<String> sysDataSOR = processPeripheralWrapper(sorWrapper, otherNames1);
-		
+
 		//process query 3
 		String[] otherNames2 = new String[1];
 		SesameJenaSelectWrapper lpiWrapper = new SesameJenaSelectWrapper();
@@ -110,7 +110,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		// get the bindings from it
 		otherNames2 = lpiWrapper.getVariables();
 		Vector<String> sysLPI = processPeripheralWrapper(lpiWrapper, otherNames2);
-		
+
 		//process query 4
 		String[] otherNames3 = new String[1];
 		SesameJenaSelectWrapper hpiWrapper = new SesameJenaSelectWrapper();
@@ -194,16 +194,18 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 						if(dhmsmSOR.contains(dhmsmProvideKey)) 
 						{
 							if(lpiV.contains(upstreamSystemURI)) { // upstream system is LPI
-								comment = "Need to add interface DHMSM->" + upstreamSysName + ".";
+								comment += "Need to add interface DHMSM->" + upstreamSysName + ". ";
 							} else if(lpiV.contains(downstreamSystemURI)) { // upstream system is not LPI and downstream system is LPI
-								comment = "Need to add interface DHMSM->" + downstreamSysName + "." + 
-										" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ".";
-							} else if(hpiV.contains(upstreamSystemURI)) { // upstream is HPI
-								comment = "Provide temporary integration between DHMSM->" + upstreamSysName + " until all deployment sites for " + upstreamSysName + " field DHMSM (and any additional legal requirements).";
+								comment += "Need to add interface DHMSM->" + downstreamSysName + "." + 
+										" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ". ";
+							} 
+							if(hpiV.contains(upstreamSystemURI)) { // upstream is HPI
+								comment += "Provide temporary integration between DHMSM->" + upstreamSysName + " until all deployment sites for " + upstreamSysName + " field DHMSM (and any additional legal requirements). ";
 							} else if(hpiV.contains(downstreamSystemURI)) { // upstream sys is not HPI and downstream is HPI
-								comment = "Provide temporary integration between DHMSM->" + downstreamSystemURI + " until all deployment sites for " + downstreamSysName + " field DHMSM (and any additional legal requirements)." +
-										" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ".";
-							} else {
+								comment += "Provide temporary integration between DHMSM->" + downstreamSysName + " until all deployment sites for " + downstreamSysName + " field DHMSM (and any additional legal requirements)." +
+										" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ". ";
+							} 
+							if(!lpiV.contains(upstreamSystemURI) && !hpiV.contains(upstreamSystemURI) && !lpiV.contains(downstreamSystemURI) && !hpiV.contains(downstreamSystemURI)) { // neither system is LPI/HPI
 								if(hpV.contains(upstreamSystemURI) || hpV.contains(downstreamSystemURI)) {
 									comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
 								} else {
@@ -213,15 +215,22 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 						} // DHMSM is consumer of data
 						else if(dhmsmSOR.contains(dhmsmConsumeKey)) 
 						{
+							boolean otherwise = true;
 							if(lpiV.contains(upstreamSystemURI) && sorV.contains(upstreamSystemURI + data)) { // upstream system is LPI and SOR of data
-								comment = "Need to add interface " + upstreamSysName  + " -> DHMSM.";
+								otherwise = false;
+								comment += "Need to add interface " + upstreamSysName  + " -> DHMSM. ";
 							} else if(sorV.contains(upstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // upstream system is SOR and has a probability
-								comment = "Recommend review of developing interface between " + upstreamSysName  + " -> DHMSM.";
-							} else if(lpiV.contains(downstreamSystemURI) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
-								comment = "Need to add interface " + downstreamSysName  + " -> DHMSM.";
+								otherwise = false;
+								comment += "Recommend review of developing interface between " + upstreamSysName  + " -> DHMSM. ";
+							} 
+							if(lpiV.contains(downstreamSystemURI) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
+								otherwise = false;
+								comment += "Need to add interface " + downstreamSysName  + " -> DHMSM. ";
 							} else if(sorV.contains(downstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
-								comment = "Recommend review of developing interface between " + downstreamSysName  + " -> DHMSM.";
-							} else {
+								otherwise = false;
+								comment += "Recommend review of developing interface between " + downstreamSysName  + " -> DHMSM. ";
+							} 
+							if(otherwise) {
 								if(hpV.contains(upstreamSystemURI) || hpV.contains(downstreamSystemURI)) {
 									comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
 								} else {
