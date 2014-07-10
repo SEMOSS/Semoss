@@ -264,6 +264,28 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	{
 		this.propV = selectedPropsList;
 	}
+	
+	public String getQueryPattern(){
+		return this.semossQuery.getQueryPattern();
+	}
+	
+	public Integer runCountQuery(){
+		String q = this.semossQuery.getCountQuery();
+		logger.info("Count query generated : " + q);
+		Vector<String> countV = coreEngine.getEntityOfType(q);
+		int totalSize = 0;
+		if(countV.size()>0)
+		{
+			System.out.println(countV.get(0));
+			try 
+			{
+				totalSize = Integer.parseInt(countV.get(0));
+			}catch (NumberFormatException e){
+				logger.error(e);
+			}
+		}
+		return totalSize;
+	}
 
 	public ArrayList<Hashtable<String,String>> getReturnVarObjHash(){
 		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
