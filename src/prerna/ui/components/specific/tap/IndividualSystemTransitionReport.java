@@ -243,14 +243,15 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
 	{
 		HashMap<String, Object> barHash = new HashMap<String, Object>();
-		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider"};
-		int[] barChartVals = new int[]{0,0,0,0,0};
+		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider","Proposed Temporary Interfaces with DHMSM - Legacy Consumer"};
+		int[] barChartVals = new int[]{0,0,0,0,0,0};
 		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
 		
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
 			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
+			String otherSystem = ((String)interfaceRow[1]).toLowerCase();
 			boolean addedInterface = false;		
 			boolean removedInterface = false;
 			//if it says need to add interface from dhmsm to our system, then legacy - consumer
@@ -266,7 +267,13 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				barChartVals[1] = barChartVals[1]+1;
 			}
 			
-			if(comment.contains("recommend review of removing interface "+systemName.toLowerCase()))
+			if(comment.contains("provide temporary integration between dhmsm->"+systemName.toLowerCase()))
+			{
+				//addedInterface = true;
+				barChartVals[5] = barChartVals[5]+1;
+			}
+			
+			if(comment.contains("recommend review of removing interface "+systemName.toLowerCase()+"->"+otherSystem)||comment.contains("recommend review of removing interface "+otherSystem+"->"+systemName.toLowerCase()))
 			{
 				removedInterface = true;
 				barChartVals[3] = barChartVals[3]+1;
