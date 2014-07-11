@@ -109,11 +109,16 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	
 	private void processRelations(Hashtable systemDataHash, Hashtable systemDataSORHash) {		
 				
-		Vector<String> sorSysDataV = concatHash(systemDataSORHash);
-		Vector<String> sysDataV = concatHash(systemDataHash);
+		Vector<String> sorSysDataV = concatHashToVector(systemDataSORHash);
+		Vector<String> sysDataV = concatHashToVector(systemDataHash);
 		String system = "";
 		String data = "";
 		
+		if (system.contains("NSIPS")) {
+			System.out.println("HERE");
+		}
+		
+		//Add SOR "Yes"
 		for (String sorCombo : sorSysDataV) {
 			StringTokenizer concatResult = new StringTokenizer(sorCombo, "@");			
 			for (int queryIdx = 0; concatResult.hasMoreTokens(); queryIdx++){
@@ -128,21 +133,38 @@ public class SORpropInsertProcessor extends AggregationHelper {
 			
 			if (sysDataV.contains(sorCombo)) {
 				//add property SOR to relationship				
-				sorRelationProcessing(system, data, false);
+				sorRelationProcessing(system, data, false, false);
 			}
 			else {
 				//Add new relationship System->Provides->Data with SOR and Calculated Properties = "Yes"
-				sorRelationProcessing(system, data, true);
+				sorRelationProcessing(system, data, true, false);
+			}
+		}
+		
+		//Add SOR "no
+		for (String sysData : sysDataV) {
+			StringTokenizer concatResult = new StringTokenizer(sysData, "@");			
+			for (int queryIdx = 0; concatResult.hasMoreTokens(); queryIdx++){
+				String token = concatResult.nextToken();
+				if (queryIdx == 0){
+					system = token;
+				}
+				else if (queryIdx == 1){
+					data = token;
+				}
+			}
+			if (!(sorSysDataV.contains(sysData))) {
+				sorRelationProcessing(system, data, false, true);
 			}
 		}
 		
 		
 		addToDataHash(new Object[]{semossPropertyBaseURI + "SOR", RDF.TYPE.toString(), semossRelationBaseURI + "Contains"});
-		addToDataHash(new Object[]{semossPropertyBaseURI + "Calculated", RDF.TYPE.toString(), semossRelationBaseURI + "Contains"});
+		//addToDataHash(new Object[]{semossPropertyBaseURI + "Reported", RDF.TYPE.toString(), semossRelationBaseURI + "Contains"});
 		//logger.info("*****SubProp URI: "+ semossPropertyBaseURI + "Calculated" + " typeURI : " + RDF.TYPE.toString() + " propbase: " + semossRelationBaseURI + "Contains");				
 	}
 	
-	private Vector<String> concatHash(Hashtable concatHashTable) {
+	private Vector<String> concatHashToVector(Hashtable concatHashTable) {
 		Vector<String> concatV = new Vector<String>();
 		String concatValue = "";
 		
@@ -160,16 +182,21 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		return concatV;
 	}
 	
-	public void sorRelationProcessing(String sys, String dataObject, boolean notfound) {					
+	public void sorRelationProcessing(String sys, String dataObject, boolean notfound, boolean notSOR) {					
 		String pred = tapCoreBaseURI + "Provide";
 		pred = pred + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(dataObject, "/");
 		if (notfound) {
 			//add the new relationship
 			addToDataHash(new Object[]{sys, pred, dataObject});
+			addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Reported", "No"});
 		}
-		//add the new properties
-		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Reported", "No"});
-		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "SOR", "Yes"});
+		//add the new properties		
+		if (notSOR) {
+			addToDataHash(new Object[]{pred, semossPropertyBaseURI + "SOR", "No"});
+		}
+		else {
+			addToDataHash(new Object[]{pred, semossPropertyBaseURI + "SOR", "Yes"});
+		}
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
 		logger.info("System: " + sys + ", Data: " + dataObject + ", Pred: " + pred);
