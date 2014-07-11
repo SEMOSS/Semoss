@@ -43,7 +43,6 @@
 		
 		var jsonData = jQuery.parseJSON(dataString);
 		var data = jsonData.dataSeries
-		//var data = dataString.dataSeries
 		var xAxisName = jsonData.xAxisTitle
 		var yAxisName = jsonData.yAxisTitle
 		var value = jsonData.value
@@ -71,6 +70,7 @@
 		var height;
 		var width;
 		var legendElementWidth = 60;
+		var bucketCount;
 
         //Evaluating what places to round heatmap values to
 		for (var key in data) {
@@ -352,6 +352,73 @@
 				.domain(valueArray)
 				.range(colors);
 				
+				
+				
+				
+			//jQuery Initializers
+			
+			//initiating first call
+			if (typeof jQuery('#sensitivitySlider').data('slider') != 'undefined'){
+				bucketCount = bucketMapper[jQuery('#sensitivitySlider').data('slider').getValue()-1];
+			} else {
+				bucketCount = 10;
+			}
+
+			if (typeof jQuery('#slider').data('slider')!= 'undefined'){
+				domainArray = jQuery('#slider').data('slider').getValue();
+			}
+                //initiate filter slider
+                jQuery('#slider').slider({
+                    min: roundValueArray[0],
+                    max: roundValueArray[roundValueArray.length-1],
+                    value:[roundValueArray[0], roundValueArray[roundValueArray.length-1]],
+                    step:Math.pow(10,-1*decimalToKeep),
+                    formater: function(value) {
+                        return value.toFixed(decimalToKeep);
+                    }
+                    })
+                .on('slide', function(){
+					domainArray = jQuery('#slider').data('slider').getValue()  
+					refreshColor(0);
+                });
+				
+				jQuery(".color-selector").on("change", change);
+				
+				// Main Slider filter defaults
+                jQuery('#slider').slider('setMin', roundValueArray[0]);
+                jQuery('#slider').slider('setMax', roundValueArray[roundValueArray.length-1]);
+                jQuery('#slider').slider('setStep', Math.pow(10,-1*decimalToKeep));
+                jQuery('#slider').slider('setValue', [roundValueArray[0], roundValueArray[roundValueArray.length-1]]);
+
+                //initiate bucket slider
+                jQuery('#sensitivitySlider').slider({
+                    min:1,
+                    max: 5,
+                    value:1,
+                    step:1})
+                .on('slide', function(){
+                    //refreshing the color quantile bucketing
+                    organizeColors();            
+                    refreshColor(0);
+                    refreshLegend();
+                })
+				
+				
+				// Switch quantile to quantized and vice versa (toggle)
+                jQuery('#quantile').click(function(){
+					if(quantiles==true) {
+						quantiles = false;
+						jQuery('#quantile').html('Change to Quantile');
+					}
+					else {
+						quantiles = true;
+						jQuery('#quantile').html('Change to Quantized');
+					}
+					refreshColor(0);
+					refreshLegend();
+                });
+            // End jquery initializers.   
+			
 			refreshColor(1000);
 			refreshLegend();
 
@@ -600,70 +667,8 @@
 				legendText.style("fill", "black");
 			}
 			
-			//jQuery Initializers
 			
-			//initiating first call
-			if (typeof jQuery('#sensitivitySlider').data('slider') != 'undefined'){
-				bucketCount = bucketMapper[jQuery('#sensitivitySlider').data('slider').getValue()-1];
-			} else {
-				bucketCount = 10;
-			}
-
-			if (typeof jQuery('#slider').data('slider')!= 'undefined'){
-				domainArray = jQuery('#slider').data('slider').getValue();
-			}
-                //initiate filter slider
-                jQuery('#slider').slider({
-                    min: roundValueArray[0],
-                    max: roundValueArray[roundValueArray.length-1],
-                    value:[roundValueArray[0], roundValueArray[roundValueArray.length-1]],
-                    step:Math.pow(10,-1*decimalToKeep),
-                    formater: function(value) {
-                        return value.toFixed(decimalToKeep);
-                    }
-                    })
-                .on('slide', function(){
-					domainArray = jQuery('#slider').data('slider').getValue()  
-					refreshColor(0);
-                });
-				
-				jQuery(".color-selector").on("change", change);
-				
-				// Main Slider filter defaults
-                jQuery('#slider').slider('setMin', roundValueArray[0]);
-                jQuery('#slider').slider('setMax', roundValueArray[roundValueArray.length-1]);
-                jQuery('#slider').slider('setStep', Math.pow(10,-1*decimalToKeep));
-                jQuery('#slider').slider('setValue', [roundValueArray[0], roundValueArray[roundValueArray.length-1]]);
-
-                //initiate bucket slider
-                jQuery('#sensitivitySlider').slider({
-                    min:1,
-                    max: 5,
-                    value:1,
-                    step:1})
-                .on('slide', function(){
-                    //refreshing the color quantile bucketing
-                    organizeColors();            
-                    refreshColor(0);
-                    refreshLegend();
-                })
-				
-				
-				// Switch quantile to quantized and vice versa (toggle)
-                jQuery('#quantile').click(function(){
-					if(quantiles==true) {
-						quantiles = false;
-						jQuery('#quantile').html('Change to Quantile');
-					}
-					else {
-						quantiles = true;
-						jQuery('#quantile').html('Change to Quantized');
-					}
-					refreshColor(0);
-					refreshLegend();
-                });
-               
-            }
+        }
 </script>
 </body>
 </html>
