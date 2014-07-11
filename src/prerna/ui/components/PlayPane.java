@@ -277,9 +277,11 @@ public class PlayPane extends JFrame {
 	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
 	public JComboBox relInferLogicTypeComboBox;
 	
+	//Source of Record Property Insert
+	public CustomButton btnSORInsert;
+	
 	// Components on settings panel
-	public JCheckBox propertyCheck, sudowlCheck, searchCheck,
-			highQualityExportCheck;
+	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
 	private JSeparator separator_4;
 	private JLabel distBVtechMatlabel;
 
@@ -2222,31 +2224,41 @@ public class PlayPane extends JFrame {
 		gbc_separateCentralSystemBPActInsert.gridy = 18;
 		tapCalcPanel.add(separateCentralSystemBPActInsert, gbc_separateCentralSystemBPActInsert);
 		
-		JPanel centralSystemBPActInsertPanel = new JPanel();
-		centralSystemBPActInsertPanel.setBackground(SystemColor.control);
-		GridBagConstraints gbc_centralSystemBPActInsertPanel = new GridBagConstraints();
-		gbc_centralSystemBPActInsertPanel.anchor = GridBagConstraints.EAST;
-		gbc_centralSystemBPActInsertPanel.gridwidth = 6;
-		gbc_centralSystemBPActInsertPanel.insets = new Insets(0, 0, 5, 5);
-		gbc_centralSystemBPActInsertPanel.gridx = 0;
-		gbc_centralSystemBPActInsertPanel.gridy = 19;
-		tapCalcPanel.add(centralSystemBPActInsertPanel, gbc_centralSystemBPActInsertPanel);
-		GridBagLayout gbl_centralSystemBPActInsertPanel = new GridBagLayout();
-		gbl_centralSystemBPActInsertPanel.columnWidths = new int[] { 0, 75, 100, 75 };
-		gbl_centralSystemBPActInsertPanel.rowHeights = new int[] { 10, 0, 0, 0, 0 };
-		gbl_centralSystemBPActInsertPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
-		gbl_centralSystemBPActInsertPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
-		centralSystemBPActInsertPanel.setLayout(gbl_centralSystemBPActInsertPanel);
+		JPanel inferredRelationshipInsertPanel = new JPanel();
+		inferredRelationshipInsertPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_inferredRelationshipInsertPanel = new GridBagConstraints();
+		gbc_inferredRelationshipInsertPanel.anchor = GridBagConstraints.EAST;
+		gbc_inferredRelationshipInsertPanel.gridwidth = 6;
+		gbc_inferredRelationshipInsertPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_inferredRelationshipInsertPanel.gridx = 0;
+		gbc_inferredRelationshipInsertPanel.gridy = 19;
+		tapCalcPanel.add(inferredRelationshipInsertPanel, gbc_inferredRelationshipInsertPanel);
+		GridBagLayout gbl_inferredRelationshipInsertPanel = new GridBagLayout();
+		gbl_inferredRelationshipInsertPanel.columnWidths = new int[] { 0, 75, 100, 75 };
+		gbl_inferredRelationshipInsertPanel.rowHeights = new int[] { 10, 0, 0, 0, 0 };
+		gbl_inferredRelationshipInsertPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
+		gbl_inferredRelationshipInsertPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		inferredRelationshipInsertPanel.setLayout(gbl_inferredRelationshipInsertPanel);
 
-		JLabel centralSystemBPActInsertLabel = new JLabel("Inferred Relationship Insert: Sys-BP and Sys-Cap");
-		centralSystemBPActInsertLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		JLabel inferredRelationshipInsertLabel = new JLabel("Inferred Relationship Insert");
+		inferredRelationshipInsertLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_inferredRelationshipInsertLabel = new GridBagConstraints();
+		gbc_inferredRelationshipInsertLabel.anchor = GridBagConstraints.WEST;
+		gbc_inferredRelationshipInsertLabel.gridwidth = 4;
+		gbc_inferredRelationshipInsertLabel.insets = new Insets(0, 10, 5, 5);
+		gbc_inferredRelationshipInsertLabel.gridx = 1;
+		gbc_inferredRelationshipInsertLabel.gridy = 1;
+		inferredRelationshipInsertPanel.add(inferredRelationshipInsertLabel, gbc_inferredRelationshipInsertLabel);
+		
+		JLabel centralSystemBPActInsertLabel = new JLabel("Sys-BP and Sys-Cap:");
+		centralSystemBPActInsertLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_centralSystemBPActInsertLabel = new GridBagConstraints();
 		gbc_centralSystemBPActInsertLabel.anchor = GridBagConstraints.WEST;
 		gbc_centralSystemBPActInsertLabel.gridwidth = 4;
-		gbc_centralSystemBPActInsertLabel.insets = new Insets(10, 10, 5, 5);
+		gbc_centralSystemBPActInsertLabel.insets = new Insets(0, 20, 5, 5);
 		gbc_centralSystemBPActInsertLabel.gridx = 1;
-		gbc_centralSystemBPActInsertLabel.gridy = 1;
-		centralSystemBPActInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
+		gbc_centralSystemBPActInsertLabel.gridy = 2;
+		inferredRelationshipInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
 		
 		JLabel logicTypelabel = new JLabel("Select Logic Type:");
 		logicTypelabel.setFont(new Font("Tahoma", Font.ITALIC, 12));
@@ -2255,8 +2267,8 @@ public class PlayPane extends JFrame {
 		gbc_logicTypelabel.gridwidth = 4;
 		gbc_logicTypelabel.insets = new Insets(5, 20, 5, 5);
 		gbc_logicTypelabel.gridx = 1;
-		gbc_logicTypelabel.gridy = 2;
-		centralSystemBPActInsertPanel.add(logicTypelabel, gbc_logicTypelabel);
+		gbc_logicTypelabel.gridy = 3;
+		inferredRelationshipInsertPanel.add(logicTypelabel, gbc_logicTypelabel);
 		
 		relInferLogicTypeComboBox = new JComboBox();
 		relInferLogicTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -2265,8 +2277,8 @@ public class PlayPane extends JFrame {
 		gbc_relInferLogicTypeComboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_relInferLogicTypeComboBox.anchor = GridBagConstraints.EAST;
 		gbc_relInferLogicTypeComboBox.gridx = 2;
-		gbc_relInferLogicTypeComboBox.gridy = 2;
-		centralSystemBPActInsertPanel.add(relInferLogicTypeComboBox, gbc_relInferLogicTypeComboBox);
+		gbc_relInferLogicTypeComboBox.gridy = 3;
+		inferredRelationshipInsertPanel.add(relInferLogicTypeComboBox, gbc_relInferLogicTypeComboBox);
 		relInferLogicTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "AND" , "OR" }));
 
 		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Inferred Relationships:");
@@ -2276,8 +2288,8 @@ public class PlayPane extends JFrame {
 		gbc_activityThresholdlabel_1.gridwidth = 4;
 		gbc_activityThresholdlabel_1.insets = new Insets(5, 20, 5, 5);
 		gbc_activityThresholdlabel_1.gridx = 1;
-		gbc_activityThresholdlabel_1.gridy = 3;
-		centralSystemBPActInsertPanel.add(activityThresholdlabel_1, gbc_activityThresholdlabel_1);
+		gbc_activityThresholdlabel_1.gridy = 4;
+		inferredRelationshipInsertPanel.add(activityThresholdlabel_1, gbc_activityThresholdlabel_1);
 
 		JLabel lblDataThresholdValue = new JLabel("Data Object Threshold Value:");
 		lblDataThresholdValue.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -2285,8 +2297,8 @@ public class PlayPane extends JFrame {
 		gbc_lblDataThresholdValue.anchor = GridBagConstraints.WEST;
 		gbc_lblDataThresholdValue.insets = new Insets(0, 20, 5, 5);
 		gbc_lblDataThresholdValue.gridx = 1;
-		gbc_lblDataThresholdValue.gridy = 4;
-		centralSystemBPActInsertPanel.add(lblDataThresholdValue, gbc_lblDataThresholdValue);
+		gbc_lblDataThresholdValue.gridy = 5;
+		inferredRelationshipInsertPanel.add(lblDataThresholdValue, gbc_lblDataThresholdValue);
 
 		JLabel lblBLUThresholdValue = new JLabel("BLU Threshold Value:");
 		lblBLUThresholdValue.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -2294,8 +2306,8 @@ public class PlayPane extends JFrame {
 		gbc_lblBLUThresholdValue.anchor = GridBagConstraints.WEST;
 		gbc_lblBLUThresholdValue.insets = new Insets(0, 10, 5, 5);
 		gbc_lblBLUThresholdValue.gridx = 2;
-		gbc_lblBLUThresholdValue.gridy = 4;
-		centralSystemBPActInsertPanel.add(lblBLUThresholdValue, gbc_lblBLUThresholdValue);
+		gbc_lblBLUThresholdValue.gridy = 5;
+		inferredRelationshipInsertPanel.add(lblBLUThresholdValue, gbc_lblBLUThresholdValue);
 
 		dataObjectThresholdValueTextField = new JTextField();
 		dataObjectThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -2308,8 +2320,8 @@ public class PlayPane extends JFrame {
 		gbc_dataObjectThresholdValueTextField.anchor = GridBagConstraints.WEST;
 		gbc_dataObjectThresholdValueTextField.insets = new Insets(0, 20, 5, 5);
 		gbc_dataObjectThresholdValueTextField.gridx = 1;
-		gbc_dataObjectThresholdValueTextField.gridy = 5;
-		centralSystemBPActInsertPanel.add(dataObjectThresholdValueTextField, gbc_dataObjectThresholdValueTextField);
+		gbc_dataObjectThresholdValueTextField.gridy = 6;
+		inferredRelationshipInsertPanel.add(dataObjectThresholdValueTextField, gbc_dataObjectThresholdValueTextField);
 		dataObjectThresholdValueTextField.setColumns(12);
 		
 		bluThresholdValueTextField = new JTextField();
@@ -2323,8 +2335,8 @@ public class PlayPane extends JFrame {
 		gbc_bluThresholdValueTextField.anchor = GridBagConstraints.EAST;
 		gbc_bluThresholdValueTextField.insets = new Insets(0, 0, 5, 5);
 		gbc_bluThresholdValueTextField.gridx = 2;
-		gbc_bluThresholdValueTextField.gridy = 5;
-		centralSystemBPActInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
+		gbc_bluThresholdValueTextField.gridy = 6;
+		inferredRelationshipInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
 		bluThresholdValueTextField.setColumns(12);		
 
 		btnSysBPCapInsert = new CustomButton("Run Relationship Insert");
@@ -2334,9 +2346,30 @@ public class PlayPane extends JFrame {
 		gbc_btnCentralSysBPActInsert.gridwidth = 1;
 		gbc_btnCentralSysBPActInsert.insets = new Insets(0, 20, 5, 5);
 		gbc_btnCentralSysBPActInsert.gridx = 1;
-		gbc_btnCentralSysBPActInsert.gridy = 6;
-		centralSystemBPActInsertPanel.add(btnSysBPCapInsert, gbc_btnCentralSysBPActInsert);
+		gbc_btnCentralSysBPActInsert.gridy = 7;
+		inferredRelationshipInsertPanel.add(btnSysBPCapInsert, gbc_btnCentralSysBPActInsert);
 		Style.registerTargetClassName(btnSysBPCapInsert, ".standardButton");
+		
+		JLabel SORpropInsertLabel = new JLabel("   Source of Record Prop Insert:");
+		SORpropInsertLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_SORpropInsertLabel = new GridBagConstraints();
+		gbc_SORpropInsertLabel.anchor = GridBagConstraints.WEST;
+		gbc_SORpropInsertLabel.gridwidth = 4;
+		gbc_SORpropInsertLabel.insets = new Insets(0, 20, 5, 5);
+		gbc_SORpropInsertLabel.gridx = 1;
+		gbc_SORpropInsertLabel.gridy = 8;
+		inferredRelationshipInsertPanel.add(SORpropInsertLabel, gbc_SORpropInsertLabel);
+		
+		btnSORInsert = new CustomButton("Run SOR Insert");
+		btnSORInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnSORInsert = new GridBagConstraints();
+		gbc_btnSORInsert.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnSORInsert.gridwidth = 1;
+		gbc_btnSORInsert.insets = new Insets(0, 20, 5, 5);
+		gbc_btnSORInsert.gridx = 2;
+		gbc_btnSORInsert.gridy = 8;
+		inferredRelationshipInsertPanel.add(btnSORInsert, gbc_btnSORInsert);
+		Style.registerTargetClassName(btnSORInsert, ".standardButton");
 		
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
