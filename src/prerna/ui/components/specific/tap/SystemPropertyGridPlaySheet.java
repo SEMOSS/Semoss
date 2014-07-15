@@ -7,8 +7,6 @@ import java.util.Hashtable;
 import javax.swing.JButton;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -86,10 +84,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 							for(int j = 0; j < costDataLength; j++) {
 								addRow[i+j] = "No cost info received.";
 							}
-						}
-					} else {
-						for(int j = 0; j < costDataLength; j++) {
-							addRow[i+j] = "*";
 						}
 					}
 				} else {
