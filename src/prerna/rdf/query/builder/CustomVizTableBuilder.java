@@ -7,9 +7,11 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
+import prerna.rdf.query.util.TriplePartConstant;
 import prerna.util.Utility;
 
 import com.google.gson.internal.StringMap;
@@ -27,9 +29,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	Hashtable<String, ArrayList<Object>> filterDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, ArrayList<Object>> bindingsDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, Object> bindDataHash = new Hashtable<String, Object>();
-	String bindString = "";
-	String filterString = "";
-	String bindingsString = "";
+	Hashtable<String, SEMOSSQuery> headerFilterHash = new Hashtable<String, SEMOSSQuery>();
 	IEngine coreEngine = null;
 	static final int subIdx = 0;
 	static final int predIdx = 1;
@@ -48,7 +48,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		semossQuery.setDisctinct(true);
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
-		parsePropertiesFromPath(); 
+//		parsePropertiesFromPath(); 
 		configureQuery();
 		semossQuery.createQuery();		
 	}
@@ -182,11 +182,19 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		for(String s : bindDataHash.keySet())
 		{
 			String bindValue = bindDataHash.get(s).toString();
+			TriplePartConstant triplePartC;
 			if(bindValue.startsWith("http")) {
-				SEMOSSQueryHelper.addBindPhrase(bindValue, TriplePart.URI, s, semossQuery);
+				triplePartC = TriplePart.URI;
 			} else {
-				SEMOSSQueryHelper.addBindPhrase(bindValue, TriplePart.LITERAL, s, semossQuery);
+				triplePartC = TriplePart.LITERAL;
 			}
+			// add the bind phrase to all filter queries
+			// after, add the unbound query to the filter hash
+			for(SEMOSSQuery filterQuery : this.headerFilterHash.values()){
+				SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, filterQuery);
+			}
+			this.headerFilterHash.put(s, this.semossQuery); // will the next line update this query??? i think so... :(
+			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
 		for(String s : bindingsDataHash.keySet())
 		{
