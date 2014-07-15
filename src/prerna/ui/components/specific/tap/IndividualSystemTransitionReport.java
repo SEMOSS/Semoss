@@ -87,7 +87,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
 			return;
 		}
-
+		
 		String[] systemAndType = this.query.split("\\$");
 		systemURI = systemAndType[0];
 		reportType = systemAndType[1];
@@ -102,7 +102,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 
 		systemName = systemURI.substring(systemURI.lastIndexOf("/")+1,systemURI.lastIndexOf(">"));
-
+		
 		boolean includeCosts = true;
 		String exceptionError = "Could not find database:";
 		try{
@@ -133,11 +133,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			if(loeForSysGlItemHash.isEmpty()) {
 				loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
 			}
-
+			
 			hwSWBudgetQuery = hwSWBudgetQuery.replace("@SYSTEM@",systemURI);
 			hwSWBudgetHash = getQueryDataWithHeaders(TAP_Cost_Data, hwSWBudgetQuery);
 		}
-
+	
 		sysInfoQuery = sysInfoQuery.replace("@SYSTEM@", systemURI);
 		if(reportType.equals("HPI"))
 			siteQuery = siteQuery.replace("@SYSTEM@", systemURI);
@@ -149,7 +149,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 		sysSORDataQuery = sysSORDataQuery.replace("@SYSTEM@", systemURI);
 		otherSysSORDataQuery = otherSysSORDataQuery.replace("@SYSTEM@", systemURI);
-
+		
 		HashMap<String, Object> sysInfoHash = getQueryDataWithHeaders(hr_Core, sysInfoQuery);
 		HashMap<String, Object> sysSiteHash = new HashMap<String,Object>();
 		if(reportType.equals("HPI"))
@@ -191,13 +191,13 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		HashMap<String, Object> sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 
-		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
+ 		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 		if(reportType.equals("LPI")||reportType.equals("HPI")) {
 			sysLPInterfaceWithCostHash = createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 		} else {
 			sysLPInterfaceWithCostHash = createLPNIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash, dhmsmSORList, lpiSystemList);
 		}
-
+		
 		HashMap<String, Object> interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
 		HashMap<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
 		HashMap<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
@@ -239,7 +239,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		this.showMessages = showMessages;
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	private HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
 	{
@@ -247,7 +247,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider","Proposed Temporary Interfaces with DHMSM - Legacy Consumer"};
 		int[] barChartVals = new int[]{0,0,0,0,0,0};
 		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
-
+		
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
@@ -267,19 +267,19 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				addedInterface = true;
 				barChartVals[1] = barChartVals[1]+1;
 			}
-
+			
 			if(comment.contains("provide temporary integration between dhmsm->"+systemName.toLowerCase()))
 			{
 				//addedInterface = true;
 				barChartVals[5] = barChartVals[5]+1;
 			}
-
+			
 			if(comment.contains("recommend review of removing interface "+systemName.toLowerCase()+"->"+otherSystem)||comment.contains("recommend review of removing interface "+otherSystem+"->"+systemName.toLowerCase()))
 			{
 				removedInterface = true;
 				barChartVals[3] = barChartVals[3]+1;
 			}
-
+			
 			if(comment.contains("developing"))
 			{
 				if(comment.contains(systemName.toLowerCase()))
@@ -349,7 +349,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		double totalIndirectCost = 0;
 		String dataObject = "";
 		String interfacingSystem = "";
-
+		
 		// used to keep track of rows that have the same data object
 		ArrayList<Integer> indexArr = new ArrayList<Integer>();
 		int rowNum = -1;
@@ -408,22 +408,30 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					{
 						String[] sysSpecificCommentSplit = sysSpecificComment.split("->");
 						//////////////////////////////////////////////////////////////////////////////////////////////
-						if(sysSpecificCommentSplit[1].contains("DHMSM")) // this means DHMSM consumes data, direct provider cost for system
+						if(sysSpecificCommentSplit[1].contains("DHMSM") && !sysSpecificCommentSplit[1].contains("field DHMSM")) // this means DHMSM consumes data, direct provider cost for system
 						{
 							Double finalCost = null;
+							boolean interfacingSysProvider = false;
 							if(sysSpecificCommentSplit[0].contains(systemName)) { // if system providing is our system
 								finalCost = calculateCost(dataObject, systemName, "Provider", true);
-							} 
-							if(finalCost == null) {
-								newRow[i+2] = "Cost already taken into consideration.";
+							} else { // if system providing is the interfacing system, no cost
+								interfacingSysProvider = true;
+								newRow[i+2] = "";
 								newRow[i+3] = "";
-							} else if(finalCost != (double) 0){
-								newRow[i+2] = finalCost;
-								totalDirectCost += finalCost;
-								newRow[i+3] = "";
-							} else {
-								newRow[i+2] = "No data present to calculate loe.";
-								newRow[i+3] = "";
+							}
+							if(!interfacingSysProvider)
+							{
+								if(finalCost == null) {
+									newRow[i+2] = "Cost already taken into consideration.";
+									newRow[i+3] = "";
+								} else if(finalCost != (double) 0){
+									newRow[i+2] = finalCost;
+									totalDirectCost += finalCost;
+									newRow[i+3] = "";
+								} else {
+									newRow[i+2] = "No data present to calculate loe.";
+									newRow[i+3] = "";
+								}
 							}
 						}
 						//////////////////////////////////////////////////////////////////////////////////////////////
@@ -501,7 +509,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return dataHash;
 	}
 
-	@SuppressWarnings("unchecked")
 	private HashMap<String, Object> createLPNIInterfaceWithCostHash(HashMap<String, Object> sysLPNIInterfaceHash, HashMap<String, HashMap<String, Double>> loeForSysGlItemHash, HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash, HashSet<String> dhmsmSORList, HashSet<String> lpiSystemList) 
 	{
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
