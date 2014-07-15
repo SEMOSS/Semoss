@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.tap;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -18,6 +19,9 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 	
 	private String[] costDataVarNames;
 	private Integer costDataLength = 0;
+	
+	private DecimalFormat nf = new DecimalFormat("$#,##0.00");
+
 	@Override
 	public void createData() {
 		Hashtable<String, Hashtable<String, Double>> costHash = new Hashtable<String, Hashtable<String, Double>>();
@@ -33,6 +37,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 			includeCost = false;
 		}
 		
+
 		SesameJenaSelectWrapper runQuery = new SesameJenaSelectWrapper();
 		runQuery.setQuery(this.query);
 		runQuery.setEngine(this.engine);
@@ -63,7 +68,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 						Hashtable<String, Double> costInfo = costHash.get(sysName);
 						if(costInfo != null) {
 							for(int j = 0; j < costDataLength; j++) {
-								addRow[i+j] = Math.round(costInfo.get(costDataVarNames[j+1]));
+								addRow[i+j] = nf.format(costInfo.get(costDataVarNames[j+1]));
 							}
 						} else {
 							for(int j = 0; j < costDataLength; j++) {
