@@ -193,13 +193,11 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		}
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public void createView() {	
 		if(list.isEmpty()){
 			String questionID = getQuestionID();
-			// fill the nodetype list so that they can choose from
-			// remove from store
-			// this will also clear out active sheet
 			QuestionPlaySheetStore.getInstance().remove(questionID);
 			if(QuestionPlaySheetStore.getInstance().isEmpty())
 			{
@@ -209,16 +207,9 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			Utility.showError("Query returned no results.");
 			return;		
 		}
-
-		//		if(rs==null) {
-		//			Utility.showError("Query returned no results.");
-		//			return;
-		//		}
 		super.createView();
-		//createData();
 		if(table==null)
 			addPanel();
-
 
 		updateProgressBar("80%...Creating Visualization", 80);
 		gfd.setColumnNames(names);
