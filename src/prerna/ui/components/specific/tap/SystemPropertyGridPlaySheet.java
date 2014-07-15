@@ -4,23 +4,35 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import javax.swing.JButton;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.GridTableModel;
+import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QuestionPlaySheetStore;
+import prerna.util.Utility;
 
 @SuppressWarnings("serial")
-public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
+public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 
 	private String costQuery = "SELECT DISTINCT ?System (SUM(?FY15) as ?fy15) (SUM(?FY16) as ?fy16) (SUM(?FY17) as ?fy17) (SUM(?FY18) as ?fy18) WHERE { { SELECT DISTINCT ?System ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudgetGLItem} OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } UNION { SELECT DISTINCT ?System ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?SystemServiceBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem> ;} {?SystemService <http://semoss.org/ontologies/Relation/Has> ?SystemServiceBudgetGLItem} OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } } GROUP BY ?System ";
 	private String tapPortfolio = "TAP_Portfolio";
 	private String tapCost = "TAP_Cost_Data";
-	
+
+	private String[] varNames;
 	private String[] costDataVarNames;
 	private Integer costDataLength = 0;
-	
-	private DecimalFormat nf = new DecimalFormat("$#,##0.00");
+
+	private DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 
 	@Override
 	public void createData() {
@@ -36,14 +48,14 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 		} else {
 			includeCost = false;
 		}
-		
+
 
 		SesameJenaSelectWrapper runQuery = new SesameJenaSelectWrapper();
 		runQuery.setQuery(this.query);
 		runQuery.setEngine(this.engine);
 		runQuery.executeQuery();
-		String[] varNames = runQuery.getVariables();
-		
+		varNames = runQuery.getVariables();
+
 		this.names = new String[varNames.length + costDataLength];
 		for(int i = 0; i < names.length; i++) {
 			if(i < varNames.length) {
@@ -52,11 +64,11 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 				names[i] = costDataVarNames[i-varNames.length+1];
 			}
 		}
-		
+
 		list = new ArrayList<Object[]>();
 		while(runQuery.hasNext()) {
 			Object[] addRow = new Object[varNames.length + costDataLength];
-			
+
 			SesameJenaSelectStatement sjss = runQuery.next();
 			String sysName = "";
 			for(int i = 0; i < varNames.length + 1; i++) {
@@ -68,7 +80,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 						Hashtable<String, Double> costInfo = costHash.get(sysName);
 						if(costInfo != null) {
 							for(int j = 0; j < costDataLength; j++) {
-								addRow[i+j] = nf.format(costInfo.get(costDataVarNames[j+1]));
+								addRow[i+j] = nf.format(Math.round(costInfo.get(costDataVarNames[j+1])));
 							}
 						} else {
 							for(int j = 0; j < costDataLength; j++) {
@@ -86,7 +98,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 			}
 			list.add(addRow);
 		}
-		
+
 	}
 
 	private Hashtable<String, Hashtable<String, Double>> processCostQuery(IEngine engine) 
@@ -96,7 +108,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 		costWrapper.setQuery(costQuery);
 		costWrapper.setEngine(engine);
 		costWrapper.executeQuery();
-		
+
 		costDataVarNames = costWrapper.getVariables();
 		costDataLength = costDataVarNames.length - 1;
 		while(costWrapper.hasNext()) {
@@ -108,7 +120,7 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 				innerHash.put(costDataVarNames[i], (Double) sjss.getVar(costDataVarNames[i]));
 			}
 		}
-		
+
 		return costHash;
 	}
 
@@ -179,5 +191,49 @@ public class SystemPropertyGridPlaySheet  extends GridPlaySheet {
 			logger.info("New Query " + retString);
 			this.query = retString;
 		}
+	}
+
+	@Override
+	public void createView() {	
+		if(list.isEmpty()){
+			String questionID = getQuestionID();
+			// fill the nodetype list so that they can choose from
+			// remove from store
+			// this will also clear out active sheet
+			QuestionPlaySheetStore.getInstance().remove(questionID);
+			if(QuestionPlaySheetStore.getInstance().isEmpty())
+			{
+				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
+				btnShowPlaySheetsList.setEnabled(false);
+			}
+			Utility.showError("Query returned no results.");
+			return;		
+		}
+
+		//		if(rs==null) {
+		//			Utility.showError("Query returned no results.");
+		//			return;
+		//		}
+		super.createView();
+		//createData();
+		if(table==null)
+			addPanel();
+
+
+		updateProgressBar("80%...Creating Visualization", 80);
+		gfd.setColumnNames(names);
+		gfd.setDataList(list);
+		GridTableModel model = new GridTableModel(gfd);
+		table.setModel(model);
+		table.setRowSorter(new GridTableRowSorter(model));
+
+		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+		rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		for(int i = varNames.length; i < names.length; i++) {
+			table.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
+		}
+
+		updateProgressBar("100%...Table Generation Complete", 100);
 	}
 }
