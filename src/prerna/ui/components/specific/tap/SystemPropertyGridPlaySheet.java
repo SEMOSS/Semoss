@@ -180,7 +180,7 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			}
 
 			String retString = "";
-			retString = retString.concat(query.substring(0,query.indexOf("WHERE {"))).concat("WHERE {").concat(addConditions).concat(query.substring(query.indexOf("WHERE {") + 8)).concat(" ").concat(addBindings);
+			retString = retString.concat(query.substring(0,query.lastIndexOf("WHERE {"))).concat("WHERE {").concat(addConditions).concat(query.substring(query.lastIndexOf("WHERE {") + 8)).concat(" ").concat(addBindings);
 			logger.info("New Query " + retString);
 			this.query = retString;
 		}
