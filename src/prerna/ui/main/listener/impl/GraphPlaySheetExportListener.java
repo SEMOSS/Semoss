@@ -98,10 +98,8 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		jenaEng.setModel(jenaModel);
 		
 		
-		String sparql2 = "SELECT ?s ?p ?o WHERE {?s ?p ?o}";
-		String sparql = "SELECT ?activity1 ?need ?data WHERE {{?activity1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>;} {?need <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?activity1 ?need ?data.}}";
-		
-		ResultSet rs = (ResultSet) jenaEng.execSelectQuery(sparql2);
+		String sparql = "SELECT ?Subjects ?Predicates ?Objects WHERE {?Subjects ?Predicates ?Objects}";		
+		ResultSet rs = (ResultSet) jenaEng.execSelectQuery(sparql);
 		NewplaySheet.setRs(rs);
 		
 		NewplaySheet.setTitle(title);
@@ -118,7 +116,8 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		PlaysheetCreateRunner playThread = new PlaysheetCreateRunner(NewplaySheet);
 		playThread.run();
 			
-		playSheet.jTab.add("Graph Export", NewplaySheet);
+		String tabTitle = "Graph Export";
+		playSheet.jTab.add(tabTitle, NewplaySheet);
 		playSheet.jTab.setSelectedComponent(NewplaySheet);
 	}
 		
