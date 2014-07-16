@@ -50,15 +50,15 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		try {
 			table = new JTable();
 			
-			//Add Excel export popup menu and menuitem
-			JPopupMenu popupMenu = new JPopupMenu();
-			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-			IPlaySheet ps = QuestionPlaySheetStore.getInstance().getActiveSheet();
-			String questionTitle = "Excel Export";
-			questionTitle = ps.getTitle();
-			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-			popupMenu.add(menuItemAdd);
-			table.setComponentPopupMenu(popupMenu);
+//			//Add Excel export popup menu and menuitem
+//			JPopupMenu popupMenu = new JPopupMenu();
+//			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
+//			IPlaySheet ps = QuestionPlaySheetStore.getInstance().getActiveSheet();
+//			String questionTitle = "Excel Export";
+//			questionTitle = ps.getTitle();
+//			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
+//			popupMenu.add(menuItemAdd);
+//			table.setComponentPopupMenu(popupMenu);
 			
 			JPanel mainPanel = new JPanel();
 			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
