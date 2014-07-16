@@ -22,7 +22,7 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 
-	private String costQuery = "SELECT DISTINCT ?System (SUM(?FY15) as ?fy15) (SUM(?FY16) as ?fy16) (SUM(?FY17) as ?fy17) (SUM(?FY18) as ?fy18) WHERE { { SELECT DISTINCT ?System ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudgetGLItem} OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } UNION { SELECT DISTINCT ?System ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?SystemServiceBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem> ;} {?SystemService <http://semoss.org/ontologies/Relation/Has> ?SystemServiceBudgetGLItem} OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } } GROUP BY ?System ";
+	private String costQuery = "SELECT DISTINCT ?System (SUM(?FY15) as ?fy15) (SUM(?FY16) as ?fy16) (SUM(?FY17) as ?fy17) (SUM(?FY18) as ?fy18) WHERE { { SELECT DISTINCT ?System ?GLTag ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudgetGLItem} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } UNION { SELECT DISTINCT ?System ?GLTag ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?SystemServiceBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem> ;} {?SystemService <http://semoss.org/ontologies/Relation/Has> ?SystemServiceBudgetGLItem} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY15 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY15>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY16 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY16>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY17 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY17>} } OPTIONAL { {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?FY18 ;} {?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/OccursIn> <http://health.mil/ontologies/Concept/FYTag/FY18>} } } } } GROUP BY ?System";
 	private String tapPortfolio = "TAP_Portfolio";
 	private String tapCost = "TAP_Cost_Data";
 
@@ -92,7 +92,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			}
 			list.add(addRow);
 		}
-
 	}
 
 	private Hashtable<String, Hashtable<String, Double>> processCostQuery(IEngine engine) 
@@ -163,10 +162,10 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 				// do nothing
 			} else if(interfaceUserResponse.equals("Yes"))
 			{
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' } ");
 			} else if(interfaceUserResponse.equals("No"))
 			{
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' } ");
 			}
 
 			if(archiveUserResponse.equals("All"))
@@ -174,14 +173,14 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 				// do nothing
 			} else if(archiveUserResponse.equals("Yes"))
 			{
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'Y' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'Y' } ");
 			} else if(archiveUserResponse.equals("No"))
 			{
-				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'N' }");
+				addConditions = addConditions.concat("{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> 'N' } ");
 			}
 
 			String retString = "";
-			retString = retString.concat(query.substring(0,query.lastIndexOf("}"))).concat(addConditions).concat("} ").concat("ORDER BY ?System ").concat(addBindings);
+			retString = retString.concat(query.substring(0,query.indexOf("?Own}}"))).concat("?Own}} ").concat(addConditions).concat("} ").concat(addBindings).concat(query.substring(query.lastIndexOf("}",query.length()))).concat(" ORDER BY ?System ");
 			logger.info("New Query " + retString);
 			this.query = retString;
 		}
