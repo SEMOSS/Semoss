@@ -1,6 +1,7 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -62,31 +63,40 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	
 	private void configureQuery(){
 
+		buildFilter();
+		ArrayList<SEMOSSQuery> filterQueries = new ArrayList(this.headerFilterHash.values());
+		filterQueries.add(this.semossQuery);
+		
 		// use nodeV, predV, and propV (as determined from parsing path and properties) to add necessary pieces to query
 		// the rule is that all path variables must be included (otherwise we have a disconnected query) but properties are optional
 		// optional part of properties already taken care of in parseProperties--here we only have props we want to add
 		for(Hashtable<String, String> nodeHash : nodeV){
 			String nodeName = nodeHash.get(varKey);
 			String nodeURI = nodeHash.get(uriKey);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, semossQuery);
+			for(SEMOSSQuery filterQuery : filterQueries){
+				SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, filterQuery);
+			}
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(nodeName, semossQuery);
 		}
 
 		for(Hashtable<String, String> predHash : predV){
 			String predName = predHash.get(varKey);
 			String predURI = predHash.get(uriKey);
-			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, semossQuery);
-			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"),semossQuery);
+			for(SEMOSSQuery filterQuery : filterQueries){
+				SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, filterQuery);
+				SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"),filterQuery);
+			}
 		}
 
 		for(Hashtable<String, String> propHash : propV) {
 			String propName = propHash.get(varKey);
 			String propURI = propHash.get(uriKey);
-			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
+			for(SEMOSSQuery filterQuery : filterQueries){
+				SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, filterQuery);
+			}
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
 		}
 		
-		buildFilter();
 		addFilter();
 	}
 
@@ -141,6 +151,14 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			}
 		}
 	}
+	
+	private SEMOSSQuery createDefaultFilterQuery(String varName){
+		SEMOSSQuery q = new SEMOSSQuery();
+		q.setQueryType(SPARQLConstants.SELECT);
+		q.setDisctinct(true);
+		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, q);
+		return q;
+	}
 
 	private void buildFilter()
 	{
@@ -149,6 +167,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		{
 			for(String varName : filterResults.keySet())
 			{
+				this.headerFilterHash.put(varName, createDefaultFilterQuery(varName));
 				ArrayList<Object> results = filterResults.get(varName);
 				if(!results.isEmpty())
 				{
@@ -188,27 +207,44 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			} else {
 				triplePartC = TriplePart.LITERAL;
 			}
-			// add the bind phrase to all filter queries
-			// after, add the unbound query to the filter hash
-			for(SEMOSSQuery filterQuery : this.headerFilterHash.values()){
-				SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, filterQuery);
+			// for every filter query, add the bind as long as it is not the variable in question
+			for(String varName : this.headerFilterHash.keySet()){
+				if(!s.equals(varName)){
+					SEMOSSQuery q = this.headerFilterHash.get(varName);
+					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
+				}
 			}
-			this.headerFilterHash.put(s, this.semossQuery); // will the next line update this query??? i think so... :(
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
 		for(String s : bindingsDataHash.keySet())
 		{
 			String bindValue = bindingsDataHash.get(s).get(0).toString();
 			// TODO: find better logic to determine if dealing with URI or Literal
+			TriplePartConstant triplePartC;
 			if(bindValue.startsWith("http")) {
-				SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), TriplePart.URI, s.toString(), semossQuery);
+				triplePartC = TriplePart.URI;
 			} else {
-				SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), TriplePart.LITERAL, s.toString(), semossQuery);
+				triplePartC = TriplePart.LITERAL;
 			}
+			// for every filter query, add the bind as long as it is not the variable in question
+			for(String varName : this.headerFilterHash.keySet()){
+				if(!s.equals(varName)){
+					SEMOSSQuery q = this.headerFilterHash.get(varName);
+					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
+				}
+			}
+			SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), this.semossQuery);
 		}
 		for(String s : filterDataHash.keySet())
 		{
 			ArrayList<Object> filterOptions = filterDataHash.get(s);
+			// for every filter query, add the bind as long as it is not the variable in question
+			for(String varName : this.headerFilterHash.keySet()){
+				if(!s.equals(varName)){
+					SEMOSSQuery q = this.headerFilterHash.get(varName);
+					SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, q);
+				}
+			}
 			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery);
 		}
 	}
@@ -295,10 +331,25 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		return totalSize;
 	}
 
-	public ArrayList<Hashtable<String,String>> getReturnVarObjHash(){
+	public ArrayList<Hashtable<String,String>> getHeaderArray(){
 		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
 		retArray.addAll(nodeV);
 		retArray.addAll(propV);
+		// add the filter queries
+		String defaultQueryPattern = this.semossQuery.getQueryPattern();
+		for(Hashtable<String, String> headerHash : retArray){
+			String varName = headerHash.get(this.varKey);
+			String filterQuery = "";
+			if(this.headerFilterHash.containsKey(varName)){
+				SEMOSSQuery q = headerFilterHash.get(varName);
+				q.createQuery();
+				filterQuery = q.getQuery();
+			}
+			else{
+				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern;
+			}
+			headerHash.put(this.queryKey, filterQuery);
+		}
 		return retArray;
 	}
 }
