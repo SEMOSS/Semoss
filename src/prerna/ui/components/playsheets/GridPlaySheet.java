@@ -23,12 +23,17 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import prerna.ui.components.NewScrollBarUI;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
+import prerna.ui.main.listener.impl.JTableExcelExportListener;
+import prerna.util.QuestionPlaySheetStore;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -44,6 +49,17 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		setWindow();
 		try {
 			table = new JTable();
+			
+			//Add Excel export popup menu and menuitem
+			JPopupMenu popupMenu = new JPopupMenu();
+			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
+			IPlaySheet ps = QuestionPlaySheetStore.getInstance().getActiveSheet();
+			String questionTitle = "Excel Export";
+			questionTitle = ps.getTitle();
+			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
+			popupMenu.add(menuItemAdd);
+			table.setComponentPopupMenu(popupMenu);
+			
 			JPanel mainPanel = new JPanel();
 			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
 			logger.debug("Created the table");
