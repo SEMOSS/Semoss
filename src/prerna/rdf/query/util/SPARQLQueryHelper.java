@@ -49,8 +49,8 @@ public abstract class SPARQLQueryHelper {
 			throw new IllegalArgumentException("TriplePart is not set as a Literal");
 		}
 		if(triplePart.getValue() instanceof String)
-			// if getting back a raw literal value, do not add quotes around
-			if(triplePart.getValue().toString().contains("http://www.w3.org/2001")) {
+			// if getting back a raw literal value, do not add quotes around or if the quotes are already in place (aka it is a raw string)
+			if(triplePart.getValue().toString().contains("http://www.w3.org/2001") || (triplePart.getValue().toString().startsWith("\"") && triplePart.getValue().toString().endsWith("\""))) {
 				return triplePart.getValue().toString();
 			} else {
 				return "'"+triplePart.getValue()+"'";
