@@ -13,6 +13,11 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
+import prerna.error.HeaderClassException;
+import prerna.error.NLPException;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
@@ -38,47 +43,32 @@ public class ImportDataProcessor {
 
 	//This method will take in all possible required information
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
-	public boolean runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
-			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName){
-		boolean success = false;
-
-		if(importMethod == IMPORT_METHOD.CREATE_NEW)
-			success = processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile);
-
-		else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING)
-			success = processAddToExisting(importType, customBaseURI, fileNames, repoName);
-
-		else if(importMethod == IMPORT_METHOD.OVERRIDE)
-			success = processOverride(importType, customBaseURI, fileNames, repoName);
-
-		return success;
+	public void runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
+			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
+		if(importMethod == IMPORT_METHOD.CREATE_NEW) {
+			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile);
+		} else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING) {
+			processAddToExisting(importType, customBaseURI, fileNames, repoName);
+		}
+		else if(importMethod == IMPORT_METHOD.OVERRIDE) {
+			processOverride(importType, customBaseURI, fileNames, repoName);
+		}
 	}
 
-	public boolean processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName){
-		boolean success = true;
+	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		//get the engine information
 		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
 		String owlPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
 			POIReader reader = new POIReader();
-			try {
-				//run the reader
-				reader.importFileWithConnection(repoName, fileNames, customBaseURI, mapPath, owlPath);
-
-				//run the ontology augmentor
-
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
-						reader.relationURIHash,  reader.baseRelationURIHash, 
-						reader.basePropURI);
-			}
-			catch (Exception ex)
-			{
-				success = false;
-				ex.printStackTrace();
-			}
-
+			//run the reader
+			reader.importFileWithConnection(repoName, fileNames, customBaseURI, mapPath, owlPath);
+			//run the ontology augmentor
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
+					reader.relationURIHash,  reader.baseRelationURIHash, 
+					reader.basePropURI);
 		}
 		else if (importType == IMPORT_TYPE.CSV)
 		{
@@ -87,27 +77,17 @@ public class ImportDataProcessor {
 			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
 			if(propHash != null)
 				csvReader.setRdfMap(propHash);
-			try {
-				//run the reader
-				csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
-
-				//run the ontology augmentor
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
-						csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
-						csvReader.basePropURI);
-			}
-			catch (Exception ex)
-			{
-				success = false;
-				ex.printStackTrace();
-			}
+			//run the reader
+			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
+			//run the ontology augmentor
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
+					csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
+					csvReader.basePropURI);
 		}
-		return success;
 	}
-	
-	public boolean processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile){
-		boolean success = true;
+
+	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, NLPException {
 		//Replace spaces in db name with underscores
 		dbName = dbName.replace(" ", "_");
 		//first write the prop file for the new engine
@@ -120,34 +100,36 @@ public class ImportDataProcessor {
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
 			POIReader reader = new POIReader();
-			try{
-				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+			reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(ontoPath, reader.conceptURIHash, reader.baseConceptURIHash, 
-						reader.relationURIHash, reader.baseRelationURIHash,
-						reader.basePropURI);
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(ontoPath, reader.conceptURIHash, reader.baseConceptURIHash, 
+					reader.relationURIHash, reader.baseRelationURIHash,
+					reader.basePropURI);
 
-				File propFile = new File(propWriter.propFileName);
-				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			File propFile = new File(propWriter.propFileName);
+			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			try {
 				FileUtils.copyFile(propFile, newProp);
-				propFile.delete();
-			}catch(Exception ex)
-			{
-				success = false;
-				try {
-					reader.closeDB();
-					logger.warn("SC IS OPEN:" + reader.sc.isOpen());
-					ex.printStackTrace();
-				} catch(Exception exe){
-					exe.printStackTrace();
-				}
-				File propFile = new File(propWriter.propFileName);
-				deleteFile(propFile);
-				File propFile2 = propWriter.engineDirectory;
-				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not create .smss file for new database");
 			}
+			propFile.delete();
 		}
+		//				try {
+		//					reader.closeDB();
+		//					logger.warn("SC IS OPEN:" + reader.sc.isOpen());
+		//					ex.printStackTrace();
+		//				} catch(Exception exe){
+		//					exe.printStackTrace();
+		//				}
+		//				File propFile = new File(propWriter.propFileName);
+		//				deleteFile(propFile);
+		//				File propFile2 = propWriter.engineDirectory;
+		//				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
+		//			}
+		//		}
 		else if (importType == IMPORT_TYPE.CSV)
 		{
 			CSVReader csvReader = new CSVReader();
@@ -155,66 +137,53 @@ public class ImportDataProcessor {
 			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
 			if(propHash != null)
 				csvReader.setRdfMap(propHash);
-			try{
-				csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
+			csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
 
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
-						csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
-						csvReader.basePropURI);
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
+					csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
+					csvReader.basePropURI);
 
-				File propFile = new File(propWriter.propFileName);
-				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			File propFile = new File(propWriter.propFileName);
+			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			try {
 				FileUtils.copyFile(propFile, newProp);
-				propFile.delete();
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not create .smss file for new database");
 			}
-			catch(Exception ex)
-			{
-				success = false;
-				ex.printStackTrace();
-				try {
-					csvReader.closeDB();
-					logger.warn("SC IS OPEN:" + csvReader.sc.isOpen());
-				} catch(Exception exe){
-
-				}
-				File propFile = new File(propWriter.propFileName);
-				deleteFile(propFile);
-				File propFile2 = propWriter.engineDirectory;
-				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
-			}
+			propFile.delete();
 		}
+		//					csvReader.closeDB();
+		//					logger.warn("SC IS OPEN:" + csvReader.sc.isOpen());
+		//				} catch(Exception exe){
+		//
+		//				}
+		//				File propFile = new File(propWriter.propFileName);
+		//				deleteFile(propFile);
+		//				File propFile2 = propWriter.engineDirectory;
+		//				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
+		//			}
+		//		}
 		else if(importType == IMPORT_TYPE.NLP){
 			NLPReader nlpreader = new NLPReader();
-			try{
-				nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+			nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
 
-				OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-				ontologyWriter.runAugment(ontoPath, nlpreader.conceptURIHash, nlpreader.baseConceptURIHash, 
-						nlpreader.relationURIHash, nlpreader.baseRelationURIHash,
-						nlpreader.basePropURI);
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(ontoPath, nlpreader.conceptURIHash, nlpreader.baseConceptURIHash, 
+					nlpreader.relationURIHash, nlpreader.baseRelationURIHash,
+					nlpreader.basePropURI);
 
-				File propFile = new File(propWriter.propFileName);
-				File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			File propFile = new File(propWriter.propFileName);
+			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			try {
 				FileUtils.copyFile(propFile, newProp);
-				propFile.delete();
-			}catch(Exception ex)
-			{
-				success = false;
-				try {
-					nlpreader.closeDB();
-					logger.warn("SC IS OPEN2:" + nlpreader.sc.isOpen());
-					ex.printStackTrace();
-				} catch(Exception exe){
-					exe.printStackTrace();
-				}
-				File propFile = new File(propWriter.propFileName);
-				deleteFile(propFile);
-				File propFile2 = propWriter.engineDirectory;
-				deleteFile(propFile2);//need to use this function because must clear directory before i can delete it
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not create .smss file for new database");
 			}
-		}
-		return success;
+			propFile.delete();
+		} 
 	}
 
 
@@ -364,31 +333,29 @@ public class ImportDataProcessor {
 					//this delete is only for two levels.  At this point, must be file, so just delete it
 					fileDelete.delete();
 				}
-
 				//check the directory again, if empty then delete it
 				if(file.list().length==0) {
 					file.delete();
 					logger.info("Directory is deleted : " + file.getAbsolutePath());
 				}
 			}
-
 		} else {
 			//if file, then delete it
 			file.delete();
 			logger.info("File is deleted : " + file.getAbsolutePath());
 		}
 	}
-	
+
 	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) {
 		boolean success = false;
-		
+
 		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
 		if(proc.checkConnection(type, url, username, password)) {
 			success = proc.setUpRDBMS();
 		} else {
 			return false;
 		}
-		
+
 		File propFile = new File(proc.propWriter.propFileName);
 		File newProp = new File(proc.propWriter.propFileName.replace("temp", "smss"));
 		try {
@@ -398,7 +365,7 @@ public class ImportDataProcessor {
 			e.printStackTrace();
 		}
 		propFile.delete();
-		
+
 		return success;
 	}
 
@@ -408,10 +375,10 @@ public class ImportDataProcessor {
 
 	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType){
 		PropFileWriter propWriter = new PropFileWriter();
-		
+
 		if(importType == IMPORT_TYPE.NLP)
 			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
-			
+
 		propWriter.setBaseDir(baseDirectory);
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
 		return propWriter;

@@ -69,8 +69,8 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.error.HeaderClassException;
 import prerna.poi.main.CSVReader;
-import prerna.poi.main.HeaderClassException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
@@ -86,7 +86,7 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
  */
-public class D3CSVLoader extends CSVReader {
+public class D3CSVLoader {
 
 	Logger logger = Logger.getLogger(getClass());
 

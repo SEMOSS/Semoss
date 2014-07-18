@@ -36,6 +36,10 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
+import prerna.error.HeaderClassException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -105,42 +109,52 @@ public class ImportDataListener implements IChakraListener {
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		String repo = list.getSelectedValue()+"";
 		
-		boolean successfulImport = false;
 		//if we are replacing data, need a more through check for the user
 		//unless we are creating a new engine, though, we want to have the user confirm the import
 		//need to separate it out because each processing requires different information
-		if(importMethod == ImportDataProcessor.IMPORT_METHOD.OVERRIDE){
-			boolean proceedWithImport = runOverrideCheck(fileNames);
-			if(proceedWithImport){
-				successfulImport = processor.processOverride(importType, customBaseURI, fileNames, repo);
+		try {
+			if(importMethod == ImportDataProcessor.IMPORT_METHOD.OVERRIDE){
+				boolean proceedWithImport = runOverrideCheck(fileNames);
+				if(proceedWithImport){
+					processor.processOverride(importType, customBaseURI, fileNames, repo);
+				}
 			}
-		}
-		else if (importMethod == ImportDataProcessor.IMPORT_METHOD.ADD_TO_EXISTING){
-			boolean proceedWithImport = runCheck();
-			if(proceedWithImport)
-				successfulImport = processor.processAddToExisting(importType, customBaseURI, fileNames, repo);
-		}
-		else if (importMethod == ImportDataProcessor.IMPORT_METHOD.CREATE_NEW){
-			String mapFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD)).getText();
-			String dbPropFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_PROP_TEXT_FIELD)).getText();
-			String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
-			String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
-			successfulImport = processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile);
-		}
-		else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
-			String dbType = ((JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX)).getSelectedItem().toString();
-			String dbImportURL = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD)).getText();
-			String dbImportUsername = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD)).getText();
-			char[] dbImportPW = ((JPasswordField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getPassword();
-			String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
-			successfulImport = processor.processNewRDBMS(customBaseURI, fileNames, dbName, dbType, dbImportURL, dbImportUsername, dbImportPW);
-		}
-		
-		//finally, show whether or not successful
-		if(successfulImport)
+			else if (importMethod == ImportDataProcessor.IMPORT_METHOD.ADD_TO_EXISTING){
+				boolean proceedWithImport = runCheck();
+				if(proceedWithImport)
+					processor.processAddToExisting(importType, customBaseURI, fileNames, repo);
+			}
+			else if (importMethod == ImportDataProcessor.IMPORT_METHOD.CREATE_NEW){
+				String mapFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD)).getText();
+				String dbPropFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_PROP_TEXT_FIELD)).getText();
+				String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
+				String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+				processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile);
+			}
+			else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
+				String dbType = ((JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX)).getSelectedItem().toString();
+				String dbImportURL = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_URL_FIELD)).getText();
+				String dbImportUsername = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_USERNAME_FIELD)).getText();
+				char[] dbImportPW = ((JPasswordField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD)).getPassword();
+				String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+				processor.processNewRDBMS(customBaseURI, fileNames, dbName, dbType, dbImportURL, dbImportUsername, dbImportPW);
+			}
 			Utility.showMessage("Your database has been successfully updated!");
-		else
-			Utility.showError("Import has failed.");
+		} catch (EngineException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (FileReaderException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (HeaderClassException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (FileWriterException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (Exception ex) {
+			Utility.showError("Import has failed.\n");
+		}
 	}
 	
 	private boolean runOverrideCheck(String fileNames){
