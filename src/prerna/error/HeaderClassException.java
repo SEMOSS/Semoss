@@ -1,4 +1,4 @@
-package prerna.poi.main;
+package prerna.error;
 
 @SuppressWarnings("serial")
 public class HeaderClassException extends Exception {

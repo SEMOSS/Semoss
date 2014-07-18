@@ -10,6 +10,7 @@ import java.net.URL;
 
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
@@ -19,6 +20,7 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 class TextExtractor { 
     private OutputStream outputstream;
@@ -37,7 +39,7 @@ class TextExtractor {
         metadata = new Metadata();
     }
 
-    public void process(String filename) throws Exception {
+    public void process(String filename) throws IOException, SAXException, TikaException {
         URL url;
         File file = new File(filename);
         if (file.isFile()) {
@@ -67,7 +69,7 @@ class TextExtractor {
 		return extractedText;
     }
     
-    public String WebsiteTextExtractor(String docin) throws Exception{
+    public String WebsiteTextExtractor(String docin) throws IOException {
 		
     	final String url = docin;
     	boolean knownwebsite = false;
@@ -94,7 +96,7 @@ class TextExtractor {
     	
     }
 
-    public String WorddocTextExtractor(String docin) throws Exception{
+    public String WorddocTextExtractor(String docin) throws IOException, SAXException, TikaException {
     	
     	TextExtractor textExtractor = new TextExtractor();
          textExtractor.process(docin);
@@ -103,7 +105,7 @@ class TextExtractor {
     	
     }
     
-    public String TextDocExtractor(String docin) throws Exception{
+    public String TextDocExtractor(String docin) throws IOException, SAXException, TikaException {
     	
     	TextExtractor textExtractor = new TextExtractor();
          textExtractor.process(docin);
@@ -112,7 +114,7 @@ class TextExtractor {
     	
     }
 
-	public String MasterResumeExtractor(String docin) throws Exception{
+	public String MasterResumeExtractor(String docin) throws IOException, SAXException, TikaException {
     	TextExtractor textExtractor = new TextExtractor();
         textExtractor.process(docin);
        String extractedText = textExtractor.getString();
