@@ -3,6 +3,8 @@ package prerna.ui.components;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -17,6 +19,7 @@ import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
+import prerna.error.InvalidUploadFormatException;
 import prerna.error.NLPException;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
@@ -63,7 +66,12 @@ public class ImportDataProcessor {
 		{
 			POIReader reader = new POIReader();
 			//run the reader
-			reader.importFileWithConnection(repoName, fileNames, customBaseURI, mapPath, owlPath);
+			try {
+				reader.importFileWithConnection(repoName, fileNames, customBaseURI, mapPath, owlPath);
+			} catch (InvalidUploadFormatException ex) {
+				ex.printStackTrace();
+				throw new FileReaderException(ex.getMessage());
+			}
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
@@ -100,7 +108,20 @@ public class ImportDataProcessor {
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
 			POIReader reader = new POIReader();
-			reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+			try {
+				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+			} catch (InvalidUploadFormatException ex) {
+				ex.printStackTrace();
+				try {
+					File failedSMSSFile = new File(baseDirectory + "/db/" + dbName + ".temp");
+					failedSMSSFile.delete();
+					FileUtils.deleteDirectory(new File(baseDirectory + "/db/" + dbName));
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new FileReaderException(ex.getMessage() + "\nCould not delete failed directory at: " + baseDirectory + "/db/" + dbName);
+				}
+				throw new FileReaderException(ex.getMessage());
+			}
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, reader.conceptURIHash, reader.baseConceptURIHash, 
@@ -206,7 +227,6 @@ public class ImportDataProcessor {
 					XSSFSheet lSheet = book.getSheet("Loader");
 					int lastRow = lSheet.getLastRowNum();
 
-					ArrayList<String> sheets = new ArrayList<String>();
 					ArrayList<String> nodes = new ArrayList<String>();
 					ArrayList<String[]> relationships = new ArrayList<String[]>();
 					for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
@@ -346,7 +366,7 @@ public class ImportDataProcessor {
 		}
 	}
 
-	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) {
+	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) throws FileReaderException, EngineException {
 		boolean success = false;
 
 		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
@@ -373,7 +393,7 @@ public class ImportDataProcessor {
 		this.propHash = propHash;
 	}
 
-	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType){
+	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType) throws FileReaderException, EngineException{
 		PropFileWriter propWriter = new PropFileWriter();
 
 		if(importType == IMPORT_TYPE.NLP)

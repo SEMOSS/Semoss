@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.IllegalFormatException;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -31,6 +32,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -41,6 +43,7 @@ import org.openrdf.sail.SailException;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
+import prerna.error.InvalidUploadFormatException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -59,8 +62,9 @@ public class POIReader extends AbstractFileReader {
 	 * @throws EngineException 
 	 * @throws FileReaderException 
 	 * @throws FileWriterException 
+	 * @throws InvalidUploadFormatException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws EngineException, FileReaderException, FileWriterException {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws EngineException, FileReaderException, FileWriterException, InvalidUploadFormatException {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
@@ -88,8 +92,9 @@ public class POIReader extends AbstractFileReader {
 	 * @throws EngineException 
 	 * @throws FileReaderException 
 	 * @throws FileWriterException 
+	 * @throws InvalidUploadFormatException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException {
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
 		
@@ -160,11 +165,9 @@ public class POIReader extends AbstractFileReader {
 	 * @param fileName		String containing the absolute path to the excel workbook to load
 	 * @throws EngineException 
 	 * @throws FileReaderException 
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws SailException 
+	 * @throws InvalidUploadFormatException 
 	 */
-	public void importFile(String fileName) throws EngineException, FileReaderException {
+	public void importFile(String fileName) throws EngineException, FileReaderException, InvalidUploadFormatException {
 
 		XSSFWorkbook workbook = null;
 		try {
@@ -175,6 +178,9 @@ public class POIReader extends AbstractFileReader {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not read Excel file located at " + fileName);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xls, .xlsx) file");
 		}
 		// load the Loader tab to determine which sheets to load
 		XSSFSheet lSheet = workbook.getSheet("Loader");

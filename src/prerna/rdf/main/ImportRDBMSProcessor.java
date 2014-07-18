@@ -29,6 +29,8 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
 import prerna.poi.main.PropFileWriter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -91,7 +93,7 @@ public class ImportRDBMSProcessor {
 		this.password = password;
 	}
 	
-	public boolean setUpRDBMS()
+	public boolean setUpRDBMS() throws FileReaderException, EngineException
 	{
 		if(!checkConnection(this.type, url, username, password)) {
 			return false;
@@ -498,7 +500,7 @@ public class ImportRDBMSProcessor {
 		}
 	}
 	
-	private void writeSMSS(String dbDir) {	
+	private void writeSMSS(String dbDir) throws FileReaderException, EngineException {	
 		propWriter = new PropFileWriter();
 		propWriter.setBaseDir(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
 		propWriter.defaultEngine = "prerna.rdf.engine.impl.RDBMSD2RQEngine";
