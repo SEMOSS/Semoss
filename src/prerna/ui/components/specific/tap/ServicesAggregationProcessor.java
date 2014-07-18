@@ -1183,6 +1183,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 	private Object[] processTransactional(String sub, String prop, Object value)
 	{
+		value = value.toString().replaceAll("\"", "");
 		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
