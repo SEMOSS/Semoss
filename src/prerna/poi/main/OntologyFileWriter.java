@@ -19,6 +19,7 @@
 package prerna.poi.main;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Hashtable;
@@ -27,6 +28,8 @@ import java.util.Scanner;
 
 import org.apache.log4j.Logger;
 
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
 import prerna.util.Constants;
 
 /**
@@ -53,9 +56,11 @@ public class OntologyFileWriter {
 	 * @param relURIvalues		Hashtable containing the added instance relationship URIs
 	 * @param relBaseURIvalues 	Hashtable containing the added SEMOSS relationship URIs
 	 * @param propURI 			String	containing the base URI for properties
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 */
 	public void runAugment(String ontologyFileName, Hashtable<String, String> newURIvalues,Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> newRelURIvalues,Hashtable<String, String> newBaseRelURIvalues,
-			String propURI){
+			String propURI) throws FileReaderException, FileWriterException{
 		fileName = ontologyFileName;
 		// clean the temp custom map file name if necessary
 		if(ontologyFileName.contains("/"))
@@ -64,11 +69,7 @@ public class OntologyFileWriter {
 			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("\\")) + "\\TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("\\")+1);
 		// opens the current custom map file and creates a new custom map temp file
 		openFile();
-		try{
-			insertValues(newURIvalues,newBaseURIvalues, newRelURIvalues,newBaseRelURIvalues, propURI);
-		}catch(Exception e){
-			e.printStackTrace();
-		}
+		insertValues(newURIvalues,newBaseURIvalues, newRelURIvalues,newBaseRelURIvalues, propURI);
 		// close and delete the original custom map file
 		// rename the custom map temp file to the original custom map file name
 		closeFile();
@@ -82,9 +83,17 @@ public class OntologyFileWriter {
 	 * @param relURIvalues		Hashtable containing the added instance relationship URIs
 	 * @param relBaseURIvalues 	Hashtable containing the added SEMOSS relationship URIs
 	 * @param propURI 			String	containing the base URI for properties
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 */
-	private void insertValues(Hashtable<String, String> newURIvalues, Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> relURIvalues, Hashtable<String, String> relBaseURIvalues, String propURI) throws IOException{
-		Scanner scNum = new Scanner(new File (fileName));
+	private void insertValues(Hashtable<String, String> newURIvalues, Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> relURIvalues, Hashtable<String, String> relBaseURIvalues, String propURI) throws FileReaderException, FileWriterException {
+		Scanner scNum = null;
+		try {
+			scNum = new Scanner(new File (fileName));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not find CustomMap File located at: " + fileName);
+		}
 		String currentLine, propUriLine = "", ignoreUriLine = "";
 		int lineNum = 0, baseObjNum = 0, basePredNum = 0, baseObjClassNum = 0, basePredClassNum = 0, propUriNum = 0, ignoreUriNum = 0;
 		// determine line number where each of the sections occurs
@@ -120,7 +129,13 @@ public class OntologyFileWriter {
 		}
 		scNum.close();
 
-		Scanner scList = new Scanner(new File(fileName));
+		Scanner scList = null;
+		try {
+			scList = new Scanner(new File(fileName));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String[] keyAndUri;
 		// skip rows in beginning document to get past the first header
 		for(int i = 0; i < baseObjNum + 1; i++){
@@ -195,52 +210,57 @@ public class OntologyFileWriter {
 		// populate the map file
 		Iterator<String> iterator;
 		// print base object data to map file
-		pw.write("\n##Base Objects##\n\n");
-		logger.info("BASE OBJECTS");
-		iterator = newURIvalues.keySet().iterator();
-		while(iterator.hasNext()){
-			name = iterator.next();
-			uri = newURIvalues.get(name);
-			pw.write(name + " " + uri + "\n");
-			logger.info(name + " " + uri);
+		try {
+			pw.write("\n##Base Objects##\n\n");
+			logger.info("BASE OBJECTS");
+			iterator = newURIvalues.keySet().iterator();
+			while(iterator.hasNext()){
+				name = iterator.next();
+				uri = newURIvalues.get(name);
+				pw.write(name + " " + uri + "\n");
+				logger.info(name + " " + uri);
+			}
+			// print base predicate data to map file
+			pw.write("\n##Base Predicates##\n\n");
+			logger.info("BASE PREDICATES");
+			iterator = relURIvalues.keySet().iterator();
+			while(iterator.hasNext()){
+				name = iterator.next();
+				uri = relURIvalues.get(name);
+				pw.write(name + " " + uri + "\n");
+				logger.info(name + " " + uri);
+			}
+			// print base object class data to map file
+			pw.write("\n##Base Objects Class##\n\n");
+			logger.info("BASE OBJECTS CLASS");
+			iterator = newBaseURIvalues.keySet().iterator();
+			while(iterator.hasNext()){
+				name = iterator.next();
+				uri = newBaseURIvalues.get(name);
+				pw.write(name + " " + uri + "\n");
+				logger.info(name + " " + uri);
+			}
+			// print base predicate class data to map file
+			pw.write("\n##Base Predicates Class##\n\n");
+			logger.info("BASE PREDICATES CLASS");
+			iterator = relBaseURIvalues.keySet().iterator();
+			while(iterator.hasNext()){
+				name = iterator.next();
+				uri = relBaseURIvalues.get(name);
+				pw.write(name + " " + uri + "\n");
+				logger.info(name + " " + uri);
+			}
+			// print the base property URI
+			if(propUriLine.equals("")){
+				propUriLine = Constants.PROP_URI +" " + propURI;
+			}
+			pw.write("\n" + propUriLine + "\n\n" + ignoreUriLine);
+			logger.info(propUriLine);
+			logger.info(ignoreUriLine);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileWriterException("Could not add additional processed information to CustomMap file");
 		}
-		// print base predicate data to map file
-		pw.write("\n##Base Predicates##\n\n");
-		logger.info("BASE PREDICATES");
-		iterator = relURIvalues.keySet().iterator();
-		while(iterator.hasNext()){
-			name = iterator.next();
-			uri = relURIvalues.get(name);
-			pw.write(name + " " + uri + "\n");
-			logger.info(name + " " + uri);
-		}
-		// print base object class data to map file
-		pw.write("\n##Base Objects Class##\n\n");
-		logger.info("BASE OBJECTS CLASS");
-		iterator = newBaseURIvalues.keySet().iterator();
-		while(iterator.hasNext()){
-			name = iterator.next();
-			uri = newBaseURIvalues.get(name);
-			pw.write(name + " " + uri + "\n");
-			logger.info(name + " " + uri);
-		}
-		// print base predicate class data to map file
-		pw.write("\n##Base Predicates Class##\n\n");
-		logger.info("BASE PREDICATES CLASS");
-		iterator = relBaseURIvalues.keySet().iterator();
-		while(iterator.hasNext()){
-			name = iterator.next();
-			uri = relBaseURIvalues.get(name);
-			pw.write(name + " " + uri + "\n");
-			logger.info(name + " " + uri);
-		}
-		// print the base property URI
-		if(propUriLine.equals("")){
-			propUriLine = Constants.PROP_URI +" " + propURI;
-		}
-		pw.write("\n" + propUriLine + "\n\n" + ignoreUriLine);
-		logger.info(propUriLine);
-		logger.info(ignoreUriLine);
 
 		scList.close();
 		System.gc();
@@ -250,15 +270,16 @@ public class OntologyFileWriter {
 	 * Loads the existing custom map file
 	 * Creates a custom map temp file
 	 * Creates a file writer for the custom map temp file
+	 * @throws FileReaderException  
 	 */
-	private void openFile()
-	{
+	private void openFile() throws FileReaderException {
 		file = new File(fileName);
 		tempFile = new File(tempFileName);
 		try {
 			pw = new FileWriter(tempFile);
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new FileReaderException("Could not open existing CustomMap file located at: " + fileName);
 		}
 	}
 
@@ -266,15 +287,17 @@ public class OntologyFileWriter {
 	 * Close the file writer for the custom map temp file
 	 * Delete the old custom map file
 	 * Rename the updated custom map temp file to the original custom map file name
+	 * @throws FileWriterException  
 	 */
-	private void closeFile(){
+	private void closeFile() throws FileWriterException {
 		try {
 			pw.flush();
 			pw.close();
-			file.delete();
-			tempFile.renameTo(file);
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new FileWriterException("Could not close writer for the CustomMap file");
 		}
+		file.delete();
+		tempFile.renameTo(file);
 	}
 }
