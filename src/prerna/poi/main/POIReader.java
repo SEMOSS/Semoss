@@ -31,16 +31,16 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.sail.SailException;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -56,14 +56,11 @@ public class POIReader extends AbstractFileReader {
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path that determines the location of the current db map file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws IOException 
-	 * @throws RDFHandlerException 
-	 * @throws RepositoryException 
-	 * @throws SailException 
-	 * @throws InvalidFormatException 
+	 * @throws EngineException 
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws SailException, RepositoryException, RDFHandlerException, IOException, InvalidFormatException  
-	{
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws EngineException, FileReaderException, FileWriterException {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
@@ -88,15 +85,11 @@ public class POIReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		Absolute path that determines the location of a custom map file for the data
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws SailException 
-	 * @throws InvalidFormatException 
-	 * @throws RDFHandlerException 
-	 * @throws RepositoryException 
+	 * @throws EngineException 
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileNotFoundException, IOException, InvalidFormatException, SailException, RepositoryException, RDFHandlerException
-	{
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException {
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
 		
@@ -117,9 +110,10 @@ public class POIReader extends AbstractFileReader {
 	 * Load subclassing information into the db and the owl file
 	 * Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes in the first column and child nodes in the second column
 	 * @param subclassSheet		Excel sheet with the subclassing information
+	 * @throws EngineException 
 	 * @throws SailException 
 	 */
-	private void createSubClassing(XSSFSheet subclassSheet) throws SailException {
+	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
 
@@ -146,24 +140,47 @@ public class POIReader extends AbstractFileReader {
 			// add triples to engine
 			createStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
 			// add triples to OWL
-			scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
+			try {
+				scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
+			} catch (SailException e) {
+				e.printStackTrace();
+				throw new EngineException("Error processing subclassing relationships in OWL file. Error on triple {<" + childNode + "> <" + pred +"> <" + parentNode +">}");
+			}
 		}
-		scOWL.commit();
+		try {
+			scOWL.commit();
+		} catch (SailException e) {
+			e.printStackTrace();
+			throw new EngineException("Error committing subclassing relationships into OWL database");
+		}
 	}
 
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName		String containing the absolute path to the excel workbook to load
+	 * @throws EngineException 
+	 * @throws FileReaderException 
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 * @throws SailException 
 	 */
-	public void importFile(String fileName) throws InvalidFormatException, FileNotFoundException, IOException, SailException {
+	public void importFile(String fileName) throws EngineException, FileReaderException {
 
-		XSSFWorkbook workbook = new XSSFWorkbook(new FileInputStream(fileName));
+		XSSFWorkbook workbook = null;
+		try {
+			workbook = new XSSFWorkbook(new FileInputStream(fileName));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not find Excel file located at " + fileName);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not read Excel file located at " + fileName);
+		}
 		// load the Loader tab to determine which sheets to load
 		XSSFSheet lSheet = workbook.getSheet("Loader");
-
+		if(lSheet == null) {
+			throw new FileReaderException("Could not find Loader Sheet in Excel file " + fileName);
+		}
 		// check if user is loading subclassing relationships
 		XSSFSheet subclassSheet = workbook.getSheet("Subclass");
 		if (subclassSheet != null){
@@ -193,12 +210,22 @@ public class POIReader extends AbstractFileReader {
 						if (loadTypeName.contains("Matrix")) 
 						{
 							loadMatrixSheet(sheetToLoad, workbook);
-							sc.commit();
+							try {
+								sc.commit();
+							} catch (SailException e) {
+								e.printStackTrace();
+								throw new EngineException("Error committing processed triples from sheet " + fileName +"!" + sheetToLoad + " into database");
+							}
 						} 
 						else 
 						{
 							loadSheet(sheetToLoad, workbook);
-							sc.commit();
+							try {
+								sc.commit();
+							} catch (SailException e) {
+								e.printStackTrace();
+								throw new EngineException("Error committing processed triples from sheet " + fileName +"!" + sheetToLoad + " into database");
+							}
 						}
 					}
 				}
@@ -210,11 +237,10 @@ public class POIReader extends AbstractFileReader {
 	 * Load specific sheet in workbook
 	 * @param sheetToLoad 	String containing the name of the sheet to load
 	 * @param workbook		XSSFWorkbook containing the sheet to load
-	 * @throws SailException 
+	 * @throws EngineException 
 	 */
 	@SuppressWarnings("null")
-	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws SailException 
-	{
+	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException {
 
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		logger.info("Loading Sheet: " + sheetToLoad);
@@ -352,10 +378,9 @@ public class POIReader extends AbstractFileReader {
 	 * Load excel sheet in matrix format
 	 * @param sheetToLoad 	String containing the name of the excel sheet to load
 	 * @param workbook		XSSFWorkbook containing the name of the excel workbook
-	 * @throws SailException 
+	 * @throws EngineException 
 	 */
-	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) throws SailException
-	{
+	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException {
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
 		logger.info("Number of Rows: " + lastRow);
