@@ -35,6 +35,8 @@ import java.util.Properties;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.error.FileReaderException;
+
 public class CSVMetamodelBuilder {
 
 	private ArrayList<File> files;
@@ -55,80 +57,75 @@ public class CSVMetamodelBuilder {
 		this.propFiles = propFiles;
 	}
 
-	public Hashtable<String, ArrayList<Hashtable<String, String[]>>> returnPropFileDataResults() {
+	public Hashtable<String, ArrayList<Hashtable<String, String[]>>> returnPropFileDataResults() throws FileReaderException {
 		if(propFiles != null)
 		{
-			boolean successful = true;
 			File propFile = propFiles.get(0);
 			Properties propDataProp = new Properties();
 			try {
 				propDataProp.load(new FileInputStream(propFile));				
 			} catch (FileNotFoundException e) {
-				successful = false;
-				e.printStackTrace();
+				throw new FileReaderException("Could not find CSV PropFile: " + propFiles.get(0));
 			} catch (IOException e) {
-				successful = false;
 				e.printStackTrace();
+				throw new FileReaderException("Could not process CSV PropFile headers in " + propFiles.get(0));
 			}
 
-			if(successful)
+			initaiatePropFileData();
+
+			String relationList = propDataProp.getProperty(keys[0]).toString();
+			String[] relationListSplit = relationList.split(";");
+			for(Integer relIdx = 0; relIdx < relationListSplit.length; relIdx++) 
 			{
-				initaiatePropFileData();
-
-				String relationList = propDataProp.getProperty(keys[0]).toString();
-				String[] relationListSplit = relationList.split(";");
-				for(Integer relIdx = 0; relIdx < relationListSplit.length; relIdx++) 
-				{
-					String[] tripleParts = relationListSplit[relIdx].split("@");
-					Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
-					if(tripleParts.length != 3) {
-						continue;
-					} else {
-						for(int tripleIdx = 0; tripleIdx < 3; tripleIdx++) 
-						{
-							String triplePart = tripleParts[tripleIdx];
-							String[] value;
-							if(triplePart.contains("+")) {
-								value = triplePart.split("\\+");
-							} else {
-								value = new String[]{triplePart};
-							}
-							innerHash.put(tripleRelKeys[tripleIdx], value);
-						}
-					}
-					ArrayList<Hashtable<String, String[]>> currRelHash = propFileData.get(keys[0]);
-					currRelHash.add(innerHash);
-				}
-
-				String nodePropList = propDataProp.getProperty(keys[1]).toString();
-				String [] nodePropListSplit = nodePropList.split(";");
-				for(int nodePropIdx = 0; nodePropIdx < nodePropListSplit.length; nodePropIdx++)
-				{
-					String[] tripleParts = nodePropListSplit[nodePropIdx].split("%");
-					String[] subject = null;
-					for(int idx = 0; idx < tripleParts.length; idx++)
+				String[] tripleParts = relationListSplit[relIdx].split("@");
+				Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
+				if(tripleParts.length != 3) {
+					continue;
+				} else {
+					for(int tripleIdx = 0; tripleIdx < 3; tripleIdx++) 
 					{
-						Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
+						String triplePart = tripleParts[tripleIdx];
 						String[] value;
-						if(idx == 0) {
-							String triplePart = tripleParts[idx];
-							if(triplePart.contains("+")) {
-								subject = triplePart.split("\\+");
-							} else {
-								subject = new String[]{triplePart};
-							}
+						if(triplePart.contains("+")) {
+							value = triplePart.split("\\+");
 						} else {
-							innerHash.put(tripleNodePropKeys[0], subject);
-							String triplePart = tripleParts[idx];
-							if(triplePart.contains("+")) {
-								value = triplePart.split("\\+");
-							} else {
-								value = new String[]{triplePart};
-							}
-							innerHash.put(tripleNodePropKeys[1], value);	
-							ArrayList<Hashtable<String, String[]>> currNodePropHash = propFileData.get(keys[1]);
-							currNodePropHash.add(innerHash);
+							value = new String[]{triplePart};
 						}
+						innerHash.put(tripleRelKeys[tripleIdx], value);
+					}
+				}
+				ArrayList<Hashtable<String, String[]>> currRelHash = propFileData.get(keys[0]);
+				currRelHash.add(innerHash);
+			}
+
+			String nodePropList = propDataProp.getProperty(keys[1]).toString();
+			String [] nodePropListSplit = nodePropList.split(";");
+			for(int nodePropIdx = 0; nodePropIdx < nodePropListSplit.length; nodePropIdx++)
+			{
+				String[] tripleParts = nodePropListSplit[nodePropIdx].split("%");
+				String[] subject = null;
+				for(int idx = 0; idx < tripleParts.length; idx++)
+				{
+					Hashtable<String, String[]> innerHash = new Hashtable<String, String[]>();
+					String[] value;
+					if(idx == 0) {
+						String triplePart = tripleParts[idx];
+						if(triplePart.contains("+")) {
+							subject = triplePart.split("\\+");
+						} else {
+							subject = new String[]{triplePart};
+						}
+					} else {
+						innerHash.put(tripleNodePropKeys[0], subject);
+						String triplePart = tripleParts[idx];
+						if(triplePart.contains("+")) {
+							value = triplePart.split("\\+");
+						} else {
+							value = new String[]{triplePart};
+						}
+						innerHash.put(tripleNodePropKeys[1], value);	
+						ArrayList<Hashtable<String, String[]>> currNodePropHash = propFileData.get(keys[1]);
+						currNodePropHash.add(innerHash);
 					}
 				}
 			}
@@ -136,33 +133,29 @@ public class CSVMetamodelBuilder {
 		return propFileData;
 	}
 
-	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes()
+	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes() throws FileReaderException
 	{
 		//TODO: loop through multiple files?
 
 		if(files != null)
 		{
-			boolean successful = true;
 			File fileName = files.get(0);
 			CsvListReader listReader = null;
 			try {
 				listReader = new CsvListReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
 				this.header = listReader.getHeader(true);
-			}		
-			catch (FileNotFoundException e) {
-				successful = false;
+			} catch (FileNotFoundException e) {
 				e.printStackTrace();
+				throw new FileReaderException("Could not find CSV file: " + files.get(0));
 			} catch (IOException e) {
-				successful = false;
 				e.printStackTrace();
+				throw new FileReaderException("Could not process CSV file headers in " + files.get(0));
 			}
 
-			if(successful) {
-				initiateDataTypeHash();
-				getAllDataType(listReader);
-				getAllowedDataType();
-				return dataType;
-			}
+			initiateDataTypeHash();
+			getAllDataType(listReader);
+			getAllowedDataType();
+			return dataType;
 		}
 
 		return dataType;
@@ -194,8 +187,7 @@ public class CSVMetamodelBuilder {
 		}
 	}
 
-	private void getAllDataType(CsvListReader listReader)
-	{
+	private void getAllDataType(CsvListReader listReader) throws FileReaderException {
 		List<String> instances;
 		try {
 			while((instances = listReader.read()) != null)
@@ -211,14 +203,13 @@ public class CSVMetamodelBuilder {
 				}
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			throw new FileReaderException("Error processing data in CSV");
 		}
 	}
 
 	//This method determines what data types are available in the dropdown for each property
-	private void getAllowedDataType()
-	{
+	private void getAllowedDataType() {
 		for(int i = 0; i < header.length; i++)
 		{
 			if(header[i] != null){
