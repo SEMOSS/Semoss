@@ -3,14 +3,18 @@ package prerna.poi.main;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
+import prerna.error.NLPException;
+
 public class NLPReader extends AbstractFileReader {
 	public Hashtable<String,Object> temp = new Hashtable<String,Object>(); 
 	public Hashtable<String,Object> temp2 = new Hashtable<String,Object>();
 	public Hashtable<String,Object> temp3 = new Hashtable<String,Object>();
 
 
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws Exception 
-	{	
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, NLPException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
 		ArrayList <TripleWrapper> Triples = new ArrayList();
@@ -28,8 +32,7 @@ public class NLPReader extends AbstractFileReader {
 
 	}
 
-	public void createNLPrelationships( ArrayList<TripleWrapper> Triples) throws Exception 
-	{
+	public void createNLPrelationships( ArrayList<TripleWrapper> Triples) throws EngineException {
 		for(int i = 0; i < Triples.size(); i++){
 			temp.put("occurance", Triples.get(i).getObj1num());
 			temp2.put("occurance", Triples.get(i).getPrednum());

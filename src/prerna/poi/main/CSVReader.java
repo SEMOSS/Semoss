@@ -30,9 +30,6 @@ import java.util.StringTokenizer;
 
 import org.apache.log4j.Level;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.sail.SailException;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
@@ -43,8 +40,11 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
+import prerna.error.HeaderClassException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -63,9 +63,9 @@ public class CSVReader extends AbstractFileReader {
 	ArrayList<String> nodePropArrayList = new ArrayList<String>();
 	ArrayList<String> relPropArrayList = new ArrayList<String>();
 	int count = 0;
-	
+
 	boolean propFileExist = true;
-	
+
 	/**
 	 * Loading data into SEMOSS to create a new database
 	 * @param dbName 		String grabbed from the user interface that would be used as the name for the database
@@ -73,20 +73,17 @@ public class CSVReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws IOException 
-	 * @throws RepositoryException 
-	 * @throws FileNotFoundException 
-	 * @throws RDFHandlerException 
-	 * @throws SailException 
+	 * @throws EngineException 
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, RepositoryException, IOException, SailException, RDFHandlerException, HeaderClassException  
-	{
+	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
 		createTypes();
-		
+
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
@@ -114,19 +111,16 @@ public class CSVReader extends AbstractFileReader {
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path specified in the CSV file that determines the location of the prop file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
 	 * @throws HeaderClassException 
-	 * @throws SailException 
-	 * @throws RDFHandlerException 
-	 * @throws RepositoryException 
+	 * @throws EngineException 
+	 * @throws FileReaderException 
+	 * @throws FileWriterException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException, HeaderClassException, SailException, RepositoryException, RDFHandlerException 
-	{
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
-		
+
 		createTypes();
 		for(int i = 0; i<files.length;i++)
 		{
@@ -162,8 +156,8 @@ public class CSVReader extends AbstractFileReader {
 		// currently only add in numbers as doubles
 		typeHash.put("NUMBER", new ParseDouble());
 		typeHash.put("INTEGER", new ParseDouble());
-//		typeHash.put("NUMBER", new ParseInt());
-//		typeHash.put("INTEGER", new ParseInt());
+		//		typeHash.put("NUMBER", new ParseInt());
+		//		typeHash.put("INTEGER", new ParseInt());
 		typeHash.put("BOOLEAN", new ParseBool());
 
 		// now the optionals
@@ -175,8 +169,8 @@ public class CSVReader extends AbstractFileReader {
 		// currently only add in numbers as doubles
 		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseDouble()));
-//		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
-//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
+		//		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseInt()));
+		//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
 		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
 	}
 
@@ -193,7 +187,7 @@ public class CSVReader extends AbstractFileReader {
 		{
 			optional  = rdfMap.get(NOT_OPTIONAL);
 		}
-		
+
 		int offset = 0;
 		if(propFileExist){
 			offset = 1;
@@ -218,28 +212,32 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Specifies which rows in the CSV to load based on user input in the prop file
-	 * @throws IOException 
+	 * @throws FileReaderException 
 	 */
-	public void skipRows() throws IOException
-	{
+	public void skipRows() throws FileReaderException {
 		//start count at 1 just row 1 is the header
 		count = 1;
 		int startRow = 2;
 		if (rdfMap.get("START_ROW") != null)
 			startRow = Integer.parseInt(rdfMap.get("START_ROW")); 
-		while( count<startRow-1 && mapReader.read(header, processors) != null)// && count<maxRows)
-		{
-			count++;
-			logger.info("Skipping line: " + count);
+		try {
+			while( count<startRow-1 && mapReader.read(header, processors) != null)// && count<maxRows)
+			{
+				count++;
+				logger.info("Skipping line: " + count);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Error processing CSV headers");
 		}
 	}
 
 	/**
 	 * Create all the triples associated with the relationships specified in the prop file
-	 * @throws IOException 
-	 * @throws SailException 
+	 * @throws EngineException 
+	 * @throws FileReaderException 
 	 */
-	public void processRelationShips() throws SailException, IOException
+	public void processRelationShips() throws EngineException, FileReaderException
 	{
 		// get all the relation
 		Map<String, Object> jcrMap;
@@ -253,177 +251,182 @@ public class CSVReader extends AbstractFileReader {
 		// only start from the maxRow - the startRow
 		// added -1 is because of index nature
 		// the earlier rows should already have been skipped
-		while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
-		{
-			count++;
-			logger.info("Process line: " +count);
-
-			// process all relationships in row
-			for(int relIndex = 0; relIndex < relationArrayList.size(); relIndex++)
+		try {
+			while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
 			{
-				String relation = relationArrayList.get(relIndex);
-				String[] strSplit = relation.split("@");
-				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];
-				String subject = "";
-				String predicate = strSplit[1];
-				String obj = strSplit[2];
-				String object = "";
-				
-				// see if subject node URI exists in prop file
-				if(rdfMap.containsKey(sub))
-				{
-					String userSub = rdfMap.get(sub).toString(); 
-					subject = userSub.substring(userSub.lastIndexOf("/")+1);
-					
-					//subject = rdfMap.get(sub);
-				}
-				// if no user specified URI, use generic URI
-				else
-				{
-					if(sub.contains("+"))
-					{
-						subject = processAutoConcat(sub);
-					}
-					else
-					{
-						subject = sub;
-					}
-				}
-				// see if object node URI exists in prop file
-				if(rdfMap.containsKey(obj))
-				{
-					String userObj = rdfMap.get(obj).toString(); 
-					object = userObj.substring(userObj.lastIndexOf("/")+1);
-					
-					//object = rdfMap.get(obj);
-				}
-				// if no user specified URI, use generic URI
-				else
-				{
-					if(obj.contains("+"))
-					{
-						object = processAutoConcat(obj);
-					}
-					else
-					{
-						object = obj;
-					}
-				}
-				
-				String subjectValue = createInstanceValue(sub, jcrMap);
-				String objectValue = createInstanceValue(obj, jcrMap);
-				if (subjectValue.isEmpty() || objectValue.isEmpty())
-				{
-					continue;
-				}
-				
-				// look through all relationship properties for the specific relationship
-				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-				
-				for(int relPropIndex = 0; relPropIndex < relPropArrayList.size(); relPropIndex++)
-				{
-					String relProp = relPropArrayList.get(relPropIndex);
-					String[] relPropSplit = relProp.split("%");
-					if(relPropSplit[0].equals(relation))
-					{
-						// loop through all properties on the relationship
-						for(int i = 1; i < relPropSplit.length; i++)
-						{			
-							// add the necessary triples for the relationship property
-							String prop = relPropSplit[i];
-							String property = "";
-							// see if property node URI exists in prop file
-							if(rdfMap.containsKey(prop))
-							{
-								String userProp = rdfMap.get(prop).toString(); 
-								property = userProp.substring(userProp.lastIndexOf("/")+1);
-								
-								//property = rdfMap.get(prop);
-							}
-							// if no user specified URI, use generic URI
-							else
-							{
-								if(prop.contains("+"))
-								{
-									property = processAutoConcat(prop);
-								}
-								else
-								{
-									property = prop;
-								}
-							}
-							propHash.put(property, createObject(prop, jcrMap));
-						}
-					}
-				}
-				createRelationship(subject, object, subjectValue, objectValue, predicate, propHash);
-			}
+				count++;
+				logger.info("Process line: " +count);
 
-			// look through all node properties
-			for(int relIndex = 0;relIndex<nodePropArrayList.size();relIndex++)
-			{
-				Hashtable<String, Object> nodePropHash = new Hashtable<String, Object>();
-				String relation = nodePropArrayList.get(relIndex);
-				String[] strSplit = relation.split("%");
-				// get the subject (the first index) and objects for triple
-				String sub = strSplit[0];
-				String subject = "";
-				// see if subject node URI exists in prop file
-				if(rdfMap.containsKey(sub))
+				// process all relationships in row
+				for(int relIndex = 0; relIndex < relationArrayList.size(); relIndex++)
 				{
-					String userSub = rdfMap.get(sub).toString(); 
-					subject = userSub.substring(userSub.lastIndexOf("/")+1);
-					
-					//subject = rdfMap.get(sub);
-				}
-				// if no user specified URI, use generic URI
-				else
-				{	
-					if(sub.contains("+"))
+					String relation = relationArrayList.get(relIndex);
+					String[] strSplit = relation.split("@");
+					// get the subject and object for triple (the two indexes)
+					String sub = strSplit[0];
+					String subject = "";
+					String predicate = strSplit[1];
+					String obj = strSplit[2];
+					String object = "";
+
+					// see if subject node URI exists in prop file
+					if(rdfMap.containsKey(sub))
 					{
-						subject = processAutoConcat(sub);
-					}
-					else
-					{
-						subject = sub;
-					}
-				}
-				String subjectValue = createInstanceValue(sub, jcrMap);
-				// loop through all properties on the node
-				for(int i = 1; i < strSplit.length; i++)
-				{
-					String prop = strSplit[i];
-					String property = "";
-					// see if property node URI exists in prop file
-					if(rdfMap.containsKey(prop))
-					{
-						String userProp = rdfMap.get(prop).toString(); 
-						property = userProp.substring(userProp.lastIndexOf("/")+1);
-						
-						//property = rdfMap.get(prop);
+						String userSub = rdfMap.get(sub).toString(); 
+						subject = userSub.substring(userSub.lastIndexOf("/")+1);
+
+						//subject = rdfMap.get(sub);
 					}
 					// if no user specified URI, use generic URI
 					else
 					{
-						if(prop.contains("+"))
+						if(sub.contains("+"))
 						{
-							property = processAutoConcat(prop);
+							subject = processAutoConcat(sub);
 						}
 						else
 						{
-							property = prop;
+							subject = sub;
 						}
 					}
-					String propValue = createInstanceValue(prop, jcrMap);
-					if (subjectValue.isEmpty() || propValue.isEmpty())
+					// see if object node URI exists in prop file
+					if(rdfMap.containsKey(obj))
+					{
+						String userObj = rdfMap.get(obj).toString(); 
+						object = userObj.substring(userObj.lastIndexOf("/")+1);
+
+						//object = rdfMap.get(obj);
+					}
+					// if no user specified URI, use generic URI
+					else
+					{
+						if(obj.contains("+"))
+						{
+							object = processAutoConcat(obj);
+						}
+						else
+						{
+							object = obj;
+						}
+					}
+
+					String subjectValue = createInstanceValue(sub, jcrMap);
+					String objectValue = createInstanceValue(obj, jcrMap);
+					if (subjectValue.isEmpty() || objectValue.isEmpty())
 					{
 						continue;
 					}
-					nodePropHash.put(property, createObject(prop, jcrMap));
+
+					// look through all relationship properties for the specific relationship
+					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+
+					for(int relPropIndex = 0; relPropIndex < relPropArrayList.size(); relPropIndex++)
+					{
+						String relProp = relPropArrayList.get(relPropIndex);
+						String[] relPropSplit = relProp.split("%");
+						if(relPropSplit[0].equals(relation))
+						{
+							// loop through all properties on the relationship
+							for(int i = 1; i < relPropSplit.length; i++)
+							{			
+								// add the necessary triples for the relationship property
+								String prop = relPropSplit[i];
+								String property = "";
+								// see if property node URI exists in prop file
+								if(rdfMap.containsKey(prop))
+								{
+									String userProp = rdfMap.get(prop).toString(); 
+									property = userProp.substring(userProp.lastIndexOf("/")+1);
+
+									//property = rdfMap.get(prop);
+								}
+								// if no user specified URI, use generic URI
+								else
+								{
+									if(prop.contains("+"))
+									{
+										property = processAutoConcat(prop);
+									}
+									else
+									{
+										property = prop;
+									}
+								}
+								propHash.put(property, createObject(prop, jcrMap));
+							}
+						}
+					}
+					createRelationship(subject, object, subjectValue, objectValue, predicate, propHash);
 				}
-				addNodeProperties(subject, subjectValue, nodePropHash);
+
+				// look through all node properties
+				for(int relIndex = 0;relIndex<nodePropArrayList.size();relIndex++)
+				{
+					Hashtable<String, Object> nodePropHash = new Hashtable<String, Object>();
+					String relation = nodePropArrayList.get(relIndex);
+					String[] strSplit = relation.split("%");
+					// get the subject (the first index) and objects for triple
+					String sub = strSplit[0];
+					String subject = "";
+					// see if subject node URI exists in prop file
+					if(rdfMap.containsKey(sub))
+					{
+						String userSub = rdfMap.get(sub).toString(); 
+						subject = userSub.substring(userSub.lastIndexOf("/")+1);
+
+						//subject = rdfMap.get(sub);
+					}
+					// if no user specified URI, use generic URI
+					else
+					{	
+						if(sub.contains("+"))
+						{
+							subject = processAutoConcat(sub);
+						}
+						else
+						{
+							subject = sub;
+						}
+					}
+					String subjectValue = createInstanceValue(sub, jcrMap);
+					// loop through all properties on the node
+					for(int i = 1; i < strSplit.length; i++)
+					{
+						String prop = strSplit[i];
+						String property = "";
+						// see if property node URI exists in prop file
+						if(rdfMap.containsKey(prop))
+						{
+							String userProp = rdfMap.get(prop).toString(); 
+							property = userProp.substring(userProp.lastIndexOf("/")+1);
+
+							//property = rdfMap.get(prop);
+						}
+						// if no user specified URI, use generic URI
+						else
+						{
+							if(prop.contains("+"))
+							{
+								property = processAutoConcat(prop);
+							}
+							else
+							{
+								property = prop;
+							}
+						}
+						String propValue = createInstanceValue(prop, jcrMap);
+						if (subjectValue.isEmpty() || propValue.isEmpty())
+						{
+							continue;
+						}
+						nodePropHash.put(property, createObject(prop, jcrMap));
+					}
+					addNodeProperties(subject, subjectValue, nodePropHash);
+				}
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Error processing CSV headers");
 		}
 	}
 
@@ -432,8 +435,7 @@ public class CSVReader extends AbstractFileReader {
 	 * @throws HeaderClassException 
 	 * @throws Exception 
 	 */
-	public void processConceptRelationURIs() throws HeaderClassException
-	{
+	public void processConceptRelationURIs() throws HeaderClassException {
 		// get the list of relationships from the prop file
 		if(rdfMap.get("RELATION") != null)
 		{
@@ -447,7 +449,7 @@ public class CSVReader extends AbstractFileReader {
 				// just in case the end of the prop string is empty string or spaces
 				if(!relation.contains("@"))
 					break;
-	
+
 				relationArrayList.add(relation);
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
@@ -471,7 +473,7 @@ public class CSVReader extends AbstractFileReader {
 				}
 				if(headException = false)
 					throw new HeaderClassException(sub + " cannot be found as a header");
-	
+
 				if(obj.contains("+"))
 				{
 					headException = isProperConcatHeader(obj);
@@ -483,13 +485,13 @@ public class CSVReader extends AbstractFileReader {
 				}
 				if(headException = false)
 					throw new HeaderClassException(sub + " cannot be found as a header");
-	
+
 				// create concept uris
 				String relURI = "";
 				String relBaseURI = "";
 				String idxBaseURI = "";
 				String idxURI = "";
-	
+
 				// see if subject node SEMOSS base URI exist in prop file first
 				if(rdfMap.containsKey(sub+Constants.CLASS))
 				{
@@ -576,7 +578,7 @@ public class CSVReader extends AbstractFileReader {
 				}
 				// add relation uri into basehash and urihash
 				String relPropString = subject + "_"+ predicate + "_" + object; //this string concat shows up in prop file
-	
+
 				// see if relationship SEMOSS base URI exists in prop file
 				if(rdfMap.containsKey(relPropString+Constants.CLASS)) {
 					baseRelationURIHash.put(relPropString+Constants.CLASS,rdfMap.get(relPropString+Constants.CLASS));
@@ -602,10 +604,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create and store node property URIs at the SEMOSS base and instance levels 
-	 * @throws SailException 
 	 * @throws HeaderClassException 
+	 * @throws EngineException 
 	 */
-	public void processNodePropURIs() throws SailException, HeaderClassException 
+	public void processNodePropURIs() throws HeaderClassException, EngineException 
 	{
 		if(rdfMap.get("NODE_PROP") != null)
 		{
@@ -616,14 +618,14 @@ public class CSVReader extends AbstractFileReader {
 				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 			}
 			createStatement(vf.createURI(basePropURI),vf.createURI(Constants.SUBPROPERTY_URI),vf.createURI(basePropURI));
-	
+
 			while(nodePropTokens.hasMoreElements())
 			{
 				String relation = nodePropTokens.nextToken();
 				// in case the end of the prop string is empty string or spaces
 				if(!relation.contains("%"))
 					break;
-	
+
 				nodePropArrayList.add(relation);
 				logger.info("Loading Node Prop " + relation);            	
 				String[] strSplit = relation.split("%");
@@ -637,7 +639,7 @@ public class CSVReader extends AbstractFileReader {
 					String idxBaseURI = "";
 					String idxURI = "";
 					String propURI = "";
-	
+
 					boolean headException = true;
 					if(sub.contains("+"))
 					{
@@ -650,7 +652,7 @@ public class CSVReader extends AbstractFileReader {
 					}
 					if(headException = false)
 						throw new HeaderClassException(sub + " cannot be found as a header");
-	
+
 					if(prop.contains("+"))
 					{
 						headException = isProperConcatHeader(prop);
@@ -662,7 +664,7 @@ public class CSVReader extends AbstractFileReader {
 					}
 					if(headException = false)
 						throw new HeaderClassException(sub + " cannot be found as a header");
-	
+
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
@@ -701,11 +703,11 @@ public class CSVReader extends AbstractFileReader {
 						{
 							subject = sub;
 							idxURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
-			
+
 						}
 						conceptURIHash.put(subject, idxURI);	
 					}
-					
+
 					String property = "";
 					// see if property node URI exists in prop file
 					if(rdfMap.containsKey(prop))
@@ -725,7 +727,7 @@ public class CSVReader extends AbstractFileReader {
 							property = prop;
 						}
 					}
-	
+
 					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
 					basePropURIHash.put(property,  propURI);
@@ -736,10 +738,10 @@ public class CSVReader extends AbstractFileReader {
 
 	/**
 	 * Create and store relationship property URIs at the SEMOSS base and instance levels 
-	 * @throws SailException 
 	 * @throws HeaderClassException 
+	 * @throws EngineException 
 	 */
-	public void processRelationPropURIs() throws SailException, HeaderClassException 
+	public void processRelationPropURIs() throws HeaderClassException, EngineException 
 	{
 		if(rdfMap.get("RELATION_PROP") != null)
 		{
@@ -751,12 +753,12 @@ public class CSVReader extends AbstractFileReader {
 			}
 			while(propTokens.hasMoreElements())
 			{
-	
+
 				String relation = propTokens.nextToken();
 				//just in case the end of the prop string is empty string or spaces
 				if(!relation.contains("%"))
 					break;
-	
+
 				relPropArrayList.add(relation);
 				logger.info("Loading relation prop " + relation);            	
 				String[] strSplit = relation.split("%");
@@ -777,7 +779,7 @@ public class CSVReader extends AbstractFileReader {
 					}
 					if(headException = false)
 						throw new HeaderClassException(prop + " cannot be found as a header");
-					
+
 					String propURI = "";
 					String property = "";
 					// see if property node URI exists in prop file
@@ -798,7 +800,7 @@ public class CSVReader extends AbstractFileReader {
 							property = prop;
 						}
 					}
-	
+
 					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
 					basePropURIHash.put(property,  propURI);
@@ -906,7 +908,7 @@ public class CSVReader extends AbstractFileReader {
 			}
 			return strBuilder.toString();
 		}
-		
+
 		return jcrMap.get(object);
 	}
 
@@ -923,13 +925,23 @@ public class CSVReader extends AbstractFileReader {
 	 * Load the CSV file
 	 * Gets the headers for each column and reads the property file
 	 * @param fileName String
+	 * @throws FileReaderException 
 	 * @throws FileNotFoundException 
 	 */
-	public void openCSVFile(String fileName) throws FileNotFoundException, IOException
-	{
-		mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);		
+	public void openCSVFile(String fileName) throws FileReaderException {
+		try {
+			mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not find CSV file located at " + fileName);
+		}		
 		// store the headers of each of the columns
-		header = mapReader.getHeader(true);
+		try {
+			header = mapReader.getHeader(true);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Error with CSV file located at " + fileName + ". Error processing headers");
+		}
 		headerList = Arrays.asList(header);
 		// last header in CSV file is the absolute path to the prop file
 		propFile = header[header.length-1];

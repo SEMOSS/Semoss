@@ -1,4 +1,5 @@
 package prerna.poi.main;
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -6,6 +7,10 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
 
+import org.apache.tika.exception.TikaException;
+import org.xml.sax.SAXException;
+
+import prerna.error.NLPException;
 import prerna.util.DIHelper;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
@@ -57,7 +62,7 @@ public class ProcessNLP {
 		pipeline = new StanfordCoreNLP();
 	}
 
-	public static ArrayList<TripleWrapper> masterRead(String[] files) throws Exception{
+	public static ArrayList<TripleWrapper> masterRead(String[] files) throws NLPException {
 		// TODO Auto-generated method stub
 		Triples = new ArrayList<TripleWrapper>();
 		for(ArticleNUM = 0; ArticleNUM<files.length; ArticleNUM++){	
@@ -74,8 +79,7 @@ public class ProcessNLP {
 		return Triples;
 	}
 
-	private static void NLP(String docin) throws Exception
-	{
+	private static void NLP(String docin) throws NLPException {
 		List<String> DocSentences = new ArrayList<String>();
 		ReadDoc(DocSentences, docin);
 
@@ -102,15 +106,21 @@ public class ProcessNLP {
 		}
 	}
 	
-	public static void ReadDoc(List<String> DocSentences2, String docin) throws Exception{
+	public static void ReadDoc(List<String> DocSentences2, String docin) throws NLPException {
 		//need to deal with return carriage!!!
 		//logic for website, .docx .doc branch resume
-
+		Scanner scan;
+		TextExtractor textExtractor = new TextExtractor();
+		String extractedText = "";
+		
 		if(docin.contains("http")){
 			//source is website
-			Scanner scan;
-			TextExtractor textExtractor = new TextExtractor();
-			String extractedText = textExtractor.WebsiteTextExtractor(docin);
+			try {
+				extractedText = textExtractor.WebsiteTextExtractor(docin);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new NLPException("Error processing website");
+			}
 			scan = new Scanner(extractedText);
 			System.out.println("Processing Website");
 			int j = 0;
@@ -126,9 +136,18 @@ public class ProcessNLP {
 		}
 		if(docin.contains(".doc")){
 			//source is a wordocument
-			Scanner scan;
-			TextExtractor textExtractor = new TextExtractor();
-			String extractedText = textExtractor.WorddocTextExtractor(docin);
+			try {
+				extractedText = textExtractor.WorddocTextExtractor(docin);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from word doc");
+			} catch (SAXException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from word doc");
+			} catch (TikaException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from word doc");
+			}
 			scan = new Scanner(extractedText);
 			int j = 0;
 			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s");
@@ -141,10 +160,18 @@ public class ProcessNLP {
 		}
 		if(docin.contains(".txt"))
 		{
-			System.out.println("IN TEXT SECTION");
-			Scanner scan;
-			TextExtractor textExtractor = new TextExtractor();
-			String extractedText = textExtractor.TextDocExtractor(docin);
+			try {
+				extractedText = textExtractor.TextDocExtractor(docin);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from document");
+			} catch (SAXException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from document");
+			} catch (TikaException e) {
+				e.printStackTrace();
+				throw new NLPException("Error extrating text from document");
+			}
 			scan = new Scanner(extractedText);
 			System.out.println("Processing TextDocument");
 			int j = 0;
