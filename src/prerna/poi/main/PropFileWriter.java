@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,8 +32,9 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine
@@ -57,20 +59,20 @@ public class PropFileWriter {
 	public String defaultEngine = "prerna.rdf.engine.impl.BigDataEngine";
 	public boolean hasMap = false;
 
-	public PropFileWriter (){
+	public PropFileWriter () {
 		defaultDBPropName = "db/Default/Default.properties";
 		defaultQuestionProp = "db/Default/Default_Questions.properties";
 		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 	}
-	
-	public void setDefaultQuestionSheet(String defaultQuestionSheet){
+
+	public void setDefaultQuestionSheet(String defaultQuestionSheet) {
 		this.defaultQuestionProp = defaultQuestionSheet;
 	}
-	
-	public void setBaseDir(String baseDir){
+
+	public void setBaseDir(String baseDir) {
 		baseDirectory = baseDir;
 	}
-	
+
 	//TODO Change variable names, should we change default.properties to default.smss?	
 	/**
 	 * Uses the name of a new database to create the custom map, smss, and question sheet files for the engine
@@ -80,8 +82,10 @@ public class PropFileWriter {
 	 * @param ontologyName 		String that contains the path to a user specified custom map file
 	 * @param dbPropFile 		String that contains the path to a user specified smss file
 	 * @param questionFile 		String that contains the path to a user specified question sheet
+	 * @throws FileReaderException 
+	 * @throws EngineException 
 	 */
-	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile){
+	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile) throws FileReaderException, EngineException {
 		this.engineName = dbName;
 		engineDirectoryName = "db/" +dbName;
 		engineDirectory = new File(baseDirectory +"/"+ engineDirectoryName);
@@ -139,8 +143,10 @@ public class PropFileWriter {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+			throw new FileReaderException("Could not find default database files");
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new FileReaderException("Error copying default database files to new database");
 		}
 
 	}
@@ -149,16 +155,20 @@ public class PropFileWriter {
 	 * Copies all the contents of one file and sends it to another file 
 	 * @param newFilePath 		String containing the path to the new file
 	 * @param oldFilePath 		String containing the path to the old file which is going to be copied
+	 * @throws FileReaderException 
+	 * @throws EngineException 
 	 */
-	private void copyFile(String newFilePath, String oldFilePath){
+	private void copyFile(String newFilePath, String oldFilePath) throws FileReaderException, EngineException {
 		try{
 			Path newPath = Paths.get(newFilePath);
 			Path oldPath = Paths.get(oldFilePath);
 			Files.copy(oldPath, newPath);
-		}
-		catch(IOException ex){
+		} catch(FileAlreadyExistsException ex) {
 			ex.printStackTrace();
-			Utility.showMessage("Warning! \n Check engine file paths");
+			throw new EngineException("Database name already exists. Please load using a different database name.");
+		} catch(IOException ex) {
+			ex.printStackTrace();
+			throw new FileReaderException("Error copying default database files to new database");
 		}
 	}
 
@@ -168,8 +178,9 @@ public class PropFileWriter {
 	 * Adds the file locations to the contents of the default SMSS file which contains constant information about the database
 	 * @param defaultName 		String containing the path to the Default SMSS file
 	 * @param dbname 			String containing the name of the new database
+	 * @throws FileReaderException 
 	 */
-	private void writeCustomDBProp(String defaultName, String dbname) throws IOException{
+	private void writeCustomDBProp(String defaultName, String dbname) throws FileReaderException {
 		String jnlName = engineDirectoryName +"/"+ dbname+".jnl";
 		//move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -177,33 +188,54 @@ public class PropFileWriter {
 		propFileName = propFileName.replace("Default", dbname);
 		propFileName = propFileName.replace("properties1", "temp");
 
-		File newFile = new File(propFileName);
-		FileWriter pw = new FileWriter(newFile);
-
-		BufferedReader read = new BufferedReader(new FileReader(defaultName));
-		String currentLine;
-
 		// also write the base properties
 		// ie ONTOLOGY, DREAMER, ENGINE, ENGINE CLASS
-
-		pw.write("Base Properties \n");
-		//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
-		pw.write(Constants.ENGINE + "\t" + dbname + "\n");
-		pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
-		pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
-		pw.write(Constants.OWL + "\t" + owlFile + "\n");
-		pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
-		if(this.hasMap) {
-			pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
-		}
-
-		while((currentLine = read.readLine()) != null){
-			if(currentLine.contains("@FileName@")){
-				currentLine = currentLine.replace("@FileName@", jnlName);
+		FileWriter pw = null;
+		try {
+			File newFile = new File(propFileName);
+			pw = new FileWriter(newFile);
+			pw.write("Base Properties \n");
+			//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
+			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
+			pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
+			pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
+			pw.write(Constants.OWL + "\t" + owlFile + "\n");
+			pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
+			if(this.hasMap) {
+				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
-			pw.write(currentLine + "\n");
+		} catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+			throw new FileReaderException("Could not find default database files");
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new FileReaderException("Could not read default database files");
 		}
-		read.close();
-		pw.close();
+
+		BufferedReader read = null;
+		try {
+			read = new BufferedReader(new FileReader(defaultName));
+			String currentLine;
+			while((currentLine = read.readLine()) != null){
+				if(currentLine.contains("@FileName@")){
+					currentLine = currentLine.replace("@FileName@", jnlName);
+				}
+				pw.write(currentLine + "\n");
+			}
+		} catch (FileNotFoundException ex) {
+			ex.printStackTrace();
+			throw new FileReaderException("Could not find default database smss file");
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new FileReaderException("Could not read default database smss file");
+		}
+
+		try {
+			read.close();
+			pw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close smss file reader");
+		}
 	}
 }
