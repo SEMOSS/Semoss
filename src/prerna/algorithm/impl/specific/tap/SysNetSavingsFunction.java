@@ -311,8 +311,9 @@ public class SysNetSavingsFunction extends UnivariateSvcOptFunction{
 		yearAdjuster = new SysDecommissionOptimizationFunctions();
 		yearAdjuster.setSysList(sysList);
 		yearAdjuster.setDataList(dataList);
-		yearAdjuster.hourlyCost = hourlyCost;
+		yearAdjuster.setHourlyCost(hourlyCost);
 		yearAdjuster.instantiate();
+		yearAdjuster.calculateForAllSystems();
 	}
 
 }
