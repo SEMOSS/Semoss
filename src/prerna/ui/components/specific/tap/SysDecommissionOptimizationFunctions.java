@@ -22,7 +22,6 @@ public class SysDecommissionOptimizationFunctions {
 	private Hashtable<String, Double> sysToWorkVolHashPerSite;
 	private Hashtable<String, Double> sysToWorkVolHashAllSites;
 	
-
 	private Hashtable<String, Double> sysToResourceAllocationFirstSiteHash;
 	private Hashtable<String, Double> sysToResourceAllocationOtherSitesHash;
 	private Hashtable<String, Double> sysToPossibleResourceAllocationHash;
@@ -34,7 +33,8 @@ public class SysDecommissionOptimizationFunctions {
     Hashtable<String, ArrayList<String>> sysToSiteHash;
     //hashtable storing all the systems and their probabilities
     Hashtable<String, String> sysToProbHash;
-    
+    public Hashtable<String, Double> sysToSustainmentCost;
+    public Hashtable<String, Integer> sysToSiteCountHash;
     
     private ArrayList<String> systemsWithNoSite;
     private Vector<String> sortedSysList;
@@ -51,12 +51,16 @@ public class SysDecommissionOptimizationFunctions {
 	private static String siteDB = "TAP_Site_Data";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 	
-	private static String probDB = "HR_Core";
+	private static String systemSustainmentCostQuery = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget}}";
+	
+	private static String coreDB = "HR_Core";
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 
+	private boolean includeFirstSite=true;
 	private boolean includePilot = false;
+	private boolean storeWorkVolInDays = true;
 	private double percentOfPilot=0.2;
-	public double hourlyCost=150.0;	
+	private double hourlyCost=150.0;
 	private static final int workHoursInDay = 8;
 	private static final int workHoursInYear = 40*52;
 
@@ -79,6 +83,18 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		this.includePilot = includePilot;
 	}
+	public void setFirstSiteBoolean(boolean includeFirstSite)
+	{
+		this.includeFirstSite = includeFirstSite;
+	}
+	public void setstoreWorkVolInDays(boolean storeWorkVolInDays)
+	{
+		this.storeWorkVolInDays = storeWorkVolInDays;
+	}
+	public void setHourlyCost(double hourlyCost)
+	{
+		this.hourlyCost = hourlyCost;
+	}
 	public void setDataList(ArrayList<String> dataList)
 	{
 		this.dataList = dataList;
@@ -90,12 +106,17 @@ public class SysDecommissionOptimizationFunctions {
 		this.sysList = sysList;
 		this.givenSysList = true;
 	}
+	public Hashtable<String, Double> getSysToWorkVolHashPerSite()
+	{
+		return sysToWorkVolHashPerSite;
+	}
 	
 	public void optimizeTime()
 	{
 
 		instantiate();
-	
+		calculateForAllSystems();
+		
 		//if necessary is greater than possible, we have more resources than we need so will recalculate R to be only necessary.
 		if(minNecessaryTimeAllSystems>minPossibleTimeAllSystems)
 		{
@@ -116,6 +137,7 @@ public class SysDecommissionOptimizationFunctions {
 	public void optimizeResource()
 	{
 		instantiate();
+		calculateForAllSystems();
 		
 		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,timeConstraint);
 		recalculateResourcesPossible();
@@ -130,6 +152,7 @@ public class SysDecommissionOptimizationFunctions {
 	public void optimize(double budget, double minYears)
 	{
 		instantiate();
+		calculateForAllSystems();
 		
 		minPossibleTimeAllSystems = Math.max(minNecessaryTimeAllSystems,minYears);
 	//	resourcesPossible = budget / (costPerHour
@@ -170,6 +193,8 @@ public class SysDecommissionOptimizationFunctions {
 		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
 		sysToProbHash = new Hashtable<String, String>();
+		sysToSustainmentCost = new Hashtable<String,Double>();
+		sysToSiteCountHash = new Hashtable<String, Integer>();
 		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
 		sysToResourceAllocationFirstSiteHash = new Hashtable<String, Double>();
 		sysToResourceAllocationOtherSitesHash = new Hashtable<String, Double>();
@@ -188,11 +213,19 @@ public class SysDecommissionOptimizationFunctions {
 		calculateMinTimeAndWorkVolPerSystemAllSites();
 //		removeSystemsWithNoSite();
 		sortSysList();
+		
+		ArrayList <Object []> systemProbList = createData(coreDB,systemProbQuery);
+		processSystemProbHash(systemProbList);
+		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
+		processSystemSustainmentCostHash(systemSustainmentCostList);
+	}
+	
+	
+	public void calculateForAllSystems()
+	{
+
 		calculateMinTimeAllSystemsAllSites();
 		calculateWorkVolAllSystemsAllSites();
-		
-		ArrayList <Object []> systemProbList = createData(probDB,systemProbQuery);
-		processSystemProbHash(systemProbList);
 	}
 	
 	public void calculateResourceAndOutput()
@@ -223,7 +256,11 @@ public class SysDecommissionOptimizationFunctions {
 			double loeMax=0.0;
 			for(String data : dataAndLOEForSys.keySet())
 			{
-				double loeForData = convertLoeHoursToDays(dataAndLOEForSys.get(data));
+				double loeForData = 0.0;
+				if(storeWorkVolInDays)
+					loeForData = convertLoeHoursToDays(dataAndLOEForSys.get(data));
+				else
+					loeForData = convertLoeHoursToCost(dataAndLOEForSys.get(data));
 				if(!includePilot)
 				{
 					loeForData = loeForData * percentOfPilot;
@@ -245,6 +282,10 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		ArrayList <Object []> systemSiteList = createData(siteDB,systemSiteQuery);
 		processSystemSiteHashTables(systemSiteList);
+		for(String sys : sysToSiteHash.keySet())
+		{
+			sysToSiteCountHash.put(sys, sysToSiteHash.get(sys).size());
+		}
 		
 		for(String sys : sysToMinTimeHashPerSite.keySet())
 		{
@@ -264,9 +305,12 @@ public class SysDecommissionOptimizationFunctions {
 			
 			double workVolPerSysPerSite = sysToWorkVolHashPerSite.get(sys);
 			double workVolPerSysAllSites = numOfSites*workVolPerSysPerSite;
-			if(includePilot&&numOfSites>1)
+			if(!includeFirstSite&&numOfSites>1)
+				workVolPerSysAllSites = (numOfSites-1)*workVolPerSysPerSite*percentOfPilot;
+			else if(!includeFirstSite)
+				workVolPerSysAllSites = 0;
+			else if(includePilot&&includeFirstSite&&numOfSites>1)
 				workVolPerSysAllSites = workVolPerSysPerSite+(numOfSites-1)*workVolPerSysPerSite*percentOfPilot;
-			
 	//		sysToMinTimeHashAllSites.put(sys,minNecessaryTimePerSysAllSites);
 			sysToWorkVolHashAllSites.put(sys,workVolPerSysAllSites);
 		}
@@ -468,6 +512,11 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		return loeInHours/workHoursInDay / 5 * 7;
 	}
+	
+	public double convertLoeHoursToCost(double loeInHours)
+	{
+		return loeInHours*hourlyCost;
+	}
 		
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
@@ -552,6 +601,19 @@ public class SysDecommissionOptimizationFunctions {
 			String system = (String) elementArray[0];
 			String prob = (String) elementArray[1];
 			sysToProbHash.put(system,prob);
+		}
+	}
+	private void processSystemSustainmentCostHash(ArrayList <Object []> list)
+	{
+		for (int i=0; i<list.size(); i++)
+		{
+			Object[] elementArray= list.get(i);
+			String system = (String) elementArray[0];
+			if(elementArray[1] instanceof Double)
+			{
+				Double cost = (Double) elementArray[1];
+				sysToSustainmentCost.put(system,cost);
+			}
 		}
 	}
 	private void processSystemSiteHashTables(ArrayList <Object []> list)

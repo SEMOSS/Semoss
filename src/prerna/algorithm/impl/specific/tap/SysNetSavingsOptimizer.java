@@ -345,7 +345,7 @@ public class SysNetSavingsOptimizer implements IAlgorithm{
 		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
 		optFunctions.setSysList(sysList);
 		optFunctions.setDataList(dataList);
-		optFunctions.hourlyCost = hourlyCost;
+		optFunctions.setHourlyCost(hourlyCost);
 //		optFunctions.optimize(budget, optNumYears);		
 //		optFunctions.timeConstraint = optNumYears;
 //		optFunctions.resourcesConstraint = budget;
