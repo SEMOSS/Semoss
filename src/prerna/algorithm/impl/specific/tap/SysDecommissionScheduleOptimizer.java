@@ -50,6 +50,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	double hourlyCost;
 	double percentOfPilot = 0.20;
 	double budget = 100000000.0;
+	double totalTransformCost=0.0;
 
 	//change to SysDecommissionScheduleOptFuncgtion
 	double optBudget =0.0;
@@ -97,12 +98,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	 */
 	public void optimize()
 	{
-		playSheet.consoleArea.setText("Retrieving cost data from TAP_Cost_db...");
-        setProgressBar(playSheet.progressBar);
-        progressBar.setString("Collecting Data");
         collectData();
-        printDataToConsole();
-       	addTextToConsole("\nData Collection Complete!");
         
        	boolean success=true;
         SysDecommissionSchedulingSavingsOptimizer opt = new SysDecommissionSchedulingSavingsOptimizer();
@@ -111,25 +107,20 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
         progressBar.setString("Iteration: "+count);
        	addTextToConsole("\n\nStarting Iteration "+count+". Attempting budget of "+budget+".");
         int timeToComplete = opt.runScheduling();
-        int oldTimeToComplete = timeToComplete;
-       	addTextToConsole("\nFor budget "+budget+", time to complete decommissioning is "+timeToComplete+" years.");
+        if(timeToComplete>maxYears)
+        	addTextToConsole("\nFor budget "+budget+", time to complete decommissioning is greater than "+maxYears+" years.");
+        else
+        	addTextToConsole("\nFor budget "+budget+", time to complete decommissioning is "+timeToComplete+" years.");
         while(timeToComplete!=maxYears&&count<20)
         {
-        	int newBudget = opt.getTotalInvestment()/maxYears;
-        	if(oldTimeToComplete == timeToComplete) {
-        		if(timeToComplete<maxYears)
-        			budget = newBudget*0.9;
-        		else
-        			budget = newBudget*1.1;
-        	}
+        	if(timeToComplete<maxYears)
+        		budget = budget*timeToComplete/maxYears;
         	else
-        		budget=newBudget;
-
+        		budget = budget*totalTransformCost/opt.getTotalInvestment();
         	count++;
             progressBar.setString("Iteration: "+count);
            	addTextToConsole("\n\nStarting Iteration "+count+". Attempting budget of "+budget+".");
         	opt.setBudget(budget);
-        	oldTimeToComplete = timeToComplete;
         	timeToComplete = opt.runScheduling();
            	addTextToConsole("\nFor budget "+budget+", time to complete decommissioning is "+timeToComplete+" years.");
         }
@@ -137,10 +128,14 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
         	success = false;
         if(success) {
         	addTextToConsole("\n\nSolution found. Decommissioning completed in "+maxYears+" years with budget of "+budget+".");
+        	displayResults();
         }
         else
+        {
             addTextToConsole("\n\nSolution not found. Please increase the maximum amount of years for decommissioning.");
-
+            clearPlaysheet();
+        }
+        progressBar.setIndeterminate(false);
         progressBar.setVisible(false);
 	}
 	
@@ -164,6 +159,10 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	
 	public void collectData()
 	{
+		playSheet.consoleArea.setText("Retrieving cost data from TAP_Cost_db...");
+        setProgressBar(playSheet.progressBar);
+        progressBar.setString("Collecting Data");
+
 		createSystemList();
 		optFunctions = new SysDecommissionOptimizationFunctions();
 		
@@ -172,6 +171,25 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		optFunctions.setFirstSiteBoolean(false);
 		optFunctions.setstoreWorkVolInDays(false);
 		optFunctions.instantiate();
+		
+		calculateTotalTransformCost();
+		
+        printDataToConsole();
+       	addTextToConsole("\nData Collection Complete!");
+	}
+	
+	public void calculateTotalTransformCost()
+	{
+		Hashtable<String,Double> workVolHash = optFunctions.getSysToWorkVolHashPerSite();
+		Hashtable<String,Integer> sysToSiteCountHash = optFunctions.sysToSiteCountHash;
+		for(String sys : workVolHash.keySet())
+		{
+			double workVol = workVolHash.get(sys);
+			int sites = 1;
+			if(sysToSiteCountHash.containsKey(sys))
+				sites = sysToSiteCountHash.get(sys);
+			totalTransformCost +=workVol*sites;
+		}
 	}
 	
 	public SesameJenaSelectWrapper executeQuery(String engineName,String query) {
@@ -215,37 +233,107 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 
 	
 	/**
-	 * Runs a specific iteration of the optimization.
+	 * Creates and displays the results from various optimization calculations. 
+	 * These include savings, net savings, invest, budget, roi labels and charts on overall Analysis Tab.
+	 * Also includes system analysis tab
 	 */
-	public void runOptIteration()
+	public void displayResults()
 	{
-//        f.setWriteBoolean (false);
-//        f.value(optBudget);
-//        displayResults(f.lin);
-//        displaySpecifics(f.lin);
-//        displaySystemSpecifics(f.lin);
-//        createTimelineData(f.lin);
- //       if(!bindStr.equals("{}")) createGraphSheet();
+        progressBar.setString("Creating Visualizations");
+        displayLabels();
+        //displayCharts();
 	}
+	
+	public void displayLabels()
+	{
+		double totalBuildCost=0.0;
+		double profit = 0;
+	
+//		ProfitFunction pf = new ProfitFunction();
+//		pf.infRate = infRate;
+//		pf.disRate = disRate;
+//		pf.totalYrs = maxYears;
+//		profit = pf.getProfit(lin.objectiveValueList, lin.actualBudgetList);
+//		String profitString = Utility.sciToDollar(profit);
+//		
+//		ROIFunction rf = new ROIFunction();
+//		rf.infRate = infRate;
+//		rf.disRate = disRate;
+//		rf.totalYrs = maxYears;
+//		double ROI = rf.getROI(lin.objectiveValueList, lin.actualBudgetList);
+//		ROI = Utility.round(ROI*100,2);
+//		
+//		RecoupFunction bf = new RecoupFunction();
+//		bf.infRate = infRate;
+//		bf.disRate = disRate;
+//		bf.totalYrs = maxYears;
+//		double breakeven = bf.getBK(lin.objectiveValueList, lin.actualBudgetList);
+//		breakeven = Utility.round(breakeven,2);
+//		
+//		BreakevenFunction bkf = new BreakevenFunction();
+//		bkf.setSvcOpt(lin);
+//		double zero = bkf.getZero(maxYears);
+//		zero = Utility.round(zero,2);
+//		
+//		String costString = Utility.sciToDollar(totalBuildCost);
+//      playSheet.savingLbl.setText(profitString);
+//		playSheet.roiLbl.setText(Double.toString(ROI)+"%");
+//		playSheet.costLbl.setText(costString);
+//		playSheet.bkevenLbl.setText(Double.toString(zero)+" Years");
+//		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
+//		
+
+	}
+	
+	public void displayCharts(){
+//		SerOptGraphFunctions graphF= new SerOptGraphFunctions();
+//		graphF.setOptimzer(this);
+//		graphF.setSvcOpt(lin);
+//		Hashtable chartHash1 = graphF.createBuildCostChart();
+//		Hashtable chartHash2 = graphF.createServiceSavings();
+//		Hashtable chartHash3 = graphF.createCostChart();
+//		Hashtable chartHash4 = graphF.createCumulativeSavings();
+//		Hashtable chartHash5 = graphF.createBreakevenGraph();
+//		playSheet.tab1.callIt(chartHash1);
+//		playSheet.tab2.callIt(chartHash2);
+//		playSheet.tab3.callIt(chartHash3);
+//		playSheet.tab4.callIt(chartHash4);
+//		playSheet.tab5.callIt(chartHash5);
+	}
+	
 	
 	/**
 	 * Clears the playsheet by removing information from all panels.
 	 */
 	public void clearPlaysheet(){
+		clearLabels();
+		clearGraphs();
 		playSheet.specificSysAlysPanel.removeAll();
 	}
-//	
-//	/**
-//	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
-//	 */
-//	public void runEmptyFunction()
-//	{
-//		playSheet.bkevenLbl.setText("N/A");
-//        playSheet.savingLbl.setText("$0");
-//		playSheet.roiLbl.setText("N/A");
-//		playSheet.recoupLbl.setText("N/A");
-//		playSheet.costLbl.setText("$0");
-//	}
+	
+	/**
+	 * Clears graphs within the playsheets.
+	 */
+	public void clearGraphs()
+	{
+		playSheet.tab1.setVisible(false);
+		playSheet.tab2.setVisible(false);
+		playSheet.tab3.setVisible(false);
+		playSheet.tab4.setVisible(false);
+		playSheet.tab5.setVisible(false);
+	}
+	
+	/**
+	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 */
+	public void clearLabels()
+	{
+        playSheet.savingLbl.setText("$0");
+        playSheet.netSavingLbl.setText("$0");
+		playSheet.roiLbl.setText("N/A");
+        playSheet.investLbl.setText("$0");
+        playSheet.budgetLbl.setText("$0");
+	}
 //	
 //	/**
 //	 * Displays specific information about a system in the playsheet.
@@ -448,17 +536,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 //		retString = month+ " " + day + " " + year;
 //		return retString;
 //	}
-//	
-//	/**
-//	 * Displays the results from various optimization calculations. 
-//	 * These include profit, ROI, Recoup, and breakeven functions.
-//	 * @param lin 	Optimizer used for TAP-specific calculations. 
-//	 */
-//	public void displayResults(ServiceOptimizer lin)
-//	{
-//
-//	}
-	
+
 	
 	/**
 	 * Sets the passed playsheet as a service optimization playsheet.
