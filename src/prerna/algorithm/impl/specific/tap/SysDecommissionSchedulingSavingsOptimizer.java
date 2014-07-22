@@ -246,13 +246,17 @@ import prerna.algorithm.impl.LPOptimizer;
 		}
 		
 		public double calcInvestmentForCurrYear() {
+			
+			addTextToConsole("\nNumber of sites transformed and cost for each system are:");
 			double invest=0.0;
 			for(int sysInd=0;sysInd<sysListLeftOver.size();sysInd++) {
 				String sys = sysListLeftOver.get(sysInd);
 				int sysMasterInd = sysList.indexOf(sys);
 				double workVol = sysToWorkVolHashPerSite.get(sys);
 				double sites = sysToSiteCount.get(sys);
-		        invest +=  ( workVol + ((sites - 1) * workVol * percentOfPilot )) / sites * firstSiteMatrix.get(currYear)[sysMasterInd];
+				double sysInvest = ( workVol + ((sites - 1) * workVol * percentOfPilot )) / sites * firstSiteMatrix.get(currYear)[sysMasterInd];
+				addTextToConsole(" "+sys+": for "+firstSiteMatrix.get(currYear)[sysMasterInd]+" sites the cost is "+sysInvest+",");
+		        invest +=  sysInvest;
 			}
 			return invest;
 		}
@@ -381,10 +385,6 @@ import prerna.algorithm.impl.LPOptimizer;
 				siteIsTransformed = new double[sysListLeftOver.size()];
 
 				solver.getVariables(siteIsTransformed);
-				addTextToConsole("\nNumber of sites transformed for each system are:");
-				for(int i=0;i<siteIsTransformed.length;i++)
-					addTextToConsole(" "+solver.getColName(i + 1)+": "+siteIsTransformed[i]+",");
-				
 				for(int i=0;i<sysListLeftOver.size();i++)
 				{
 					String sys = sysListLeftOver.get(i);
