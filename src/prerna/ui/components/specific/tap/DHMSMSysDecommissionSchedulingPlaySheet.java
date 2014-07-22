@@ -232,7 +232,7 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_roiLbl.gridy = 1;
 		panel_1.add(roiLbl, gbc_roiLbl);
 		
-		JLabel lblInvestLabel = new JLabel("Annual Budget during transition:");
+		JLabel lblInvestLabel = new JLabel("Total investment cost:");
 		GridBagConstraints gbc_lblInvestLabel = new GridBagConstraints();
 		gbc_lblInvestLabel.anchor = GridBagConstraints.WEST;
 		gbc_lblInvestLabel.insets = new Insets(0, 0, 0, 5);
