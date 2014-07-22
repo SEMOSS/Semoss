@@ -80,25 +80,6 @@ import prerna.algorithm.impl.LPOptimizer;
 			return totalInvestment;
 		}
 		
-//		public int getTotalSavings() {
-//			//start accumulating the savings in the following year
-//			for(int year = 0;year<numYears;year++)
-//			{
-//				for(int prevYear=0;prevYear<year;prevYear++)
-//				{
-//					totalSavings+= yearSavings.get(0);
-//				}
-//			}
-//		}
-//		
-//		public void cummulativeSavings(){
-//			for(int i=0;i<yearSavings.size();i++)
-//			{
-//				
-//			}
-//		}
-	
-		
 		public ArrayList<Double[]> getFirstSiteMatrix(){
 			return firstSiteMatrix;
 		}
@@ -106,9 +87,6 @@ import prerna.algorithm.impl.LPOptimizer;
 		public ArrayList<Double> getYearInvestment(){
 			return yearInvestment;
 		}
-//		public ArrayList<Double> getYearInvestmentSustainment(){
-//			return yearInvestmentSustainment;
-//		}
 		public ArrayList<Double> getYearSavings(){
 			return yearSavings;
 		}
@@ -261,18 +239,6 @@ import prerna.algorithm.impl.LPOptimizer;
 			return invest;
 		}
 		
-//		public double calcInvestmentSustainmentForCurrYear() {
-//			double investSustainment=0.0;
-//			for(int sysInd=0;sysInd<sysListLeftOver.size();sysInd++)
-//			{
-//				String sys = sysListLeftOver.get(sysInd);
-//				int sysMasterInd = sysList.indexOf(sys);
-//		        double workVol = sysToWorkVolHashPerSite.get(sys);
-//		        investSustainment += (serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )))/sysToSiteCount.get(sys)*firstSiteMatrix.get(currYear)[sysMasterInd];
-//			}
-//			return investSustainment;
-//		}
-		
 		public double calcSavingsForCurrYear() {
 			double savings=0.0;
 			for(int sysInd=0;sysInd<sysListLeftOver.size();sysInd++)
@@ -319,7 +285,7 @@ import prerna.algorithm.impl.LPOptimizer;
 			
 			yearInvestment = new ArrayList<Double>();
 			yearSavings = new ArrayList<Double>();
-			//do i need to remove any systems that dont have site data?
+			//do i need to remove any systems that dont have site data? right now assuming one site
 			
 			for(String sys : sysList)
 			{
@@ -339,10 +305,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				double investment = calcInvestmentForCurrYear();
 				totalInvestment +=investment;
 				yearInvestment.add(investment);
-//				double investmentSustainment = calcInvestmentSustainmentForCurrYear();
-//				yearInvestmentSustainment.add(investmentSustainment);
 				double savings = calcSavingsForCurrYear();
-//				totalSavings += savings;
 				yearSavings.add(savings);
 				currYear++;
 				adjustSitesFromPrevYear();
