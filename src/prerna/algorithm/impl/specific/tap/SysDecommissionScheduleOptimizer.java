@@ -18,6 +18,9 @@
  ******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -29,10 +32,13 @@ import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMSysDecommissionSchedulingPlaySheet;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
+import prerna.ui.components.specific.tap.SysDecommissionScheduleGraphFunctions;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * This class is used to optimize the calculations for univariate services.
@@ -44,7 +50,6 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	DHMSMSysDecommissionSchedulingPlaySheet playSheet;
 	public int maxYears;
 	double serMainPerc;
-//	int noOfPts;
 	double minBudget;
 	double maxBudget;
 	double hourlyCost;
@@ -52,14 +57,13 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	double budget = 100000000.0;
 	double totalTransformCost=0.0;
 
-	//change to SysDecommissionScheduleOptFuncgtion
-	double optBudget =0.0;
-	
+	public double totalSavings=0.0;
+	public double investment=0.0;
+
 	String bindStr = "";
 	JProgressBar progressBar;
 	SysDecommissionOptimizationFunctions optFunctions;
-//	OptimizationOrganizer optOrg;
-//	public String[] optSys;
+    SysDecommissionSchedulingSavingsOptimizer opt;
 
 	private static String hrCoreDB = "HR_Core";
 	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} FILTER(?HighProb in('High','Question'))}";
@@ -89,6 +93,10 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		this.progressBar = progressBar;
 	}
 	
+	public SysDecommissionSchedulingSavingsOptimizer getSavingsOpt() {
+		return opt;
+	}
+	
 	public void addTextToConsole(String text) {
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+text);
 	}
@@ -101,7 +109,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
         collectData();
         
        	boolean success=true;
-        SysDecommissionSchedulingSavingsOptimizer opt = new SysDecommissionSchedulingSavingsOptimizer();
+        opt = new SysDecommissionSchedulingSavingsOptimizer();
         opt.setDataSet(playSheet.consoleArea,systemList, optFunctions.sysToSiteCountHash,optFunctions.getSysToWorkVolHashPerSite(),optFunctions.sysToSustainmentCost, budget, maxYears, percentOfPilot,serMainPerc);
         int count = 1;
         progressBar.setString("Iteration: "+count);
@@ -240,67 +248,47 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	public void displayResults()
 	{
         progressBar.setString("Creating Visualizations");
+        SysDecommissionScheduleGraphFunctions graphF= new SysDecommissionScheduleGraphFunctions();
+		graphF.setOptimzer(this);
+		Hashtable chartHash1 = graphF.createBuildCostChart();
+		Hashtable chartHash2 = graphF.createSavingsByYear();
+		Hashtable chartHash3 = graphF.createCostChart();
+		Hashtable chartHash4 = graphF.createYearlySavings();
+//		Hashtable chartHash5 = graphF.createBreakevenGraph();
+		playSheet.tab1.callIt(chartHash1);
+		playSheet.tab2.callIt(chartHash2);
+		playSheet.tab3.callIt(chartHash3);
+		playSheet.tab4.callIt(chartHash4);
+//		playSheet.tab5.callIt(chartHash5);
+		playSheet.tab1.setVisible(true);
+		playSheet.tab2.setVisible(true);
+		playSheet.tab3.setVisible(true);
+		playSheet.tab4.setVisible(true);
+//		playSheet.tab5.setVisible(true);
         displayLabels();
-        //displayCharts();
+        displaySystemSpecifics();
 	}
 	
 	public void displayLabels()
 	{
-		double totalBuildCost=0.0;
-		double profit = 0;
-	
-//		ProfitFunction pf = new ProfitFunction();
-//		pf.infRate = infRate;
-//		pf.disRate = disRate;
-//		pf.totalYrs = maxYears;
-//		profit = pf.getProfit(lin.objectiveValueList, lin.actualBudgetList);
-//		String profitString = Utility.sciToDollar(profit);
-//		
-//		ROIFunction rf = new ROIFunction();
-//		rf.infRate = infRate;
-//		rf.disRate = disRate;
-//		rf.totalYrs = maxYears;
-//		double ROI = rf.getROI(lin.objectiveValueList, lin.actualBudgetList);
-//		ROI = Utility.round(ROI*100,2);
-//		
-//		RecoupFunction bf = new RecoupFunction();
-//		bf.infRate = infRate;
-//		bf.disRate = disRate;
-//		bf.totalYrs = maxYears;
-//		double breakeven = bf.getBK(lin.objectiveValueList, lin.actualBudgetList);
-//		breakeven = Utility.round(breakeven,2);
-//		
-//		BreakevenFunction bkf = new BreakevenFunction();
-//		bkf.setSvcOpt(lin);
-//		double zero = bkf.getZero(maxYears);
-//		zero = Utility.round(zero,2);
-//		
-//		String costString = Utility.sciToDollar(totalBuildCost);
-//      playSheet.savingLbl.setText(profitString);
-//		playSheet.roiLbl.setText(Double.toString(ROI)+"%");
-//		playSheet.costLbl.setText(costString);
-//		playSheet.bkevenLbl.setText(Double.toString(zero)+" Years");
-//		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
-//		
+		String savingString = Utility.sciToDollar(totalSavings);
+		
+		String netSavingString = Utility.sciToDollar(totalSavings - investment);
+		
+		double ROI = (totalSavings-investment)/investment;
+		ROI = Utility.round(ROI*100,2);
+
+		String investmentString = Utility.sciToDollar(investment);
+		
+		String budgetString = Utility.sciToDollar(budget);
+
+		playSheet.savingLbl.setText(savingString);
+		playSheet.netSavingLbl.setText(netSavingString);
+		playSheet.roiLbl.setText(Double.toString(ROI)+"%");
+		playSheet.investLbl.setText(investmentString);
+		playSheet.budgetLbl.setText(budgetString);
 
 	}
-	
-	public void displayCharts(){
-//		SerOptGraphFunctions graphF= new SerOptGraphFunctions();
-//		graphF.setOptimzer(this);
-//		graphF.setSvcOpt(lin);
-//		Hashtable chartHash1 = graphF.createBuildCostChart();
-//		Hashtable chartHash2 = graphF.createServiceSavings();
-//		Hashtable chartHash3 = graphF.createCostChart();
-//		Hashtable chartHash4 = graphF.createCumulativeSavings();
-//		Hashtable chartHash5 = graphF.createBreakevenGraph();
-//		playSheet.tab1.callIt(chartHash1);
-//		playSheet.tab2.callIt(chartHash2);
-//		playSheet.tab3.callIt(chartHash3);
-//		playSheet.tab4.callIt(chartHash4);
-//		playSheet.tab5.callIt(chartHash5);
-	}
-	
 	
 	/**
 	 * Clears the playsheet by removing information from all panels.
@@ -334,210 +322,46 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
         playSheet.investLbl.setText("$0");
         playSheet.budgetLbl.setText("$0");
 	}
-//	
-//	/**
-//	 * Displays specific information about a system in the playsheet.
-//	 * This includes year, system, service, cost, GLItem, phase, tag, and input.
-//	 * @param lin 	Optimizer used for TAP-specific calculations.
-//	 */
-//	public void displaySystemSpecifics(ServiceOptimizer lin)
-//	{
-//		Hashtable masterHash = optOrg.masterHash;
-//		ArrayList <Object []> list = new ArrayList();
-//		String[] colNames = new String[8];
-//		colNames[0]="Year";
-//		colNames[1]="System";
-//		colNames[2]="Service";
-//		colNames[3]="Cost";
-//		colNames[4]="GLItem";
-//		colNames[5]="Phase";
-//		colNames[6]="Tag";
-//		colNames[7]="Input";
-//		for (int i = 0;i<lin.yearlyServicesList.size();i++)
-//		{
-//			int buildYear = 2014+i;
-//			ArrayList serList = lin.yearlyServicesList.get(i);
-//			for (int j=0;j<serList.size();j++)
-//			{
-//				ArrayList<Object[]> returnedTable = (ArrayList<Object[]>) masterHash.get(serList.get(j));
-//				ArrayList<Object[]> newTable = new ArrayList();
-//				//need to add the year to the table
-//				for(Object[] array: returnedTable){
-//					Object[] newRow = new Object[8];
-//					newRow[0]=buildYear;
-//					for(int oldRowIdx = 0; oldRowIdx<array.length; oldRowIdx++){
-//						if(oldRowIdx == 2)//need to adjust the cost
-//							newRow[oldRowIdx+1] = Math.round(((Double) array[oldRowIdx]/f.learningConstants[i])*hourlyCost);
-//						else 
-//							newRow[oldRowIdx+1] = array[oldRowIdx];
-//					}
-//					newTable.add(newRow);
-//				}
-//				list.addAll(newTable);
-//			}
-//		}
-//		GridScrollPane pane = new GridScrollPane(colNames, list);
-//		
-//		playSheet.specificSysAlysPanel.removeAll();
-//		JPanel panel = new JPanel();
-//		GridBagLayout gridBagLayout = new GridBagLayout();
-//		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-//		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-//		playSheet.specificSysAlysPanel.setLayout(gridBagLayout);
-//		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
-//		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
-//		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
-//		gbc_panel_1_1.gridx = 0;
-//		gbc_panel_1_1.gridy = 0;
-//		playSheet.specificSysAlysPanel.add(pane, gbc_panel_1_1);
-//		playSheet.specificSysAlysPanel.repaint();
-//	}
-//	
-//
-//	/**
-//	 * Gets the end date based on number of work days and total days.
-//	 * @param startDate 	Start date.
-//	 * @param loe 			Level of effort expressed as a double.
-//	
-//	 * @return Date 		End date. */
-//	public Date getEndDate (Date startDate, double loe)
-//	{
-//		Integer workDays = (int) Math.ceil(loe/8);
-//		Integer totalDays = (int) (workDays + Math.floor(workDays/5)*2);
-//		Calendar cal = Calendar.getInstance();
-//		cal.setTime(startDate);
-//		cal.add(Calendar.DATE, totalDays);
-//		Date endDate = cal.getTime();
-//		return endDate;
-//	}
-//	
-//	/**
-//	 * Creates timeline data for all of the yearly services.
-//	 * Puts event in the overall hash  as long as the cost exists.
-//	 * Stores information about start date, end date, and required LOE for an event.
-//	 * @param lin 	Optimizer used for TAP-specific calculations.
-//	 */
-//	public void createTimelineData (ServiceOptimizer lin)
-//	{
-//		Hashtable allHash = new Hashtable();
-//		Hashtable masterHash = optOrg.masterHash;
-//		ArrayList <Object []> list = new ArrayList();
-//		String[] colNames = new String[8];
-//		colNames[0]="Year";
-//		colNames[1]="System";
-//		colNames[2]="Service";
-//		colNames[3]="Cost";
-//		colNames[4]="GLItem";
-//		colNames[5]="Phase";
-//		colNames[6]="Tag";
-//		colNames[7]="Input";
-//		String[] sdlcPhase = new String[5];
-//		sdlcPhase[0]="Requirements";
-//		sdlcPhase[1]="Design";
-//		sdlcPhase[2]="Develop";
-//		sdlcPhase[3]="Test";
-//		sdlcPhase[4]="Deploy";
-//		for (int i = 0;i<lin.yearlyServicesList.size();i++)
-//		{
-//			int buildYear = 2014+i;
-//			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-//			Date startYearlyDate = null;
-//			try {
-//				startYearlyDate = sdf.parse("01/10/"+buildYear);
-//			} catch (ParseException e) {
-//				e.printStackTrace();
-//			}
-//
-//			//startDate = Calendar.set(Calendar.YEAR, buildYear).
-//			//startDate.setYear(arg0)
-//			ArrayList serList = lin.yearlyServicesList.get(i);
-//			int trackCounter = 0;
-//			for (int j=0;j<serList.size();j++)
-//			{
-//				
-//				Random randomGenerator = new Random();
-//				int red = randomGenerator.nextInt(255);
-//				int green = randomGenerator.nextInt(255);
-//				int blue = randomGenerator.nextInt(255);
-//
-//				Color randomColour = new Color(red,green,blue);
-//				Date startDate = startYearlyDate;
-//				ArrayList<Object[]> returnedTable = (ArrayList<Object[]>) masterHash.get(serList.get(j));
-//				//need to add the year to the table
-//				for (String sdlc:sdlcPhase)
-//				{
-//					Hashtable eventHash = new Hashtable();
-//					String eventName = serList.get(j)+": "+sdlc;
-//					double totalCost = 0.0;
-//					double highestCost = 0.0;
-//					for (Object[]array: returnedTable)
-//					{
-//						String phase = (String) array[4];
-//						if (phase.equals(sdlc))
-//						{
-//							totalCost = totalCost+(Double)array[2];
-//							if((Double)array[2]>highestCost)
-//							{
-//								highestCost = (Double)array[2];
-//							}
-//						}
-//					}
-//					//only put event in overall Hash if a cost exists
-//					if(highestCost != 0.0)
-//					{
-//						double workers = Math.round(totalCost/highestCost);
-//						double loePerWorker = totalCost/workers;
-//						int numOfDays = (int) Math.ceil(loePerWorker/8);
-//						Date endDate = getEndDate(startDate, loePerWorker);
-//						workers = Utility.round(workers,1);
-//						String startDateString = prepareDateForJSON (startDate);
-//						eventHash.put("start",  startDateString);
-//						startDate = endDate;
-//						String endDateString = prepareDateForJSON (endDate);
-//						eventHash.put("end",  endDateString);
-//						eventHash.put("color", "rgb("+red+","+green+","+blue+")");
-//						eventHash.put("textColor",  "rgb(0,0,0)");
-//						String desString = "Total LOE: " + totalCost + " hours~Resources Needed:" +workers + " people~Total Time Elasped: " +numOfDays +" business days";
-//						eventHash.put("description", desString);
-//						eventHash.put("title",  eventName);
-//						eventHash.put("trackNum", trackCounter+"");
-//						trackCounter++;
-//						logger.info(eventName);
-//						logger.info(startDateString);
-//						logger.info(endDateString);
-//						logger.info(desString);
-//						allHash.put(eventName, eventHash);
-//					}
-//				
-//					
-//				}
-//
-//			}
-//		}
-//		
-//		playSheet.timeline.callIt(allHash);
-//	}
-//	
-//	/**
-//	 * Prepares the date for JSON data-interchange.
-//	 * @param date 			Reflects coordinated universal time.
-//	
-//	 * @return retString	Date returned in string format. */
-//	public String prepareDateForJSON(Date date)
-//	{
-//		String retString = "";
-//		Calendar cal = Calendar.getInstance();
-//		cal.setTime(date);
-//		//Date endDate = cal.getTime();
-//		int year = cal.get(Calendar.YEAR);
-//		int month = cal.get(Calendar.MONTH)+1;
-//		int day = cal.get(Calendar.DAY_OF_MONTH);
-//		
-//		retString = month+ " " + day + " " + year;
-//		return retString;
-//	}
-
 	
+	/**
+	 * Displays specific information about a system in the playsheet.
+	 * This includes year, system, service, cost, GLItem, phase, tag, and input.
+	 * @param lin 	Optimizer used for TAP-specific calculations.
+	 */
+	public void displaySystemSpecifics()
+	{
+		ArrayList <Object []> list = new ArrayList();
+		String[] colNames = new String[maxYears+1];
+		colNames[0]="System";
+		for(int i=1;i<=maxYears;i++)
+			colNames[i] = "Year "+i;
+		ArrayList<Double[]> systemSiteMatrix = opt.getFirstSiteMatrix();
+		for(int sysInd = 0;sysInd<systemSiteMatrix.get(0).length;sysInd++)
+		{
+			Object[] rowForSys = new Object[maxYears+1];
+			rowForSys[0] = systemList.get(sysInd);
+			for(int i=1;i<=maxYears;i++)
+				rowForSys[i] = systemSiteMatrix.get(i-1)[sysInd];
+			list.add(rowForSys);
+		}
+
+		GridScrollPane pane = new GridScrollPane(colNames, list);
+		
+		playSheet.specificSysAlysPanel.removeAll();
+//		JPanel panel = new JPanel();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		playSheet.specificSysAlysPanel.setLayout(gridBagLayout);
+		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
+		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1_1.gridx = 0;
+		gbc_panel_1_1.gridy = 0;
+		playSheet.specificSysAlysPanel.add(pane, gbc_panel_1_1);
+		playSheet.specificSysAlysPanel.repaint();
+	}
+		
 	/**
 	 * Sets the passed playsheet as a service optimization playsheet.
 	 * @param 	playSheet	Playsheet to be cast.
