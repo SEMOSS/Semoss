@@ -335,7 +335,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		String[] colNames = new String[maxYears+1];
 		colNames[0]="System";
 		for(int i=1;i<=maxYears;i++)
-			colNames[i] = "Year "+i;
+			colNames[i] = "Sites Transitioned in Year "+i;
 		ArrayList<Double[]> systemSiteMatrix = opt.getFirstSiteMatrix();
 		for(int sysInd = 0;sysInd<systemSiteMatrix.get(0).length;sysInd++)
 		{
