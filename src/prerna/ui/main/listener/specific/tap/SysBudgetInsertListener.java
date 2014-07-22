@@ -41,7 +41,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 
 	//TODO: may want user to specify engine name
 	
-	String tapEngineName = "HR_Core";
+	String tapEngineName = "TAP_Core_Data";
 
 	/**
 	 * Prior to inserting sustainment budget property on systems, checks to see if the proper insert query exists in the question sheet of the selected database and to see if systems already contain the sustainment budget property
@@ -52,7 +52,7 @@ public class SysBudgetInsertListener implements IChakraListener{
 	public void actionPerformed(ActionEvent e) {
 	
 		String query = (String) DIHelper.getInstance().getProperty(Constants.SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY);
-		String budgetPropCheckQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> AS ?contains) {?s ?contains ?prop ;} }";
+		String budgetPropCheckQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> AS ?contains) {?s ?contains ?prop ;} }";
 		
 		if(query == null) {
 			Utility.showError("Please select a database that contains budget information and try again");
