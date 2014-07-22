@@ -212,9 +212,9 @@ public class SysDecommissionScheduleGraphFunctions {
 			newYear[i] = newYear[i-1]+newYear[i];
 		}
 		savingsPerYearList.add(newYear);
-		double totalSavings = 0.0;
-		for(int i=0;i<newYear.length;i++)
-			totalSavings+=newYear[i];
+		double totalSavings = newYear[newYear.length-1];
+//		for(int i=0;i<newYear.length;i++)
+//			totalSavings+=newYear[i];
 		scheduleOpt.totalSavings = totalSavings;
 		return savingsPerYearList;
 	}
@@ -249,7 +249,7 @@ public class SysDecommissionScheduleGraphFunctions {
 //		barChartHash.put("xAxisInterval", 1);
 //		return barChartHash;
 //	}
-//	
+	
 //	public double[][] createBalanceList(int thisYear)
 //	{
 //		double[][] balanceList  = new double[maxYears+1][2];

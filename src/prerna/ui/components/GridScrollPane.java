@@ -42,9 +42,11 @@ public class GridScrollPane extends JScrollPane{
 		gfd.setColumnNames(colNames);
 		gfd.setDataList(list);
 		table = new JTable();
-		table.setAutoCreateRowSorter(true);
+//		table.setAutoCreateRowSorter(true);
+
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
+		table.setRowSorter(new GridTableRowSorter(model));
 		this.setViewportView(table);
 		this.setAutoscrolls(true);
 		this.getVerticalScrollBar().setUI(new NewScrollBarUI());

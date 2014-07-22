@@ -341,7 +341,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 			Object[] rowForSys = new Object[maxYears+1];
 			rowForSys[0] = systemList.get(sysInd);
 			for(int i=1;i<=maxYears;i++)
-				rowForSys[i] = systemSiteMatrix.get(i-1)[sysInd];
+				rowForSys[i] = (systemSiteMatrix.get(i-1)[sysInd]).intValue();
 			list.add(rowForSys);
 		}
 
