@@ -65,44 +65,54 @@ public class GridTableRowSorter <M extends TableModel> extends TableRowSorter<Ta
 			else if(o2 == null){
 				return -1;
 			}
-			else if(o1 instanceof String){
-				if(o2 instanceof String){
-					return ((String)o1).compareTo((String) o2);
+			else{
+				if(o1 instanceof Integer) {
+					o1 = new Double((Integer)o1);
 				}
-				else if(o2 instanceof Double){
-					return -1; //string comes before double
+				if(o2 instanceof Integer) {
+					o2 = new Double((Integer)o2);
 				}
-			}
-			else if(o2 instanceof String){
-				if(o1 instanceof Double){
-					return 1;//string comes before double
+				
+				if(o1 instanceof String){
+					if(o2 instanceof String){
+						return ((String)o1).compareTo((String) o2);
+					}
+					else if(o2 instanceof Double){
+						return -1; //string comes before double
+					}
 				}
-			}
-			else if(o1 instanceof Double){
-				if(o2 instanceof Double){
-					if(((Double)o1) > ((Double)o2)) {
-						return 1;
+				else if(o2 instanceof String){
+					if(o1 instanceof Double){
+						return 1;//string comes before double
 					}
-					else if(((Double)o1) < ((Double)o2)) {
-						return -1;
-					}
-					else if(Double.doubleToLongBits(((Double)o1)) ==
-			                  Double.doubleToLongBits(((Double)o2))) {
-						return 0;
-					}
-					else if(Double.isNaN((Double)o1)){
-						if(Double.isNaN((Double)o2)){
-							return 0;
-						}
-						else{
+				}
+				else if(o1 instanceof Double){
+					if(o2 instanceof Double){
+						if(((Double)o1) > ((Double)o2)) {
 							return 1;
 						}
-					}
-					else if(Double.isNaN((Double)o2)){
-						return -1;
+						else if(((Double)o1) < ((Double)o2)) {
+							return -1;
+						}
+						else if(Double.doubleToLongBits(((Double)o1)) ==
+				                  Double.doubleToLongBits(((Double)o2))) {
+							return 0;
+						}
+						else if(Double.isNaN((Double)o1)){
+							if(Double.isNaN((Double)o2)){
+								return 0;
+							}
+							else{
+								return 1;
+							}
+						}
+						else if(Double.isNaN((Double)o2)){
+							return -1;
+						}
 					}
 				}
 			}
+
 			System.out.println("UH OH " + o1.getClass() + "     " +o1 + "     " + o2.getClass()+"     " +o2);
 			return (o1.toString()).compareTo(o2.toString());
 		}
