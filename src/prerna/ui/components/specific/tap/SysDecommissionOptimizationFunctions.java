@@ -55,11 +55,14 @@ public class SysDecommissionOptimizationFunctions {
 	
 	private static String coreDB = "HR_Core";
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
+	private static String systemArchiveQuery = "SELECT DISTINCT ?System ?Archive WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> ?Archive}}";
 
 	private boolean includeFirstSite=true;
 	private boolean includePilot = false;
 	private boolean storeWorkVolInDays = true;
+	private boolean includeArchive=false;
 	private double percentOfPilot=0.2;
+	private double archivePercent = 0.3;
 	private double hourlyCost=150.0;
 	private static final int workHoursInDay = 8;
 	private static final int workHoursInYear = 40*52;
@@ -86,6 +89,10 @@ public class SysDecommissionOptimizationFunctions {
 	public void setFirstSiteBoolean(boolean includeFirstSite)
 	{
 		this.includeFirstSite = includeFirstSite;
+	}
+	public void setIncludeArchiveBoolean(boolean includeArchive)
+	{
+		this.includeArchive = includeArchive;
 	}
 	public void setstoreWorkVolInDays(boolean storeWorkVolInDays)
 	{
@@ -218,6 +225,10 @@ public class SysDecommissionOptimizationFunctions {
 		processSystemProbHash(systemProbList);
 		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
 		processSystemSustainmentCostHash(systemSustainmentCostList);
+		if(includeArchive) {
+			ArrayList <Object []> systemArchiveList = createData(coreDB,systemArchiveQuery);
+			updateWorkVolWithArchive(systemArchiveList);
+		}
 	}
 	
 	
@@ -601,6 +612,19 @@ public class SysDecommissionOptimizationFunctions {
 			String system = (String) elementArray[0];
 			String prob = (String) elementArray[1];
 			sysToProbHash.put(system,prob);
+		}
+	}
+	private void updateWorkVolWithArchive(ArrayList <Object []> list)
+	{
+		for (int i=0; i<list.size(); i++)
+		{
+			Object[] elementArray= list.get(i);
+			String system = (String) elementArray[0];
+			String archive = (String) elementArray[1];
+			if(archive.toUpperCase().contains("Y")&&sysToWorkVolHashPerSite.containsKey(system)) {
+				double workVol = sysToWorkVolHashPerSite.get(system);
+				sysToWorkVolHashPerSite.put(system,workVol*archivePercent);
+			}
 		}
 	}
 	private void processSystemSustainmentCostHash(ArrayList <Object []> list)

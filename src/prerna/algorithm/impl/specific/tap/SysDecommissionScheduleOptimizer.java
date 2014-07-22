@@ -178,6 +178,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		optFunctions.setPilotBoolean(true);
 		optFunctions.setFirstSiteBoolean(false);
 		optFunctions.setstoreWorkVolInDays(false);
+		optFunctions.setIncludeArchiveBoolean(true);
 		optFunctions.instantiate();
 		
 		calculateTotalTransformCost();
