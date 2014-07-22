@@ -255,17 +255,17 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		Hashtable chartHash2 = graphF.createSavingsByYear();
 		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createYearlySavings();
-//		Hashtable chartHash5 = graphF.createBreakevenGraph();
+		Hashtable chartHash5 = graphF.createBreakevenGraph();
 		playSheet.tab1.callIt(chartHash1);
 		playSheet.tab2.callIt(chartHash2);
 		playSheet.tab3.callIt(chartHash3);
 		playSheet.tab4.callIt(chartHash4);
-//		playSheet.tab5.callIt(chartHash5);
+		playSheet.tab5.callIt(chartHash5);
 		playSheet.tab1.setVisible(true);
 		playSheet.tab2.setVisible(true);
 		playSheet.tab3.setVisible(true);
 		playSheet.tab4.setVisible(true);
-//		playSheet.tab5.setVisible(true);
+		playSheet.tab5.setVisible(true);
         displayLabels();
         displaySystemSpecifics();
 	}
