@@ -44,6 +44,7 @@ public interface IExplorable {
 	// gets all the params
 	public Vector getParams(String insightName);
 
-
+	// gets all the insights
+	public String getInsightDefinition();
 
 }

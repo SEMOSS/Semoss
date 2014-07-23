@@ -49,6 +49,7 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public JComponent pane = null;
 	protected Logger logger = Logger.getLogger(getClass());
 	public JProgressBar jBar = new JProgressBar();
+	String playsheetType = null;
 	
 	/**
 	 * Constructor for AbstractRDFPlaySheet.
@@ -243,5 +244,4 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
         jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
 		jBar.setStringPainted(true);
 	}
-
 }
