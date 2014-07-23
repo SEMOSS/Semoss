@@ -575,7 +575,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 						// DHMSM is providing information to an LPI system  
 						// DHMSM is receiving information from LPNI which is a SOR of the data object
-						if( (sysSpecificCommentSplit[0].contains("DHMSM") && sysSpecificCommentSplit[1].contains(systemName)) )
+						if( sysSpecificCommentSplit[0].contains(systemName) && sysSpecificCommentSplit[1].contains("DHMSM") )
 						{
 							Double finalCost = calculateCost(dataObject, systemName, "Provide", true);
 							if(finalCost == null) {
