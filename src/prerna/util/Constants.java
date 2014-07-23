@@ -369,6 +369,7 @@ public class Constants {
 	public static final String DEPEND = "DEPEND";
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
+	public static final Object URI_BASE = "URI_BASE";
 
 
 }
