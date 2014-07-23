@@ -18,9 +18,12 @@
  ******************************************************************************/
 package prerna.util;
 
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -34,6 +37,15 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.rdf.engine.api.IEngine;
@@ -693,4 +705,51 @@ public class Utility {
 		}
 		return paramHash;
 	}
+	
+	public static String retrieveResult(String api, Hashtable <String,String> params)
+	{
+		String output = "";
+		try
+		{
+			URIBuilder uri = new URIBuilder(api);
+			
+			System.out.println("Getting data from the API...  " + api);
+			System.out.println("Prams is " + params);
+			
+			HttpPost get = new HttpPost(api);
+			if(params != null) // add the parameters
+			{
+				List <NameValuePair> nvps = new ArrayList <NameValuePair>();
+				for(Enumeration <String> keys = params.keys();keys.hasMoreElements();)
+				{
+					String key = keys.nextElement();
+					String value = params.get(key);
+					uri.addParameter(key, value);
+					nvps.add(new BasicNameValuePair(key, value));
+				}
+				get.setEntity(new UrlEncodedFormEntity(nvps));
+				//get = new HttpPost(uri.build());
+			}
+			
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			CloseableHttpResponse response = httpclient.execute(get);
+			HttpEntity entity = response.getEntity();
+			
+			if(entity != null)
+			{
+				BufferedReader stream = new BufferedReader(new InputStreamReader(entity.getContent()));
+				String data = null;
+				while((data = stream.readLine()) != null)
+					output = output + data;
+			}
+		}catch(Exception ex)
+		{
+			//connected = false;
+		}
+		if(output.length() == 0)
+			output = null;
+		
+		return output;
+	}
+
 }

@@ -27,6 +27,16 @@ public class SesameJenaConstructStatement {
 	String predicate = null;
 	Object object = null;
 	
+	String serialRep = null;
+	
+	public String getSerialRep() {
+		return serialRep;
+	}
+
+	public void setSerialRep(String serialRep) {
+		this.serialRep = serialRep;
+	}
+
 	/**
 	 * Method getSubject. Gets the subject of the SPARQL query.	
 	 * @return String - the subject of the query.*/
