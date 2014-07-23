@@ -148,6 +148,7 @@ public class GraphDataModel {
 		else
 			sjw = new SesameJenaSelectCheater();
 
+		logger.debug("Query is " + query);
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
 		
@@ -214,14 +215,14 @@ public class GraphDataModel {
 				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
 
 				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 						subjects.append("(<").append(st.getSubject()).append(">)");
 					else
 						subjects.append("<").append(st.getSubject()).append(">");
 				}
 				
 				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
 					else
 						predicates.append("<").append(st.getPredicate()).append(">");
@@ -230,7 +231,7 @@ public class GraphDataModel {
 				//TODO: need to find a way to do this for jena too
 				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
-						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 							objects.append("(<" + obj +">)");
 						else
 							objects.append("<" + obj +">");

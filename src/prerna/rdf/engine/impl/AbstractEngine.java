@@ -20,7 +20,9 @@ package prerna.rdf.engine.impl;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -32,8 +34,6 @@ import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -45,6 +45,8 @@ import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -1418,4 +1420,36 @@ public abstract class AbstractEngine implements IEngine {
 	public void setMap(String map) {
 		this.map = map;
 	}	
+	
+	public String getInsightDefinition()
+	{
+		StringWriter output = new StringWriter();
+		try {
+			insightBase.export(new RDFXMLPrettyWriter(output));
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return output.toString();
+	}
+
+	public String getOWLDefinition()
+	{
+		StringWriter output = new StringWriter();
+		try {
+			baseDataEngine.rc.export(new RDFXMLPrettyWriter(output));
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return output.toString();
+	}
+
+	
 }

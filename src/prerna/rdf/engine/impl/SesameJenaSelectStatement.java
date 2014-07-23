@@ -20,13 +20,18 @@ package prerna.rdf.engine.impl;
 
 import java.util.Hashtable;
 
+import org.apache.james.mime4j.dom.datetime.DateTime;
+
 /**
  * A way of storing each triple in RDF for SELECT SPARQL queries.
  */
 public class SesameJenaSelectStatement {
 	
-	Hashtable propHash = new Hashtable();
-	public Hashtable rawPropHash = new Hashtable();
+	transient public Hashtable propHash = new Hashtable();
+	transient public Hashtable rawPropHash = new Hashtable();
+	String serialRep = null;
+	public boolean remote = false;
+	
 
 	/**
 	 * Method setVar.  Sets the variables and the values.
@@ -36,6 +41,7 @@ public class SesameJenaSelectStatement {
 	public void setVar(Object var, Object val)
 	{
 		propHash.put(var, val);
+			
 	}
 	
 	/**
@@ -45,7 +51,8 @@ public class SesameJenaSelectStatement {
 	 * @return Object - the value of the variable. */
 	public Object getVar(Object var)
 	{
-		return propHash.get(var);
+		Object retVal = propHash.get(var);
+		return retVal;
 	}
 	
 	/**
@@ -65,7 +72,8 @@ public class SesameJenaSelectStatement {
 	 * @return Object - the value of the variable. */
 	public Object getRawVar(Object var)
 	{
-		return rawPropHash.get(var);
+		Object retVal = rawPropHash.get(var);
+		return retVal;
 	}
 	
 	public Hashtable getPropHash()
@@ -73,4 +81,21 @@ public class SesameJenaSelectStatement {
 		return propHash;
 	}
 	
+	public void setPropHash(Hashtable propHash)
+	{
+		this.propHash = propHash;
+	}
+	
+	public void setRawPropHash(Hashtable rawPropHash)
+	{
+		this.rawPropHash = rawPropHash;
+	}
+
+	public String getSerialRep() {
+		return serialRep;
+	}
+
+	public void setSerialRep(String propHashRep) {
+		this.serialRep = propHashRep;
+	}
 }

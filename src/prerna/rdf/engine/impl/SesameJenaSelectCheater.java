@@ -18,16 +18,23 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.util.Utility;
 
+import com.google.gson.Gson;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 
@@ -36,19 +43,21 @@ import com.hp.hpl.jena.query.ResultSet;
  * it assumes the first one is subject, second one is predicate and third one is object
  */
 public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
-	TupleQueryResult tqr = null;
-	ResultSet rs = null;	
-	Enum engineType = IEngine.ENGINE_TYPE.SESAME;	
-	QuerySolution curSt = null;	
+	
+	transient TupleQueryResult tqr = null;
+	transient ResultSet rs = null;	
+	transient Enum engineType = IEngine.ENGINE_TYPE.SESAME;	
+	transient QuerySolution curSt = null;	
 	//IEngine engine = null;
-	BindingSet bs;
-	String query = null;	
-	Logger logger = Logger.getLogger(getClass());
-	int count=0;
+	transient BindingSet bs;
+	transient String query = null;	
+	transient Logger logger = Logger.getLogger(getClass());
+	transient int count=0;
 	String [] var = null;
-	int tqrCount=0;
-	int triples;
+	transient int tqrCount=0;
+	transient int triples;
 	String queryVar[];
+	transient SesameJenaSelectCheater proxy = null;
 	
 	/**
 	 * Method setEngine. Sets the engine.
@@ -70,16 +79,6 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 		logger.debug("Setting the query " + query);
 		this.query = query;
 	}
-	/**
-	 * Method executeQuery. - Executes the SPARQL query based on the type of engine selected.
-	 */
-	public void executeQuery()
-	{
-		if(engineType == IEngine.ENGINE_TYPE.SESAME)
-			tqr = (TupleQueryResult) engine.execSelectQuery(query);
-		else if(engineType == IEngine.ENGINE_TYPE.JENA)
-			rs = (ResultSet) engine.execSelectQuery(query);		
-	}
 
 	/**
 	 * Method execute. - Executes the SPARQL query based on the type of engine selected, and processes the variables.
@@ -87,13 +86,29 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	public void execute()
 	{
 		if(engineType == IEngine.ENGINE_TYPE.SESAME)
+		{
 			tqr = (TupleQueryResult) engine.execSelectQuery(query);
+			getVariables();
+			
+			processSelectVar();
+			count=0;
+		}
 		else if(engineType == IEngine.ENGINE_TYPE.JENA)
+		{
 			rs = (ResultSet)engine.execSelectQuery(query);
-		getVariables();
-		
-		processSelectVar();
-		count=0;
+			getVariables();
+			
+			processSelectVar();
+			count=0;
+			
+		}
+		else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+		{
+			// get the actual SesameJenaConstructWrapper from the engine
+			// this is json output
+			System.out.println("Trying to get the wrapper remotely now");
+			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
+		}
 	}
 	
 	/**
@@ -119,6 +134,11 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 						colIndex < names.size();
 						var[colIndex] = names.get(colIndex), colIndex++);
 			}
+			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			{
+				var = proxy.getVariables();
+			}
+
 		}
 		return var;
 	}
@@ -140,9 +160,20 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 				if(!retBool)
 					tqr.close();
 			}
-			else
+			else if(engineType == IEngine.ENGINE_TYPE.JENA)
 			{
 				retBool = rs.hasNext();
+			}
+			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			{
+				// I need to pull from remote
+				// this is just so stupid to call its own
+				Hashtable params = new Hashtable<String,String>();
+				params.put("id", proxy.getRemoteID());
+				System.out.println("ID for remote is " + proxy.getRemoteID());
+				String output = Utility.retrieveResult(proxy.getRemoteAPI() + "/hasNext", params);
+				Gson gson = new Gson();
+				retBool = gson.fromJson(output, Boolean.class); // cleans up automatically at the remote end
 			}
 		}catch(Exception ex)
 		{
@@ -200,18 +231,35 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 					count=0;
 				}
 			}
-			else
+			else if(engineType == IEngine.ENGINE_TYPE.JENA)
 			{
 			    logger.debug("Adding a JENA statement ");
 			    QuerySolution row = rs.nextSolution();
 			    retSt.setSubject(row.get(var[0])+"");
 			    retSt.setPredicate(row.get(var[1])+"");
 			    retSt.setObject(row.get(var[2]));
-			}
-			
-
+			}			
+			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			{
+				// I need to pull from remote
+				// this is just so stupid to call its own
+				// unserialize directly from the java object
 				
-			
+				// I need to pull from remote
+				// this is just so stupid to call its own
+				Hashtable params = new Hashtable<String,String>();
+				params.put("id", proxy.getRemoteID());
+				String output = Utility.retrieveResult(proxy.getRemoteAPI() + "/next", params);
+				Gson gson = new Gson();
+				retSt = gson.fromJson(output, SesameJenaConstructStatement.class); // cleans up automatically at the remote end
+				
+				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(retSt.serialRep)));
+				((SesameJenaConstructStatement)(retSt)).setSubject((String)(ois.readObject()));
+				((SesameJenaConstructStatement)(retSt)).setPredicate((String)(ois.readObject()));
+				((SesameJenaConstructStatement)(retSt)).setObject((Object)(ois.readObject()));
+
+			}
+
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
