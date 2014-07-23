@@ -62,10 +62,6 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 				{	
 					String text = (String) listElement[j];
 					text = text.replaceAll("^\"|\"$", "");
-					if (text.length() >= 30) {
-					text = text.substring(0, Math.min(text.length(), 30));  //temporary
-					text = text + "...";
-					}
 					elementHash.put(colName, text);
 				}
 				else 
