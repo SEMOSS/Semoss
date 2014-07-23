@@ -1,3 +1,6 @@
+//capturing max number of unique variables SL_Edit
+var uniquerownumber = 0;
+
 d3.parcoords = function(config) {
   var __ = {
     data: [],
@@ -55,7 +58,7 @@ var events = d3.dispatch.apply(this,["render", "resize", "highlight", "brush"].c
     yscale = {},
     dragging = {},
     line = d3.svg.line(),
-    axis = d3.svg.axis().orient("left").ticks(5),
+    axis = d3.svg.axis().orient("left").ticks(5).tickFormat(function(d){var curtailedTicks = curtailText(d); return curtailedTicks}),
     g, // groups for axes, brushes
     ctx = {},
     canvas = {};
@@ -102,7 +105,13 @@ function getset(obj,state,events)  {
     };
   });
 };
-
+//SL Addition: curtail string length
+function curtailText(text){
+    if(text.length >= 33){
+        text = text.substring(0,30) + "...";
+    }
+    return text;
+};
 function extend(target, source) {
   for (key in source) {
     target[key] = source[key];
@@ -126,7 +135,7 @@ pc.autoscale = function() {
     },
     "string": function(k) {
       return d3.scale.ordinal()
-        .domain(__.data.map(function(p) { return p[k]; }))
+        .domain(__.data.map(function(p) {var curtailedString = curtailText(p[k]); return p[k]; }))//SL This isn't just the view, this is the brains of the operation
         .rangePoints([h()+1, 1])
     }
   };
@@ -139,10 +148,17 @@ pc.autoscale = function() {
   pc.dimensions(pc.dimensions().filter(function(p,i) {
     var uniques = yscale[p].domain().length;
     if (__.types[p] == "string" && (uniques > 500 || uniques < 1)) {
+
       return false;
     }
+      //determining the number of unique rows SL_Edit
+      if(uniques > uniquerownumber){
+          uniquerownumber = uniques;
+      }
     return true;
   }));
+
+
 
   // xscale
   xscale.rangePoints([0, w()], 1);
@@ -276,16 +292,18 @@ function path_foreground(d) {
 function path_highlight(d) {
   return color_path(d, ctx.highlight);
 };
+
 pc.clear = function(layer) {
   ctx[layer].clearRect(0,0,w()+2,h()+2);
   return this;
 };
+
 pc.createAxes = function() {
   if (g) pc.removeAxes();
 
   // Add a group element for each dimension.
   g = pc.svg.selectAll(".dimension")
-      .data(__.dimensions, function(d) { return d; })
+      .data(__.dimensions, function(d) {return d; })
     .enter().append("svg:g")
       .attr("class", "dimension")
       .attr("transform", function(d) { return "translate(" + xscale(d) + ")"; })
@@ -304,7 +322,9 @@ pc.createAxes = function() {
         "class": "label"
       })
       .text(function(d) {
-        return d in __.dimensionTitles ? __.dimensionTitles[d] : d;  // dimension display names
+          //SL Edit
+        var curtailedTitle = curtailText(d);
+        return d in __.dimensionTitles ? __.dimensionTitles[d] : curtailedTitle;  // dimension display names
       })
 
   flags.axes= true;
@@ -318,16 +338,16 @@ pc.removeAxes = function() {
 
 pc.updateAxes = function() {
   var g_data = pc.svg.selectAll(".dimension")
-      .data(__.dimensions, function(d) { return d; })
+      .data(__.dimensions, function(d) {return d})
 
   g_data.enter().append("svg:g")
       .attr("class", "dimension")
-      .attr("transform", function(p) { return "translate(" + position(p) + ")"; })
+      .attr("transform", function(p) {return "translate(" + position(p) + ")"; })
       .style("opacity", 0)
       .append("svg:g")
       .attr("class", "axis")
       .attr("transform", "translate(0,0)")
-      .each(function(d) { d3.select(this).call(axis.scale(yscale[d])); })
+      .each(function(d) {d3.select(this).call(axis.scale(yscale[d])); console.log(d)})
     .append("svg:text")
       .attr({
         "text-anchor": "middle",
@@ -381,6 +401,10 @@ pc.reorderable = function() {
     .call(d3.behavior.drag()
       .on("dragstart", function(d) {
         dragging[d] = this.__origin__ = xscale(d);
+
+        //SL Edit - fixes our problems withold  shadows persisting after dragging
+        pc.clear("shadows");
+        //
       })
       .on("drag", function(d) {
         dragging[d] = Math.min(w(), Math.max(0, this.__origin__ += d3.event.dx));
@@ -394,6 +418,10 @@ pc.reorderable = function() {
         delete dragging[d];
         d3.select(this).transition().attr("transform", "translate(" + xscale(d) + ")");
         pc.render();
+
+        //SL Edit - fixes our problems withold  shadows persisting after dragging
+        pc.shadows();
+        //
       }));
   flags.reorderable = true;
   return this;
