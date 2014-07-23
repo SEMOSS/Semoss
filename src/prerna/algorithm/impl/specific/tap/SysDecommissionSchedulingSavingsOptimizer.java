@@ -37,7 +37,9 @@ import prerna.algorithm.impl.LPOptimizer;
 		
 		//matrix of yit, where system i is row and year t is col
 		//1 if first site for system is transformed in year t
-		ArrayList<Double[]> firstSiteMatrix;
+		ArrayList<Double[]> sysNumSitesMatrix;
+		ArrayList<Double[]> sysInvestCostMatrix;
+		ArrayList<Double[]> sysSavingsMatrix;
 
 		ArrayList<Double> yearInvestment;
 //		ArrayList<Double> yearInvestmentSustainment;
@@ -79,10 +81,17 @@ import prerna.algorithm.impl.LPOptimizer;
 		public int getTotalInvestment() {
 			return totalInvestment;
 		}
-		
-		public ArrayList<Double[]> getFirstSiteMatrix(){
-			return firstSiteMatrix;
+
+		public ArrayList<Double[]> getSysNumSitesMatrix(){
+			return sysNumSitesMatrix;
 		}
+		public ArrayList<Double[]> getSysInvestCostMatrix(){
+			return sysInvestCostMatrix;
+		}
+		public ArrayList<Double[]> getSysSavingsMatrix(){
+			return sysSavingsMatrix;
+		}
+		
 		
 		public ArrayList<Double> getYearInvestment(){
 			return yearInvestment;
@@ -223,7 +232,7 @@ import prerna.algorithm.impl.LPOptimizer;
 			}
 		}
 		
-		public double calcInvestmentForCurrYear() {
+		public double calcInvestmentForSystemForCurrYear() {
 			
 			addTextToConsole("\nNumber of sites transformed and cost for each system are:");
 			double invest=0.0;
@@ -232,21 +241,24 @@ import prerna.algorithm.impl.LPOptimizer;
 				int sysMasterInd = sysList.indexOf(sys);
 				double workVol = sysToWorkVolHashPerSite.get(sys);
 				double sites = sysToSiteCount.get(sys);
-				double sysInvest = ( workVol + ((sites - 1) * workVol * percentOfPilot )) / sites * firstSiteMatrix.get(currYear)[sysMasterInd];
-				addTextToConsole(" "+sys+": for "+firstSiteMatrix.get(currYear)[sysMasterInd]+" sites the cost is "+sysInvest+",");
+				double sysInvest = ( workVol + ((sites - 1) * workVol * percentOfPilot )) / sites * sysNumSitesMatrix.get(currYear)[sysMasterInd];
+				sysInvestCostMatrix.get(currYear)[sysMasterInd] = sysInvest;
+				addTextToConsole(" "+sys+": for "+sysNumSitesMatrix.get(currYear)[sysMasterInd]+" sites the cost is "+sysInvest+",");
 		        invest +=  sysInvest;
 			}
 			return invest;
 		}
 		
-		public double calcSavingsForCurrYear() {
+		public double calcSavingsForSystemForCurrYear() {
 			double savings=0.0;
 			for(int sysInd=0;sysInd<sysListLeftOver.size();sysInd++)
 			{
 				String sys = sysListLeftOver.get(sysInd);
 				int sysMasterInd = sysList.indexOf(sys);
 		        double workVol = sysToWorkVolHashPerSite.get(sys);
-				savings += (sysToSustainmentCost.get(sys) - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )))/sysToSiteCount.get(sys)*firstSiteMatrix.get(currYear)[sysMasterInd];
+		        double sysSavings = (sysToSustainmentCost.get(sys) - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )))/sysToSiteCount.get(sys)*sysNumSitesMatrix.get(currYear)[sysMasterInd];
+				sysSavingsMatrix.get(currYear)[sysMasterInd] = sysSavings;
+		        savings += sysSavings;
 			}
 			return savings;
 		}
@@ -257,7 +269,7 @@ import prerna.algorithm.impl.LPOptimizer;
 			{
 				String sys = sysListLeftOver.get(sysInd);
 				int sysMasterInd = sysList.indexOf(sys);
-				double sites = firstSiteMatrix.get(currYear-1)[sysMasterInd];
+				double sites = sysNumSitesMatrix.get(currYear-1)[sysMasterInd];
 				int sitesAsInt = (int)sites;
 				int prevSitesLeft = sysToSiteCountLeftOver.get(sys);
 				if(sitesAsInt>0) {
@@ -274,12 +286,17 @@ import prerna.algorithm.impl.LPOptimizer;
 		{
 			currYear = 0;
 			totalInvestment = 0;
-	//		totalSavings = 0;
 			
 			sysListLeftOver = deepCopy(sysList);
 			
-			firstSiteMatrix = new ArrayList<Double[]>();//createMatrix(sysList.size(),numYears);
-			firstSiteMatrix.add(createArray(sysList.size()));
+			sysNumSitesMatrix = new ArrayList<Double[]>();//createMatrix(sysList.size(),numYears);
+			sysNumSitesMatrix.add(createArray(sysList.size()));
+
+			sysInvestCostMatrix = new ArrayList<Double[]>();//createMatrix(sysList.size(),numYears);
+			sysInvestCostMatrix.add(createArray(sysList.size()));
+			
+			sysSavingsMatrix = new ArrayList<Double[]>();//createMatrix(sysList.size(),numYears);
+			sysSavingsMatrix.add(createArray(sysList.size()));
 			
 			sysToSiteCountLeftOver = new Hashtable<String,Integer>();
 			
@@ -302,18 +319,18 @@ import prerna.algorithm.impl.LPOptimizer;
 			while(currYear<numYears)
 			{
 				runOpt();
-				double investment = calcInvestmentForCurrYear();
+				double investment = calcInvestmentForSystemForCurrYear();
 				totalInvestment +=investment;
 				yearInvestment.add(investment);
-				double savings = calcSavingsForCurrYear();
+				double savings = calcSavingsForSystemForCurrYear();
 				yearSavings.add(savings);
 				currYear++;
 				adjustSitesFromPrevYear();
 				if(allSitesTransformed())
 					return currYear;
-				firstSiteMatrix.add(createArray(sysList.size()));
-
-
+				sysNumSitesMatrix.add(createArray(sysList.size()));
+				sysInvestCostMatrix.add(createArray(sysList.size()));
+				sysSavingsMatrix.add(createArray(sysList.size()));
 			}
 			currYear++;
 			currYear++;
@@ -352,7 +369,7 @@ import prerna.algorithm.impl.LPOptimizer;
 				{
 					String sys = sysListLeftOver.get(i);
 					int sysMasterInd = sysList.indexOf(sys);
-					firstSiteMatrix.get(currYear)[sysMasterInd] = siteIsTransformed[i];
+					sysNumSitesMatrix.get(currYear)[sysMasterInd] = siteIsTransformed[i];
 				}
 						
 				deleteModel();

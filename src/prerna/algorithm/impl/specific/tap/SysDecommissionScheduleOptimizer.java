@@ -24,6 +24,7 @@ import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
 import org.apache.log4j.Logger;
@@ -66,7 +67,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
     SysDecommissionSchedulingSavingsOptimizer opt;
 
 	private static String hrCoreDB = "HR_Core";
-	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} FILTER(?HighProb in('High','Question'))}";
+	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'} FILTER(?HighProb in('High','Question'))}";
 
 	private ArrayList<String> systemList = new ArrayList<String>();
  
@@ -155,7 +156,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 			addTextToConsole(" "+sys+",");
 		printHashTable("Number of sites for each system:",optFunctions.sysToSiteCountHash);
 		printHashTable("Cost to transition first site for each system:",optFunctions.getSysToWorkVolHashPerSite());
-		printHashTable("Current systainment cost for each system:",optFunctions.sysToSustainmentCost);
+		printHashTable("Current sustainment cost for each system:",optFunctions.sysToSustainmentCost);
 	}
 	
 	public void printHashTable(String nameOfHash,Hashtable hashToPrint)
@@ -267,7 +268,8 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		playSheet.tab4.setVisible(true);
 		playSheet.tab5.setVisible(true);
         displayLabels();
-        displaySystemSpecifics();
+        displaySystemSiteSpecifics();
+        displaySystemCostSavingsSpecifics();
 	}
 	
 	public void displayLabels()
@@ -297,7 +299,8 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	public void clearPlaysheet(){
 		clearLabels();
 		clearGraphs();
-		playSheet.specificSysAlysPanel.removeAll();
+		playSheet.sysNumSitesAnalPanel.removeAll();
+		playSheet.sysCostSavingsAnalPanel.removeAll();
 	}
 	
 	/**
@@ -325,18 +328,16 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	}
 	
 	/**
-	 * Displays specific information about a system in the playsheet.
-	 * This includes year, system, service, cost, GLItem, phase, tag, and input.
-	 * @param lin 	Optimizer used for TAP-specific calculations.
+	 * Displays information about the number of sites transformed for each system for each year.
 	 */
-	public void displaySystemSpecifics()
+	public void displaySystemSiteSpecifics()
 	{
 		ArrayList <Object []> list = new ArrayList();
 		String[] colNames = new String[maxYears+1];
 		colNames[0]="System";
 		for(int i=1;i<=maxYears;i++)
-			colNames[i] = "Sites Transitioned in Year "+i;
-		ArrayList<Double[]> systemSiteMatrix = opt.getFirstSiteMatrix();
+			colNames[i] = "Sites Transitioned in Year "+i+" after FOC";
+		ArrayList<Double[]> systemSiteMatrix = opt.getSysNumSitesMatrix();
 		for(int sysInd = 0;sysInd<systemSiteMatrix.get(0).length;sysInd++)
 		{
 			Object[] rowForSys = new Object[maxYears+1];
@@ -345,22 +346,103 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 				rowForSys[i] = (systemSiteMatrix.get(i-1)[sysInd]).intValue();
 			list.add(rowForSys);
 		}
+		displayListOnTab(colNames,list,playSheet.sysNumSitesAnalPanel);
+	}
+	
+	/**
+	 * Displays information about the savings and cost for transitioning each system for each year.
+	 */
+	public void displaySystemCostSavingsSpecifics()
+	{
+		Hashtable<String,String> sysToOwner = optFunctions.getSysToOwnerHash();
+		ArrayList <Object []> list = new ArrayList();
+		String[] colNames = new String[maxYears+3];
+		colNames[0] = "System";
+		colNames[1] = "System Owner";
+		colNames[2] = "Item";
+		for(int i=1;i<maxYears+1;i++)
+			colNames[i+2] = "Year "+i+" after FOC";
+		ArrayList<Double[]> systemInvestCostMatrix = opt.getSysInvestCostMatrix();
+		ArrayList<Double[]> systemSavingsMatrix = opt.getSysSavingsMatrix();
+		
+		systemSavingsMatrix = calculateCumulativeSystemSavings(systemSavingsMatrix);
+		
+		for(int sysInd = 0;sysInd<systemInvestCostMatrix.get(0).length;sysInd++)
+		{
+			String sys = systemList.get(sysInd);
+			String owner = "";
+			if(sysToOwner.containsKey(sys))
+				owner = sysToOwner.get(sys);
+			Object[] systemCostRow = createSystemCostSavingsRow(sys,owner,"Decommissioning Costs",systemInvestCostMatrix,sysInd);
+			list.add(systemCostRow);
+			Object[] systemSavingsRow = createSystemCostSavingsRow(sys,owner,"Estimated Savings",systemSavingsMatrix,sysInd);
+			list.add(systemSavingsRow);
+		}
+		displayListOnTab(colNames,list,playSheet.sysCostSavingsAnalPanel);
+	}
+	
+	public ArrayList<Double[]> calculateCumulativeSystemSavings(ArrayList<Double[]> systemSavingsMatrix) {
+		int numYears = systemSavingsMatrix.size();
+		int numSystems = systemSavingsMatrix.get(0).length;
+		ArrayList<Double[]> savingsList = new ArrayList<Double[]>();
+		ArrayList<Double[]> cumulativeSavingsList = new ArrayList<Double[]>();
+		for(int i=0;i<numYears;i++)
+		{
+			Double[] newArray1 = new Double[numSystems];
+			for(int sysInd=0;sysInd<numSystems;sysInd++)
+				newArray1[sysInd]=0.0;
+			Double[] newArray2 = new Double[numSystems];
+			for(int sysInd=0;sysInd<numSystems;sysInd++)
+				newArray2[sysInd]=0.0;
+			savingsList.add(newArray1);
+			cumulativeSavingsList.add(newArray2);
+		}
+		for(int sysInd=0;sysInd<numSystems;sysInd++)
+		{
+			for(int yearInd=1;yearInd<numYears;yearInd++)
+			{
+				for(int sumInd=0;sumInd<yearInd;sumInd++)
+				{
+					savingsList.get(yearInd)[sysInd] +=Math.round(systemSavingsMatrix.get(sumInd)[sysInd]);
+				}
+			}
+		}
 
+//		for(int sysInd=0;sysInd<numSystems;sysInd++)
+//		{
+//			for (int i=1;i<numYears;i++)
+//				cumulativeSavingsList.get(i)[sysInd] = cumulativeSavingsList.get(i-1)[sysInd]+savingsList.get(i)[sysInd];
+//		}
+		return savingsList;
+	}
+	
+	public Object[] createSystemCostSavingsRow(String sys, String owner, String item, ArrayList<Double[]> systemCostSavingsMatrix,int sysInd)
+	{
+		Object[] systemCostSavingsRow = new Object[maxYears+3];
+		systemCostSavingsRow[0] = sys;
+		systemCostSavingsRow[1] = owner;//to put system owner here
+		systemCostSavingsRow[2] = item;
+		for(int i=1;i<maxYears+1;i++)
+			systemCostSavingsRow[i+2] = (systemCostSavingsMatrix.get(i-1)[sysInd]).intValue();
+		return systemCostSavingsRow;
+	}
+	
+	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel)
+	{
 		GridScrollPane pane = new GridScrollPane(colNames, list);
 		
-		playSheet.specificSysAlysPanel.removeAll();
-//		JPanel panel = new JPanel();
+		panel.removeAll();
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		playSheet.specificSysAlysPanel.setLayout(gridBagLayout);
+		panel.setLayout(gridBagLayout);
 		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
 		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
 		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
 		gbc_panel_1_1.gridx = 0;
 		gbc_panel_1_1.gridy = 0;
-		playSheet.specificSysAlysPanel.add(pane, gbc_panel_1_1);
-		playSheet.specificSysAlysPanel.repaint();
+		panel.add(pane, gbc_panel_1_1);
+		panel.repaint();
 	}
 		
 	/**

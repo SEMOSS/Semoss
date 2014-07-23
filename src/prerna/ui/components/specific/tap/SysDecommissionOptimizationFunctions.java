@@ -33,6 +33,7 @@ public class SysDecommissionOptimizationFunctions {
     Hashtable<String, ArrayList<String>> sysToSiteHash;
     //hashtable storing all the systems and their probabilities
     Hashtable<String, String> sysToProbHash;
+    private Hashtable<String, String> sysToOwnerHash;
     public Hashtable<String, Double> sysToSustainmentCost;
     public Hashtable<String, Integer> sysToSiteCountHash;
     
@@ -56,7 +57,8 @@ public class SysDecommissionOptimizationFunctions {
 	private static String coreDB = "HR_Core";
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 	private static String systemArchiveQuery = "SELECT DISTINCT ?System ?Archive WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> ?Archive}}";
-
+	private static String systemOwnerQuery = "SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own} }}  GROUP BY ?System";
+	
 	private boolean includeFirstSite=true;
 	private boolean includePilot = false;
 	private boolean storeWorkVolInDays = true;
@@ -107,7 +109,6 @@ public class SysDecommissionOptimizationFunctions {
 		this.dataList = dataList;
 		this.givenDataList = true;
 	}
-	
 	public void setSysList(ArrayList<String> sysList)
 	{
 		this.sysList = sysList;
@@ -117,7 +118,9 @@ public class SysDecommissionOptimizationFunctions {
 	{
 		return sysToWorkVolHashPerSite;
 	}
-	
+	public Hashtable<String,String> getSysToOwnerHash() {
+		return sysToOwnerHash;
+	}
 	public void optimizeTime()
 	{
 
@@ -200,6 +203,7 @@ public class SysDecommissionOptimizationFunctions {
 		sysToDataToLOEHash = new Hashtable<String, Hashtable<String,Double>>();
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
 		sysToProbHash = new Hashtable<String, String>();
+		sysToOwnerHash = new Hashtable<String, String>();
 		sysToSustainmentCost = new Hashtable<String,Double>();
 		sysToSiteCountHash = new Hashtable<String, Integer>();
 		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
@@ -222,13 +226,15 @@ public class SysDecommissionOptimizationFunctions {
 		sortSysList();
 		
 		ArrayList <Object []> systemProbList = createData(coreDB,systemProbQuery);
-		processSystemProbHash(systemProbList);
+		processSystemHash(systemProbList,sysToProbHash);
 		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
 		processSystemSustainmentCostHash(systemSustainmentCostList);
 		if(includeArchive) {
 			ArrayList <Object []> systemArchiveList = createData(coreDB,systemArchiveQuery);
 			updateWorkVolWithArchive(systemArchiveList);
 		}
+		ArrayList <Object []> systemOwnerList = createData(coreDB,systemOwnerQuery);
+		processSystemHash(systemOwnerList,sysToOwnerHash);
 	}
 	
 	
@@ -604,14 +610,14 @@ public class SysDecommissionOptimizationFunctions {
 			}
 		}
 	}
-	private void processSystemProbHash(ArrayList <Object []> list)
+	private void processSystemHash(ArrayList <Object []> list,Hashtable<String,String> sysHash)
 	{
 		for (int i=0; i<list.size(); i++)
 		{
 			Object[] elementArray= list.get(i);
 			String system = (String) elementArray[0];
 			String prob = (String) elementArray[1];
-			sysToProbHash.put(system,prob);
+			sysHash.put(system,prob);
 		}
 	}
 	private void updateWorkVolWithArchive(ArrayList <Object []> list)
