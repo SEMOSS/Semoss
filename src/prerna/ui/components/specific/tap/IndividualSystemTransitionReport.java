@@ -509,6 +509,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return dataHash;
 	}
 
+	@SuppressWarnings("unchecked")
 	private HashMap<String, Object> createLPNIInterfaceWithCostHash(HashMap<String, Object> sysLPNIInterfaceHash, HashMap<String, HashMap<String, Double>> loeForSysGlItemHash, HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash, HashSet<String> dhmsmSORList, HashSet<String> lpiSystemList) 
 	{
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
@@ -574,7 +575,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 						// DHMSM is providing information to an LPI system  
 						// DHMSM is receiving information from LPNI which is a SOR of the data object
-						if( (sysSpecificCommentSplit[0].contains("DHMSM") && lpiSystemList.contains(systemName)) || (sysSpecificCommentSplit[0].contains("review of developing interface between") && sysSpecificCommentSplit[1].contains("DHMSM")) )
+						if( (sysSpecificCommentSplit[0].contains("DHMSM") && sysSpecificCommentSplit[1].contains(systemName)) )
 						{
 							Double finalCost = calculateCost(dataObject, systemName, "Provide", true);
 							if(finalCost == null) {
