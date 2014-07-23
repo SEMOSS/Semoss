@@ -42,11 +42,15 @@ public class PlaysheetCreateRunner implements Runnable{
 	 */
 	@Override
 	public void run() {
+		runWeb();
+		playSheet.createView();
+	}
+	
+	public void runWeb()
+	{
 		playSheet.createData();
 		playSheet.runAnalytics();
-		if(createSwingView)
-			playSheet.createView();
-	}	
+	}
 	
 	/**
 	 * Method setPlaySheet. Sets the playsheet to this playsheet.
