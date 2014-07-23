@@ -51,7 +51,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	//store interface query results
 	HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-	
+
 	private int costPerHr = 150;
 
 	private String headerKey = "headers";
@@ -77,22 +77,46 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	Logger logger = Logger.getLogger(getClass());
 
-	private void processQueryParts(String query){
+	public void setTAP_Cost_Data(IEngine TAP_Cost_Data) {
+		this.TAP_Cost_Data = TAP_Cost_Data;
+	}
+	
+	public void setSystemURI(String systemURI) {
+		this.systemURI = systemURI;
+	}
+	
+	public void setSystemName(String systemName) {
+		this.systemName = systemName;
+	}
+	
+	public void setReportType(String reportType) {
+		this.reportType = reportType;
+	}
+	
+	private void processQueryParts(String query) {
 		String[] systemAndType = this.query.split("\\$");
 		systemURI = systemAndType[0];
 		reportType = systemAndType[1];
 		systemName = systemURI.substring(systemURI.lastIndexOf("/")+1,systemURI.lastIndexOf(">"));
 	}
-	
-//	private void processQueryParts(String systemURI, String reportType) {
-//		this.systemURI = systemURI;
-//		this.reportType = reportType;
-//		systemName = systemURI.substring(systemURI.lastIndexOf("/")+1,systemURI.lastIndexOf(">"));
-//	}
-	
+
+	private void specifySysInQueriesForReport() 
+	{		
+		if(systemURI.equals("")){
+			processQueryParts(this.query);
+		}
+		sysInfoQuery = sysInfoQuery.replace("@SYSTEM@", systemURI);
+		sysSORDataWithDHMSMQuery = sysSORDataWithDHMSMQuery.replace("@SYSTEM@", systemURI);
+		sysSORDataWithDHMSMCapQuery = sysSORDataWithDHMSMCapQuery.replace("@SYSTEM@", systemURI);
+		softwareLifeCycleQuery = softwareLifeCycleQuery.replace("@SYSTEM@", systemURI);
+		hardwareLifeCycleQuery = hardwareLifeCycleQuery.replace("@SYSTEM@", systemURI);
+		sysSORDataQuery = sysSORDataQuery.replace("@SYSTEM@", systemURI);
+		otherSysSORDataQuery = otherSysSORDataQuery.replace("@SYSTEM@", systemURI);
+	}
+
 	@Override
 	public void createData() {
-		
+
 		try{
 			hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 			if(hr_Core==null)
@@ -101,15 +125,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
 			return;
 		}
-		
+
 		processQueryParts(query);
-		sysInfoQuery = sysInfoQuery.replace("@SYSTEM@", systemURI);
-		sysSORDataWithDHMSMQuery = sysSORDataWithDHMSMQuery.replace("@SYSTEM@", systemURI);
-		sysSORDataWithDHMSMCapQuery = sysSORDataWithDHMSMCapQuery.replace("@SYSTEM@", systemURI);
-		softwareLifeCycleQuery = softwareLifeCycleQuery.replace("@SYSTEM@", systemURI);
-		hardwareLifeCycleQuery = hardwareLifeCycleQuery.replace("@SYSTEM@", systemURI);
-		sysSORDataQuery = sysSORDataQuery.replace("@SYSTEM@", systemURI);
-		otherSysSORDataQuery = otherSysSORDataQuery.replace("@SYSTEM@", systemURI);
+		specifySysInQueriesForReport();
 
 		if(reportType.equals("LPNI")){
 			if(dhmsmSORList.isEmpty()) {
@@ -119,10 +137,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				lpiSystemList = runListQuery(hr_Core, lpiSystemQuery);
 			}
 		}
-		
+
 		boolean includeCosts = true;
 		String exceptionError = "Could not find database:";
-		try{
+		try {
 			TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 			TAP_Site_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			if(TAP_Cost_Data==null) {
@@ -131,7 +149,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			}
 			if(TAP_Site_Data==null) {
 				exceptionError += "\nTAP_Site_Data: Report will not include site data"; 
-			throw new EngineException(exceptionError);
+				throw new EngineException(exceptionError);
 			}
 		} catch(EngineException e) {
 			Utility.showError(exceptionError);
@@ -144,30 +162,47 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			getCostInfo();
 			hwSWBudgetHash = getHWSWCostInfo();
 		}
-		
-		HashMap<String, Object> sysInfoHash = getSysInfo();
-	
-		HashMap<String, Object> sysSiteHash = new HashMap<String,Object>();
 
+		HashMap<String, Object> sysInfoHash = getSysInfo();
+		HashMap<String, Object> sysSiteHash = new HashMap<String,Object>();
 		if(reportType.equals("HPI")) {
 			siteQuery = siteQuery.replace("@SYSTEM@", systemURI);
 			sysSiteHash = getQueryDataWithHeaders(TAP_Site_Data, siteQuery);
 		}
-		
+
 		HashMap<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMQuery);
 		HashMap<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMCapQuery);
 		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(hr_Core,sysSORDataQuery,otherSysSORDataQuery);
 
 		HashMap<Integer, HashMap<String, Object>> storeSoftwareData = processHWSWData(softwareLifeCycleQuery);
 		HashMap<Integer, HashMap<String, Object>> storeHardwareData = processHWSWData(hardwareLifeCycleQuery);
-
-		HashMap<String, Object> sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost(reportType);
-		// must be performed after the above method to populate sysLPIInterfaceHash
-		HashMap<String, Object> interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
-		
 		HashMap<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
 		HashMap<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
 
+//		InsertInterfaceModernizationProperty test = new InsertInterfaceModernizationProperty();
+//		try {
+//			test.insert();
+//		} catch (EngineException e) {
+//			e.printStackTrace();
+//		}
+		
+		HashMap<String, Object> sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost();
+		// perform after the above
+		HashMap<String, Object> interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
+		
+		boolean success = writeReport(sysInfoHash, sysSiteHash, storeSoftwareData, storeHardwareData, hwSWBudgetHash, sysSORDataWithDHMSMHash, sysSORDataWithDHMSMCapHash, sysLPInterfaceWithCostHash, sysSORTableHash, softwareBarHash, hardwareBarHash, interfaceBarHash);
+		if(showMessages)
+		{
+			if(success){
+				Utility.showMessage("System Export Finished! File located in:\n" + IndividualSystemTransitionReportWriter.getFileLoc() );
+			} else {
+				Utility.showError("Error Creating Report!");
+			}
+		}
+	}
+
+	private boolean writeReport(HashMap<String, Object> sysInfoHash, HashMap<String, Object> sysSiteHash, HashMap<Integer, HashMap<String, Object>> storeSoftwareData, HashMap<Integer, HashMap<String, Object>> storeHardwareData, HashMap<String, Object> hwSWBudgetHash, HashMap<String, Object> sysSORDataWithDHMSMHash, HashMap<String, Object> sysSORDataWithDHMSMCapHash, HashMap<String, Object> sysLPInterfaceWithCostHash, HashMap<String, Object> sysSORTableHash, HashMap<String, Object> softwareBarHash, HashMap<String, Object> hardwareBarHash, HashMap<String, Object> interfaceBarHash)
+	{
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
 		String templateFileName = "";
 		if(reportType.equals("LPI"))
@@ -190,22 +225,14 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		writer.writeBarChartData("Summary Charts",3,softwareBarHash);
 		writer.writeBarChartData("Summary Charts",11,hardwareBarHash);
 		writer.writeBarChartData("Summary Charts",19,interfaceBarHash);
-		
-		boolean success = writer.writeWorkbook();
-		if(showMessages)
-		{
-			if(success){
-				Utility.showMessage("System Export Finished! File located in:\n" + IndividualSystemTransitionReportWriter.getFileLoc() );
-			} else {
-				Utility.showError("Error Creating Report!");
-			}
-		}
+
+		return writer.writeWorkbook();
 	}
-	
+
 	private HashMap<Integer, HashMap<String, Object>> processHWSWData(String query) 
 	{
 		HashMap<Integer, HashMap<String, Object>> storeData = new HashMap<Integer, HashMap<String, Object>>();
-		
+
 		LifeCycleGridPlaySheet getSoftwareHardwareData = new LifeCycleGridPlaySheet();
 		for(int i = 0; i < dates.length; i++)
 		{
@@ -220,16 +247,16 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			innerMap.put(dataKey, dataRow);
 			storeData.put(i, innerMap);
 		}
-		
+
 		return storeData;
 	}
-	
-	private HashMap<String, Object> calculateInterfaceModernizationCost(String type) 
+
+	HashMap<String, Object> calculateInterfaceModernizationCost() 
 	{
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 
-		if(type.equals("LPI") || type.equals("HPI")) {
+		if(reportType.equals("LPI") || reportType.equals("HPI")) {
 			return createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 		} else {
 			return createLPNIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash, dhmsmSORList, lpiSystemList);
@@ -240,14 +267,14 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		return getQueryDataWithHeaders(hr_Core, sysInfoQuery);
 	}
-	
+
 	public HashMap<String, Object> getHWSWCostInfo() 
 	{
 		hwSWBudgetQuery = hwSWBudgetQuery.replace("@SYSTEM@",systemURI);
 		return getQueryDataWithHeaders(TAP_Cost_Data, hwSWBudgetQuery);
 	}
-	
-	private void getCostInfo(){
+
+	public void getCostInfo(){
 		// get data for all systems
 		if(loeForGenericGlItemHash.isEmpty()) {
 			loeForGenericGlItemHash = getGenericGLItem(TAP_Cost_Data, loeForGenericGlItemQuery);
@@ -267,7 +294,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		this.showMessages = showMessages;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
 	{
@@ -276,12 +303,12 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 			sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 		}
-		
+
 		HashMap<String, Object> barHash = new HashMap<String, Object>();
 		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider","Proposed Temporary Interfaces with DHMSM - Legacy Consumer"};
 		int[] barChartVals = new int[]{0,0,0,0,0,0};
 		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
-		
+
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
@@ -301,19 +328,19 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				addedInterface = true;
 				barChartVals[1] = barChartVals[1]+1;
 			}
-			
+
 			if(comment.contains("provide temporary integration between dhmsm->"+systemName.toLowerCase()))
 			{
 				//addedInterface = true;
 				barChartVals[5] = barChartVals[5]+1;
 			}
-			
+
 			if(comment.contains("recommend review of removing interface "+systemName.toLowerCase()+"->"+otherSystem)||comment.contains("recommend review of removing interface "+otherSystem+"->"+systemName.toLowerCase()))
 			{
 				removedInterface = true;
 				barChartVals[3] = barChartVals[3]+1;
 			}
-			
+
 			if(comment.contains("developing"))
 			{
 				if(comment.contains(systemName.toLowerCase()))
@@ -329,8 +356,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		barHash.put("data", barChartVals);
 		return barHash;
 	}
-	
-	
+
+
 	@SuppressWarnings("unchecked")
 	private HashMap<String, Object> createHWSWBarHash(HashMap<String, Object> storeData)
 	{
@@ -385,7 +412,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		double totalIndirectCost = 0;
 		String dataObject = "";
 		String interfacingSystem = "";
-		
+
 		// used to keep track of rows that have the same data object
 		ArrayList<Integer> indexArr = new ArrayList<Integer>();
 		int rowNum = -1;
@@ -582,7 +609,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					interfaceType = row[i].toString();
 					newRow[i] = interfaceType;
 				}
-				
+
 				if(i == 1) 
 				{
 					interfacingSystem= row[i].toString(); 
