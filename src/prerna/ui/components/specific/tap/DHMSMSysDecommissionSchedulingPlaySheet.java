@@ -51,8 +51,8 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 	public JLabel savingLbl, netSavingLbl, roiLbl, investLbl, budgetLbl;
 	
 	//other display components
-	public JPanel specificSysAlysPanel;
-
+	public JPanel sysNumSitesAnalPanel;
+	public JPanel sysCostSavingsAnalPanel;
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */
@@ -170,14 +170,23 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 	
 	public void createSpecificDisplayComponents()
 	{
-		specificSysAlysPanel = new JPanel();
-		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
+		sysNumSitesAnalPanel = new JPanel();
+		tabbedPane.addTab("System Site Analysis", null, sysNumSitesAnalPanel, null);
 		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
 		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
 		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
 		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
+		sysNumSitesAnalPanel.setLayout(gbl_specificSysAlysPanel);
+		
+		sysCostSavingsAnalPanel = new JPanel();
+		tabbedPane.addTab("System Cost/Savings Analysis", null, sysCostSavingsAnalPanel, null);
+		GridBagLayout gbl_sysCostSavingsAnalPanel = new GridBagLayout();
+		gbl_sysCostSavingsAnalPanel.columnWidths = new int[]{0, 0};
+		gbl_sysCostSavingsAnalPanel.rowHeights = new int[]{0, 0};
+		gbl_sysCostSavingsAnalPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_sysCostSavingsAnalPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		sysCostSavingsAnalPanel.setLayout(gbl_sysCostSavingsAnalPanel);
 	}
 	
 	public void createGenericDisplayPanel()

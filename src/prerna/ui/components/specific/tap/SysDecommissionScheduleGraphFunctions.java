@@ -185,7 +185,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		for (int i=0;i<yearlySavingsList.size();i++)
 		{
 			double[] yearSeries = yearlySavingsList.get(i);
-			seriesHash.put("Year "+(i+1) +" Systems", yearSeries);
+			seriesHash.put("Cumulative Sustainment Cost Savings", yearSeries);
 		}
 		colorHash.put("Sustainment Cost Savings", "#4572A7");
 		barChartHash.put("dataSeries",  seriesHash);
