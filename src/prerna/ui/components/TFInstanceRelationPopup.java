@@ -103,7 +103,9 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
 				}
 				Hashtable<String, String> hash = new Hashtable<String, String>();
-				String ignoreURI = DIHelper.getInstance().getProperty(Constants.IGNORE_URI);
+				String ignoreURI = engine.getProperty(Constants.IGNORE_URI);
+				//if(ignoreURI == null)
+					
 				int count = 0;
 				Vector typeV = new Vector();
 				for(int pi = 0;pi < pickedVertex.length;pi++)

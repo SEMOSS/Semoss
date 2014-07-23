@@ -367,6 +367,8 @@ public class Constants {
 	
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
 	public static final String DEPEND = "DEPEND";
+	public static final String REDIS_HOST = "REDIS_HOST";
+	public static final String REDIS_PORT = "REDIS_PORT";
 
 
 }

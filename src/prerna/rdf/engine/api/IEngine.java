@@ -41,7 +41,7 @@ public interface IEngine extends IExplorable{
 	 * @version $Revision: 1.0 $
 	 */
 	
-	public enum ENGINE_TYPE {JENA, SESAME};
+	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE};
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
@@ -190,6 +190,9 @@ public interface IEngine extends IExplorable{
 	// gets the OWL engine
 	// this needs to change later
 	public RepositoryConnection getOWL();	
+
+	// gets the insight definitions
+	public String getOWLDefinition();
 	
 }
 

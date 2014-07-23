@@ -67,7 +67,7 @@ public class RDFEngineHelper {
 	{
 		String conceptHierarchyForSubject = "" ;
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -100,7 +100,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -134,7 +134,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " +
 					"{" +
@@ -169,7 +169,7 @@ public class RDFEngineHelper {
 	{
 
 		String propertyQuery = "";
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME|| fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object . ?Predicate ?type ?contains} WHERE {" +
 					"BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?type)"+
@@ -280,7 +280,7 @@ public class RDFEngineHelper {
 		// loads all of the labels
 		// http://www.w3.org/2000/01/rdf-schema#label
 		String labelQuery = "";
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			labelQuery = "SELECT DISTINCT ?Subject ?Label WHERE " +
 					"{" +
@@ -335,29 +335,12 @@ public class RDFEngineHelper {
 		sjsc.setQuery(query);
 		sjsc.execute();
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
-		{		
-			while(sjsc.hasNext())
-			{
-				SesameJenaConstructStatement st = sjsc.next();
-				ps.addToSesame(st, false, false);
-			}
-			
+		while(sjsc.hasNext())
+		{
+			SesameJenaConstructStatement st = sjsc.next();
+			ps.addToSesame(st, false, false);
 		}
-		else if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
-		{	
-			while(sjsc.hasNext())
-			{
-				SesameJenaConstructStatement st = sjsc.next();
-				//TODO: Keep this addition to PropertySpecData?
-//				PropertySpecData psd = ps.getPredicateData();
-//				psd.addConcept(st.getObject()+"", st.getSubject()+"");
-				
-				//TODO: Need this?
-//				ps.addToJenaModel3(st);
-				ps.addToSesame(st, false, false);
-			}
-		}
+		
 	}
 
 	/**
@@ -378,7 +361,7 @@ public class RDFEngineHelper {
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.add(sjsc.gqr);
@@ -415,7 +398,7 @@ public class RDFEngineHelper {
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
 
-		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME)
+		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
 				toRC.remove(sjsc.gqr);
