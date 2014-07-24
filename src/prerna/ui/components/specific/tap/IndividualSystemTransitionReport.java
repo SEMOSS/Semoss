@@ -59,7 +59,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private String totalDirectCostKey = "directCost";
 	private String totalIndirectCostKey = "indirectCost";
 
-	private IEngine hr_Core;
+	private IEngine HR_Core;
 	private IEngine TAP_Cost_Data;
 	private IEngine TAP_Site_Data;
 
@@ -79,6 +79,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	public void setTAP_Cost_Data(IEngine TAP_Cost_Data) {
 		this.TAP_Cost_Data = TAP_Cost_Data;
+	}
+	
+	public void setHR_Core(IEngine HR_Core) {
+		this.HR_Core = HR_Core;
 	}
 	
 	public void setSystemURI(String systemURI) {
@@ -118,8 +122,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	public void createData() {
 
 		try{
-			hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-			if(hr_Core==null)
+			HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			if(HR_Core==null)
 				throw new EngineException("Database not found");
 		} catch(EngineException e) {
 			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
@@ -130,12 +134,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		specifySysInQueriesForReport();
 
 		if(reportType.equals("LPNI")){
-			if(dhmsmSORList.isEmpty()) {
-				dhmsmSORList = runListQuery(hr_Core, dhmsmSORQuery);
-			}
-			if(lpiSystemList.isEmpty()) {
-				lpiSystemList = runListQuery(hr_Core, lpiSystemQuery);
-			}
+			getLPNIInfo();
 		}
 
 		boolean includeCosts = true;
@@ -170,9 +169,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			sysSiteHash = getQueryDataWithHeaders(TAP_Site_Data, siteQuery);
 		}
 
-		HashMap<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMQuery);
-		HashMap<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(hr_Core, sysSORDataWithDHMSMCapQuery);
-		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(hr_Core,sysSORDataQuery,otherSysSORDataQuery);
+		HashMap<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(HR_Core, sysSORDataWithDHMSMQuery);
+		HashMap<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(HR_Core, sysSORDataWithDHMSMCapQuery);
+		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(HR_Core,sysSORDataQuery,otherSysSORDataQuery);
 
 		HashMap<Integer, HashMap<String, Object>> storeSoftwareData = processHWSWData(softwareLifeCycleQuery);
 		HashMap<Integer, HashMap<String, Object>> storeHardwareData = processHWSWData(hardwareLifeCycleQuery);
@@ -236,7 +235,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		LifeCycleGridPlaySheet getSoftwareHardwareData = new LifeCycleGridPlaySheet();
 		for(int i = 0; i < dates.length; i++)
 		{
-			getSoftwareHardwareData.engine = hr_Core;
+			getSoftwareHardwareData.engine = HR_Core;
 			getSoftwareHardwareData.setQuery(dates[i] + "&" + query);
 			ArrayList<Object[]> dataRow = getSoftwareHardwareData.processQuery(getSoftwareHardwareData.getQuery());
 			String[] names = getSoftwareHardwareData.getNames();
@@ -265,7 +264,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	public HashMap<String, Object> getSysInfo()
 	{
-		return getQueryDataWithHeaders(hr_Core, sysInfoQuery);
+		return getQueryDataWithHeaders(HR_Core, sysInfoQuery);
 	}
 
 	public HashMap<String, Object> getHWSWCostInfo() 
@@ -287,6 +286,15 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 		if(loeForSysGlItemHash.isEmpty()) {
 			loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, loeForSysGlItemQuery);
+		}
+	}
+	
+	public void getLPNIInfo() {
+		if(dhmsmSORList.isEmpty()) {
+			dhmsmSORList = runListQuery(HR_Core, dhmsmSORQuery);
+		}
+		if(lpiSystemList.isEmpty()) {
+			lpiSystemList = runListQuery(HR_Core, lpiSystemQuery);
 		}
 	}
 
@@ -593,6 +601,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 
 		ArrayList<Object[]> newData = new ArrayList<Object[]>();
+		servicesProvideList.clear();
+		servicesConsumeList.clear();
 		double totalDirectCost = 0;
 		double totalIndirectCost = 0;
 		String dataObject = "";
