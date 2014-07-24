@@ -30,7 +30,6 @@ import prerna.algorithm.impl.specific.tap.SysDecommissionSchedulingSavingsOptimi
 public class SysDecommissionScheduleGraphFunctions {
 	protected SysDecommissionScheduleOptimizer scheduleOpt = null;
 	protected SysDecommissionSchedulingSavingsOptimizer schedulingSavingsOpt = null;
-	private double[] savingsEachYear;
 	/**
 	 * Sets the Univariate Service Optimizer.
 	 * @param opt UnivariateSvcOptimizer
@@ -51,7 +50,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		double investmentTotal = 0.0;
 		for (int i=0 ;i< yearlyCosts.length;i++)
 		{
-			yearCount[i]="Year "+(i+1) +" Systems";
+			yearCount[i]="Year T+"+(i+1);
 			yearlyCosts[i] = yearCosts.get(i);
 			investmentTotal+=yearCosts.get(i);
 		}
@@ -62,7 +61,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		barChartHash.put("type",  "column");
 		barChartHash.put("title",  "Cost to Transition Systems by Year");
 		barChartHash.put("yAxisTitle", "Cost (Present-time value)");
-		barChartHash.put("xAxisTitle", "Year Count");
+		barChartHash.put("xAxisTitle", "Year");
 		barChartHash.put("xAxis", yearCount);
 		seriesHash.put("Data Expose Cost", yearlyCosts);
 		colorHash.put("Data Expose Cost", "#4572A7");
@@ -85,7 +84,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		double savingsTotal = 0.0;
 		for (int i=0 ;i<yearlyMaintenanceSavings.length;i++)
 		{
-			yearCount[i]="Year "+(i+1) +" Systems";
+			yearCount[i]="Year T+"+(i+1);
 			yearlyMaintenanceSavings[i]=yearMaintenanceSavings.get(i);
 		}
 		Hashtable barChartHash = new Hashtable();
@@ -94,7 +93,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		barChartHash.put("type",  "column");
 		barChartHash.put("title",  "Sustainment Cost Savings for Systems Transitioned by Year");
 		barChartHash.put("yAxisTitle", "Savings (Present-time value)");
-		barChartHash.put("xAxisTitle", "Year Count");
+		barChartHash.put("xAxisTitle", "Year");
 		barChartHash.put("xAxis", yearCount);
 		seriesHash.put("Sustainment Cost Savings", yearlyMaintenanceSavings);
 		colorHash.put("Sustainment Cost Savings", "#4572A7");
@@ -111,11 +110,16 @@ public class SysDecommissionScheduleGraphFunctions {
 	{
 		int thisYear = 1;
 		ArrayList<double[]> susPerYearList = createSusPerYear();
-		int[] totalYearsAxis = new int[susPerYearList.get(0).length];
+//		int[] totalYearsAxis = new int[susPerYearList.get(0).length];
+//		for (int i=0;i<susPerYearList.get(0).length;i++)
+//		{
+//			totalYearsAxis[i]=thisYear+i;
+//		}
+		String[] totalYearsAxis = new String[susPerYearList.get(0).length];
 		for (int i=0;i<susPerYearList.get(0).length;i++)
 		{
-			totalYearsAxis[i]=thisYear+i;
-		}
+			totalYearsAxis[i]="Year T+"+(i+1);
+		}		
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
 		Hashtable colorHash = new Hashtable();
@@ -128,7 +132,7 @@ public class SysDecommissionScheduleGraphFunctions {
 		for (int i=0;i<susPerYearList.size();i++)
 		{
 			double[] yearSeries = susPerYearList.get(i);
-			seriesHash.put("Year "+(i+1) +" Systems", yearSeries);
+			seriesHash.put("Year T+"+(i+1) +" Systems", yearSeries);
 		}
 		colorHash.put("Transition Spending", "#4572A7");
 		barChartHash.put("dataSeries",  seriesHash);
@@ -167,10 +171,15 @@ public class SysDecommissionScheduleGraphFunctions {
 	{
 		int thisYear = 1;
 		ArrayList<double[]> yearlySavingsList = createSavingsPerYearList();
-		int[] totalYearsAxis = new int[yearlySavingsList.get(0).length];
+//		int[] totalYearsAxis = new int[yearlySavingsList.get(0).length];
+//		for (int i=0;i<yearlySavingsList.get(0).length;i++)
+//		{
+//			totalYearsAxis[i]=thisYear+i;
+//		}
+		String[] totalYearsAxis = new String[yearlySavingsList.get(0).length];
 		for (int i=0;i<yearlySavingsList.get(0).length;i++)
 		{
-			totalYearsAxis[i]=thisYear+i;
+			totalYearsAxis[i]="Year T+"+(i+1);
 		}
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
@@ -195,21 +204,12 @@ public class SysDecommissionScheduleGraphFunctions {
 	}
 	public ArrayList<double[]> createSavingsPerYearList()
 	{
-		ArrayList<Double> yearCosts = schedulingSavingsOpt.getYearSavings();
+		ArrayList<Double> yearSavings = schedulingSavingsOpt.getYearSavings();
 
 		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
-		savingsEachYear = new double[yearCosts.size()];
-		for (int i=1;i< yearCosts.size();i++)
-		{
-			for (int j=0;j<i;j++)
-			{
-				savingsEachYear[i]+=Math.round(yearCosts.get(j));
-//				newYear[j]=Math.round(yearCosts.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
-			}
-		}
-		double[] cumSavings = new double[yearCosts.size()];
-		for (int i=1;i< yearCosts.size();i++)
-			cumSavings[i] = cumSavings[i-1]+savingsEachYear[i];
+		double[] cumSavings = new double[yearSavings.size()];
+		for (int i=1;i< yearSavings.size();i++)
+			cumSavings[i] = cumSavings[i-1]+yearSavings.get(i);
 		savingsPerYearList.add(cumSavings);
 		double totalSavings = cumSavings[cumSavings.length-1];
 		scheduleOpt.totalSavings = totalSavings;
@@ -222,7 +222,8 @@ public class SysDecommissionScheduleGraphFunctions {
 	 * @return Hashtable		Hashtable containing information about the balance over a time horizon. */
 	public Hashtable createBreakevenGraph()
 	{
-		double[][] balanceList  = createBalanceList(0);
+		Object[][] balanceList  = createBalanceList(0);
+		//double[][] balanceList  = createBalanceList(0);
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
 		Hashtable colorHash = new Hashtable();
@@ -238,20 +239,23 @@ public class SysDecommissionScheduleGraphFunctions {
 		barChartHash.put("xAxisInterval", 1);
 		return barChartHash;
 	}
-	
-	public double[][] createBalanceList(int thisYear)
+
+	public Object[][] createBalanceList(int thisYear)
+//	public double[][] createBalanceList(int thisYear)
 	{
 		ArrayList<Double> yearCosts = schedulingSavingsOpt.getYearInvestment();
-//		savingsEachYear
-		double[][] balanceList  = new double[savingsEachYear.length+1][2];
-		balanceList[0][1]=0;
-		balanceList[0][0]=thisYear;
-		balanceList[1][1]=-yearCosts.get(0)+savingsEachYear[0];
-		balanceList[1][0]=thisYear+1;
-		for (int i=1; i<savingsEachYear.length;i++)
+		ArrayList<Double> yearSavings = schedulingSavingsOpt.getYearSavings();
+//		double[][] balanceList  = new double[yearCosts.size()+1][2];
+		Object[][] balanceList  = new Object[yearCosts.size()+1][2];
+
+		balanceList[0][1]=0.0;
+		balanceList[0][0]=0;//"Year T";
+		balanceList[1][1]=-yearCosts.get(0)+yearSavings.get(0);
+		balanceList[1][0]=1;//"Year T+1";
+		for (int i=1; i<yearCosts.size();i++)
 		{
-			balanceList[i+1][0]=thisYear+i+1;
-			balanceList[i+1][1]=balanceList[i][1]-yearCosts.get(i)+savingsEachYear[i];
+			balanceList[i+1][0]=(i+1);//"Year T+"+(i+1);
+			balanceList[i+1][1]=(Double)balanceList[i][1]-yearCosts.get(i)+yearSavings.get(i);
 		}
 		return balanceList;
 	}

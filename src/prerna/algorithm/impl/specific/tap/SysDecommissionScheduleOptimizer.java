@@ -21,6 +21,7 @@ package prerna.algorithm.impl.specific.tap;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -38,6 +39,7 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMSysDecommissionSchedulingPlaySheet;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationFunctions;
 import prerna.ui.components.specific.tap.SysDecommissionScheduleGraphFunctions;
+import prerna.ui.components.specific.tap.SystemPropertyGridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -65,12 +67,17 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	JProgressBar progressBar;
 	SysDecommissionOptimizationFunctions optFunctions;
     SysDecommissionSchedulingSavingsOptimizer opt;
+    SystemPropertyGridPlaySheet sysBudgetSheet;
 
 	private static String hrCoreDB = "HR_Core";
 	private static String systemListQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?HighProb} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'} FILTER(?HighProb in('High','Question'))}";
+	
+	private static String systemBudgetQuery = "High;All;All; SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) (COALESCE(?GT, 'Garrison') AS ?GarrisonTheater) ?MHS_Specific (COALESCE(?TC,'') AS ?Transaction_Count) (COALESCE(SUBSTR(STR(?ATO),0,10),'') AS ?ATO_Date) (COALESCE(SUBSTR(STR(?ES),0,10),'') AS ?End_Of_Support) (COALESCE(?NU,'') AS ?Num_Users) ?Probability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'N'} BIND('N' AS ?MHS_Specific)OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Transaction_Count> ?TC}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/End_of_Support_Date> ?ES}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/Number_of_Users> ?NU}} OPTIONAL{{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own}} } }  GROUP BY ?System ?GarrisonTheater ?MHS_Specific ?Transaction_Count ?ATO_Date ?End_Of_Support ?Num_Users ORDER BY ?System";
 
 	private ArrayList<String> systemList = new ArrayList<String>();
- 
+	private Hashtable<String, Double[]> sysToBudgetHash;
+	
+	private DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 	
 	/**
 	 * Method setVariables.
@@ -111,7 +118,8 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
         
        	boolean success=true;
         opt = new SysDecommissionSchedulingSavingsOptimizer();
-        opt.setDataSet(playSheet.consoleArea,systemList, optFunctions.sysToSiteCountHash,optFunctions.getSysToWorkVolHashPerSite(),optFunctions.sysToSustainmentCost, budget, maxYears, percentOfPilot,serMainPerc);
+        //to do put in sustainment cost
+        opt.setDataSet(playSheet.consoleArea,systemList, optFunctions.sysToSiteCountHash,optFunctions.getSysToWorkVolHashPerSite(),deepCopy(sysToBudgetHash),budget, maxYears, percentOfPilot,serMainPerc);
         int count = 1;
         progressBar.setString("Iteration: "+count);
        	addTextToConsole("\n\nStarting Iteration "+count+". Attempting budget of "+budget+".");
@@ -150,13 +158,13 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	
 	public void printDataToConsole()
 	{
-		//should fill with the data collected
        	addTextToConsole("\nSystems to be decommissioned:");
 		for(String sys : systemList)
 			addTextToConsole(" "+sys+",");
 		printHashTable("Number of sites for each system:",optFunctions.sysToSiteCountHash);
 		printHashTable("Cost to transition first site for each system:",optFunctions.getSysToWorkVolHashPerSite());
-		printHashTable("Current sustainment cost for each system:",optFunctions.sysToSustainmentCost);
+		//to do: print out right sustaincosts
+		printBudgetHashTable("Current sustainment cost for each system:",sysToBudgetHash);
 	}
 	
 	public void printHashTable(String nameOfHash,Hashtable hashToPrint)
@@ -166,6 +174,33 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 			addTextToConsole(" "+key+": "+hashToPrint.get(key)+",");
 	}
 	
+	public void printBudgetHashTable(String nameOfHash,Hashtable<String,Double[]> sysBudgetHash)
+	{
+       	addTextToConsole("\n"+nameOfHash);
+		for(Object key : sysBudgetHash.keySet())
+		{
+			addTextToConsole(" "+key+": ");
+			Double[] row = sysBudgetHash.get(key);
+			for(int i=0;i<5;i++)
+			{
+				addTextToConsole(row[i]+", ");
+			}
+			addTextToConsole(";");
+		}
+	}
+	public Hashtable<String,Double[]> deepCopy(Hashtable<String,Double[]> hash)
+	{
+		Hashtable<String,Double[]> hashCopy = new Hashtable<String,Double[]>();
+		for(String key : hash.keySet())
+		{
+			Double[] row = hash.get(key);
+			Double[] rowCopy = new Double[row.length];
+			for(int i=0;i<row.length;i++)
+				rowCopy[i] = row[i];
+			hashCopy.put(key, rowCopy);
+		}
+		return hashCopy;
+	}
 	public void collectData()
 	{
 		playSheet.consoleArea.setText("Retrieving cost data from TAP_Cost_db...");
@@ -184,10 +219,40 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		
 		calculateTotalTransformCost();
 		
+	    sysBudgetSheet = new SystemPropertyGridPlaySheet();
+	    sysBudgetSheet.setQuery(systemBudgetQuery);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
+		sysBudgetSheet.setRDFEngine(engine);
+		sysBudgetSheet.setAccountingFormat(false);
+	    sysBudgetSheet.createData();
+	    processSysBudgetHash(sysBudgetSheet.getList());
+	    
         printDataToConsole();
        	addTextToConsole("\nData Collection Complete!");
 	}
 	
+	public void processSysBudgetHash(ArrayList<Object[]> sysBudgetList)
+	{
+		sysToBudgetHash = new Hashtable<String,Double[]>();
+		for(int sysInd=0;sysInd<sysBudgetList.size();sysInd++)
+		{
+			Object[] fullRow = sysBudgetList.get(sysInd);
+			String sys = (String)fullRow[0];
+			Double[] fyRow = new Double[5];
+			for(int yearInd=0;yearInd<fyRow.length;yearInd++)
+			{
+				Double sysBudget=null;
+				if(fullRow[fullRow.length-5+yearInd] instanceof Long)
+					sysBudget = 1.0*((Long)fullRow[fullRow.length-5+yearInd]);
+				else{
+					System.out.println("Budget is not a numerical value for "+sys);
+				}
+//					sysBudget = ((DecimalFormat) fullRow[fullRow.length-5+yearInd]).get
+				fyRow[yearInd] = sysBudget;
+			}
+			sysToBudgetHash.put(sys,fyRow);
+		}
+	}
 	public void calculateTotalTransformCost()
 	{
 		Hashtable<String,Double> workVolHash = optFunctions.getSysToWorkVolHashPerSite();
@@ -336,7 +401,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		String[] colNames = new String[maxYears+1];
 		colNames[0]="System";
 		for(int i=1;i<=maxYears;i++)
-			colNames[i] = "Sites Transitioned in Year "+i+" after FOC";
+			colNames[i] = "Sites Transitioned in Year T+"+i;
 		ArrayList<Double[]> systemSiteMatrix = opt.getSysNumSitesMatrix();
 		for(int sysInd = 0;sysInd<systemSiteMatrix.get(0).length;sysInd++)
 		{
@@ -361,11 +426,9 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		colNames[1] = "System Owner";
 		colNames[2] = "Item";
 		for(int i=1;i<maxYears+1;i++)
-			colNames[i+2] = "Year "+i+" after FOC";
+			colNames[i+2] = "Year T+"+i;
 		ArrayList<Double[]> systemInvestCostMatrix = opt.getSysInvestCostMatrix();
 		ArrayList<Double[]> systemSavingsMatrix = opt.getSysSavingsMatrix();
-		
-		systemSavingsMatrix = calculateCumulativeSystemSavings(systemSavingsMatrix);
 		
 		for(int sysInd = 0;sysInd<systemInvestCostMatrix.get(0).length;sysInd++)
 		{
@@ -373,6 +436,23 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 			String owner = "";
 			if(sysToOwner.containsKey(sys))
 				owner = sysToOwner.get(sys);
+			Object[] budgetRow = new Object[maxYears+3];
+			budgetRow[0] = sys;
+			budgetRow[1] = owner;
+			budgetRow[2] = "System Budget";
+			Double[] fyRow = sysToBudgetHash.get(sys);
+			if(fyRow==null)
+				for(int i=0;i<5;i++)
+					budgetRow[i+3] = "";
+			else
+				for(int i=0;i<5;i++)
+				{
+					if(fyRow[i]==null)
+						budgetRow[i+3]=null;
+					else
+						budgetRow[i+3] = nf.format(Math.round(fyRow[i]));
+				}
+			list.add(budgetRow);
 			Object[] systemCostRow = createSystemCostSavingsRow(sys,owner,"Decommissioning Costs",systemInvestCostMatrix,sysInd);
 			list.add(systemCostRow);
 			Object[] systemSavingsRow = createSystemCostSavingsRow(sys,owner,"Estimated Savings",systemSavingsMatrix,sysInd);
@@ -380,42 +460,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		}
 		displayListOnTab(colNames,list,playSheet.sysCostSavingsAnalPanel);
 	}
-	
-	public ArrayList<Double[]> calculateCumulativeSystemSavings(ArrayList<Double[]> systemSavingsMatrix) {
-		int numYears = systemSavingsMatrix.size();
-		int numSystems = systemSavingsMatrix.get(0).length;
-		ArrayList<Double[]> savingsList = new ArrayList<Double[]>();
-		ArrayList<Double[]> cumulativeSavingsList = new ArrayList<Double[]>();
-		for(int i=0;i<numYears;i++)
-		{
-			Double[] newArray1 = new Double[numSystems];
-			for(int sysInd=0;sysInd<numSystems;sysInd++)
-				newArray1[sysInd]=0.0;
-			Double[] newArray2 = new Double[numSystems];
-			for(int sysInd=0;sysInd<numSystems;sysInd++)
-				newArray2[sysInd]=0.0;
-			savingsList.add(newArray1);
-			cumulativeSavingsList.add(newArray2);
-		}
-		for(int sysInd=0;sysInd<numSystems;sysInd++)
-		{
-			for(int yearInd=1;yearInd<numYears;yearInd++)
-			{
-				for(int sumInd=0;sumInd<yearInd;sumInd++)
-				{
-					savingsList.get(yearInd)[sysInd] +=Math.round(systemSavingsMatrix.get(sumInd)[sysInd]);
-				}
-			}
-		}
 
-//		for(int sysInd=0;sysInd<numSystems;sysInd++)
-//		{
-//			for (int i=1;i<numYears;i++)
-//				cumulativeSavingsList.get(i)[sysInd] = cumulativeSavingsList.get(i-1)[sysInd]+savingsList.get(i)[sysInd];
-//		}
-		return savingsList;
-	}
-	
 	public Object[] createSystemCostSavingsRow(String sys, String owner, String item, ArrayList<Double[]> systemCostSavingsMatrix,int sysInd)
 	{
 		Object[] systemCostSavingsRow = new Object[maxYears+3];
@@ -423,7 +468,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		systemCostSavingsRow[1] = owner;//to put system owner here
 		systemCostSavingsRow[2] = item;
 		for(int i=1;i<maxYears+1;i++)
-			systemCostSavingsRow[i+2] = (systemCostSavingsMatrix.get(i-1)[sysInd]).intValue();
+			systemCostSavingsRow[i+2] = nf.format(Math.round(systemCostSavingsMatrix.get(i-1)[sysInd]));
 		return systemCostSavingsRow;
 	}
 	

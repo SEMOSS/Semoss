@@ -20,6 +20,7 @@ import prerna.algorithm.impl.LPOptimizer;
 		int numYears;
 		double percentOfPilot;
 		double serMainPerc;
+		double numBudgetYearData = 5;
 		
 		ArrayList<String> sysList;
 		ArrayList<String> sysListLeftOver;
@@ -28,7 +29,8 @@ import prerna.algorithm.impl.LPOptimizer;
 		Hashtable<String,Integer> sysToSiteCount;
 		Hashtable<String,Integer> sysToSiteCountLeftOver;
 		Hashtable<String, Double> sysToWorkVolHashPerSite;
-	    Hashtable<String, Double> sysToSustainmentCost;
+//	    Hashtable<String, Double> sysToSustainmentCost;
+	    Hashtable<String, Double[]> sysToBudget;
 
 		int currYear;
 		int totalInvestment;
@@ -59,12 +61,12 @@ import prerna.algorithm.impl.LPOptimizer;
 		/**
 		 * Gathers data set.
 		 */
-		public void setDataSet(JTextArea consoleArea,ArrayList<String> sysList,Hashtable<String,Integer> sysToSiteCount,Hashtable<String, Double> sysToWorkVolHashPerSite,Hashtable<String, Double> sysToSustainmentCost,double budget, int numYears, double percentOfPilot,double serMainPerc) {
+		public void setDataSet(JTextArea consoleArea,ArrayList<String> sysList,Hashtable<String,Integer> sysToSiteCount,Hashtable<String, Double> sysToWorkVolHashPerSite,Hashtable<String, Double[]> sysToBudget,double budget, int numYears, double percentOfPilot,double serMainPerc) {
 			this.consoleArea = consoleArea;
 			this.sysList = sysList;
 			this.sysToSiteCount = sysToSiteCount;
 			this.sysToWorkVolHashPerSite = sysToWorkVolHashPerSite;
-		    this.sysToSustainmentCost = sysToSustainmentCost;
+		    this.sysToBudget = sysToBudget;
 			this.budget = budget;
 			this.numYears = numYears;
 			this.percentOfPilot = percentOfPilot;
@@ -217,7 +219,12 @@ import prerna.algorithm.impl.LPOptimizer;
 					String sys = sysListLeftOver.get(sysInd);
 		        	colno[sysInd] = sysInd+1;
 			        double workVol = sysToWorkVolHashPerSite.get(sys);
-			        double numerator = (sysToSustainmentCost.get(sys) - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )));
+			        double sysBudget = 0.0;
+			        if(currYear<sysToBudget.get(sys).length)
+			        	sysBudget = sysToBudget.get(sys)[currYear];
+			        else
+			        	sysBudget = sysToBudget.get(sys)[sysToBudget.get(sys).length-1];
+			        double numerator = (sysBudget - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )));
 			        if(numerator<0)
 			        	row[sysInd] = -1* numerator / sysToSiteCount.get(sys);
 			        else
@@ -251,13 +258,21 @@ import prerna.algorithm.impl.LPOptimizer;
 		
 		public double calcSavingsForSystemForCurrYear() {
 			double savings=0.0;
-			for(int sysInd=0;sysInd<sysListLeftOver.size();sysInd++)
+			for(int sysInd=0;sysInd<sysList.size();sysInd++)
 			{
-				String sys = sysListLeftOver.get(sysInd);
-				int sysMasterInd = sysList.indexOf(sys);
+				String sys = sysList.get(sysInd);
+				//int sysMasterInd = sysList.indexOf(sys);
 		        double workVol = sysToWorkVolHashPerSite.get(sys);
-		        double sysSavings = (sysToSustainmentCost.get(sys) - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )))/sysToSiteCount.get(sys)*sysNumSitesMatrix.get(currYear)[sysMasterInd];
-				sysSavingsMatrix.get(currYear)[sysMasterInd] = sysSavings;
+		        double sysBudget = 0.0;
+		        if(currYear<sysToBudget.get(sys).length)
+		        	sysBudget = sysToBudget.get(sys)[currYear];
+		        else
+		        	sysBudget = sysToBudget.get(sys)[sysToBudget.get(sys).length-1];
+		        double numSitesTransformed = 0.0;
+		        for(int i=0;i<currYear;i++)
+		        	numSitesTransformed+=sysNumSitesMatrix.get(i)[sysInd];
+		        double sysSavings = (sysBudget - serMainPerc*( workVol + ((sysToSiteCount.get(sys) - 1) * workVol * percentOfPilot )))/sysToSiteCount.get(sys)*numSitesTransformed;
+				sysSavingsMatrix.get(currYear)[sysInd] = sysSavings;
 		        savings += sysSavings;
 			}
 			return savings;
@@ -310,8 +325,18 @@ import prerna.algorithm.impl.LPOptimizer;
 					sysToSiteCount.put(sys,1);
 				if(!sysToWorkVolHashPerSite.containsKey(sys))
 					sysToWorkVolHashPerSite.put(sys,0.0);
-				if(!sysToSustainmentCost.containsKey(sys)||sysToSustainmentCost.get(sys)==0.0)
-					sysToSustainmentCost.put(sys,0.1);
+				if(!sysToBudget.containsKey(sys))
+				{
+					Double[] fyBudgetRow = new Double[]{0.1,0.1,0.1,0.1,0.1};
+					sysToBudget.put(sys,fyBudgetRow);
+				}
+				for(int i=0;i<numBudgetYearData;i++)
+				{
+					if(sysToBudget.get(sys)[i]==null)
+						sysToBudget.get(sys)[i]=0.1;
+					if(sysToBudget.get(sys)[i]==0.0)
+						sysToBudget.get(sys)[i] = 0.1;
+				}
 				
 				sysToSiteCountLeftOver.put(sys, sysToSiteCount.get(sys));
 			}
