@@ -28,7 +28,6 @@ import java.util.Hashtable;
 
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFDataFormat;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -41,8 +40,6 @@ import prerna.util.Utility;
 
 public class ConsolidatedSystemReportWriter {
 
-	XSSFWorkbook wb;
-	
 	ArrayList<String> lpiSystemList = new ArrayList<String>();
 	ArrayList<String> lpniSystemList = new ArrayList<String>();
 	Hashtable<String, Object> ownerHashtable = new Hashtable<String, Object>(); //systemName -> owner
@@ -65,7 +62,7 @@ public class ConsolidatedSystemReportWriter {
 	}
 	
 	public void runWriter() {
-		wb = new XSSFWorkbook();
+		XSSFWorkbook wb = new XSSFWorkbook();
 		writeSheet(wb, "LPI", lpiSystemList);
 		writeSheet(wb, "LPNI", lpniSystemList);
 
@@ -74,6 +71,7 @@ public class ConsolidatedSystemReportWriter {
 		String writeFileName = "ConsolidatedSystemTransitionReport" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
 		
+		formatExcel(wb);
 		Utility.writeWorkbook(wb, fileLoc);
 	}
 	
@@ -104,33 +102,40 @@ public class ConsolidatedSystemReportWriter {
 			
 			writeTotalCostsRow(worksheet, totalCostRow, lpiSystem, totalCostArray);
 		}
+	}
+	
+	private void formatExcel(XSSFWorkbook wb){
 		
-		XSSFCellStyle formatHeaders = formatExcelHeader();
-		XSSFCellStyle formatStrings = formatExcelStrings();
-		XSSFCellStyle formatExcelNumbers = formatExcelNumbers();
+		XSSFCellStyle formatHeaders = formatExcelHeader(wb);
+		XSSFCellStyle formatStrings = formatExcelStrings(wb);
+		XSSFCellStyle formatExcelNumbers = formatExcelNumbers(wb);
 		
-		for(int i = 0; i < 8; i++) {
-			worksheet.getRow(0).getCell(i).setCellStyle(formatHeaders);
-			for(int j = 1; j <= worksheet.getLastRowNum(); j++) {
-				if(i < 3) {
-					XSSFCell cell = worksheet.getRow(j).getCell(i);
-					if(cell == null) {
-						cell = worksheet.getRow(j).createCell(i);
+		for(int sheetIdx = 0; sheetIdx < 2; sheetIdx++)
+		{
+			XSSFSheet worksheet = wb.getSheetAt(sheetIdx);
+			for(int i = 0; i < 8; i++) {
+				worksheet.getRow(0).getCell(i).setCellStyle(formatHeaders);
+				for(int j = 1; j <= worksheet.getLastRowNum(); j++) {
+					if(i < 3) {
+						XSSFCell cell = worksheet.getRow(j).getCell(i);
+						if(cell == null) {
+							cell = worksheet.getRow(j).createCell(i);
+						}
+						cell.setCellStyle(formatStrings);
+					} else {
+						XSSFCell cell = worksheet.getRow(j).getCell(i);
+						if(cell == null) {
+							cell = worksheet.getRow(j).createCell(i);
+						}
+						cell.setCellStyle(formatExcelNumbers);
 					}
-					cell.setCellStyle(formatStrings);
-				} else {
-					XSSFCell cell = worksheet.getRow(j).getCell(i);
-					if(cell == null) {
-						cell = worksheet.getRow(j).createCell(i);
-					}
-					cell.setCellStyle(formatExcelNumbers);
 				}
 			}
-		}
-		
-		// autoformat cell column width after changing the format
-		for(int i = 0; i < 8; i++) {
-			worksheet.autoSizeColumn(i);
+			
+			// autoformat cell column width after changing the format
+			for(int i = 0; i < 8; i++) {
+				worksheet.autoSizeColumn(i);
+			}
 		}
 	}
 	
@@ -280,7 +285,7 @@ public class ConsolidatedSystemReportWriter {
 		total[index - 3] = value; // subtract three to account for the three columns of strings of every row
 	}
 
-	private XSSFCellStyle formatExcelHeader() 
+	private XSSFCellStyle formatExcelHeader(XSSFWorkbook wb) 
 	{
 		XSSFCellStyle style = wb.createCellStyle();
 		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
@@ -295,7 +300,7 @@ public class ConsolidatedSystemReportWriter {
 		return style;
 	}
 	
-	private XSSFCellStyle formatExcelStrings() 
+	private XSSFCellStyle formatExcelStrings(XSSFWorkbook wb)
 	{
 		XSSFCellStyle style = wb.createCellStyle();
 		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
@@ -305,7 +310,7 @@ public class ConsolidatedSystemReportWriter {
 		return style;
 	}
 	
-	private XSSFCellStyle formatExcelNumbers() 
+	private XSSFCellStyle formatExcelNumbers(XSSFWorkbook wb) 
 	{
 		XSSFCellStyle style = wb.createCellStyle();
 		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
