@@ -166,27 +166,30 @@ public class ConsolidatedSystemReportWriter {
 				c.setTime(atoDate);
 				year = c.get(Calendar.YEAR);
 //				System.err.println("YEAR TESTING " + year);
-				if(year< 2016) {
-					//skip for now
+				if(year< 2012) {
+					//requires immediate, same as missing date. taken care of later
 				}
-				else if (year < 2017) // cost in FY16 and FY19
-				{
-					setCostCell(row, 4, 150000.0, totalArray);
-					setCostCell(row, 7, 150000.0, totalArray);
-				}
-				else if (year < 2020 )// else just the one time in the returned year
+				else 
 				{
 					int cellNumForYear = year - 2012;
-					setCostCell(row, cellNumForYear, 150000.0, totalArray);
-				}
-				else {
-					System.err.println("Large ATO Date " + year);
+					if (year < 2013) // else two costs
+					{
+						setCostCell(row, cellNumForYear+3, 150000.0, totalArray);
+						setCostCell(row, cellNumForYear+6, 150000.0, totalArray);
+					}
+					else if (year < 2017 ) // else just the one cost in the returned year
+					{
+						setCostCell(row, cellNumForYear+3, 150000.0, totalArray);
+					}
+					else {
+						System.err.println("Large ATO Date " + year);
+					}
 				}
 			} catch (ParseException e) {
 				// ignored
 			}
 		}
-		if (year < 2016) // cost in FY15 and FY18
+		if (year < 2012) // cost in FY15 and FY18
 		{
 			setCostCell(row, 3, 150000.0, totalArray);
 			setCostCell(row, 6, 150000.0, totalArray);
