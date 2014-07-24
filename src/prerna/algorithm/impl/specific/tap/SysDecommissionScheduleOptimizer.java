@@ -453,7 +453,10 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 							budgetRow[i+3] = nf.format(Math.round(fyRow[i]));
 					}
 					else {
-						budgetRow[i+3] = nf.format(Math.round(fyRow[4]));
+						if(fyRow[4]==null)
+							budgetRow[i+3]=null;
+						else
+							budgetRow[i+3] = nf.format(Math.round(fyRow[4]));
 					}
 				}
 			}
