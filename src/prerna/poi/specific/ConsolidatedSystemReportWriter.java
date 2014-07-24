@@ -172,7 +172,7 @@ public class ConsolidatedSystemReportWriter {
 				else 
 				{
 					int cellNumForYear = year - 2012;
-					if (year < 2013) // else two costs
+					if (year < 2014) // else two costs
 					{
 						setCostCell(row, cellNumForYear+3, 150000.0, totalArray);
 						setCostCell(row, cellNumForYear+6, 150000.0, totalArray);
