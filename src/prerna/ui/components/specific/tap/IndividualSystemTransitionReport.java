@@ -178,13 +178,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		HashMap<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
 		HashMap<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
 
-//		InsertInterfaceModernizationProperty test = new InsertInterfaceModernizationProperty();
-//		try {
-//			test.insert();
-//		} catch (EngineException e) {
-//			e.printStackTrace();
-//		}
-		
 		HashMap<String, Object> sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost();
 		// perform after the above
 		HashMap<String, Object> interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
