@@ -25,9 +25,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.Locale;
 
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFDataFormat;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -39,6 +41,8 @@ import prerna.util.Utility;
 
 public class ConsolidatedSystemReportWriter {
 
+	XSSFWorkbook wb;
+	
 	ArrayList<String> lpiSystemList = new ArrayList<String>();
 	ArrayList<String> lpniSystemList = new ArrayList<String>();
 	Hashtable<String, Object> ownerHashtable = new Hashtable<String, Object>(); //systemName -> owner
@@ -61,15 +65,15 @@ public class ConsolidatedSystemReportWriter {
 	}
 	
 	public void runWriter() {
-		XSSFWorkbook wb = new XSSFWorkbook();
+		wb = new XSSFWorkbook();
 		writeSheet(wb, "LPI", lpiSystemList);
 		writeSheet(wb, "LPNI", lpniSystemList);
 
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Reports\\";
-		Date date = new Date();
 		String writeFileName = "ConsolidatedSystemTransitionReport" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
+		
 		Utility.writeWorkbook(wb, fileLoc);
 	}
 	
@@ -91,7 +95,6 @@ public class ConsolidatedSystemReportWriter {
 		for(String lpiSystem: systemList) {
 			rowCount = writeBudgetRow(worksheet, rowCount, lpiSystem);
 			
-			
 			int totalCostRow = rowCount++; // save a row for total costs
 			Double[] totalCostArray = new Double[5];
 
@@ -100,6 +103,34 @@ public class ConsolidatedSystemReportWriter {
 			rowCount = writeDiacapRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			
 			writeTotalCostsRow(worksheet, totalCostRow, lpiSystem, totalCostArray);
+		}
+		
+		XSSFCellStyle formatHeaders = formatExcelHeader();
+		XSSFCellStyle formatStrings = formatExcelStrings();
+		XSSFCellStyle formatExcelNumbers = formatExcelNumbers();
+		
+		for(int i = 0; i < 8; i++) {
+			worksheet.getRow(0).getCell(i).setCellStyle(formatHeaders);
+			for(int j = 1; j <= worksheet.getLastRowNum(); j++) {
+				if(i < 3) {
+					XSSFCell cell = worksheet.getRow(j).getCell(i);
+					if(cell == null) {
+						cell = worksheet.getRow(j).createCell(i);
+					}
+					cell.setCellStyle(formatStrings);
+				} else {
+					XSSFCell cell = worksheet.getRow(j).getCell(i);
+					if(cell == null) {
+						cell = worksheet.getRow(j).createCell(i);
+					}
+					cell.setCellStyle(formatExcelNumbers);
+				}
+			}
+		}
+		
+		// autoformat cell column width after changing the format
+		for(int i = 0; i < 8; i++) {
+			worksheet.autoSizeColumn(i);
 		}
 	}
 	
@@ -239,7 +270,6 @@ public class ConsolidatedSystemReportWriter {
 	private void setCostCell(XSSFRow row, int index, Double value, Double[] total)
 	{
 		setCell(row, index, value);
-		int arrayIdx = index - 3;
 		Double old = total[index - 3];
 		if(old != null) {
 			value = value + old;
@@ -247,4 +277,40 @@ public class ConsolidatedSystemReportWriter {
 		total[index - 3] = value; // subtract three to account for the three columns of strings of every row
 	}
 
+	private XSSFCellStyle formatExcelHeader() 
+	{
+		XSSFCellStyle style = wb.createCellStyle();
+		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+
+		XSSFFont font = wb.createFont();
+		font.setBold(true);
+		style.setFont(font);
+		
+		return style;
+	}
+	
+	private XSSFCellStyle formatExcelStrings() 
+	{
+		XSSFCellStyle style = wb.createCellStyle();
+		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+		return style;
+	}
+	
+	private XSSFCellStyle formatExcelNumbers() 
+	{
+		XSSFCellStyle style = wb.createCellStyle();
+		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+		style.setDataFormat((short) 8);
+		return style;
+	}
+	
 }
