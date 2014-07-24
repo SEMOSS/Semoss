@@ -34,7 +34,7 @@ public class SysDecommissionOptimizationFunctions {
     //hashtable storing all the systems and their probabilities
     Hashtable<String, String> sysToProbHash;
     private Hashtable<String, String> sysToOwnerHash;
-    public Hashtable<String, Double> sysToSustainmentCost;
+//    public Hashtable<String, Double> sysToSustainmentCost;
     public Hashtable<String, Integer> sysToSiteCountHash;
     
     private ArrayList<String> systemsWithNoSite;
@@ -52,7 +52,7 @@ public class SysDecommissionOptimizationFunctions {
 	private static String siteDB = "TAP_Site_Data";
 	private static String systemSiteQuery = "SELECT DISTINCT ?System ?DCSite WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;}  {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 	
-	private static String systemSustainmentCostQuery = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget}}";
+//	private static String systemSustainmentCostQuery = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget}}";
 	
 	private static String coreDB = "HR_Core";
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
@@ -204,7 +204,7 @@ public class SysDecommissionOptimizationFunctions {
 		sysToSiteHash = new Hashtable<String, ArrayList<String>>();
 		sysToProbHash = new Hashtable<String, String>();
 		sysToOwnerHash = new Hashtable<String, String>();
-		sysToSustainmentCost = new Hashtable<String,Double>();
+//		sysToSustainmentCost = new Hashtable<String,Double>();
 		sysToSiteCountHash = new Hashtable<String, Integer>();
 		sysToPossibleResourceAllocationHash = new Hashtable<String, Double>();
 		sysToResourceAllocationFirstSiteHash = new Hashtable<String, Double>();
@@ -227,8 +227,8 @@ public class SysDecommissionOptimizationFunctions {
 		
 		ArrayList <Object []> systemProbList = createData(coreDB,systemProbQuery);
 		processSystemHash(systemProbList,sysToProbHash);
-		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
-		processSystemSustainmentCostHash(systemSustainmentCostList);
+//		ArrayList <Object []> systemSustainmentCostList = createData(coreDB,systemSustainmentCostQuery);
+//		processSystemSustainmentCostHash(systemSustainmentCostList);
 		if(includeArchive) {
 			ArrayList <Object []> systemArchiveList = createData(coreDB,systemArchiveQuery);
 			updateWorkVolWithArchive(systemArchiveList);
@@ -633,19 +633,19 @@ public class SysDecommissionOptimizationFunctions {
 			}
 		}
 	}
-	private void processSystemSustainmentCostHash(ArrayList <Object []> list)
-	{
-		for (int i=0; i<list.size(); i++)
-		{
-			Object[] elementArray= list.get(i);
-			String system = (String) elementArray[0];
-			if(elementArray[1] instanceof Double)
-			{
-				Double cost = (Double) elementArray[1];
-				sysToSustainmentCost.put(system,cost);
-			}
-		}
-	}
+//	private void processSystemSustainmentCostHash(ArrayList <Object []> list)
+//	{
+//		for (int i=0; i<list.size(); i++)
+//		{
+//			Object[] elementArray= list.get(i);
+//			String system = (String) elementArray[0];
+//			if(elementArray[1] instanceof Double)
+//			{
+//				Double cost = (Double) elementArray[1];
+//				sysToSustainmentCost.put(system,cost);
+//			}
+//		}
+//	}
 	private void processSystemSiteHashTables(ArrayList <Object []> list)
 	{
 		for (int i=0; i<list.size(); i++)

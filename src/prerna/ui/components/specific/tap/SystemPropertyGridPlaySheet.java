@@ -31,7 +31,14 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	private Integer costDataLength = 0;
 
 	private DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
+	
+	private boolean useAccountingFormat = true;
 
+	public void setAccountingFormat(boolean useAccountingFormat)
+	{
+		this.useAccountingFormat = useAccountingFormat;
+	}
+	
 	@Override
 	public void createData() {
 		Hashtable<String, Hashtable<String, Double>> costHash = new Hashtable<String, Hashtable<String, Double>>();
@@ -79,7 +86,10 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 						if(costInfo != null) {
 							for(int j = 0; j < costDataLength; j++) {
 								if(costInfo.get(costDataVarNames[j+1]) != null) {
-									addRow[i+j] = nf.format(Math.round(costInfo.get(costDataVarNames[j+1])));
+									if(useAccountingFormat)
+										addRow[i+j] = nf.format(Math.round(costInfo.get(costDataVarNames[j+1])));
+									else
+										addRow[i+j] = Math.round(costInfo.get(costDataVarNames[j+1]));										
 								}
 							}
 						} else {
