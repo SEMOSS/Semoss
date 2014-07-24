@@ -23,6 +23,8 @@ import java.util.ArrayList;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 
 /**
  * This class is used for the scroll bar functionality for the grid display.
@@ -50,6 +52,13 @@ public class GridScrollPane extends JScrollPane{
 		this.setViewportView(table);
 		this.setAutoscrolls(true);
 		this.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		
+	}
+		
+	public void rightAlignColumn(int col) {
+		DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+		rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+		table.getColumnModel().getColumn(col).setCellRenderer(rightRenderer);
 	}
 	
 	/**

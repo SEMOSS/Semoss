@@ -442,16 +442,21 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 			budgetRow[2] = "System Budget";
 			Double[] fyRow = sysToBudgetHash.get(sys);
 			if(fyRow==null)
-				for(int i=0;i<5;i++)
+				for(int i=0;i<maxYears;i++)
 					budgetRow[i+3] = "";
-			else
-				for(int i=0;i<5;i++)
-				{
-					if(fyRow[i]==null)
-						budgetRow[i+3]=null;
-					else
-						budgetRow[i+3] = nf.format(Math.round(fyRow[i]));
+			else {
+				for(int i=0;i<maxYears;i++) {
+					if(i<5) {
+						if(fyRow[i]==null)
+							budgetRow[i+3]=null;
+						else
+							budgetRow[i+3] = nf.format(Math.round(fyRow[i]));
+					}
+					else {
+						budgetRow[i+3] = nf.format(Math.round(fyRow[4]));
+					}
 				}
+			}
 			list.add(budgetRow);
 			Object[] systemCostRow = createSystemCostSavingsRow(sys,owner,"Decommissioning Costs",systemInvestCostMatrix,sysInd);
 			list.add(systemCostRow);
@@ -475,6 +480,8 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel)
 	{
 		GridScrollPane pane = new GridScrollPane(colNames, list);
+		for(int i=colNames.length-1;i>=(colNames.length-maxYears);i--)
+			pane.rightAlignColumn(i);
 		
 		panel.removeAll();
 		GridBagLayout gridBagLayout = new GridBagLayout();
