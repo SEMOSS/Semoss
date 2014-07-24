@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.cert.X509Certificate;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -37,14 +38,25 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.commons.httpclient.HttpClient;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -716,6 +728,13 @@ public class Utility {
 			System.out.println("Getting data from the API...  " + api);
 			System.out.println("Prams is " + params);
 			
+			SSLContextBuilder builder = new SSLContextBuilder();
+		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+		            builder.build());
+		    CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(
+		            sslsf).build();
+
 			HttpPost get = new HttpPost(api);
 			if(params != null) // add the parameters
 			{
@@ -731,7 +750,6 @@ public class Utility {
 				//get = new HttpPost(uri.build());
 			}
 			
-			CloseableHttpClient httpclient = HttpClients.createDefault();
 			CloseableHttpResponse response = httpclient.execute(get);
 			HttpEntity entity = response.getEntity();
 			
