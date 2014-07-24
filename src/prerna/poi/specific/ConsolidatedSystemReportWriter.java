@@ -19,10 +19,13 @@
 package prerna.poi.specific;
 
 import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Locale;
 
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -43,8 +46,6 @@ public class ConsolidatedSystemReportWriter {
 	Hashtable<String, Object> hwswHashtable = new Hashtable<String, Object>(); //systemName -> cost
 	Hashtable<String, Object> interfaceModHashtable = new Hashtable<String, Object>(); //systemName -> cost
 	Hashtable<String, Object> diacapHashtable = new Hashtable<String, Object>(); //systemName -> diacapDate
-	
-	XSSFWorkbook wb = null;
 	
 	public ConsolidatedSystemReportWriter(ArrayList<String> lpiSystemList, ArrayList<String> lpniSystemList, Hashtable<String, Object> ownerHashtable, 
 			Hashtable<String, Hashtable<String, Double>> budgetHashtable, Hashtable<String, Object> hwswHashtable, Hashtable<String, Object> interfaceModHashtable,
@@ -90,108 +91,160 @@ public class ConsolidatedSystemReportWriter {
 		for(String lpiSystem: systemList) {
 			rowCount = writeBudgetRow(worksheet, rowCount, lpiSystem);
 			
+			
 			int totalCostRow = rowCount++; // save a row for total costs
-			ArrayList<Double> totalCostArray = new ArrayList<Double>();
+			Double[] totalCostArray = new Double[5];
 
 			rowCount = writeHwSwRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			rowCount = writeInterfaceModernizationRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			rowCount = writeDiacapRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			
-			rowCount = writeTotalCostsRow(worksheet, totalCostRow, lpiSystem, totalCostArray);
+			writeTotalCostsRow(worksheet, totalCostRow, lpiSystem, totalCostArray);
 		}
 	}
 	
-	private int writeTotalCostsRow(XSSFSheet worksheet, int rowCount, String systemName, ArrayList<Double> totalArray)
+	private void writeTotalCostsRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
-		XSSFRow row = worksheet.createRow(0);
-		setCell(row, 0, systemName);
-		setCell(row, 1, ownerHashtable.get(systemName) + "");
-		setCell(row, 2, "Total Expected Modernization Costs");
+		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "Total Expected Modernization Costs");
+		int cellCount = 3;
+		for(Double val : totalArray){
+			setCell(row, cellCount, val);
+			cellCount++;
+		}
 
-		Date atoDate = (Date) diacapHashtable.get(systemName);
-		Calendar c = Calendar.getInstance();
-		c.setTime(atoDate);
-		int year = c.get(Calendar.YEAR);
-		System.err.println("YEAR TESTING " + year);
-		
-		//// NEED TO ADD WRITING OF VALUES
-		
-		return rowCount++;
+		return;
 	}
 	
-	private int writeDiacapRow(XSSFSheet worksheet, int rowCount, String systemName, ArrayList<Double> totalArray)
+	private int writeDiacapRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
-		XSSFRow row = worksheet.createRow(0);
-		setCell(row, 0, systemName);
-		setCell(row, 1, ownerHashtable.get(systemName) + "");
-		setCell(row, 2, "System DIACAP");
+//		System.out.println("Diacap row " + rowCount);
+		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "System DIACAP");
+		
+		if(systemName.contains("ISITE")){
+			System.out.println("ere");
+		}
 
-		Date atoDate = (Date) diacapHashtable.get(systemName);
-		Calendar c = Calendar.getInstance();
-		c.setTime(atoDate);
-		int year = c.get(Calendar.YEAR);
-		System.err.println("YEAR TESTING " + year);
-		
-		return rowCount++;
+		String atoDateStr = (String) diacapHashtable.get(systemName);
+		int year = 0;
+		if(atoDateStr !=null && !atoDateStr.equals("NA")){
+			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		    Date atoDate;
+			try {
+				atoDate = df.parse(atoDateStr);
+				Calendar c = Calendar.getInstance();
+				c.setTime(atoDate);
+				year = c.get(Calendar.YEAR);
+//				System.err.println("YEAR TESTING " + year);
+				if(year< 2016) {
+					//skip for now
+				}
+				else if (year < 2017) // cost in FY16 and FY19
+				{
+					setCostCell(row, 4, 150000.0, totalArray);
+					setCostCell(row, 7, 150000.0, totalArray);
+				}
+				else if (year < 2020 )// else just the one time in the returned year
+				{
+					int cellNumForYear = year - 2012;
+					setCostCell(row, cellNumForYear, 150000.0, totalArray);
+				}
+				else {
+					System.err.println("Large ATO Date " + year);
+				}
+			} catch (ParseException e) {
+				// ignored
+			}
+		}
+		if (year < 2016) // cost in FY15 and FY18
+		{
+			setCostCell(row, 3, 150000.0, totalArray);
+			setCostCell(row, 6, 150000.0, totalArray);
+		}
+
+		return rowCount + 1;
 	}
 	
-	private int writeHwSwRow(XSSFSheet worksheet, int rowCount, String systemName, ArrayList<Double> totalArray)
+	private int writeHwSwRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
-		XSSFRow row = worksheet.createRow(0);
-		setCell(row, 0, systemName);
-		setCell(row, 1, ownerHashtable.get(systemName) + "");
-		setCell(row, 2, "HW/SW Modernization");
+//		System.out.println("hwsw row " + rowCount);
+		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "HW/SW Modernization");
 		
-		setCostCell(row, 3, (Double)hwswHashtable.get(systemName), totalArray);
-		
-		return rowCount++;
+		Object costObj = hwswHashtable.get(systemName);
+		if(costObj instanceof Double){
+			setCostCell(row, 3, (Double)costObj, totalArray);
+		}
+
+		return rowCount + 1;
 	}
 	
-	private int writeInterfaceModernizationRow(XSSFSheet worksheet, int rowCount, String systemName, ArrayList<Double> totalArray)
+	private int writeInterfaceModernizationRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
-		XSSFRow row = worksheet.createRow(0);
-		setCell(row, 0, systemName);
-		setCell(row, 1, ownerHashtable.get(systemName) + "");
-		setCell(row, 2, "Interface Modernization**");
-		
-		setCostCell(row, 3, (Double)interfaceModHashtable.get(systemName), totalArray);
-		
-		return rowCount++;
+//		System.out.println("mod row " + rowCount);
+		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "Interface Modernization**");
+
+		Object costObj = interfaceModHashtable.get(systemName);
+		if(costObj instanceof Double){
+			setCostCell(row, 3, (Double)costObj, totalArray);
+		}
+		return rowCount + 1;
 	}
 	
 	private int writeBudgetRow(XSSFSheet worksheet, int rowCount, String systemName)
 	{
-		XSSFRow row = worksheet.createRow(0);
-		setCell(row, 0, systemName);
-		setCell(row, 1, ownerHashtable.get(systemName) + "");
-		setCell(row, 2, "System Budget");
+//		System.out.println("budget row " + rowCount);
+		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "System Budget");
 		
 		Hashtable<String, Double> sysBudgetHash = this.budgetHashtable.get(systemName);
-		setCell(row, 3, sysBudgetHash.get("FY15"));
-		setCell(row, 4, sysBudgetHash.get("FY16"));
-		setCell(row, 5, sysBudgetHash.get("FY17"));
-		setCell(row, 6, sysBudgetHash.get("FY18"));
-		setCell(row, 7, sysBudgetHash.get("FY19"));
+		if (sysBudgetHash != null){
+			setCell(row, 3, sysBudgetHash.get("FY15"));
+			setCell(row, 4, sysBudgetHash.get("FY16"));
+			setCell(row, 5, sysBudgetHash.get("FY17"));
+			setCell(row, 6, sysBudgetHash.get("FY18"));
+			setCell(row, 7, sysBudgetHash.get("FY19"));
+		}
+
+//		if(sysBudgetHash.get("FY15") != null) setCell(row, 3, sysBudgetHash.get("FY15"));
+//		if(sysBudgetHash.get("FY16") != null) setCell(row, 4, sysBudgetHash.get("FY16"));
+//		if(sysBudgetHash.get("FY17") != null) setCell(row, 5, sysBudgetHash.get("FY17"));
+//		if(sysBudgetHash.get("FY18") != null) setCell(row, 6, sysBudgetHash.get("FY18"));
+//		if(sysBudgetHash.get("FY19") != null) setCell(row, 7, sysBudgetHash.get("FY19"));
 		
-		return rowCount++;
+		return rowCount + 1;
+	}
+	
+	private XSSFRow writeIntro(XSSFSheet sheet, int rowNumber, String systemName, String rowName){
+		XSSFRow row = sheet.createRow(rowNumber);
+		setCell(row, 0, Utility.getInstanceName(systemName));
+		setCell(row, 1,(String) ownerHashtable.get(systemName));
+		setCell(row, 2, rowName);
+		return row;
 	}
 	
 	private void setCell(XSSFRow row, int index, String value)
 	{
-		XSSFCell cell = row.createCell(index);
-		cell.setCellValue(value);
+		if(value != null){
+			XSSFCell cell = row.createCell(index);
+			cell.setCellValue(value);
+		}
 	}
 	
 	private void setCell(XSSFRow row, int index, Double value)
 	{
-		XSSFCell cell = row.createCell(index);
-		cell.setCellValue(value);
+		if(value != null){
+			XSSFCell cell = row.createCell(index);
+			cell.setCellValue(value);
+		}
 	}
 	
-	private void setCostCell(XSSFRow row, int index, Double value, ArrayList<Double> total)
+	private void setCostCell(XSSFRow row, int index, Double value, Double[] total)
 	{
 		setCell(row, index, value);
-		total.add(index, value);
+		int arrayIdx = index - 3;
+		Double old = total[index - 3];
+		if(old != null) {
+			value = value + old;
+		}
+		total[index - 3] = value; // subtract three to account for the three columns of strings of every row
 	}
 
 }

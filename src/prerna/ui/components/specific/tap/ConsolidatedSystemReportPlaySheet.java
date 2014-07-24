@@ -20,7 +20,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
 
 @SuppressWarnings("serial")
 public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
@@ -37,7 +36,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	private String systemOwnerQuery = "SELECT DISTINCT ?system (GROUP_CONCAT(DISTINCT ?Owner; SEPARATOR = ', ') AS ?sys_owner) WHERE { SELECT DISTINCT ?system (SUBSTR(STR(?owner),50) AS ?Owner) WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?owner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>} {?system <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } BINDINGS ?system {@BINDINGS_STRING@} } GROUP BY ?system";
 	private String systemBudgetQuery = "SELECT DISTINCT ?system ?year ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systembudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?system <http://semoss.org/ontologies/Relation/Has> ?systembudget} {?year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> } {?systembudget <http://semoss.org/ontologies/Relation/OccursIn> ?year} {?systembudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?cost} } BINDINGS ?system {@BINDINGS_STRING@}";
 	private String systemInterfaceModCostQuery = "SELECT DISTINCT ?system ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> ?cost} } BINDINGS ?system {@BINDINGS_STRING@}";
-	private String systemHWSWcostQuery = "SELECT DISTINCT ?system (sum(?cost) AS ?total_cost) WHERE { { SELECT DISTINCT ?system ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systembudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?system <http://semoss.org/ontologies/Relation/Has> ?systembudget} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?systembudget <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?systembudget <http://semoss.org/ontologies/Relation/Contains/OldPrositeCost> ?cost} } BINDINGS ?gltag { (<http://health.mil/ontologies/Concept/GLTag/SW_Maint>)(<http://health.mil/ontologies/Concept/GLTag/HW>) } } UNION { SELECT DISTINCT ?system ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?sysSer <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?sysSer} {?sysSerBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem>} {?sysSer <http://semoss.org/ontologies/Relation/Has> ?sysSerBudget} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?sysSerBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?sysSerBudget <http://semoss.org/ontologies/Relation/Contains/SelfReportCost> ?cost} } BINDINGS ?gltag { (<http://health.mil/ontologies/Concept/GLTag/SW_Maint>)(<http://health.mil/ontologies/Concept/GLTag/HW>) } } } BINDINGS ?system {@BINDINGS_STRING@}";
+	private String systemHWSWcostQuery = "SELECT ?System (SUM(COALESCE(?swTotalCost, 0) + COALESCE( ?hwTotalCost, 0)) AS ?total) WHERE { { SELECT DISTINCT ?System (COALESCE(?unitcost*?Quantity,0) AS ?swTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?SoftwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>} {?SoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?SoftwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?System ?Has ?SoftwareModule} {?SoftwareModule ?TypeOf ?SoftwareVersion} {?SoftwareVersion <http://semoss.org/ontologies/Relation/Contains/EOL> ?SoftVEOL} {?SoftwareModule <http://semoss.org/ontologies/Relation/Contains/EOL> ?SoftMEOL} {?SoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } UNION  {SELECT DISTINCT ?System (COALESCE(?unitcost*?Quantity,0) AS ?hwTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?HardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?HardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?System ?Has ?HardwareModule} {?HardwareModule ?TypeOf ?HardwareVersion } {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/EOL> ?HardVEOL} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/EOL> ?HardMEOL} {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } } GROUP BY ?System BINDINGS ?System {@BINDINGS_STRING@}";	
 	private String systemDIACAPQuery = "SELECT DISTINCT ?system ?ato WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } BINDINGS ?system {@BINDINGS_STRING@}";
 	
 	ArrayList<String> lpiSystemList = new ArrayList<String>();
@@ -49,6 +48,11 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	Hashtable<String, Object> diacapHashtable = new Hashtable<String, Object>(); //systemName -> diacapDate
 
 	private IEngine TAP_Portfolio;
+	
+	@Override
+	public void createView(){
+		Utility.showMessage("Success");
+	}
 	
 	@Override
 	public void createData() {
@@ -134,7 +138,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		}
 
 		this.budgetHashtable = getBudgetHashtable(this.systemBudgetQuery, bindingsString, TAP_Portfolio);
-		this.hwswHashtable = getHashtable(this.systemHWSWcostQuery, bindingsString, TAP_Portfolio);
+		this.hwswHashtable = getHashtable(this.systemHWSWcostQuery, bindingsString, this.engine);
 		this.ownerHashtable = getHashtable(this.systemOwnerQuery, bindingsString, this.engine);
 		this.interfaceModHashtable = getHashtable(this.systemInterfaceModCostQuery, bindingsString, this.engine);
 		this.diacapHashtable = getHashtable(this.systemDIACAPQuery, bindingsString, this.engine);
@@ -144,7 +148,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	private void createTable(){
 		logger.info("Creating table");
 		//use hashtables and arrayLists for generating the report
-		ConsolidatedSystemReportWriter writer = new ConsolidatedSystemReportWriter(lpiSystemList, lpiSystemList, ownerHashtable, budgetHashtable, diacapHashtable, diacapHashtable, diacapHashtable);
+		ConsolidatedSystemReportWriter writer = new ConsolidatedSystemReportWriter(lpiSystemList, lpniSystemList, ownerHashtable, budgetHashtable, this.hwswHashtable, this.interfaceModHashtable, diacapHashtable);
 		writer.runWriter();
 		
 	}
@@ -165,7 +169,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String key = sjss.getVar(names[0]).toString();
+			String key = sjss.getRawVar(names[0]).toString();
 			Object value = sjss.getVar(names[1]);
 			retHash.put(key, value);
 		}
@@ -181,12 +185,18 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String key = sjss.getVar(names[0]).toString();
-			Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
+			String key = sjss.getRawVar(names[0]).toString();
+			Hashtable<String, Double> innerHash = retHash.get(key);
+			if(innerHash == null){
+				innerHash = new Hashtable<String, Double>();
+			}
 			
 			String innerKey = sjss.getVar(names[1]).toString();
-			Double innerValue = (Double) sjss.getVar(names[2]);
-			innerHash.put(innerKey, innerValue);
+			Object value = sjss.getVar(names[2]);
+			if(value instanceof Double){
+				Double innerValue = (Double) value;
+				innerHash.put(innerKey, innerValue);
+			}
 			
 			retHash.put(key, innerHash);
 		}
@@ -201,8 +211,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			BigdataURIImpl sysRawURI = (BigdataURIImpl)sjss.getRawVar(names[0]);
-			String sysURI = sysRawURI.stringValue();
+			String sysURI = sjss.getRawVar(names[0]) + "";
 			retArray.add(sysURI);
 		}
 		return retArray;
