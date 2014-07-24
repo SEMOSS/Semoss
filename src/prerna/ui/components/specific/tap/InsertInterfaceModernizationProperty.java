@@ -23,13 +23,13 @@ public class InsertInterfaceModernizationProperty {
 	private String totalDirectCostKey = "directCost";
 	private String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
-	private IEngine hr_Core;
+	private IEngine HR_Core;
 
 	public void insert() throws EngineException
 	{
 		try{
-			hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-			if(hr_Core==null)
+			HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			if(HR_Core==null)
 				throw new EngineException("Database not found");
 		} catch(EngineException e) {
 			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
@@ -40,8 +40,8 @@ public class InsertInterfaceModernizationProperty {
 
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
-		HashSet<String> lpiList = runListQuery(hr_Core, lpiSysListQuery);
-		HashSet<String> lpniList = runListQuery(hr_Core, lpniSysListQuery);
+		HashSet<String> lpiList = runListQuery(HR_Core, lpiSysListQuery);
+		HashSet<String> lpniList = runListQuery(HR_Core, lpniSysListQuery);
 
 		IndividualSystemTransitionReport generateCostInfo = new IndividualSystemTransitionReport();
 
@@ -51,7 +51,9 @@ public class InsertInterfaceModernizationProperty {
 		}
 		
 		generateCostInfo.setTAP_Cost_Data(TAP_Cost);
+		generateCostInfo.setHR_Core(HR_Core);
 		generateCostInfo.getCostInfo();
+		generateCostInfo.getLPNIInfo();
 
 		for(String sysURI : lpiList) {
 			generateCostInfo.setSystemURI(sysURI);
@@ -80,8 +82,8 @@ public class InsertInterfaceModernizationProperty {
 
 	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) 
 	{
-		( (BigDataEngine) hr_Core).addStatement(sub, pred, obj, concept_triple);
-		( (BigDataEngine) hr_Core).commit();
+		( (BigDataEngine) HR_Core).addStatement(sub, pred, obj, concept_triple);
+		( (BigDataEngine) HR_Core).commit();
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
 
