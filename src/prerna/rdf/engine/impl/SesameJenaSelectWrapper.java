@@ -225,7 +225,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 						retSt.setVar(var[colIndex], "");
 						continue;
 					}
-					retSt.setRawVar(var[colIndex], ((Value)val).stringValue());
+					retSt.setRawVar(var[colIndex], val);
 					logger.debug("Binding Name " + var[colIndex]);
 					logger.debug("Binding Value " + value);
 				}
