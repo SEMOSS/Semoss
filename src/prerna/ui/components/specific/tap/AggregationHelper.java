@@ -245,11 +245,6 @@ public class AggregationHelper implements IAggregationHelper {
 	// general methods for properties
 	public Object[] processSumValues(String sub, String prop, Object value)
 	{
-		if(!(value instanceof Double)) {
-			this.errorMessage = "Error Processing Sum Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
 		try
 		{
 			((Literal) value).doubleValue();
@@ -311,11 +306,6 @@ public class AggregationHelper implements IAggregationHelper {
 
 	public Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max)
 	{
-		if(!(value instanceof Double)) {
-			this.errorMessage = "Error Processing Max/Min Double. Please check value of Double. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
 		try
 		{
 			((Literal) value).doubleValue();
@@ -373,11 +363,6 @@ public class AggregationHelper implements IAggregationHelper {
 
 	public Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest) 
 	{
-		if(!(value instanceof Literal)) {
-			this.errorMessage = "Error Processing Max/Min Date. Please check value of Date. " 
-					+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;	
-			return new String[]{""};
-		}
 		try
 		{
 			((Literal) value).calendarValue();
