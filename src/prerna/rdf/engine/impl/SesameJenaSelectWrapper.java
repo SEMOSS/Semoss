@@ -28,6 +28,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.TupleQueryResult;
@@ -45,7 +46,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes SELECT statements. 
  */
 public class SesameJenaSelectWrapper extends AbstractWrapper{
-	transient TupleQueryResult tqr = null;
+	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;
 	transient Enum engineType = IEngine.ENGINE_TYPE.SESAME;
 	transient QuerySolution curSt = null;	
@@ -53,6 +54,8 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	transient String query = null;
 	transient Logger logger = Logger.getLogger(getClass());
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
+	transient SesameJenaSelectStatement retSt = null;
+	transient ObjectInputStream ris = null;
 	String [] var = null;
 	
 	/**
@@ -92,6 +95,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 			// this is json output
 			System.out.println("Trying to get the wrapper remotely now");
 			remoteWrapperProxy = (SesameJenaSelectWrapper)engine.execSelectQuery(query);
+			var = remoteWrapperProxy.var;
 			System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 		}
 	}
@@ -149,14 +153,26 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
+				if(retSt != null) // this means they have not picked it up yet
+					return true;
+				retSt = new SesameJenaSelectStatement();
+				
 				// I need to pull from remote
 				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteID());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/hasNext", params);
-				Gson gson = new Gson();
-				retBool = gson.fromJson(output, Boolean.class); // cleans up automatically at the remote end
+				if(ris == null)
+				{
+					Hashtable params = new Hashtable<String,String>();
+					params.put("id", remoteWrapperProxy.getRemoteID());
+					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
+				}	
+				Object myObject = ris.readObject();
+				if(!myObject.toString().equalsIgnoreCase("null"))
+				{
+					BindingSet bs = (BindingSet)myObject;
+					//System.out.println("Proceeded to first");
+					retSt = getSJSSfromBinding(bs);
+					retBool = true;
+				}
 			}
 
 		}catch(Exception ex)
@@ -174,64 +190,20 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	 * */
 	public SesameJenaSelectStatement next()
 	{
-		SesameJenaSelectStatement retSt = new SesameJenaSelectStatement();
-		retSt.remote = remote;
+		//retSt.remote = remote;
+		SesameJenaSelectStatement thisSt = null;
 		try
 		{
 			if(engineType == IEngine.ENGINE_TYPE.SESAME)
 			{
+				thisSt = new SesameJenaSelectStatement();
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
-				for(int colIndex = 0;colIndex < var.length;colIndex++)
-				{
-					Object val = bs.getValue(var[colIndex]);
-					Double weightVal = null;
-					String dateStr=null;
-					String stringVal = null;
-					try
-					{
-						if(val != null && val instanceof Literal)
-						{
-							if(QueryEvaluationUtil.isStringLiteral((Value) val)){
-								stringVal = ((Literal)val).getLabel();
-							}
-							else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
-								dateStr = (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
-							}
-							else{
-								logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-								weightVal = new Double(((Literal)val).doubleValue());
-							}
-						}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
-						{
-							logger.debug("Class is " + val.getClass());
-							weightVal = new Double(((Literal)val).doubleValue());
-						}
-					}catch(Exception ex)
-					{
-						logger.debug(ex);
-					}
-					String value = bs.getValue(var[colIndex])+"";
-					String instanceName = Utility.getInstanceName(value);
-					if(weightVal == null && dateStr==null && stringVal==null && val != null)
-						retSt.setVar(var[colIndex], instanceName);
-					else if (weightVal != null)
-						retSt.setVar(var[colIndex], weightVal);
-					else if (dateStr != null)
-						retSt.setVar(var[colIndex], dateStr);
-					else if (stringVal != null)
-						retSt.setVar(var[colIndex], stringVal);
-					else if(val == null) {
-						retSt.setVar(var[colIndex], "");
-						continue;
-					}
-					retSt.setRawVar(var[colIndex], val);
-					logger.debug("Binding Name " + var[colIndex]);
-					logger.debug("Binding Value " + value);
-				}
+				thisSt = getSJSSfromBinding(bs);
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.JENA)
 			{
+				thisSt = new SesameJenaSelectStatement();
 			    QuerySolution row = rs.nextSolution();
 			    curSt = row; 
 				String [] values = new String[var.length];
@@ -243,7 +215,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 					{
 						logger.debug("Ok.. an anon node");
 						String id = Utility.getNextID();
-						retSt.setVar(var[colIndex], id);
+						thisSt.setVar(var[colIndex], id);
 					}
 					else
 					{
@@ -260,30 +232,68 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				// unserialize directly from the java object
-				
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteID());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/next", params);
-				Gson gson = new Gson();
-				retSt = gson.fromJson(output, SesameJenaSelectStatement.class); // cleans up automatically at the remote end
-				
-				// set the objects back
-				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(retSt.serialRep)));
-				Hashtable retTab = (Hashtable)ois.readObject();
-				retSt.setPropHash(retTab);
-				retTab = (Hashtable) ois.readObject();
-				retSt.setRawPropHash(retTab);
+				thisSt = retSt;
+				retSt = null;
 			}
 
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
-		return retSt;
+		return thisSt;
+	}
+	
+	private SesameJenaSelectStatement getSJSSfromBinding(BindingSet bs)
+	{
+		SesameJenaSelectStatement sjss = new SesameJenaSelectStatement();
+		for(int colIndex = 0;colIndex < var.length;colIndex++)
+		{
+			Object val = bs.getValue(var[colIndex]);
+			Double weightVal = null;
+			String dateStr=null;
+			String stringVal = null;
+			try
+			{
+				if(val != null && val instanceof Literal)
+				{
+					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
+						stringVal = ((Literal)val).getLabel();
+					}
+					else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
+						dateStr = (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
+					}
+					else{
+						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+						weightVal = new Double(((Literal)val).doubleValue());
+					}
+				}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
+				{
+					logger.debug("Class is " + val.getClass());
+					weightVal = new Double(((Literal)val).doubleValue());
+				}
+			}catch(Exception ex)
+			{
+				logger.debug(ex);
+			}
+			String value = bs.getValue(var[colIndex])+"";
+			String instanceName = Utility.getInstanceName(value);
+			if(weightVal == null && dateStr==null && stringVal==null && val != null)
+				sjss.setVar(var[colIndex], instanceName);
+			else if (weightVal != null)
+				sjss.setVar(var[colIndex], weightVal);
+			else if (dateStr != null)
+				sjss.setVar(var[colIndex], dateStr);
+			else if (stringVal != null)
+				sjss.setVar(var[colIndex], stringVal);
+			else if(val == null) {
+				sjss.setVar(var[colIndex], "");
+				continue;
+			}
+			sjss.setRawVar(var[colIndex], val);
+			logger.debug("Binding Name " + var[colIndex]);
+			logger.debug("Binding Value " + value);
+		}		
+		return sjss;
 	}
 
 	/**
@@ -398,8 +408,8 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	{
 		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
 		engine.setAPI("http://localhost:9080/Monolith/api/engine");
-		engine.setDatabase("Olympics");
-		engine.setEngineName("Olympics");
+		engine.setDatabase("Movie_DB");
+		engine.setEngineName("Movie_DB");
 		
 		engine.openDB(null);
 		

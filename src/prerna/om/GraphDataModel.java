@@ -196,11 +196,11 @@ public class GraphDataModel {
 			StringBuffer subjects = new StringBuffer("");
 			StringBuffer predicates = new StringBuffer("");
 			StringBuffer objects = new StringBuffer("");
-			if(!sjw.hasNext())
-			{
-				logger.info("Came into not having ANY data"); 
-				return;
-			}
+			//if(!sjw.hasNext())
+			//{
+			//	logger.info("Came into not having ANY data"); 
+			//	return;
+			//}
 			while(sjw.hasNext())
 			{
 				// read the subject predicate object
