@@ -18,11 +18,8 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Statement;
@@ -50,9 +47,11 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 	transient Enum engineType = IEngine.ENGINE_TYPE.SESAME;
 	transient String query = null;
 	transient com.hp.hpl.jena.rdf.model.Statement curSt = null;
+	transient SesameJenaConstructStatement retSt = null;
 	public transient boolean queryBoolean = true;
 	transient Logger logger = Logger.getLogger(getClass());
 	transient SesameJenaConstructWrapper remoteWrapperProxy = null;
+	transient ObjectInputStream ris = null;// remote input stream
 	
 	
 	
@@ -103,7 +102,8 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 			{
 				// get the actual SesameJenaConstructWrapper from the engine
 				// this is json output
-				System.out.println("Trying to get the wrapper remotely now");
+				//System.out.println("Trying to get the wrapper remotely now");
+				// get the input stream directly here
 				remoteWrapperProxy = (SesameJenaConstructWrapper)engine.execGraphQuery(query);
 			}
 		} catch (Exception e) {
@@ -148,15 +148,44 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 			// need to include an engine type remote so that it can pull it through REST API
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
+				if(retSt != null) // they have not picked it up yet
+					return true;
+				retSt = new SesameJenaConstructStatement();
 				// I need to pull from remote
 				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
+				if(ris == null)
+				{
+					Hashtable params = new Hashtable<String,String>();
+					params.put("id", remoteWrapperProxy.getRemoteID());
+					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
+				}					
+				try {
+					Object myObject = ris.readObject();
+					
+					if(!myObject.toString().equalsIgnoreCase("null"))
+					{
+						Statement stmt = (Statement)myObject;
+						retSt.setSubject(stmt.getSubject()+"");
+						retSt.setObject(stmt.getObject());
+						retSt.setPredicate(stmt.getPredicate() + "");
+						//System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
+						retBool = true;
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					retSt = null;
+					retBool = false;
+				}
+
+				
+				/*Hashtable params = new Hashtable<String,String>();
 				params.put("id", remoteWrapperProxy.getRemoteID());
 				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteID());
 				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/hasNext", params);
 				Gson gson = new Gson();
 				retBool = gson.fromJson(output, Boolean.class); // cleans up automatically at the remote end
-				
+				*/
 				
 			}
 			
@@ -176,20 +205,22 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 	 */
 	public SesameJenaConstructStatement next()
 	{
-		SesameJenaConstructStatement retSt = new SesameJenaConstructStatement();
+		SesameJenaConstructStatement thisSt = null;
 		try
 		{
 			if(engineType == IEngine.ENGINE_TYPE.SESAME)
 			{
+				thisSt = new SesameJenaConstructStatement();
 				logger.debug("Adding a sesame statement ");
 				Statement stmt = gqr.next();
-				retSt.setSubject(stmt.getSubject()+"");
-				retSt.setObject(stmt.getObject());
-				retSt.setPredicate(stmt.getPredicate() + "");
+				thisSt.setSubject(stmt.getSubject()+"");
+				thisSt.setObject(stmt.getObject());
+				thisSt.setPredicate(stmt.getPredicate() + "");
 				
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.JENA)
 			{
+				thisSt = new SesameJenaConstructStatement();
 				com.hp.hpl.jena.rdf.model.Statement stmt = si.next();
 				logger.debug("Adding a JENA statement ");
 				curSt = stmt;
@@ -197,41 +228,31 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 				Property pred = stmt.getPredicate();
 				RDFNode node = stmt.getObject();
 				if(node.isAnon())
-					retSt.setPredicate(Utility.getNextID());
+					thisSt.setPredicate(Utility.getNextID());
 				else 	
-					retSt.setPredicate(stmt.getPredicate() + "");
+					thisSt.setPredicate(stmt.getPredicate() + "");
 
 				if(sub.isAnon())
-					retSt.setSubject(Utility.getNextID());
+					thisSt.setSubject(Utility.getNextID());
 				else
-					retSt.setSubject(stmt.getSubject()+"");
+					thisSt.setSubject(stmt.getSubject()+"");
 				
 				if(node.isAnon())
-					retSt.setObject(Utility.getNextID());
+					thisSt.setObject(Utility.getNextID());
 				else
-					retSt.setObject(stmt.getObject());
+					thisSt.setObject(stmt.getObject());
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/next", params);
-				Gson gson = new Gson();
-				retSt = gson.fromJson(output, SesameJenaConstructStatement.class); // cleans up automatically at the remote end
-				
-				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(retSt.serialRep)));
-				((SesameJenaConstructStatement)(retSt)).setSubject((String)(ois.readObject()));
-				((SesameJenaConstructStatement)(retSt)).setPredicate((String)(ois.readObject()));
-				((SesameJenaConstructStatement)(retSt)).setObject((Object)(ois.readObject()));
+				thisSt = retSt;
+				retSt = null;
 			}
 
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
-		return retSt;
+		return thisSt;
 	}
 
 	/**
@@ -256,8 +277,8 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 	{
 		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
 		engine.setAPI("http://localhost:9080/Monolith/api/engine");
-		engine.setDatabase("Olympics");
-		engine.setEngineName("Olympics");
+		engine.setDatabase("Movie_DB");
+		engine.setEngineName("Movie_DB");
 		
 		engine.openDB(null);
 		
