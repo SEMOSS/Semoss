@@ -44,7 +44,7 @@ import com.hp.hpl.jena.query.ResultSet;
  */
 public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	
-	transient TupleQueryResult tqr = null;
+	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;	
 	transient Enum engineType = IEngine.ENGINE_TYPE.SESAME;	
 	transient QuerySolution curSt = null;	
@@ -107,6 +107,8 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			// get the actual SesameJenaConstructWrapper from the engine
 			// this is json output
 			System.out.println("Trying to get the wrapper remotely now");
+			processSelectVar();
+			count = 0;
 			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
 		}
 	}
@@ -166,18 +168,68 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
+				if(retSt != null) // they have not taken the previous one yet
+					return true;
+				retSt = new SesameJenaConstructStatement();
+				
 				// I need to pull from remote
 				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", proxy.getRemoteID());
-				System.out.println("ID for remote is " + proxy.getRemoteID());
-				String output = Utility.retrieveResult(proxy.getRemoteAPI() + "/hasNext", params);
-				Gson gson = new Gson();
-				retBool = gson.fromJson(output, Boolean.class); // cleans up automatically at the remote end
+				if(ris == null)
+				{
+					Hashtable params = new Hashtable<String,String>();
+					params.put("id", proxy.getRemoteID());
+					ris = new ObjectInputStream(Utility.getStream(proxy.getRemoteAPI() + "/next", params));
+				}	
+
+				if(count==0)
+				{
+					Object myObject = ris.readObject();
+					if(!myObject.toString().equalsIgnoreCase("null"))
+					{
+						bs = (BindingSet)myObject;
+						retBool = true;
+					}
+					//tqrCount++;
+					//logger.info(tqrCount);
+				}
+				logger.debug("Adding a sesame statement ");
+				
+				// there should only be three values
+
+				Object sub=null;
+				Object pred = null;
+				Object obj = null;
+				while (sub==null || pred==null || obj==null)
+				{
+					if (count==triples)
+					{
+						count=0;
+						Object myObject = ris.readObject();
+						if(!myObject.toString().equalsIgnoreCase("null"))
+						{
+							bs = (BindingSet)myObject;
+							tqrCount++;
+						}
+						//logger.info(tqrCount);
+					}
+					sub = bs.getValue(queryVar[count*3].substring(1));
+					pred = bs.getValue(queryVar[count*3+1].substring(1));
+					obj = bs.getValue(queryVar[count*3+2].substring(1));
+					count++;
+				}
+				retSt.setSubject(sub+"");
+				retSt.setPredicate(pred+"");
+				retSt.setObject(obj);
+				if (count==triples)
+				{
+					count=0;
+				}
+				retBool = true;
 			}
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+			retBool = false;
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
@@ -190,12 +242,14 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	 * */
 	public SesameJenaConstructStatement next()
 	{
-		SesameJenaConstructStatement retSt = new SesameJenaConstructStatement();
+		SesameJenaConstructStatement thisSt = null;
+		
 		try
 		{	
 				
 			if(engineType == IEngine.ENGINE_TYPE.SESAME)
 			{
+				thisSt = new SesameJenaConstructStatement();
 				if(count==0)
 				{
 					bs = tqr.next();
@@ -223,9 +277,9 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 					obj = bs.getValue(queryVar[count*3+2].substring(1));
 					count++;
 				}
-				retSt.setSubject(sub+"");
-				retSt.setPredicate(pred+"");
-				retSt.setObject(obj);
+				thisSt.setSubject(sub+"");
+				thisSt.setPredicate(pred+"");
+				thisSt.setObject(obj);
 				if (count==triples)
 				{
 					count=0;
@@ -233,38 +287,24 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			}
 			else if(engineType == IEngine.ENGINE_TYPE.JENA)
 			{
+				thisSt = new SesameJenaConstructStatement();
 			    logger.debug("Adding a JENA statement ");
 			    QuerySolution row = rs.nextSolution();
-			    retSt.setSubject(row.get(var[0])+"");
-			    retSt.setPredicate(row.get(var[1])+"");
-			    retSt.setObject(row.get(var[2]));
+			    thisSt.setSubject(row.get(var[0])+"");
+			    thisSt.setPredicate(row.get(var[1])+"");
+			    thisSt.setObject(row.get(var[2]));
 			}			
 			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				// unserialize directly from the java object
-				
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", proxy.getRemoteID());
-				String output = Utility.retrieveResult(proxy.getRemoteAPI() + "/next", params);
-				Gson gson = new Gson();
-				retSt = gson.fromJson(output, SesameJenaConstructStatement.class); // cleans up automatically at the remote end
-				
-				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(retSt.serialRep)));
-				((SesameJenaConstructStatement)(retSt)).setSubject((String)(ois.readObject()));
-				((SesameJenaConstructStatement)(retSt)).setPredicate((String)(ois.readObject()));
-				((SesameJenaConstructStatement)(retSt)).setObject((Object)(ois.readObject()));
-
+				thisSt = retSt;
+				retSt = null;
 			}
 
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
-		return retSt;
+		return thisSt;
 	}
 
 	/**
