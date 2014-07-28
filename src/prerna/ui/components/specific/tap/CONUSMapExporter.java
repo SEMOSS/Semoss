@@ -31,7 +31,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.ChartControlPanel;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.CONUSMapPlaySheet;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
@@ -88,13 +87,14 @@ public class CONUSMapExporter {
 	 * Specifies a location for image export and closes the chart.
 	 * @param systemList 	ArrayList containing all of the system names, in string form.
 	 */
-	public void processData(ArrayList<String> systemList)
+	public String processData(ArrayList<String> systemList)
 	{
+		String fileLoc = "";
+		
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "CONUS_Map";
 		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 //		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
-		String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 				
 		ArrayList<String> systemsInSite = systemsInSiteDB();
 //		for(int i=0;i<systemList.size();i++)
@@ -105,7 +105,7 @@ public class CONUSMapExporter {
 		{
 			if(systemsInSite.contains(system))
 			{
-				query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
+				String query = "SELECT DISTINCT ?System ?DCSite ?lat ?lon WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} BIND (<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System){?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }";
 				query=query.replace("AHLTA",system);
 
 				CONUSMapPlaySheet playSheet = new CONUSMapPlaySheet();					
@@ -127,8 +127,11 @@ public class CONUSMapExporter {
 					String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 					String folder = "\\export\\Images\\";
 					String writeFileName = system+"_CONUS_Map_Export.png";
-					String fileLoc = workingDir + folder+writeFileName;
-					
+					if(fileLoc.equals("")){
+						fileLoc += workingDir + folder + writeFileName;
+					} else {
+						fileLoc += ";" + workingDir + folder + writeFileName;
+					}
 					//call chartimageexportlistener to export the conusmap. and then close the chart.
 					ChartControlPanel chartControl= ((CONUSMapPlaySheet)playSheet).getControlPanel();
 					JButton btnImageExport = chartControl.getImageExportButton();
@@ -145,11 +148,10 @@ public class CONUSMapExporter {
 					} catch (PropertyVetoException e) {
 						e.printStackTrace();
 					}
-	
 				}
-
 			}
 		}
-
+		
+		return fileLoc;
 	}
 }

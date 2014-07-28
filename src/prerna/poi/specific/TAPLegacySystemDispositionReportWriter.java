@@ -1,6 +1,8 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -8,22 +10,30 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
-import org.apache.poi.hssf.util.CellRangeAddressList;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.util.IOUtils;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.itextpdf.text.Anchor;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.specific.tap.IndividualSystemTransitionReport;
+import prerna.ui.components.specific.tap.OCONUSMapExporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -69,6 +79,8 @@ public class TAPLegacySystemDispositionReportWriter {
 	private int atoYear;
 	private int atoRenewalYear;
 	
+	private IndividualSystemTransitionReport report;
+	
 	public TAPLegacySystemDispositionReportWriter(String sysURI) throws EngineException {
 		this.sysURI = sysURI;
 		this.sysName = Utility.getInstanceName(sysURI.replace(">", "").replace("<", ""));
@@ -105,23 +117,59 @@ public class TAPLegacySystemDispositionReportWriter {
 		writeTransitionAnalysis();
 		ArrayList<Double> costInfo = writeModernizationActivities();
 		writeModernizationTimeline(costInfo);
-		//		writeInterfaceSummary();
-		//		writeSystemDeployment();		
+		writeInterfaceSummary();
+		writeSystemDeployment();		
 		String fileName = "TAP_Legacy_System_Dispositions_" + sysName + ".xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
 	}
 
 	private void writeSystemDeployment() {
 		// TODO Auto-generated method stub
+		OCONUSMapExporter imageExporter = new OCONUSMapExporter();
+		ArrayList<String> listWithSysName = new ArrayList<String>();
+		listWithSysName.add(sysName);
+		String imageLoc = imageExporter.processData(listWithSysName);
+		
+		try {
+			FileInputStream inputStream = new FileInputStream(imageLoc); //FileInputStream obtains input bytes from the image file
+			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
+			int pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
+			inputStream.close();
 
+			CreationHelper helper = wb.getCreationHelper(); //Returns an object that handles instantiating concrete classes
+			XSSFClientAnchor anchor = (XSSFClientAnchor) helper.createClientAnchor(); //Create an anchor that is attached to the worksheet
+			anchor.setCol1(1); //select where to put the picture
+			anchor.setRow1(24);
+			anchor.setDx1((short)5*36000);
+			anchor.setDy1((short)5*36000);
+
+			Drawing drawing = reportSheet.createDrawingPatriarch(); //Creates the top-level drawing patriarch, specify sheet to draw on
+			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
+			pict.resize(0.6196);
+		} catch (FileNotFoundException e){
+			logger.info("CONUS Map image not found for this system");
+		} catch (IOException e) {
+			logger.info("CONUS Map image not found for this system");
+		}
 	}
 
 	private void writeInterfaceSummary() {
-		// TODO Auto-generated method stub
-
+		if(report == null) {
+			report = new IndividualSystemTransitionReport();
+		}
+		report.setSystemName(sysName);
+		//pass in empty hashmap and method automatically creates the required hash
+		HashMap<String, Object> barHash = new HashMap<String, Object>();
+		barHash = report.createInterfaceBarChart(barHash);
+		
+		XSSFSheet chartSheet = wb.getSheetAt(1);
+		int[] dataList = (int[])barHash.get("data");
+		for(int i = 0; i < dataList.length; i++)
+		{
+			chartSheet.getRow(1+i).getCell(1).setCellValue(dataList[i]);
+		}
 	}
 
-	// add ato info
 	private void writeModernizationTimeline(ArrayList<Double> costInfo) {
 		Double hwswCost = costInfo.get(0);
 		Double interfaceModCost = costInfo.get(1);
@@ -194,7 +242,6 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	//TODO: add ato logic
 	private ArrayList<Double> writeModernizationActivities() {
 		generateModernizationActivitiesData();
 		Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
@@ -255,7 +302,6 @@ public class TAPLegacySystemDispositionReportWriter {
 		costInfo.add(interfaceModCost);
 
 		return costInfo;
-
 	}
 
 	private void generateModernizationActivitiesData() {
@@ -299,7 +345,6 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 	
-	//DONE
 	private void writeTransitionAnalysis() {
 		String lpiDescription = "LPI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
 		String lpniDescription = "LPNI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
@@ -338,7 +383,6 @@ public class TAPLegacySystemDispositionReportWriter {
 		return retList;
 	}
 
-	//TODO: NEED TO ADD LOGIC FOR ATO DATE
 	private void writeBasicSysDescription() {
 		basicSysInfoQuery = basicSysInfoQuery.replace(bindingsKey, sysURI);
 		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, basicSysInfoQuery);
@@ -402,7 +446,6 @@ public class TAPLegacySystemDispositionReportWriter {
 				//ignore
 			}
 		}
-
 		reportSheet.getRow(3).getCell(1).setCellValue(sysName);
 		reportSheet.getRow(3).getCell(3).setCellValue(description.replace("_", " "));
 		reportSheet.getRow(4).getCell(3).setCellValue(sysOwner);
