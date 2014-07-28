@@ -530,7 +530,8 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public Properties loadProp(String fileName) throws Exception {
 		Properties retProp = new Properties();
-		retProp.load(new FileInputStream(fileName));
+		if(fileName != null)
+			retProp.load(new FileInputStream(fileName));
 		logger.info("Properties >>>>>>>>" + prop);
 		return retProp;
 	}
