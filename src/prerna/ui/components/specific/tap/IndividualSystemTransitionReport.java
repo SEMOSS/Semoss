@@ -297,7 +297,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	}
 
 	@SuppressWarnings("unchecked")
-	private HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
+	public HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash)
 	{
 		// run interface report if object passed in is empty
 		if(sysLPIInterfaceHash == null || sysLPIInterfaceHash.isEmpty()) {

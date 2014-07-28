@@ -41,7 +41,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	 */
 	public OCONUSMapPlaySheet() {
 		super();
-		this.setPreferredSize(new Dimension(800,600));
+		this.setPreferredSize(new Dimension(1600,1150));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/worldmap.html";
 	}
