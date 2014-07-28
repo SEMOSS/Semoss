@@ -28,6 +28,7 @@ import java.util.Vector;
 
 import javax.xml.bind.DatatypeConverter;
 
+
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 
 import com.google.gson.GsonBuilder;
@@ -133,7 +134,8 @@ public class GsonTester {
 //			byte [] repData = BASE64Decoder.decodeBuffer( byteRep );
 			Hashtable retTab = (Hashtable) new ObjectInputStream(new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(byteRep))).readObject();
 			System.out.println("Ret Tab is " + retTab);
-			
+
+
 			
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
