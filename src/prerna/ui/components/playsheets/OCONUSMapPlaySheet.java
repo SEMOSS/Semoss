@@ -27,6 +27,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  * The Play Sheet for Outside the Continental United States (OCONUS) geo-location data.  
@@ -45,10 +46,10 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/worldmap.html";
 	}
-	
+
 	/**
 	 * Method processQueryData. Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
-	
+
 	 * @return Hashtable - A Hashtable of the queried Continental United States data to be converted into json format.  
 	 * The data must be in the format lat, lon, size, and must include any relevant properties for the coordinate.
 	 */
@@ -56,9 +57,9 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	{
 		data = new HashSet();
 		String[] var = wrapper.getVariables(); 	
-		
+
 		//Possibly filter out all US Facilities from the query?
-		
+
 		for (int i=0; i<list.size(); i++)
 		{	
 			LinkedHashMap elementHash = new LinkedHashMap();
@@ -69,24 +70,24 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 			{	
 				colName = var[j];
 				elementHash.put("size", 1000000);
-						if (listElement[j] instanceof String)
-						{	
-							String text = (String) listElement[j];
-							elementHash.put(colName, text);
-						}
-						else 
-						{	
-							value = (Double) listElement[j];							
-							elementHash.put(colName, value);
-						}
-								
+				if (listElement[j] instanceof String)
+				{	
+					String text = (String) listElement[j];
+					elementHash.put(colName, text);
+				}
+				else 
+				{	
+					value = (Double) listElement[j];							
+					elementHash.put(colName, value);
+				}
+
 			}	
-				data.add(elementHash);			
+			data.add(elementHash);			
 		}
 
 		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
-		
+
 		allHash.put("lat", "lat" );
 		allHash.put("lon", "lon");
 		allHash.put("size", "size");
@@ -94,26 +95,26 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		/*allHash.put("xAxisTitle", var[0]);
 		allHash.put("yAxisTitle", var[1]);
 		allHash.put("value", var[2]);*/
-		
-		
+
+
 		return allHash;
 	}
-	
+
 	@Override
 	/**
 	 * Method callIt.  Converts a given Hashtable to a Json and passes it to the browser.
 	 * @param table Hashtable - the correctly formatted data from the SPARQL query results.
 	 */
-	public void callIt(Hashtable table)
+	public void callIt(final Hashtable table)
 	{
 		output = table;
 		Gson gson = new Gson();
-		//logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
+		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
 
-		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		output.clear();
 		allHash.clear();
 		data.clear();
 	}
+
 }

@@ -21,8 +21,6 @@ package prerna.ui.components.playsheets;
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.beans.PropertyVetoException;
 import java.util.HashSet;
 import java.util.Hashtable;
