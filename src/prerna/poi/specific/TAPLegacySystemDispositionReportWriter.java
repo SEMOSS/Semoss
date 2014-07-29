@@ -1,9 +1,14 @@
 package prerna.poi.specific;
 
+import java.awt.Font;
+import java.awt.font.FontRenderContext;
+import java.awt.font.LineBreakMeasurer;
+import java.awt.font.TextAttribute;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.AttributedString;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -22,6 +27,7 @@ import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -46,8 +52,9 @@ public class TAPLegacySystemDispositionReportWriter {
 	//queries to determine type of system being passed in
 	private String lpiListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
 	private String lpniListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-	private String hpListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} } BINDINGS ?Probability {('High')('Question')}";
-
+	private HashSet<String> lpiList = new HashSet<String>();
+	private HashSet<String> lpniList = new HashSet<String>();
+	
 	//query for basic sys information
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
 
@@ -79,9 +86,21 @@ public class TAPLegacySystemDispositionReportWriter {
 	
 	private IndividualSystemTransitionReport report;
 	
+	public TAPLegacySystemDispositionReportWriter() throws EngineException {
+		HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
+
+		if(HR_Core == null) {
+			throw new EngineException("Could not find HR_Core database.\nPlease load the appropriate database to produce report");
+		}
+		if(TAP_Portfolio == null){
+			throw new EngineException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
+		}
+	}
+	
 	public TAPLegacySystemDispositionReportWriter(String sysURI) throws EngineException {
-		this.sysURI = sysURI;
-		this.sysName = Utility.getInstanceName(sysURI.replace(">", "").replace("<", ""));
+		this.sysURI = sysURI.replace(">", "").replace("<", "");
+		this.sysName = Utility.getInstanceName(this.sysURI);
 
 		HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
@@ -96,7 +115,6 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	public void writeToExcel() throws FileReaderException
 	{
-
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = "\\export\\Reports\\";
 		String templateName = "TAP_Legacy_System_Dispositions_Template.xlsx";
@@ -143,7 +161,7 @@ public class TAPLegacySystemDispositionReportWriter {
 
 			Drawing drawing = reportSheet.createDrawingPatriarch(); //Creates the top-level drawing patriarch, specify sheet to draw on
 			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
-			pict.resize(0.6196);
+			pict.resize(0.62);
 		} catch (FileNotFoundException e){
 			logger.info("CONUS Map image not found for this system");
 		} catch (IOException e) {
@@ -176,19 +194,21 @@ public class TAPLegacySystemDispositionReportWriter {
 
 		generateSysBudgetData();
 		Hashtable<String, Object> innerHash = sysBudgetHash.get(sysName);
-		String[] yearData = new String[]{"FY15", "FY16", "FY17", "FY18", "FY19"};
-
-		int offSet = 9;
-		for(int i = 0; i < yearData.length; i++) {
-			Object value = innerHash.get(yearData[i]);
-			if(value == null) {
-				value = (double) 0;
-			} else {
-				try {
-					value = Double.parseDouble(value.toString());
-					reportSheet.getRow(14).getCell(offSet + i).setCellValue((Double) value);
-				} catch (NumberFormatException ex) {
-					reportSheet.getRow(14).getCell(offSet + i).setCellValue(value.toString().replace("_", " "));
+		if(innerHash != null) 
+		{
+			String[] yearData = new String[]{"FY15", "FY16", "FY17", "FY18", "FY19"};		
+			int offSet = 9;
+			for(int i = 0; i < yearData.length; i++) {
+				Object value = innerHash.get(yearData[i]);
+				if(value == null) {
+					value = (double) 0;
+				} else {
+					try {
+						value = Double.parseDouble(value.toString());
+						reportSheet.getRow(14).getCell(offSet + i).setCellValue((Double) value);
+					} catch (NumberFormatException ex) {
+						reportSheet.getRow(14).getCell(offSet + i).setCellValue(value.toString().replace("_", " "));
+					}
 				}
 			}
 		}
@@ -346,35 +366,32 @@ public class TAPLegacySystemDispositionReportWriter {
 	private void writeTransitionAnalysis() {
 		String lpiDescription = "LPI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
 		String lpniDescription = "LPNI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
-		String hpDescription = "HP systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM solution.";
 
-		HashSet<String> lpiList = processSingleUniqueReturnQuery(HR_Core, lpiListQuery);
-		if(lpiList.contains(sysName)){
+		if(lpiList.isEmpty()) {
+			lpiList = processSingleUniqueReturnQuery(HR_Core, lpiListQuery);
+		} 
+		if(lpiList.contains(sysURI)){
 			reportSheet.getRow(8).getCell(3).setCellValue("Low Probability with Integration (LPI)");
 			reportSheet.getRow(8).getCell(6).setCellValue(lpiDescription);
 		} else {
-			HashSet<String> lpniList = processSingleUniqueReturnQuery(HR_Core, lpniListQuery);
-			if(lpniList.contains(sysName)) {
+			if(lpniList.isEmpty()) {
+				lpniList = processSingleUniqueReturnQuery(HR_Core, lpniListQuery);
+			}
+			if(lpniList.contains(sysURI)) {
 				reportSheet.getRow(8).getCell(3).setCellValue("Low Probability without Integration (LPNI)");
 				reportSheet.getRow(8).getCell(6).setCellValue(lpniDescription);
-			} else {
-				HashSet<String> hpList = processSingleUniqueReturnQuery(HR_Core, hpListQuery);
-				if(hpList.contains(sysName)) {
-					reportSheet.getRow(8).getCell(3).setCellValue("High Probability (HP)");
-					reportSheet.getRow(8).getCell(6).setCellValue(hpDescription);
-				}
-			}
+			} 
 		}
 	}
 
-	private HashSet<String> processSingleUniqueReturnQuery(IEngine engine, String query) {
+	public HashSet<String> processSingleUniqueReturnQuery(IEngine engine, String query) {
 		HashSet<String> retList = new HashSet<String>();
 
 		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String entity = sjss.getVar(varName[0]).toString();
+			String entity = sjss.getRawVar(varName[0]).toString();
 			retList.add(entity);
 		}
 
@@ -382,8 +399,8 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 
 	private void writeBasicSysDescription() {
-		basicSysInfoQuery = basicSysInfoQuery.replace(bindingsKey, sysURI);
-		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, basicSysInfoQuery);
+		String query = basicSysInfoQuery.replace(bindingsKey, "<" + sysURI + ">");
+		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, query);
 		String[] varNames = sjsw.getVariables();
 		// output binds to a single system - query should only return one line
 		// if query returns nothing, never executed
@@ -444,14 +461,34 @@ public class TAPLegacySystemDispositionReportWriter {
 				//ignore
 			}
 		}
-		reportSheet.getRow(3).getCell(1).setCellValue(sysName);
-		reportSheet.getRow(3).getCell(3).setCellValue(description.replace("_", " "));
+		reportSheet.getRow(3).getCell(1).setCellValue(sysName.replaceAll("_", " "));
+		reportSheet.getRow(3).getCell(3).setCellValue(description.replaceAll("_", " "));
+		// to autosize description row height
+		Font currFont = new Font("Calibri", Font.PLAIN, 10);
+		AttributedString attrStr = new AttributedString(description);
+		attrStr.addAttribute(TextAttribute.FONT, currFont);
+		FontRenderContext frc = new FontRenderContext(null, true, true);
+		LineBreakMeasurer measurer = new LineBreakMeasurer(attrStr.getIterator(), frc);
+		int nextPos = 0;
+		int lineCnt = 0;
+		while (measurer.getPosition() < description.length())
+		{
+		    nextPos = measurer.nextOffset(920f); // mergedCellWidth is the max width of each line
+		    lineCnt++;
+		    measurer.setPosition(nextPos);
+		}
+		XSSFRow currRow = reportSheet.getRow(3);
+		if(lineCnt < 3){
+			lineCnt = 3;
+		}
+		currRow.setHeight((short)(currRow.getHeight() * lineCnt));
+		// end autosize description row height
 		reportSheet.getRow(4).getCell(3).setCellValue(sysOwner);
 		reportSheet.getRow(5).getCell(3).setCellValue(ato);
 		reportSheet.getRow(5).getCell(10).setCellValue(atoRenewalDate);
 	}
 
-	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
+	private SesameJenaSelectWrapper processQuery(IEngine engine, String query) {
 		logger.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
@@ -459,5 +496,18 @@ public class TAPLegacySystemDispositionReportWriter {
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
 		return sjsw;
+	}
+	
+	public void setLpiList(HashSet<String> lpiList) {
+		this.lpiList = lpiList;
+	}
+	
+	public void setLpniList(HashSet<String> lpniList) {
+		this.lpniList = lpniList;
+	}
+	
+	public void setSysURI(String sysURI) {
+		this.sysURI = sysURI;
+		this.sysName = Utility.getInstanceName(sysURI);
 	}
 }
