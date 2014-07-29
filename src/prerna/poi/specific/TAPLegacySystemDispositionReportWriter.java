@@ -59,9 +59,9 @@ public class TAPLegacySystemDispositionReportWriter {
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
 
 	//queries for modernization activities
-	private String sysSWCostQuery = "SELECT ?System (COUNT(?SoftwareVersion) AS ?numProducts) (SUM(COALESCE(?swTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?SoftwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?swTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?SoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?SoftwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?SoftwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?System <http://semoss.org/ontologies/Relation/Consists> ?SoftwareModule} {?SoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?SoftwareVersion} {?SoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
+	private String sysSWCostQuery = "SELECT DISTINCT ?System (COUNT(?SoftwareVersion) AS ?numProducts) (SUM(COALESCE(?swTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?SoftwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?swTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?SoftwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareModule>} {?SoftwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?SoftwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SoftwareVersion>} {?System <http://semoss.org/ontologies/Relation/Consists> ?SoftwareModule} {?SoftwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?SoftwareVersion} {?SoftwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
 	private Hashtable<String, Hashtable<String, Double>> sysSWHash = new Hashtable<String, Hashtable<String, Double>>();
-	private String sysHWCostQuery = "SELECT DISTINCT ?System (COUNT(?HardwareVersion) AS ?numProducts) (SUM(COALESCE(?hwTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?HardwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?hwTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>} {?HardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?TypeOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TypeOf>} {?HardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?System ?Has ?HardwareModule} {?HardwareModule ?TypeOf ?HardwareVersion } {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
+	private String sysHWCostQuery = "SELECT DISTINCT ?System (COUNT(?HardwareVersion) AS ?numProducts) (SUM(COALESCE(?hwTotalCost, 0)) AS ?total) WHERE { SELECT DISTINCT ?System ?HardwareVersion (COALESCE(?unitcost*?Quantity,0) AS ?hwTotalCost) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?HardwareModule <http://semoss.org/ontologies/Relation/Contains/Quantity> ?Quantity} {?HardwareModule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareModule>} {?HardwareVersion <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HardwareVersion>} {?System <http://semoss.org/ontologies/Relation/Has> ?HardwareModule} {?HardwareModule <http://semoss.org/ontologies/Relation/TypeOf> ?HardwareVersion } {?HardwareVersion <http://semoss.org/ontologies/Relation/Contains/Price> ?unitcost} } } GROUP BY ?System";
 	private Hashtable<String, Hashtable<String, Double>> sysHWHash = new Hashtable<String, Hashtable<String, Double>>();
 	private String sysInterfaceModCostQuery = "SELECT DISTINCT ?system ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?system <http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> ?cost} }";
 	private Hashtable<String, Double> sysInterfaceModHash = new Hashtable<String, Double>();
@@ -154,14 +154,14 @@ public class TAPLegacySystemDispositionReportWriter {
 
 			CreationHelper helper = wb.getCreationHelper(); //Returns an object that handles instantiating concrete classes
 			XSSFClientAnchor anchor = (XSSFClientAnchor) helper.createClientAnchor(); //Create an anchor that is attached to the worksheet
-			anchor.setCol1(1); //select where to put the picture
-			anchor.setRow1(24);
+			anchor.setCol1(2); //select where to put the picture
+			anchor.setRow1(25);
 			anchor.setDx1((short)5*36000);
 			anchor.setDy1((short)5*36000);
 
 			Drawing drawing = reportSheet.createDrawingPatriarch(); //Creates the top-level drawing patriarch, specify sheet to draw on
 			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
-			pict.resize(0.62);
+			pict.resize(0.618);
 		} catch (FileNotFoundException e){
 			logger.info("CONUS Map image not found for this system");
 		} catch (IOException e) {
@@ -189,15 +189,15 @@ public class TAPLegacySystemDispositionReportWriter {
 	private void writeModernizationTimeline(ArrayList<Double> costInfo) {
 		Double hwswCost = costInfo.get(0);
 		Double interfaceModCost = costInfo.get(1);
-		reportSheet.getRow(16).getCell(9).setCellValue(hwswCost);
-		reportSheet.getRow(17).getCell(9).setCellValue(interfaceModCost);
+		reportSheet.getRow(16).getCell(10).setCellValue(hwswCost);
+		reportSheet.getRow(17).getCell(10).setCellValue(interfaceModCost);
 
 		generateSysBudgetData();
 		Hashtable<String, Object> innerHash = sysBudgetHash.get(sysName);
 		if(innerHash != null) 
 		{
 			String[] yearData = new String[]{"FY15", "FY16", "FY17", "FY18", "FY19"};		
-			int offSet = 9;
+			int offSet = 10;
 			for(int i = 0; i < yearData.length; i++) {
 				Object value = innerHash.get(yearData[i]);
 				if(value == null) {
@@ -219,23 +219,23 @@ public class TAPLegacySystemDispositionReportWriter {
 		atoDateList.add(atoRenewalYear);
 		for(Integer date : atoDateList) {
 			if(date == 2015){
-				reportSheet.getRow(18).getCell(9).setCellValue(atoCost);
-			} else if(date == 2016) {
 				reportSheet.getRow(18).getCell(10).setCellValue(atoCost);
-			} else if(date == 2017) {
+			} else if(date == 2016) {
 				reportSheet.getRow(18).getCell(11).setCellValue(atoCost);
-			} else if(date == 2018) {
+			} else if(date == 2017) {
 				reportSheet.getRow(18).getCell(12).setCellValue(atoCost);
-			} else if(date == 2019) {
+			} else if(date == 2018) {
 				reportSheet.getRow(18).getCell(13).setCellValue(atoCost);
+			} else if(date == 2019) {
+				reportSheet.getRow(18).getCell(14).setCellValue(atoCost);
 			}
 		}
 
 		for(int i = 0; i < 5; i++){
-			double costHWSW = reportSheet.getRow(16).getCell(9+i).getNumericCellValue();
-			double costIntMod = reportSheet.getRow(17).getCell(9+i).getNumericCellValue();
-			double costDIACAP = reportSheet.getRow(18).getCell(9+i).getNumericCellValue();
-			reportSheet.getRow(15).getCell(9+i).setCellValue(costHWSW + costIntMod + costDIACAP);
+			double costHWSW = reportSheet.getRow(16).getCell(10+i).getNumericCellValue();
+			double costIntMod = reportSheet.getRow(17).getCell(10+i).getNumericCellValue();
+			double costDIACAP = reportSheet.getRow(18).getCell(10+i).getNumericCellValue();
+			reportSheet.getRow(15).getCell(10+i).setCellValue(costHWSW + costIntMod + costDIACAP);
 		}
 	}
 
@@ -277,15 +277,15 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 
-		innerHash = sysHWHash.get(sysName);
+		innerHash = sysSWHash.get(sysName);
 		Double swNumUpdates = (double) 0;
 		Double swCost = (double) 0;
 		if(innerHash != null){
-			swNumUpdates = sysHWHash.get(sysName).get(numProductKey);
+			swNumUpdates = innerHash.get(numProductKey);
 			if(swNumUpdates == null) {
 				swNumUpdates = (double) 0;
 			}
-			swCost = sysHWHash.get(sysName).get(updateCostKey);
+			swCost = innerHash.get(updateCostKey);
 			if(swCost == null) {
 				swCost = (double) 0;
 			}
@@ -296,10 +296,11 @@ public class TAPLegacySystemDispositionReportWriter {
 			interfaceModCost = (double) 0;
 		}
 
-		reportSheet.getRow(14).getCell(5).setCellValue(hwCost);
-		reportSheet.getRow(15).getCell(3).setCellValue(swNumUpdates);
-		reportSheet.getRow(15).getCell(5).setCellValue(swCost);
-		reportSheet.getRow(16).getCell(5).setCellValue(interfaceModCost);
+		reportSheet.getRow(14).getCell(4).setCellValue(hwNumUpdates);
+		reportSheet.getRow(14).getCell(6).setCellValue(hwCost);
+		reportSheet.getRow(15).getCell(4).setCellValue(swNumUpdates);
+		reportSheet.getRow(15).getCell(6).setCellValue(swCost);
+		reportSheet.getRow(16).getCell(6).setCellValue(interfaceModCost);
 
 		int counter = 0;
 		if(atoYear >= 2015 && atoYear <= 2019) {
@@ -309,10 +310,10 @@ public class TAPLegacySystemDispositionReportWriter {
 			counter++;
 		}
 		double totalAtoCost = counter * atoCost;
-		reportSheet.getRow(17).getCell(5).setCellValue(totalAtoCost);
+		reportSheet.getRow(17).getCell(6).setCellValue(totalAtoCost);
 		
 		//sum up totals
-		reportSheet.getRow(18).getCell(5).setCellValue(swCost + hwCost + interfaceModCost + totalAtoCost);
+		reportSheet.getRow(18).getCell(6).setCellValue(swCost + hwCost + interfaceModCost + totalAtoCost);
 		
 		// pass cost information over to reduce access of hashtables
 		ArrayList<Double> costInfo = new ArrayList<Double>();
@@ -371,15 +372,15 @@ public class TAPLegacySystemDispositionReportWriter {
 			lpiList = processSingleUniqueReturnQuery(HR_Core, lpiListQuery);
 		} 
 		if(lpiList.contains(sysURI)){
-			reportSheet.getRow(8).getCell(3).setCellValue("Low Probability with Integration (LPI)");
-			reportSheet.getRow(8).getCell(6).setCellValue(lpiDescription);
+			reportSheet.getRow(8).getCell(4).setCellValue("Low Probability with Integration (LPI)");
+			reportSheet.getRow(8).getCell(7).setCellValue(lpiDescription);
 		} else {
 			if(lpniList.isEmpty()) {
 				lpniList = processSingleUniqueReturnQuery(HR_Core, lpniListQuery);
 			}
 			if(lpniList.contains(sysURI)) {
-				reportSheet.getRow(8).getCell(3).setCellValue("Low Probability without Integration (LPNI)");
-				reportSheet.getRow(8).getCell(6).setCellValue(lpniDescription);
+				reportSheet.getRow(8).getCell(4).setCellValue("Low Probability without Integration (LPNI)");
+				reportSheet.getRow(8).getCell(7).setCellValue(lpniDescription);
 			} 
 		}
 	}
@@ -422,7 +423,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		if(sysOwner == null){
 			sysOwner = "NA";
 		}
-		if(ato == null || ato.equals("")){
+		if(ato == null || ato.equals("") || ato.equals("NA")){
 			// no ato information -> assume ato date is year 2015
 			ato = "NA";
 			atoYear = 2015;
@@ -461,8 +462,9 @@ public class TAPLegacySystemDispositionReportWriter {
 				//ignore
 			}
 		}
+		
 		reportSheet.getRow(3).getCell(1).setCellValue(sysName.replaceAll("_", " "));
-		reportSheet.getRow(3).getCell(3).setCellValue(description.replaceAll("_", " "));
+		reportSheet.getRow(3).getCell(4).setCellValue(description.replaceAll("_", " "));
 		// to autosize description row height
 		Font currFont = new Font("Calibri", Font.PLAIN, 10);
 		AttributedString attrStr = new AttributedString(description);
@@ -478,14 +480,14 @@ public class TAPLegacySystemDispositionReportWriter {
 		    measurer.setPosition(nextPos);
 		}
 		XSSFRow currRow = reportSheet.getRow(3);
-		if(lineCnt < 3){
-			lineCnt = 3;
+		if(lineCnt < 4){
+			lineCnt = 5;
 		}
 		currRow.setHeight((short)(currRow.getHeight() * lineCnt));
 		// end autosize description row height
-		reportSheet.getRow(4).getCell(3).setCellValue(sysOwner);
-		reportSheet.getRow(5).getCell(3).setCellValue(ato);
-		reportSheet.getRow(5).getCell(10).setCellValue(atoRenewalDate);
+		reportSheet.getRow(4).getCell(4).setCellValue(sysOwner);
+		reportSheet.getRow(5).getCell(4).setCellValue(ato);
+		reportSheet.getRow(5).getCell(11).setCellValue(atoRenewalDate);
 	}
 
 	private SesameJenaSelectWrapper processQuery(IEngine engine, String query) {
