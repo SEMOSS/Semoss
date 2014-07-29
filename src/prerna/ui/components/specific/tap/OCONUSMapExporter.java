@@ -125,7 +125,7 @@ public class OCONUSMapExporter {
 					playSheet.runAnalytics();
 					playSheet.createView();
 
-					if(!((OCONUSMapPlaySheet)playSheet).isEmpty())
+					if(!playSheet.isEmpty())
 					{
 						//location of export
 						String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -137,7 +137,7 @@ public class OCONUSMapExporter {
 							fileLoc += ";" + workingDir + folder + writeFileName;
 						}
 						//call chartimageexportlistener to export the conusmap. and then close the chart.
-						ChartControlPanel chartControl= ((OCONUSMapPlaySheet)playSheet).getControlPanel();
+						ChartControlPanel chartControl= playSheet.getControlPanel();
 						JButton btnImageExport = chartControl.getImageExportButton();
 						ActionListener[] actionList = btnImageExport.getActionListeners();
 						ChartImageExportListener chartList = (ChartImageExportListener)actionList[0];
@@ -147,7 +147,7 @@ public class OCONUSMapExporter {
 						chartList.setScale(710,440);
 						btnImageExport.doClick();
 						try {
-							((OCONUSMapPlaySheet)playSheet).setClosed(true);
+							playSheet.setClosed(true);
 						} catch (PropertyVetoException e) {
 							e.printStackTrace();
 						}

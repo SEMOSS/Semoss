@@ -25,8 +25,6 @@ import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import com.itextpdf.text.Anchor;
-
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.rdf.engine.api.IEngine;
@@ -124,10 +122,10 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 
 	private void writeSystemDeployment() {
-		// TODO Auto-generated method stub
-		OCONUSMapExporter imageExporter = new OCONUSMapExporter();
 		ArrayList<String> listWithSysName = new ArrayList<String>();
 		listWithSysName.add(sysName);
+		
+		OCONUSMapExporter imageExporter = new OCONUSMapExporter();
 		String imageLoc = imageExporter.processData(listWithSysName);
 		
 		try {
