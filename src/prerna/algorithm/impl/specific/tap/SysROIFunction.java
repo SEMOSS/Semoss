@@ -22,7 +22,7 @@ package prerna.algorithm.impl.specific.tap;
 /**
  * This class is used to calculate the number of years to decommission systems based on the budget.
  */
-public class SysROIFunction extends SysNetSavingsFunction{
+public class SysROIFunction extends UnivariateSysOptFunction{
 	
 	@Override
 	public double calculateRet(double budget, double n)

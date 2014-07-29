@@ -833,4 +833,35 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 
 		createSpecificDisplayComponents();
 	}
+	
+	public void setGraphsVisible(boolean visible) {
+		tab1.setVisible(visible);
+		tab2.setVisible(visible);
+		tab3.setVisible(visible);
+		tab4.setVisible(visible);
+		tab5.setVisible(visible);
+		tab6.setVisible(visible);
+		timeline.setVisible(visible);
+	}
+	
+	/**
+	 * Clears panels within the playsheet
+	 */
+	public void clearPanels() {
+		specificAlysPanel.removeAll();
+		specificSysAlysPanel.removeAll();
+		playSheetPanel.removeAll();
+	}
+	
+	/**
+	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 */
+	public void clearLabels()
+	{
+		bkevenLbl.setText("N/A");
+        savingLbl.setText("$0");
+		roiLbl.setText("N/A");
+		recoupLbl.setText("N/A");
+		costLbl.setText("$0");
+	}
 }

@@ -31,30 +31,15 @@ import prerna.ui.components.specific.tap.OptimizationOrganizer;
 /**
  * Interface representing a univariate real function that is implemented for TAP service optimization functions.
  */
-public abstract class UnivariateSvcOptFunction implements UnivariateFunction{
+public class UnivariateSvcOptFunction extends UnivariateOptFunction{
 
 	public ServiceOptimizer lin;
-	
-	double cnstC, cnstK;
-	public int totalYrs;
-	double sdlcSusPerc;//% of sdlc needed to sustain a service
-	double icdSusCost, icdMt, serMain;
-	public double[] learningConstants;
-	public Object[][] ORIGicdSerMatrix;
-	int count = 0;
+	double icdMt, serMain;
 	double hourlyRate;
-	public Hashtable ORIGserCostHash = new Hashtable();
-	public ArrayList<String> ORIGicdLabels = new ArrayList<String>();
-	public ArrayList<String> ORIGserLabels = new ArrayList<String>();
-	public double attRate, hireRate, infRate, disRate;
-	JTextArea consoleArea;
-	boolean write = true;
-	JProgressBar progressBar;
 	
 	/**
 	 * Sets variables used in the optimization. 
 	 * @param 	numberOfYears		Total number of years service is used.
-	 * @param 	hourlyRate			Hourly rate of service.
 	 * @param 	icdMt				ICD maintenance costs over a single year. 
 	 * @param 	serMain				% of SDLC total required to maintain service.
 	 * @param 	attRate				Attrition rate (how many employees leave) over a year.
@@ -66,17 +51,9 @@ public abstract class UnivariateSvcOptFunction implements UnivariateFunction{
 	 * @param 	secondProc			How much information you have at second pro year.
 	 */
 	public void setVariables(int numberOfYears, double hourlyRate, double icdMt, double serMain, double attRate, double hireRate, double infRate, double disRate, int secondProYear, double initProc, double secondProc){
+		super.setVariables(numberOfYears, attRate, hireRate, infRate, disRate, secondProYear, initProc, secondProc);
 		lin = new ServiceOptimizer(icdMt,serMain);
-		this.icdMt= icdMt;
-		this.serMain= serMain;
-		this.attRate = attRate;
 		this.hourlyRate = hourlyRate;
-		this.hireRate = hireRate;
-		this.infRate = infRate;
-		this.disRate = disRate;
-		totalYrs = numberOfYears;
-		
-		createLearningYearlyConstants(numberOfYears, secondProYear, initProc, secondProc);
 	}
 	
 	/**
@@ -85,55 +62,6 @@ public abstract class UnivariateSvcOptFunction implements UnivariateFunction{
 	 */
 	public void setData(OptimizationOrganizer optOrg){
 		lin.setData(optOrg);
-	}
-	
-	/**
-	 * value
-	 * @param arg0 double
-	// TODO: Return empty object instead of null
-	 * @return double */
-	public double value(double arg0) {
-		return 0;
-	}
-	
-	/**
-	 * Sets the console area.
-	 * @param JTextArea		Console area.
-	 */
-	public void setConsoleArea (JTextArea consoleArea)
-	{
-		this.consoleArea=consoleArea;
-	}
-
-	/**
-	 * Sets properties of the progress bar.
-	 * @param bar	Original bar that updates are made to.
-	 */
-	public void setProgressBar (JProgressBar bar)
-	{
-		this.progressBar=bar;
-		this.progressBar.setVisible(true);
-		this.progressBar.setIndeterminate(true);
-		this.progressBar.setStringPainted(true);
-	}
-	
-	/**
-	 * Sets the value of the progress string on the progress bar.
-	 * @param text	Text to be set.
-	 */
-	public void updateProgressBar (String text)
-	{
-
-		this.progressBar.setString(text);
-	}
-	
-	/**
-	 * Sets the write boolean.
-	 * @param write	Boolean that is either true or false depending on optimization.
-	 */
-	public void setWriteBoolean (boolean write)
-	{
-		this.write = write;
 	}
 	
 	/**
@@ -151,45 +79,6 @@ public abstract class UnivariateSvcOptFunction implements UnivariateFunction{
 		consoleArea.setText(consoleArea.getText()+"\n"+objText);
 		consoleArea.setText(consoleArea.getText()+"\nTotal obj function: "+objFct);
 	}
-	
-	/**
-	 * Solve differential equations in order to obtain the learning curve yearly constants for a service.
-	 * @param 	numberOfYears	Number of years service is used.
-	 * @param 	secondProYear	Second pro year - year in which more information is known.
-	 * @param 	initProC		How much information you have initially.
-	 * @param 	secondProC		How much information you have at second pro year.
-	
-	 * @return 	An array of doubles containing the learning curve constants. */
-	public double[] createLearningYearlyConstants(int numberOfYears, int secondProYear, double initProC, double secondProC)
-	{
-		//learning curve differential equation f(t) = Pmax-C*e^(-k*t)
-		//after you solve for differential equation to get constants
-		//here are the equations for the constants
-		
-		cnstC = 1.0-initProC;
-		cnstK = (1.0/secondProYear)*Math.log((1.0-initProC)/(1.0-secondProC));
-		int yearToCalc = Math.max(totalYrs, 10);
-		learningConstants = new double[yearToCalc];
-		double[] origLearningConstants = new double[yearToCalc];
-		for (int i = 0; i<origLearningConstants.length;i++)
-		{
-			origLearningConstants[i]=1.0+(cnstC/cnstK)*Math.exp(-(i+1.0)*cnstK)*(1.0-Math.exp(cnstK));
-		}
-		for (int i = 0; i<learningConstants.length;i++)
-		{
-			//account for turnover
-			double retConstant=0.0;
-			//ensure number of iterations does not pass
-			for (int j=0;j<i;j++)
-			{
-				learningConstants[i]=learningConstants[i]+origLearningConstants[j]*hireRate*Math.pow(1-attRate, j);
-			}
-			learningConstants[i]=learningConstants[i]+origLearningConstants[i]*Math.pow((1-attRate),i);
-		}
-		return learningConstants;
-		
-	}
-	
 	/**
 	 * Loops through a list and parses through each element to return the year text.
 	 * @param 	list		List.

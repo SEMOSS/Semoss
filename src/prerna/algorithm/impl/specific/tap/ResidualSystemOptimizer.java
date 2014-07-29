@@ -8,6 +8,7 @@ import lpsolve.LpSolveException;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LPOptimizer;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
 public class ResidualSystemOptimizer extends LPOptimizer{
@@ -52,9 +53,9 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		
 	}
 	
-	public void setPlaySheet(SysOptPlaySheet playSheet)
+	public void setPlaySheet(IPlaySheet playSheet)
 	{
-		this.playSheet = playSheet;
+		this.playSheet = (SysOptPlaySheet)playSheet;
 	}
 
 	/**

@@ -94,7 +94,6 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	public void displayCheckBoxError(){
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
-
 	}
 	
 	/**
@@ -257,6 +256,28 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 
 	}
 
+	public void setGraphsVisible(boolean visible) {
+	}
+	
+	/**
+	 * Clears panels within the playsheet
+	 */
+	public void clearPanels() {
+	}
+	
+	/**
+	 * Clears graphs within the playsheets.
+	 */
+	public void clearGraphs()
+	{
+	}
+	
+	/**
+	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
+	 */
+	public void clearLabels()
+	{
+	}
 
 	/**
 	 * Adds a desktop pane and shows all properties in the main frame.
