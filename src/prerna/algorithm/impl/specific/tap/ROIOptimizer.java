@@ -52,7 +52,6 @@ public class ROIOptimizer extends UnivariateSvcOptimizer{
     	Object[][] icdSerMatrix=(Object[][]) optOrg.icdService.get(optOrg.matrixLabel);
 		if (icdSerMatrix.length==0)
 		{
-			runEmptyFunction();
         	clearPlaysheet();
         	progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
@@ -89,7 +88,6 @@ public class ROIOptimizer extends UnivariateSvcOptimizer{
         }
         if (optSaving<=0)
         {
-        	runEmptyFunction();
         	clearPlaysheet();	
         }
         else

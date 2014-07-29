@@ -20,36 +20,32 @@ package prerna.algorithm.impl;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
 
 /**
- * This class is used to estimate y-intercept (root) of equation for a nonlinear function.
+ * LinearInterpolation is used to estimate the y-intercept (root) of equation for a nonlinear function.
  */
 public class LinearInterpolation implements IAlgorithm{
 
 	IPlaySheet playSheet;
 	final double epsilon = 0.00001;
 	double min, max;
-	double numMaintenanceSavings, serMainPerc, dataExposeCost, totalYrs, infRate,discRate;
-	double N, B;
 	double a, b, m, y_m, y_a, y_b;
-	public boolean shouldPrintOut = false;
-	public String printString = "";
 	
 	public double retVal = -1.0;    
 	
 	/**
 	 * Executes the process of estimating a root.
+	 * Given a min and max value for the root (the x values).
 	 * Calculates the y values at min and max x's.
 	 * Finds the midpoint and determines what the y value is for this point.
-	 * Sets either the min/max y values to be the midpoint depending on which way it needs to go.
+	 * Adjusts either the min/max x value depending on which segment contains the midpoint.
+	 * If min and midpoint have opposite signs, root is in between, so max x value becomes midpoint.
 	 * 
-	 * a and b are the bounds for the value being solved for. In this case, solving for mu.
-	 * y_a and y_b are the years
+	 * Stores the y-intercept (root) of the function, or -1.0E30 if nothing is found in retVal.
+
 	 */
 	public void execute(){
-
 		retVal = -1.0E30;
 	   	a = min;
 	    b = max;
@@ -74,76 +70,29 @@ public class LinearInterpolation implements IAlgorithm{
 	   	    {  // f(a) and f(m) have same signs: move a
 	   	       a = m;
 	   	    }
-	                                           // Print progress  
 	   	 }
-	   	 
-		if(shouldPrintOut)
-		{
-			((SysOptPlaySheet)playSheet).consoleArea.setText(((SysOptPlaySheet)playSheet).consoleArea.getText()+printString);
-		}
-	   	 
 	   	 retVal = (a+b)/2;
 	   	 if((max-retVal)<.001)
 	   		 retVal =  -1.0E30;
 	}
-	
-	public void setValues(double numMaintenanceSavings,double serMainPerc,double dataExposeCost,double totalYrs,double infRate,double discRate,double min, double max)
+	/**
+	 * Sets the min and max values for the root estimate.
+	 * @param min	minimum possible value for the root
+	 * @param max	maximum possible value for the root
+	 */
+	public void setMinAndMax(double min, double max)
 	{
-		this.numMaintenanceSavings=numMaintenanceSavings;
-		this.serMainPerc=serMainPerc;
-		this.dataExposeCost = dataExposeCost;
-		this.totalYrs=totalYrs;
-		this.infRate=infRate;
-		this.discRate=discRate;
 		this.min = min;
 		this.max = max;
 	}
-	public void setBAndN(double B,double N)
-	{
-		this.B = B;
-		this.N = N;
-	}
-	
-	public double calculateInvestment(double mu)
-	{
-		double investment = 0.0;
-		double P1InflationSum = 0.0;
-		for(int q=1;q<=N;q++)
-		{
-			double P1Inflation = 1.0;
-			if(mu!=1)
-				P1Inflation = Math.pow(mu, q-1);
-			P1InflationSum += P1Inflation;
-		}
-		double extraYear = 1.0;
-		if(mu!=1)
-			extraYear = Math.pow(mu,Math.ceil(N));
-		P1InflationSum+=extraYear*(N-Math.floor(N));
-		investment = B * P1InflationSum;
-		return investment;
-	}
-	
-	//equation that we are trying to make equal to 0.
-	public Double calcY(double possibleDiscRate)
+	/**
+	 * Calculate the residual value for a given root estimate, xVal.
+	 * @param xVal double	root estimate	
+	 * @return Double	residual value for the calculation
+	 */
+	public Double calcY(double xVal)
 	{		
-		double v = (1+infRate)/(1+possibleDiscRate);
-		double vFactor = totalYrs-N;
-		if(v!=1)
-		{
-			double temp1 = Math.pow(v, N+1);
-			double temp2 = Math.pow(v, totalYrs-N);
-			double temp3 = (1-Math.pow(v, totalYrs-N))/(1-v);
-			vFactor = Math.pow(v, N+1)*(1-Math.pow(v, totalYrs-N))/(1-v);
-		}
-		double sustainSavings = vFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
-		double mu = (1+infRate)/(1+discRate);
-		double investment = B*N;
-		if(mu!=1)
-			investment = B*(1-Math.pow(mu, N))/(1-mu);
-		double yVal = sustainSavings - investment;
-		if(shouldPrintOut)
-			printString = "\nv: "+v+" v^(N+1)*(1-v^(Q-N))/(1-v) "+vFactor+"\nmu: "+mu+" investment "+investment;
-		return yVal;
+		return -1.0;
 	}
 
 	/**
@@ -156,12 +105,11 @@ public class LinearInterpolation implements IAlgorithm{
 
 	/**
 	 * Gets variable names.
-	
-	 * //TODO: Return empty object instead of null
 	 * @return String[] 	List of variable names in a string array. */
 	@Override
 	public String[] getVariables() {
-		return null;
+		String[] variables = new String[1];
+		return variables;
 	}
 
 	/**

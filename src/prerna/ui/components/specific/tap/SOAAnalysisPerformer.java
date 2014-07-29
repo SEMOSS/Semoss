@@ -18,7 +18,6 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Component;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -26,10 +25,8 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JList;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import org.apache.log4j.Logger;
@@ -40,7 +37,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.VertexFilterData;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -59,7 +55,7 @@ public class SOAAnalysisPerformer implements Runnable {
 	String sysName="";
 	ArrayList <Object[]> totalList = new ArrayList<Object[]>();
 	SOATransitionCalculator soaCalc = new SOATransitionCalculator();
-	Hashtable graphValueHash = new Hashtable();
+	Hashtable<String,double[]> graphValueHash = new Hashtable<String,double[]>();
 	Double hourlyRate = 150.0;
 	//variables for passing to analysis sheet
 	Vector dataFedListVector = new Vector();
@@ -116,7 +112,6 @@ public class SOAAnalysisPerformer implements Runnable {
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
 
-		JComboBox questionList = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD);
 		QuestionPlaySheetStore.getInstance().idCount++;
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ "SOATransition";
 		DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN, false);
@@ -158,7 +153,6 @@ public class SOAAnalysisPerformer implements Runnable {
 		//replacing alot of params into the query
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			// use the layout to load the sheet later
 			// see if the append is on
 			VertexFilterData vfd = newPlaySheet.getFilterData();

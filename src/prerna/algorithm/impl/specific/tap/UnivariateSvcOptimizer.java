@@ -19,10 +19,7 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.awt.Color;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.Insets;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -33,15 +30,8 @@ import java.util.Hashtable;
 import java.util.Random;
 
 import javax.swing.JDesktopPane;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 
-import org.apache.log4j.Logger;
-
-import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.GridScrollPane;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
 import prerna.ui.components.specific.tap.SerOptGraphFunctions;
@@ -53,67 +43,13 @@ import prerna.util.Utility;
 /**
  * This class is used to optimize the calculations for univariate services.
  */
-public abstract class UnivariateSvcOptimizer implements IAlgorithm{
+public class UnivariateSvcOptimizer extends UnivariateOpt{
 	
-	Logger logger = Logger.getLogger(getClass());
+//	Logger logger = Logger.getLogger(getClass());
 	
-	SerOptPlaySheet playSheet;
-	public int maxYears;
-	double interfaceCost;
-	public double serMainPerc;
-	int noOfPts;
-	double minBudget;
-	double maxBudget;
-	double hourlyCost;
-	double[] learningConstants;
-	public double iniLC;
-	public int scdLT;
-	public double scdLC;
-	double attRate;
-	double hireRate;
-	public double infRate;
-	double disRate;
-	public UnivariateSvcOptFunction f;
-	double optBudget =0.0;
 	String bindStr = "";
-	JProgressBar progressBar;
 	OptimizationOrganizer optOrg;
 	public String[] optSys;
-	
-	/**
-	 * Method setVariables.
-	 * @param maxYears int
-	 * @param interfaceCost double
-	 * @param serMainPerc double
-	 * @param attRate double
-	 * @param hireRate double
-	 * @param infRate double
-	 * @param disRate double
-	 * @param noOfPts int
-	 * @param minBudget double
-	 * @param maxBudget double
-	 * @param hourlyCost double
-	 * @param iniLC double
-	 * @param scdLT int
-	 * @param scdLC double
-	 */
-	public void setVariables(int maxYears, double interfaceCost, double serMainPerc, double attRate, double hireRate, double infRate, double disRate, int noOfPts, double minBudget, double maxBudget, double hourlyCost, double iniLC, int scdLT, double scdLC)
-	{
-		this.maxYears = maxYears;
-		this.interfaceCost = interfaceCost*1000000;
-		this.serMainPerc = serMainPerc;
-		this.noOfPts = noOfPts;
-		this.minBudget = minBudget*1000000;
-		this.maxBudget = maxBudget*1000000;
-		this.hourlyCost = hourlyCost;
-		this.attRate = attRate;
-		this.hireRate = hireRate;
-		this.iniLC = iniLC;
-		this.scdLT = scdLT;
-		this.scdLC = scdLC;
-		this.infRate = infRate;
-		this.disRate = disRate;
-	}
 	
 	/**
 	 * Sets the list of systems for optimizations.
@@ -132,17 +68,16 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
         progressBar = playSheet.progressBar;
         f.setProgressBar(progressBar);
         progressBar.setString("Collecting Data");
-        f.setVariables(maxYears, hourlyCost, interfaceCost/hourlyCost, serMainPerc, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        ((UnivariateSvcOptFunction)f).setVariables(maxYears, hourlyCost, interfaceCost,serMainPerc,attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
 
         optOrg = new OptimizationOrganizer();
         optOrg.runOrganizer(optSys);
-        f.setData(optOrg);
+        ((UnivariateSvcOptFunction)f).setData(optOrg);
         
         playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nData Collection Complete!");
 
         f.setConsoleArea(playSheet.consoleArea);
         f.setWriteBoolean (true);
-        
 	}
 	
 	/**
@@ -152,54 +87,12 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 	{
         f.setWriteBoolean (false);
         f.value(optBudget);
-        displayResults(f.lin);
-        displaySpecifics(f.lin);
-        displaySystemSpecifics(f.lin);
-        createTimelineData(f.lin);
+        displayResults(((UnivariateSvcOptFunction)f).lin);
+        displaySpecifics(((UnivariateSvcOptFunction)f).lin);
+        displaySystemSpecifics(((UnivariateSvcOptFunction)f).lin);
+        createTimelineData(((UnivariateSvcOptFunction)f).lin);
         if(!bindStr.equals("{}")) createGraphSheet();
-		playSheet.tab1.setVisible(true);
-		playSheet.tab2.setVisible(true);
-		playSheet.tab3.setVisible(true);
-		playSheet.tab4.setVisible(true);
-		playSheet.tab5.setVisible(true);
-		playSheet.tab6.setVisible(true);
-		playSheet.timeline.setVisible(true);
-	}
-	
-	/**
-	 * Clears the playsheet by removing information from all panels.
-	 */
-	public void clearPlaysheet(){
-		clearGraphs();
-		playSheet.specificAlysPanel.removeAll();
-		playSheet.specificSysAlysPanel.removeAll();
-		playSheet.playSheetPanel.removeAll();
-	}
-	
-	/**
-	 * Clears graphs within the playsheets.
-	 */
-	public void clearGraphs()
-	{
-		playSheet.tab1.setVisible(false);
-		playSheet.tab2.setVisible(false);
-		playSheet.tab3.setVisible(false);
-		playSheet.tab4.setVisible(false);
-		playSheet.tab5.setVisible(false);
-		playSheet.tab6.setVisible(false);
-		playSheet.timeline.setVisible(false);
-	}
-	
-	/**
-	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
-	 */
-	public void runEmptyFunction()
-	{
-		playSheet.bkevenLbl.setText("N/A");
-        playSheet.savingLbl.setText("$0");
-		playSheet.roiLbl.setText("N/A");
-		playSheet.recoupLbl.setText("N/A");
-		playSheet.costLbl.setText("$0");
+        playSheet.setGraphsVisible(true);
 	}
 	
 	/**
@@ -225,10 +118,10 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		playSheet.playSheetPanel.removeAll();
-		playSheet.playSheetPanel.setLayout(new GridLayout(1, 0, 0, 0));
+		((SerOptPlaySheet)playSheet).playSheetPanel.removeAll();
+		((SerOptPlaySheet)playSheet).playSheetPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		JDesktopPane jdp = new JDesktopPane();
-		playSheet.playSheetPanel.add(jdp);
+		((SerOptPlaySheet)playSheet).playSheetPanel.add(jdp);
 		//playSheet.playSheetPanel.add(gps);
 		String query="CONSTRUCT {?year ?transitioned ?ser. ?transitioned ?subprop ?relation. ?year ?subclass ?concept. ?trans ?transRel ?year. ?transRel ?subprop ?relation. ?trans ?subclass ?concept} WHERE { BIND(SUBSTR(STR(?fullName), 5) AS ?serName) BIND(SUBSTR(STR(?fullName), 0, 4) AS ?yearName) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Concept/Year/\", ?yearName)) AS ?year)  BIND(URI(CONCAT(\"http://semoss.org/ontologies/Concept/Service/\", ?serName)) AS ?ser) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Relation\",STR(?yearName), \":\", SUBSTR(STR(?ser), 45))) AS ?transitioned) BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation) BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?subclass) BIND(<http://semoss.org/ontologies/Concept> AS ?concept) BIND(URI(\"http://semoss.org/ontologies/Concept/Transition/SOA_Transition\") AS ?trans) BIND(URI(CONCAT(\"http://semoss.org/ontologies/Relation\",SUBSTR(STR(?trans), 47), \":\", STR(?yearName))) AS ?transRel) } BINDINGS ?fullName" +bindStr;
 		//String query="CONSTRUCT {?Capability ?support ?BusinessProcess.} WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
@@ -244,7 +137,6 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 		gps.runAnalytics();
 		gps.createView();
 		//jdp.add((Component) gps);
-		
 	}
 	
 	/**
@@ -288,21 +180,8 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 				list.addAll(newTable);
 			}
 		}
-		GridScrollPane pane = new GridScrollPane(colNames, list);
 		
-		playSheet.specificSysAlysPanel.removeAll();
-		JPanel panel = new JPanel();
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		playSheet.specificSysAlysPanel.setLayout(gridBagLayout);
-		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
-		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
-		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
-		gbc_panel_1_1.gridx = 0;
-		gbc_panel_1_1.gridy = 0;
-		playSheet.specificSysAlysPanel.add(pane, gbc_panel_1_1);
-		playSheet.specificSysAlysPanel.repaint();
+		displayListOnTab(colNames,list,((SerOptPlaySheet)playSheet).specificSysAlysPanel);
 	}
 	
 
@@ -350,21 +229,8 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 			}
 		}
 		bindStr=bindStr+"}";
-		GridScrollPane pane = new GridScrollPane(colNames, list);
 		
-		playSheet.specificAlysPanel.removeAll();
-		JPanel panel = new JPanel();
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		playSheet.specificAlysPanel.setLayout(gridBagLayout);
-		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
-		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
-		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
-		gbc_panel_1_1.gridx = 0;
-		gbc_panel_1_1.gridy = 0;
-		playSheet.specificAlysPanel.add(pane, gbc_panel_1_1);
-		playSheet.specificAlysPanel.repaint();
+		displayListOnTab(colNames,list,((SerOptPlaySheet)playSheet).specificAlysPanel);
 	}
 	
 	/**
@@ -488,7 +354,7 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 			}
 		}
 		
-		playSheet.timeline.callIt(allHash);
+		((SerOptPlaySheet)playSheet).timeline.callIt(allHash);
 	}
 	
 	/**
@@ -562,12 +428,11 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 		zero = Utility.round(zero,2);
 		
 		String costString = Utility.sciToDollar(totalBuildCost);
-		playSheet.recoupLbl.setText(Double.toString(breakeven)+" Years");
-        playSheet.savingLbl.setText(profitString);
-		playSheet.roiLbl.setText(Double.toString(ROI)+"%");
-		playSheet.costLbl.setText(costString);
-		playSheet.bkevenLbl.setText(Double.toString(zero)+" Years");
-		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
+		((SerOptPlaySheet)playSheet).recoupLbl.setText(Double.toString(breakeven)+" Years");
+		((SerOptPlaySheet)playSheet).savingLbl.setText(profitString);
+		((SerOptPlaySheet)playSheet).roiLbl.setText(Double.toString(ROI)+"%");
+		((SerOptPlaySheet)playSheet).costLbl.setText(costString);
+		((SerOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(zero)+" Years");
 		
 		SerOptGraphFunctions graphF= new SerOptGraphFunctions();
 		graphF.setOptimzer(this);
@@ -578,51 +443,11 @@ public abstract class UnivariateSvcOptimizer implements IAlgorithm{
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
 		Hashtable chartHash6 = graphF.createLearningCurve();
-		playSheet.tab1.callIt(chartHash1);
-		playSheet.tab2.callIt(chartHash2);
-		playSheet.tab3.callIt(chartHash3);
-		playSheet.tab4.callIt(chartHash4);
-		playSheet.tab5.callIt(chartHash5);
-		playSheet.tab6.callIt(chartHash6);
-	}
-	
-	
-	/**
-	 * Sets the passed playsheet as a service optimization playsheet.
-	 * @param 	playSheet	Playsheet to be cast.
-	 */
-	@Override
-	public void setPlaySheet(IPlaySheet playSheet) {
-		this.playSheet = (SerOptPlaySheet) playSheet;
-		
-	}
-
-	/**
-	 * Gets variable names.
-	
-	 * //TODO: Return empty object instead of null
-	 * @return String[] */
-	@Override
-	public String[] getVariables() {
-		return null;
-	}
-
-	/**
-	 * Executes the optimization.
-	 */
-	@Override
-	public void execute(){
-		optimize();
-		
-	}
-
-	/**
-	 * Gets the name of the algorithm.
-	
-	 * //TODO: Return empty object instead of null
-	 * @return 	Algorithm name. */
-	@Override
-	public String getAlgoName() {
-		return null;
+		((SerOptPlaySheet)playSheet).tab1.callIt(chartHash1);
+		((SerOptPlaySheet)playSheet).tab2.callIt(chartHash2);
+		((SerOptPlaySheet)playSheet).tab3.callIt(chartHash3);
+		((SerOptPlaySheet)playSheet).tab4.callIt(chartHash4);
+		((SerOptPlaySheet)playSheet).tab5.callIt(chartHash5);
+		((SerOptPlaySheet)playSheet).tab6.callIt(chartHash6);
 	}
 }

@@ -20,23 +20,20 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
 
-import prerna.algorithm.impl.LinearInterpolation;
-import prerna.ui.components.specific.tap.SerOptPlaySheet;
-
 
 /**
  * This class is used to calculate the number of years to decommission systems based on the budget.
  */
-public class SysIRRFunction extends SysNetSavingsFunction{
+public class SysIRRFunction extends UnivariateSysOptFunction{
 	
-	LinearInterpolation linInt;
-	SerOptPlaySheet playsheet;
+	SysIRRLinInterp linInt;
+//	SysOptPlaySheet playsheet;
 	
-	public void setPlaySheet(SerOptPlaySheet playsheet)
-	{
-		this.playsheet = playsheet;
-		linInt.setPlaySheet(playsheet);
-	}
+//	public void setPlaySheet(SysOptPlaySheet playsheet)
+//	{
+//		this.playsheet = playsheet;
+//		linInt.setPlaySheet(playsheet);
+//	}
 	@Override
 	public double calculateRet(double budget, double n)
 	{
@@ -85,17 +82,13 @@ public class SysIRRFunction extends SysNetSavingsFunction{
 		consoleArea.setText(consoleArea.getText()+"\nPerforming optimization iteration "+count);
 		consoleArea.setText(consoleArea.getText()+"\nFor Budget B: "+budget+" the minimum N is "+n+" and the discount rate is "+savings);
 	}
-	
-	public void turnOnPrintOut()
-	{
-		linInt.shouldPrintOut = true;
-	}
 
 	//data Expose is in LOE
 	public void createLinearInterpolation()
 	{
-		 linInt = new LinearInterpolation();
-		 linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, -.95, 5);
+		 linInt = new SysIRRLinInterp();
+		 linInt.setMinAndMax(-.95, 5);
+		 linInt.setCalcParams(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate);
 		// linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, -10, 10);
 	}
 }

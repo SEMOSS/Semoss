@@ -22,7 +22,7 @@ package prerna.algorithm.impl.specific.tap;
 /**
  * This optimizer is used for implementation of the ROI (return on investment) function.
  */
-public class SysIRROptimizer extends SysNetSavingsOptimizer{
+public class SysIRROptimizer extends UnivariateSysOptimizer{
 	
 	/**
 	 * Runs the appropriate optimization iteration.
@@ -31,7 +31,7 @@ public class SysIRROptimizer extends SysNetSavingsOptimizer{
 	public void optimize()
 	{
         f = new SysIRRFunction();
-        runOpt();
+        super.optimize();
         if(noErrors)
         {
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
