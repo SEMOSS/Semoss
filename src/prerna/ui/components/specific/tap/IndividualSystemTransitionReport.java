@@ -349,7 +349,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			}
 
 			//stayAsIs if neither need to add interface or remove interface involve the system we're looking at
-			if((!addedInterface && !removedInterface)|| comment.contains("stay"))
+			if((!addedInterface && !removedInterface) || comment.contains("stay"))
 				barChartVals[2] = barChartVals[2]+1;
 
 		}

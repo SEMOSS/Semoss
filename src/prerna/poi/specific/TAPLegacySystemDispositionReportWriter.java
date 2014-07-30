@@ -405,9 +405,9 @@ public class TAPLegacySystemDispositionReportWriter {
 		String[] varNames = sjsw.getVariables();
 		// output binds to a single system - query should only return one line
 		// if query returns nothing, never executed
-		String description = "NA";
-		String sysOwner = "NA";
-		String ato = "";
+		String description = "Data Not Received";
+		String sysOwner = "Data Not Received";
+		String ato = "Data Not Received";
 		String atoRenewalDate = "REQUIRES IMMEDIATE ACCREDITATION";
 		//String atoRenewal = "";
 		while(sjsw.hasNext()) {
@@ -418,14 +418,14 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 
 		if(description == null){
-			description = "NA";
+			description = "Data Not Received";
 		}
 		if(sysOwner == null){
-			sysOwner = "NA";
+			sysOwner = "Data Not Received";
 		}
 		if(ato == null || ato.equals("") || ato.equals("NA")){
 			// no ato information -> assume ato date is year 2015
-			ato = "NA";
+			ato = "Data Not Received";
 			atoYear = 2015;
 			atoRenewalYear = 2018;
 		} else {
@@ -446,16 +446,17 @@ public class TAPLegacySystemDispositionReportWriter {
 				} else { // set ato renewal date to be exactly 3 years from ato date
 					String month = "";
 					String day = "";
-					if(c.get(Calendar.MONTH) < 10) {
-						month = "0" + c.get(Calendar.MONTH);
+					if((c.get(Calendar.MONTH) + 1) < 10) {
+						month = "0" + (c.get(Calendar.MONTH) + 1);
 					} else {
-						month = c.get(Calendar.MONTH) + "";
+						month = (c.get(Calendar.MONTH) + 1) + "";
 					}
 					if(c.get(Calendar.DAY_OF_MONTH) < 10) {
 						day = "0" + c.get(Calendar.DAY_OF_MONTH);
 					} else {
 						day = c.get(Calendar.DAY_OF_MONTH) + "";
 					}
+					System.out.println(c.get(Calendar.MONTH));
 					atoRenewalDate = (c.get(Calendar.YEAR) + 3) + "-" + month + "-" + day;
 				}
 			} catch (ParseException e) {
