@@ -49,6 +49,14 @@ public class ClusteringAlgorithm {
 		this.numClusters = numClusters;
 	}
 	
+	public ArrayList<Integer> getClustersAssigned() {
+		return clustersAssigned;
+	}
+	
+	public Hashtable<String,Integer> getInstanceIndexHash() {
+		return instanceIndexHash;
+	}
+	
 	
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
 	 * These properties are pulled from the instanceCategoryMatrix and instanceNumberMatrix, that are filled prior to start.
