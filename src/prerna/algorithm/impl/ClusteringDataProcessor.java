@@ -15,9 +15,6 @@ public class ClusteringDataProcessor {
 
 	Logger logger = Logger.getLogger(getClass());
 	
-//	private ArrayList<ArrayList<Double>> numericalMatrix = new ArrayList<ArrayList<Double>>();
-//	private ArrayList<ArrayList<String>> categoricalMatrix = new ArrayList<ArrayList<String>>();
-	
 	private double[][] numericalMatrix;
 	private String[][] categoricalMatrix;
 	
@@ -54,9 +51,6 @@ public class ClusteringDataProcessor {
 
 	// Calculates the similarity score
 	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws BadInputException {
-//		ArrayList<String> instanceCategoricalInfo = categoricalMatrix.get(dataIdx);
-//		ArrayList<Double> instanceNumericalInfo = numericalMatrix.get(dataIdx);
-		
 		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
 		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 
@@ -107,7 +101,7 @@ public class ClusteringDataProcessor {
 		numericalSimilarity = distanceFromCluster/normalization;
 		double coeff = 1.0 * numericalPropNames.size() / varNames.length;
 		
-		logger.info("Calculated similarity score for numericals: " + coeff * numericalSimilarity);
+		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
 		return coeff * numericalSimilarity;
 	}
 
@@ -237,27 +231,17 @@ public class ClusteringDataProcessor {
 		
 		for(int row = 0; row < masterTable.size(); row++) {
 			int counter = 0;
-//			categoricalMatrix.add(new ArrayList<String>());
-//			numericalMatrix.add(new ArrayList<Double>());
 			
 			Object[] dataRow = masterTable.get(row);
-//			ArrayList<String> categoricalValues = new ArrayList<String>();
-//			ArrayList<Double> numericalValues = new ArrayList<Double>();
-			
 			for(Integer idx : categoryPropIndices) {
 				categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
 				counter++;
-//				categoricalValues.add((String) dataRow[idx]);
 			}
 			counter = 0;
 			for(Integer idx : numericalPropIndices) {
 				numericalMatrix[row][counter] = (Double) dataRow[idx];
 				counter++;
-//				numericalValues.add((Double) dataRow[idx]);
 			}
-			
-//			categoricalMatrix.get(row).addAll(numericalValues);
-//			numericalMatrix.get(row).addAll(numericalValues);
 		}
 	}
 
