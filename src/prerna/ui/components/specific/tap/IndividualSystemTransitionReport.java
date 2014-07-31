@@ -309,7 +309,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider","Proposed Temporary Interfaces with DHMSM - Legacy Consumer"};
 		int[] barChartVals = new int[]{0,0,0,0,0,0};
 		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
-
+		HashSet<String> dataObjectList = new HashSet<String>();
+		
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
@@ -326,10 +327,12 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			}
 			else if(comment.contains("need to add interface dhmsm->"+systemName.toLowerCase()))
 			{
-				addedInterface = true;
-				barChartVals[1] = barChartVals[1]+1;
+				if(!dataObjectList.contains(interfaceRow[4].toString())) {
+					dataObjectList.add(interfaceRow[4].toString());
+					addedInterface = true;
+					barChartVals[1] = barChartVals[1]+1;
+				}
 			}
-
 			if(comment.contains("provide temporary integration between dhmsm->"+systemName.toLowerCase()))
 			{
 				//addedInterface = true;
@@ -353,6 +356,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 				barChartVals[2] = barChartVals[2]+1;
 
 		}
+		// interfaces staying are total list being returned minus those being removed
+		barChartVals[2] = interfaceRowList.size() - barChartVals[3];
+		
 		barHash.put("headers", headers);
 		barHash.put("data", barChartVals);
 		return barHash;
