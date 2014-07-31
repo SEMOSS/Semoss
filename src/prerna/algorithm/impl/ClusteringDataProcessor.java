@@ -49,6 +49,13 @@ public class ClusteringDataProcessor {
 		return categoricalMatrix;
 	}
 
+	public ArrayList<String> getCategoryPropNames() {
+		return categoryPropNames;
+	}
+	public ArrayList<String> getNumericalPropNames() {
+		return numericalPropNames;
+	}
+
 	// Calculates the similarity score
 	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws BadInputException {
 		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
