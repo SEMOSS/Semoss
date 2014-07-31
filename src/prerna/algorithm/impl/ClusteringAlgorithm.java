@@ -85,9 +85,6 @@ public class ClusteringAlgorithm {
 			for(String instance : instanceIndexHash.keySet()) {
 				int instanceInd = instanceIndexHash.get(instance);
 				int newClusterForInstance = findNewClusterForInstance(instanceInd);
-				if(instanceInd>=202) {
-					String k = "k";
-				}
 				int oldClusterForInstance = clustersAssigned.get(instanceInd);
 				if(newClusterForInstance!=oldClusterForInstance) {
 					noChange = false;
@@ -109,7 +106,8 @@ public class ClusteringAlgorithm {
 			success = true;
 		
 		printOutClusterForInstance();
-		printOutClusterForInstance();
+		printClusterNumberMatrix();
+		printClusterCategoryMatrix();
 	}
 
 
@@ -293,57 +291,42 @@ public class ClusteringAlgorithm {
 	 * Prints the cluster each instance is assigned to.
 	 */
 	public void printOutClusterForInstance() {
-		System.out.println("Cluster for each index: \n");
+		System.out.println("Cluster for each index:");
 		for(String instance : instanceIndexHash.keySet()) {
 			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
 		}
 	}
 
+	public void printClusterNumberMatrix() {
+		System.out.println("Cluster Numerical Properties:");
 
+		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
+		for(int clusterInd=0;clusterInd<clusterNumberMatrix.length;clusterInd++ ) {
+			System.out.println("Cluster " + clusterInd + " Numerical Properties: ");
+			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ ) {
+				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
+			}
+			System.out.println("\n");
+		}
+	}
 	
-//	/*
-//	 * Copies the cluster number of instances matrix so that changes only affect next iteration and not the current one.
-//	 */
-//	public int[] copyClusterNumInstancesArray(int[] clustersNumInstances){
-//		int[] clustersNumInstancesCopy = new int[clustersNumInstances.length];
-//		for(int i=0;i<clustersNumInstances.length;i++)
-//			clustersNumInstancesCopy[i] = clustersNumInstances[i];
-//		return clustersNumInstancesCopy;
-//	}
-//	
-//	/*
-//	 * Copies the cluster number matrix so that changes only affect next iteration and not the current one.
-//	 */
-//	public double[][] copyClusterNumberMatrix(double[][] clusterNumberMatrix) {
-//		double[][] clusterNumberMatrixCopy = new double[clusterNumberMatrix.length][clusterNumberMatrix[0].length];
-//		for(int row=0;row<clusterNumberMatrix.length;row++) {
-//			for(int col=0;col<clusterNumberMatrix[0].length;col++) {
-//				clusterNumberMatrixCopy[row][col] = clusterNumberMatrix[row][col];
-//			}
-//		}
-//		return clusterNumberMatrixCopy;
-//	}
-//
-//	/*
-//	 * Copies the cluster category matrix so that changes only affect next iteration and not the current one.
-//	 */
-//	public ArrayList<ArrayList<Hashtable<String,Integer>>> copyClusterCategoryMatrix(ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
-//		ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrixCopy = new ArrayList<ArrayList<Hashtable<String,Integer>>>();
-//		for(int clusterInd = 0;clusterInd<clusterCategoryMatrix.size();clusterInd++) {
-//			ArrayList<Hashtable<String,Integer>> categoryArrayList = clusterCategoryMatrix.get(clusterInd);
-//			ArrayList<Hashtable<String,Integer>> categoryArrayListCopy = new ArrayList<Hashtable<String,Integer>>();
-//			for(int categoryInd = 0;categoryInd<categoryArrayList.size();categoryInd++) {
-//				Hashtable<String,Integer> valueCountHash = categoryArrayList.get(categoryInd);
-//				Hashtable<String,Integer> valueCountHashCopy = new Hashtable<String,Integer>();
-//				for(String valueKey : valueCountHash.keySet()) {
-//					valueCountHashCopy.put(valueKey,valueCountHash.get(valueKey));
-//				}
-//				categoryArrayListCopy.add(valueCountHashCopy);
-//			}
-//			clusterCategoryMatrixCopy.add(categoryArrayListCopy);
-//		}
-//		return clusterCategoryMatrixCopy;
-//	}
+	public void printClusterCategoryMatrix() {
+		System.out.println("\nCluster Category Properties:");
+
+		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
+		for(int clusterInd=0;clusterInd<clusterCategoryMatrix.size();clusterInd++ ) {
+			System.out.println("Cluster " + clusterInd + " Categorical Properties: ");
+			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
+				System.out.print(categoryPropNames.get(numberInd)+": {");
+				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
+				for(String propVal : propValHash.keySet()) {
+					System.out.print(propVal+": "+propValHash.get(propVal)+"; ");
+				}		
+				System.out.println("},");
+			}
+			System.out.println();
+		}
+	}
 
 
 	
