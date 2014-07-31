@@ -235,7 +235,6 @@ public class ClusteringAlgorithm {
 					
 					//add the category properties to the new cluster
 					Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
-					propValHash = new Hashtable<String,Integer>();
 					propValHash.put(categoryValForInstance, 1);
 					clusterCategoryMatrix.get(clusterInd).set(categoryInd, propValHash);
 				}
@@ -282,7 +281,6 @@ public class ClusteringAlgorithm {
 				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 			}
 			else{
-				propValHash = new Hashtable<String,Integer>();
 				propValHash.put(categoryValForInstance, 1);
 				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 			}
