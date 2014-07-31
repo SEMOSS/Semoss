@@ -18,6 +18,9 @@
  ******************************************************************************/
 package prerna.ui.components.playsheets;
 
+import java.util.ArrayList;
+import java.util.Hashtable;
+
 import prerna.algorithm.impl.ClusteringAlgorithm;
 import prerna.error.BadInputException;
 import prerna.util.Utility;
@@ -36,6 +39,29 @@ public class ClusteringTestPlaySheet extends GridPlaySheet{
 			ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
 			clusterAlg.setNumClusters(10);
 			clusterAlg.execute();
+			ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
+			Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
+			ArrayList<Object[]> newList = new ArrayList<Object[]>();
+			for(Object[] dataRow : list) {
+				Object[] newDataRow = new Object[dataRow.length + 1];
+				String instance = "";
+				for(int i = 0; i < dataRow.length; i++) {
+					if(i == 0) {
+						instance = dataRow[i].toString();
+					}
+					newDataRow[i] = dataRow[i];
+				}
+				Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
+				newDataRow[dataRow.length] = clusterNumber;
+				newList.add(newDataRow);
+			}
+			list = newList;
+			String[] newNames = new String[names.length + 1];
+			for(int i = 0; i < names.length; i++) {
+				newNames[i] = names[i];
+			}
+			newNames[names.length] = "CluserID";
+			names = newNames;
 		}catch(BadInputException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
