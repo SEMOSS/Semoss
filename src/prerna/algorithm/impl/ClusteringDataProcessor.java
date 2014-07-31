@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -43,31 +44,44 @@ public class ClusteringDataProcessor {
 		calculateWeights();
 	}
 	
+	public double[][] getNumericalMatrix() {
+		return numericalMatrix;
+	}
+	
+	public String[][] getCategoricalMatrix() {
+		return categoricalMatrix;
+	}
+
 	// Calculates the similarity score
-	public Double getSimilarityScore(int dataIdx, int cluserIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Double>> categoryClusterInfo) throws BadInputException {
+	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws BadInputException {
 //		ArrayList<String> instanceCategoricalInfo = categoricalMatrix.get(dataIdx);
 //		ArrayList<Double> instanceNumericalInfo = numericalMatrix.get(dataIdx);
 		
 		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
 		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 
-		double numericalSimilarity = calcuateNumericalSimilarity(cluserIdx, instanceNumericalInfo, allNumericalClusterInfo);
-		double categorySimilarity = calculateCategorySimilarity(cluserIdx, instaceCategoricalInfo, categoryClusterInfo);
+		double numericalSimilarity = calcuateNumericalSimilarity(clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
+		double categorySimilarity = calculateCategorySimilarity(clusterIdx, instaceCategoricalInfo, categoryClusterInfo);
 
 		return numericalSimilarity + categorySimilarity;
 	}
 	
 	// Calculates the similarity score for the categorical entries
-	private double calculateCategorySimilarity(int cluserIdx, String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Double>> categoryClusterInfo) {
+	private double calculateCategorySimilarity(int clusterIdx, String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) {
 		double categorySimilarity = 0;
 		
 		for(int i = 0; i < weights.size(); i++) {
 			double sumProperties = 0;
-			Hashtable<String, Double> propertyHash = categoryClusterInfo.get(i);
-			for(String propName : propertyHash.keySet()) {
+			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
+			Set<String> propKeySet = propertyHash.keySet();
+			for(String propName : propKeySet) {
 				sumProperties += propertyHash.get(propName);
 			}
-			categorySimilarity += weights.get(i) * propertyHash.get(categoryPropNames.get(i)) / sumProperties;
+			int numOccuranceInCluster = 0;
+			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
+				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
+			}
+			categorySimilarity += weights.get(i) * numOccuranceInCluster / sumProperties;
 		}
 		
 		double coeff = 1.0 * categoryPropNames.size() / varNames.length;
@@ -93,7 +107,7 @@ public class ClusteringDataProcessor {
 		numericalSimilarity = distanceFromCluster/normalization;
 		double coeff = 1.0 * numericalPropNames.size() / varNames.length;
 		
-		logger.info("Calculated similarity score for categories: " + coeff * numericalSimilarity);
+		logger.info("Calculated similarity score for numericals: " + coeff * numericalSimilarity);
 		return coeff * numericalSimilarity;
 	}
 
@@ -134,7 +148,7 @@ public class ClusteringDataProcessor {
 			
 			double sumProb = 0;
 			for(Integer propCount : columnPropInstanceCountArr) {
-				Double probability = (double) (propCount / totalCountOfPropInstances);
+				Double probability = (double) ( 1.0 * propCount / totalCountOfPropInstances);
 				sumProb += probability * logBase2(probability);
 			}
 			
@@ -148,23 +162,30 @@ public class ClusteringDataProcessor {
 	// generate occurrence of instance categorical properties to calculate entropy
 	private ArrayList<Hashtable<String, Integer>> getPropOccurance() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
+
+		for(int i = 0; i < categoricalMatrix[0].length; i++) {
+			trackPropOccuranceArr.add(new Hashtable<String, Integer>());
+		}
 		
 		for(String[] results : categoricalMatrix) {
 			for(int i = 0; i < results.length; i++) {		
-				Hashtable<String, Integer> columnInformationHash = new Hashtable<String, Integer>();
-				columnInformationHash = trackPropOccuranceArr.get(i);
-				if(columnInformationHash == null) {
-					trackPropOccuranceArr.add(new Hashtable<String, Integer>());
-					columnInformationHash = trackPropOccuranceArr.get(i);
-				}
-				Integer occurance = columnInformationHash.get(categoryPropNames.get(i));
-				if(occurance == null) {
-					columnInformationHash.put(categoryPropNames.get(i), 1);
+				Hashtable<String, Integer> columnInformationHash = trackPropOccuranceArr.get(i);
+				if(columnInformationHash.isEmpty()) {
+					columnInformationHash.put(results[i], 1);
+					logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
 				} else {
-					occurance++;
+					if(columnInformationHash.get(results[i]) == null) {
+						columnInformationHash.put(results[i], 1);
+						logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
+					} else {
+						int currCount = columnInformationHash.get(results[i]);
+						columnInformationHash.put(results[i], ++currCount);
+						logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + "has occured " + currCount + " times.");
+					}
 				}
 			}
 		}
+		
 		return trackPropOccuranceArr;
 	}
 	
@@ -186,12 +207,14 @@ public class ClusteringDataProcessor {
 						categorical = true;
 						categoryPropNames.add(varNames[j]);
 						categoryPropIndices.add(j);
+						logger.info("Found " + varNames[j] + " to be a categorical data column");
 						break;
 					}
 				}
 				if(!categorical) {
 					numericalPropNames.add(varNames[j]);
 					numericalPropIndices.add(j);
+					logger.info("Found " + varNames[j] + " to be a numerical data column");
 				}
 			} else {
 				// get list of all instances in the order they are being stored
@@ -208,12 +231,12 @@ public class ClusteringDataProcessor {
 	
 	// build the categorical and numerical matrices based on the master table and which columns are categories vs. numbers
 	private void constructMatrices(ArrayList<Integer> categoryPropIndices, ArrayList<Integer> numericalPropIndices) {
-		int counter = 0;
 		
 		numericalMatrix = new double[masterTable.size()][numericalPropIndices.size()];
 		categoricalMatrix = new String[masterTable.size()][categoryPropIndices.size()];
 		
 		for(int row = 0; row < masterTable.size(); row++) {
+			int counter = 0;
 //			categoricalMatrix.add(new ArrayList<String>());
 //			numericalMatrix.add(new ArrayList<Double>());
 			
@@ -222,14 +245,12 @@ public class ClusteringDataProcessor {
 //			ArrayList<Double> numericalValues = new ArrayList<Double>();
 			
 			for(Integer idx : categoryPropIndices) {
-				logger.info("Found " + varNames[idx] + " to be a categorical data column");
-				categoricalMatrix[row][counter] = (String) dataRow[idx];
+				categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
 				counter++;
 //				categoricalValues.add((String) dataRow[idx]);
 			}
 			counter = 0;
-			for(Integer idx : categoryPropIndices) {
-				logger.info("Found " + varNames[idx] + " to be a numerical data column");
+			for(Integer idx : numericalPropIndices) {
 				numericalMatrix[row][counter] = (Double) dataRow[idx];
 				counter++;
 //				numericalValues.add((Double) dataRow[idx]);
