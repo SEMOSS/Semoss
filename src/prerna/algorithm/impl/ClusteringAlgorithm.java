@@ -72,6 +72,8 @@ public class ClusteringAlgorithm {
 		//make the cluster category matrix from initial assingments
 		clusterCategoryMatrix = createClustersCategoryProperties();
 		
+		
+		
 		boolean noChange = false;
 		int iterationCount = 0;
 		int maxIterations = 1000;
@@ -83,12 +85,16 @@ public class ClusteringAlgorithm {
 			for(String instance : instanceIndexHash.keySet()) {
 				int instanceInd = instanceIndexHash.get(instance);
 				int newClusterForInstance = findNewClusterForInstance(instanceInd);
+				if(instanceInd>=202) {
+					String k = "k";
+				}
 				int oldClusterForInstance = clustersAssigned.get(instanceInd);
 				if(newClusterForInstance!=oldClusterForInstance) {
 					noChange = false;
 					clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance,newClusterForInstance, clusterNumberMatrix, clustersNumInstances);
 					clusterCategoryMatrix = updateClustersCategoryProperties(instanceInd, oldClusterForInstance,newClusterForInstance, clusterCategoryMatrix);
-					clustersNumInstances[oldClusterForInstance]--;
+					if(oldClusterForInstance>-1)
+						clustersNumInstances[oldClusterForInstance]--;
 					clustersNumInstances[newClusterForInstance]++;
 					clustersAssigned.set(instanceInd, newClusterForInstance);
 				}
@@ -101,6 +107,9 @@ public class ClusteringAlgorithm {
 		}
 		else
 			success = true;
+		
+		printOutClusterForInstance();
+		printOutClusterForInstance();
 	}
 
 
@@ -187,12 +196,14 @@ public class ClusteringAlgorithm {
 		for(int numberInd = 0;numberInd<instanceNumberMatrix[instanceInd].length;numberInd++) {
 			double numberValForInstance = instanceNumberMatrix[instanceInd][numberInd];
 			
-			double oldNumberValForInstance = clusterNumberMatrix[oldClusterForInstance][numberInd];
-			double valToPut = (oldNumberValForInstance * clustersNumInstances[oldClusterForInstance] - numberValForInstance) /  (clustersNumInstances[oldClusterForInstance] - 1);
-			clusterNumberMatrix[oldClusterForInstance][numberInd] = valToPut;
+			if(oldClusterForInstance>-1) {
+				double oldNumberValForInstance = clusterNumberMatrix[oldClusterForInstance][numberInd];
+				double valToPut = (oldNumberValForInstance * clustersNumInstances[oldClusterForInstance] - numberValForInstance) /  (clustersNumInstances[oldClusterForInstance] - 1);
+				clusterNumberMatrix[oldClusterForInstance][numberInd] = valToPut;
+			}
 			
 			double newClusterValForInstance = clusterNumberMatrix[newClusterForInstance][numberInd];
-			valToPut = (newClusterValForInstance * clustersNumInstances[newClusterForInstance] + numberValForInstance) /  (clustersNumInstances[newClusterForInstance] + 1);
+			double valToPut = (newClusterValForInstance * clustersNumInstances[newClusterForInstance] + numberValForInstance) /  (clustersNumInstances[newClusterForInstance] + 1);
 			clusterNumberMatrix[newClusterForInstance][numberInd] = valToPut;
 		}
 		return clusterNumberMatrix;
@@ -246,21 +257,23 @@ public class ClusteringAlgorithm {
 		for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
 			String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
 			
-			//remove the category property from the old cluster
-			Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
-			//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
-			if(propValHash.containsKey(categoryValForInstance)) {
-				int propCount = propValHash.get(categoryValForInstance);
-				propCount --;
-				propValHash.put(categoryValForInstance,propCount);
-				clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
-			}
-			else{
-				System.out.println("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
+			if(oldClusterForInstance>-1) {
+				//remove the category property from the old cluster
+				Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
+				//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
+				if(propValHash.containsKey(categoryValForInstance)) {
+					int propCount = propValHash.get(categoryValForInstance);
+					propCount --;
+					propValHash.put(categoryValForInstance,propCount);
+					clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+				}
+				else{
+					System.out.println("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
+				}
 			}
 			
 			//add the category properties to the new cluster
-			propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
+			Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
 			//if there is already a count going for the same property as the instance, add to it, otherwise create a new hash entry
 			if(propValHash.containsKey(categoryValForInstance)) {
 				int propCount = propValHash.get(categoryValForInstance);
@@ -278,13 +291,15 @@ public class ClusteringAlgorithm {
 		return clusterCategoryMatrix;
 	}
 	
-//	/**
-//	 * Prints the cluster each instance is assigned to.
-//	 * @param clustersAssigned
-//	 */
-//	public void printOutClusterForInstance(ArrayList<Integer> clustersAssigned) {
-//		for(int i=0;i<)
-//	}
+	/**
+	 * Prints the cluster each instance is assigned to.
+	 */
+	public void printOutClusterForInstance() {
+		System.out.println("Cluster for each index: \n");
+		for(String instance : instanceIndexHash.keySet()) {
+			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
+		}
+	}
 
 
 	
