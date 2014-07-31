@@ -29,16 +29,16 @@ public class ClusteringDataProcessor {
 	private ArrayList<Object[]> masterTable;
 	private String[] varNames;
 	
-	public Hashtable<String, Integer> getInstanceHash() {
-		return instanceHash;
-	}
-	
 	public ClusteringDataProcessor(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
 		
 		processMasterTable();
 		calculateWeights();
+	}
+	
+	public Hashtable<String, Integer> getInstanceHash() {
+		return instanceHash;
 	}
 	
 	public double[][] getNumericalMatrix() {
