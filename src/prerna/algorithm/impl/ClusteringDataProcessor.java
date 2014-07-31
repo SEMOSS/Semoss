@@ -90,15 +90,23 @@ public class ClusteringDataProcessor {
 		int numClusters = allNumericalClusterInfo.length;
 		double[] distance = new double[numClusters];
 		
-		double normalization = 0;
+		double distanceNormalization = 0;
 		for(int i = 0; i < allNumericalClusterInfo.length; i++) {
 			double[] numericalClusterInfo = allNumericalClusterInfo[i];
 			distance[i] = disCalculator.calculateEuclidianDistance(instanceNumericalInfo, numericalClusterInfo);
-			normalization += Math.exp(-0.5 * distance[i]);
+			distanceNormalization += distance[i];
+		}
+		for(int i = 0; i < distance.length; i++) {
+			distance[i] /= distanceNormalization;
 		}
 		
 		double distanceFromCluster = Math.exp(-0.5 * distance[clusterIdx]);
-		numericalSimilarity = distanceFromCluster/normalization;
+		double sumDistanceFromCluster = 0;
+		for(int i = 0; i < distance.length; i++) {
+			sumDistanceFromCluster += Math.exp(-0.5 * distance[i]);
+		}
+		
+		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
 		double coeff = 1.0 * numericalPropNames.size() / varNames.length;
 		
 		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
@@ -174,7 +182,7 @@ public class ClusteringDataProcessor {
 					} else {
 						int currCount = columnInformationHash.get(results[i]);
 						columnInformationHash.put(results[i], ++currCount);
-						logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + "has occured " + currCount + " times.");
+						logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " has occured " + currCount + " times.");
 					}
 				}
 			}
