@@ -61,6 +61,9 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 			}
 			newNames[names.length] = "CluserID";
 			names = newNames;
+			
+			list.addAll(0,clusterAlg.getClusterRows());
+			
 //		}catch(BadInputException e) {
 //			e.printStackTrace();
 //			Utility.showError(e.getMessage());
