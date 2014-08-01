@@ -125,7 +125,7 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 		entityFillerSC.engine = engine;
 		entityFillerSC.parent = "Concept";
 		Thread aThread = new Thread(entityFillerSC);
-		aThread.run();
+		aThread.start();
 
 	}
 

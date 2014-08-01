@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2013 SEMOSS.ORG
+\ * Copyright 2013 SEMOSS.ORG
  * 
  * This file is part of SEMOSS.
  * 
@@ -38,9 +38,6 @@ public class DataLatencyPlayListener implements ActionListener{
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	Logger logger = Logger.getLogger(getClass());
-	private JTextField dataLatencyHoursTextField;
-	private JTextField dataLatencyWeeksTextField;
-	private JTextField dataLatencyDaysTextField;
 	
 	/**
 	 * Constructor for DataLatencyPlayListener.

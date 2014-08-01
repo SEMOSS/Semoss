@@ -64,7 +64,6 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	public SailConnection sc = null;
 	public ValueFactory vf = null;
 	boolean connected = false;
-	private String engineName;
 	InferenceEngine ie = null;
 	
 	/**

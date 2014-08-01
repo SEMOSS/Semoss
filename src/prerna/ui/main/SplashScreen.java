@@ -90,19 +90,6 @@ public class SplashScreen extends JWindow {
 	}
 
 	/**
-	 * Method loadProgressBar.  Updates the value of the progress bar.
-	 */
-	private void loadProgressBar() {
-		ActionListener progressListener = new ActionListener() {
-
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				count++;
-				progressBar.setValue(count);
-			}
-		};
-	}
-
-	/**
 	 */
 	private class MyProgressUI extends BasicProgressBarUI {
 

@@ -263,7 +263,6 @@ public class PlayPane extends JFrame {
 	private JLabel lblCostDB;
 	public JComboBox changedDBComboBox, costDBComboBox;
 	public JButton saveSudowl;
-	private ButtonMenuDropDown comboBox;
 
 	// Active Systems
 	public CustomButton btnUpdateActiveSystems;
@@ -282,7 +281,6 @@ public class PlayPane extends JFrame {
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
-	private JSeparator separator_4;
 	private JLabel distBVtechMatlabel;
 
 	// RFP, vendor, and deconflicting panel
@@ -603,6 +601,7 @@ public class PlayPane extends JFrame {
 				e.printStackTrace();
 			}
 		}
+		releaseNotesTextReader.close();
 
 		JPanel imExPanel = new JPanel();
 		imExPanel.setBackground(SystemColor.control);

@@ -52,11 +52,9 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		if(arg0 != null) {
-			JComboBox source = (JComboBox) arg0.getSource();
-			int length = source.getName().length();
-			this.exportNo = Integer.parseInt(source.getName().substring(length-1, length));
-		}
+		JComboBox source = (JComboBox) arg0.getSource();
+		int length = source.getName().length();
+		this.exportNo = Integer.parseInt(source.getName().substring(length-1, length));
 
 		JComboBox subjectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
 		JComboBox objectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + this.exportNo);

@@ -29,12 +29,12 @@ public class SampleFileWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		try {
-			//loadExistingDB();
-			// for the sample this will never get called
-		} catch(Exception ex) {
-			ex.printStackTrace();
-		}
+//		try {
+//			//loadExistingDB();
+//			// for the sample this will never get called
+//		} catch(Exception ex) {
+//			ex.printStackTrace();
+//		}
 	}
 	
 	/**

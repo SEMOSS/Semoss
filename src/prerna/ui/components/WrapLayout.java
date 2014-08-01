@@ -34,7 +34,6 @@ import javax.swing.SwingUtilities;
  */
 public class WrapLayout extends FlowLayout
 {
-	private Dimension preferredLayoutSize;
 
 	/**
 	* Constructs a new <code>WrapLayout</code> with a left

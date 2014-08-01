@@ -90,7 +90,7 @@ public class LoadSheetExportClearAllListener implements IChakraListener {
 		entityFillerSC.engine = engine;
 		entityFillerSC.parent = "Concept";
 		Thread aThread = new Thread(entityFillerSC);
-		aThread.run();
+		aThread.start();
 		
 		DefaultComboBoxModel model = new DefaultComboBoxModel(new String[0]);
 		ParamComboBox objectNodeTypeComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + "1");
