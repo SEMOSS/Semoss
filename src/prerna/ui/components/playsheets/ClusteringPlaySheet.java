@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.algorithm.impl.ClusteringAlgorithm;
-import prerna.error.BadInputException;
-import prerna.util.Utility;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -36,7 +34,7 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		super.createData();
-		try{
+//		try{
 			ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
 			clusterAlg.setNumClusters(numClusters);
 			clusterAlg.execute();
@@ -63,11 +61,11 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 			}
 			newNames[names.length] = "CluserID";
 			names = newNames;
-		}catch(BadInputException e) {
-			e.printStackTrace();
-			Utility.showError(e.getMessage());
-		}
-		
+//		}catch(BadInputException e) {
+//			e.printStackTrace();
+//			Utility.showError(e.getMessage());
+//		}
+//		
 	}
 
 	
