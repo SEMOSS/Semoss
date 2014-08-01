@@ -1,4 +1,5 @@
 package prerna.poi.main;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
@@ -18,7 +20,6 @@ import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
 import edu.stanford.nlp.ling.TaggedWord;
-import edu.stanford.nlp.ling.WordLemmaTag;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -38,32 +39,28 @@ import edu.stanford.nlp.util.CoreMap;
 
 public class ProcessNLP {
 
-	//class variables
-	static List<TypedDependency> tdl = new ArrayList<TypedDependency>();
-	static List<TypedDependency> tdl2 = new ArrayList<TypedDependency>();
-	static ArrayList <TaggedWord> TaggedWords = new ArrayList<TaggedWord>();
-	static ArrayList <CoreLabel> CoreLabels = new ArrayList<CoreLabel>();
-	static ArrayList <WordLemmaTag> WordLemmas = new ArrayList<WordLemmaTag>();
-	static ArrayList <TripleWrapper> Triples = new ArrayList<TripleWrapper>(); // list of all triples stored after running findVerbTriples()
-	static Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
-	static Vector <TypedDependency> dobjV = new Vector<TypedDependency>();
-	static Vector <TypedDependency> subjV = new Vector<TypedDependency>();
-	static Hashtable <String, String> negHash = new Hashtable<String, String>();
-	static Hashtable<String, Vector<String>> VNhash = new Hashtable<String,Vector<String>>();
-	Hashtable<String, Vector<String>> VNFNhash = new Hashtable<String,Vector<String>>();
-	static boolean SentenceParsable = true;
-	static LexicalizedParser lp;
-	static StanfordCoreNLP pipeline;
-	static int ArticleNUM = 0;
-	static String CurrentSentence = "";
+	private List<TypedDependency> tdl = new ArrayList<TypedDependency>();
+	private ArrayList <TaggedWord> TaggedWords = new ArrayList<TaggedWord>();
+	private ArrayList <CoreLabel> CoreLabels = new ArrayList<CoreLabel>();
+	private ArrayList <TripleWrapper> Triples = new ArrayList<TripleWrapper>(); // list of all triples stored after running findVerbTriples()
+	private Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
+	private Vector <TypedDependency> dobjV = new Vector<TypedDependency>();
+	private Vector <TypedDependency> subjV = new Vector<TypedDependency>();
+	private Hashtable <String, String> negHash = new Hashtable<String, String>();
+	private boolean SentenceParsable = true;
+	private LexicalizedParser lp;
+	private StanfordCoreNLP pipeline;
+	private int ArticleNUM = 0;
+	private String CurrentSentence = "";
 
+	private final Logger logger = Logger.getLogger(getClass());
+	
 	public ProcessNLP(){
-		lp = LexicalizedParser.loadModel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\englishPCFG.ser"); //<--TODO path to grammar goes here
+		lp = LexicalizedParser.loadModel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\englishPCFG.ser");
 		pipeline = new StanfordCoreNLP();
 	}
 
-	public static ArrayList<TripleWrapper> masterRead(String[] files) throws NLPException {
-		// TODO Auto-generated method stub
+	public ArrayList<TripleWrapper> masterRead(String[] files) throws NLPException {
 		Triples = new ArrayList<TripleWrapper>();
 		for(ArticleNUM = 0; ArticleNUM<files.length; ArticleNUM++){	
 			String docin = files[ArticleNUM];
@@ -74,12 +71,10 @@ public class ProcessNLP {
 		createOccuranceCount();
 		lemmatize(Triples.size());
 		normalizecase(Triples.size());
-		System.out.println("DONE LEMATIZING");
-		System.out.println("BIG DONE");
 		return Triples;
 	}
 
-	private static void NLP(String docin) throws NLPException {
+	private void NLP(String docin) throws NLPException {
 		List<String> DocSentences = new ArrayList<String>();
 		ReadDoc(DocSentences, docin);
 
@@ -87,10 +82,8 @@ public class ProcessNLP {
 		for(int i = 0; i < DocSentences.size(); i++) //DocSentences.size()
 		{
 			tdl = new ArrayList<TypedDependency>();
-			tdl2 = new ArrayList<TypedDependency>();;
 			TaggedWords = new ArrayList<TaggedWord>();
 			CoreLabels = new ArrayList<CoreLabel>();
-			WordLemmas = new ArrayList<WordLemmaTag>();
 			nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
 			dobjV = new Vector<TypedDependency>();
 			subjV = new Vector<TypedDependency>();
@@ -106,7 +99,7 @@ public class ProcessNLP {
 		}
 	}
 	
-	public static void ReadDoc(List<String> DocSentences2, String docin) throws NLPException {
+	public void ReadDoc(List<String> DocSentences2, String docin) throws NLPException {
 		//need to deal with return carriage!!!
 		//logic for website, .docx .doc branch resume
 		Scanner scan;
@@ -122,16 +115,15 @@ public class ProcessNLP {
 				throw new NLPException("Error processing website");
 			}
 			scan = new Scanner(extractedText);
-			System.out.println("Processing Website");
+			logger.info("Processing Website");
 			int j = 0;
 			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s");
 			while (scan.hasNext()){
 				DocSentences2.add(scan.next()+".");
 				DocSentences2.get(j).replaceAll("\\r\\n|\\r|\\n", " ").replace("\n","").replace("\r", "");
-				System.out.println(DocSentences2.get(j));
+				logger.info(DocSentences2.get(j));
 				j++;
 			}
-			System.out.println("done");
 			scan.close();
 		}
 		if(docin.contains(".doc")){
@@ -154,7 +146,7 @@ public class ProcessNLP {
 			while (scan.hasNext()){
 				DocSentences2.add(scan.next()+".");
 				DocSentences2.get(j).replaceAll("\\r\\n|\\r|\\n", " ").replace("\n","").replace("\r", "");
-				System.out.println(DocSentences2.get(j));
+				logger.info(DocSentences2.get(j));
 				j++;
 			}
 		}
@@ -173,7 +165,7 @@ public class ProcessNLP {
 				throw new NLPException("Error extrating text from document");
 			}
 			scan = new Scanner(extractedText);
-			System.out.println("Processing TextDocument");
+			logger.info("Processing TextDocument");
 			int j = 0;
 			scan.useDelimiter("\\. *\\s|\\? *\\s|\\! *\\s|\\\n *\\s");
 			String temp = "";
@@ -181,15 +173,14 @@ public class ProcessNLP {
 				temp = scan.next();	
 				DocSentences2.add(temp+".");
 				DocSentences2.get(j).replaceAll("\\r\\n|\\r|\\n", " ").replace("\n","").replace("\r", "");
-				System.out.println("this is sentence "+j+" "+DocSentences2.get(j));
+				logger.info("this is sentence "+j+" "+DocSentences2.get(j));
 				j++;
 			}
-			System.out.println("done");
 			scan.close();
 		}
 	}
 	
-	public static List<TypedDependency> CreateDepList(String TheSentence, List<TypedDependency> tdl, List<TaggedWord> TaggedWords)
+	public List<TypedDependency> CreateDepList(String TheSentence, List<TypedDependency> tdl, List<TaggedWord> TaggedWords)
 	{
 		//picking the grammer sheet to use for parsing
 
@@ -204,13 +195,13 @@ public class ProcessNLP {
 			SentenceParsable = true;
 		}
 		catch(NullPointerException e ){
-			System.out.println("This Sentence failed: "+ TheSentence);
+			logger.info("This Sentence failed: "+ TheSentence);
 			SentenceParsable = false;
 			return tdl;
 		}
 		CoreLabels.addAll( bestParse.taggedLabeledYield());
-		System.out.println("From createDep: "+ TheSentence);
-		System.out.println("From createDep: "+ TaggedWords);
+		logger.info("From createDep: "+ TheSentence);
+		logger.info("From createDep: "+ TaggedWords);
 
 		GrammaticalStructure gs = null;
 		TreebankLanguagePack tlp = new PennTreebankLanguagePack();
@@ -221,7 +212,7 @@ public class ProcessNLP {
 		return tdl;
 	}
 	
-	public static Hashtable<GrammaticalRelation, Vector<TypedDependency>> setHash(List<TypedDependency> tdl,Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHashA)
+	public Hashtable<GrammaticalRelation, Vector<TypedDependency>> setHash(List<TypedDependency> tdl,Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHashA)
 	{
 		for(int tdlIndex = 0;tdlIndex < tdl.size();tdlIndex++)
 		{
@@ -237,7 +228,7 @@ public class ProcessNLP {
 		return nodeHashA;
 	}
 
-	public static void GetTriples()
+	public void GetTriples()
 	{
 		createNegations();
 		findVerbTriples(EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
@@ -249,7 +240,7 @@ public class ProcessNLP {
 		// findBaseSubjectTriples(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
 	}
 	
-	public static void createNegations()
+	public void createNegations()
 	{
 		Vector <TypedDependency> negVector = nodeHash.get(EnglishGrammaticalRelations.NEGATION_MODIFIER);
 		if(negVector != null)
@@ -264,7 +255,7 @@ public class ProcessNLP {
 		}
 	}
 
-	public static void findVerbTriples(GrammaticalRelation subjR, GrammaticalRelation objR)
+	public void findVerbTriples(GrammaticalRelation subjR, GrammaticalRelation objR)
 	{
 		// based on the subjects and objects now find the predicates
 		dobjV = nodeHash.get(objR);
@@ -277,11 +268,9 @@ public class ProcessNLP {
 				TreeGraphNode obj = dobjV.get(dobjIndex).dep();
 				TreeGraphNode pred = dobjV.get(dobjIndex).gov();
 				String predicate = pred.value();
-				String object = obj + "";
 				//possibly add a clausal search for this as well
 
 				// now find the subject
-				//System.out.println("Node in relation " + GrammaticalStructure.getNodeInRelation(obj, EnglishGrammaticalRelations.PREDICATE));
 				for(int subjIndex = 0;subjIndex < subjV.size();subjIndex++)
 				{
 					TreeGraphNode subj = subjV.get(subjIndex).dep();
@@ -292,7 +281,7 @@ public class ProcessNLP {
 						TripleWrapper temp = new TripleWrapper();
 						String finalSubject  = subj.value();
 						String finalObject = "";
-						System.out.println("VERB Triple simple: "+subj+" "+pred+" "+obj);
+						logger.info("VERB Triple simple: "+subj+" "+pred+" "+obj);
 						//Setting TripleWrapper
 						temp.setObj1(subj.toString()); //part of future SetTriple
 						temp.setPred(pred.toString());
@@ -319,14 +308,14 @@ public class ProcessNLP {
 
 						//FINDING EXTENSION OF PREDICATE****
 						// find the negators for the predicates next
-						if(negHash.containsKey(pred + "")|| negHash.containsKey(altPredicate + "")){
+						if(negHash.containsKey(pred + "")|| negHash.containsKey(altPredicate + "")) {
 							predicate = "NOT " + predicate;
 						}
 
 						//EXTENSION OF OBJECT FOUND****
 						// fulcrum on the nsubj to see if there is an NNP in the vicinity
-						if(finalObject.indexOf(predicate) < 0 && predicate.indexOf(finalObject) < 0){
-							System.out.println("VERB Triple: 	" + finalSubject + "<<>>" + predicate + "<<>>" + finalObject);
+						if(finalObject.indexOf(predicate) < 0 && predicate.indexOf(finalObject) < 0) {
+							logger.info("VERB Triple: 	" + finalSubject + "<<>>" + predicate + "<<>>" + finalObject);
 						}
 						temp.setObj1exp(finalSubject.toString());// part of future SetTriple
 						temp.setPredexp(predicate.toString());
@@ -342,7 +331,7 @@ public class ProcessNLP {
 	}
 
 	// finds the expanded object
-	public static TreeGraphNode findCompObject(TreeGraphNode subj)
+	public TreeGraphNode findCompObject(TreeGraphNode subj)
 	{
 		TreeGraphNode retNode = subj;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
@@ -379,7 +368,7 @@ public class ProcessNLP {
 	}
 
 	// find expanded subject
-	public static TreeGraphNode findCompSubject(TreeGraphNode subj)
+	public TreeGraphNode findCompSubject(TreeGraphNode subj)
 	{
 		TreeGraphNode retNode = subj;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
@@ -429,7 +418,7 @@ public class ProcessNLP {
 	}
 
 	//sometimes the DAMN complement is recursive
-	public static TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, GrammaticalRelation relation) {
+	public TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, GrammaticalRelation relation) {
 
 		TreeGraphNode retNode = subj;
 		// find all the complements
@@ -461,7 +450,7 @@ public class ProcessNLP {
 		return retNode;
 	}
 
-	public static String getFullNoun(TreeGraphNode node)
+	public String getFullNoun(TreeGraphNode node)
 	{
 		String finalObject = "";
 		boolean npFound = false;
@@ -494,7 +483,7 @@ public class ProcessNLP {
 		return finalObject;
 	}
 
-	public static String findPrepNoun(TreeGraphNode noun)
+	public String findPrepNoun(TreeGraphNode noun)
 	{
 		// given the preperator
 		// complete the string
@@ -521,7 +510,7 @@ public class ProcessNLP {
 		return retString;
 	}
 
-	public static String findPrepNounForPredicate(TreeGraphNode noun)
+	public String findPrepNounForPredicate(TreeGraphNode noun)
 	{
 		// given the preperator
 		// complete the string
@@ -547,12 +536,10 @@ public class ProcessNLP {
 		return retString;
 	}
 	
-	private static void TrimTriples() {
+	private void TrimTriples() {
 		for(int i = 0; i<Triples.size(); i++)
 		{
-			System.out.println("HERE");
-			System.out.println(Triples.get(i).getObj1());
-			System.out.println("HERE");
+			logger.info(Triples.get(i).getObj1());
 			Triples.get(i).setObj1(Triples.get(i).getObj1().toString().substring(0, Triples.get(i).getObj1().toString().indexOf('-')));
 			Triples.get(i).setPred(Triples.get(i).getPred().toString().substring(0, Triples.get(i).getPred().toString().indexOf('-')));
 			Triples.get(i).setObj2(Triples.get(i).getObj2().toString().substring(0, Triples.get(i).getObj2().toString().indexOf('-')));
@@ -576,8 +563,8 @@ public class ProcessNLP {
 		}
 	}
 	
-	private static void createOccuranceCount() {
-		System.out.println("COUNT TABLE PRINTED ");
+	private void createOccuranceCount() {
+		logger.info("COUNT TABLE PRINTED ");
 
 		ArrayList <String> term = new ArrayList<String>();
 		ArrayList <Integer> termcount = new ArrayList<Integer>();
@@ -604,8 +591,8 @@ public class ProcessNLP {
 				termcount.add(1);}
 		}
 
-		System.out.println("COUNT TABLE PRINTED "+ term);
-		System.out.println("COUNT TABLE PRINTED "+ termcount);
+		logger.info("COUNT TABLE PRINTED "+ term);
+		logger.info("COUNT TABLE PRINTED "+ termcount);
 
 		for(int i = 0; i<Triples.size(); i++){
 			if(term.contains(Triples.get(i).getObj1())){
@@ -622,15 +609,15 @@ public class ProcessNLP {
 			}
 		}
 
-		System.out.println("TriplesNum");
+		logger.info("TriplesNum");
 		for(int i = 0; i <Triples.size();i++){
-			System.out.println(Triples.get(i).getObj1num());
-			System.out.println(Triples.get(i).getPrednum());
-			System.out.println(Triples.get(i).getObj2num());
+			logger.info(Triples.get(i).getObj1num());
+			logger.info(Triples.get(i).getPrednum());
+			logger.info(Triples.get(i).getObj2num());
 		}
 	}
 
-	public static void lemmatize(int TripleCount)
+	public void lemmatize(int TripleCount)
 	{
 		for(int i = 0; i<TripleCount; i++){
 			Annotation document = new Annotation(Triples.get(i).getPred());
@@ -638,15 +625,15 @@ public class ProcessNLP {
 			List<CoreMap> sentences = document.get(SentencesAnnotation.class);
 			for(CoreMap sentence: sentences) {
 				for (CoreLabel token: sentence.get(TokensAnnotation.class)) {
-					System.out.println("lemmatized "+token.get(LemmaAnnotation.class));
-					System.out.println("original   "+Triples.get(i).getPred()); 
+					logger.info("lemmatized "+token.get(LemmaAnnotation.class));
+					logger.info("original   "+Triples.get(i).getPred()); 
 					Triples.get(i).setPred(token.get(LemmaAnnotation.class));
 				}
 			}
 		}
 	}
 	
-	private static void normalizecase(int size) {
+	private void normalizecase(int size) {
 		for(int i = 0; i<Triples.size(); i++){
 			Triples.get(i).setObj1(Triples.get(i).getObj1().toLowerCase());
 			Triples.get(i).setPred(Triples.get(i).getPred().toLowerCase());

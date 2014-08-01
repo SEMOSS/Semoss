@@ -16,15 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
-package prerna.poi.main;
+package prerna.poi.specific;
 
 import java.io.FileInputStream;
-
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Hashtable;
+
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import prerna.error.FileReaderException;
+import prerna.poi.main.AbstractFileReader;
 
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
@@ -32,16 +37,33 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 
 
-	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
-	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
+	private Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
+	private Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName		String containing the absolute path to the excel workbook to load
+	 * @throws FileReaderException 
 	 */
-	public void importFile(String fileName) throws Exception {
-
-		XSSFWorkbook workbook = new XSSFWorkbook(new FileInputStream(fileName.replace(";","")));
+	public void importFile(String fileName) throws FileReaderException {
+		FileInputStream poiReader;
+		XSSFWorkbook workbook = null;
+		try {
+			poiReader = new FileInputStream(fileName.replace(";",""));
+			workbook = new XSSFWorkbook(poiReader);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not find Microsoft Excel File " + fileName.replace(";",""));
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not read Microsoft Excel File " + fileName.replace(";",""));
+		}
+		try {
+			poiReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close input stream to Microsoft Excel File " + fileName.replace(";",""));
+		}
 		XSSFSheet sheet = workbook.getSheet("Data Requirements");
 
 		// determine number of sheets to load
@@ -75,7 +97,6 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 					dataLatencyTypeHash.put(dataObject,"Archive");
 				else
 					dataLatencyTypeHash.put(dataObject,"Ignore");
-
 			}
 		}
 	}
