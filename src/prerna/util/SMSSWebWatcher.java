@@ -20,6 +20,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -33,13 +34,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		try {
-			//loadExistingDB();
-			loadNewDB(fileName);							
-		} catch(Exception ex) {
-			// TODO: Specify exception
-			ex.printStackTrace();
-		}
+		loadNewDB(fileName);
 	}
 	
 	/**
@@ -69,17 +64,30 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile) throws Exception
+	public void loadNewDB(String newFile)
 	{
-		Properties prop = new Properties();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-		prop.load(new FileInputStream(folderToWatch + "/"  +  newFile));
-		
-		String fileName = folderToWatch + "/" + newFile;
-		System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
-		
-		Utility.loadEngine(fileName, prop);
+		FileInputStream fileIn = null;
+		try{
+			Properties prop = new Properties();
+			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+	
+			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
+			prop.load(fileIn);
+			
+			String fileName = folderToWatch + "/" + newFile;
+			System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
+			
+			Utility.loadEngine(fileName, prop);
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	

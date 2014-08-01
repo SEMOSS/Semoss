@@ -454,15 +454,19 @@ public class DIHelper {
 	   */
 	  public void loadEngineProp(String engineName, String qPropFile, String ontologyPropFile)
 	  {
+		  FileInputStream qPropfileIn = null;
+		  FileInputStream ontologyPropfileIn = null;
 			try {
 				if(!engineQHash.containsKey(engineName))
 				{
 					engineCoreProp = new Properties();
-					engineCoreProp.load(new FileInputStream(qPropFile));
+					qPropfileIn = new FileInputStream(qPropFile);
+					engineCoreProp.load(qPropfileIn);
 					Hashtable engineLocalProp = new Hashtable();
 					loadPerspectives(engineCoreProp, engineLocalProp);
 					engineQHash.put(engineName, engineLocalProp);
-					engineCoreProp.load(new FileInputStream(ontologyPropFile));
+					ontologyPropfileIn = new FileInputStream(ontologyPropFile); 
+					engineCoreProp.load(ontologyPropfileIn);
 					engineQHash.put(engineName + "_CORE_PROP", engineCoreProp);
 				}
 				engineCoreProp = (Properties)engineQHash.get(engineName + "_CORE_PROP");
@@ -471,6 +475,15 @@ public class DIHelper {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
+			}finally{
+				try{
+					if(qPropfileIn!=null)
+						qPropfileIn.close();
+					if(ontologyPropfileIn!=null)
+						ontologyPropfileIn.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 	  }
@@ -584,13 +597,22 @@ public class DIHelper {
 	   */
 	  public void loadCoreProp(String fileName)
 	  {
+		  FileInputStream fileIn = null;
 			try {
 				coreProp = new Properties();
-				coreProp.load(new FileInputStream(fileName));
+				fileIn = new FileInputStream(fileName);
+				coreProp.load(fileIn);
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
+			}finally{
+				try{
+					if(fileIn!=null)
+						fileIn.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 	  }
 	  
