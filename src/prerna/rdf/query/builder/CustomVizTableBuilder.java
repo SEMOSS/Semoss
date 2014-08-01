@@ -23,10 +23,10 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	static final String relVarArrayKey = "relVarTriples";
 	static final String filterKey = "filter";
 	ArrayList<String> totalVarList = new ArrayList<String>();
-	ArrayList<String> selectedPropsList = null;
 	ArrayList<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 	ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-	ArrayList<Hashtable<String,String>> propV = new ArrayList<Hashtable<String,String>>();
+	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
+	ArrayList<Hashtable<String,String>> edgePropV = new ArrayList<Hashtable<String,String>>();
 	Hashtable<String, ArrayList<Object>> filterDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, ArrayList<Object>> bindingsDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, Object> bindDataHash = new Hashtable<String, Object>();
@@ -54,11 +54,14 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		semossQuery.createQuery();		
 	}
 
-	public ArrayList<Hashtable<String,String>> getPropsFromPath() 
+	public Hashtable<String, ArrayList<Hashtable<String,String>>> getPropsFromPath() 
 	{
 		parsePath();
 		parsePropertiesFromPath();	
-		return this.propV;
+		Hashtable<String, ArrayList<Hashtable<String,String>>> propsHash = new Hashtable<String, ArrayList<Hashtable<String,String>>>();
+		propsHash.put("nodes", nodePropV);
+		propsHash.put("edges", edgePropV);
+		return propsHash;
 	}
 	
 	private void configureQuery(){
@@ -88,6 +91,9 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			}
 		}
 
+		ArrayList<Hashtable<String, String>> propV = new ArrayList<Hashtable<String, String>>();
+		propV.addAll(nodePropV);
+		propV.addAll(edgePropV);
 		for(Hashtable<String, String> propHash : propV) {
 			String propName = propHash.get(varKey);
 			String propURI = propHash.get(uriKey);
@@ -271,7 +277,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				elementHash.put("SubjectVar", varName);
 				elementHash.put(varKey, propName);
 				elementHash.put(uriKey, propURI);
-				propV.add(elementHash);
+				nodePropV.add(elementHash);
 			}
 		}
 		ArrayList<Hashtable<String, String>> predVarList = new ArrayList<Hashtable<String, String>>();
@@ -294,7 +300,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				elementHash.put("SubjectVar", varName);
 				elementHash.put(varKey, propName);
 				elementHash.put(uriKey, propURI);
-				propV.add(elementHash);
+				edgePropV.add(elementHash);
 			}
 		}
 	}
@@ -304,9 +310,10 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		this.coreEngine = coreEngine;
 	}
 	
-	public void setPropV(ArrayList<Hashtable<String,String>> selectedPropsList)
+	public void setPropV(ArrayList<Hashtable<String,String>> selectedNodePropsList, ArrayList<Hashtable<String,String>> selectedEdgePropsList)
 	{
-		this.propV = selectedPropsList;
+		this.nodePropV = selectedNodePropsList;
+		this.edgePropV = selectedEdgePropsList;
 	}
 	
 	public String getQueryPattern(){
@@ -334,7 +341,8 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	public ArrayList<Hashtable<String,String>> getHeaderArray(){
 		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
 		retArray.addAll(nodeV);
-		retArray.addAll(propV);
+		retArray.addAll(nodePropV);
+		retArray.addAll(edgePropV);
 		// add the filter queries
 		String defaultQueryPattern = this.semossQuery.getQueryPattern();
 		for(Hashtable<String, String> headerHash : retArray){
