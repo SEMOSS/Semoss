@@ -129,21 +129,21 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 		}
 	}
 	
-	/**
-	 * Method testIt.
-	 */
-	private void testIt() throws Exception
-	{
-        URI pk = new URIImpl("http://www.semoss.org/person/Ali");
-        URI loves = new URIImpl("http://www.semoss.org/action/loves");
-        URI rdf = new URIImpl("http://www.semoss.org/RDF3");       
-        //rc2.add(graph);
-        //rc2.commit();
-        rc.add(pk, loves, rdf);
-        rc.commit();
-        System.err.println("INSERT SUCCESSFULLY COMPLETED.....................");
-		
-	}
+//	/**
+//	 * Method testIt.
+//	 */
+//	private void testIt() throws Exception
+//	{
+//        URI pk = new URIImpl("http://www.semoss.org/person/Ali");
+//        URI loves = new URIImpl("http://www.semoss.org/action/loves");
+//        URI rdf = new URIImpl("http://www.semoss.org/RDF3");       
+//        //rc2.add(graph);
+//        //rc2.commit();
+//        rc.add(pk, loves, rdf);
+//        rc.commit();
+//        System.err.println("INSERT SUCCESSFULLY COMPLETED.....................");
+//		
+//	}
 	
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 

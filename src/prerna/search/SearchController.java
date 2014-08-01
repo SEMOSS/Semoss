@@ -308,10 +308,10 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			}
 		}*/
 		/*data = searchText.getText(); */
-		synchronized(this)
-		{
-			this.notify();
-		}
+//		synchronized(this)
+//		{
+//			this.notify();
+//		}
 		/*if(data.length() > 0)
 			searchStatement(data);*/
 	}

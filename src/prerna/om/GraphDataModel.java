@@ -247,7 +247,7 @@ public class GraphDataModel {
 			loadBaseData(engine);
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
-			boolean loadHierarchy = !(subjects.equals("") && predicates.equals("") && objects.equals("")); 
+			boolean loadHierarchy = !(subjects.toString().equals("") && predicates.equals("") && objects.equals("")); 
 			if(loadHierarchy) {
 				try {
 					RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
@@ -780,18 +780,18 @@ public class GraphDataModel {
 					
 					// add the edge now if the edge does not exist
 					// need to handle the duplicate issue again
-					try
-					{	
-						// try to see if the predicate here is a property
-						// if so then add it as a property
+//					try
+//					{	
+//						// try to see if the predicate here is a property
+//						// if so then add it as a property
 //						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
 //							vertStore.get(sct.getObject()+""));
-					}catch (Exception ex)
-					{
-						ex.printStackTrace();
-						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-						// ok.. I am going to ignore for now that this is a duplicate edge
-					}
+//					}catch (Exception ex)
+//					{
+//						ex.printStackTrace();
+//						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
+//						// ok.. I am going to ignore for now that this is a duplicate edge
+//					}
 				}
 			}
 		} catch (Exception e) {
