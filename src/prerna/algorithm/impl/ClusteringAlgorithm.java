@@ -25,11 +25,11 @@ public class ClusteringAlgorithm {
 	
 	//the category and number values for each instance
 	private String[][] instanceCategoryMatrix;
-	private double[][] instanceNumberMatrix;
+	private Double[][] instanceNumberMatrix;
 	
 	//the category and number values for each cluster
 	private ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix;
-	private double[][] clusterNumberMatrix;
+	private Double[][] clusterNumberMatrix;
 	
 	//determines whether the algorithm completed successfully.
 	private boolean success = false;
@@ -166,9 +166,9 @@ public class ClusteringAlgorithm {
 	/** Creates the initial cluster number property matrix.
 	 * This stores the property values for each cluster based on the one instance assigned to that cluster.
 	**/
-	public double[][] createClustersNumberProperties() {
+	public Double[][] createClustersNumberProperties() {
 		
-		double[][] clusterNumberMatrix = new double[numClusters][instanceNumberMatrix[0].length];
+		Double[][] clusterNumberMatrix = new Double[numClusters][instanceNumberMatrix[0].length];
 		for(int clusterInd=0;clusterInd<numClusters;clusterInd++) {
 			for(int numberInd=0;numberInd<instanceNumberMatrix[0].length;numberInd++) {
 				clusterNumberMatrix[clusterInd][numberInd] = 0.0;
@@ -193,7 +193,7 @@ public class ClusteringAlgorithm {
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
 	**/
-	public double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
+	public Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
 		
 		//iterate through every numerical property of instance
 		//remove from the old cluster index using old val (avg) * oldNum in cluster

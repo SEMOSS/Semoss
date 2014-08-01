@@ -14,7 +14,7 @@ public class ClusteringDataProcessor {
 	Logger logger = Logger.getLogger(getClass());
 	
 	// matrix to hold the instance numerical property values
-	private double[][] numericalMatrix;
+	private Double[][] numericalMatrix;
 	// matrix to hold the instance categorical property values
 	private String[][] categoricalMatrix;
 	
@@ -49,7 +49,7 @@ public class ClusteringDataProcessor {
 		return instanceHash;
 	}
 	
-	public double[][] getNumericalMatrix() {
+	public Double[][] getNumericalMatrix() {
 		return numericalMatrix;
 	}
 	
@@ -73,13 +73,13 @@ public class ClusteringDataProcessor {
 	 * @return								The similarity score between the instance and the cluster
 	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length
 	 */
-	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
-		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
+	public Double getSimilarityScore(int dataIdx, int clusterIdx, Double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
+		Double[] instanceNumericalInfo = numericalMatrix[dataIdx];
 		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 
 		double numericalSimilarity = calcuateNumericalSimilarity(clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
 		double categorySimilarity = calculateCategorySimilarity(instaceCategoricalInfo, categoryClusterInfo);
-
+		
 		return numericalSimilarity + categorySimilarity;
 	}
 	
@@ -93,20 +93,23 @@ public class ClusteringDataProcessor {
 		
 		double categorySimilarity = 0;
 		
+		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.size(); i++) {
+			// sumProperties contains the total number of instances for the property
 			double sumProperties = 0;
 			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
 			Set<String> propKeySet = propertyHash.keySet();
 			for(String propName : propKeySet) {
 				sumProperties += propertyHash.get(propName);
 			}
+			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
 			int numOccuranceInCluster = 0;
 			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
 				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
 			}
 			categorySimilarity += weights.get(i) * numOccuranceInCluster / sumProperties;
 		}
-		
+		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * categoryPropNames.size() / varNames.length;
 		
 		logger.info("Calculated similarity score for categories: " + coeff * categorySimilarity);
@@ -121,28 +124,34 @@ public class ClusteringDataProcessor {
 	 * @return								The similarity score value associated with the numerical properties
 	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length 
 	 */
-	private Double calcuateNumericalSimilarity(int clusterIdx, double[] instanceNumericalInfo, double[][] allNumericalClusterInfo) throws IllegalArgumentException {
+	private Double calcuateNumericalSimilarity(int clusterIdx, Double[] instanceNumericalInfo, Double[][] allNumericalClusterInfo) throws IllegalArgumentException {
+		
 		double numericalSimilarity = 0;
+		double distanceNormalization = 0;
+
 		int numClusters = allNumericalClusterInfo.length;
 		double[] distance = new double[numClusters];
 		
-		double distanceNormalization = 0;
+		// generate array of distances between the instance and the cluster for all numerical properties
 		for(int i = 0; i < allNumericalClusterInfo.length; i++) {
-			double[] numericalClusterInfo = allNumericalClusterInfo[i];
+			Double[] numericalClusterInfo = allNumericalClusterInfo[i];
 			distance[i] = disCalculator.calculateEuclidianDistance(instanceNumericalInfo, numericalClusterInfo);
 			distanceNormalization += distance[i];
 		}
+		// normalize all the distances to avoid distortion
 		for(int i = 0; i < distance.length; i++) {
 			distance[i] /= distanceNormalization;
 		}
-		
+		// distance of instance from cluster is a value between 0 and 1
 		double distanceFromCluster = Math.exp(-0.5 * distance[clusterIdx]);
 		double sumDistanceFromCluster = 0;
 		for(int i = 0; i < distance.length; i++) {
 			sumDistanceFromCluster += Math.exp(-0.5 * distance[i]);
 		}
-		
+		// 
 		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
+		
+		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * numericalPropNames.size() / varNames.length;
 		
 		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
@@ -250,14 +259,16 @@ public class ClusteringDataProcessor {
 				boolean categorical = false;
 				for(int i = 0; i < masterTable.size(); i++) {
 					Object[] dataRow = masterTable.get(i);
-					String colEntry = dataRow[j].toString();
-					String type = processType(colEntry);
-					if(type.equals("STRING")) {
-						categorical = true;
-						categoryPropNames.add(varNames[j]);
-						categoryPropIndices.add(j);
-						logger.info("Found " + varNames[j] + " to be a categorical data column");
-						break;
+					if(dataRow[j] != null) {
+						String colEntryAsString = dataRow[j].toString();
+						String type = processType(colEntryAsString);
+						if(type.equals("STRING")) {
+							categorical = true;
+							categoryPropNames.add(varNames[j]);
+							categoryPropIndices.add(j);
+							logger.info("Found " + varNames[j] + " to be a categorical data column");
+							break;
+						}
 					}
 				}
 				if(!categorical) {
@@ -285,7 +296,7 @@ public class ClusteringDataProcessor {
 	 */
 	private void constructMatrices(ArrayList<Integer> categoryPropIndices, ArrayList<Integer> numericalPropIndices) {
 		
-		numericalMatrix = new double[masterTable.size()][numericalPropIndices.size()];
+		numericalMatrix = new Double[masterTable.size()][numericalPropIndices.size()];
 		categoricalMatrix = new String[masterTable.size()][categoryPropIndices.size()];
 		
 		for(int row = 0; row < masterTable.size(); row++) {
@@ -293,12 +304,20 @@ public class ClusteringDataProcessor {
 			
 			Object[] dataRow = masterTable.get(row);
 			for(Integer idx : categoryPropIndices) {
-				categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
+				if(dataRow[idx] != null) {
+					categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
+				} else {
+					categoricalMatrix[row][counter] = "";
+				}
 				counter++;
 			}
 			counter = 0;
 			for(Integer idx : numericalPropIndices) {
-				numericalMatrix[row][counter] = (Double) dataRow[idx];
+				if(dataRow[idx] != null) {
+					numericalMatrix[row][counter] = (Double) dataRow[idx];
+				} else {
+					numericalMatrix[row][counter] = null;
+				}
 				counter++;
 			}
 		}
@@ -359,5 +378,4 @@ public class ClusteringDataProcessor {
 	private double logBase2(double x) {
 		return Math.log(x) / Math.log(2);
 	}
-	
 }
