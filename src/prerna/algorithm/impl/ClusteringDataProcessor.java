@@ -273,7 +273,7 @@ public class ClusteringDataProcessor {
 				boolean categorical = false;
 				for(int i = 0; i < masterTable.size(); i++) {
 					Object[] dataRow = masterTable.get(i);
-					if(dataRow[j] != null) {
+					if(dataRow[j] != null && !dataRow[j].toString().equals("")) {
 						String colEntryAsString = dataRow[j].toString();
 						String type = processType(colEntryAsString);
 						if(type.equals("STRING")) {
@@ -318,16 +318,12 @@ public class ClusteringDataProcessor {
 			
 			Object[] dataRow = masterTable.get(row);
 			for(Integer idx : categoryPropIndices) {
-				if(dataRow[idx] != null) {
-					categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
-				} else {
-					categoricalMatrix[row][counter] = "";
-				}
+				categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
 				counter++;
 			}
 			counter = 0;
 			for(Integer idx : numericalPropIndices) {
-				if(dataRow[idx] != null) {
+				if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
 					numericalMatrix[row][counter] = (Double) dataRow[idx];
 				} else {
 					numericalMatrix[row][counter] = null;

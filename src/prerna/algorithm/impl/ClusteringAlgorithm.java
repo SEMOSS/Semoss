@@ -81,8 +81,6 @@ public class ClusteringAlgorithm {
 		//make the cluster category matrix from initial assingments
 		clusterCategoryMatrix = createClustersCategoryProperties();
 		
-		
-		
 		boolean noChange = false;
 		int iterationCount = 0;
 		int maxIterations = 1000;
@@ -185,7 +183,7 @@ public class ClusteringAlgorithm {
 			//if the instance is assigned to a cluster, then put its numerical properties in the cluster Properties Matrix
 			if(clusterInd>-1) {
 				for(int numberInd = 0;numberInd<instanceNumberMatrix[instanceInd].length;numberInd++) {
-					double numberValForInstance = instanceNumberMatrix[instanceInd][numberInd];
+					Double numberValForInstance = instanceNumberMatrix[instanceInd][numberInd];
 					clusterNumberMatrix[clusterInd][numberInd] = numberValForInstance;
 				}
 			}
@@ -302,7 +300,6 @@ public class ClusteringAlgorithm {
 	 * Print each cluster with categorical and numerical properties and a list of all instances
 	 */
 	private void printOutClusters() {
-		//private int[] clustersNumInstances;
 		System.out.print("Cluster Results-");
 		
 		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
