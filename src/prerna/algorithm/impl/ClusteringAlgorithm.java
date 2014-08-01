@@ -333,7 +333,4 @@ public class ClusteringAlgorithm {
 			System.out.println();
 		}
 	}
-
-
-	
 }
