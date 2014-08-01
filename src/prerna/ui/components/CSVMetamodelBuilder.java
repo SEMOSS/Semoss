@@ -295,7 +295,7 @@ public class CSVMetamodelBuilder {
 		//TODO: combine determining long date vs. simple date into a loop
 
 		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		Date longdate = null;
 		try {
 			formatLongDate.setLenient(true);
