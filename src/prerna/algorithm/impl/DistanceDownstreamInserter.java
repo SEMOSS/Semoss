@@ -117,7 +117,8 @@ public class DistanceDownstreamInserter {
 					ArrayList<SEMOSSVertex> path = (ArrayList<SEMOSSVertex>) vertHash.get(processor.pathString);
 					//if the path starts with the data object, need to subtract 1 from distance
 					int distance = (Integer) vertHash.get(processor.distanceString);
-					if((path.get(0)).getProperty(Constants.URI).equals(dataObjectString))
+					String doString = (path.get(0)).getProperty(Constants.URI).toString();
+					if(doString.equals(dataObjectString))
 						distance = distance - 1;
 					sysHash.put(system, distance);
 					

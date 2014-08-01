@@ -215,52 +215,6 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			
 		}
 	}
-	/**
-	 * Prints information to a business value playsheet.
-	 * @param key 	String used to obtain names and values from the business value hashtable.
-	 */
-	private void printToGridPlaySheet(String key){
-		JInternalFrame busValSheet = new JInternalFrame();
-		ArrayList<Double> values = (ArrayList<Double>) BVhash.get(key+Constants.CALC_MATRIX);
-		ArrayList<String> names = (ArrayList<String>) BVhash.get(key+Constants.CALC_NAMES_LIST);
-		StringTokenizer keyTokens = new StringTokenizer(key, "/");
-		String firstColLabel = keyTokens.nextToken();
-		String secondColLabel = keyTokens.nextToken();
-		String[] colNames = new String[2];
-		colNames[0] = firstColLabel;
-		colNames[1] = secondColLabel;
-		gfd.setColumnNames(colNames);
-		ArrayList <Object []> list = new ArrayList();
-		for(int i = 0; i < names.size(); i++){
-			String [] scores = new String[colNames.length];
-			scores[0] = names.get(i);
-			scores[1] = values.get(i)+"";
-			list.add(i, scores);
-		}
-		gfd.setDataList(list);
-		JTable table = new JTable();
-		GridTableModel model = new GridTableModel(gfd);
-		table.setModel(model);
-		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		JScrollPane scrollPane = new JScrollPane(table);
-		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		scrollPane.setAutoscrolls(true);
-		busValSheet.setContentPane(scrollPane);
-		pane.add(busValSheet);
-		busValSheet.setClosable(true);
-		busValSheet.setMaximizable(true);
-		busValSheet.setIconifiable(true);
-		busValSheet.setTitle("Business Value");
-		busValSheet.setResizable(true);
-		busValSheet.pack();
-		busValSheet.setVisible(true);
-		try {
-			busValSheet.setSelected(false);
-			busValSheet.setSelected(true);
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
-	}
 	
 	/**
 	 * Used to test printing results to an Excel workbook.
@@ -347,6 +301,47 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 		}
 		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
 	}	
+	
+//	/**
+//	 * Prints the matrix into an Excel workbook.
+//	 * @param keyPart1 	First part of the key for the filename and obtaining values from the BV hash.
+//	 * @param keyPart2 	Second part of the key for the filename and obtaining values from the BV hash.
+//	 */
+//	private void printMatrix(String keyPart1, String keyPart2){
+//		//mprint(activitySystem);
+//		String key = keyPart1+"/"+keyPart2;
+//		try {
+//			FileOutputStream fileOut = new FileOutputStream(keyPart1.replaceAll("/", "") +"-"+keyPart2 +"_Matrix.xls");
+//			HSSFWorkbook workbook = new HSSFWorkbook();
+//			HSSFSheet worksheet = workbook.createSheet("Data");
+//			double[][] matrix = (double[][]) BVhash.get(key+Constants.CALC_MATRIX);
+//			ArrayList<String> rowNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_ROW_LABELS);
+//			ArrayList<String> colNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_COLUMN_LABELS);
+//			HSSFRow row0 = worksheet.createRow((short) 0);
+//			for (int colTitle = 1; colTitle<colNames.size()+1; colTitle++){
+//				HSSFCell cell = row0.createCell(colTitle);
+//				cell.setCellValue((String) colNames.get(colTitle-1));
+//			}
+//			for (int row=1; row<rowNames.size()+1; row++){
+//				HSSFRow row1 = worksheet.createRow((short) row);
+//				HSSFCell cell = row1.createCell(0);
+//				cell.setCellValue((String) rowNames.get(row-1));
+//				for(int col = 1; col<colNames.size()+1; col++){
+//					HSSFCell cell1 = row1.createCell(col);
+//					cell1.setCellValue((double) matrix[row-1][col-1]);
+//				}
+//			}
+//		workbook.write(fileOut);
+//		fileOut.flush();
+//		fileOut.close();
+//
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
+//	}	
 	
 	/**
 	 * Transposes a matrix.

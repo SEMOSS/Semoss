@@ -127,7 +127,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 			FillBVHash filler = new FillBVHash(query, (IEngine)engine);
 
 			Thread playThread = new Thread(filler);
-			playThread.run();
+			playThread.start();
 			
 		}
 	}

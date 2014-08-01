@@ -95,7 +95,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 				insertProcessor.runDeleteQueries();
 				success = insertProcessor.runCoreInsert();
 				errorMessage = insertProcessor.getErrorMessage();
-				if (!(errorMessage == "")) {
+				if (!(errorMessage.equals(""))) {
 					Utility.showError(errorMessage);
 				}
 			}
@@ -106,7 +106,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 			insertProcessor.setInsertCoreDB(engineName);
 			success = insertProcessor.runCoreInsert();
 			errorMessage = insertProcessor.getErrorMessage();
-			if (!(errorMessage == "")) {
+			if (!(errorMessage.equals(""))) {
 				Utility.showError(errorMessage);
 			}
 		}

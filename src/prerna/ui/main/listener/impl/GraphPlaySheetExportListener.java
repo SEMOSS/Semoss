@@ -48,14 +48,6 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 	public static GraphPlaySheetExportListener listener = null;
 	Logger logger = Logger.getLogger(getClass());
 	GraphPlaySheet playSheet;
-	
-	/**
-	 * Method main.
-	 * @param args String[]
-	 */
-	public static void main(String[] args) {
-		// TODO: Main method needed?
-	}
 
 	/**
 	 * Method getInstance.  Retrieves the instance of the graph play sheet export listener.

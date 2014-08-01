@@ -243,27 +243,27 @@ public class ControlData{
 		return retBool;
 	}
 
-	/**
-	 * Checks if property for a certain type is selected.
-	 * @param list	List of properties.
-	 * @param type 	Property type.
-	 * @param prop	Property.
-	
-	 * @return boolean	True if a property is selected. */
-	private boolean findIfPropUnSelected(Hashtable <String, Vector> list, String type, String prop)
-	{
-		logger.debug("Trying to see if property " + prop + " for type " + type +  " is selected");
-		boolean retBool = false;
-		if(list.containsKey(type))
-		{
-			Vector <String> typePropList2 = list.get(type);
-			for(int propIndex = 0;propIndex < typePropList2.size() && !retBool;propIndex++)
-				if(typePropList2.elementAt(propIndex).equalsIgnoreCase(prop))
-					retBool = true;
-		}
-		logger.debug(prop +" selection is " + retBool + "  for type " + type);
-		return retBool;
-	}
+//	/**
+//	 * Checks if property for a certain type is selected.
+//	 * @param list	List of properties.
+//	 * @param type 	Property type.
+//	 * @param prop	Property.
+//	
+//	 * @return boolean	True if a property is selected. */
+//	private boolean findIfPropUnSelected(Hashtable <String, Vector> list, String type, String prop)
+//	{
+//		logger.debug("Trying to see if property " + prop + " for type " + type +  " is selected");
+//		boolean retBool = false;
+//		if(list.containsKey(type))
+//		{
+//			Vector <String> typePropList2 = list.get(type);
+//			for(int propIndex = 0;propIndex < typePropList2.size() && !retBool;propIndex++)
+//				if(typePropList2.elementAt(propIndex).equalsIgnoreCase(prop))
+//					retBool = true;
+//		}
+//		logger.debug(prop +" selection is " + retBool + "  for type " + type);
+//		return retBool;
+//	}
 
 	/**
 	 * Gets label value from a particular row and column location.

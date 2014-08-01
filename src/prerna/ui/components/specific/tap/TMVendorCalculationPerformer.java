@@ -219,53 +219,53 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 		return lifeCycleType;
 	}
 	
-	/**
-	 * Populates fulfillment values based on vendor/tech standards.
-	 */
-	private void prepareTechStandardFulfillment()
-	{
-		String query = "SELECT DISTINCT ?Vendor ?TechStandard ?FulfillLevel WHERE {{?Techconcat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement>;}{?AssociatedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/AssociatedTo> ;}{?concat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask>;}{?Techconcat ?AssociatedTo ?concat;}{?Vendor <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;}{?HasVendor <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has> ;}{?concat ?HasVendor ?Vendor;}{?TechStandard <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandard> ;}{?SatisfiesTechStandard <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Satisfies> ;}{?Techconcat ?SatisfiesTechStandard ?TechStandard;}{?FulfillLevel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SupportLevel> ;}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports> ;}{?Techconcat ?Supports ?FulfillLevel;}}";// ORDER BY ?Vendor ?TechStandard ?FulfillLevel";
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repos = (Object [])list.getSelectedValues();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
-		logger.info("Repository is " + repos);
-		
-		Hashtable<String,Double> options = new Hashtable<String,Double>();
-		options.put("Supports_out_of_box", 10.0);
-		options.put("Supports_with_configuration", 7.0);
-		options.put("Supports_with_customization", 3.0);
-		options.put("Does_not_support", 0.0);
-		
-		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-		
-		Hashtable<String,Double> vendorNumOfTechStandards = new Hashtable<String,Double>();
-		
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			// make a hashtable with system as the key mapped to number of tech standards for each
-			SesameJenaSelectStatement sjss = wrapper.BVnext();
-			String vendor = (String) Utility.getInstanceName(sjss.getVar(names[0])+"");
-			String standard = (String) Utility.getInstanceName(sjss.getVar(names[1])+""); 
-			String fulfill = (String)Utility.getInstanceName(sjss.getVar(names[2])+"");
-			Double value=options.get(fulfill);
-			Double count=1.0;
-			if (fulfillment.containsKey(vendor))
-			{
-				value+=fulfillment.get(vendor);
-				count+=vendorNumOfTechStandards.get(vendor);
-			}
-			fulfillment.put(vendor, value);
-			vendorNumOfTechStandards.put(vendor,count);
-		}
-		
-		for (String ven: fulfillment.keySet()) {
-			double score = fulfillment.get(ven)/(vendorNumOfTechStandards.get(ven));
-			fulfillment.put(ven, score);
-		}
-	}
+//	/**
+//	 * Populates fulfillment values based on vendor/tech standards.
+//	 */
+//	private void prepareTechStandardFulfillment()
+//	{
+//		String query = "SELECT DISTINCT ?Vendor ?TechStandard ?FulfillLevel WHERE {{?Techconcat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTaskTechRequirement>;}{?AssociatedTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/AssociatedTo> ;}{?concat <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/VendorSystemCapabilityTask>;}{?Techconcat ?AssociatedTo ?concat;}{?Vendor <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Vendor> ;}{?HasVendor <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has> ;}{?concat ?HasVendor ?Vendor;}{?TechStandard <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandard> ;}{?SatisfiesTechStandard <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Satisfies> ;}{?Techconcat ?SatisfiesTechStandard ?TechStandard;}{?FulfillLevel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SupportLevel> ;}{?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports> ;}{?Techconcat ?Supports ?FulfillLevel;}}";// ORDER BY ?Vendor ?TechStandard ?FulfillLevel";
+//		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+//		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+//		Object[] repos = (Object [])list.getSelectedValues();
+//		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[0]+"");
+//		logger.info("Repository is " + repos);
+//		
+//		Hashtable<String,Double> options = new Hashtable<String,Double>();
+//		options.put("Supports_out_of_box", 10.0);
+//		options.put("Supports_with_configuration", 7.0);
+//		options.put("Supports_with_customization", 3.0);
+//		options.put("Does_not_support", 0.0);
+//		
+//		wrapper.setQuery(query);
+//		wrapper.setEngine(engine);
+//		wrapper.executeQuery();
+//		
+//		Hashtable<String,Double> vendorNumOfTechStandards = new Hashtable<String,Double>();
+//		
+//		String[] names = wrapper.getVariables();
+//		while(wrapper.hasNext()) {
+//			// make a hashtable with system as the key mapped to number of tech standards for each
+//			SesameJenaSelectStatement sjss = wrapper.BVnext();
+//			String vendor = (String) Utility.getInstanceName(sjss.getVar(names[0])+"");
+//			String standard = (String) Utility.getInstanceName(sjss.getVar(names[1])+""); 
+//			String fulfill = (String)Utility.getInstanceName(sjss.getVar(names[2])+"");
+//			Double value=options.get(fulfill);
+//			Double count=1.0;
+//			if (fulfillment.containsKey(vendor))
+//			{
+//				value+=fulfillment.get(vendor);
+//				count+=vendorNumOfTechStandards.get(vendor);
+//			}
+//			fulfillment.put(vendor, value);
+//			vendorNumOfTechStandards.put(vendor,count);
+//		}
+//		
+//		for (String ven: fulfillment.keySet()) {
+//			double score = fulfillment.get(ven)/(vendorNumOfTechStandards.get(ven));
+//			fulfillment.put(ven, score);
+//		}
+//	}
 	
 	/**
 	 * Performs technical maturity calculations, inserting them into TMhash.

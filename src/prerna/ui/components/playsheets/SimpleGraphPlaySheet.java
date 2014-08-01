@@ -108,12 +108,12 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		genBaseConcepts();
 		genBaseGraph();//subjects2, predicates2, subjects2);
 		
-		try {
+//		try {
 //			RDFEngineHelper.loadLabels(engine, subjects.toString() + objects.toString(), this);
-		} catch (Exception e) {
-			// TODO: Specify exception
-			e.printStackTrace();
-		}
+//		} catch (Exception e) {
+//			// TODO: Specify exception
+//			e.printStackTrace();
+//		}
 		genAllData();
 
 		logger.warn("Done with everything");
