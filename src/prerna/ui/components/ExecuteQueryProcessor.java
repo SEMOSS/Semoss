@@ -75,7 +75,7 @@ public class ExecuteQueryProcessor {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		Insight insight = engine.getInsight(insightString);
 		String playSheetTitle = "";
-		if(!paramHash.isEmpty() || paramHash==null)
+		if(paramHash!=null || !paramHash.isEmpty())
 		{
 			Enumeration enumKey = paramHash.keys();
 
