@@ -17,7 +17,7 @@ public class NLPReader extends AbstractFileReader {
 	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, NLPException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
-		ArrayList <TripleWrapper> Triples = new ArrayList();
+		ArrayList <TripleWrapper> Triples = new ArrayList<TripleWrapper>();
 
 		if(!customMap.equals("")) 
 		{
