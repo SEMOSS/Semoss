@@ -267,9 +267,9 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 	 * @param key 	Key used in the filename and to get information from the business value hashtable.
 	 */
 	private void testPrint(String key){
-		//mprint(activitySystem);
+		FileOutputStream fileOut = null;
 		try {
-			FileOutputStream fileOut = new FileOutputStream(key +"_testPrint.xls");
+			fileOut = new FileOutputStream(key +"_testPrint.xls");
 			HSSFWorkbook workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			ArrayList<Double> values = (ArrayList<Double>) BVhash.get(key+Constants.CALC_MATRIX);
@@ -289,6 +289,13 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileOut!=null)
+					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " +key +" testPrint.xls");
 	}	
@@ -301,8 +308,9 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 	private void printMatrix(String keyPart1, String keyPart2){
 		//mprint(activitySystem);
 		String key = keyPart1+"/"+keyPart2;
+		FileOutputStream fileOut = null;
 		try {
-			FileOutputStream fileOut = new FileOutputStream(keyPart1.replaceAll("/", "") +"-"+keyPart2 +"_Matrix.xls");
+			fileOut = new FileOutputStream(keyPart1.replaceAll("/", "") +"-"+keyPart2 +"_Matrix.xls");
 			HSSFWorkbook workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			double[][] matrix = (double[][]) BVhash.get(key+Constants.CALC_MATRIX);
@@ -324,12 +332,18 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			}
 		workbook.write(fileOut);
 		fileOut.flush();
-		fileOut.close();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileOut!=null)
+					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
 	}	

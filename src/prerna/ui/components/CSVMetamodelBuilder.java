@@ -141,8 +141,10 @@ public class CSVMetamodelBuilder {
 		{
 			File fileName = files.get(0);
 			CsvListReader listReader = null;
+			FileReader fileRead = null;
 			try {
-				listReader = new CsvListReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
+				fileRead = new FileReader(fileName);
+				listReader = new CsvListReader(fileRead, CsvPreference.STANDARD_PREFERENCE);
 				this.header = listReader.getHeader(true);
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
@@ -150,6 +152,13 @@ public class CSVMetamodelBuilder {
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileReaderException("Could not process CSV file headers in " + files.get(0));
+			}finally{
+				try{
+					if(fileRead!=null)
+						fileRead.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			initiateDataTypeHash();

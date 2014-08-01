@@ -584,14 +584,25 @@ public class PlayPane extends JFrame {
 		// Here we read the release notes text file
 		String releaseNotesTextFile = workingDir + "/help/info.txt";
 		fr = new FileReader(releaseNotesTextFile);
-		BufferedReader releaseNotesTextReader = new BufferedReader(fr);
-
+		BufferedReader releaseNotesTextReader = null;
 		String releaseNotesData = "<html><body bgcolor=\"#f0f0f0\"> ";
-		String line = null;
-		while ((line = releaseNotesTextReader.readLine()) != null) {
-			releaseNotesData = releaseNotesData + line + "<br>";
+		try{
+			releaseNotesTextReader = new BufferedReader(fr);
+			String line = null;
+			while ((line = releaseNotesTextReader.readLine()) != null) {
+				releaseNotesData = releaseNotesData + line + "<br>";
+			}
+			releaseNotesData = releaseNotesData + "";
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally{
+			try{
+				if(releaseNotesTextReader!=null)
+					releaseNotesTextReader.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
-		releaseNotesData = releaseNotesData + "";
 
 		JPanel imExPanel = new JPanel();
 		imExPanel.setBackground(SystemColor.control);

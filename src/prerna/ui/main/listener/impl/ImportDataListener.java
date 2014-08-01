@@ -20,6 +20,7 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.swing.JComboBox;
@@ -164,8 +165,10 @@ public class ImportDataListener implements IChakraListener {
 		String[] files = fileNames.split(";");
 
 		for(String file : files) {
+			FileInputStream fileIn = null;
 			try{
-				XSSFWorkbook book = new XSSFWorkbook(new FileInputStream(file));
+				fileIn = new FileInputStream(file);
+				XSSFWorkbook book = new XSSFWorkbook(fileIn);
 				XSSFSheet lSheet = book.getSheet("Loader");
 				int lastRow = lSheet.getLastRowNum();
 				
@@ -207,6 +210,13 @@ public class ImportDataListener implements IChakraListener {
 				for(String[] rel : relationships) replacedString = replacedString + rel[0] +" " + rel[1] + " " + rel[2]+"\n";
 			} catch (Exception e){
 				logger.error(e);
+			}finally{
+				try{
+					if(fileIn!=null)
+						fileIn.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		Object[] buttons = {"Cancel", "Continue"};

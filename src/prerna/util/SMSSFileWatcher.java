@@ -20,6 +20,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
@@ -39,13 +40,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		try {
-			//loadExistingDB();
-			loadNewDB(fileName);							
-		} catch(Exception ex) {
-			// TODO: Specify exception
-			ex.printStackTrace();
-		}
+		loadNewDB(fileName);
 	}
 	
 	/**
@@ -75,51 +70,66 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile) throws Exception
+	public void loadNewDB(String newFile)
 	{
-		Properties prop = new Properties();
-		prop.load(new FileInputStream(folderToWatch + "/"  +  newFile));
-
-		Utility.loadEngine(folderToWatch+ "/" +  newFile, prop);
-		String engineName = prop.getProperty(Constants.ENGINE);
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		DefaultListModel listModel = (DefaultListModel) list.getModel();
-		listModel.addElement(engineName);
-		//list.setModel(listModel);
-		list.setSelectedIndex(0);
-		list.repaint();
-		
-		// initialize combo box for cost db update
-		JComboBox changedDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
-		DefaultComboBoxModel changedDBComboBoxModel = (DefaultComboBoxModel) changedDBComboBox.getModel();
-		changedDBComboBoxModel.addElement(engineName);
-		changedDBComboBox.repaint();
-		
-		JComboBox costDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COST_DB_COMBOBOX);
-		DefaultComboBoxModel costDBComboBoxModel = (DefaultComboBoxModel) costDBComboBox.getModel();
-		costDBComboBoxModel.addElement(engineName);
-		costDBComboBox.repaint();
-		
-		// initialize combo box for aggregating tap services into tap cost
-		JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX);
-		DefaultComboBoxModel selectTapCoreComboBoxModel = (DefaultComboBoxModel) selectTapCoreComboBox.getModel();
-		selectTapCoreComboBoxModel.addElement(engineName);
-		selectTapCoreComboBox.repaint();
-		
-		JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX);
-		DefaultComboBoxModel selectTapServicesComboBoxModel = (DefaultComboBoxModel) selectTapServicesComboBox.getModel();
-		selectTapServicesComboBoxModel.addElement(engineName);
-		selectTapServicesComboBox.repaint();
-		
-		// initialize combo box for export db information
-		JComboBox exportDataDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
-		DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
-		exportDataDBComboBoxModel.addElement(engineName);
-		exportDataDBComboBox.repaint();
-		
-		JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
-				Constants.MAIN_FRAME);
-		frame2.repaint();
+		FileInputStream fileIn = null;
+		try {
+			Properties prop = new Properties();
+			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
+			prop.load(fileIn);
+	
+			Utility.loadEngine(folderToWatch+ "/" +  newFile, prop);
+			String engineName = prop.getProperty(Constants.ENGINE);
+			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			DefaultListModel listModel = (DefaultListModel) list.getModel();
+			listModel.addElement(engineName);
+			//list.setModel(listModel);
+			list.setSelectedIndex(0);
+			list.repaint();
+			
+			// initialize combo box for cost db update
+			JComboBox changedDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+			DefaultComboBoxModel changedDBComboBoxModel = (DefaultComboBoxModel) changedDBComboBox.getModel();
+			changedDBComboBoxModel.addElement(engineName);
+			changedDBComboBox.repaint();
+			
+			JComboBox costDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COST_DB_COMBOBOX);
+			DefaultComboBoxModel costDBComboBoxModel = (DefaultComboBoxModel) costDBComboBox.getModel();
+			costDBComboBoxModel.addElement(engineName);
+			costDBComboBox.repaint();
+			
+			// initialize combo box for aggregating tap services into tap cost
+			JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX);
+			DefaultComboBoxModel selectTapCoreComboBoxModel = (DefaultComboBoxModel) selectTapCoreComboBox.getModel();
+			selectTapCoreComboBoxModel.addElement(engineName);
+			selectTapCoreComboBox.repaint();
+			
+			JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX);
+			DefaultComboBoxModel selectTapServicesComboBoxModel = (DefaultComboBoxModel) selectTapServicesComboBox.getModel();
+			selectTapServicesComboBoxModel.addElement(engineName);
+			selectTapServicesComboBox.repaint();
+			
+			// initialize combo box for export db information
+			JComboBox exportDataDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
+			DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
+			exportDataDBComboBoxModel.addElement(engineName);
+			exportDataDBComboBox.repaint();
+			
+			JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
+					Constants.MAIN_FRAME);
+			frame2.repaint();
+			
+		} catch(Exception ex) {
+			// TODO: Specify exception
+			ex.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	

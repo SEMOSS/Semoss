@@ -20,6 +20,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.swing.JComboBox;
@@ -92,10 +93,11 @@ public class CostDBUpdateListener extends AbstractListener {
 	 */
 	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String mapName, String owlFile) {
 		POIReader reader = new POIReader();
-
+		FileInputStream fileIn = null;
 		try {
 			//Delete all nodes/relationships of specified types
-			XSSFWorkbook book = new XSSFWorkbook(new FileInputStream(file.replace(";", "")));
+			fileIn = new FileInputStream(file.replace(";", ""));
+			XSSFWorkbook book = new XSSFWorkbook(fileIn);
 			XSSFSheet lSheet = book.getSheet("Loader");
 			int lastRow = lSheet.getLastRowNum();
 
@@ -201,10 +203,16 @@ public class CostDBUpdateListener extends AbstractListener {
 
 				Utility.showMessage("Your database has been successfully updated!");
 			}
-		} catch (Exception ex)
-		{
+		} catch (Exception ex) {
 			ex.printStackTrace();
 			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

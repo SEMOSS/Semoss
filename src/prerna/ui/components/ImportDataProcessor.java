@@ -220,8 +220,10 @@ public class ImportDataProcessor {
 			POIReader reader = new POIReader();
 			String[] files = fileNames.split(";");
 			for (String file : files) {
+				FileInputStream fileIn = null;
 				try {
-					XSSFWorkbook book = new XSSFWorkbook(new FileInputStream(file));
+					fileIn = new FileInputStream(file);
+					XSSFWorkbook book = new XSSFWorkbook(fileIn);
 					XSSFSheet lSheet = book.getSheet("Loader");
 					int lastRow = lSheet.getLastRowNum();
 
@@ -320,6 +322,13 @@ public class ImportDataProcessor {
 				} catch (Exception ex) {
 					success = false;
 					ex.printStackTrace();
+				}finally{
+					try{
+						if(fileIn!=null)
+							fileIn.close();
+					}catch(IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			return success;
