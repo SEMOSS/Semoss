@@ -26,7 +26,7 @@ import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
-import prerna.poi.main.DHMSMDataAccessLatencyFileImporter;
+import prerna.poi.specific.DHMSMDataAccessLatencyFileImporter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.util.Constants;
