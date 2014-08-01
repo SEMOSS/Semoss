@@ -453,9 +453,9 @@ public class Utility {
 	 * Displays confirmation message.
 	 * @param Text to be displayed.
 	 */
-	public static void showConfirm(String text) {
+	public static Integer showConfirm(String text) {
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		JOptionPane.showConfirmDialog(playPane, text);
+		return JOptionPane.showConfirmDialog(playPane, text);
 
 	}
 	
