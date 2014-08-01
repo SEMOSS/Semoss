@@ -135,6 +135,20 @@ public class ClusteringDataProcessor {
 		// generate array of distances between the instance and the cluster for all numerical properties
 		for(int i = 0; i < allNumericalClusterInfo.length; i++) {
 			Double[] numericalClusterInfo = allNumericalClusterInfo[i];
+			// deal with null values
+			// set the values to be the same for this property such that the distance becomes 0
+			for(int j = 0; j < numericalClusterInfo.length; j++) {
+				if(numericalClusterInfo[j] == null) {
+					if(instanceNumericalInfo[j] == null) {
+						numericalClusterInfo[j] = new Double(0);
+						instanceNumericalInfo[j] = new Double(0);
+					} else {
+						numericalClusterInfo[j] = instanceNumericalInfo[j];
+					}
+				} else if(instanceNumericalInfo[j] == null) {
+					instanceNumericalInfo[j] = numericalClusterInfo[j];
+				}
+			}
 			distance[i] = disCalculator.calculateEuclidianDistance(instanceNumericalInfo, numericalClusterInfo);
 			distanceNormalization += distance[i];
 		}
