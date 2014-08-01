@@ -4,11 +4,14 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.Logger;
+
 /** Generic clustering algorithm to cluster instances based on their categorical and numerical properties.
  * 
  */
 public class ClusteringAlgorithm {
-
+	Logger logger = Logger.getLogger(getClass());
+	
 	// instance variables that must be defined for clustering to work
 	private ArrayList<Object[]> masterTable;
 	private String[] varNames;
@@ -35,6 +38,9 @@ public class ClusteringAlgorithm {
 	//determines whether the algorithm completed successfully.
 	private boolean success = false;
 	
+	//rows for the matrix depending on cluster
+	private ArrayList<Object[]> clusterRows;
+	
 	private DecimalFormat nf = new DecimalFormat("###.##");
 
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
@@ -58,7 +64,9 @@ public class ClusteringAlgorithm {
 		return instanceIndexHash;
 	}
 	
-	
+	public ArrayList<Object[]> getClusterRows() {
+		return clusterRows;
+	}
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
 	 * These properties are pulled from the instanceCategoryMatrix and instanceNumberMatrix, that are filled prior to start.
 	 * The final cluster each instance is assigned to is stored in clustersAssigned.
@@ -113,7 +121,7 @@ public class ClusteringAlgorithm {
 			success = true;
 
 		printOutClusters();
-		
+		createClusterRowsForGrid();
 //		printOutClusterForInstance();
 //		printClusterNumberMatrix();
 //		printClusterCategoryMatrix();
@@ -331,6 +339,42 @@ public class ClusteringAlgorithm {
 					System.out.print(instance+", ");
 			}
 		}
+	}
+	
+	/**
+	 * Print each cluster with categorical and numerical properties and a list of all instances
+	 */
+	private void createClusterRowsForGrid() {
+		clusterRows = new ArrayList<Object[]>();
+		
+		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
+		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
+		
+		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
+			Object[] clusterRow = new Object[varNames.length+1];
+			clusterRow[0] = "";
+			
+			for(int propInd=1;propInd<varNames.length;propInd++) {
+				String prop = varNames[propInd];
+				if(categoryPropNames.indexOf(prop)>-1) {
+					int categoryInd = categoryPropNames.indexOf(prop);
+					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
+					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+					int freq = propValHash.get(propWithHighFreq);
+					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+					clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+					
+				} else if(numericalPropNames.indexOf(prop)>-1) {
+					int numberInd = numericalPropNames.indexOf(prop);
+					clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
+				}
+				else {
+					logger.error("No properties matched for "+prop);
+				}
+			}
+			clusterRow[varNames.length] = clusterInd;
+			clusterRows.add(clusterRow);
+		}		
 	}
 	
 	private String printMostFrequentProperties(int clusterInd,Hashtable<String, Integer> propValHash) {
