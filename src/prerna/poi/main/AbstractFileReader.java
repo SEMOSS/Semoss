@@ -52,33 +52,38 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
 
 public abstract class AbstractFileReader {
 
-	static String propFile; // the file that serves as the property file
-	Hashtable<String, String> rdfMap = new Hashtable<String, String>();
-	String bdPropFile;
-	Properties bdProp = new Properties(); // properties for big data
-	Sail bdSail;
-	ValueFactory vf;
-	public SailConnection sc;public String semossURI;
-	String customBaseURI = "";
-	public static String CONTAINS = "Contains";
+	protected Hashtable<String, String> rdfMap = new Hashtable<String, String>();
+	protected String bdPropFile;
+	protected Properties bdProp = new Properties(); // properties for big data
+	protected Sail bdSail;
+	protected ValueFactory vf;
+	
+	protected String customBaseURI = "";
+	public String basePropURI= "";
+
+	protected SailConnection sc;
+	protected String semossURI;
+	protected final static String CONTAINS = "Contains";
+	
 	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-	Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-	public String basePropURI= "";
-	Logger logger = Logger.getLogger(getClass());
+	
+	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
+
+	protected final Logger logger = Logger.getLogger(getClass());
 
 	// OWL variables
-	RepositoryConnection rcOWL;
-	ValueFactory vfOWL;
-	SailConnection scOWL;
-	String owlFile = "";
+	protected RepositoryConnection rcOWL;
+	protected ValueFactory vfOWL;
+	protected SailConnection scOWL;
+	protected String owlFile = "";
 
 	//reload base data
-	RDFFileSesameEngine baseDataEngine;
-	Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
+	protected RDFFileSesameEngine baseDataEngine;
+	protected Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
 
 	/**
 	 * Creates and adds the triple into the repository connection

@@ -410,6 +410,4 @@ public class ImportDataProcessor {
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
 		return propWriter;
 	}
-
-
 }

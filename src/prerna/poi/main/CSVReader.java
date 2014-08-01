@@ -52,19 +52,19 @@ import prerna.util.Utility;
  */
 public class CSVReader extends AbstractFileReader {
 
-	ICsvMapReader mapReader;
-	String [] header;
-	List<String> headerList;
-	CellProcessor[] processors;
-	static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
+	private static String propFile; // the file that serves as the property file
+	private ICsvMapReader mapReader;
+	private String [] header;
+	private List<String> headerList;
+	private CellProcessor[] processors;
+	private static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
-	ArrayList<String> relationArrayList = new ArrayList<String>();
-	ArrayList<String> nodePropArrayList = new ArrayList<String>();
-	ArrayList<String> relPropArrayList = new ArrayList<String>();
-	int count = 0;
-
-	boolean propFileExist = true;
+	private ArrayList<String> relationArrayList = new ArrayList<String>();
+	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
+	private ArrayList<String> relPropArrayList = new ArrayList<String>();
+	private int count = 0;
+	private boolean propFileExist = true;
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -471,9 +471,9 @@ public class CSVReader extends AbstractFileReader {
 					if(!headerList.contains(sub))
 						headException = false;
 				}
-				if(headException = false)
+				if(headException == false) {
 					throw new HeaderClassException(sub + " cannot be found as a header");
-
+				}
 				if(obj.contains("+"))
 				{
 					headException = isProperConcatHeader(obj);
@@ -483,9 +483,9 @@ public class CSVReader extends AbstractFileReader {
 					if(!headerList.contains(obj))
 						headException = false;
 				}
-				if(headException = false)
+				if(headException == false) {
 					throw new HeaderClassException(sub + " cannot be found as a header");
-
+				}
 				// create concept uris
 				String relURI = "";
 				String relBaseURI = "";
@@ -650,9 +650,9 @@ public class CSVReader extends AbstractFileReader {
 						if(!headerList.contains(sub))
 							headException = false;
 					}
-					if(headException = false)
+					if(headException == false) {
 						throw new HeaderClassException(sub + " cannot be found as a header");
-
+					}
 					if(prop.contains("+"))
 					{
 						headException = isProperConcatHeader(prop);
@@ -662,9 +662,9 @@ public class CSVReader extends AbstractFileReader {
 						if(!headerList.contains(prop))
 							headException = false;
 					}
-					if(headException = false)
+					if(headException == false) {
 						throw new HeaderClassException(sub + " cannot be found as a header");
-
+					}
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
@@ -777,9 +777,9 @@ public class CSVReader extends AbstractFileReader {
 						if(!headerList.contains(prop))
 							headException = false;
 					}
-					if(headException = false)
+					if(headException == false) {
 						throw new HeaderClassException(prop + " cannot be found as a header");
-
+					}
 					String propURI = "";
 					String property = "";
 					// see if property node URI exists in prop file
@@ -929,12 +929,20 @@ public class CSVReader extends AbstractFileReader {
 	 * @throws FileNotFoundException 
 	 */
 	public void openCSVFile(String fileName) throws FileReaderException {
+		FileReader readCSVFile;
 		try {
-			mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);
+			readCSVFile = new FileReader(fileName);
+			mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not find CSV file located at " + fileName);
 		}		
+		try {
+			readCSVFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
+		}
 		// store the headers of each of the columns
 		try {
 			header = mapReader.getHeader(true);
