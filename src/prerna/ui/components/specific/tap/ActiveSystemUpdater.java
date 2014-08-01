@@ -194,8 +194,9 @@ public class ActiveSystemUpdater {
 		existingEngine.addStatement(activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true);
 		RepositoryConnection exportRC = existingEngine.getRc();
 		
+		FileWriter fWrite = null;
 		try{
-			FileWriter fWrite = new FileWriter(owlFileLocation);
+			fWrite = new FileWriter(owlFileLocation);
 			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
 			exportRC.export(owlWriter);
 			fWrite.close();
@@ -205,6 +206,13 @@ public class ActiveSystemUpdater {
 		{
 			ex.printStackTrace();
 			Utility.showMessage("<html>Error!<br>Existing OWL file not found</html>");
+		}finally{
+			try{
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

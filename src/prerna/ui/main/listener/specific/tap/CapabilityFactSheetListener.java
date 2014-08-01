@@ -21,26 +21,14 @@ package prerna.ui.main.listener.specific.tap;
 import java.awt.Desktop;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.PrintWriter;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Hashtable;
 
-import javax.swing.JDesktopPane;
-
-import org.apache.commons.io.FileUtils;
-
-import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.CapabilityFactSheet;
-import prerna.ui.components.specific.tap.CapabilityFactSheetPerformer;
-import prerna.ui.components.specific.tap.HealthGridSheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;
@@ -72,13 +60,21 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 		capability = (String)cfs.capabilityProcessed.get(capability);
 		Hashtable allHash = cfs.processNewCapability(capability);
 		Gson gson = new Gson();
+		BufferedWriter out = null;
 		try {
 			File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/export.json");
-			BufferedWriter out = new BufferedWriter(new FileWriter(file, true));
+			out = new BufferedWriter(new FileWriter(file, true));
 			out.append(gson.toJson(allHash));
 			out.close();
 		} catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(out!=null)
+					out.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		if(Desktop.isDesktopSupported())
 		{

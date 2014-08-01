@@ -82,6 +82,7 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 		Browser browser = bps.getBrowser();
 		Image i = browser.getView().getImage();
 		
+		FileOutputStream graphicsFileOut = null;
 		try {
 			String exportType = "";
 			if(!autoExport)
@@ -130,7 +131,8 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 	        BufferedImage dest;
 	        //Export chart based upon user-chosen quality value
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
-				Graphics2D g = new EpsGraphics2D("Chart Export", new FileOutputStream(fileLoc), 0, 0, imageWidth, imageHeight);
+				graphicsFileOut = new FileOutputStream(fileLoc);
+				Graphics2D g = new EpsGraphics2D("Chart Export", graphicsFileOut, 0, 0, imageWidth, imageHeight);
 				g.drawImage(i, 0, 0, null);
 			} else {
 				if(!scale)
@@ -151,6 +153,7 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 	        	
 	        	// PDF Export
 	        	if(exportType.equals(this.PDF_TYPE)) {
+	        		FileOutputStream fileOut = null;
 					try {
 						com.itextpdf.text.Image image1 = com.itextpdf.text.Image.getInstance(fileLoc);
 						Rectangle r;
@@ -163,7 +166,8 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 						}
 
 						Document document = new Document(r, 15, 25, 15, 25);
-						PdfWriter.getInstance(document, new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase())));
+						fileOut = new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
+						PdfWriter.getInstance(document, fileOut);
 						document.open();
 
 						int pages = (int) Math.ceil((double)dest.getHeight() / this.MAX_DIM);
@@ -192,6 +196,13 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 						f.delete();
 					} catch(Exception e) {
 						e.printStackTrace();
+					}finally{
+						try{
+							if(fileOut!=null)
+								fileOut.close();
+						}catch(IOException e) {
+							e.printStackTrace();
+						}
 					}
 				} // end if PDF
 			}
@@ -205,6 +216,13 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 		} catch (IOException e) {
 			Utility.showError("Graph export failed.");
 			e.printStackTrace();
+		}finally{
+			try{
+				if(graphicsFileOut!=null)
+					graphicsFileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

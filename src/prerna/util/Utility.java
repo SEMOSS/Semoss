@@ -666,13 +666,21 @@ public class Utility {
 	 * @param fileLoc 	String containing the path to save the workbook
 	 */
 	public static void writeWorkbook(XSSFWorkbook wb, String fileLoc) {
+		FileOutputStream newExcelFile = null;
 		try {
-			FileOutputStream newExcelFile = new FileOutputStream(fileLoc);
+			newExcelFile = new FileOutputStream(fileLoc);
 			wb.write(newExcelFile);
-			newExcelFile.close();  
+			newExcelFile.flush();
 		} catch (IOException e) {
 			showMessage("Could not create file " + fileLoc + ".\nPlease check directory structure/permissions.");
 			e.printStackTrace();
+		}finally{
+			try{
+				if(newExcelFile!=null)
+					newExcelFile.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

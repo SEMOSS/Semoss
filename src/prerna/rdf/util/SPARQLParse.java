@@ -121,9 +121,11 @@ public class SPARQLParse {
 	}
 
 	public void exportToFile() {
+		FileWriter fileWrite = null;
 		try {
 			String output = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "output.xml";
-			rc.export(new RDFXMLPrettyWriter(new FileWriter(output)));
+			fileWrite = new FileWriter(output);
+			rc.export(new RDFXMLPrettyWriter(fileWrite));
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -133,12 +135,20 @@ public class SPARQLParse {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileWrite!=null)
+					fileWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		System.out.println("Export complete");
 	}
 
 	public void loadBaseDB(String propFile) {
+		FileInputStream fileIn = null;
 		try {
 			//Properties prop = new Properties();
 			//prop.load(new FileInputStream(propFile));
@@ -147,8 +157,8 @@ public class SPARQLParse {
 			//String owler = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/"
 			//		+ prop.get(Constants.OWL) + "";
 			String owler = "C:\\Users\\pkapaleeswaran\\workspacej\\FoxHole4/db/TAP_Core_Data/TAP_Core_Data_OWL.OWL";
-			rc.add(new FileInputStream(owler), "http://semoss.org",
-					RDFFormat.RDFXML);
+			fileIn = new FileInputStream(owler);
+			rc.add(fileIn, "http://semoss.org",RDFFormat.RDFXML);
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -162,6 +172,13 @@ public class SPARQLParse {
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}

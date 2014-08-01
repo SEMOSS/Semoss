@@ -90,6 +90,7 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 								 break;
 		}
 		
+		FileOutputStream graphicsFileOut = null;
 		try {
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String folder = "\\export\\Images\\";
@@ -116,7 +117,8 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 			int boundingBoxMaxHeight = cont.getHeight() - progressBar.getHeight(); //Crop out progress bar
 			
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
-				Graphics2D g = new EpsGraphics2D("Graph Export", new FileOutputStream(fileLoc), boundingBoxMinWidth, boundingBoxMinHeight, boundingBoxMaxWidth, boundingBoxMaxHeight);
+				graphicsFileOut = new FileOutputStream(fileLoc);
+				Graphics2D g = new EpsGraphics2D("Graph Export",graphicsFileOut, boundingBoxMinWidth, boundingBoxMinHeight, boundingBoxMaxWidth, boundingBoxMaxHeight);
 				cont.paint(g);
 			} else {
 				BufferedImage im = new BufferedImage(boundingBoxMaxWidth, boundingBoxMaxHeight, BufferedImage.TYPE_INT_ARGB);
@@ -124,6 +126,7 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 				ImageIO.write(im, "PNG", new File(fileLoc));
 
 				if(exportType.equals(this.PDF_TYPE)) {
+					FileOutputStream fileOut = null;
 					try {
 						Image image1 = Image.getInstance(fileLoc);
 						Rectangle r;
@@ -136,7 +139,8 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 						}
 
 						Document document = new Document(r, 15, 25, 15, 25);
-						PdfWriter.getInstance(document, new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase())));
+						fileOut = new FileOutputStream(fileLoc.replace(this.LOW_QUALITY_IMAGE_TYPE.toLowerCase(), this.PDF_TYPE.toLowerCase()));
+						PdfWriter.getInstance(document, fileOut);
 						document.open();
 
 						int pages = (int) Math.ceil((double)im.getHeight() / this.MAX_DIM);
@@ -166,8 +170,15 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 
 						File f = new File(fileLoc);
 						f.delete();
-					} catch(Exception e) {
+					}catch(Exception e) {
 						e.printStackTrace();
+					}finally{
+						try{
+							if(fileOut!=null)
+								fileOut.close();
+						}catch(IOException e) {
+							e.printStackTrace();
+						}
 					}
 				} // end if PDF
 			} // end else
@@ -179,6 +190,13 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(graphicsFileOut!=null)
+					graphicsFileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

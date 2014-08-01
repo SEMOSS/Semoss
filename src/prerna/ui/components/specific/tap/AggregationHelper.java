@@ -223,12 +223,12 @@ public class AggregationHelper implements IAggregationHelper {
 
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		RepositoryConnection exportRC = existingBaseEngine.getRc();
-
+		FileWriter fWrite = null;
 		try{
-			FileWriter fWrite = new FileWriter(owlFileLocation);
+			fWrite = new FileWriter(owlFileLocation);
 			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
 			exportRC.export(owlWriter);
-			fWrite.close();
+			fWrite.flush();
 			owlWriter.close();	
 		}
 		catch(IOException ex)
@@ -238,6 +238,13 @@ public class AggregationHelper implements IAggregationHelper {
 			e.printStackTrace();
 		} catch (RDFHandlerException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

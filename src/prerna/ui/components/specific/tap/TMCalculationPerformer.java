@@ -356,9 +356,9 @@ public class TMCalculationPerformer implements IAlgorithm{
 	 * @param key String
 	 */
 	public void testPrint(String key){
-		//mprint(activitySystem);
+		FileOutputStream fileOut=null;
 		try {
-			FileOutputStream fileOut = new FileOutputStream(key +" testPrint.xls");
+			fileOut = new FileOutputStream(key +" testPrint.xls");
 			HSSFWorkbook workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			ArrayList<Double> values = (ArrayList<Double>) TMhash.get(key+Constants.CALC_MATRIX);
@@ -372,12 +372,18 @@ public class TMCalculationPerformer implements IAlgorithm{
 			}
 		workbook.write(fileOut);
 		fileOut.flush();
-		fileOut.close();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileOut!=null)
+					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " +key +" testPrint.xls");
 	}	
@@ -392,8 +398,9 @@ public class TMCalculationPerformer implements IAlgorithm{
 	public void printMatrix(String keyPart1, String keyPart2){
 		//mprint(activitySystem);
 		String key = keyPart1+"/"+keyPart2;
+		FileOutputStream fileOut = null;
 		try {
-			FileOutputStream fileOut = new FileOutputStream(keyPart1+"-"+keyPart2 +"_Matrix.xls");
+			fileOut = new FileOutputStream(keyPart1+"-"+keyPart2 +"_Matrix.xls");
 			HSSFWorkbook workbook = new HSSFWorkbook();
 			HSSFSheet worksheet = workbook.createSheet("Data");
 			double[][] matrix = (double[][]) TMhash.get(key+Constants.CALC_MATRIX);
@@ -415,12 +422,18 @@ public class TMCalculationPerformer implements IAlgorithm{
 			}
 		workbook.write(fileOut);
 		fileOut.flush();
-		fileOut.close();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try{
+				if(fileOut!=null)
+					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
 	}	
