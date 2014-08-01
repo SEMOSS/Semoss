@@ -22,21 +22,23 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.algorithm.impl.ClusteringAlgorithm;
+import prerna.error.BadInputException;
 import prerna.util.Utility;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
  */
 @SuppressWarnings("serial")
-public class ClusteringTestPlaySheet extends GridPlaySheet{
+public class ClusteringPlaySheet extends GridPlaySheet{
 	
-
+	private int numClusters;
+	
 	@Override
 	public void createData() {
 		super.createData();
 		try{
 			ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
-			clusterAlg.setNumClusters(10);
+			clusterAlg.setNumClusters(numClusters);
 			clusterAlg.execute();
 			ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
 			Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
@@ -61,11 +63,28 @@ public class ClusteringTestPlaySheet extends GridPlaySheet{
 			}
 			newNames[names.length] = "CluserID";
 			names = newNames;
-		}catch(IllegalArgumentException e) {
+		}catch(BadInputException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}
 		
 	}
 
+	
+	/**
+	 * Sets the string version of the SPARQL query on the playsheet.
+	 * Pulls out the number of clusters and stores them in the numClusters
+	 * @param query String
+	 */
+	@Override
+	public void setQuery(String query) {
+		if(query.startsWith("SELECT")||query.startsWith("CONSTRUCT"))
+			this.query=query;
+		else{
+			logger.info("New Query " + query);
+			int semi=query.indexOf(";");
+			numClusters = Integer.parseInt(query.substring(0,semi));
+			this.query = query.substring(semi+1);
+		}
+	}
 }
