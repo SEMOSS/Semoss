@@ -3,8 +3,6 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.error.BadInputException;
-
 /** Generic clustering algorithm to cluster instances based on their categorical and numerical properties.
  * 
  */
@@ -64,7 +62,7 @@ public class ClusteringAlgorithm {
 	 * The categorical and numerical properties for each cluster based on the instances it contains are stored in clusterCategoryMatrix and clusterNumberMatrix.
 	 * The number of instances in each cluster is stored in clustersNumInstances.
 	 */
-	public void execute() throws BadInputException {
+	public void execute() throws IllegalArgumentException {
 		
 		cdp = new ClusteringDataProcessor(masterTable,varNames);
 		
@@ -151,7 +149,7 @@ public class ClusteringAlgorithm {
 	 * For every cluster, call the similarity function between the system and that cluster.
 	 * Compare the similarity score of all the clusters and return the one with max similarity.
 	 */
-	public int findNewClusterForInstance(int instanceInd) throws BadInputException {
+	public int findNewClusterForInstance(int instanceInd) throws IllegalArgumentException {
 		int clusterIndWithMaxSimilarity = 0;
 		double maxSimilarity = cdp.getSimilarityScore(instanceInd,0,clusterNumberMatrix,clusterCategoryMatrix.get(0));
 		for(int clusterInd = 0;clusterInd <numClusters;clusterInd++) {

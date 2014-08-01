@@ -9,8 +9,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import prerna.error.BadInputException;
-
 public class ClusteringDataProcessor {
 
 	Logger logger = Logger.getLogger(getClass());
@@ -57,7 +55,7 @@ public class ClusteringDataProcessor {
 	}
 
 	// Calculates the similarity score
-	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws BadInputException {
+	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
 		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
 		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 
@@ -92,7 +90,7 @@ public class ClusteringDataProcessor {
 	}
 
 	// Calculates the similarity score for the numerical entries
-	private Double calcuateNumericalSimilarity(int clusterIdx, double[] instanceNumericalInfo, double[][] allNumericalClusterInfo) throws BadInputException {
+	private Double calcuateNumericalSimilarity(int clusterIdx, double[] instanceNumericalInfo, double[][] allNumericalClusterInfo) throws IllegalArgumentException {
 		double numericalSimilarity = 0;
 		int numClusters = allNumericalClusterInfo.length;
 		double[] distance = new double[numClusters];
