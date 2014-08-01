@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.algorithm.impl.ClusteringAlgorithm;
-import prerna.error.BadInputException;
 import prerna.util.Utility;
 
 /**
@@ -62,7 +61,7 @@ public class ClusteringTestPlaySheet extends GridPlaySheet{
 			}
 			newNames[names.length] = "CluserID";
 			names = newNames;
-		}catch(BadInputException e) {
+		}catch(IllegalArgumentException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}
