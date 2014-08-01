@@ -1,5 +1,6 @@
 package prerna.algorithm.impl;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -33,6 +34,8 @@ public class ClusteringAlgorithm {
 	
 	//determines whether the algorithm completed successfully.
 	private boolean success = false;
+	
+	private DecimalFormat nf = new DecimalFormat("###.##");
 
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
@@ -110,10 +113,12 @@ public class ClusteringAlgorithm {
 		}
 		else
 			success = true;
+
+		printOutClusters();
 		
-		printOutClusterForInstance();
-		printClusterNumberMatrix();
-		printClusterCategoryMatrix();
+//		printOutClusterForInstance();
+//		printClusterNumberMatrix();
+//		printClusterCategoryMatrix();
 	}
 
 
@@ -294,16 +299,70 @@ public class ClusteringAlgorithm {
 	}
 	
 	/**
+	 * Print each cluster with categorical and numerical properties and a list of all instances
+	 */
+	private void printOutClusters() {
+		//private int[] clustersNumInstances;
+		System.out.print("Cluster Results-");
+		
+		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
+		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
+		
+		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
+			System.out.print("\n\nCluster "+clusterInd+":");
+			
+			//print numerical props
+			System.out.print("\nNumerical Properties- ");
+			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ )
+				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
+
+			//print categorical props
+			System.out.print("\nCategorical Properties- ");
+			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
+				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
+				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+				int freq = propValHash.get(propWithHighFreq);
+				double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+				System.out.print(categoryPropNames.get(numberInd) +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");					
+			}
+			
+			//print instances
+			System.out.print("\nInstances- ");
+			for(String instance : instanceIndexHash.keySet()) {
+				int clusterAssigned = clustersAssigned.get(instanceIndexHash.get(instance));
+				if(clusterAssigned == clusterInd)
+					System.out.print(instance+", ");
+			}
+		}
+	}
+	
+	private String printMostFrequentProperties(int clusterInd,Hashtable<String, Integer> propValHash) {
+		String propWithHighFreq = "";
+		int highestFreq = -1;
+		for(String propVal : propValHash.keySet()) {
+			int freq = propValHash.get(propVal);
+			if(freq>highestFreq) {
+				highestFreq = freq;
+				propWithHighFreq = propVal;
+			}
+		}
+		return propWithHighFreq;
+	}
+	
+	/**
 	 * Prints the cluster each instance is assigned to.
 	 */
-	public void printOutClusterForInstance() {
+	private void printOutClusterForInstance() {
 		System.out.println("Cluster for each index:");
 		for(String instance : instanceIndexHash.keySet()) {
 			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
 		}
 	}
-
-	public void printClusterNumberMatrix() {
+	
+	/**
+	 * Prints the numerical properties of each cluster
+	 */
+	private void printClusterNumberMatrix() {
 		System.out.println("Cluster Numerical Properties:");
 
 		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
@@ -316,7 +375,10 @@ public class ClusteringAlgorithm {
 		}
 	}
 	
-	public void printClusterCategoryMatrix() {
+	/**
+	 * Prints the categorical properties of each cluster
+	 */
+	private void printClusterCategoryMatrix() {
 		System.out.println("\nCluster Category Properties:");
 
 		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
