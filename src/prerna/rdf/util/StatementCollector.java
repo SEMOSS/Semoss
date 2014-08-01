@@ -58,12 +58,12 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 //			else if (node.getPredicateVar().getValue().equals(RDFS.SUBPROPERTYOF))
 //				subpropHash.put(node.getSubjectVar().getValue() + "", node.getObjectVar().getValue() + "");
 //		}
-		try {
-			// super.meet(node);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			// super.meet(node);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	@Override

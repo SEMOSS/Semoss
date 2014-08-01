@@ -82,7 +82,7 @@ public class TransitionReportComboBox extends ParamComboBox implements Runnable 
 			filler.box = this;
 			filler.type = entityType;
 			Thread aThread = new Thread(filler);
-			aThread.run();
+			aThread.start();
 		}
 	}
 
