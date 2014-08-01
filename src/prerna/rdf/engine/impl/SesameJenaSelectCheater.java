@@ -312,7 +312,6 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	 */
 	public void processSelectVar()
 	{
-		query.toUpperCase();
 		if(query.contains("DISTINCT"))
 		{
 			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
