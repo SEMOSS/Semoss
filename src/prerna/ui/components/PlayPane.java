@@ -518,7 +518,7 @@ public class PlayPane extends JFrame {
 		ImageIcon img128 = new ImageIcon(imgFile128);
 		images.add(img128.getImage());
 		setIconImages(images);
-		setTitle("SEMOSS - Analytics Environment");
+		setTitle("SEMOSS - Analytics Environment | For Offical Use Only");
 
 		setSize(new Dimension(1371, 744));
 
