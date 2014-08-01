@@ -220,87 +220,87 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 	 * Used to test printing results to an Excel workbook.
 	 * @param key 	Key used in the filename and to get information from the business value hashtable.
 	 */
-	private void testPrint(String key){
-		FileOutputStream fileOut = null;
-		try {
-			fileOut = new FileOutputStream(key +"_testPrint.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
-			HSSFSheet worksheet = workbook.createSheet("Data");
-			ArrayList<Double> values = (ArrayList<Double>) BVhash.get(key+Constants.CALC_MATRIX);
-			ArrayList<String> names = (ArrayList<String>) BVhash.get(key+Constants.CALC_NAMES_LIST);
-			for (int row=0; row<names.size(); row++){
-				HSSFRow row1 = worksheet.createRow((short) row);
-				HSSFCell cell = row1.createCell(0);
-				cell.setCellValue((String) names.get(row));
-				HSSFCell cell1 = row1.createCell(1);
-				cell1.setCellValue((double) values.get(row));
-			}
-		workbook.write(fileOut);
-		fileOut.flush();
-		fileOut.close();
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fileOut!=null)
-					fileOut.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-		logger.info("Printed: " +key +" testPrint.xls");
-	}	
+//	private void testPrint(String key){
+//		FileOutputStream fileOut = null;
+//		try {
+//			fileOut = new FileOutputStream(key +"_testPrint.xls");
+//			HSSFWorkbook workbook = new HSSFWorkbook();
+//			HSSFSheet worksheet = workbook.createSheet("Data");
+//			ArrayList<Double> values = (ArrayList<Double>) BVhash.get(key+Constants.CALC_MATRIX);
+//			ArrayList<String> names = (ArrayList<String>) BVhash.get(key+Constants.CALC_NAMES_LIST);
+//			for (int row=0; row<names.size(); row++){
+//				HSSFRow row1 = worksheet.createRow((short) row);
+//				HSSFCell cell = row1.createCell(0);
+//				cell.setCellValue((String) names.get(row));
+//				HSSFCell cell1 = row1.createCell(1);
+//				cell1.setCellValue((double) values.get(row));
+//			}
+//		workbook.write(fileOut);
+//		fileOut.flush();
+//		fileOut.close();
+//
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}finally{
+//			try{
+//				if(fileOut!=null)
+//					fileOut.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		logger.info("Printed: " +key +" testPrint.xls");
+//	}	
 	
 	/**
 	 * Prints the matrix into an Excel workbook.
 	 * @param keyPart1 	First part of the key for the filename and obtaining values from the BV hash.
 	 * @param keyPart2 	Second part of the key for the filename and obtaining values from the BV hash.
 	 */
-	private void printMatrix(String keyPart1, String keyPart2){
-		//mprint(activitySystem);
-		String key = keyPart1+"/"+keyPart2;
-		FileOutputStream fileOut = null;
-		try {
-			fileOut = new FileOutputStream(keyPart1.replaceAll("/", "") +"-"+keyPart2 +"_Matrix.xls");
-			HSSFWorkbook workbook = new HSSFWorkbook();
-			HSSFSheet worksheet = workbook.createSheet("Data");
-			double[][] matrix = (double[][]) BVhash.get(key+Constants.CALC_MATRIX);
-			ArrayList<String> rowNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_ROW_LABELS);
-			ArrayList<String> colNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_COLUMN_LABELS);
-			HSSFRow row0 = worksheet.createRow((short) 0);
-			for (int colTitle = 1; colTitle<colNames.size()+1; colTitle++){
-				HSSFCell cell = row0.createCell(colTitle);
-				cell.setCellValue((String) colNames.get(colTitle-1));
-			}
-			for (int row=1; row<rowNames.size()+1; row++){
-				HSSFRow row1 = worksheet.createRow((short) row);
-				HSSFCell cell = row1.createCell(0);
-				cell.setCellValue((String) rowNames.get(row-1));
-				for(int col = 1; col<colNames.size()+1; col++){
-					HSSFCell cell1 = row1.createCell(col);
-					cell1.setCellValue((double) matrix[row-1][col-1]);
-				}
-			}
-		workbook.write(fileOut);
-		fileOut.flush();
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fileOut!=null)
-					fileOut.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
-	}	
+//	private void printMatrix(String keyPart1, String keyPart2){
+//		//mprint(activitySystem);
+//		String key = keyPart1+"/"+keyPart2;
+//		FileOutputStream fileOut = null;
+//		try {
+//			fileOut = new FileOutputStream(keyPart1.replaceAll("/", "") +"-"+keyPart2 +"_Matrix.xls");
+//			HSSFWorkbook workbook = new HSSFWorkbook();
+//			HSSFSheet worksheet = workbook.createSheet("Data");
+//			double[][] matrix = (double[][]) BVhash.get(key+Constants.CALC_MATRIX);
+//			ArrayList<String> rowNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_ROW_LABELS);
+//			ArrayList<String> colNames = (ArrayList<String>) BVhash.get(key+Constants.CALC_COLUMN_LABELS);
+//			HSSFRow row0 = worksheet.createRow((short) 0);
+//			for (int colTitle = 1; colTitle<colNames.size()+1; colTitle++){
+//				HSSFCell cell = row0.createCell(colTitle);
+//				cell.setCellValue((String) colNames.get(colTitle-1));
+//			}
+//			for (int row=1; row<rowNames.size()+1; row++){
+//				HSSFRow row1 = worksheet.createRow((short) row);
+//				HSSFCell cell = row1.createCell(0);
+//				cell.setCellValue((String) rowNames.get(row-1));
+//				for(int col = 1; col<colNames.size()+1; col++){
+//					HSSFCell cell1 = row1.createCell(col);
+//					cell1.setCellValue((double) matrix[row-1][col-1]);
+//				}
+//			}
+//		workbook.write(fileOut);
+//		fileOut.flush();
+//
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}finally{
+//			try{
+//				if(fileOut!=null)
+//					fileOut.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		logger.info("Printed: " + keyPart1+"-"+keyPart2 +"_Matrix.xls");
+//	}	
 	
 //	/**
 //	 * Prints the matrix into an Excel workbook.
