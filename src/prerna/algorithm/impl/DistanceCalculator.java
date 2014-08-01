@@ -2,13 +2,11 @@ package prerna.algorithm.impl;
 
 import java.math.BigDecimal;
 
-import prerna.error.BadInputException;
-
 public class DistanceCalculator {
 	
-	public Double calculateEuclidianDistance(Double[] values1, Double[] values2) throws BadInputException {
+	public Double calculateEuclidianDistance(Double[] values1, Double[] values2) throws IllegalArgumentException {
 		if(values1.length != values2.length) {
-			throw new BadInputException("The inputs must be of the same size!");
+			throw new IllegalArgumentException("The inputs must be of the same size!");
 		}
 		
 		Double sumSquare = (double) 0;
@@ -19,9 +17,9 @@ public class DistanceCalculator {
 		return Math.sqrt(sumSquare);
 	}
 	
-	public BigDecimal calculateEuclidianDistance(BigDecimal[] values1, BigDecimal[] values2) throws BadInputException {
+	public BigDecimal calculateEuclidianDistance(BigDecimal[] values1, BigDecimal[] values2) throws IllegalArgumentException {
 		if(values1.length != values2.length) {
-			throw new BadInputException("The inputs must be of the same size!");
+			throw new IllegalArgumentException("The inputs must be of the same size!");
 		}
 		
 		BigDecimal sumSquare = new BigDecimal(0);
@@ -36,9 +34,9 @@ public class DistanceCalculator {
 		return val.add(new BigDecimal(num.subtract(val.multiply(val)).doubleValue() / (val.doubleValue() * 2.0) ));
 	}
 
-	public double calculateEuclidianDistance(double[] values1, double[] values2) throws BadInputException {
+	public double calculateEuclidianDistance(double[] values1, double[] values2) throws IllegalArgumentException {
 		if(values1.length != values2.length) {
-			throw new BadInputException("The inputs must be of the same size!");
+			throw new IllegalArgumentException("The inputs must be of the same size!");
 		}
 		
 		Double sumSquare = (double) 0;
