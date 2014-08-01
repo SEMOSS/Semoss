@@ -13,24 +13,34 @@ public class ClusteringDataProcessor {
 
 	Logger logger = Logger.getLogger(getClass());
 	
+	// matrix to hold the instance numerical property values
 	private double[][] numericalMatrix;
+	// matrix to hold the instance categorical property values
 	private String[][] categoricalMatrix;
 	
+	// Hashtable containing the instance name as the key and the value being the row it's information is contained in the numerical and categorical Matrices
 	private Hashtable<String, Integer> instanceHash = new Hashtable<String, Integer>();
+	// list of all the categorical property names 
 	private ArrayList<String> categoryPropNames = new ArrayList<String>();
+	// list of all the numerical property names
 	private ArrayList<String> numericalPropNames = new ArrayList<String>();
+	// list the weights associated with each categorical property used to calculate the categorical similarity score
 	private ArrayList<Double> weights = new ArrayList<Double>(); // has length the same as category prop names
 
+	// static class used to calculate different distance measures for numerical similarity score
 	private static DistanceCalculator disCalculator = new DistanceCalculator();
 	
 	// instance variables that must be defined for clustering to work
+	// table containing all the information - assumes the first column contains the instance name
 	private ArrayList<Object[]> masterTable;
+	// array list containing the variable names for the entire query 
 	private String[] varNames;
 	
 	public ClusteringDataProcessor(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
 		
+		// these methods must be called for the similarity score to be computed 
 		processMasterTable();
 		calculateWeights();
 	}
@@ -54,19 +64,33 @@ public class ClusteringDataProcessor {
 		return numericalPropNames;
 	}
 
-	// Calculates the similarity score
+	/**
+	 * Calculates the similarity score between an instance and a cluster
+	 * @param dataIdx						The index corresponding to the instance row location in the numerical and categorical matrices
+	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
+	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
+	 * @param categoryClusterInfo			The categorical cluster information for the cluster we are looking to add the instance into
+	 * @return								The similarity score between the instance and the cluster
+	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length
+	 */
 	public Double getSimilarityScore(int dataIdx, int clusterIdx, double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
 		double[] instanceNumericalInfo = numericalMatrix[dataIdx];
 		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 
 		double numericalSimilarity = calcuateNumericalSimilarity(clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
-		double categorySimilarity = calculateCategorySimilarity(clusterIdx, instaceCategoricalInfo, categoryClusterInfo);
+		double categorySimilarity = calculateCategorySimilarity(instaceCategoricalInfo, categoryClusterInfo);
 
 		return numericalSimilarity + categorySimilarity;
 	}
 	
-	// Calculates the similarity score for the categorical entries
-	private double calculateCategorySimilarity(int clusterIdx, String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) {
+	/**
+	 * Calculates the similarity score for the categorical entries
+	 * @param instaceCategoricalInfo	The categorical information for the specific instance
+	 * @param categoryClusterInfo		The categorical cluster information for the cluster we are looking to add the instance into
+	 * @return 							The similarity score associated with the categorical properties
+	 */
+	private double calculateCategorySimilarity(String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) {
+		
 		double categorySimilarity = 0;
 		
 		for(int i = 0; i < weights.size(); i++) {
@@ -89,7 +113,14 @@ public class ClusteringDataProcessor {
 		return coeff * categorySimilarity;
 	}
 
-	// Calculates the similarity score for the numerical entries
+	/**
+	 * Calculates the similarity score for the numerical entries
+	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
+	 * @param instanceNumericalInfo			The numerical information for the specific index
+	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
+	 * @return								The similarity score value associated with the numerical properties
+	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length 
+	 */
 	private Double calcuateNumericalSimilarity(int clusterIdx, double[] instanceNumericalInfo, double[][] allNumericalClusterInfo) throws IllegalArgumentException {
 		double numericalSimilarity = 0;
 		int numClusters = allNumericalClusterInfo.length;
@@ -118,7 +149,9 @@ public class ClusteringDataProcessor {
 		return coeff * numericalSimilarity;
 	}
 
-	// generate weights for categorical similarity matrix
+	/**
+	 * Generate weights for categorical similarity matrix
+	 */
 	private void calculateWeights() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getPropOccurance();
 		ArrayList<Double> entropyArr = calculateEntropy(trackPropOccurance);
@@ -137,8 +170,12 @@ public class ClusteringDataProcessor {
 			logger.info("Category " + categoryPropNames.get(i) + " has weight " + weights.get(i));
 		}
 	}
-	
-	// generate entropy array for each category to create weights
+
+	/**
+	 * Generate entropy array for each category to create weights
+	 * @param trackPropOccurance	A list containing a hashtable that stores all the different instances of a given property
+	 * @return						A list containing the entropy for each categorical property
+	 */
 	private ArrayList<Double> calculateEntropy(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
 		ArrayList<Double> entropyArr = new ArrayList<Double>();
 		
@@ -166,7 +203,10 @@ public class ClusteringDataProcessor {
 		return entropyArr;
 	}
 	
-	// generate occurrence of instance categorical properties to calculate entropy
+	/**
+	 * Generate occurrence of instance categorical properties to calculate entropy
+	 * @return	A list containing a hashtable that stores all the different instances of a given property
+	 */
 	private ArrayList<Hashtable<String, Integer>> getPropOccurance() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
 
@@ -196,7 +236,9 @@ public class ClusteringDataProcessor {
 		return trackPropOccuranceArr;
 	}
 	
-	// process master data
+	/**
+	 * Processes through the masterTable and determines which columns are numerical and which are categorical
+	 */
 	private void processMasterTable() {
 		ArrayList<Integer> categoryPropIndices = new ArrayList<Integer>();
 		ArrayList<Integer> numericalPropIndices = new ArrayList<Integer>();
@@ -236,7 +278,11 @@ public class ClusteringDataProcessor {
 		constructMatrices(categoryPropIndices, numericalPropIndices);
 	}
 	
-	// build the categorical and numerical matrices based on the master table and which columns are categories vs. numbers
+	/**
+	 * Build the categorical and numerical matrices based on the master table and which columns are categories or numbers/dates
+	 * @param categoryPropIndices		The indices in the masterTable that contains the categorical properties
+	 * @param numericalPropIndices		The indices in the masterTable that contains the numerical properties
+	 */
 	private void constructMatrices(ArrayList<Integer> categoryPropIndices, ArrayList<Integer> numericalPropIndices) {
 		
 		numericalMatrix = new double[masterTable.size()][numericalPropIndices.size()];
@@ -258,8 +304,12 @@ public class ClusteringDataProcessor {
 		}
 	}
 
+	/**
+	 * Determines the type of a given value
+	 * @param s		The value to determine the type off
+	 * @return		The type of the value
+	 */
 	private static String processType(String s) {
-				
 		boolean isDouble = true;
 		try {
 			Double.parseDouble(s);
@@ -301,6 +351,11 @@ public class ClusteringDataProcessor {
 		return ("STRING");
 	}
 	
+	/**
+	 * Generate the log base 2 of a given input
+	 * @param x		The value to take the log base 2 off
+	 * @return		The log base 2 of the value inputed
+	 */
 	private double logBase2(double x) {
 		return Math.log(x) / Math.log(2);
 	}
