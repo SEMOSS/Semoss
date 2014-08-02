@@ -593,7 +593,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 		String newKey = m1Tokens.nextElement()+"/"+m2Tokens.nextElement()+"/"+m2Tokens.nextElement();
 		
 		int m1rows = m1rowLabels.size();
-		int longer = longerLabels.size();
+//		int longer = longerLabels.size();
 		int shorter = shorterLabels.size();
 	    int m2cols = m2colLabels.size();
 	    double[][] result = new double[m1rows][m2cols];

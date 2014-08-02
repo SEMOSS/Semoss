@@ -78,7 +78,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		String query=""+this.engine.getProperty(ConstantsTAP.VENDOR_HEAT_MAP_REQUIREMENTS_QUERY + "_"+queryCount);
 		query = query.replace("*Selected_RFI*", rfi);
 		queryArray.add(query);
-		queryCount++;
+//		queryCount++;
 //		while(query!="null")
 //		{
 //			queryArray.add(query);

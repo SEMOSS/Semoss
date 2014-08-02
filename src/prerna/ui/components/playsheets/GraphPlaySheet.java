@@ -1047,7 +1047,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				SEMOSSEdge vert = csIterator.next();
 				logger.info("Set " + count + ">>>> " + vert.getProperty(Constants.EDGE_NAME));
 		}
-		count++;
+//		count++;
 	}	
 	
 	/**

@@ -78,7 +78,6 @@ public class ProfitFunction extends UnivariateSvcOptFunction{
 		{
 			for (int i=0;i<objList.size();i++)
 			{
-				int year = i+1;
 				double yearObj = (Double) objList.get(i);
 				double yearBgt = (Double) budgetList.get(i);
 				

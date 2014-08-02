@@ -37,6 +37,7 @@ public class ServiceOptimizer extends LPOptimizer{
 	//total number of services
 	int totalSerNo;
 
+	//data objects vs the services, 
 	public Object[][] icdSerMatrix;
 	public Hashtable serCostHash;
 	public ArrayList<String> icdLabels;
@@ -75,11 +76,8 @@ public class ServiceOptimizer extends LPOptimizer{
 	 * @param 	serMain	Percentage of build cost to maintain services.
 	 */
 	public ServiceOptimizer(double icdMt, double serMain){
-
 		this.icdMtnCost = icdMt;
-
 		this.serMainPct = serMain;
-
 	}
 
 
@@ -87,12 +85,10 @@ public class ServiceOptimizer extends LPOptimizer{
 	 * Sets the data to be analyzed in calculations.
 	 * @param 	organizer	OptimizationOrganizer is used to efficiently run TAP-specific optimizations.
 	 */
-	public void setData(OptimizationOrganizer organizer)
-	{
+	public void setData(OptimizationOrganizer organizer) {
 
 		icdSerMatrix = (Object[][]) organizer.icdService.get(organizer.matrixLabel);
-		if (icdSerMatrix == null || icdSerMatrix.length==0)
-		{
+		if (icdSerMatrix == null || icdSerMatrix.length==0) {
 			return;
 		}
 		icdLabels = (ArrayList<String>) organizer.icdService.get(organizer.rowLabel);
@@ -171,6 +167,7 @@ public class ServiceOptimizer extends LPOptimizer{
 		catch (LpSolveException e) {
 			e.printStackTrace();
 		}
+		
 	}
 
 	/**

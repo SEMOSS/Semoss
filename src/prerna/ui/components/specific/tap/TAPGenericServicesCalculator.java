@@ -98,9 +98,9 @@ public class TAPGenericServicesCalculator {
 		
 		ArrayList <Object[]> phaseReturnList = pfCalc.processPhaseData(system);
 		int phaseIdx = 0;
-		int highestLOESetIdx = 1;
+//		int highestLOESetIdx = 1;
 		int startDateIdx = 2;
-		int endDateIdx = 3;
+//		int endDateIdx = 3;
 		int totalLOEIdx = 4;
 		int latestIdx = 0;
 		for (int i = 0; i<phaseReturnList.size(); i++)

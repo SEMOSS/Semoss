@@ -38,7 +38,6 @@ public class CustomNodeCreator {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		String input = null;
 		try {
-			int count = 0;
 			while((input = reader.readLine()) != null)
 			{
 				if(input.equalsIgnoreCase("H"))

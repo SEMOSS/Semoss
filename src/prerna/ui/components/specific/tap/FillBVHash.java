@@ -155,11 +155,7 @@ public class FillBVHash implements Runnable{
 				if(key.equals("BusinessProcess/Activity")&&(sjss.getVar(names[3]) instanceof String)){
 					String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
 					double[] propArray = bpPropHash.get(var3);
-					if (propArray == null){
-						//it is a property that we don't need
-						int x = 0;
-					}
-					else{
+					if (propArray != null){
 						if (!rowLabels.contains(var0))
 							rowLabels.add(var0);
 						//figure out where on the matrix the value should get added

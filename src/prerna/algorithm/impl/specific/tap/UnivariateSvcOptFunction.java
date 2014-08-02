@@ -34,7 +34,7 @@ import prerna.ui.components.specific.tap.OptimizationOrganizer;
 public class UnivariateSvcOptFunction extends UnivariateOptFunction{
 
 	public ServiceOptimizer lin;
-	double icdMt, serMain;
+	//double icdMt, serMain;
 	double hourlyRate;
 	
 	/**
