@@ -355,16 +355,16 @@ public class PropertySpecData {
 		// if it is null then may be it is in predicateHash
 		if(childString == null)
 		{
-			concept = false;
+//			concept = false;
 			//childString = predicateHash.get(knownConceptParent);
 			childString = conceptHash.get(knownConceptParent);
-			predicate = true;
+//			predicate = true;
 		}
 		if(childString == null)
 		{
-			concept = false;
-			predicate = false;
-			property = true;
+//			concept = false;
+//			predicate = false;
+//			property = true;
 			//childString = propertyHash.get(knownConceptParent);
 			childString = conceptHash.get(knownConceptParent);
 		}
