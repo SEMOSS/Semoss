@@ -28,6 +28,7 @@ import prerna.ui.components.api.IPlaySheet;
 /**
  * This class is used to store question playsheets. 
  */
+@SuppressWarnings("serial")
 public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	
 	Logger logger = Logger.getLogger(getClass());
