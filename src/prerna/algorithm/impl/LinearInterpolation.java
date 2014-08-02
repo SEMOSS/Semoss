@@ -46,15 +46,17 @@ public class LinearInterpolation implements IAlgorithm{
 
 	 */
 	public void execute(){
-		retVal = -1.0E30;
+
 	   	a = min;
 	    b = max;
 	   	
 	   		y_b = calcY(b);
 	   	    y_m = calcY(m);			// y_m = f(m)
 	   	    y_a = calcY(a);			// y_a = f(a)
-	   	 if(a<0&&b<0 ||(y_b > 0 && y_a > 0) || (y_b < 0 && y_a < 0))
+	   	 if(a<0&&b<0 ||(y_b > 0 && y_a > 0) || (y_b < 0 && y_a < 0)) {
+	   		 retVal = -1.0E30;
 	   		 return;
+	   	 }
 	   	 while ( (b-a) > epsilon )
 	   	 {
 	   	    m = (a+b)/2;           // Mid point

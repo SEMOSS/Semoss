@@ -167,10 +167,10 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 				if(softwareMatrix[row][col] instanceof String && softwareCatMatrix[row][col] instanceof String){
 					String lifecycle = getLifeCycle(softwareMatrix[row][col]);
 					double additional = textToNum(lifecycle)*textToNum(softwareCatMatrix[row][col]);
-					double sum=0.0;
 					int count=1;
 					if(additional>0)
 					{
+						double sum;
 						if(counts.containsKey(softwareCatMatrix[row][col])){
 							sum=additional + sums.get(softwareCatMatrix[row][col]);
 							count = 1 + counts.get(softwareCatMatrix[row][col]);

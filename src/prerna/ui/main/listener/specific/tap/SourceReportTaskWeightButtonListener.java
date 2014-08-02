@@ -495,7 +495,6 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				double venTechScore=0.0;
 				double weightBusSum=0.0;
 				double weightTechSum=0.0;
-				double totalCost = 0.0;
 				for(String task : tasksHash.keySet())
 				{
 					Hashtable<String,Object> values = tasksHash.get(task);
@@ -510,7 +509,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 						weightTechSum+=(Double)values.get("Weight");
 					}
 				}
-				totalCost=vendorsCost.get(vendor)+vendorsHWSWCost.get(vendor);
+				double totalCost=vendorsCost.get(vendor)+vendorsHWSWCost.get(vendor);
 				String subjectUri = "<http://health.mil/ontologies/Concept/Vendor/"+vendor+">";
 				ArrayList<String> objectUris = new ArrayList<String>();
 				objectUris.add("\"" +venBusScore/weightBusSum+"\""+"^^<http://www.w3.org/2001/XMLSchema#double>");

@@ -97,14 +97,14 @@ public class ConstantsTAP {
 	public static final String CAPABILITIES_SUPPORTED_QUERY = "CAPABILITIES_SUPPORTED_QUERY";
 		
 	//Tasker Generation Constants
-	public static String TASKER_GENERATION_SYSTEM_COMBO_BOX="TaskerGenerationSyscomboBox";
+	public static final String TASKER_GENERATION_SYSTEM_COMBO_BOX="TaskerGenerationSyscomboBox";
 	public static final String ACTIVITY_QUERY = "ACTIVITY_QUERY";
 	public static final String BLU_QUERY = "BLU_QUERY";
 	public static final String DATA_QUERY = "DATA_QUERY";
 	public static final String TERROR_QUERY = "TERROR_QUERY";
 	
 	//Capability Fact Sheet Generation Constants
-	public static String CAPABILITY_FACT_SHEET_CAP_COMBO_BOX="capabilityFactSheetCapComboBox";
+	public static final String CAPABILITY_FACT_SHEET_CAP_COMBO_BOX="capabilityFactSheetCapComboBox";
 	
 	//Capability Fact Sheet Constants
 	public static final String CAPABILITY_GROUP_QUERY = "CAPABILITY_GROUP_QUERY";

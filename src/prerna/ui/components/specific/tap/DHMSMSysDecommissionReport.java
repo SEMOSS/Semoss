@@ -68,26 +68,26 @@ public class DHMSMSysDecommissionReport {
 	public static final int startDay = 1;
 	public static final int workHoursInDay = 8;
 	
-	public static String dataKey = "Data";
-	public static String loeKey = "LOE";
-	public static String startKey = "StartDate";
-	public static String endKey = "EndDate";
-	public static String resourceKey = "Resource";
-	public static String accessTypeKey = "AccessType";
-	public static String latencyTypeKey = "LatencyType";
-	public static String pilotKey = "Pilot";
-	public static String sunset = "Sunset";
-	public static String interim = "Interim";
-	public static String modernize = "Modernize";
+	public static final String dataKey = "Data";
+	public static final String loeKey = "LOE";
+	public static final String startKey = "StartDate";
+	public static final String endKey = "EndDate";
+	public static final String resourceKey = "Resource";
+	public static final String accessTypeKey = "AccessType";
+	public static final String latencyTypeKey = "LatencyType";
+	public static final String pilotKey = "Pilot";
+	public static final String sunset = "Sunset";
+	public static final String interim = "Interim";
+	public static final String modernize = "Modernize";
 	
-	public static String real = "Real";
-	public static String nearReal = "NearReal";
-	public static String archive = "Archive";
-	public static String integrated = "Integrated";
-	public static String hybrid = "Hybrid";
-	public static String manual = "Manual";
+	public static final String real = "Real";
+	public static final String nearReal = "NearReal";
+	public static final String archive = "Archive";
+	public static final String integrated = "Integrated";
+	public static final String hybrid = "Hybrid";
+	public static final String manual = "Manual";
 	
-	public static String deployment = "Deployment$Deployment";
+	public static final String deployment = "Deployment$Deployment";
 	
 	double realDeployOfPilotPer = .25;
 	double nearDeployOfPilotPer = .25;
