@@ -57,7 +57,7 @@ public class DBCMVertex{
 		// parse out all the oth er properties
 		logger.debug("URI " + uri);
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
-		int totalTok = tokens.countTokens();
+//		int totalTok = tokens.countTokens();
 		String className = Utility.getClassName(uri);
 		String instanceName = Utility.getInstanceName(uri);
 		

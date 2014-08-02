@@ -708,13 +708,12 @@ public class Utility {
 					try{
 						int dub = Integer.parseInt(value);
 						paramHash.put(key, dub);
-						found = true;
 					}catch (Exception ignored)
 					{
 					}
 				}
 				//if(!found)
-					paramHash.put(key, value);
+				paramHash.put(key, value);
 			}
 		}
 		return paramHash;

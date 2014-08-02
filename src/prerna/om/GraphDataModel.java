@@ -191,7 +191,7 @@ public class GraphDataModel {
 		//figure out if we need to index jena for search and process for SUDOWL
 		
 		try {
-			boolean isError = false;
+//			boolean isError = false;
 			
 			StringBuffer subjects = new StringBuffer("");
 			StringBuffer predicates = new StringBuffer("");
