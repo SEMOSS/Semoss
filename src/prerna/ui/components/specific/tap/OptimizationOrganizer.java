@@ -226,7 +226,6 @@ public class OptimizationOrganizer {
 	 * @param 	Service hashtable.
 	 * @param 	Provider service hashtable.
 	 * @param 	If false, update hashtable with new values.
-	
 	 * @return 	Service hashtable with updated values. */
 	private Hashtable addToHashtable(String query, String engineName, Hashtable hash, Hashtable hash2, boolean createEntryPrivledges){
 

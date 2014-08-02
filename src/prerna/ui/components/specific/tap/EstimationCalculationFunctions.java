@@ -421,7 +421,6 @@ public class EstimationCalculationFunctions {
 		wrapper.executeQuery();
 		// get the bindings from it
 
-		int count = 0;
 		String[] names = wrapper.getVariables();
 		return names;
 	}

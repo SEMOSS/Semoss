@@ -260,7 +260,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 	{
 		Hashtable allHash = new Hashtable();
 		Hashtable masterHash = optOrg.masterHash;
-		ArrayList <Object []> list = new ArrayList();
+//		ArrayList <Object []> list = new ArrayList();
 		String[] colNames = new String[8];
 		colNames[0]="Year";
 		colNames[1]="System";
@@ -299,7 +299,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 				int green = randomGenerator.nextInt(255);
 				int blue = randomGenerator.nextInt(255);
 
-				Color randomColour = new Color(red,green,blue);
+	//			Color randomColour = new Color(red,green,blue);
 				Date startDate = startYearlyDate;
 				ArrayList<Object[]> returnedTable = (ArrayList<Object[]>) masterHash.get(serList.get(j));
 				//need to add the year to the table

@@ -87,10 +87,10 @@ public class PfTapGenericServicesCalculator {
 				
 
 		ArrayList <Object[]> phaseReturnList = pfCalc.processPhaseData(system);
-		int phaseIdx = 0;
-		int highestLOESetIdx = 1;
+//		int phaseIdx = 0;
+//		int highestLOESetIdx = 1;
 		int startDateIdx = 2;
-		int endDateIdx = 3;
+//		int endDateIdx = 3;
 		int totalLOEIdx = 4;
 		for (int i = 0; i<phaseReturnList.size(); i++)
 		{
@@ -125,7 +125,7 @@ public class PfTapGenericServicesCalculator {
 			Object[] phaseReturnArray = phaseReturnList.get(4);
 			Date trDate = (Date) phaseReturnArray[startDateIdx];
 
-			int trIdx = pfCalc.retYearIdx(trDate);
+//			int trIdx = pfCalc.retYearIdx(trDate);
 			Double trainingDouble = sdlcTotal*0.15;
 			systemPhaseEstimate.put("Training", trainingDouble);
 			systemPhaseDate.put("Training", pfCalc.retFiscalYear(trDate));

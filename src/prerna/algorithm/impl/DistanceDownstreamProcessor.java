@@ -128,7 +128,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 //				for(SEMOSSVertex printVert : nextNodes)
 //					System.err.println(printVert.uri);
 				
-				nodeIndex++;
+//				nodeIndex++;
 			}
 			currentNodes.addAll(nextNodes);
 			

@@ -55,7 +55,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 		// properties
 		// and then paint it appropriately
 		logger.debug("creating the in memory jena model");
-		boolean isError = false;
+//		boolean isError = false;
 		
 		StringBuffer subjects = new StringBuffer("");
 		StringBuffer predicates = new StringBuffer("");

@@ -208,7 +208,7 @@ public class SOATransitionCalculator {
 	{
 		double[] returnDouble = new double[7];
 		int yearIdx = 1;
-		int serIdx = 3;
+//		int serIdx = 3;
 		for (int i=0; i<list.size();i++)
 		{
 			Object[] listArray = list.get(i);

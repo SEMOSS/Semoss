@@ -131,10 +131,10 @@ public class TAPSystemSpecificCalculator {
 			pfCalc.setServiceBoolean(serviceBoolean);
 			ArrayList <Object[]> phaseReturnList = pfCalc.processPhaseData(system);
 			int latestIdx = 0;
-			int phaseIdx = 0;
-			int highestLOESetIdx = 1;
+//			int phaseIdx = 0;
+//			int highestLOESetIdx = 1;
 			int startDateIdx = 2;
-			int endDateIdx = 3;
+//			int endDateIdx = 3;
 			int totalLOEIdx = 4;
 			int dataFedIdx = 5;
 			for (int i = 0; i<phaseReturnList.size(); i++)
@@ -192,8 +192,8 @@ public class TAPSystemSpecificCalculator {
 			trLine[0] = system;
 			trLine[1] = "Training";
 			
-			if(trString==null) nullCount++;
-			else if (trString != null)
+//			if(trString==null) nullCount++;
+			if (trString != null)
 			{
 				//get date of develop
 				Object[] phaseReturnArray = phaseReturnList.get(4);

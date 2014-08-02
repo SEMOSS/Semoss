@@ -188,7 +188,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 				
 				nextNodes.addAll(subsetNextNodes);
 				
-				nodeIndex++;
+//				nodeIndex++;
 			}
 			currentNodes.addAll(nextNodes);
 			

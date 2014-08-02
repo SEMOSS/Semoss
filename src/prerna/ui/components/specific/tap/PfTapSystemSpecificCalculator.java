@@ -97,16 +97,16 @@ public class PfTapSystemSpecificCalculator {
 			Double dataFedTotal = 0.0;
 			EstimationCalculationFunctions pfCalc= new EstimationCalculationFunctions();
 			
-			int nullCount = 0;
+//			int nullCount = 0;
 			
 			pfCalc.setHourlyRate(tapOrg.hourlyRate);
 			pfCalc.setTypes(runTypes);
 			pfCalc.setServiceBoolean(serviceBoolean);
 			ArrayList <Object[]> phaseReturnList = pfCalc.processPhaseData(system);
-			int phaseIdx = 0;
-			int highestLOESetIdx = 1;
+//			int phaseIdx = 0;
+//			int highestLOESetIdx = 1;
 			int startDateIdx = 2;
-			int endDateIdx = 3;
+//			int endDateIdx = 3;
 			int totalLOEIdx = 4;
 			int dataFedIdx = 5;
 			for (int i = 0; i<phaseReturnList.size(); i++)

@@ -28,6 +28,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -658,13 +659,14 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 		playSheetPanel = new JPanel();
 		tabbedPane.addTab("Graph Representation", null, playSheetPanel,null);
 
-		String helpNotesData = "";	
+		String helpNotesData = "";
+		BufferedReader releaseNotesTextReader = null;
 		try{
 			//Here we read the help text file
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 			String  releaseNotesTextFile= workingDir + "/help/optimizationHelp.txt";
 			FileReader fr = new FileReader(releaseNotesTextFile);
-			BufferedReader releaseNotesTextReader = new BufferedReader(fr);
+			releaseNotesTextReader = new BufferedReader(fr);
 
 			helpNotesData = "<html>";
 			String line = null;
@@ -673,9 +675,15 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 				helpNotesData = helpNotesData + line +"<br>";
 			}
 			helpNotesData = helpNotesData + "</body></html>";
-			releaseNotesTextReader.close();
 		} catch(Exception e){
 			helpNotesData = "File Load Error";
+		}finally{
+			try{
+				if(releaseNotesTextReader!=null)
+					releaseNotesTextReader.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		JPanel optimizationHelpPanel = new JPanel();
 		tabbedPane.addTab("Help", null, optimizationHelpPanel, null);
