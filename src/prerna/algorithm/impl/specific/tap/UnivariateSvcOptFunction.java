@@ -19,12 +19,6 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
-
-import javax.swing.JProgressBar;
-import javax.swing.JTextArea;
-
-import org.apache.commons.math3.analysis.UnivariateFunction;
 
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
 
@@ -70,7 +64,7 @@ public class UnivariateSvcOptFunction extends UnivariateOptFunction{
 	 * @param 	budgetList	List of yearly budgets for current iteration.
 	 * @param 	objFct		Objective function used in optimization.
 	 */
-	public void writeToAppConsole(ArrayList objList, ArrayList budgetList, double objFct)
+	public void writeToAppConsole(ArrayList<Double> objList, ArrayList<Double> budgetList, double objFct)
 	{
 		consoleArea.setText(consoleArea.getText()+"\nPerforming yearly linear optimization iteration "+count);
 		String budgetText = parseYearText(budgetList,"Year-by-year Budgets for current iteration:");
@@ -85,7 +79,7 @@ public class UnivariateSvcOptFunction extends UnivariateOptFunction{
 	 * @param 	retString	String to be returned.
 	
 	 * @return 	retString	Year text. */
-	public String parseYearText(ArrayList list, String retString)
+	public String parseYearText(ArrayList<Double> list, String retString)
 	{
 		for (int i=0;i<list.size();i++)
 		{

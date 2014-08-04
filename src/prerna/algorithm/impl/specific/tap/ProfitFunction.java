@@ -39,9 +39,9 @@ public class ProfitFunction extends UnivariateSvcOptFunction{
 		double profit=0;
 		lin.setBudget(a);
 
-		Hashtable returnHash = lin.runOpt(totalYrs, learningConstants, hourlyRate);
-		ArrayList objList = (ArrayList) returnHash.get("objective");
-		ArrayList budgetList = (ArrayList) returnHash.get("budget");
+		Hashtable<String,ArrayList<Double>> returnHash = lin.runOpt(totalYrs, learningConstants, hourlyRate);
+		ArrayList<Double> objList = returnHash.get("objective");
+		ArrayList<Double> budgetList = returnHash.get("budget");
 		lin.resetServiceOptimizer();
 		
 		profit = getProfit(objList, budgetList);
@@ -60,7 +60,7 @@ public class ProfitFunction extends UnivariateSvcOptFunction{
 	 * @param 	budgetList	List of yearly budgets for current iteration.
 	
 	 * @return double	Profit. */
-	public double getProfit(ArrayList objList, ArrayList budgetList)
+	public double getProfit(ArrayList<Double> objList, ArrayList<Double> budgetList)
 	{
 		double profit = 0;
 		double mu = (1+infRate)/(1+disRate);

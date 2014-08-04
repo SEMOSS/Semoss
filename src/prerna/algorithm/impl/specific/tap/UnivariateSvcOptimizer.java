@@ -18,7 +18,6 @@
  ******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
-import java.awt.Color;
 import java.awt.GridLayout;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
@@ -146,8 +145,8 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 	 */
 	public void displaySystemSpecifics(ServiceOptimizer lin)
 	{
-		Hashtable masterHash = optOrg.masterHash;
-		ArrayList <Object []> list = new ArrayList();
+		Hashtable<String, ArrayList<Object []>> masterHash = optOrg.masterHash;
+		ArrayList<Object []> list = new ArrayList<Object []>();
 		String[] colNames = new String[8];
 		colNames[0]="Year";
 		colNames[1]="System";
@@ -160,11 +159,11 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 		for (int i = 0;i<lin.yearlyServicesList.size();i++)
 		{
 			int buildYear = 2014+i;
-			ArrayList serList = lin.yearlyServicesList.get(i);
+			ArrayList<String> serList = lin.yearlyServicesList.get(i);
 			for (int j=0;j<serList.size();j++)
 			{
 				ArrayList<Object[]> returnedTable = (ArrayList<Object[]>) masterHash.get(serList.get(j));
-				ArrayList<Object[]> newTable = new ArrayList();
+				ArrayList<Object[]> newTable = new ArrayList<Object[]>();
 				//need to add the year to the table
 				for(Object[] array: returnedTable){
 					Object[] newRow = new Object[8];
@@ -192,11 +191,11 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 	 */
 	public void displaySpecifics(ServiceOptimizer lin)
 	{
-		Hashtable serviceDetailsHash = optOrg.detailedServiceCostHash;
-		Hashtable providerHash = (Hashtable) serviceDetailsHash.get("provider");
-		Hashtable consumerHash = (Hashtable) serviceDetailsHash.get("consumer");
-		Hashtable genericHash = (Hashtable) serviceDetailsHash.get("generic");
-		ArrayList <Object []> list = new ArrayList();
+		Hashtable<String,Hashtable<String,Double>> serviceDetailsHash = optOrg.detailedServiceCostHash;
+		Hashtable<String,Double> providerHash = serviceDetailsHash.get("provider");
+		Hashtable<String,Double> consumerHash = serviceDetailsHash.get("consumer");
+		Hashtable<String,Double> genericHash = serviceDetailsHash.get("generic");
+		ArrayList <Object []> list = new ArrayList<Object []>();
 		String[] colNames = new String[6];
 		colNames[0]="Year";
 		colNames[1]="Service";
@@ -208,7 +207,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 		for (int i = 0;i<lin.yearlyServicesList.size();i++)
 		{
 			int buildYear = 2014+i;
-			ArrayList serList = lin.yearlyServicesList.get(i);
+			ArrayList<String> serList = lin.yearlyServicesList.get(i);
 			for (int j=0;j<serList.size();j++)
 			{
 				Object[] listElement = new Object[6];
@@ -258,8 +257,8 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 	 */
 	public void createTimelineData (ServiceOptimizer lin)
 	{
-		Hashtable allHash = new Hashtable();
-		Hashtable masterHash = optOrg.masterHash;
+		Hashtable<String,Hashtable<String,String>> allHash = new Hashtable<String,Hashtable<String,String>>();
+		Hashtable<String,ArrayList<Object []>> masterHash = optOrg.masterHash;
 //		ArrayList <Object []> list = new ArrayList();
 		String[] colNames = new String[8];
 		colNames[0]="Year";
@@ -289,7 +288,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 
 			//startDate = Calendar.set(Calendar.YEAR, buildYear).
 			//startDate.setYear(arg0)
-			ArrayList serList = lin.yearlyServicesList.get(i);
+			ArrayList<String> serList = lin.yearlyServicesList.get(i);
 			int trackCounter = 0;
 			for (int j=0;j<serList.size();j++)
 			{
@@ -305,7 +304,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 				//need to add the year to the table
 				for (String sdlc:sdlcPhase)
 				{
-					Hashtable eventHash = new Hashtable();
+					Hashtable<String,String> eventHash = new Hashtable<String, String>();
 					String eventName = serList.get(j)+": "+sdlc;
 					double totalCost = 0.0;
 					double highestCost = 0.0;

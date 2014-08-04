@@ -39,9 +39,9 @@ public class ROIFunction extends UnivariateSvcOptFunction{
 		count++;
 		lin.setBudget(a);
 
-		Hashtable returnHash = lin.runOpt(totalYrs, learningConstants, hourlyRate);
-		ArrayList objList = (ArrayList) returnHash.get("objective");
-		ArrayList budgetList = (ArrayList) returnHash.get("budget");
+		Hashtable<String,ArrayList<Double>> returnHash = lin.runOpt(totalYrs, learningConstants, hourlyRate);
+		ArrayList<Double> objList = returnHash.get("objective");
+		ArrayList<Double> budgetList = returnHash.get("budget");
 		lin.resetServiceOptimizer();
 		
 
@@ -62,7 +62,7 @@ public class ROIFunction extends UnivariateSvcOptFunction{
 	 * @param 	budgetList	List of yearly budgets for current iteration.
 	
 	 * @return double		Return on investment (ROI). */
-	public double getROI(ArrayList objList, ArrayList budgetList)
+	public double getROI(ArrayList<Double> objList, ArrayList<Double> budgetList)
 	{
 		double mu = (1+infRate)/(1+disRate);
 		double numerator=0;

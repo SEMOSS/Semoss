@@ -24,7 +24,7 @@ import javax.swing.JTextArea;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 
 /**
- * Interface representing a univariate real function that is implemented for TAP service optimization functions.
+ * Interface representing a univariate real function that is implemented for TAP system and service optimization functions.
  */
 public class UnivariateOptFunction implements UnivariateFunction{
 	
@@ -137,7 +137,6 @@ public class UnivariateOptFunction implements UnivariateFunction{
 		for (int i = 0; i<learningConstants.length;i++)
 		{
 			//account for turnover
-			double retConstant=0.0;
 			//ensure number of iterations does not pass
 			for (int j=0;j<i;j++)
 			{
