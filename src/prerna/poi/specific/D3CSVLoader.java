@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.poi.specific;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -87,40 +88,39 @@ import com.bigdata.rdf.sail.BigdataSailRepository;
  */
 public class D3CSVLoader {
 
-	Logger logger = Logger.getLogger(getClass());
-
-	String fileName; // the file to be read and imported
-	String propFile; // the file that serves as the property file
-	Properties rdfMap;
-	String bdPropFile;
-	ICsvMapReader mapReader;
-	String [] header;
-	List<String> headerList;
-	CellProcessor[] processors;
-	Properties bdProp = new Properties(); // properties for big data
-	Sail bdSail;
-	ValueFactory vf;
-	public SailConnection sc;
-	static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
-	public static String CONTAINS = "Contains";
-	public static String NUMCOL = "NUM_COLUMNS";
-	public static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	public final static String CONTAINS = "Contains";
+	public final static String NUMCOL = "NUM_COLUMNS";
+	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	
+	private final Logger logger = Logger.getLogger(getClass());
+	
+	private Properties rdfMap;
+	private ICsvMapReader mapReader;
+	private String [] header;
+	private List<String> headerList;
+	private CellProcessor[] processors;
+	private Properties bdProp = new Properties(); // properties for big data
+	private Sail bdSail;
+	private ValueFactory vf;
+	private SailConnection sc;
+	private Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
+	private String customBaseURI = "";
+	private ArrayList<String> relationArrayList, nodePropArrayList, relPropArrayList;
+	private int count = 0;
+	
 	public String semossURI;
-	String customBaseURI = "";
 	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
 	public String basePropURI= "";
-	ArrayList<String> relationArrayList, nodePropArrayList, relPropArrayList;
-	int count = 0;
+
 	// OWL variables
-	RepositoryConnection rcOWL;
-	ValueFactory vfOWL;
-	SailConnection scOWL;
-	String owlFile;
-	Hashtable <String, String>uriHash = new Hashtable<String, String>();
+	private RepositoryConnection rcOWL;
+	private SailConnection scOWL;
+	private String owlFile;
+	private Hashtable <String, String>uriHash = new Hashtable<String, String>();
 
 	/**
 	 * The main method is never called within SEMOSS
@@ -128,7 +128,7 @@ public class D3CSVLoader {
 	 * User must specify location of all files manually inside the method
 	 * @param args String[]
 	 */
-	public void main(String[] args) throws Exception
+	public static void main(String[] args) throws Exception
 	{
 		D3CSVLoader reader = new D3CSVLoader();
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -148,24 +148,19 @@ public class D3CSVLoader {
 
 		reader.openOWLWithOutConnection();
 		ArrayList<String> files = new ArrayList<String>();
-		files.add(workingDir+"/db/D3/Ships2.csv");
+		files.add(workingDir+File.separator+"db"+File.separator+"D3"+File.separator+"Ships2.csv");
 		for(int i = 0; i<files.size();i++)
 		{
 			String fileName = files.get(i);
 			reader.openCSVFile(fileName);
-
-			// load the big data properties file
-			// create processors based on property file
 			reader.createProcessors();
-			// DB
-			// Process
 			reader.createURIHash();
 			reader.processD3Relationships();
 			reader.insertBaseRelations();
 		}
 		reader.closeDB();
 	}
-	
+
 	public void createURIHash()
 	{
 		uriHash.put("Organization", "http://semoss.org/ontologies/Concept/Organization");
@@ -182,15 +177,14 @@ public class D3CSVLoader {
 		uriHash.put("website of", "http://semoss.org/ontologies/Relation/Contains/Website");	
 		uriHash.put("latitude of", "http://semoss.org/ontologies/Relation/Contains/Latitude");
 		uriHash.put("longitude of", "http://semoss.org/ontologies/Relation/Contains/Longitude");
-		
 	}
-	
+
 	public void insertBaseRelations()
 	{
-		
+		// add all the concepts
 		try {
-			// add all the concepts
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Organization"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
+
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Person"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Location"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
 
@@ -199,7 +193,7 @@ public class D3CSVLoader {
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Employee"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Subsidiary"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/LocatedAt"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
-			
+
 			// add all properties
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/DUNS"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Address"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
@@ -209,7 +203,7 @@ public class D3CSVLoader {
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Latitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Longitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
 
-			
+
 			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Organization"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
 			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Person"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
 			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Location"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
@@ -234,35 +228,31 @@ public class D3CSVLoader {
 			rcOWL.export(owlWriter);
 			fWrite.close();
 			owlWriter.close();
-
-			//closeOWL();
-	
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
+		} catch (SailException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
 		}
 	}
-	
+
 	public void processD3Relationships()
 	{
 		try {
-			Map csvMap;
-			
+			Map<String, Object> csvMap;
 			while( (csvMap = mapReader.read(header, processors)) != null)
 			{
-				System.err.println("------------");
 				// get the column called object
 				String object = (String)csvMap.get("Object");
 				String objectType = (String)csvMap.get("Type");
-				
 				String secondaryObject = (String)csvMap.get("Type");
 				String predicate = (String)csvMap.get("Predicate");
-				
-				
 				String subject = (String) csvMap.get("Subject");
 				String subjectTypeURI = uriHash.get("Organization");
 				String subjectURI = subjectTypeURI + "/" + Utility.cleanString(subject, true);
-				
 				if(predicate != null && uriHash.containsKey(predicate))
 				{
 					String predicateTypeURI = uriHash.get(predicate);
@@ -291,36 +281,24 @@ public class D3CSVLoader {
 					else
 						printTriple(subjectURI, predicateURI, new LiteralImpl(object));
 				}
-				else
-				{
-					//printTriple(object, "property", subject);
-				}
-
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		
 	}
-	
+
 	public void printTriple(String subject, String predicate, Object object)
 	{
-		System.err.println(subject + "<>" + predicate + "<>" + object);
+		logger.error(subject + "<>" + predicate + "<>" + object);
 		try {
 			if(object instanceof Literal)
 				sc.addStatement(vf.createURI(subject), vf.createURI(predicate), (Literal)object);
 			else
 				sc.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object+""));
 		} catch (SailException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
-	
-	
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -434,7 +412,7 @@ public class D3CSVLoader {
 		}
 		scOWL.addStatement(vf.createURI(basePropURI), vf.createURI(Constants.SUBPROPERTY_URI), vf.createURI(basePropURI));
 
-		Iterator baseHashIt = baseConceptURIHash.keySet().iterator();
+		Iterator<String> baseHashIt = baseConceptURIHash.keySet().iterator();
 		//now add all of the base relations that have been stored in the hash.
 		while(baseHashIt.hasNext()){
 			String subjectInstance = baseHashIt.next() +"";
@@ -476,7 +454,7 @@ public class D3CSVLoader {
 	 * Stores all possible variable types that the user can input from the CSV file into hashtable
 	 * Hashtable is then used to match each column in CSV to a specific type based on user input in prop file
 	 */
-	public static void createTypes()
+	public void createTypes()
 	{
 		typeHash.put("DECIMAL", new ParseDouble());
 		typeHash.put("STRING", new NotNull());
@@ -527,7 +505,6 @@ public class D3CSVLoader {
 	 */
 	public void skipRows() throws IOException
 	{
-		Map<String, Object> jcrMap;
 		//start count at 1 just row 1 is the header
 		count = 1;
 		int startRow = 2;
@@ -585,22 +562,14 @@ public class D3CSVLoader {
 				String objectInstanceURI = conceptURIHash.get(object)+"/"+objectValue;
 				String subjectTypeURI = baseConceptURIHash.get(subject+Constants.CLASS);
 				String objectTypeURI = baseConceptURIHash.get(object+Constants.CLASS);
-				
+
 				// need to do a check to find if the predicate is dynamic
 				if(predicate.startsWith("dynamic"))
 				{
 					System.err.println("This is dynamic");
-					// which means I need to split and get the information from the dynamic node
-					// get the zeroth node
-					String dynamicNode = predicate.split("-")[1];
-					// get this from the map now
-					String predicateInstance = (String)jcrMap.get(dynamicNode);
-					String predUri = baseConceptURIHash.get(dynamicNode + Constants.CLASS);
-					
 					// and then compose the URI
-					
 				}
-					
+
 				String predicateInstanceURI = relationURIHash.get(relPropString)+"/"+subjectValue+Constants.RELATION_URI_CONCATENATOR+objectValue;
 				String predicateSubclassURI = baseRelationURIHash.get(relPropString+Constants.CLASS);
 
@@ -663,7 +632,7 @@ public class D3CSVLoader {
 		StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
 		relationArrayList = new ArrayList<String>();
 		// process each relationship
-		for(int relIndex = 0;relationTokens.hasMoreElements();relIndex++)
+		while(relationTokens.hasMoreElements())
 		{
 			String relation = relationTokens.nextToken();
 			// just in case the end of the prop string is empty string or spaces
@@ -677,11 +646,11 @@ public class D3CSVLoader {
 			String subject = strSplit[0];
 			String predicate = strSplit[1];
 			String object = strSplit[2];
-			
+
 			// check to see if the predicate has 
 			if(predicate.startsWith("dynamic"))
 				System.err.println("Creating Dynamic ");
-			
+
 			// check if prop file entries are not in excel and if nodes are concatenations
 			// throw exception if prop file entries not in excel
 			boolean headException = true;
@@ -694,7 +663,7 @@ public class D3CSVLoader {
 				if(!headerList.contains(subject))
 					headException = false;
 			}
-			if(headException = false)
+			if(headException == false)
 				throw new HeaderClassException(subject + " cannot be found as a header");
 
 			if(object.contains("+"))
@@ -706,7 +675,7 @@ public class D3CSVLoader {
 				if(!headerList.contains(object))
 					headException = false;
 			}
-			if(headException = false)
+			if(headException == false)
 				throw new HeaderClassException(subject + " cannot be found as a header");
 
 			// create concept uris
@@ -831,7 +800,7 @@ public class D3CSVLoader {
 		}
 		createStatement(vf.createURI(basePropURI),vf.createURI(Constants.SUBPROPERTY_URI),vf.createURI(basePropURI));
 
-		for(int relIndex = 0;nodePropTokens.hasMoreElements();relIndex++)
+		while(nodePropTokens.hasMoreElements())
 		{
 			String relation = nodePropTokens.nextToken();
 			// in case the end of the prop string is empty string or spaces
@@ -861,7 +830,7 @@ public class D3CSVLoader {
 					if(!headerList.contains(subject))
 						headException = false;
 				}
-				if(headException = false)
+				if(headException == false)
 					throw new HeaderClassException(subject + " cannot be found as a header");
 
 				if(prop.contains("+"))
@@ -873,7 +842,7 @@ public class D3CSVLoader {
 					if(!headerList.contains(prop))
 						headException = false;
 				}
-				if(headException = false)
+				if(headException == false)
 					throw new HeaderClassException(subject + " cannot be found as a header");
 
 				// see if subject node SEMOSS base URI exists in prop file
@@ -919,7 +888,7 @@ public class D3CSVLoader {
 		if(basePropURI.equals("")){
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 		}
-		for(int relIndex = 0;propTokens.hasMoreElements();relIndex++)
+		while(propTokens.hasMoreElements())
 		{
 			String relation = propTokens.nextToken();
 			//just in case the end of the prop string is empty string or spaces
@@ -944,9 +913,9 @@ public class D3CSVLoader {
 					if(!headerList.contains(prop))
 						headException = false;
 				}
-				if(headException = false)
+				if(headException == false)
 					throw new HeaderClassException(prop + " cannot be found as a header");
-				
+
 				String propURI = "";
 				propURI = basePropURI+"/"+prop;
 				createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
@@ -1000,7 +969,7 @@ public class D3CSVLoader {
 	 * @param jcrMap 			Map containing the data in the CSV file
 	 * @throws SailException 
 	 */
-	public void createProperty(String subjectURI, String propPredBaseURI, String propName, Map jcrMap) throws SailException
+	public void createProperty(String subjectURI, String propPredBaseURI, String propName, Map<String, Object> jcrMap) throws SailException
 	{
 		if(jcrMap.containsKey(propName) && jcrMap.get(propName)!= null)
 		{
@@ -1116,7 +1085,6 @@ public class D3CSVLoader {
 	 */
 	public Object createObject(String object, Map <String, Object> jcrMap)
 	{
-		// need to do the class vs. object magic
 		return jcrMap.get(object);
 	}
 
@@ -1171,15 +1139,10 @@ public class D3CSVLoader {
 	public void openCSVFile(String fileName) throws FileNotFoundException, IOException
 	{
 		mapReader = new CsvMapReader(new FileReader(fileName), CsvPreference.STANDARD_PREFERENCE);		
-		// store the headers of each of the columns
 		header = mapReader.getHeader(true);
 		headerList = Arrays.asList(header);
-		// last header in CSV file is the absolute path to the prop file
-		//String propFileName = header[header.length-1];
-		// load the prop file for the CSV file 
 		String propFileName = "db/d3/csvload.prop";
 		openProp(propFileName);
-		// determine the type of data in each column of CSV file
 		createProcessors();
 	}
 
@@ -1192,7 +1155,7 @@ public class D3CSVLoader {
 		myRepository.initialize();
 		rcOWL = myRepository.getConnection();
 		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
+		rcOWL.getValueFactory();
 	}
 
 	/**
@@ -1205,7 +1168,7 @@ public class D3CSVLoader {
 		myRepository.initialize();
 		rcOWL = myRepository.getConnection();
 		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
+		rcOWL.getValueFactory();
 
 		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseRelEngine).getRc();

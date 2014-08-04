@@ -20,6 +20,8 @@ package prerna.poi.main;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
@@ -41,30 +43,30 @@ import prerna.util.Utility;
  */
 public class POIWriter {
 
-	/**
-	 * The main method is never called within SEMOSS
-	 * Used for testing purposes
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		POIWriter writer = new POIWriter();
-		Hashtable blankHash = new Hashtable();
-		Vector<String[]> blankVect = new Vector<String[]>();
-		String[] blankStr = new String[2];
-		blankStr[0] = "Relation";
-		blankStr[1] = "bill2";
-		blankVect.add(blankStr);
-		String[] blankStr2 = new String[2];
-		blankStr2[0] = "2";
-		blankStr2[1] = "3";
-		blankVect.add(blankStr2);
-		String[] blankStr3 = new String[2];
-		blankStr3[0] = "4";
-		blankStr3[1] = "5";
-		blankVect.add(blankStr3);
-		blankHash.put("TEST SHEET", blankVect);
-		writer.runExport(blankHash, null, null, true);
-	}
+//	/**
+//	 * The main method is never called within SEMOSS
+//	 * Used for testing purposes
+//	 * @param args
+//	 */
+//	public static void main(String[] args) {
+//		POIWriter writer = new POIWriter();
+//		Hashtable<String, Vector<String[]>> blankHash = new Hashtable<String, Vector<String[]>>();
+//		Vector<String[]> blankVect = new Vector<String[]>();
+//		String[] blankStr = new String[2];
+//		blankStr[0] = "Relation";
+//		blankStr[1] = "bill2";
+//		blankVect.add(blankStr);
+//		String[] blankStr2 = new String[2];
+//		blankStr2[0] = "2";
+//		blankStr2[1] = "3";
+//		blankVect.add(blankStr2);
+//		String[] blankStr3 = new String[2];
+//		blankStr3[0] = "4";
+//		blankStr3[1] = "5";
+//		blankVect.add(blankStr3);
+//		blankHash.put("TEST SHEET", blankVect);
+//		writer.runExport(blankHash, null, null, true);
+//	}
 
 	/**
 	 * Writes the information passed through a hashtable to a workbook
@@ -74,7 +76,7 @@ public class POIWriter {
 	 * @param readFile 		String containing the path to a file where the information in that file will be added to the created workbook
 	 * @param formatData 	Boolean true when the information in the hashtable needs to be reorganized to look like a load sheet
 	 */
-	public void runExport(Hashtable hash, String writeFile, String readFile, boolean formatData){
+	public void runExport(Hashtable<String, Vector<String[]>> hash, String writeFile, String readFile, boolean formatData){
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if(writeFile == null || writeFile.isEmpty()) {
 			writeFile = Constants.GLITEM_CORE_LOADING_SHEET;
@@ -82,9 +84,9 @@ public class POIWriter {
 		if(readFile == null || readFile.isEmpty()) {
 			readFile = "BaseGILoadingSheets.xlsx";
 		}
-		String folder = "\\export\\";
-		String fileLoc = workingDir + folder + writeFile;
-		String readFileLoc = workingDir + folder + readFile;
+		String folder = "export";
+		String fileLoc = workingDir + File.separator + folder + File.separator + writeFile;
+		String readFileLoc = workingDir + File.separator + folder + File.separator + readFile;
 
 		ExportLoadingSheets(fileLoc, hash, readFileLoc, formatData);
 	}
@@ -169,18 +171,22 @@ public class POIWriter {
 	 */
 	public XSSFWorkbook getWorkbook(String readFileLoc) {
 		XSSFWorkbook wb = null;
-		try {
-			File inFile = new File(readFileLoc);
-			if(readFileLoc!=null && inFile.exists()){
-				FileInputStream stream = new FileInputStream(inFile);
-				wb = new XSSFWorkbook(stream);
-				stream.close();
+		if(readFileLoc != null) {
+			try {
+				File inFile = new File(readFileLoc);
+				FileInputStream stream;
+				if(inFile.exists()){
+					stream = new FileInputStream(inFile);
+					wb = new XSSFWorkbook(stream);
+					stream.close();
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			else{
-				wb = new XSSFWorkbook();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		} else {
+			wb = new XSSFWorkbook();
 		}
 		return wb;
 	}
@@ -191,8 +197,8 @@ public class POIWriter {
 	 * @param oldHash 		Hashtable containing the data from ExportRelationshipsLoadSheetsListener, which gets the data from querying the engine						
 	 * @return newHash		Hashtable<String,Vector<String[]>> containing the information in a format similar to the Microsoft Excel Loading Sheet
 	 */
-	public Hashtable<String, Vector<String[]>> prepareLoadingSheetExport(Hashtable oldHash){
-		Hashtable newHash = new Hashtable();
+	public Hashtable<String, Vector<String[]>> prepareLoadingSheetExport(Hashtable<String, Vector<String[]>> oldHash){
+		Hashtable<String, Vector<String[]>> newHash = new Hashtable<String, Vector<String[]>>();
 		Iterator<String> keyIt = oldHash.keySet().iterator();
 		while(keyIt.hasNext()){
 			String key = keyIt.next();

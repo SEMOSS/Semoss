@@ -52,7 +52,7 @@ import prerna.util.Utility;
  */
 public class CSVReader extends AbstractFileReader {
 
-	private static String propFile; // the file that serves as the property file
+	private String propFile; // the file that serves as the property file
 	private ICsvMapReader mapReader;
 	private String [] header;
 	private List<String> headerList;

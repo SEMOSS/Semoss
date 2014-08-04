@@ -19,6 +19,7 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,7 +71,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 		JTextField RFPNameField=(JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.RFP_NAME_FIELD);
 		writer.RFPName = RFPNameField.getText();
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "\\export\\Reports\\";
+		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
 		String writeFileName = "Vendor Input Report " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
 		String templateLoc = workingDir + folder + "Report_Template.xlsx";

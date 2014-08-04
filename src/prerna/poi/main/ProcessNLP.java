@@ -149,6 +149,7 @@ public class ProcessNLP {
 				logger.info(DocSentences2.get(j));
 				j++;
 			}
+			scan.close();
 		}
 		if(docin.contains(".txt"))
 		{
