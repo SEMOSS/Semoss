@@ -343,7 +343,7 @@ public class ClusteringDataProcessor {
 						}
 					} catch (ParseException e) {
 						//THIS SHOULD NEVER HAPPEN
-						logger.info("INTERNAL ERROR WITH TYPECASTING - SHOULD NEVER HAPEN");
+						logger.info("INTERNAL ERROR WITH TYPECASTING - SHOULD NEVER HAPEN!!! :(");
 					}
 				}
 				// default values are null in new Double[][]
