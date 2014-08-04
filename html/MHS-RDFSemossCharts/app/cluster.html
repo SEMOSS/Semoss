@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" ng-app="app">
+<head>
+  <meta charset="utf-8">
+  <title>Cluster</title>
+  <link rel="stylesheet" href="css/bootstrap.css">
+  <link rel="stylesheet" href="css/cluster.css">
+  <script src="lib/angular/angular.js"></script>
+  <script src="js/clusterapp.js"></script>
+  <script src="js/clustercontrollers.js"></script>
+  <script src="js/clusterfilters.js"></script>
+  <script src="js/directives/cluster.js"></script>
+  <script src="js/directives/clustercolumnchart.js"></script>
+  <script src="data/avnwxData.js"></script>
+  <script src="lib/d3.min.js"></script>
+  <!--<script src="lib/d3/d3.tip.js"></script>-->
+  <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+  <script src="lib/bootstrap.js"></script>
+
+</head>
+<body>
+<div id='thecontroller' ng-controller="dataCtrl">
+  <div id="clusterContainer">
+    <d3-cluster data="data" set-group-data="setGroupData(groupData)" id="clusterViz" container-id="'clusterContainer'"></d3-cluster>
+  </div>
+  <div id="rightPane">
+      <div ng-repeat = "(groupDatumName, groupDatum) in groupData">
+          <p><br></p>
+          <div class = "titleContainer">
+              <h4 style = "text-align:center; margin-top: 20px">{{groupDatum.names[1] + " vs. " + groupDatumName}}</h4>
+          </div>
+          <div class = "barContainer">
+            <columnchart container-class="'barContainer'" data="groupDatum" control="columnchartBrowseCtrl"></columnchart>
+          </div>
+      </div>
+      <p><br></p>
+  </div>
+</div>
+<script>
+    function start(startData) {
+        var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+        ctrlScope.setJSONData(startData);
+    }
+    $(document).ready(function() {
+        start(avnwxData);
+    });
+</script>
+</body>
+</html>
