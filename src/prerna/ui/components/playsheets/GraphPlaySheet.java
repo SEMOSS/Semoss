@@ -861,35 +861,38 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
                 while(!end.equalsIgnoreCase("end"))
                 {
                       try {
-                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                      logger.debug("Enter Query");
-                      String query2 = reader.readLine();                    
-                      end = query2;
-                      logger.debug("Query is " + query2);
-                      if(query2.toUpperCase().contains("CONSTRUCT"))
-                            sjsc = new SesameJenaConstructWrapper();
-                      else
-                            sjsc = new SesameJenaSelectCheater();
-
-                      // = new SesameJenaSelectCheater();
-                      sjsc.setEngine(jenaEngine);
-                      sjsc.setQuery(query);//conceptHierarchyForSubject);
-                      sjsc.setQuery(query2);
-                      sjsc.execute();
-                      while(sjsc.hasNext())
-                      {
-                            // read the subject predicate object
-                            // add it to the in memory jena model
-                            // get the properties
-                            // add it to the in memory jena model
-                            SesameJenaConstructStatement st = sjsc.next();
-                            logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-                            //addToJenaModel(st);
-                      }
+	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+	                      logger.debug("Enter Query");
+	                      String query2 = reader.readLine();   
+	                      if(query2!=null){
+		                      end = query2;
+		                      logger.debug("Query is " + query2);
+		                      if(query2.toUpperCase().contains("CONSTRUCT"))
+		                            sjsc = new SesameJenaConstructWrapper();
+		                      else
+		                            sjsc = new SesameJenaSelectCheater();
+		
+		                      // = new SesameJenaSelectCheater();
+		                      sjsc.setEngine(jenaEngine);
+		                      sjsc.setQuery(query);//conceptHierarchyForSubject);
+		                      sjsc.setQuery(query2);
+		                      sjsc.execute();
+		                      while(sjsc.hasNext())
+		                      {
+		                            // read the subject predicate object
+		                            // add it to the in memory jena model
+		                            // get the properties
+		                            // add it to the in memory jena model
+		                            SesameJenaConstructStatement st = sjsc.next();
+		                            logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
+		                            //addToJenaModel(st);
+		                      }
+	                      }
                       } catch (Exception e) {
                             // TODO: Specify exception
                             e.printStackTrace();
                       }
+	                      
                 }
 
           
