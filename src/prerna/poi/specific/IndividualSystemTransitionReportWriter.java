@@ -453,8 +453,14 @@ public class IndividualSystemTransitionReportWriter {
 				cellToWriteOn.setCellValue((Double)resultRowValues[col+1]);
 			else if(resultRowValues[col+1] instanceof Integer)
 				cellToWriteOn.setCellValue((Integer)resultRowValues[col+1]);
+			else if(resultRowValues[col+1] instanceof String) {
+				String stringToWrite = ((String)resultRowValues[col+1]).replaceAll("\"", "").replaceAll("_"," ");
+				if(stringToWrite.length()==0||stringToWrite.equals("NA"))
+					stringToWrite = "TBD";
+				cellToWriteOn.setCellValue(stringToWrite);
+			}
 			else
-				cellToWriteOn.setCellValue(((String)resultRowValues[col+1]).replaceAll("\"", "").replaceAll("_"," "));
+				logger.info("Writing System Overview Sheet but improper type for cell at row "+rowToStartList+" col "+(col+1));
 		}
 		fillStringInText(sheetToWriteOver, 13, 1,"@SYSTEM@",systemName);
 		fillStringInText(sheetToWriteOver, 33, 1,"@SYSTEM@",systemName);
