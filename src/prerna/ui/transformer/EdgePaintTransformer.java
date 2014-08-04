@@ -96,9 +96,10 @@ public class EdgePaintTransformer implements Transformer <SEMOSSEdge, Paint> {
                 
 
 		}
-		catch(Exception ex)
-		{
+		catch(RuntimeException ex) {
+			//TODO: Specify exception(s) and action
 			//ignore
+			System.out.println("ignored");
 		}
 		return p;
 	}

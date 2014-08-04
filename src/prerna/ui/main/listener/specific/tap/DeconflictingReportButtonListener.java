@@ -94,7 +94,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 					list.add(values);
 				}
 			} 
-			catch (Exception e) {
+			catch (RuntimeException e) {
 				e.printStackTrace();
 			}
 			allSystemsDataHash.put(tabName, list);
@@ -185,7 +185,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 				list.add((String)sjss.getVar(names[0]));
 			}
 		}
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return list;
@@ -219,7 +219,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 				list.add(mapList);
 			}
 		}
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return list;

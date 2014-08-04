@@ -99,7 +99,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 				innerHash.put(colTemp, 0.);
 				fullConceptColumnNameMapping.put(conceptTemp, innerHash);
 			}
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			e.printStackTrace();
 		}
 				
@@ -146,7 +146,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 			paramDataHash.put("Concept-Column", conceptTableHash);
 
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.fatal(e);
 		}	
 	}
@@ -170,7 +170,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 				}
 				innerSysConHash.put(valueString, total);	
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}

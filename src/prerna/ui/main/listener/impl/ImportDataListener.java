@@ -41,6 +41,7 @@ import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
+import prerna.error.NLPException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -153,7 +154,9 @@ public class ImportDataListener implements IChakraListener {
 		} catch (FileWriterException ex) {
 			ex.printStackTrace();
 			Utility.showError("Import has failed.\n" + ex.getMessage());
-		} catch (Exception ex) {
+		} catch (RuntimeException ex) {
+			Utility.showError("Import has failed.\n");
+		} catch (NLPException e1) {
 			Utility.showError("Import has failed.\n");
 		}
 	}
@@ -208,8 +211,11 @@ public class ImportDataListener implements IChakraListener {
 				}
 				for(String node: nodes) replacedString = replacedString + node + "\n";
 				for(String[] rel : relationships) replacedString = replacedString + rel[0] +" " + rel[1] + " " + rel[2]+"\n";
-			} catch (Exception e){
+			} catch (RuntimeException e){
 				logger.error(e);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}finally{
 				try{
 					if(fileIn!=null)

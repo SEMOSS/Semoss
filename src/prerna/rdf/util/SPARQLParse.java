@@ -12,6 +12,7 @@ import java.util.Vector;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.BindingSetAssignment;
 import org.openrdf.query.algebra.Coalesce;
@@ -229,6 +230,9 @@ public class SPARQLParse {
 			sourceTarget = collector.sourceTargetHash;
 			constantHash = collector.constantHash;
 			System.out.println("Constants " + constantHash);
+		} catch (RuntimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -434,7 +438,10 @@ public class SPARQLParse {
 				BindingSet bs = sparqlResults.next();
 				System.out.println("Predicate >>> " + bs.getBinding("x") + "  >>> " + bs.getBinding("t") + " >>> " + bs.getBinding("m"));
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

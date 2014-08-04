@@ -72,7 +72,7 @@ public class PerspectiveSelectionListener extends AbstractListener {
 		try
 		{
 			questionsV = engine.getInsights(perspective);
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 		}

@@ -19,6 +19,7 @@
 package prerna.rdf.engine.impl;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -240,8 +241,11 @@ public abstract class AbstractEngine implements IEngine {
 					setOntology(baseFolder + "/" + ontoFile);
 
 			}
-		} catch (Exception e) {
-			// TODO: Specify exception
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -527,8 +531,10 @@ public abstract class AbstractEngine implements IEngine {
 	 *            String - The name of the properties file to be loaded.
 	 * 
 	 * @return Properties - The properties imported from the prop file.
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
-	public Properties loadProp(String fileName) throws Exception {
+	public Properties loadProp(String fileName) throws FileNotFoundException, IOException {
 		Properties retProp = new Properties();
 		if(fileName != null)
 			retProp.load(new FileInputStream(fileName));

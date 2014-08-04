@@ -57,8 +57,9 @@ public class ClusterEngine extends AbstractEngine {
 		{
 			try {
 				baseDataEngine.rc.add(con.getStatements(null, null, null, true));				
-			}catch(Exception ex)
+			}catch(RepositoryException ex)
 			{
+				logger.debug(ex);
 				//ignored
 			}
 		}	
@@ -70,8 +71,9 @@ public class ClusterEngine extends AbstractEngine {
 		{
 			try {
 				insightBase.add(con.getStatements(null, null, null, true));				
-			}catch(Exception ex)
+			}catch(RepositoryException ex)
 			{
+				logger.debug(ex);
 				//ignored
 			}
 		}	

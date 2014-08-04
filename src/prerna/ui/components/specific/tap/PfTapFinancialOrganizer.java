@@ -395,7 +395,8 @@ public class PfTapFinancialOrganizer {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
+			logger.debug(e);
 		}
 		
 		return list;

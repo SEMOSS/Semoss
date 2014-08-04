@@ -101,7 +101,7 @@ public class SystemTransitionOrganizer {
 			innerHash.put("LONG", longVal);
 			siteLatLongHash.put(site, innerHash);
 			}
-			catch(Exception e)
+			catch(RuntimeException e)
 			{
 				Object[] elementArray = list.get(i);
 				logger.error("Problem with longitude and latitude for "+(String)elementArray[0]);
@@ -207,7 +207,7 @@ public class SystemTransitionOrganizer {
 		try{
 			wrapper.executeQuery();	
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			e.printStackTrace();
 		}		
@@ -232,7 +232,7 @@ public class SystemTransitionOrganizer {
 				list.add(count, values);
 				count++;
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return list;

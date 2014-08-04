@@ -321,7 +321,7 @@ public class EstimationCalculationFunctions {
 		{
 			retString = ((String[])list.get(0))[2];
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			retString=null;
 		}
@@ -351,7 +351,7 @@ public class EstimationCalculationFunctions {
 			retElements[0] = ((Object[])list.get(0))[2];
 			retElements[1] = ((Object[])list.get(0))[3];
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			retElements=null;
 		}
@@ -379,7 +379,7 @@ public class EstimationCalculationFunctions {
 			retElements[0] = ((Object[])list.get(0))[2];
 			retElements[1] = ((Object[])list.get(0))[3];
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			retElements=null;
 		}
@@ -468,7 +468,8 @@ public class EstimationCalculationFunctions {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
+			System.out.println("ignored");
 		}
 		
 		return list;

@@ -118,7 +118,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				tasks.add((String)sjss.getVar(names[0]));
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return tasks;
@@ -163,7 +163,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 					taskHash.put((String)sjss.getVar(names[0]),valToAdd);
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 			wrapper = new SesameJenaSelectWrapper();
@@ -188,7 +188,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 					}
 				}
 			} 
-			catch (Exception e) {
+			catch (RuntimeException e) {
 				e.printStackTrace();
 			}
 			
@@ -334,7 +334,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 					tasksHash.put(task,  values);
 					vendors.put(vendor, tasksHash);
 				}
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
 		}
@@ -394,7 +394,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 						vendorsCost.put(vendor,vendorsCost.get(vendor)+effort);
 					}
 				}
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
 		}
@@ -432,7 +432,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 						cost+=vendorsHWSWCost.get(vendor);
 					vendorsHWSWCost.put(vendor, cost);
 				}
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
 		}

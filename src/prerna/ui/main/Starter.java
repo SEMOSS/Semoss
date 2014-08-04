@@ -133,9 +133,10 @@ public class Starter {
 				break;
 				}
 			}
-		} catch (Exception ignored) 
+		} catch (RuntimeException ignored) 
 		{
 			// handle exception
+			logger.debug(ignored);
 		} 
 
 		// first get the engine file
@@ -219,9 +220,10 @@ public class Starter {
 						watcherInstance.loadFirst();
 						Thread thread = new Thread(watcherInstance);
 						thread.start();
-					}catch(Exception ex)
+					}catch(RuntimeException ex)
 					{
 						// ok dont do anything the file was not there
+						logger.debug(ex);
 					}
 				}
 			}

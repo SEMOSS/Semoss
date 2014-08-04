@@ -591,7 +591,7 @@ public class PlayPane extends JFrame {
 				releaseNotesData = releaseNotesData + line + "<br>";
 			}
 			releaseNotesData = releaseNotesData + "";
-		}catch(Exception e) {
+		}catch(RuntimeException e) {
 			e.printStackTrace();
 		}finally{
 			try{

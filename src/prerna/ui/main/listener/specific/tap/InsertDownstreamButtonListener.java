@@ -65,7 +65,7 @@ public class InsertDownstreamButtonListener implements IChakraListener{
 			soaAlphaValue = Double.parseDouble(soaTextValue);
 			appValue = Double.parseDouble(appTextValue);
 			depValue = Double.parseDouble(depTextValue);
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			Utility.showError("All text values must be numbers");
 			return;
 		}

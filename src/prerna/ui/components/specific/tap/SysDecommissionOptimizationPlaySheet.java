@@ -76,7 +76,7 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 				SesameJenaSelectStatement sjss = wrapper.next();
 				list.add((String) sjss.getVar(names[0]));
 				}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 		return list;

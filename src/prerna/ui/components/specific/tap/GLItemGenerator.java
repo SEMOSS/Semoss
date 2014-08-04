@@ -1299,7 +1299,7 @@ public class GLItemGenerator {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 		}
 		
 		return list;
@@ -1349,7 +1349,7 @@ public class GLItemGenerator {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 		}
 		
 		return list;

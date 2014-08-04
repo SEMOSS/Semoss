@@ -164,7 +164,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 					retBool = true;
 				else
 					retBool = false;
-			}catch(Exception e){
+			}catch(RuntimeException e){
 				retBool = false;
 			}
 		}

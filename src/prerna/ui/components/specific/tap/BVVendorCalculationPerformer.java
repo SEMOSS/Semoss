@@ -70,7 +70,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 			pro.setQuery(businessQuery);
 			pro.processQuery();
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}
@@ -101,7 +101,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 			//fillBottomMatrices();
 			DIHelper.getInstance().setLocalProperty(Constants.BUSINESS_VALUE, BVhash);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

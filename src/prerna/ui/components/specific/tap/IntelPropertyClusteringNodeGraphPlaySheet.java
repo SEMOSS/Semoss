@@ -42,7 +42,7 @@ public class IntelPropertyClusteringNodeGraphPlaySheet extends GraphPlaySheet {
 	 * Creates the forest. Sets the property to cluster as well as the range of values for it.
 	 */
 	@Override
-	public void createForest() throws Exception {
+	public void createForest() {
 		super.createForest();
 		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
 		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();

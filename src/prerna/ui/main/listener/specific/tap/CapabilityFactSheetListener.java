@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Hashtable;
 
 import prerna.ui.components.specific.tap.CapabilityFactSheet;
@@ -66,7 +67,10 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 			out = new BufferedWriter(new FileWriter(file, true));
 			out.append(gson.toJson(allHash));
 			out.close();
-		} catch(Exception e) {
+		} catch(RuntimeException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally{
 			try{
@@ -80,7 +84,13 @@ public class CapabilityFactSheetListener extends AbstractBrowserSPARQLFunction {
 		{
 			try {
 				Desktop.getDesktop().browse(new URI((DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/index.html").replace("\\", "/")));
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (URISyntaxException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

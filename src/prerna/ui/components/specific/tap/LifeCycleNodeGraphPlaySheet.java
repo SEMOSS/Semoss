@@ -49,7 +49,7 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 	 * These options include retired, sunset, supported, or generally available.
 	 */
 	@Override
-	public void createForest() throws Exception {
+	public void createForest() {
 
 		Hashtable<String, SEMOSSVertex> myVertStore = gdm.getVertStore();
 		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();

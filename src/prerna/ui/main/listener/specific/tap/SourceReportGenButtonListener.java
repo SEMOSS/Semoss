@@ -140,7 +140,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 					list.add(values);
 				}
 			} 
-			catch (Exception e) {
+			catch (RuntimeException e) {
 				e.printStackTrace();
 			}
 			list.add(0,names);
@@ -216,7 +216,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 				decomSystems.add((String)sjss.getVar(names[0]));
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 

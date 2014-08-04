@@ -123,9 +123,12 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 			
 			this.connected = true;
 			// return g;
-		}catch(Exception ignored)
+		}catch(RuntimeException ignored)
 		{
 			ignored.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

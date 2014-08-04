@@ -92,7 +92,7 @@ public class SourceSelectPanel extends JPanel {
 		repaint();
 		if(names.size()>0)
 			createCheckBoxes(names);
-		}catch(Exception e){}
+		}catch(RuntimeException e){}
 	}
 	
 	/**

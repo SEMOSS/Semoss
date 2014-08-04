@@ -675,7 +675,7 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 				helpNotesData = helpNotesData + line +"<br>";
 			}
 			helpNotesData = helpNotesData + "</body></html>";
-		} catch(Exception e){
+		} catch(IOException e){
 			helpNotesData = "File Load Error";
 		}finally{
 			try{

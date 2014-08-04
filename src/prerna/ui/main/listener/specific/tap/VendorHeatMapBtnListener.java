@@ -19,6 +19,7 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
@@ -67,10 +68,25 @@ public class VendorHeatMapBtnListener implements IChakraListener {
 		try
 		{
 			playSheet = (IPlaySheet)Class.forName(layoutValue).getConstructor(null).newInstance(null);
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 			logger.fatal(ex);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			logger.fatal(e);
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+			logger.fatal(e);
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+			logger.fatal(e);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+			logger.fatal(e);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			logger.fatal(e);
 		}
 		playSheet.setTitle("Question: " + "Vendor Heat Map");
 		playSheet.setQuestionID("Vendor_Heat_Map");

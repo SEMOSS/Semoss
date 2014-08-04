@@ -57,7 +57,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 				String fileName = folderToWatch + "/" + fileNames[fileIdx];
 				loadNewDB(fileNames[fileIdx]);
 				//Utility.loadEngine(fileName, prop);				
-			}catch(Exception ex)
+			}catch(RuntimeException ex)
 			{
 				ex.printStackTrace();
 				logger.fatal("Engine Failed " + "./db/" + fileNames[fileIdx]);
@@ -119,7 +119,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 					Constants.MAIN_FRAME);
 			frame2.repaint();
 			
-		} catch(Exception ex) {
+		} catch(IOException ex) {
 			// TODO: Specify exception
 			ex.printStackTrace();
 		}finally{
@@ -147,7 +147,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 				String fileName = folderToWatch + fileNames[fileIdx];
 				Properties prop = new Properties();
 				process(fileNames[fileIdx]);
-			}catch(Exception ex)
+			}catch(RuntimeException ex)
 			{
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}

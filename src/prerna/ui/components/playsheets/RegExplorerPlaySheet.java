@@ -229,7 +229,7 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 		        		}
 		        		((JTextField)(depPanel.getComponent(1))).setText(depValue.toString());
 	    			}
-	    			catch(Exception ex){
+	    			catch(RuntimeException ex){
 	    				displayCheckBoxError();
 	    			}
 	            }

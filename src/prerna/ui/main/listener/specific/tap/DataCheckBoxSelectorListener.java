@@ -106,9 +106,9 @@ public class DataCheckBoxSelectorListener extends AbstractListener {
 			{
 				retList.add((String) names.get(i));
 			}
-		}catch(Exception e)
+		}catch(RuntimeException e)
 		{
-
+			System.out.println("ignored");
 		}
 		return retList;
 

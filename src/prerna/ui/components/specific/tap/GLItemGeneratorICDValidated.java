@@ -1383,7 +1383,7 @@ public class GLItemGeneratorICDValidated {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return list;
@@ -1432,7 +1432,7 @@ public class GLItemGeneratorICDValidated {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return newListItems;
@@ -1482,7 +1482,7 @@ public class GLItemGeneratorICDValidated {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 		}
 		return list;
 	}
@@ -1533,7 +1533,7 @@ public class GLItemGeneratorICDValidated {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 

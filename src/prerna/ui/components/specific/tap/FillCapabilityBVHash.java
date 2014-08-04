@@ -60,7 +60,7 @@ public class FillCapabilityBVHash implements Runnable{
 	 * This is the SELECT statement used to fill the BV hash.
 	 * Executes the query in order to fill the appropriate arraylists used to create the final BV hashtable.
 	 */
-	public void FillWithSelect() throws Exception {
+	public void FillWithSelect() {
 		if (DIHelper.getInstance().getLocalProp(Constants.CAPABILITY_BUSINESS_VALUE)!=null) 
 			BVhash = (Hashtable<String, Object>) DIHelper.getInstance().getLocalProp(Constants.CAPABILITY_BUSINESS_VALUE);
 		
@@ -76,7 +76,7 @@ public class FillCapabilityBVHash implements Runnable{
 			fillSelectBVhash();//uses tempSelectHash to fill BVhash
 			DIHelper.getInstance().setLocalProperty(Constants.CAPABILITY_BUSINESS_VALUE, BVhash);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -90,7 +90,7 @@ public class FillCapabilityBVHash implements Runnable{
 	 * Puts values in 5000x5000 matrix. 
 	 * Stores all in tempSelectHash.
 	 */
-	private void fillArrayLists() throws Exception {
+	private void fillArrayLists() {
 		// get the bindings from it
 		String [] names = wrapper.getVariables();
 		int count = 0;
@@ -159,7 +159,7 @@ public class FillCapabilityBVHash implements Runnable{
 				logger.debug("Creating new Value ");
 				}
 			}
-		}catch (Exception e) {
+		}catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		tempSelectHash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
@@ -203,7 +203,7 @@ public class FillCapabilityBVHash implements Runnable{
 			BVhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 			BVhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
 		}
-		catch(Exception e){
+		catch(RuntimeException e){
 			logger.warn("BVhash not filled");
 		}
 	}
@@ -215,7 +215,7 @@ public class FillCapabilityBVHash implements Runnable{
 		tempSelectHash.clear();
 		try {
 			FillWithSelect();
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

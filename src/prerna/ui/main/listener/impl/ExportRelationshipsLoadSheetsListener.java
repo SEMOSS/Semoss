@@ -142,7 +142,7 @@ public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
 						}
 					}
 				} 
-				catch (Exception e) {
+				catch (RuntimeException e) {
 					e.printStackTrace();
 				}
 

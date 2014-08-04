@@ -98,7 +98,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				}
 				
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.error("Cannot find engine: TAP_Cost_Data");
 		}
 

@@ -60,7 +60,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		//check for portfolio data
 		try {
 			TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
-		} catch (Exception ex) {
+		} catch (RuntimeException ex) {
 			ex.printStackTrace();
 		}
 		//check if interface modernization cost property exists on system

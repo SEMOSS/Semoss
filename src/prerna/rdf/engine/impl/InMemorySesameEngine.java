@@ -41,6 +41,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
+import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.util.Constants;
@@ -101,7 +102,7 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		try {
 			rc.close();
 			connected = false;
-		} catch (Exception e) {
+		} catch (RepositoryException e) {
 			e.printStackTrace();
 		}
 		// ng.shutdown();
@@ -292,7 +293,8 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 
 			}
 				
-		} catch (Exception e) {
+		} catch (SailException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

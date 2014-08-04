@@ -77,7 +77,7 @@ public class TMCalculationPerformer implements IAlgorithm{
 			calculateTechMaturity();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

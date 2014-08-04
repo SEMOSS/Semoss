@@ -141,7 +141,7 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			pro.setQuery(query);
 			pro.processQuery();
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

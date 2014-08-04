@@ -98,7 +98,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}
@@ -123,7 +123,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 				masterHash.put((String) sjss.getVar(names[0]),sysHash);
 				sysList.add((String) sjss.getVar(names[0]));
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}

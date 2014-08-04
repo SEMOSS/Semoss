@@ -27,8 +27,10 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -59,6 +61,8 @@ import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
@@ -254,7 +258,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			processView();
 			updateProgressBar("100%...Graph Generation Complete", 100);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 			logger.fatal(e.getStackTrace());
 		}
@@ -276,8 +280,11 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			printConnectedNodes();
 			printSpanningTree();
 			//logger.debug("model size: " +rc.size());
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
+			e.printStackTrace();
+		} catch (PropertyVetoException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -358,7 +365,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			processView();
 			setUndoRedoBtn();
 			updateProgressBar("100%...Graph Extension Complete", 100);
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 			logger.fatal(ex);
@@ -411,7 +418,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			//showAll();
 			//progressBarUpdate("100%...Graph Refine Complete", 100);
 			setUndoRedoBtn();
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -572,9 +579,9 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			jTab.insertTab("Graph", null, graphSplitPane, null, 0);
 			if(setSelected) jTab.setSelectedIndex(0);
 			logger.info("Add Panel Complete >>>>>");
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
-			
+			logger.debug(ex);
 		}
 	}
 
@@ -695,14 +702,38 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		try{
 			constructor = layoutClass.getConstructor(edu.uci.ics.jung.graph.Forest.class);
 			layout2Use  = (Layout)constructor.newInstance(forest);
-		}catch(Exception e){
+		} catch (NoSuchMethodException e) {
+			fail++;
+			logger.info(e);
+		} catch (InstantiationException e) {
+			fail++;
+			logger.info(e);
+		} catch (IllegalAccessException e) {
+			fail++;
+			logger.info(e);
+		} catch (IllegalArgumentException e) {
+			fail++;
+			logger.info(e);
+		} catch (InvocationTargetException e) {
 			fail++;
 			logger.info(e);
 		}
 		try{
 			constructor = layoutClass.getConstructor(edu.uci.ics.jung.graph.Graph.class);
 			layout2Use  = (Layout)constructor.newInstance(forest);
-		}catch(Exception e){
+		} catch (NoSuchMethodException e) {
+			fail++;
+			logger.info(e);
+		} catch (InstantiationException e) {
+			fail++;
+			logger.info(e);
+		} catch (IllegalAccessException e) {
+			fail++;
+			logger.info(e);
+		} catch (IllegalArgumentException e) {
+			fail++;
+			logger.info(e);
+		} catch (InvocationTargetException e) {
 			fail++;
 			logger.info(e);
 		}
@@ -727,7 +758,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	/**
 	 * Method createForest.
 	 */
-	protected void createForest() throws Exception
+	protected void createForest()
 	{
 		// need to take the base information from the base query and insert it into the jena model
 		// this is based on EXTERNAL ontology
@@ -827,8 +858,14 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	{
 		try {
 			gdm.baseRelEngine.exportDB();
-		} catch (Exception e) {
-			// TODO: handle exception
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}	
@@ -888,10 +925,13 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		                            //addToJenaModel(st);
 		                      }
 	                      }
-                      } catch (Exception e) {
+                      } catch (RuntimeException e) {
                             // TODO: Specify exception
                             e.printStackTrace();
-                      }
+                      } catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 	                      
                 }
 
@@ -1135,8 +1175,20 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				update.execute();
 				this.gdm.baseRelEngine.execInsertQuery(remQuery);
 			
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				// TODO: Specify exception
+				e.printStackTrace();
+			} catch (SailException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UpdateExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (RepositoryException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (MalformedQueryException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

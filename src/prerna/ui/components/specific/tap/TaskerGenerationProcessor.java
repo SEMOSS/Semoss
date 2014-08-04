@@ -86,7 +86,7 @@ public class TaskerGenerationProcessor {
 				}
 				list.add(values);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 

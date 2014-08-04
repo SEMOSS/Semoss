@@ -66,7 +66,7 @@ public class SysBPCapInsertListener extends AbstractListener {
 			if ((dataObjectThresholdValue > 1.0) || (bluThresholdValue > 1.0) || (dataObjectThresholdValue < 0) || (bluThresholdValue < 0))  {
 				throw new IllegalArgumentException("Threshold value must be between 1 and 0.");
 			}
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			if (e instanceof NumberFormatException) {Utility.showError("All text values must be numbers."); }
 			else Utility.showError(e.getMessage());
 			return;

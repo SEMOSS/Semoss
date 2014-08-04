@@ -19,6 +19,7 @@
 package prerna.rdf.engine.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -31,6 +32,7 @@ import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
@@ -175,9 +177,18 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				}
 			}
 
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
@@ -236,9 +247,12 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				retSt = null;
 			}
 
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return thisSt;
 	}
@@ -271,7 +285,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 					logger.debug("Class is " + val.getClass());
 					weightVal = new Double(((Literal)val).doubleValue());
 				}
-			}catch(Exception ex)
+			}catch(RuntimeException ex)
 			{
 				logger.debug(ex);
 			}
@@ -328,7 +342,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 							logger.info("Class is " + val.getClass());
 							weightVal = new Double(((Literal)val).doubleValue());
 						}
-					}catch(Exception ex)
+					}catch(RuntimeException ex)
 					{
 						logger.debug(ex);
 					}
@@ -369,9 +383,12 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				Gson gson = new Gson();
 				retSt = gson.fromJson(output, SesameJenaSelectStatement.class); // cleans up automatically at the remote end				
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return retSt;
 	}

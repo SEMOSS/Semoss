@@ -1,5 +1,6 @@
 package prerna.ui.components;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
@@ -7,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
@@ -73,7 +75,7 @@ public class ExecuteQueryProcessor {
 		//paramFill for query
 		//feed to prepare playsheet
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		Insight insight = engine.getInsight(insightString);
+		Insight insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
 		String playSheetTitle = "";
 		if(paramHash!=null || !paramHash.isEmpty())
 		{
@@ -114,9 +116,27 @@ public class ExecuteQueryProcessor {
 		{
 			try {
 				playSheet = (IPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
-			} catch (Exception ex) {
+			} catch (ClassNotFoundException ex) {
 				ex.printStackTrace();
 				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			} catch (IllegalAccessException e) {
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				logger.fatal("No such PlaySheet: "+ playSheetClassName);
+				e.printStackTrace();
 			}
 			QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
 			playSheet.setQuery(sparql);

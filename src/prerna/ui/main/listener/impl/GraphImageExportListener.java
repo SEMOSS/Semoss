@@ -39,6 +39,7 @@ import javax.swing.JTabbedPane;
 import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
 import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -170,7 +171,10 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 
 						File f = new File(fileLoc);
 						f.delete();
-					}catch(Exception e) {
+					}catch(RuntimeException e) {
+						e.printStackTrace();
+					} catch (DocumentException e) {
+						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}finally{
 						try{

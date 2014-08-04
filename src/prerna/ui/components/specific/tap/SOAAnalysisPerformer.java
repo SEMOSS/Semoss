@@ -253,7 +253,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			}
 			retValues.put("BusinessLogicUnit", bluNameVec );
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			retValues.put("BusinessLogicUnit", new Vector() );
 		}
@@ -322,7 +322,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			}
 			retValues.put("BusinessLogicUnit", bluNameVec );
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			retValues.put("BusinessLogicUnit", new Vector() );
 		}
@@ -664,7 +664,8 @@ public class SOAAnalysisPerformer implements Runnable {
 				count++;
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
+			logger.debug(e);
 		}
 		
 		return list;

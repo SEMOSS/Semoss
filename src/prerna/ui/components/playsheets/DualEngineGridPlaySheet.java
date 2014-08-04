@@ -238,7 +238,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				overallArray.add(values);
 				hash.put(commonVal, overallArray);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}

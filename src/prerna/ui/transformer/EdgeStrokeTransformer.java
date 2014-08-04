@@ -85,7 +85,7 @@ public class EdgeStrokeTransformer implements Transformer <SEMOSSEdge, Stroke> {
 						float newFontFloat = selectedFontFloat * valFloat;
 						retStroke = new BasicStroke(newFontFloat, BasicStroke.CAP_BUTT,
 								BasicStroke.JOIN_MITER, 10.0f);
-					} catch (Exception e) {
+					} catch (RuntimeException e) {
 						//TODO: Specify exception(s)
 						retStroke = new BasicStroke(selectedFontFloat, BasicStroke.CAP_BUTT,
 								BasicStroke.JOIN_MITER, 10.0f);
@@ -99,10 +99,10 @@ public class EdgeStrokeTransformer implements Transformer <SEMOSSEdge, Stroke> {
 						BasicStroke.JOIN_ROUND);
 			}
 		}
-		catch(Exception ex)
-		{
-			//TODO: Specify exception(s) and behavior
+		catch(RuntimeException ex) {
+			//TODO: Specify exception(s) and action
 			//ignore
+			System.out.println("ignored");
 		}
 		return retStroke;
 	}

@@ -220,7 +220,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 					}
 					
 				}
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
 		}

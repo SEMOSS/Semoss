@@ -147,6 +147,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    btnHighlight.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 
 		
@@ -177,6 +178,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    resetBtn.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		resetTransListener = new GraphTransformerResetListener();
 		resetBtn.addActionListener(resetTransListener);
@@ -202,6 +204,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    undoBtn.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		undoBtn.setToolTipText("<html><b>Undo (CRTL+Z)</b><br>Undo the last graph action</html>");
 		undoBtn.addActionListener(undoListener);
@@ -227,6 +230,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    redoBtn.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		redoBtn.setToolTipText("<html><b>Redo (CRTL+Y)</b><br>Redo the previous action</html>");
 		redoBtn.addActionListener(redoListener);
@@ -252,6 +256,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    btnGraphImageExport.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		imageExportListener = new GraphImageExportListener();
 		btnGraphImageExport.addActionListener(imageExportListener);
@@ -287,6 +292,7 @@ public class ControlPanel extends JPanel {
 		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
 		    treeButton.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		treeListener = new TreeConverterListener();
 		treeButton.setToolTipText("<html><b>Convert to Tree</b><br>Convert current graph to tree by duplicating nodes with multiple in-edges</html>");
@@ -327,6 +333,7 @@ public class ControlPanel extends JPanel {
 		    weightButton = new WeightDropDownButton(new ImageIcon(newimg));
 		   // edgeWeightButton.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		weightButton.setupButton();
 		weightButton.setToolTipText("<html><b>Edge Weight</b><br>Convert edge thickness corresponding to properties that exist on the edges</html>");
@@ -357,6 +364,7 @@ public class ControlPanel extends JPanel {
 		    btnDecreaseVertSize.setIcon(new ImageIcon(newimg));
 		   // edgeWeightButton.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		btnDecreaseVertSize.setName("Decrease");
 		btnDecreaseVertSize.addActionListener(vertSizeListener);		
@@ -385,6 +393,7 @@ public class ControlPanel extends JPanel {
 		    btnIncreaseVertSize.setIcon(new ImageIcon(newimg));
 		   // edgeWeightButton.setIcon(new ImageIcon(newimg));
 		  } catch (IOException ex) {
+			  logger.debug(ex);
 		  }
 		btnIncreaseVertSize.setName("Increase");
 		btnIncreaseVertSize.addActionListener(vertSizeListener);

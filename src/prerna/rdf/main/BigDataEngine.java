@@ -646,7 +646,7 @@ public void testTemp()
 			tester.closeGraph();
 			tester.testTemp();
 
-		} catch (Exception ignored) {
+		} catch (RuntimeException ignored) {
 			System.err.println("Exception " + ignored);
 			ignored.printStackTrace();
 		}

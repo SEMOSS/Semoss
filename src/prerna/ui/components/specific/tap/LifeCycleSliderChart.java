@@ -175,7 +175,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			}
 			updateProgressBar("80%...Creating Visualization", 80);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		updateProgressBar("100%...Table Generation Complete", 100);
