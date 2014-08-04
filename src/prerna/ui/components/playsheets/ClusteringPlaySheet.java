@@ -28,50 +28,43 @@ import prerna.algorithm.impl.ClusteringAlgorithm;
  */
 @SuppressWarnings("serial")
 public class ClusteringPlaySheet extends GridPlaySheet{
-	
+
 	private int numClusters;
-	
+
 	@Override
 	public void createData() {
 		super.createData();
-//		try{
-			ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
-			clusterAlg.setNumClusters(numClusters);
-			clusterAlg.execute();
-			ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
-			Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
-			ArrayList<Object[]> newList = new ArrayList<Object[]>();
-			for(Object[] dataRow : list) {
-				Object[] newDataRow = new Object[dataRow.length + 1];
-				String instance = "";
-				for(int i = 0; i < dataRow.length; i++) {
-					if(i == 0) {
-						instance = dataRow[i].toString();
-					}
-					newDataRow[i] = dataRow[i];
+		ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
+		clusterAlg.setNumClusters(numClusters);
+		clusterAlg.execute();
+		ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
+		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		for(Object[] dataRow : list) {
+			Object[] newDataRow = new Object[dataRow.length + 1];
+			String instance = "";
+			for(int i = 0; i < dataRow.length; i++) {
+				if(i == 0) {
+					instance = dataRow[i].toString();
 				}
-				Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
-				newDataRow[dataRow.length] = clusterNumber;
-				newList.add(newDataRow);
+				newDataRow[i] = dataRow[i];
 			}
-			list = newList;
-			String[] newNames = new String[names.length + 1];
-			for(int i = 0; i < names.length; i++) {
-				newNames[i] = names[i];
-			}
-			newNames[names.length] = "CluserID";
-			names = newNames;
-			
-			list.addAll(0,clusterAlg.getClusterRows());
-			
-//		}catch(BadInputException e) {
-//			e.printStackTrace();
-//			Utility.showError(e.getMessage());
-//		}
-//		
+			Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
+			newDataRow[dataRow.length] = clusterNumber;
+			newList.add(newDataRow);
+		}
+		list = newList;
+		String[] newNames = new String[names.length + 1];
+		for(int i = 0; i < names.length; i++) {
+			newNames[i] = names[i];
+		}
+		newNames[names.length] = "CluserID";
+		names = newNames;
+
+		list.addAll(0,clusterAlg.getClusterRows());
 	}
 
-	
+
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet.
 	 * Pulls out the number of clusters and stores them in the numClusters

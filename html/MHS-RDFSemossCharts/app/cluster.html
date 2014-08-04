@@ -11,12 +11,9 @@
   <script src="js/clusterfilters.js"></script>
   <script src="js/directives/cluster.js"></script>
   <script src="js/directives/clustercolumnchart.js"></script>
-  <script src="data/avnwxData.js"></script>
   <script src="lib/d3.min.js"></script>
-  <!--<script src="lib/d3/d3.tip.js"></script>-->
   <script src="lib/jquery/jquery-1.8.3.min.js"></script>
   <script src="lib/bootstrap.js"></script>
-
 </head>
 <body>
 <div id='thecontroller' ng-controller="dataCtrl">
@@ -37,13 +34,11 @@
   </div>
 </div>
 <script>
-    function start(startData) {
-        var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
-        ctrlScope.setJSONData(startData);
+    function start(dataString) {
+		var jsonData = jQuery.parseJSON(dataString);
+		var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+        ctrlScope.setJSONData(jsonData);
     }
-    $(document).ready(function() {
-        start(avnwxData);
-    });
 </script>
 </body>
 </html>

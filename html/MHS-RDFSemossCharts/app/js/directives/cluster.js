@@ -12,16 +12,16 @@ app.directive('d3Cluster', function() {
         link: function(scope) {
             var clusterData = {};
             var numGroups = 0;
-            var groupingCategory = "Product_Group";
+            var groupingCategory = "ClusterID";
             var groupingCategoryInstances = {};
 
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data.length == 0 || scope.data == '') {
                     clusterData = {};
                 } else {
-                    if (clusterData != scope.data) {
+                    if (clusterData != scope.data.dataSeries) {
                         clusterData = {};
-                        clusterData = scope.data;
+                        clusterData = scope.data.dataSeries;
                         update(clusterData);
 
                     }
