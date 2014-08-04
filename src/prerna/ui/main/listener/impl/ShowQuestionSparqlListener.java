@@ -33,6 +33,7 @@ import javax.swing.JTextArea;
 
 import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.swing.custom.ToggleButton;
@@ -74,7 +75,7 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		// get the selected question
 		String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
 		// create insight to get sparql text
-		Insight insight = engine.getInsight(insightString);
+		Insight insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
 		String sparql = Utility.normalizeParam(insight.getSparql());
 
 		// only allow use of get current sparql question btn when custom sparql btn is selected

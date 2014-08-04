@@ -134,11 +134,11 @@ public class RegCalculationPerformer implements IAlgorithm{
 				}
 				list.add(values);
 				}
-				catch(Exception ex){
+				catch(RuntimeException ex){
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		yValues = new double[list.size()];

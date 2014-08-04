@@ -208,7 +208,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 			paramDataHash.put("BLU-Data", BLUDataHash);
 
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.fatal(e);
 		}	
 	}
@@ -237,7 +237,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 				Double average = (double) (numerator/denominator);
 				systemBLUHash.put("Score", average);	
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}

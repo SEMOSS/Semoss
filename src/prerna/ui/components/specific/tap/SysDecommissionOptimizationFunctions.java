@@ -546,7 +546,7 @@ public class SysDecommissionOptimizationFunctions {
 		try{
 			wrapper.executeQuery();	
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			e.printStackTrace();
 		}		
@@ -570,7 +570,7 @@ public class SysDecommissionOptimizationFunctions {
 				list.add(count, values);
 				count++;
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return list;

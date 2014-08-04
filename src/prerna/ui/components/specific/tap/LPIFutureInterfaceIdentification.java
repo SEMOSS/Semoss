@@ -149,7 +149,7 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 				}
 				list.add(values);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
@@ -171,7 +171,7 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 				System.out.println("adding to peripheral list: " + val);
 
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return retV;
@@ -196,7 +196,7 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 				
 				retHash.put(val0,val1);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return retHash;

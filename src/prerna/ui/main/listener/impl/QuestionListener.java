@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamPanel;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -80,7 +81,7 @@ public class QuestionListener implements IChakraListener {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
 
 			//String id = DIHelper.getInstance().getIDForQuestion(question);
-			Insight in = engine.getInsight(question);
+			Insight in = ((AbstractEngine)engine).getInsight2(question).get(0);
 			//id = in.getId();
 
 			// now get the SPARQL query for this id

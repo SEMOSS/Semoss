@@ -26,6 +26,7 @@ import javax.swing.JTextField;
 
 import org.apache.log4j.Logger;
 
+import prerna.error.FileReaderException;
 import prerna.poi.specific.DHMSMDataAccessLatencyFileImporter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
@@ -60,7 +61,10 @@ public class DHMSMUpdateDataFromFileListener implements IChakraListener {
 				dataAccessImporter.importFile(dataAccessLatencyFileField.getText());
 				dataAccessTypeHash = dataAccessImporter.getDataAccessTypeHash();
 				dataLatencyTypeHash = dataAccessImporter.getDataLatencyTypeHash();
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
+				Utility.showError("<html>Error with Selected File.</html>");
+				return;
+			} catch (FileReaderException e) {
 				Utility.showError("<html>Error with Selected File.</html>");
 				return;
 			}

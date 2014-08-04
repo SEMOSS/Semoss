@@ -166,7 +166,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 					if(requirementCategory.contains("TechStandard")&&!techReqWithStandard.contains(requirement))
 						techReqWithStandard.add((String)sjss.getVar(names[5]));
 				}
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
 		}

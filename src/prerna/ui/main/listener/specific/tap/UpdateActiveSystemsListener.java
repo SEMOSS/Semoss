@@ -23,6 +23,9 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+
 import prerna.ui.components.specific.tap.ActiveSystemUpdater;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
@@ -60,8 +63,14 @@ public class UpdateActiveSystemsListener extends AbstractListener{
 				updateSystemsClass.addToOWL(engineName);
 				Utility.showMessage("Your database has been successfully updated!");
 			}
-		} catch (Exception ex){
+		} catch (RuntimeException ex){
 			ex.printStackTrace();
+			Utility.showError("Load has failed.");
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+			Utility.showError("Load has failed.");
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
 			Utility.showError("Load has failed.");
 		}
 	}

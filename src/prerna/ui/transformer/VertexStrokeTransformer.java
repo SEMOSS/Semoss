@@ -68,9 +68,9 @@ public class VertexStrokeTransformer implements Transformer <SEMOSSVertex, Strok
                 
 
 		}
-		catch(Exception ex)
-		{
+		catch(RuntimeException ex) {
 			//ignore
+			System.out.println("ignored");
 		}
 		return retStroke;
 	}

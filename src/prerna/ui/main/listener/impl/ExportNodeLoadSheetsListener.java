@@ -120,7 +120,7 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 					}
 				}
 			} 
-			catch (Exception e) {
+			catch (RuntimeException e) {
 				e.printStackTrace();
 			}
 			String nodeKey = nodeType;

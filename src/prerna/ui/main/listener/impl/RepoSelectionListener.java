@@ -112,7 +112,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 				transCostReportcomboBox.setEngine(list.getSelectedValue()+"");
 				transCostReportcomboBox.run();
 			}
-			catch(Exception ex){
+			catch(RuntimeException ex){
 			}
 			//Fill Fact Sheet Report Select System Combo Box
 			try {
@@ -120,7 +120,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 				factSheetReportcomboBox.setEngine(list.getSelectedValue()+"");
 				factSheetReportcomboBox.run();
 			}
-			catch (Exception e1) {
+			catch (RuntimeException e1) {
 				
 			}
 			//Fill tasker generation select system combo box
@@ -129,7 +129,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 				taskerGenerationReportComboBox.setEngine(list.getSelectedValue()+"");
 				taskerGenerationReportComboBox.run();
 			}
-			catch (Exception e1) {
+			catch (RuntimeException e1) {
 				
 			}
 			
@@ -140,17 +140,16 @@ public class RepoSelectionListener implements ListSelectionListener {
 				capabilityFactSheetReportComboBox.setKey("Capability");
 				capabilityFactSheetReportComboBox.run();
 			}
-			catch (Exception e1) {
+			catch (RuntimeException e1) {
 				
 			}
-			Object[] repos = new Object[1];
 			try{
 				ServiceSelectPanel transitionSerPanel = (ServiceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.TRANSITION_SERVICE_PANEL);
 				transitionSerPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
 				transitionSerPanel.getServices();
 
 			}
-			catch(Exception ex){
+			catch(RuntimeException ex){
 			}
 			try{
 				SourceSelectPanel sourceSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.SOURCE_SELECT_PANEL);
@@ -168,14 +167,14 @@ public class RepoSelectionListener implements ListSelectionListener {
 				radioSelPanel.clear();
 
 				
-			}catch(Exception ex){}
+			}catch(RuntimeException ex){}
 			
 			try{
 				DHMSMSystemSelectPanel dhmsmSystemSelectPanel = (DHMSMSystemSelectPanel) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_SYSTEM_SELECT_PANEL);
 				dhmsmSystemSelectPanel.addElements();
 
 				
-			}catch(Exception ex){
+			}catch(RuntimeException ex){
 				
 				System.out.println(ex);
 			}

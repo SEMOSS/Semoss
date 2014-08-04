@@ -19,6 +19,8 @@
 package prerna.rdf.engine.impl;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Properties;
@@ -165,7 +167,13 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 			InputStream in = FileManager.get().open(fileName); 			
 			jenaModel.read(in, baseURI, rdfFileType);
 			this.connected = true;
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

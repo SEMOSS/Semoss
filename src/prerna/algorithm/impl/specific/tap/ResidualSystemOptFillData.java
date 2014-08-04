@@ -93,7 +93,7 @@ public class ResidualSystemOptFillData{
 				SesameJenaSelectStatement sjss = wrapper.next();
 				list.add((String) sjss.getVar(names[0]));
 				}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 		}
@@ -453,7 +453,7 @@ public class ResidualSystemOptFillData{
 		try{
 			wrapper.executeQuery();	
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			e.printStackTrace();
 		}
@@ -484,7 +484,7 @@ public class ResidualSystemOptFillData{
 				}
 
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return matrix;
@@ -519,7 +519,7 @@ public class ResidualSystemOptFillData{
 				}
 
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return matrix;
@@ -552,7 +552,7 @@ public class ResidualSystemOptFillData{
 
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return matrix;
@@ -574,7 +574,7 @@ public class ResidualSystemOptFillData{
 					matrix[rowIndex]= (String)getVariable(names[1], sjss);
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		return matrix;

@@ -114,7 +114,7 @@ public class OptimizationOrganizer {
 				retList.add(sysName+":"+dataName);
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.error(e);
 		}
 		return retList;
@@ -199,7 +199,7 @@ public class OptimizationOrganizer {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.error(e);
 		}
 		
@@ -285,7 +285,7 @@ public class OptimizationOrganizer {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.error(e);
 		}
 
@@ -354,7 +354,7 @@ public class OptimizationOrganizer {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			logger.error(e);
 		}
 		

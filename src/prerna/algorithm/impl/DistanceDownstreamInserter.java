@@ -368,7 +368,7 @@ public class DistanceDownstreamInserter {
 					{
 						forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
 							vertStore.get(sct.getObject()+""));
-					}catch (Exception ex)
+					}catch (RuntimeException ex)
 					{
 						ex.printStackTrace();
 						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());

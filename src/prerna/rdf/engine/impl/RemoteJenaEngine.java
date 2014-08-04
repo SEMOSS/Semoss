@@ -19,6 +19,8 @@
 package prerna.rdf.engine.impl;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -176,7 +178,13 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 			prop.load(new FileInputStream(propFile));
 			this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 			this.connected = true;
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

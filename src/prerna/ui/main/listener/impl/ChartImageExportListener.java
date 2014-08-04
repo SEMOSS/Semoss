@@ -45,6 +45,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.teamdev.jxbrowser.chromium.Browser;
@@ -194,7 +195,7 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 
 						File f = new File(fileLoc);
 						f.delete();
-					} catch(Exception e) {
+					} catch(RuntimeException | DocumentException e) {
 						e.printStackTrace();
 					}finally{
 						try{

@@ -78,7 +78,7 @@ public class CapabilityFactSheetPerformer {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		if(list.size()==0)
@@ -118,7 +118,7 @@ public class CapabilityFactSheetPerformer {
 				}
 				list.add(values);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 

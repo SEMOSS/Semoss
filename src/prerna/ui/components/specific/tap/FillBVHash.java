@@ -64,7 +64,7 @@ public class FillBVHash implements Runnable{
 	 * This is the SELECT statement used to fill the BV hash.
 	 * Executes the query in order to fill the appropriate arraylists used to create the final BV hashtable.
 	 */
-	public void FillWithSelect() throws Exception {
+	public void FillWithSelect() {
 		if (DIHelper.getInstance().getLocalProp(Constants.BUSINESS_VALUE)!=null) 
 			BVhash = (Hashtable<String, Object>) DIHelper.getInstance().getLocalProp(Constants.BUSINESS_VALUE);
 		logger.info("Graph PlaySheet " + query);
@@ -82,7 +82,7 @@ public class FillBVHash implements Runnable{
 			fillSelectBVhash();//uses tempSelectHash to fill BVhash
 			DIHelper.getInstance().setLocalProperty(Constants.BUSINESS_VALUE, BVhash);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -96,7 +96,7 @@ public class FillBVHash implements Runnable{
 	 * Puts values in 5000x5000 matrix. 
 	 * Stores all in tempSelectHash.
 	 */
-	private void fillArrayLists() throws Exception {
+	private void fillArrayLists() {
 		// get the bindings from it
 		String [] names = wrapper.getVariables();
 		int count = 0;
@@ -228,7 +228,7 @@ public class FillBVHash implements Runnable{
 				int colLoc=colLabels.indexOf(vendorObject.substring(endIndex));
 				matrix[rowLoc][colLoc]=matrix[rowLoc][colLoc]/vendorObjectCount.get(vendorObject);
 			}
-		}catch (Exception e) {
+		}catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		tempSelectHash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
@@ -296,7 +296,7 @@ public class FillBVHash implements Runnable{
 				}
 			}
 		}
-		catch(Exception e){
+		catch(RuntimeException e){
 			logger.warn("BVhash not filled");
 		}
 	}
@@ -308,7 +308,7 @@ public class FillBVHash implements Runnable{
 		tempSelectHash.clear();
 		try {
 			FillWithSelect();
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

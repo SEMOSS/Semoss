@@ -253,7 +253,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				}
 				list.add(values);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
@@ -276,7 +276,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 				//output = output + "(<" + val + ">)";
 				//System.out.println("adding to peripheral list: " + val);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		//System.out.println(output);

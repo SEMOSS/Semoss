@@ -71,7 +71,7 @@ public class SimilarityFunctions {
 		try
 		{
 			names = wrapper.getVariables();
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+dbName);
 			return;
 		}
@@ -94,7 +94,7 @@ public class SimilarityFunctions {
 				list.add(count, values);
 				count++;
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}

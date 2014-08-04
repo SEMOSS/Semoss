@@ -21,7 +21,7 @@ public class JedisHash{
 				jedis = new Jedis (redisHost, redisPort); //pool.getResource();
 				connected = true;
 			}
-		}catch(Exception ignored)
+		}catch(RuntimeException ignored)
 		{
 			ignored.printStackTrace();
 		}

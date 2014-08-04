@@ -4,6 +4,7 @@ import java.util.Vector;
 
 import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.BindingSetAssignment;
 import org.openrdf.query.algebra.Coalesce;
@@ -236,7 +237,10 @@ public class QueryBuilderHelper {
 				BindingSet bs = sparqlResults.next();
 				System.out.println("Predicate >>> " + bs.getBinding("x") + "  >>> " + bs.getBinding("t"));
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

@@ -53,7 +53,7 @@ public class RunBVAloneButtonListener implements IChakraListener{
 		Double soaAlphaValue = 0.0;
 		try{
 			soaAlphaValue = Double.parseDouble(soaTextValue);
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			Utility.showError("Text value must be a number");
 			return;
 		}

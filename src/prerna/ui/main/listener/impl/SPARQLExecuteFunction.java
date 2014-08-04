@@ -72,7 +72,7 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 			else { 
 				System.err.println("UNKNOWN QUERY TYPE SENT TO JAVA FOR PROCESSING");
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 			success = false;
 		}

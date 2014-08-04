@@ -39,7 +39,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	/**
 	 * Method createForest.  Takes the base information from the query and inserts it into the jena model.
 	 */
-	protected void createForest() throws Exception
+	protected void createForest()
 	{
 		// need to take the base information from the base query and insert it into the jena model
 		// this is based on EXTERNAL ontology
@@ -180,7 +180,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 //							this.forest.addVertex(vertStore.get(sct.getSubject()));
 //						filterData.addVertex(vert1);
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 		}
@@ -306,7 +306,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 //							// ok.. I am going to ignore for now that this is a duplicate edge
 //						}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

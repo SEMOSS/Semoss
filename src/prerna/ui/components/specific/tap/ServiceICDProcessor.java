@@ -79,7 +79,7 @@ public class ServiceICDProcessor {
 				pro.setQuery(ICDquery);
 				pro.processQuery();	
 				
-			}catch(Exception e){
+			}catch(RuntimeException e){
 				logger.info(e);
 			}
 		}

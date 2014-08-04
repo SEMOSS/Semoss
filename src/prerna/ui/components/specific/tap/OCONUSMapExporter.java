@@ -75,7 +75,7 @@ public class OCONUSMapExporter {
 				systemsInSite.add(sys);
 			}
 		}
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		return systemsInSite;

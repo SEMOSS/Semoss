@@ -346,7 +346,7 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		try{
 			createUI();
 			showAll();
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			displayCheckBoxError();
 			PlaySheetListener psListener = (PlaySheetListener)this.getInternalFrameListeners()[0];
 			psListener.internalFrameClosed(new InternalFrameEvent(this,0));

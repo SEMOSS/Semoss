@@ -157,7 +157,7 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 				}
 			}
 		} 
-		catch (Exception e) {
+		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		

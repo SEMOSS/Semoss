@@ -153,7 +153,7 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 			try{
 				wrapper.executeQuery();	
 			}
-			catch (Exception e)
+			catch (RuntimeException e)
 			{
 				UIDefaults nimbusOverrides = new UIDefaults();
 				UIDefaults defaults = UIManager.getLookAndFeelDefaults();
@@ -184,7 +184,7 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 				count++;
 			}			
 
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		//listModel = new DefaultListModel();

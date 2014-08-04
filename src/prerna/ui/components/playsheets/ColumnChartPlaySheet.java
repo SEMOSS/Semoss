@@ -114,7 +114,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 			try{
 				wrapper.executeQuery();	
 			}
-			catch (Exception e)
+			catch (RuntimeException e)
 			{
 				e.printStackTrace();
 			}		
@@ -155,7 +155,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 				list.add(count, values);
 				count++;
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 		
@@ -194,7 +194,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 				RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), gdm);
 				logger.debug("Loaded Relation");
 				RDFEngineHelper.loadPropertyHierarchy(engine,predicates.toString(), containsRelation, gdm);
-			} catch(Exception ex) {
+			} catch(RuntimeException ex) {
 				ex.printStackTrace();
 			}
 		}
@@ -215,6 +215,9 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 			System.out.println(">>>" + query2.getTupleExpr());
 			query2.getTupleExpr().visit(collector);
 
+		} catch (RuntimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -20,6 +20,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -34,6 +35,10 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.error.EngineException;
+import prerna.error.FileReaderException;
+import prerna.error.FileWriterException;
+import prerna.error.InvalidUploadFormatException;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.rdf.engine.api.IEngine;
@@ -203,9 +208,27 @@ public class CostDBUpdateListener extends AbstractListener {
 
 				Utility.showMessage("Your database has been successfully updated!");
 			}
-		} catch (Exception ex) {
+		} catch (RuntimeException ex) {
 			ex.printStackTrace();
 			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
+		} catch (FileReaderException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileWriterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (EngineException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidUploadFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}finally{
 			try{
 				if(fileIn!=null)

@@ -154,7 +154,7 @@ public class GraphDataModel {
 		
 		try{
 			sjw.execute();	
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 		
@@ -254,7 +254,7 @@ public class GraphDataModel {
 					logger.debug("Loaded Concept");
 					RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), this);
 					logger.debug("Loaded Relation");
-				} catch(Exception ex) {
+				} catch(RuntimeException ex) {
 					ex.printStackTrace();
 				}
 			}
@@ -280,12 +280,12 @@ public class GraphDataModel {
 					//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
 					RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
 					logger.info("Loaded Properties");
-				} catch(Exception ex) {
+				} catch(RuntimeException ex) {
 					ex.printStackTrace();
 				}
 				//genProperties(propertyQuery + predicates + " } ");
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}	
 		modelCounter++;
@@ -682,7 +682,7 @@ public class GraphDataModel {
 //							this.forest.addVertex(vertStore.get(sct.getSubject()));
 				}
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 		}
@@ -794,7 +794,7 @@ public class GraphDataModel {
 //					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}	
 	}
@@ -810,8 +810,8 @@ public class GraphDataModel {
 		// run query on rc
 		try{
 			rc.commit();
-		}catch(Exception e){
-			
+		}catch(RepositoryException e){
+			logger.debug(e);
 		}
 		InMemorySesameEngine rcSesameEngine = new InMemorySesameEngine();
 		rcSesameEngine.setRepositoryConnection(rc);

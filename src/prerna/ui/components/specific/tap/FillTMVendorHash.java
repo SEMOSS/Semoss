@@ -144,7 +144,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 		try {
 			processQuery();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}
@@ -154,7 +154,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 	 * If it contains information about software lifecycle, software category, or system hardware, get the constants.
 	 * Creates create or fill matrices with names if applicable.
 	 */
-	private void processQuery() throws Exception {
+	private void processQuery() {
 		// get the bindings from it
 		String [] names = wrapper.getVariables();
 		
@@ -229,7 +229,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 				TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
 				TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 			}
-		}catch (Exception e) {
+		}catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
@@ -270,7 +270,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 					TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 				
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

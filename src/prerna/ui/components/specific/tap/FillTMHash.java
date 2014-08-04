@@ -161,7 +161,7 @@ public class FillTMHash extends GridPlaySheet{
 		try {
 			processQuery();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
 	}
@@ -171,7 +171,7 @@ public class FillTMHash extends GridPlaySheet{
 	 * If it contains information about software lifecycle, software category, or system hardware, get the constants.
 	 * Creates create or fill matrices with names if applicable.
 	 */
-	private void processQuery() throws Exception {
+	private void processQuery() {
 		// get the bindings from it
 		String [] names = wrapper.getVariables();
 		
@@ -251,12 +251,12 @@ public class FillTMHash extends GridPlaySheet{
 					var4="";
 					var5="";
 				}
-				catch(Exception e)
+				catch(RuntimeException e)
 				{
 					fileLogger.info("Issue with relation: "+names[2]+" - "+var2+">>>>"+names[3]+" - "+var3+">>>>"+names[4]+" - "+var4+">>>>"+names[5]+" - "+var5);
 				}
 			}
-		}catch (Exception e) {
+		}catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
@@ -298,12 +298,12 @@ public class FillTMHash extends GridPlaySheet{
 						TMhash.put(key+Constants.CALC_ROW_LABELS, rowLabels);
 						TMhash.put(key+Constants.CALC_COLUMN_LABELS, colLabels);
 				}
-				catch(Exception e)
+				catch(RuntimeException e)
 				{
 					fileLogger.info("Issue with relation: "+names[3]+" - "+vert3double+">>>>"+names[4]+" - "+vert4double);
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

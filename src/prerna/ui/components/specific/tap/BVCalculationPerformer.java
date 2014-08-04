@@ -144,7 +144,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			pro.setQuery(businessQuery);
 			pro.processQuery();
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -177,7 +177,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			//fillBottomMatrices();
 			DIHelper.getInstance().setLocalProperty(Constants.BUSINESS_VALUE, BVhash);
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

@@ -104,6 +104,9 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 		try {
 			node.visit(collector2);
 			constantHash.put(source, collector2.value);
+		} catch (RuntimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -122,7 +125,7 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 			node.visit(collector);
 			System.out.println("Yoo hoo" + collector.getVarNames());
 
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

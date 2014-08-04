@@ -60,8 +60,8 @@ public class DataInterfaceWithDHMSMProcessor {
 		{
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngineName);
 			if(engine==null)
-				throw new Exception();
-		} catch (Exception e) {
+				throw new NullPointerException();
+		} catch (NullPointerException e) {
 			Utility.showError("Cannot find HR Core engine.");
 			return;
 		}
@@ -210,7 +210,7 @@ public class DataInterfaceWithDHMSMProcessor {
 		try{
 			wrapper.executeQuery();	
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
 			e.printStackTrace();
 		}
@@ -289,7 +289,7 @@ public class DataInterfaceWithDHMSMProcessor {
 					count++;
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}
