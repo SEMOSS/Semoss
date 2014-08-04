@@ -25,6 +25,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 
@@ -36,7 +37,9 @@ import org.apache.jena.larq.IndexLARQ;
 import org.apache.jena.larq.IndexWriterFactory;
 import org.apache.jena.larq.LARQ;
 import org.apache.log4j.Logger;
+import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.RAMDirectory;
 
 import prerna.om.SEMOSSVertex;
@@ -365,9 +368,18 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			IndexLARQ larq = larqBuilder.getIndex();
 			LARQ.setDefaultIndex(larq);
 			this.jenaModel = jenaModel;
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (CorruptIndexException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (LockObtainFailedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 

@@ -87,7 +87,7 @@ public class InterfaceReportProcessor {
 			interfaceRow.add((String)sjss.getVar(names[names.length-1]));
 			allInterfaces.add(interfaceRow);
 		}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 	}
@@ -107,9 +107,9 @@ public class InterfaceReportProcessor {
 		{
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			if(engine==null)
-				throw new Exception();
+				throw new NullPointerException();
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 			return;
 		}

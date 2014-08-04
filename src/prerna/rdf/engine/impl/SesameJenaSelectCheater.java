@@ -19,6 +19,7 @@
 package prerna.rdf.engine.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
 import java.util.List;
@@ -29,6 +30,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.rdf.engine.api.IEngine;
@@ -226,9 +228,21 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 				}
 				retBool = true;
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+			retBool = false;
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			retBool = false;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			retBool = false;
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			retBool = false;
 		}
 		logger.debug(" Next " + retBool);

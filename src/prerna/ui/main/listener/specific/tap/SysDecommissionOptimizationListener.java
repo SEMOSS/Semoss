@@ -79,7 +79,7 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 			playsheet.setQuery(query);
 			try{
 				resourceValue = Integer.parseInt(resourceTextValue);
-			}catch(Exception e){
+			}catch(RuntimeException e){
 				Utility.showError("All text values must be numbers");
 				return;
 			}
@@ -91,7 +91,7 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 			playsheet.setQuery(query);
 			try{
 				timeValue = Double.parseDouble(timeTextValue)*365;
-			}catch(Exception e){
+			}catch(RuntimeException e){
 				Utility.showError("All text values must be numbers");
 				return;
 			}

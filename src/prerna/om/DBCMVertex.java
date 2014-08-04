@@ -93,11 +93,11 @@ public class DBCMVertex{
 			try {
 				propHash.put(type, ((Literal)vert).doubleValue());				
 			}catch(Exception ex)
-			{}
+			{logger.debug(ex);}
 			try{
 				propHash.put(type, vert + "");
 			}catch (Exception ex)
-			{}
+			{logger.debug(ex);}
 		}
 
 		// parse out all the oth er properties
@@ -274,7 +274,7 @@ public class DBCMVertex{
 				propHash.put(instanceName, ((Literal)propValue).doubleValue());
 				converted = true;
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			logger.debug(ex);
 		}
@@ -289,7 +289,10 @@ public class DBCMVertex{
 					Double value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble();
 					converted = true;
 					propHash.put(instanceName, value);
-				}catch (Exception ignored){	converted = false;	}
+				}catch (RuntimeException ignored) {
+					logger.debug(ignored);
+					converted = false;
+				}
 				
 				// try integer
 				if(!converted)
@@ -299,7 +302,10 @@ public class DBCMVertex{
 						Integer value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getInt();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (Exception ignored) {converted = false;}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+						converted = false;
+					}
 				}
 				
 				// try boolean
@@ -310,7 +316,9 @@ public class DBCMVertex{
 						Boolean value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getBoolean();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (Exception ignored) {}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+					}
 				}
 				// try string
 				if(!converted)
@@ -321,13 +329,16 @@ public class DBCMVertex{
 						converted = true;
 						propHash.put(instanceName, value);
 
-					}catch (Exception ignored) {}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+						converted = false;
+					}
 				}
 				
 				//propHash.put(instanceName, ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble());
 				//converted = true;
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			logger.debug(ex);
 		}

@@ -20,6 +20,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -129,7 +130,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 							{
 								process(newFile);
 								
-							}catch(Exception ex)
+							}catch(RuntimeException ex)
 							{
 								ex.printStackTrace();
 							}
@@ -139,8 +140,15 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 				}
 				key2.reset();
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
+			logger.debug(ex);
+			// do nothing - I will be working it in the process block
+		} catch (InterruptedException ex) {
+			logger.debug(ex);
+			// do nothing - I will be working it in the process block
+		} catch (IOException ex) {
+			logger.debug(ex);
 			// do nothing - I will be working it in the process block
 		}
 	}	

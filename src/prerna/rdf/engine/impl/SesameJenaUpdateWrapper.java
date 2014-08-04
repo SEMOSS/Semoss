@@ -20,6 +20,10 @@ package prerna.rdf.engine.impl;
 
 import org.apache.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.UpdateExecutionException;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
 
@@ -81,9 +85,17 @@ public class SesameJenaUpdateWrapper {
 			engine.execInsertQuery(query);
 
 			
-		} catch (Exception e) {
-			success = false;
-			logger.fatal(e);
+		} catch (SailException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UpdateExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedQueryException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return success;

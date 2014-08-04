@@ -101,9 +101,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			
 			
 	        ie = ((BigdataSail)bdSail).getInferenceEngine();	
-		}catch(Exception ignored)
+		}catch(RuntimeException ignored)
 		{
 			ignored.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
@@ -274,7 +277,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 							//if(count < 100)
 								strVector.add(next);
 							count++;
-						} catch (Exception e) {
+						} catch (RuntimeException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}	
@@ -443,7 +446,10 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			((BigdataSailRepositoryConnection)rc).flush();
 			//closeDB();
 			//openDB(propFile);
-		} catch (Exception e) {
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (SailException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

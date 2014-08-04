@@ -101,7 +101,7 @@ public class SystemInfoGenProcessor {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 	}
@@ -128,7 +128,7 @@ public class SystemInfoGenProcessor {
 				masterHash.put((String) sjss.getVar(names[0]),sysHash);
 				sysList.add((String) sjss.getVar(names[0]));
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 	}
@@ -163,7 +163,7 @@ public class SystemInfoGenProcessor {
 							cost +=(Double)sysAndCostHash.get(sys);
 						sysAndCostHash.put(sys,cost);
 					}
-				} catch (Exception e) {
+				} catch (RuntimeException e) {
 					e.printStackTrace();
 				}
 			}
@@ -175,7 +175,7 @@ public class SystemInfoGenProcessor {
 					sysHash.put("Transition_Cost", sysAndCostHash.get(sysKey));
 				}
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 		}
 			
@@ -197,17 +197,17 @@ public class SystemInfoGenProcessor {
 		{
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			if(engine==null)
-				throw new Exception();
+				throw new NullPointerException();
 			engineName = tapCostEngine;
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			if(engine==null)
-				throw new Exception();
+				throw new NullPointerException();
 			engineName = hrCoreEngine;
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			if(engine==null)
-				throw new Exception();
+				throw new NullPointerException();
 			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+engineName);
 			return;
 		}
