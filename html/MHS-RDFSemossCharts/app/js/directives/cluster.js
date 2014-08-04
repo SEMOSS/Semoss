@@ -7,13 +7,17 @@ app.directive('d3Cluster', function() {
         scope: {
             data: '=',
             setGroupData: "&",
+            setNodeData: "&",
             containerId: "="
         },
         link: function(scope) {
             var clusterData = {};
             var numGroups = 0;
             var groupingCategory = "ClusterID";
+            var nodeName = "nodeName";
             var groupingCategoryInstances = {};
+
+            d3.select(window).on('resize', resize);
 
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data.length == 0 || scope.data == '') {
@@ -49,15 +53,14 @@ app.directive('d3Cluster', function() {
                 return array;
             };
 
-
-            function structureBarData(d, groupingCategory){
+            function structureBarData(d, groupingCategory, nodeName){
                 var clusterPropertyCategories = {};
                 var clusterPropertyCategoriesInverse = {};
                 var n = 0;
                 var output = {};
                 for(var key in d.values[0]){
                     if(key != "x" && key != "y" && key != "px" && key != "py"){
-                        if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory){
+                        if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory && key != nodeName){
                             clusterPropertyCategories[key] = n;
                             clusterPropertyCategoriesInverse[n] = key;
                             n++;
@@ -102,14 +105,32 @@ app.directive('d3Cluster', function() {
                 scope.setGroupData({groupData: output});
             }
 
+            function structureNodeData(d, groupingCategory, nodeName){
+                var output = {};
+
+                for(var key in d){
+                    if(key != "x" && key != "y" && key != "px" && key != "py"){
+                        if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory && key != nodeName){
+                            output[key] = d[key];
+                        }
+                    }
+                }
+
+                scope.setNodeData({nodeData: output});
+            }
+
+
+            var w = parseInt(d3.select('#' + scope.containerId).style('width'));
+            var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+            var vis = d3.select('#' + scope.containerId).append("svg")
+                .attr("width", w)
+                .attr("height", h);
+
             function update(updateData) {
                 var data = updateData;
                 var nodes = data.map(Object);
-                var w = parseInt(d3.select('#' + scope.containerId).style('width'));
-                var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+
                 var fill = d3.scale.category20();
-
-
 
                 groupingCategoryInstances = getCategoryInstances(groupingCategory, nodes);
 
@@ -131,16 +152,14 @@ app.directive('d3Cluster', function() {
                                 .join("L")
                             + "Z");
                     }
-                        return groupPathReturn;
+                    return groupPathReturn;
                 };
 
                 var groupFill = function (d, i) {
                     return fill(d.key);
                 };
 
-                var vis = d3.select('#' + scope.containerId).append("svg")
-                    .attr("width", w)
-                    .attr("height", h);
+
 
                 var force = d3.layout.force()
                     .nodes(nodes)
@@ -173,31 +192,8 @@ app.directive('d3Cluster', function() {
                     .duration(1000)
                     .style("opacity", 1);
 
-                d3.selectAll("circle.node")
-                    .attr("title", function(d){
-                        var returnString = "";
-                        for(var key in d){
-                            if(key != "x" && key != "y" && key != "px" && key != "py"){
-                                if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory){
-                                    returnString = returnString + "\r\n\r\n\r\n" + key + ": " + d[key];
-                                }
-                            }
-                        }
-                        return returnString});
-
-                $('svg').ready(function () {
-                    $("circle.node").tooltip({
-                        'container': '#' + scope.containerId,
-                        'placement': 'right',
-                        'delay' : 300,
-                        'template': '<div class="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner" style="color:white"></div></div>'
-                    });
-                });
-
-
-
                 node.on("click", function(d){
-                    console.log(d);
+                    structureNodeData(d, groupingCategory, nodeName);
                     var allCircles = d3.selectAll("circle.node"),
                         selectedCircle = d3.select(this);
                     //set all circles (and previously selected nodes) to default stroke & stroke-width
@@ -240,7 +236,7 @@ app.directive('d3Cluster', function() {
                         .attr("d", groupPath)
                         .on("click", function(d){
 
-                            structureBarData(d, groupingCategory);
+                            structureBarData(d, groupingCategory, nodeName);
 
                             var allPaths = d3.selectAll("#" + scope.containerId + " path"),
                                 selectedPath = d3.select(this);
@@ -260,6 +256,12 @@ app.directive('d3Cluster', function() {
                             });
                         });
                 });
+            }
+
+            function resize(){
+                w = parseInt(d3.select('#' + scope.containerId).style('width'));
+                h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+                d3.select('#clusterContainer svg').attr("width", w).attr("height", h);
             }
         }
     }
