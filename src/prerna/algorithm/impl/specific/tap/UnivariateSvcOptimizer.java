@@ -68,7 +68,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
         progressBar = playSheet.progressBar;
         f.setProgressBar(progressBar);
         progressBar.setString("Collecting Data");
-        ((UnivariateSvcOptFunction)f).setVariables(maxYears, hourlyCost, interfaceCost,serMainPerc,attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
+        ((UnivariateSvcOptFunction)f).setVariables(maxYears, hourlyCost, interfaceCost/hourlyCost,serMainPerc,attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC);
 
         optOrg = new OptimizationOrganizer();
         optOrg.runOrganizer(optSys);

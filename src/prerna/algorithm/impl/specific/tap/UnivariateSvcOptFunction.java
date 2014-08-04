@@ -51,9 +51,9 @@ public class UnivariateSvcOptFunction extends UnivariateOptFunction{
 	 * @param 	secondProc			How much information you have at second pro year.
 	 */
 	public void setVariables(int numberOfYears, double hourlyRate, double icdMt, double serMain, double attRate, double hireRate, double infRate, double disRate, int secondProYear, double initProc, double secondProc){
-		super.setVariables(numberOfYears, attRate, hireRate, infRate, disRate, secondProYear, initProc, secondProc);
 		lin = new ServiceOptimizer(icdMt,serMain);
 		this.hourlyRate = hourlyRate;
+		super.setVariables(numberOfYears, attRate, hireRate, infRate, disRate, secondProYear, initProc, secondProc);
 	}
 	
 	/**
