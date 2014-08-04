@@ -1,0 +1,89 @@
+#rightPane{
+    padding: 0px 10px;
+    background-color: #eee;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 500px;
+    position: fixed;
+    overflow-y: scroll;
+    border-left: 1px solid #ccc;
+    -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
+    -moz-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
+    box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
+
+}
+
+.titleContainer{
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    height: 40px;
+    background-color: #fff;
+}
+
+path.domain{
+    opacity: 1;
+    stroke-width: 1px;
+    shape-rendering: crispedges;
+    stroke: black;
+    fill: black;
+}
+
+.barContainer{
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    height: 400px;
+    background-color: #fff;"
+}
+
+#clusterContainer{
+    position: absolute;
+    right: 500px;
+    top: 0;
+    left: 0;
+    bottom: 0;
+}
+
+#thecontroller{
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    position: absolute;
+}
+
+.d3-tip {
+    line-height: 1;
+    font-weight: bold;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+}
+
+#clusterContainer .tooltip-inner {
+    text-align:left;
+    max-width: none;
+}
