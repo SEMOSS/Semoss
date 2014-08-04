@@ -67,6 +67,7 @@ public class ClusteringAlgorithm {
 	public ArrayList<Object[]> getClusterRows() {
 		return clusterRows;
 	}
+	
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
 	 * These properties are pulled from the instanceCategoryMatrix and instanceNumberMatrix, that are filled prior to start.
 	 * The final cluster each instance is assigned to is stored in clustersAssigned.
@@ -390,50 +391,50 @@ public class ClusteringAlgorithm {
 		return propWithHighFreq;
 	}
 	
-	/**
-	 * Prints the cluster each instance is assigned to.
-	 */
-	private void printOutClusterForInstance() {
-		System.out.println("Cluster for each index:");
-		for(String instance : instanceIndexHash.keySet()) {
-			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
-		}
-	}
-	
-	/**
-	 * Prints the numerical properties of each cluster
-	 */
-	private void printClusterNumberMatrix() {
-		System.out.println("Cluster Numerical Properties:");
-
-		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
-		for(int clusterInd=0;clusterInd<clusterNumberMatrix.length;clusterInd++ ) {
-			System.out.println("Cluster " + clusterInd + " Numerical Properties: ");
-			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ ) {
-				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
-			}
-			System.out.println("\n");
-		}
-	}
-	
-	/**
-	 * Prints the categorical properties of each cluster
-	 */
-	private void printClusterCategoryMatrix() {
-		System.out.println("\nCluster Category Properties:");
-
-		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
-		for(int clusterInd=0;clusterInd<clusterCategoryMatrix.size();clusterInd++ ) {
-			System.out.println("Cluster " + clusterInd + " Categorical Properties: ");
-			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
-				System.out.print(categoryPropNames.get(numberInd)+": {");
-				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
-				for(String propVal : propValHash.keySet()) {
-					System.out.print(propVal+": "+propValHash.get(propVal)+"; ");
-				}		
-				System.out.println("},");
-			}
-			System.out.println();
-		}
-	}
+//	/**
+//	 * Prints the cluster each instance is assigned to.
+//	 */
+//	private void printOutClusterForInstance() {
+//		System.out.println("Cluster for each index:");
+//		for(String instance : instanceIndexHash.keySet()) {
+//			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
+//		}
+//	}
+//	
+//	/**
+//	 * Prints the numerical properties of each cluster
+//	 */
+//	private void printClusterNumberMatrix() {
+//		System.out.println("Cluster Numerical Properties:");
+//
+//		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
+//		for(int clusterInd=0;clusterInd<clusterNumberMatrix.length;clusterInd++ ) {
+//			System.out.println("Cluster " + clusterInd + " Numerical Properties: ");
+//			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ ) {
+//				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
+//			}
+//			System.out.println("\n");
+//		}
+//	}
+//	
+//	/**
+//	 * Prints the categorical properties of each cluster
+//	 */
+//	private void printClusterCategoryMatrix() {
+//		System.out.println("\nCluster Category Properties:");
+//
+//		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
+//		for(int clusterInd=0;clusterInd<clusterCategoryMatrix.size();clusterInd++ ) {
+//			System.out.println("Cluster " + clusterInd + " Categorical Properties: ");
+//			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
+//				System.out.print(categoryPropNames.get(numberInd)+": {");
+//				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
+//				for(String propVal : propValHash.keySet()) {
+//					System.out.print(propVal+": "+propValHash.get(propVal)+"; ");
+//				}		
+//				System.out.println("},");
+//			}
+//			System.out.println();
+//		}
+//	}
 }
