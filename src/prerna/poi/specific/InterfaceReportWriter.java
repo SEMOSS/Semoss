@@ -19,11 +19,11 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.log4j.Logger;
-import org.apache.poi.hssf.util.CellReference;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -32,7 +32,6 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -44,8 +43,7 @@ import prerna.util.Utility;
  */
 public class InterfaceReportWriter {
 
-	Logger logger = Logger.getLogger(getClass());
-	public Hashtable<String,XSSFCellStyle> myStyles;
+	private Hashtable<String,XSSFCellStyle> myStyles;
 
 	/**
 	 * Retrieves the query results from the SystemInfoGenProcessor and creates the System Info Report
@@ -55,28 +53,31 @@ public class InterfaceReportWriter {
 	 * @param systemInfoHash	Hashtable containing all the query results from the SystemInfoGenProcessor
 	 */
 	public void exportInterfaceReport(String fileLoc, String templateFileLoc, ArrayList<String> sheetsList,Hashtable interfaceHash, ArrayList<String> interfaceHeaders,ArrayList<ArrayList<String>> allInterfaces) {
-		
+
 		XSSFWorkbook wb;
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
-		if(templateFileLoc!=null)
-			try{
+		if(templateFileLoc!=null) {
+			try {
 				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateFileLoc));
+			} catch (InvalidFormatException e) {
+				wb=new XSSFWorkbook();
+			} catch (IOException e) {
+				wb=new XSSFWorkbook();
 			}
-		catch(Exception e){
+		} else {
 			wb=new XSSFWorkbook();
 		}
-		else wb=new XSSFWorkbook();
 
 		writeAllInterfaces(wb,interfaceHeaders,allInterfaces);
-		
+
 		for(String sheet : sheetsList)
-			writeListSheet(wb,sheet,(Hashtable<String,Integer>)interfaceHash.get(sheet));
+			writeListSheet(wb,sheet,(Hashtable<String,Integer>) interfaceHash.get(sheet));
 
 		wb.setForceFormulaRecalculation(true);
 		Utility.writeWorkbook(wb, fileLoc);
 
 	}
-	
+
 	/**
 	 * Writes the data from the queries to the sheet specified in list format
 	 * @param wb				XSSFWorkbook containing the sheet to populate
@@ -85,7 +86,7 @@ public class InterfaceReportWriter {
 	 * @param result			ArrayList containing the output of the query
 	 */
 	public void writeAllInterfaces(XSSFWorkbook wb, ArrayList<String> headersList, ArrayList<ArrayList<String>> result){
-		
+
 		makeStyles(wb);
 		//make the header rows with special format
 		XSSFSheet worksheet = wb.createSheet("All Interfaces");
@@ -100,21 +101,20 @@ public class InterfaceReportWriter {
 		for (int row=0; row<result.size();row++){
 			XSSFRow row1 = worksheet.createRow(row+1);
 			ArrayList<String> rowValues = (ArrayList<String>) result.get(row);
-
 			for(int col=0;col<rowValues.size();col++)
 			{
 				XSSFCell cell0 = row1.createCell(col);
 				cell0.setCellValue(rowValues.get(col));
 				cell0.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
 			}
-			
+
 		}
 		//resize the columns
 		if(headersList.size()>0)
 			for(int col=0; col<headersList.size();col++)
 				worksheet.setColumnWidth(col, 256*35);
 	}
-	
+
 
 	/**
 	 * Writes the data from the queries to the sheet specified in list format
@@ -127,7 +127,7 @@ public class InterfaceReportWriter {
 
 		XSSFSheet worksheet = wb.getSheet(sheet);
 		int rowCount = 1;
-		
+
 		for(String key : result.keySet())
 		{
 			XSSFRow row1 = worksheet.createRow(rowCount);
@@ -138,10 +138,10 @@ public class InterfaceReportWriter {
 			rowCount++;
 		}
 
-	//	wb.setSheetHidden(wb.getSheetIndex(sheet), true);
+		//	wb.setSheetHidden(wb.getSheetIndex(sheet), true);
 	}
-	
-	
+
+
 	/**
 	 * Creates a cell boarder style in an Excel workbook
 	 * @param wb 		Workbook to create the style
@@ -178,20 +178,20 @@ public class InterfaceReportWriter {
 		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
 		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		myStyles.put("headerStyle",headerStyle);
-	
+
 		Font normalFont = workbook.createFont();
 		normalFont.setFontHeightInPoints((short) 10);
-	
+
 		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
 		normalStyle.setWrapText(true);
 		normalStyle.setFont(normalFont);
 		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
 		myStyles.put("normalStyle",normalStyle);
-	
+
 		Font boldBodyFont = workbook.createFont();
 		boldBodyFont.setFontHeightInPoints((short) 10);
 		boldBodyFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
-	
+
 		XSSFCellStyle boldStyle = createBorderedStyle(workbook);
 		boldStyle.setWrapText(true);
 		boldStyle.setFont(boldBodyFont);

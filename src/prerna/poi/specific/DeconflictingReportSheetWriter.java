@@ -19,9 +19,11 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
@@ -48,16 +50,20 @@ public class DeconflictingReportSheetWriter {
 	public void ExportLoadingSheets(String fileLoc, Hashtable<String, ArrayList<ArrayList<String>>> hash, String readFileLoc,ArrayList<String> order) {
 		//if a report template exists, then create a workbook with these sheets
 		XSSFWorkbook wb;
-		if(readFileLoc!=null)
-			try{
-				wb = (XSSFWorkbook)WorkbookFactory.create(new File(readFileLoc));
-			}catch(Exception e){
+		if(readFileLoc!=null) {
+			try {
+				wb = (XSSFWorkbook) WorkbookFactory.create(new File(readFileLoc));
+			} catch (InvalidFormatException e) {
+				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
+				wb = new XSSFWorkbook();
+			} catch (IOException e) {
 				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
 				wb = new XSSFWorkbook();
 			}
-		else{
+		} else {
 			wb = new XSSFWorkbook();
 		}
+		
 		for(String key: order){
 			ArrayList<ArrayList<String>> sheetVector = hash.get(key);
 			writeSheet(key, sheetVector, wb);

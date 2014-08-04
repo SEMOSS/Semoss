@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -56,7 +57,7 @@ import prerna.util.Utility;
  */
 public class FactSheetWriter {
 
-	Logger logger = Logger.getLogger(getClass());
+	private final Logger logger = Logger.getLogger(getClass());
 
 	public String systemName;
 
@@ -71,14 +72,17 @@ public class FactSheetWriter {
 		XSSFWorkbook wb;
 		this.systemName = systemName;
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
-		if(templateFileLoc!=null)
-			try{
-				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateFileLoc));
-			}
-		catch(Exception e){
-			wb=new XSSFWorkbook();
+		if(templateFileLoc!=null) {
+			try {
+				wb = (XSSFWorkbook) WorkbookFactory.create(new File(templateFileLoc));
+			} catch (InvalidFormatException e) {
+				wb = new XSSFWorkbook();
+			} catch (IOException e) {
+				wb = new XSSFWorkbook();
+			} 
+		} else {
+			wb = new XSSFWorkbook();
 		}
-		else wb=new XSSFWorkbook();
 
 		//create an Arraylist of results for each query - retrieve results from Hashtable
 		ArrayList systemSWResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_SW_QUERY);
@@ -99,10 +103,10 @@ public class FactSheetWriter {
 		ArrayList systemHighlightsResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY);
 		ArrayList userTypesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_TYPES_QUERY);
 		ArrayList userInterfacesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_INTERFACES_QUERY);
-//		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
+		//		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
 		ArrayList ppiResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
 		ArrayList capabilitiesSupportedResults = (ArrayList) systemDataHash.get(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY);
-		
+
 		//Find unique BLU/Data (for bolding)
 		ArrayList uniqueDataSystems = new ArrayList();
 		ArrayList uniqueData = new ArrayList();
@@ -158,8 +162,6 @@ public class FactSheetWriter {
 		XSSFSheet sheetToWriteOver = wb.getSheet("System Overview");
 		XSSFRow rowToWriteOn = sheetToWriteOver.getRow(2);
 		XSSFCell cellToWriteOn = rowToWriteOn.getCell(1);
-		int clinicalCount = 0, businessCount = 0, logisticsCount = 0;
-
 		writeHeader(wb, sheetToWriteOver);
 		cellToWriteOn.setCellValue(systemName);
 		rowToWriteOn = sheetToWriteOver.getRow(4);
@@ -258,7 +260,7 @@ public class FactSheetWriter {
 			}
 		}
 
-		
+
 		rowToWriteOn = sheetToWriteOver.getRow(20);
 		cellToWriteOn = rowToWriteOn.getCell(10);
 		cellToWriteOn.setCellValue((Integer)capabilitiesSupportedResults.get(0));
@@ -349,14 +351,14 @@ public class FactSheetWriter {
 
 		//Application Health Grid
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = "\\export\\Images\\";
+		String folder = File.separator + "export" + File.separator + "Images" + File.separator;
 		String picFileName = systemName.replaceAll(":", "")+"_Health_Grid_Export.png";
 		String picFileLoc = workingDir + folder + picFileName;
+		FileInputStream inputStream = null;
 		try {
-			FileInputStream inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
+			inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			int pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
-			inputStream.close();
 
 			CreationHelper helper = wb.getCreationHelper(); //Returns an object that handles instantiating concrete classes
 			XSSFClientAnchor anchor = (XSSFClientAnchor) helper.createClientAnchor(); //Create an anchor that is attached to the worksheet
@@ -364,19 +366,22 @@ public class FactSheetWriter {
 			anchor.setRow1(7);
 			logger.info(anchor.getAnchorType());
 
-			anchor.setDx1((short)5*36000); // TODO
-			anchor.setDy1((short)5*36000); // TODO
+			anchor.setDx1((short)5*36000); 
+			anchor.setDy1((short)5*36000); 
 
 			Drawing drawing = sheetToWriteOver.createDrawingPatriarch(); //Creates the top-level drawing patriarch, specify sheet to draw on
 			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
 			pict.resize(); //Reset the image to the original size			
-		}
-		catch (FileNotFoundException e){
+		} catch (FileNotFoundException e) {
 			logger.error("Health Grid image not found for this system");
-	//		e.printStackTrace();
-		}
-		catch (Exception ex){
-			ex.printStackTrace();
+		} catch (IOException e) {
+			logger.error("Health Grid image not found for this system");
+		} finally {
+			try {
+				inputStream.close();
+			} catch (IOException e) {
+				logger.error("Error closing input stream for image");
+			}
 		}
 	}
 
@@ -476,8 +481,8 @@ public class FactSheetWriter {
 				rowToWriteOn = sheetToWriteOver.createRow(i+10);
 				rowToWriteOn.setRowStyle(sheetToWriteOver.getRow(i+9).getRowStyle());
 			}
-			
-			
+
+
 
 			for (int j=0; j<row.size(); j++) {
 				XSSFCell cellToWriteOn;
@@ -485,11 +490,11 @@ public class FactSheetWriter {
 					cellToWriteOn = rowToWriteOn.getCell(j+1);
 				else if(j<=6)
 				{
-//					if(j==0)
-//					{
-//						cellToWriteOn = rowToWriteOn.createCell(0);
-//						cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+9).getCell(0).getCellStyle());
-//					}
+					//					if(j==0)
+					//					{
+					//						cellToWriteOn = rowToWriteOn.createCell(0);
+					//						cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+9).getCell(0).getCellStyle());
+					//					}
 					cellToWriteOn = rowToWriteOn.createCell(j+1);
 					cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+9).getCell(j+1).getCellStyle());
 				}
@@ -865,7 +870,7 @@ public class FactSheetWriter {
 					XSSFCell cellOne = rowToWriteOn.createCell(1);
 					cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
 					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
-					
+
 				}
 				String blu = (String) row.get(j);
 				String value = "-  " + blu;
@@ -965,12 +970,12 @@ public class FactSheetWriter {
 		redStyle.setFillForegroundColor(red);
 		redStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
 
-
 		int pictureIdx = 0;
 		int pictureIdx2 = 0;
 
+		FileInputStream inputStream = null;
 		try {
-			FileInputStream inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
+			inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 			inputStream.close();
@@ -978,20 +983,15 @@ public class FactSheetWriter {
 			inputStream = new FileInputStream(picFileLoc2); //FileInputStream obtains input bytes from the image file
 			bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			pictureIdx2 = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
-			inputStream.close();			
-		}
-		catch (FileNotFoundException e){
-			FileInputStream inputStream;
+		} catch (FileNotFoundException e) {
 			try {
 				inputStream = new FileInputStream(templateCONUSFileLoc);
 				byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 				pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
-				inputStream.close();
 
 				inputStream = new FileInputStream(templateOCONUSFileLoc); //FileInputStream obtains input bytes from the image file
 				bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 				pictureIdx2 = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
-				inputStream.close();
 
 				rowToWriteOn = sheetToWriteOver.getRow(6);
 				cellToWriteOn = rowToWriteOn.getCell(1);
@@ -999,16 +999,26 @@ public class FactSheetWriter {
 
 			} catch (FileNotFoundException e1) {
 				logger.error("CONUS and OCONUS map images not found for this system");
-			} //FileInputStream obtains input bytes from the image file
+			} 
 			catch (IOException e1) {
-				e1.printStackTrace();
+				logger.error("CONUS and OCONUS map images not able to be loaded");
+			} finally {
+				try {
+					inputStream.close();
+				} catch (IOException e2) {
+					logger.error("Error closing input stream for image");
+				}
 			}
-
-
+		} catch (IOException e) {
+			logger.error("Error closing input stream for image");
+		} finally {
+			try {
+				inputStream.close();
+			} catch (IOException e) {
+				logger.error("Error closing input stream for image");
+			}
 		}
-		catch (Exception e){
 
-		}
 		CreationHelper helper = wb.getCreationHelper(); //Returns an object that handles instantiating concrete classes
 		ClientAnchor anchor = helper.createClientAnchor(); //Create an anchor that is attached to the worksheet
 		anchor.setCol1(1); //select where to put the picture

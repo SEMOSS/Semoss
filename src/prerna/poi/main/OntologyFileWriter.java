@@ -37,7 +37,7 @@ import prerna.util.Constants;
  */
 public class OntologyFileWriter {
 
-	Logger logger = Logger.getLogger(getClass());
+	private final Logger logger = Logger.getLogger(getClass());
 
 	public String fileName;
 	File file;
@@ -64,9 +64,9 @@ public class OntologyFileWriter {
 		fileName = ontologyFileName;
 		// clean the temp custom map file name if necessary
 		if(ontologyFileName.contains("/"))
-			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("/")) + "/TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("/")+1);
+			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("/")) + File.separator + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("/")+1);
 		else
-			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("\\")) + "\\TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("\\")+1);
+			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("\\")) + File.separator + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("\\")+1);
 		// opens the current custom map file and creates a new custom map temp file
 		openFile();
 		insertValues(newURIvalues,newBaseURIvalues, newRelURIvalues,newBaseRelURIvalues, propURI);
@@ -298,6 +298,8 @@ public class OntologyFileWriter {
 			throw new FileWriterException("Could not close writer for the CustomMap file");
 		}
 		file.delete();
-		tempFile.renameTo(file);
+		if(tempFile.exists() && !file.exists()) {
+			tempFile.renameTo(file);
+		}
 	}
 }

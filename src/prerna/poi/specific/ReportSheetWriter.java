@@ -19,10 +19,12 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.poi.hssf.usermodel.DVConstraint;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -48,11 +50,10 @@ import prerna.util.Utility;
  */
 public class ReportSheetWriter {
 
-	public Hashtable<String,XSSFCellStyle> myStyles;
+	private Hashtable<String,XSSFCellStyle> myStyles;
+	private String[] supports = {"SupportLevel","CustomizationEffort","System","Comments"};
 	public String RFPName="RFP1";
-	public String[] supports = {"SupportLevel","CustomizationEffort","System","Comments"};
-	public int supportsLength=supports.length;
-
+	private int supportsLength=supports.length;
 
 	/**
 	 * Creates a workbook containing one sheet with the data object to data element mappings
@@ -100,20 +101,23 @@ public class ReportSheetWriter {
 	 * @param readFileLoc 	String containing the location of a template workbook to read
 	 * @param order 		ArrayList<String> specifying the order of the sheets to create the workbook
 	 */
-	public void ExportLoadingSheets(String fileLoc, Hashtable<String, ArrayList<String[]>> hash, String readFileLoc,ArrayList<String> order) {
+	public void ExportLoadingSheets(String fileLoc, Hashtable<String, ArrayList<String[]>> hash, String readFileLoc, ArrayList<String> order) {
 		//if a report template exists, then create a workbook with these sheets
-		XSSFWorkbook wb;
-		if(readFileLoc != null)
-			try{
-				wb = (XSSFWorkbook)WorkbookFactory.create(new File(readFileLoc));
-			}catch(Exception e){
+		XSSFWorkbook wb = null;
+		if(readFileLoc != null) {
+			try {
+				wb = (XSSFWorkbook) WorkbookFactory.create(new File(readFileLoc));
+			} catch (InvalidFormatException e) {
+				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
+				wb = new XSSFWorkbook();
+			} catch (IOException e) {
 				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
 				wb = new XSSFWorkbook();
 			}
-		else
+		} else {
 			wb = new XSSFWorkbook();
+		}
 		makeStyles(wb);
-
 
 		for(String key: order){
 			ArrayList<String[]> sheetVector = hash.get(key);
@@ -139,7 +143,6 @@ public class ReportSheetWriter {
 			for (int col=0; col<sheetVector.get(row).length;col++) {
 				XSSFCell cell = row1.createCell(col);
 				if(sheetVector.get(row)[col] != null) {
-					String val = sheetVector.get(row)[col];
 					if(row==0)
 					{
 						cell.setCellValue(sheetVector.get(row)[col].replace("\"", "").replace("_", ""));

@@ -42,7 +42,7 @@ import prerna.util.Utility;
  */
 public class BasicReportWriter {
 
-	Logger logger = Logger.getLogger(getClass());
+	final Logger logger = Logger.getLogger(getClass());
 	public Hashtable<String,XSSFCellStyle> myStyles;
 	XSSFWorkbook wb;
 	String fileLoc;
@@ -67,7 +67,7 @@ public class BasicReportWriter {
 	public void makeWorkbook(String fileLoc)
 	{
 		this.fileLoc = fileLoc;
-		wb =new XSSFWorkbook();
+		wb = new XSSFWorkbook();
 		makeStyles(wb);
 	}
 	

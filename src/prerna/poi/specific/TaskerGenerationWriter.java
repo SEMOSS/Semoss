@@ -19,10 +19,11 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.log4j.Logger;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -38,10 +39,6 @@ import prerna.util.Utility;
  */
 public class TaskerGenerationWriter {
 
-	Logger logger = Logger.getLogger(getClass());
-
-	public String systemName;
-
 	/**
 	 * Retrieves the query results for a given system from the tasker generation processor and creates the tasker
 	 * @param systemName		String containing the name of the system to create the tasker for
@@ -51,16 +48,18 @@ public class TaskerGenerationWriter {
 	 */
 	public void exportTasker(String systemName, String fileLoc, String templateFileLoc, Hashtable systemDataHash) {
 		XSSFWorkbook wb;
-		this.systemName = systemName;
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
-		if(templateFileLoc!=null)
-			try{
+		if(templateFileLoc!=null) {
+			try {
 				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateFileLoc));
+			} catch (InvalidFormatException e) {
+				wb=new XSSFWorkbook();
+			} catch (IOException e) {
+				wb=new XSSFWorkbook();
 			}
-		catch(Exception e){
+		} else {
 			wb=new XSSFWorkbook();
 		}
-		else wb=new XSSFWorkbook();
 
 		//create an Arraylist of results for each query - retrieve results from Hashtable
 

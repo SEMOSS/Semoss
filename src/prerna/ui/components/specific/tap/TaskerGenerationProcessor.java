@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -221,7 +222,7 @@ public class TaskerGenerationProcessor {
 	 */
 	public void writeToFile(String systemName, Hashtable systemDataHash) {
 		TaskerGenerationWriter writer = new TaskerGenerationWriter();
-		String folder = "\\export\\Reports\\";
+		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
 		String writeFileName;
 
 		writeFileName = "Tasker_for_" +systemName.replaceAll(":", "") + "_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";

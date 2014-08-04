@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.poi.specific;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -43,19 +44,19 @@ import prerna.util.Utility;
  * Used in conjunction with FactSheetListener
  */
 public class FactSheetProcessor {
-	Logger logger = Logger.getLogger(getClass());
-	String tapCoreEngine = "TAP_Core_Data";
-	String tapSiteEngine = "TAP_Site_Data";
-	String tapCostEngine = "TAP_Cost_Data";
-	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	FactSheetSysSimCalculator sysSim;
-	DHMSMHelper dhelp;
-	
+	private final Logger logger = Logger.getLogger(getClass());
+	private String tapCoreEngine = "TAP_Core_Data";
+	private String tapSiteEngine = "TAP_Site_Data";
+	private String tapCostEngine = "TAP_Cost_Data";
+	private String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+	private FactSheetSysSimCalculator sysSim;
+	private DHMSMHelper dhelp;
+
 	public void setDHMSMHelper(DHMSMHelper dhelp)
 	{
 		this.dhelp = dhelp;
 	}
-	
+
 	/**
 	 * Runs a query on a specific database and returns the result as an ArrayList
 	 * @param engineName 	String containing the name of the database engine to be queried
@@ -64,7 +65,6 @@ public class FactSheetProcessor {
 	 */
 	public ArrayList runQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -74,22 +74,18 @@ public class FactSheetProcessor {
 
 		String[] names = wrapper.getVariables();
 		ArrayList<ArrayList<Object>> list = new ArrayList<ArrayList<Object>>();
-		try {
-			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
-				ArrayList<Object> values = new ArrayList<Object>();
-				for (int colIndex = 0; colIndex < names.length; colIndex++) {
-					if (sjss.getVar(names[colIndex]) != null) {
-						if (sjss.getVar(names[colIndex]) instanceof Double) {
-							values.add(colIndex, (Double) sjss.getVar(names[colIndex]));
-						}
-						else values.add(colIndex, (String) sjss.getVar(names[colIndex]));						
+		while (wrapper.hasNext()) {
+			SesameJenaSelectStatement sjss = wrapper.next();
+			ArrayList<Object> values = new ArrayList<Object>();
+			for (int colIndex = 0; colIndex < names.length; colIndex++) {
+				if (sjss.getVar(names[colIndex]) != null) {
+					if (sjss.getVar(names[colIndex]) instanceof Double) {
+						values.add(colIndex, (Double) sjss.getVar(names[colIndex]));
 					}
+					else values.add(colIndex, (String) sjss.getVar(names[colIndex]));						
 				}
-				list.add(values);
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+			list.add(values);
 		}
 
 		return list;
@@ -104,7 +100,6 @@ public class FactSheetProcessor {
 	 */
 	public ArrayList runLifeCycleQuery(String engineName, String query) {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -118,39 +113,35 @@ public class FactSheetProcessor {
 		int currYear=now.get(Calendar.YEAR);
 		int currMonth=now.get(Calendar.MONTH);
 
-		try {
-			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+		while (wrapper.hasNext()) {
+			SesameJenaSelectStatement sjss = wrapper.next();
 
-				if (sjss.getVar(names[1]) != null) {
-					String date = ((String) sjss.getVar(names[1])).replaceAll("\"", "");
-					if (!date.equals("TBD")) {	
-						String lifeCycleType;
-						try{
-							int year=Integer.parseInt(date.substring(0,4));
-							int month=Integer.parseInt(date.substring(5,7));												
-	
-							if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
-								lifeCycleType="Retired_(Not_Supported)";
-							else if(year<=currYear||(year==currYear+1&&month<=currMonth))
-								lifeCycleType="Sunset_(End_of_Life)";
-							else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
-								lifeCycleType="Supported";
-							else
-								lifeCycleType="GA_(Generally_Available)";
-						}catch(NumberFormatException e)
-						{
-							lifeCycleType = "TBD";
-						}
-						
-						list.add(lifeCycleType);								
+			if (sjss.getVar(names[1]) != null) {
+				String date = ((String) sjss.getVar(names[1])).replaceAll("\"", "");
+				if (!date.equals("TBD")) {	
+					String lifeCycleType;
+					try{
+						int year=Integer.parseInt(date.substring(0,4));
+						int month=Integer.parseInt(date.substring(5,7));												
+
+						if((year<currYear)||(year==currYear && month<=currMonth+6)||(year==currYear+1&&month<=currMonth+6-12))
+							lifeCycleType="Retired_(Not_Supported)";
+						else if(year<=currYear||(year==currYear+1&&month<=currMonth))
+							lifeCycleType="Sunset_(End_of_Life)";
+						else if(year<=currYear+2||(year==currYear+3&&month<=currMonth))
+							lifeCycleType="Supported";
+						else
+							lifeCycleType="GA_(Generally_Available)";
+					}catch(NumberFormatException e)
+					{
+						lifeCycleType = "TBD";
 					}
-					else list.add(date);						
-				}
 
+					list.add(lifeCycleType);								
+				}
+				else list.add(date);						
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+
 		}
 
 		return list;
@@ -173,14 +164,10 @@ public class FactSheetProcessor {
 		wrapper.executeQuery();
 
 		String[] names = wrapper.getVariables();
-		try {
-			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();				
-				String sys = (String)sjss.getVar(names[0]);
-				list.add(sys);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		while (wrapper.hasNext()) {
+			SesameJenaSelectStatement sjss = wrapper.next();				
+			String sys = (String)sjss.getVar(names[0]);
+			list.add(sys);
 		}
 		return list;
 	}
@@ -193,8 +180,8 @@ public class FactSheetProcessor {
 
 		ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}");
 
-	//	ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}");
-		
+		//	ArrayList<String> systemList = createSystemList("SELECT DISTINCT ?System WHERE{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy> ;}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;}{?System ?OwnedBy ?SystemOwner}}ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}");
+
 		boolean shouldStart = true;
 		for (int i=0; i<systemList.size(); i++) {
 			String systemName = systemList.get(i);
@@ -205,16 +192,16 @@ public class FactSheetProcessor {
 				shouldStart = true;
 			if(shouldStart)
 			{
-			Hashtable queryResults = processQueries(systemName);
-			ArrayList serviceResults = (ArrayList) queryResults.get(ConstantsTAP.PPI_QUERY);
-			String service = null;
-			for (int k=0; k<serviceResults.size(); k++) {	
-				ArrayList ppi = (ArrayList) serviceResults.get(k);
-				for(int j = 0; j < ppi.size(); j++) {
-					service = (String) ppi.get(j);
+				Hashtable queryResults = processQueries(systemName);
+				ArrayList serviceResults = (ArrayList) queryResults.get(ConstantsTAP.PPI_QUERY);
+				String service = null;
+				for (int k=0; k<serviceResults.size(); k++) {	
+					ArrayList ppi = (ArrayList) serviceResults.get(k);
+					for(int j = 0; j < ppi.size(); j++) {
+						service = (String) ppi.get(j);
+					}
 				}
-			}
-			writeToFile(service, systemName, queryResults);
+				writeToFile(service, systemName, queryResults);
 			}
 		}		
 		Utility.showMessage("Report generation successful! \n\nExport Location: " + workingDir + "\\export\\Reports\\FactSheets\\");		
@@ -256,9 +243,9 @@ public class FactSheetProcessor {
 		String ppiQuery ="SELECT DISTINCT ?SystemOwner WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>} {?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>} {?System ?OwnedBy ?SystemOwner} }";
 		ppiQuery = ppiQuery.replaceAll("ASIMS", systemName);
 
-//		//Business Processes Supported Query
-//		String businessProcessQuery = "SELECT DISTINCT ?System ?BusinessProcess ?ProcessCategory WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?System ?Supports ?BusinessProcess} {?BusinessProcess <http://semoss.org/ontologies/Relation/Contains/ProcessCategory> ?ProcessCategory} }";
-//		businessProcessQuery = businessProcessQuery.replaceAll("ASIMS", systemName);
+		//		//Business Processes Supported Query
+		//		String businessProcessQuery = "SELECT DISTINCT ?System ?BusinessProcess ?ProcessCategory WHERE { BIND (<http://health.mil/ontologies/Concept/System/ASIMS> AS ?System) {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>} {?System ?Supports ?BusinessProcess} {?BusinessProcess <http://semoss.org/ontologies/Relation/Contains/ProcessCategory> ?ProcessCategory} }";
+		//		businessProcessQuery = businessProcessQuery.replaceAll("ASIMS", systemName);
 
 		//System POC Query
 		String systemPOCQuery = "SELECT DISTINCT ?POC WHERE { BIND(<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/POC> ?POC ;} }";
@@ -333,11 +320,11 @@ public class FactSheetProcessor {
 		ArrayList<String> pocList = runQuery(tapCoreEngine, systemPOCQuery);
 		ArrayList<ArrayList<String>> userTypesList = runQuery(tapCoreEngine, userTypesQuery);
 		ArrayList<ArrayList<String>> userInterfacesList = runQuery(tapCoreEngine, userInterfaceQuery);
-//		ArrayList<ArrayList<String>> businessProcessList = runQuery(tapCoreEngine, businessProcessQuery);
+		//		ArrayList<ArrayList<String>> businessProcessList = runQuery(tapCoreEngine, businessProcessQuery);
 		ArrayList<String> ppiList = runQuery(tapCoreEngine, ppiQuery);
-		
+
 		ArrayList<Integer> capabilitiesSupportedResultsList = dhelp.getNumOfCapabilitiesSupported(systemName);
-		
+
 
 		returnHash.put(ConstantsTAP.SYSTEM_SW_QUERY, systemSWResultsList);
 		returnHash.put(ConstantsTAP.SYSTEM_HW_QUERY, systemHWResultsList);
@@ -359,7 +346,7 @@ public class FactSheetProcessor {
 		returnHash.put(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY, systemHighlightsList);
 		returnHash.put(ConstantsTAP.USER_TYPES_QUERY, userTypesList);
 		returnHash.put(ConstantsTAP.USER_INTERFACES_QUERY, userInterfacesList);
-//		returnHash.put(ConstantsTAP.BUSINESS_PROCESS_QUERY, businessProcessList);
+		//		returnHash.put(ConstantsTAP.BUSINESS_PROCESS_QUERY, businessProcessList);
 		returnHash.put(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY,capabilitiesSupportedResultsList);
 		returnHash.put(ConstantsTAP.PPI_QUERY, ppiList);
 
@@ -375,14 +362,14 @@ public class FactSheetProcessor {
 	 */
 	public void writeToFile(String service, String systemName, Hashtable systemDataHash) {
 		FactSheetWriter writer = new FactSheetWriter();
-		String folder = "\\export\\Reports\\FactSheets\\";
+		String folder = File.separator + "export" + File.separator + "Reports" + File.separator + "FactSheets" + File.separator;
 		String writeFileName;
-//		if (service != null) {
-//			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
-//		}
-//		else{ 
-			writeFileName = systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
-//		}
+		//		if (service != null) {
+		//			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
+		//		}
+		//		else{ 
+		writeFileName = systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
+		//		}
 
 		String fileLoc = workingDir + folder + writeFileName;
 		String templateFileName = "Fact_Sheet_Template.xlsx";

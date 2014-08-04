@@ -19,6 +19,7 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -303,7 +304,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 							
 			DeconflictingReportSheetWriter writer = new DeconflictingReportSheetWriter();
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String folder = "\\export\\Reports\\Deconflicting\\";
+			String folder = File.separator + "export" + File.separator + "Reports" + File.separator + "Deconflicting" + File.separator;
 			String writeFileName = system+"_System Export_30102013.xlsx";
 			String fileLoc = workingDir + folder + writeFileName;
 			String templateLoc = workingDir + folder + "Report_Deconflicting_Template.xlsx";
