@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.IllegalFormatException;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -32,7 +31,6 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -170,8 +168,10 @@ public class POIReader extends AbstractFileReader {
 	public void importFile(String fileName) throws EngineException, FileReaderException, InvalidUploadFormatException {
 
 		XSSFWorkbook workbook = null;
+		FileInputStream poiReader;
 		try {
-			workbook = new XSSFWorkbook(new FileInputStream(fileName));
+			poiReader = new FileInputStream(fileName);
+			workbook = new XSSFWorkbook(poiReader);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not find Excel file located at " + fileName);
@@ -245,7 +245,6 @@ public class POIReader extends AbstractFileReader {
 	 * @param workbook		XSSFWorkbook containing the sheet to load
 	 * @throws EngineException 
 	 */
-	@SuppressWarnings("null")
 	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException {
 
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
@@ -307,7 +306,7 @@ public class POIReader extends AbstractFileReader {
 				// to prevent errors when java thinks there is a row of data when the row is empty
 				XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
 				String instanceSubjectNode = "";
-				if(instanceSubjectNodeCell != null || instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceSubjectNodeCell.toString().isEmpty())
+				if(instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceSubjectNodeCell.toString().isEmpty())
 				{
 					instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 				}
@@ -323,7 +322,7 @@ public class POIReader extends AbstractFileReader {
 				if (sheetType.equalsIgnoreCase("Relation")) {
 					nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
 					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-					if(instanceObjectNodeCell != null || instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK || !instanceObjectNodeCell.toString().isEmpty())
+					if(instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceObjectNodeCell.toString().isEmpty())
 					{
 						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 					}
@@ -343,7 +342,7 @@ public class POIReader extends AbstractFileReader {
 					}
 					String propName = propNames.elementAt(colIndex - offset).toString();
 					String propValue = "";
-					if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK || nextRow.getCell(colIndex).toString().isEmpty()) {
+					if (nextRow.getCell(colIndex) == null && nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK && nextRow.getCell(colIndex).toString().isEmpty()) {
 						continue;
 					}
 					if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
