@@ -18,12 +18,14 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
+import org.openrdf.query.QueryEvaluationException;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.util.Utility;
@@ -106,7 +108,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 				// get the input stream directly here
 				remoteWrapperProxy = (SesameJenaConstructWrapper)engine.execGraphQuery(query);
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -171,7 +173,12 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 						//System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
 						retBool = true;
 					}
-				} catch (Exception e) {
+				} catch (RuntimeException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					retSt = null;
+					retBool = false;
+				} catch (ClassNotFoundException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					retSt = null;
@@ -190,9 +197,15 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 			}
 			
 			
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
@@ -248,9 +261,12 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 				retSt = null;
 			}
 
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return thisSt;
 	}

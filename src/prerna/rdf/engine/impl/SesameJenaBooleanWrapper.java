@@ -77,7 +77,7 @@ public class SesameJenaBooleanWrapper {
 		boolean ret= false;
 		try {
 			ret = engine.execAskQuery(query);			
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			// TODO: Specify exception
 			e.printStackTrace();
 		}

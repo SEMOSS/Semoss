@@ -20,6 +20,7 @@ package prerna.rdf.engine.impl;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -45,6 +46,8 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
@@ -115,10 +118,19 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
 			}
 		    this.connected = true;
-		}catch(Exception ignored)
+		}catch(RuntimeException ignored)
 		{
 			this.connected = false;
 			ignored.printStackTrace();
+		} catch (RDFParseException e) {
+			this.connected = false;
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			this.connected = false;
+			e.printStackTrace();
+		} catch (IOException e) {
+			this.connected = false;
+			e.printStackTrace();
 		}
 	}
 
@@ -409,8 +421,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.
+	 * @throws IOException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
 	 */
-	public void exportDB() throws Exception
+	public void exportDB() throws RepositoryException, RDFHandlerException, IOException
 	{
 		System.err.println("Exporting database");
 		rc.export(new RDFXMLPrettyWriter(new FileWriter(fileName)));

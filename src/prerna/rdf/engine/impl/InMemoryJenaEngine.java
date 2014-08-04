@@ -70,7 +70,7 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 			com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
 			QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 			model = qex.execConstruct();
-		}catch(Exception e){
+		}catch(RuntimeException e){
 			// TODO: Specify exception
 			e.printStackTrace();
 		}
@@ -92,7 +92,7 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 			com.hp.hpl.jena.query.Query q2 = QueryFactory.create(query); 
 			QueryExecution qex = QueryExecutionFactory.create(q2, jenaModel);
 			rs = qex.execSelect();
-		}catch (Exception e){
+		}catch (RuntimeException e){
 			e.printStackTrace();
 		}
 		return rs;

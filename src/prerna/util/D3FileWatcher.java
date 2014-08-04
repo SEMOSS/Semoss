@@ -18,6 +18,11 @@
  ******************************************************************************/
 package prerna.util;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import org.openrdf.repository.RepositoryException;
+
 import prerna.poi.specific.D3CSVLoader;
 
 
@@ -37,8 +42,17 @@ public class D3FileWatcher extends AbstractFileWatcher {
 			loader.importFileWithConnection(engine.getEngineName(), folderToWatch + "/" + fileName, "http://semoss.org/ontologies", engine.getProperty(Constants.OWL));
 			
 			
-		} catch(Exception ex) {
+		} catch(RuntimeException ex) {
 			ex.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

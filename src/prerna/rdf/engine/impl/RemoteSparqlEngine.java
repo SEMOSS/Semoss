@@ -98,7 +98,7 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 			
 			this.connected = true;
 			// return g;
-		}catch(Exception ignored)
+		}catch(RuntimeException ignored)
 		{
 			ignored.printStackTrace();
 		}

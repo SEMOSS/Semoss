@@ -44,8 +44,8 @@ public class StringNumericComparator implements Comparator<String>{
 				num1 = Integer.parseInt(str1.substring(0, str1.indexOf(".")));
 				num2 = Integer.parseInt(str2.substring(0, str2.indexOf(".")));
 				if(num1 != num2) return num1 - num2;
-			}catch(Exception e){
-
+			}catch(RuntimeException e){
+				System.out.println("ignored");
 			}
 		}
 		

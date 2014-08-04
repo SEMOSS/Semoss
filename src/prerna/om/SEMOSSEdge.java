@@ -156,7 +156,7 @@ public class SEMOSSEdge {
 				propHash.put(instanceName, ((Literal)propValue).doubleValue());
 				converted = true;
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			logger.debug(ex);
 		}
@@ -177,7 +177,7 @@ public class SEMOSSEdge {
 				
 				
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			logger.debug(ex);
 		}

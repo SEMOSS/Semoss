@@ -1,5 +1,6 @@
 package prerna.rdf.engine.impl;
 
+import java.io.IOException;
 import java.io.StringBufferInputStream;
 import java.util.Hashtable;
 import java.util.Vector;
@@ -9,6 +10,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
@@ -78,11 +80,20 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				
 				// yup.. we are open for business
 				connected = true;
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			// will do something later
 			ex.printStackTrace();
 			connected = false;
+		} catch (RDFParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}		
 	}
 		

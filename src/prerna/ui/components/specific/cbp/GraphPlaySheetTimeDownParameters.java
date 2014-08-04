@@ -19,6 +19,7 @@
 package prerna.ui.components.specific.cbp;
 
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -52,7 +53,7 @@ public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 	 * Gets information about arrival time and resolved time and stores information about these nodes and edges.
 	 */
 	@Override
-	public void createForest() throws Exception {
+	public void createForest() {
 
 		super.createForest();
 //		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
@@ -82,8 +83,20 @@ public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 					String start=vert1.getProperty("ArrivalTime").toString();
 					String end=vert1.getProperty("ResolvedTime").toString();
 					logger.info("StartDate: "+start);
-					Date startDate = dfm.parse(start.substring(1,11)+" "+start.substring(12,20));
-					Date endDate = dfm.parse(end.substring(1,11)+" "+end.substring(12,20));
+					Date startDate = null;
+					try {
+						startDate = dfm.parse(start.substring(1,11)+" "+start.substring(12,20));
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					Date endDate = null;
+					try {
+						endDate = dfm.parse(end.substring(1,11)+" "+end.substring(12,20));
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 						
 					tempDate.setTime(startDate);
 					tempDate.add(Calendar.HOUR,timeDown1);

@@ -111,11 +111,11 @@ public class SEMOSSVertex{
 			try {
 				propHash.put(type, ((Literal)vert).doubleValue());				
 			}catch(Exception ex)
-			{}
+			{logger.debug(ex);}
 			try{
 				propHash.put(type, vert + "");
 			}catch (Exception ex)
-			{}
+			{logger.debug(ex);}
 		}
 
 		// parse out all the oth er properties
@@ -202,7 +202,7 @@ public class SEMOSSVertex{
 			vertTypeCount++;
 			propHash.put(vertType, vertTypeCount);
 		}catch (Exception ignored)
-		{
+		{logger.debug(ignored);
 		}
 	}
 	
@@ -341,7 +341,10 @@ public class SEMOSSVertex{
 					Double value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble();
 					converted = true;
 					propHash.put(instanceName, value);
-				}catch (Exception ignored){	converted = false;	}
+				}catch (RuntimeException ignored) {
+					logger.debug(ignored);
+					converted = false;
+				}
 				
 				// try integer
 				if(!converted)
@@ -351,7 +354,10 @@ public class SEMOSSVertex{
 						Integer value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getInt();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (Exception ignored) {converted = false;}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+						converted = false;
+					}
 				}
 				
 				// try boolean
@@ -362,7 +368,9 @@ public class SEMOSSVertex{
 						Boolean value = ((com.hp.hpl.jena.rdf.model.Literal)propValue).getBoolean();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (Exception ignored) {}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+					}
 				}
 				// try string
 				if(!converted)
@@ -373,15 +381,16 @@ public class SEMOSSVertex{
 						converted = true;
 						propHash.put(instanceName, value);
 
-					}catch (Exception ignored) {}
+					}catch (RuntimeException ignored) {
+						logger.debug(ignored);
+					}
 				}
 				
 				//propHash.put(instanceName, ((com.hp.hpl.jena.rdf.model.Literal)propValue).getDouble());
 				//converted = true;
 			}
-		}catch(Exception ex)
-		{
-			logger.debug(ex);
+		}catch (RuntimeException ignored) {
+			logger.debug(ignored);
 		}
 		if(!converted)
 		{

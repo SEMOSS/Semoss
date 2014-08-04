@@ -171,7 +171,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 			try{
 				wrapper.executeQuery();	
 			}
-			catch (Exception e)
+			catch (RuntimeException e)
 			{
 				e.printStackTrace();
 			}		
@@ -202,7 +202,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 				list.add(count, values);
 				count++;
 			}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			logger.fatal(e);
 		}
 	}

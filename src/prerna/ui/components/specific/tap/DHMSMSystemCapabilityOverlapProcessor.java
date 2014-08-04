@@ -72,7 +72,7 @@ public class DHMSMSystemCapabilityOverlapProcessor {
 					SesameJenaSelectStatement sjss = wrapper.next();
 					capToFunctionalAreaHash.put((String) sjss.getVar(names[0]),(String) sjss.getVar(names[1]));
 				}
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: "+hrCoreEngine);
 		}
 	}

@@ -23,6 +23,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -50,6 +54,7 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.rdf.engine.api.IEngine;
@@ -67,6 +72,7 @@ import com.ibm.icu.text.DecimalFormat;
 public class Utility {
 
 	public static int id = 0;
+	static Logger logger = Logger.getLogger(prerna.util.Utility.class);
 
 	/**
 	 * Matches the given query against a specified pattern.
@@ -568,7 +574,7 @@ public class Utility {
 	 * @param 	The base sesame engine for the RDF map
 
 	 * @return 	Hashtable containing base triple relations */
-	private static Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) throws Exception {
+	private static Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) {
 		String relationName = "BaseData";
 		Hashtable baseFilterHash = new Hashtable();
 		if(rdfMap.containsKey(relationName)){ //load using what is on the map
@@ -619,7 +625,7 @@ public class Utility {
 			try {
 				Hashtable hash = createBaseRelations(engineProp, baseRelEngine);
 				engine.setBaseHash(hash);
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				// TODO: Specify exception
 				e.printStackTrace();
 			}
@@ -701,15 +707,17 @@ public class Utility {
 					double dub = Double.parseDouble(value);
 					paramHash.put(key, dub);
 					found = true;
-				}catch (Exception ignored)
+				}catch (RuntimeException ignored)
 				{
+					logger.debug(ignored);
 				}
 				if(!found){
 					try{
 						int dub = Integer.parseInt(value);
 						paramHash.put(key, dub);
-					}catch (Exception ignored)
+					}catch (RuntimeException ignored)
 					{
+						logger.debug(ignored);
 					}
 				}
 				//if(!found)
@@ -761,9 +769,19 @@ public class Utility {
 				while((data = stream.readLine()) != null)
 					output = output + data;
 			}
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
-			//connected = false;
+			logger.debug(ex);
+		} catch (IOException ex) {
+			logger.debug(ex);
+		} catch (NoSuchAlgorithmException e) {
+			logger.debug(e);
+		} catch (KeyStoreException e) {
+			logger.debug(e);
+		} catch (URISyntaxException e) {
+			logger.debug(e);
+		} catch (KeyManagementException e) {
+			logger.debug(e);
 		}
 		if(output.length() == 0)
 			output = null;
@@ -808,10 +826,25 @@ public class Utility {
 			entity = response.getEntity();
 			return entity.getContent();
 			
-		}catch(Exception ex)
+		}catch(RuntimeException ex)
 		{
 			//connected = false;
 			ex.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (KeyManagementException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return null;
 	}
