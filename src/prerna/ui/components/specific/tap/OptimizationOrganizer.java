@@ -34,28 +34,46 @@ import prerna.util.DIHelper;
  */
 public class OptimizationOrganizer {
 
-	String providerCostQuery;
-	String consumerCostQuery;
-	String genericCostQuery;
-	String icdServiceQuery;
-	String consumerSysQuery;
-//	String providerCostCreateQuery;
-//	String consumerCostCreateQuery;
-//	String genericCostCreateQuery;
-	String icdSerCreateQuery;
-	String sysURI = "<http://health.mil/ontologies/Concept/System/";
+	//TODO: standardize the way we define a consumer (should this pull from icds? or system provide data relationship?) in all the queries. Currently discrepancy between the optimization for all systems optimization and system specific optimization.
+	
+	//Query to determine the LOEs to provide/consume each system for each service. Gets all the central systems that are providing/consuming data objects and the service they can be replaced with. LOEs are broken down for each phase (Design, Develop, Requirements, etc.) of the transition. Does NOT include deployment.
+	private String providerCostQuery, consumerCostQuery;
+	//Query to determine the generic LOEs  for each service. Gets all the services they can be replaced with. LOEs are broken down for each phase (Design, Develop, Requirements, etc.) of the transition. Includes Deployment.
+	private String genericCostQuery;
+	
+	//Query to determine how many data objects are passed between central systems by looking at the ICDs between central systems. Also calculates the number of services by what what services could expose the data.
+	private String icdServiceQuery;
+	
+	//query to pull all the consumers of a data object. Only pulling from ICDs where type is "TBD". Not sure why this is the case....
+	private String consumerSysQuery;
+	
+	//query to pull the number of ICDs that pass each data object. Pass must occur between central systems through an ICD and must have Type TBD (why?). Also lists the services for that data object.
+	private String icdSerCreateQuery;
+	private String sysURI = "http://health.mil/ontologies/Concept/System/";
 
-	public String colLabel = "COLUMN_LABEL";
-	public String rowLabel = "ROW_LABEL";
-	public String matrixLabel = "MATRIX_LABEL";
-	Logger logger = Logger.getLogger(getClass());
-	public Hashtable<String, Double> serviceHash;
-	public Hashtable icdService;
-	public Hashtable detailedServiceCostHash;
-	public Hashtable<String, ArrayList<Object[]>> masterHash = new Hashtable();//key is service name; object is system specific information regarding service
-	ArrayList<String> masterServiceList = new ArrayList<String>();
+	private Logger logger = Logger.getLogger(getClass());
+	private Hashtable<String, Double> serviceHash;
+	private Object[][] icdServiceMatrix;
+	private ArrayList<String> icdServiceRowNames;
+	private ArrayList<String> icdServiceColNames;
 
-	//CURRENTLY INGORING DEPLOYMENT COSTS on consumer
+	
+	public Hashtable<String,Hashtable<String,Double>> detailedServiceCostHash;
+	public Hashtable<String, ArrayList<Object[]>> masterHash = new Hashtable<String, ArrayList<Object[]>>();//key is service name; object is system specific information regarding service
+	private ArrayList<String> masterServiceList = new ArrayList<String>();
+
+	public ArrayList<String> getICDServiceRowNames() {
+		return icdServiceRowNames;
+	}
+	public ArrayList<String> getICDServiceColNames() {
+		return icdServiceColNames;
+	}
+	public Object[][] getICDServiceMatrix() {
+		return icdServiceMatrix;
+	}
+	public Hashtable<String, Double> getServiceHash() {
+		return serviceHash;
+	}
 	/**
 	 * Gets provider, consumer, and generic costs from TAP Core and puts these values into hashtables.
 	 * Puts information into the detailed service cost hash with "provider," "consumer," and "generic" as keys for the values.
@@ -63,28 +81,26 @@ public class OptimizationOrganizer {
 	 */
 	public void runOrganizer(String system[]){
 		setQueries(system);
-		serviceHash = new Hashtable();
-		Hashtable providerServiceHash = new Hashtable();
-		Hashtable consumerServiceHash = new Hashtable();
-		Hashtable genericServiceHash = new Hashtable();
+		serviceHash = new Hashtable<String,Double>();
+		Hashtable<String,Double> providerServiceHash = new Hashtable<String,Double>();
+		Hashtable<String,Double> consumerServiceHash = new Hashtable<String,Double>();
+		Hashtable<String,Double> genericServiceHash = new Hashtable<String,Double>();
 
 		//Get provider costs
-		//Object[][] providerMatrix = createMatrix(providerCostCreateQuery, "TAP_Cost_Data");
 		serviceHash = addToHashtable(providerCostQuery, "TAP_Cost_Data", serviceHash, providerServiceHash, true);
-		//Get consumer costs
-		//Object[][] consumerMatrix = createMatrix(consumerCostCreateQuery, "TAP_Cost_Data");
 		
-		ArrayList dataSys = getDownStreamConsumers(consumerSysQuery,  "TAP_Core_Data");
+		//Get consumer costs		
+		ArrayList<String> dataSys = getDownStreamConsumers(consumerSysQuery,  "TAP_Core_Data");
 		serviceHash = addConsumerToHash(consumerCostQuery, "TAP_Cost_Data", serviceHash,consumerServiceHash, dataSys);
 			
 		//Get generic costs
-		//Object[][] genericMatrix = createMatrix(genericCostCreateQuery, "TAP_Cost_Data");
 		serviceHash = addToHashtable(genericCostQuery, "TAP_Cost_Data", serviceHash, genericServiceHash, false);
+		
 		//Get icd-ser matrix
 		Object[][] icdSerMatrix = createMatrix(icdSerCreateQuery, "TAP_Core_Data");
-		icdService = fillMatrix(icdServiceQuery, "TAP_Core_Data", icdSerMatrix);
+		fillMatrix(icdServiceQuery, "TAP_Core_Data", icdSerMatrix);
 
-		detailedServiceCostHash = new Hashtable();
+		detailedServiceCostHash = new Hashtable<String,Hashtable<String,Double>>();
 		detailedServiceCostHash.put("provider", providerServiceHash);
 		detailedServiceCostHash.put("consumer", consumerServiceHash);
 		detailedServiceCostHash.put("generic", genericServiceHash);
@@ -96,10 +112,9 @@ public class OptimizationOrganizer {
 	 * @param 	Query.
 	 * @param 	Name of the engine.
 	 * @return 	List containing system names and data. */
-	public ArrayList getDownStreamConsumers(String query, String engineName)
+	public ArrayList<String> getDownStreamConsumers(String query, String engineName)
 	{
-		ArrayList retList = new ArrayList();
-
+		ArrayList<String> retList = new ArrayList<String>();
 
 		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
 
@@ -109,9 +124,9 @@ public class OptimizationOrganizer {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
+				String dataName = sjss.getVar(names[0])+"";
 				String sysName = sjss.getVar(names[1])+"";
-				String dataName = sjss.getVar(names[2])+"";
-				retList.add(sysName+":"+dataName);
+				retList.add(dataName+":"+sysName);
 			}
 		} 
 		catch (RuntimeException e) {
@@ -151,10 +166,10 @@ public class OptimizationOrganizer {
 	 * @param 	Matrix containing query outputs.
 	
 	 * @return 	Hashtable of results originally in the matrix. */
-	private Hashtable fillMatrix(String query, String engineName, Object[][] matrix){
-		Hashtable hash = new Hashtable();
-		ArrayList<String> rowNames = new ArrayList<String>();
-		ArrayList<String> colNames = new ArrayList<String>();
+	private void fillMatrix(String query, String engineName, Object[][] matrix){
+
+		icdServiceRowNames = new ArrayList<String>();
+		icdServiceColNames = new ArrayList<String>();
 
 		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
 
@@ -176,15 +191,15 @@ public class OptimizationOrganizer {
 					Object value = sjss.getVar(names[2]);
 					//I need to make sure I am only adding services that have consumer costs... thus must check the masterServiceList
 					if(masterServiceList.contains(colName)){
-						int rowIdx = rowNames.size();
-						if(rowNames.contains(rowName))
-							rowIdx = rowNames.indexOf(rowName);
-						else rowNames.add(rowIdx, rowName);
+						int rowIdx = icdServiceRowNames.size();
+						if(icdServiceRowNames.contains(rowName))
+							rowIdx = icdServiceRowNames.indexOf(rowName);
+						else icdServiceRowNames.add(rowIdx, rowName);
 
-						int colIdx = colNames.size();
-						if(colNames.contains(colName))
-							colIdx = colNames.indexOf(colName);
-						else colNames.add(colIdx, colName);
+						int colIdx = icdServiceColNames.size();
+						if(icdServiceColNames.contains(colName))
+							colIdx = icdServiceColNames.indexOf(colName);
+						else icdServiceColNames.add(colIdx, colName);
 
 						//now just put it in the matrix
 						matrix[rowIdx][colIdx] = value;
@@ -203,20 +218,14 @@ public class OptimizationOrganizer {
 			logger.error(e);
 		}
 		
-		logger.info(colNames.size()+" out of " +masterServiceList.size());
+		logger.info(icdServiceColNames.size()+" out of " +masterServiceList.size());
 		//have to put it into a new matrix array because it is possible that not all columns were filled
-		Object[][] finalMatrix = new Object[rowNames.size()][colNames.size()];
-		for(int row = 0; row<finalMatrix.length; row++){
-			for (int col = 0; col<finalMatrix[0].length; col++){
-				finalMatrix[row][col] = matrix[row][col];
+		icdServiceMatrix = new Object[icdServiceRowNames.size()][icdServiceColNames.size()];
+		for(int row = 0; row<icdServiceMatrix.length; row++){
+			for (int col = 0; col<icdServiceMatrix[0].length; col++){
+				icdServiceMatrix[row][col] = matrix[row][col];
 			}
 		}
-
-		//now store in the hash and pass it back
-		hash.put(rowLabel, rowNames);
-		hash.put(colLabel, colNames);
-		hash.put(matrixLabel, finalMatrix);
-		return hash;
 	}
 
 	/**
@@ -227,7 +236,7 @@ public class OptimizationOrganizer {
 	 * @param 	Provider service hashtable.
 	 * @param 	If false, update hashtable with new values.
 	 * @return 	Service hashtable with updated values. */
-	private Hashtable addToHashtable(String query, String engineName, Hashtable hash, Hashtable hash2, boolean createEntryPrivledges){
+	private Hashtable<String,Double> addToHashtable(String query, String engineName, Hashtable<String,Double> hash, Hashtable<String,Double> hash2, boolean createEntryPrivledges){
 
 		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
 
@@ -237,18 +246,16 @@ public class OptimizationOrganizer {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-
-
 				if(sjss.getVar(names[0]) != null)
 				{
-					String rowName = sjss.getVar(names[0])+"";
+//					String rowName = sjss.getVar(names[0])+"";
 					String colName = sjss.getVar(names[1])+"";
 					Object value = sjss.getVar(names[2]);
 					addToMasterHash(sjss, colName, names);
 					//here I need to see if the hashtable already contains the key
 					if(!createEntryPrivledges){
 						if(hash.containsKey(colName)){
-							double prevValue = (Double) hash.get(colName);
+							double prevValue = hash.get(colName);
 							double newValue = prevValue + Double.parseDouble(value+"");
 							hash.put(colName, newValue);
 						}
@@ -258,7 +265,7 @@ public class OptimizationOrganizer {
 					}
 					else{
 						if(hash.containsKey(colName)){
-							double prevValue = (Double) hash.get(colName);
+							double prevValue = hash.get(colName);
 							double newValue = prevValue + Double.parseDouble(value+"");
 							hash.put(colName, newValue);
 						}
@@ -269,9 +276,8 @@ public class OptimizationOrganizer {
 					}
 
 					//add to hash2
-
 					if(hash2!= null&& hash2.containsKey(colName)) {
-						double prevValue2 = (Double) hash2.get(colName);
+						double prevValue2 = hash2.get(colName);
 						double newValue2 = prevValue2 + Double.parseDouble(value+"");
 						hash2.put(colName, newValue2);
 					}
@@ -302,7 +308,7 @@ public class OptimizationOrganizer {
 	 * @param 	List of systems.
 	
 	 * @return 	Hashtable with updated values. */
-	private Hashtable addConsumerToHash(String query, String engineName, Hashtable hash, Hashtable hash2, ArrayList sysList){
+	private Hashtable<String,Double> addConsumerToHash(String query, String engineName, Hashtable<String,Double> hash, Hashtable<String,Double> hash2, ArrayList<String> sysList){
 
 		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
 
@@ -312,8 +318,6 @@ public class OptimizationOrganizer {
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
-
-
 				if(sjss.getVar(names[0]) != null)
 				{
 					String sysName = sjss.getVar(names[0])+"";
@@ -321,7 +325,7 @@ public class OptimizationOrganizer {
 					String conc =dataName+":"+sysName ;
 					if (sysList.contains(conc))
 					{
-						String rowName = sjss.getVar(names[0])+"";
+//						String rowName = sjss.getVar(names[0])+"";
 						String colName = sjss.getVar(names[1])+"";
 						Object value = sjss.getVar(names[2]);
 						addToMasterHash(sjss, colName, names);
@@ -381,7 +385,7 @@ public class OptimizationOrganizer {
 			masterHash.put(serName, table);
 		}
 		else{
-			ArrayList<Object[]> table = new ArrayList();
+			ArrayList<Object[]> table = new ArrayList<Object[]>();
 			table.add(newRow);
 			masterHash.put(serName, table);	
 		}
@@ -411,40 +415,33 @@ public class OptimizationOrganizer {
 	 */
 	public void setQueries(String[] system)
 	{
-		providerCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?element WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?sys ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs) {?GLitem ?belongs ?phase ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND(<http://semoss.org/ontologies/Relation/Output> AS ?output) {?GLitem ?output ?ser ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?element ?input ?GLitem} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }}";	
-		consumerCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?inputElement WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences){?sys ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs)  {?GLitem ?belongs ?phase ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND(<http://semoss.org/ontologies/Relation/Output> AS ?output) {?GLitem ?output ?ser ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?inputElement ?input ?GLitem} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }}";
-		genericCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?inputElement WHERE {  {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs) {?GLitem ?belongs ?phase ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?inputElement ?input ?GLitem} BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag). BIND( <http://semoss.org/ontologies/Relation/Output> AS ?output) {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?GLitem ?output ?ser ;}  {?ser <http://www.w3.org/2000/01/rdf-schema#label> ?name;} BIND(\"Generic\" as ?sys)}";
-		icdSerCreateQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT(?data)) AS ?dataCount) (COUNT(DISTINCT(?ser)) AS ?serCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} BIND( <http://semoss.org/ontologies/Relation/Payload> AS ?pay) {?icd ?pay ?data} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume) {?sys2 ?OwnedBy2 <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?icd ?consume ?sys2} BIND(\"Provider Count\" AS ?type) } GROUP BY ?type";
+		providerCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?element WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem ;}{?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase ;} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?element <http://semoss.org/ontologies/Relation/Input> ?GLitem} }";
+		consumerCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?inputElement WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase ;} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?inputElement <http://semoss.org/ontologies/Relation/Input> ?GLitem}}";
+		genericCostQuery = "SELECT DISTINCT ?sys ?ser ?loe ?GLitem ?phase ?gltag ?inputElement WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) BIND(\"Generic\" as ?sys) {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase ;} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;}  {?inputElement <http://semoss.org/ontologies/Relation/Input> ?GLitem} }";
+		icdSerCreateQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT(?data)) AS ?dataCount) (COUNT(DISTINCT(?ser)) AS ?serCount) WHERE { BIND(\"Provider Count\" AS ?type) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?sys2 ?OwnedBy2 <http://health.mil/ontologies/Concept/SystemOwner/Central> }  {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?sys <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?sys2} } GROUP BY ?type";
 		if (system==null)
 		{
-			consumerSysQuery="SELECT DISTINCT (\"y\" AS ?y) ?Data1 ?System3 WHERE { {?System1 ?upstream1 ?icd1 ;}{?System1 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?upstream1) BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream1) {?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;}{?carries <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"}{?System3 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }}";
-			icdServiceQuery = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?pay ?data}  {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"}{?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume) {?sys2 ?has2 <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?icd ?consume ?sys2} BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer ";
+			consumerSysQuery="SELECT DISTINCT ?Data1 ?System3 WHERE { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?System1 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }{?System3 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> }{?System1 <http://semoss.org/ontologies/Relation/Provide> ?icd1 ;}{?icd1 <http://semoss.org/ontologies/Relation/Consume> ?System3;}{?icd1 ?carries ?Data1;}{?carries <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"}}";
+			icdServiceQuery = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data;} {?icd ?pay ?data}  {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?sys2 ?OwnedBy2 <http://health.mil/ontologies/Concept/SystemOwner/Central>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?sys2}  BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer";
 		}
 		else
 		{
 			String bindSysStr = getBindingString(system);
 			providerCostQuery = providerCostQuery + "BINDINGS ?sys {"+bindSysStr+"}";	
-			consumerSysQuery="SELECT DISTINCT ?System1 ?Data1 ?System3 WHERE { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System1 <http://www.w3.org/2000/01/rdf-schema#label> ?SysName} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System1 ?provide ?Data1 ;} BIND(<http://semoss.org/ontologies/Relation/Contains/CRM> AS ?contains2). {?provide ?contains2 ?crm ;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System1 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;}{?carries <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"}{?System3 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } FILTER (?crm in(\"C\",\"M\"))}BINDINGS ?sys {"+bindSysStr+"}";
-			icdServiceQuery = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND( <http://semoss.org/ontologies/Relation/Exposes> AS ?exp) {?ser ?exp ?data;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}  {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?sys <http://www.w3.org/2000/01/rdf-schema#label> ?SysName} {?icd ?pay ?data}{?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?provide) {?sys ?provide ?icd} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?consume) {?sys2 ?OwnedBy2 <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?icd ?consume ?sys2} {?sys ?provide2 ?data} {?provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?provide2 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}FILTER (?CRM in(\"C\",\"M\"))BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer BINDINGS ?sys {"+bindSysStr+"} ";
+			consumerSysQuery="SELECT DISTINCT ?Data1 ?System3 WHERE { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}   {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm ;} {?System3 ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?System1 ?provide ?Data1 ;} {?System1 <http://semoss.org/ontologies/Relation/Provide> ?icd1 ;}{?icd1 <http://semoss.org/ontologies/Relation/Consume> ?System3;} {?icd1 ?carries ?Data1;}{?carries <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} FILTER (?crm in(\"C\",\"M\"))} BINDINGS ?System1 {"+bindSysStr+"}";
+			icdServiceQuery = "SELECT (SAMPLE(?data) AS ?Data) (SAMPLE(?ser) AS ?Ser) (COUNT(DISTINCT(?icd)) AS ?icdCount) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?pay <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data;} {?icd ?pay ?data} {?pay <http://semoss.org/ontologies/Relation/Contains/Type> \"TBD\"} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?sys2 ?OwnedBy2 <http://health.mil/ontologies/Concept/SystemOwner/Central> } {?sys <http://semoss.org/ontologies/Relation/Provide> ?icd} {?icd <http://semoss.org/ontologies/Relation/Consume> ?sys2} {?sys ?provide2 ?data} {?provide2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?provide2 <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}FILTER (?CRM in(\"C\",\"M\"))BIND(URI(CONCAT(STR(?data),STR(?ser))) AS ?dataSer)} GROUP BY ?dataSer BINDINGS ?sys {"+bindSysStr+"} ";
 		}
-		
-		/*providerCostCreateQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT(?sys)) AS ?sysCount) (COUNT(DISTINCT(?ser)) AS ?serCount) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?sys ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs) {?GLitem ?belongs ?phase ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND(<http://semoss.org/ontologies/Relation/Output> AS ?output) {?GLitem ?output ?ser ;}{?ser <http://www.w3.org/2000/01/rdf-schema#label> ?name;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?element ?input ?GLitem} BIND(\"Provider Count\" AS ?type) {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } } GROUP BY ?type";
-		consumerCostCreateQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT(?sys)) AS ?sysCount) (COUNT(DISTINCT(?ser)) AS ?serCount) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences){?sys ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs)  {?GLitem ?belongs ?phase ;} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} BIND(<http://semoss.org/ontologies/Relation/Output> AS ?output) {?GLitem ?output ?ser ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?inputElement ?input ?GLitem} BIND(\"Consumer Count\" AS ?type) {?sys ?OwnedBy <http://health.mil/ontologies/Concept/SystemOwner/Central> } } GROUP BY ?type";
-		genericCostCreateQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT(?sys)) AS ?sysCount) (COUNT(DISTINCT(?ser)) AS ?serCount) WHERE { {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND( <http://semoss.org/ontologies/Relation/TaggedBy> AS ?tagged) {?GLitem ?tagged ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start ;} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase> ;} BIND(<http://semoss.org/ontologies/Relation/BelongsTo> AS ?belongs) {?GLitem ?belongs ?phase ;} BIND( <http://semoss.org/ontologies/Relation/Input> AS ?input) {?inputElement ?input ?GLitem} BIND( <http://semoss.org/ontologies/Concept/GLTag/Generic> AS ?gltag). BIND( <http://semoss.org/ontologies/Relation/Output> AS ?output) {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?GLitem ?output ?ser ;}  {?ser <http://www.w3.org/2000/01/rdf-schema#label> ?name;} BIND(\"Generic\" as ?sys) BIND(\"Generic Count\" AS ?type) } GROUP BY ?type";*/
 	}
 	
 	/**
 	 * Iterate through a list of systems and use processing to retrieve the binding string for each.
 	 * @param 	List of systems.
-	
 	 * @return 	Binding string. */
 	public String getBindingString(String[] sysArray)
 	{
 		String retString = "";
-		for(int i = 0;i < sysArray.length;i++)
-		{
-			retString = retString + "(" + sysURI + sysArray[i] + ")";
-				
+		for(int i = 0;i < sysArray.length;i++) {
+			retString = retString + "(<" + sysURI + sysArray[i] + ">)";
 		}
 		return retString;
 	}

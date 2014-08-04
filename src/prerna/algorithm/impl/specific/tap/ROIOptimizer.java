@@ -49,7 +49,7 @@ public class ROIOptimizer extends UnivariateSvcOptimizer{
 	{
         f = new ROIFunction();
         super.optimize();
-    	Object[][] icdSerMatrix=(Object[][]) optOrg.icdService.get(optOrg.matrixLabel);
+    	Object[][] icdSerMatrix = optOrg.getICDServiceMatrix();
 		if (icdSerMatrix.length==0)
 		{
         	clearPlaysheet();

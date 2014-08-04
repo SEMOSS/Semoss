@@ -39,12 +39,12 @@ public class ServiceOptimizer extends LPOptimizer{
 
 	//data objects vs the services, 
 	public Object[][] icdSerMatrix;
-	public Hashtable serCostHash;
+	public Hashtable<String, Double> serCostHash;
 	public ArrayList<String> icdLabels;
 	public ArrayList<String> serLabels;
 
 	public Object[][] ORIGicdSerMatrix;
-	public Hashtable ORIGserCostHash = new Hashtable();
+	public Hashtable<String, Double> ORIGserCostHash = new Hashtable<String, Double>();
 	public ArrayList<String> ORIGicdLabels = new ArrayList<String>();
 	public ArrayList<String> ORIGserLabels = new ArrayList<String>();
 
@@ -66,8 +66,8 @@ public class ServiceOptimizer extends LPOptimizer{
 
 	public ArrayList<Double> objectiveValueList = new ArrayList<Double>();//keeps track of what the obj. func. value was for each year
 
-	ArrayList<ArrayList> yearlyServicesList = new ArrayList<ArrayList>();
-	ArrayList<ArrayList> yearlyICDList = new ArrayList<ArrayList>();
+	ArrayList<ArrayList<String>> yearlyServicesList = new ArrayList<ArrayList<String>>();
+	ArrayList<ArrayList<Integer>> yearlyICDList = new ArrayList<ArrayList<Integer>>();
 
 	boolean completion = false;
 	/**
@@ -87,13 +87,13 @@ public class ServiceOptimizer extends LPOptimizer{
 	 */
 	public void setData(OptimizationOrganizer organizer) {
 
-		icdSerMatrix = (Object[][]) organizer.icdService.get(organizer.matrixLabel);
+		icdSerMatrix = organizer.getICDServiceMatrix();
 		if (icdSerMatrix == null || icdSerMatrix.length==0) {
 			return;
 		}
-		icdLabels = (ArrayList<String>) organizer.icdService.get(organizer.rowLabel);
-		serLabels = (ArrayList<String>) organizer.icdService.get(organizer.colLabel);
-		serCostHash = organizer.serviceHash;
+		icdLabels = organizer.getICDServiceRowNames();
+		serLabels = organizer.getICDServiceColNames();
+		serCostHash = organizer.getServiceHash();
 		ORIGicdSerMatrix = new Object[icdSerMatrix.length][icdSerMatrix[0].length];
 
 		for(int i = 0; i<icdSerMatrix.length; i++) ORIGicdSerMatrix[i] = Arrays.copyOf(icdSerMatrix[i], icdSerMatrix[i].length);
@@ -122,7 +122,7 @@ public class ServiceOptimizer extends LPOptimizer{
 		solver.setBbFloorfirst(1);//its all about the floor first
 		solver.setBbDepthlimit(0);
 		varColName.addAll(icdLabels);
-		Iterator hashIt = serCostHash.keySet().iterator();
+		Iterator<String> hashIt = serCostHash.keySet().iterator();
 		while (hashIt.hasNext())
 		{
 			varColName.add((String) hashIt.next());
@@ -159,7 +159,7 @@ public class ServiceOptimizer extends LPOptimizer{
 			{
 				//i represents the column for each variable set in the beginning
 				colno[colCount]=i+1;
-				row[colCount]=(Double) serCostHash.get(varColName.get(i))/learningConstant;
+				row[colCount]=serCostHash.get(varColName.get(i))/learningConstant;
 				colCount++;
 			}
 			solver.addConstraintex(colCount, row, colno, LpSolve.LE, budget);
@@ -250,7 +250,7 @@ public class ServiceOptimizer extends LPOptimizer{
 				//get service names
 				String serName = varColName.get(serIdx);
 				//get service costs
-				double serCost = (Double) serCostHash.get(serName);
+				double serCost = serCostHash.get(serName);
 				colno[colCount]=serIdx+1;
 				row[colCount]=-serMainPct/learningConstant*serCost;
 				colCount++;
@@ -272,18 +272,17 @@ public class ServiceOptimizer extends LPOptimizer{
 	 * @param 	hourlyRate			Hourly cost of service.
 	
 	 * @return 	Hashtable with budget and objective as keys. */
-	public Hashtable runOpt(int totalYears, double[] learningConstants, double hourlyRate)
+	public Hashtable<String,ArrayList<Double>> runOpt(int totalYears, double[] learningConstants, double hourlyRate)
 	{
-		Hashtable returnHash = new Hashtable();
+		Hashtable<String,ArrayList<Double>> returnHash = new Hashtable<String,ArrayList<Double>>();
 		this.hourlyCost = hourlyRate;
-		actualBudgetList = new ArrayList();//keeps track of how much of the budget was actually used each year
+		actualBudgetList = new ArrayList<Double>();//keeps track of how much of the budget was actually used each year
+		objectiveValueList = new ArrayList<Double>();//keeps track of what the obj. func. value was for each year
 
-		objectiveValueList = new ArrayList();//keeps track of what the obj. func. value was for each year
-
-		ArrayList impSerList = new ArrayList();
-		ArrayList impICDList = new ArrayList();
-		yearlyServicesList = new ArrayList<ArrayList>();
-		yearlyICDList= new ArrayList<ArrayList>();
+		ArrayList<String> impSerList = new ArrayList<String>();
+		ArrayList<Integer> impICDList = new ArrayList<Integer>();
+		yearlyServicesList = new ArrayList<ArrayList<String>>();
+		yearlyICDList= new ArrayList<ArrayList<Integer>>();
 		int yearCount = 0;
 		while (totalYears>yearCount+1)
 		{
@@ -306,15 +305,15 @@ public class ServiceOptimizer extends LPOptimizer{
 				//logger.info("Budget " + constValues[0]);
 				actualBudgetList.add((double) Math.round(constValues[0]*hourlyCost));
 
-				ArrayList oldSerLabel = new ArrayList();
+				ArrayList<String> oldSerLabel = new ArrayList<String>();
 				oldSerLabel.addAll(serLabels);
-				impSerList = new ArrayList();
-				impICDList = new ArrayList();
+				impSerList = new ArrayList<String>();
+				impICDList = new ArrayList<Integer>();
 				double[] var = solver.getPtrVariables();
-				String varName;
+//				String varName;
 				for (int i = 0; i < var.length; i++) 
 				{
-					varName = solver.getColName(i+1);
+//					varName = solver.getColName(i+1);
 					if (var[i]==1 && i<serStartIdx)
 					{
 						impICDList.add(i);
@@ -339,7 +338,7 @@ public class ServiceOptimizer extends LPOptimizer{
 						int newYIdx=0;
 						for (int j=0;j<icdSerMatrix[0].length;j++)
 						{
-							String serName = (String) oldSerLabel.get(j);
+							String serName = oldSerLabel.get(j);
 							if(!impSerList.contains(serName))
 							{
 								newMatrix[newXIdx][newYIdx]=icdSerMatrix[i][j];
@@ -382,11 +381,11 @@ public class ServiceOptimizer extends LPOptimizer{
 			icdSerMatrix[i] = Arrays.copyOf(ORIGicdSerMatrix[i], ORIGicdSerMatrix[i].length);
 		}
 
-		icdLabels = new ArrayList();
+		icdLabels = new ArrayList<String>();
 		icdLabels.addAll(ORIGicdLabels);
-		serLabels = new ArrayList();
+		serLabels = new ArrayList<String>();
 		serLabels.addAll(ORIGserLabels);
-		serCostHash = new Hashtable();
+		serCostHash = new Hashtable<String,Double>();
 		serCostHash.putAll(ORIGserCostHash);
 	}
 }
