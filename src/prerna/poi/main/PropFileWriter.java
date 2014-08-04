@@ -24,13 +24,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
@@ -43,19 +43,18 @@ import prerna.util.Constants;
  */
 public class PropFileWriter {
 
-	Logger logger = Logger.getLogger(getClass());
-
+	private String engineDirectoryName;
+	private String defaultDBPropName;
+	private String defaultQuestionProp;
+	private String defaultOntologyProp;
 	private String baseDirectory;
+
 	public String propFileName;
 	public String engineName;
 	public String questionFileName;
 	public String ontologyFileName;
 	public File engineDirectory;
-	String engineDirectoryName;
 	public String owlFile;
-	String defaultDBPropName;
-	String defaultQuestionProp;
-	String defaultOntologyProp;
 	public String defaultEngine = "prerna.rdf.engine.impl.BigDataEngine";
 	public boolean hasMap = false;
 
@@ -86,18 +85,21 @@ public class PropFileWriter {
 	 * @throws EngineException 
 	 */
 	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile) throws FileReaderException, EngineException {
+		if(dbName == null) {
+			throw new EngineException("Database name is invalid.");
+		}
 		this.engineName = dbName;
-		engineDirectoryName = "db/" +dbName;
+		engineDirectoryName = "db" + File.separator + dbName;
 		engineDirectory = new File(baseDirectory +"/"+ engineDirectoryName);
 		try {
 			// make the new folder to store everything in
 			engineDirectory.mkdir();
 			// define the owlFile location
-			this.owlFile = "db/"+engineName+"/"+engineName+"_OWL.OWL";
+			this.owlFile = "db"+ File.separator + engineName + File.separator + engineName + "_OWL.OWL";
 			// if question sheet was not specified, we need to make a copy of the default questions
-			if(questionFile.equals("")){
+			if(questionFile == null || questionFile.equals("")){
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
-				copyFile(baseDirectory +"/"+ questionFileName, baseDirectory +"/"+ defaultQuestionProp);
+				copyFile(baseDirectory + File.separator + questionFileName, baseDirectory + File.separator + defaultQuestionProp);
 			}
 			// if it was specified, get it in the format for the map file and move the file to the new directory
 			else {
@@ -108,9 +110,9 @@ public class PropFileWriter {
 			}
 
 			// if the map was not specified, copy default map.  All augmentation of the map must be done after poi reader though
-			if(ontologyName.equals("")) {
+			if(ontologyName == null || ontologyName.equals("")) {
 				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
-				copyFile(baseDirectory +"/"+ ontologyFileName, baseDirectory +"/"+ defaultOntologyProp);
+				copyFile(baseDirectory + File.separator + ontologyFileName, baseDirectory + File.separator + defaultOntologyProp);
 			}
 			// if it was specified, don't copy default---will augment after running reader
 			else {
@@ -119,27 +121,32 @@ public class PropFileWriter {
 					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
 					String newOntologyFile =ontologyName.replace("Default", dbName);
 					ontologyFileName = engineDirectoryName + newOntologyFile.substring(ontologyName.lastIndexOf("\\"));
-					if(ontologyFileName.contains("\\")) ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");	
+					if(ontologyFileName.contains("\\")) {
+						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");	
+					}
 					copyFile(ontologyFileName, ontologyName);
 				}
 				// if a truly custom map file was selected, just get in the format for rdf map
 				else{
 					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
 					ontologyFileName = engineDirectoryName + ontologyName.substring(ontologyName.lastIndexOf("\\"));
-					if(ontologyFileName.contains("\\"))
-						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");					
+					if(ontologyFileName.contains("\\")) {
+						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
+					}
 				}
 			}
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
-			if(dbPropFile.equals("")){
-				propFileName = baseDirectory +"/"+ defaultDBPropName;
+			if(dbPropFile == null || dbPropFile.equals("")){
+				propFileName = baseDirectory + File.separator + defaultDBPropName;
 				writeCustomDBProp(propFileName, dbName);
 			}
 			else {
 				FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
 				propFileName = engineDirectoryName + dbPropFile.substring(dbPropFile.lastIndexOf("\\"));
-				if(propFileName.contains("\\")) propFileName = propFileName.replaceAll("\\\\", "/");
+				if(propFileName.contains("\\")){
+					propFileName = propFileName.replaceAll("\\\\", "/");
+				}
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -181,7 +188,7 @@ public class PropFileWriter {
 	 * @throws FileReaderException 
 	 */
 	private void writeCustomDBProp(String defaultName, String dbname) throws FileReaderException {
-		String jnlName = engineDirectoryName +"/"+ dbname+".jnl";
+		String jnlName = engineDirectoryName + File.separator + dbname+".jnl";
 		//move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
 		//change the name of the file from default to engine name
@@ -213,9 +220,12 @@ public class PropFileWriter {
 		}
 
 		BufferedReader read = null;
+		Reader fileRead = null;
 		try {
-			read = new BufferedReader(new FileReader(defaultName));
+			fileRead = new FileReader(defaultName);
+			read = new BufferedReader(fileRead);
 			String currentLine;
+			fileRead.close();
 			while((currentLine = read.readLine()) != null){
 				if(currentLine.contains("@FileName@")){
 					currentLine = currentLine.replace("@FileName@", jnlName);
@@ -229,7 +239,7 @@ public class PropFileWriter {
 			ex.printStackTrace();
 			throw new FileReaderException("Could not read default database smss file");
 		}
-
+		
 		try {
 			read.close();
 			pw.close();

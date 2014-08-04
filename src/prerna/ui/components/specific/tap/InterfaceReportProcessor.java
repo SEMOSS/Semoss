@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -119,7 +120,7 @@ public class InterfaceReportProcessor {
 		
 		
 		InterfaceReportWriter writer = new InterfaceReportWriter();
-		String folder = "\\export\\Reports\\";
+		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
 		String writeFileName = "Interface_Report_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;
