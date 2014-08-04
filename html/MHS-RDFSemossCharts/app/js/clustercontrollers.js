@@ -14,5 +14,12 @@ app.controller('dataCtrl', function($scope, $http) {
         $scope.$apply(function(){
             $scope.groupData = groupData;
         });
-    }
+    };
+
+    $scope.setNodeData = function(nodeData) {
+        $scope.$apply(function(){
+            $scope.nodeData = nodeData;
+            console.log(nodeData);
+        });
+    };
 });

@@ -1,17 +1,28 @@
-#rightPane{
+#rightNodePane{
     padding: 0px 10px;
     background-color: #eee;
     top: 0;
     right: 0;
+    width: 500px;
+    height: 180px;
+    position: fixed;
+    z-index: 3;
+    border-left: 1px solid #ccc;
+}
+
+#rightGroupPane{
+    padding: 0px 10px;
+    background-color: #eee;
+    top: 170px;
+    right: 0;
     bottom: 0;
     width: 500px;
+    z-index: 2;
     position: fixed;
-    overflow-y: scroll;
     border-left: 1px solid #ccc;
     -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
     -moz-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
     box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
-
 }
 
 .titleContainer{
@@ -34,8 +45,43 @@ path.domain{
     border-bottom: 1px solid #ccc;
     border-left: 1px solid #ccc;
     border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    top: 202px;
+    right: 10px;
+    bottom: 10px;
+    width: 498px;
+    position: fixed;
+    overflow-y: scroll;
+    background-color: #fff;
+}
+
+.barContainerContents{
     height: 400px;
-    background-color: #fff;"
+    background-color: #fff;
+}
+
+.nodeContainer{
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    padding: 5px;
+    top: 33px;
+    right: 10px;
+    width: 488px;
+    height: 125px;
+    position: fixed;
+    overflow-y: scroll;
+    background-color: #fff;
+    -o-text-overflow: ellipsis;
+    -ms-text-overflow: ellipsis;
+    text-overflow: ellipsis;
+}
+
+.nodeContainerText{
+    -o-text-overflow: ellipsis;
+    -ms-text-overflow: ellipsis;
+    text-overflow: ellipsis;
 }
 
 #clusterContainer{
