@@ -17,21 +17,29 @@
 </head>
 <body>
 <div id='thecontroller' ng-controller="dataCtrl">
-  <div id="clusterContainer">
-    <d3-cluster data="data" set-group-data="setGroupData(groupData)" id="clusterViz" container-id="'clusterContainer'"></d3-cluster>
-  </div>
-  <div id="rightPane">
-      <div ng-repeat = "(groupDatumName, groupDatum) in groupData">
-          <p><br></p>
-          <div class = "titleContainer">
-              <h4 style = "text-align:center; margin-top: 20px">{{groupDatum.names[1] + " vs. " + groupDatumName}}</h4>
-          </div>
-          <div class = "barContainer">
-            <columnchart container-class="'barContainer'" data="groupDatum" control="columnchartBrowseCtrl"></columnchart>
-          </div>
-      </div>
-      <p><br></p>
-  </div>
+    <div id="clusterContainer">
+        <d3-cluster data="data" set-group-data="setGroupData(groupData)" set-node-data="setNodeData(nodeData)" id="clusterViz" container-id="'clusterContainer'"></d3-cluster>
+    </div>
+    <div id="rightNodePane">
+        <h4> Node Properties</h4>
+        <div class = "nodeContainer">
+            <div ng-repeat = "(nodeDatumName, nodeDatum) in nodeData">
+                <p class = "nodeContainerText"><b>{{nodeDatumName + ": "}}</b> {{nodeDatum}}</p>
+            </div>
+        </div>
+    </div>
+    <div id="rightGroupPane">
+        <h4> Group Properties</h4>
+        <div class = "barContainer">
+            <div ng-repeat = "(groupDatumName, groupDatum) in groupData">
+                <h4 style = "text-align:center; margin-top: 20px">{{groupDatum.names[1] + " vs. " + groupDatumName}}</h4>
+                <div class="barContainerContents">
+                    <columnchart container-class="'barContainerContents'" data="groupDatum" control="columnchartBrowseCtrl"></columnchart>
+                </div>
+                <p><br></p>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
     function start(dataString) {
