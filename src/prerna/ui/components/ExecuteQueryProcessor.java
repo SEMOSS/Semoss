@@ -49,16 +49,13 @@ public class ExecuteQueryProcessor {
 		//prepare create title+id
 		//feed to prepare playSheet
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		String playSheetClassName = null;
-		if(playSheetString.startsWith("*"))
-		{
-			//String keyToSearch = id + "_" + Constants.LAYOUT;
-			//playSheetClassName = DIHelper.getInstance().getProperty(keyToSearch);
+		
+		//get the playsheet from play sheet enum
+		String playSheetClassName = PlaySheetEnum.getClassFromName(playSheetString);
+		if(playSheetClassName.isEmpty()){ //this will happen if it is a custom playsheet that does not exist in the enum. In this case, we already have the full playsheet name from the name of the combobox
+			playSheetClassName = playSheetString;
 		}
-		else //get the playsheet from play sheet enum
-		{
-			playSheetClassName = PlaySheetEnum.getClassFromName(playSheetString);
-		}
+		
 		QuestionPlaySheetStore.getInstance().customIDcount++;
 		String playSheetTitle = "Custom Query - "+QuestionPlaySheetStore.getInstance().getCustomCount();
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+"custom";
