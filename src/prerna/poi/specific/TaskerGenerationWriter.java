@@ -230,7 +230,7 @@ public class TaskerGenerationWriter {
 		
 		XSSFCell cellToCheck;
 		XSSFRow rowToCheck;
-		ArrayList defaultTaskerInfoList = new ArrayList();
+		ArrayList<String> defaultTaskerInfoList = new ArrayList<String>();
 		//find all default tasker list items
 		for(int rowCount=3;rowCount<maxRow+1;rowCount++)
 		{
@@ -244,7 +244,7 @@ public class TaskerGenerationWriter {
 			int rowCount = j + 3;
 			rowToWriteOn = sheetToWriteOver.getRow(rowCount);
 			for (int i=0; i<mappingResults.size(); i++) {	
-				ArrayList mappingResultsList = (ArrayList) mappingResults.get(i);			
+				ArrayList<String> mappingResultsList = (ArrayList<String>) mappingResults.get(i);			
 				String instance = ((String)mappingResultsList.get(1)).replaceAll("_", " ").replaceAll("-"," ").replaceAll("/"," ");
 				if((defaultTaskerInfoList.get(j)).equals(instance))
 				{

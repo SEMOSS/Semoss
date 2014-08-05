@@ -47,7 +47,6 @@ import prerna.util.DIHelper;
 public class SplashScreen extends JWindow {
 
 	private static JProgressBar progressBar = new JProgressBar();
-	private static int count;
 
 	/**
 	 * Constructor for SplashScreen.

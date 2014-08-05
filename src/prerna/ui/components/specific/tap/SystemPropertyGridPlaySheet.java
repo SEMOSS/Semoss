@@ -122,7 +122,7 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
 			costHash.put(sys, innerHash);
 			for(int i = 1; i < costDataVarNames.length; i++) {
-				if(sjss.getVar(costDataVarNames[i]) != null && !sjss.getVar(costDataVarNames[i]).equals("")) {
+				if(sjss.getVar(costDataVarNames[i]) != null && !sjss.getVar(costDataVarNames[i]).toString().equals("")) {
 					System.out.println(sjss.getVar(costDataVarNames[i]));
 					innerHash.put(costDataVarNames[i], (Double) sjss.getVar(costDataVarNames[i]));
 				}

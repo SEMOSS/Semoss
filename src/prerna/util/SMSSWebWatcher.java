@@ -41,7 +41,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Returns an array of strings naming the files in the directory.
 	 * Goes through list and loads an existing database.
 	 */
-	public void loadExistingDB() throws Exception
+	public void loadExistingDB()
 	{
 		File dir = new File(folderToWatch);
 		String [] fileNames = dir.list(this);
