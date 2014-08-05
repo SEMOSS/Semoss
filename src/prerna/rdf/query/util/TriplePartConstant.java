@@ -19,4 +19,14 @@ public class TriplePartConstant {
 	{
 		this.constant = constant;
 	}
+	
+	@Override
+	public boolean equals(Object obj){
+		if(obj instanceof TriplePartConstant){
+			if(this.constant.equals(((TriplePartConstant) obj).constant)){
+				return true;
+			}
+		}
+		return false;
+	}
 }

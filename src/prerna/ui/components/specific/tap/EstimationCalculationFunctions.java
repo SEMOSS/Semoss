@@ -50,7 +50,7 @@ public class EstimationCalculationFunctions {
 	public PrintWriter out= null;
 	boolean serviceBoolean;
 	Double hourlyRate;
-	ArrayList runTypes = new ArrayList();
+	ArrayList<String> runTypes = new ArrayList<String>();
 	/**
 	 * Sets the service boolean.
 	 * @param ser boolean

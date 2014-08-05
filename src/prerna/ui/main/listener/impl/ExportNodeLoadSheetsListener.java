@@ -103,8 +103,8 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 					boolean filledData = true;
 
 					for(int colIndex = 0;colIndex < names.length;colIndex++) {
-						if(sjss.getVar(names[colIndex]) != null || sjss.getVar(names[colIndex]).equals("")) {
-							if(colIndex == 1 && !sjss.getVar(names[colIndex]).equals("")) {
+						if(sjss.getVar(names[colIndex]) != null || sjss.getVar(names[colIndex]).toString().equals("")) {
+							if(colIndex == 1 && !sjss.getVar(names[colIndex]).toString().equals("")) {
 								properties.add((String) sjss.getVar(names[colIndex]));
 							}
 							values[colIndex] = sjss.getVar(names[colIndex]);

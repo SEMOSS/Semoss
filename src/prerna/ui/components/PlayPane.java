@@ -42,6 +42,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Vector;
@@ -281,7 +282,6 @@ public class PlayPane extends JFrame {
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
-	private JLabel distBVtechMatlabel;
 
 	// RFP, vendor, and deconflicting panel
 	private JPanel tapReportTopPanel;
@@ -313,8 +313,15 @@ public class PlayPane extends JFrame {
 
 	/**
 	 * Launch the application.
+	 * @throws SecurityException 
+	 * @throws NoSuchMethodException 
+	 * @throws ClassNotFoundException 
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
 	 */
-	public void start() throws Exception {
+	public void start() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException {
 
 		// load all the listeners
 		// cast it to IChakraListener

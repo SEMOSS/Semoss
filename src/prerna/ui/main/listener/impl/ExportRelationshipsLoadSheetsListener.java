@@ -125,7 +125,7 @@ public class ExportRelationshipsLoadSheetsListener implements IChakraListener {
 						boolean filledData = true;
 	
 						for(int colIndex = 0;colIndex < names.length;colIndex++) {
-							if(sjss.getVar(names[colIndex]) != null && !sjss.getVar(names[colIndex]).equals(this.relationship)) {
+							if(sjss.getVar(names[colIndex]) != null && !sjss.getVar(names[colIndex]).toString().equals(this.relationship)) {
 								if(colIndex == 3 && !sjss.getVar(names[colIndex]).toString().isEmpty()) {
 									properties.add((String) sjss.getVar(names[colIndex]));
 								}

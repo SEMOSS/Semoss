@@ -82,12 +82,7 @@ public class DistanceDownstreamInserter {
 			paramHash.put("Data-Data", dataObjectString);
 			String query = Utility.fillParam(unfilledQuery, paramHash);
 			DelegateForest<SEMOSSVertex, SEMOSSEdge> dataForest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
-			try {
-				dataForest = createForest(query);
-			} catch (Exception e) {
-				//TODO: Specify exception
-				e.printStackTrace();
-			}
+			dataForest = createForest(query);
 
 			DistanceDownstreamProcessor processor = new DistanceDownstreamProcessor();
 			//now set everything in DistanceDownstreamProcessor and let that buddy run
@@ -298,7 +293,7 @@ public class DistanceDownstreamInserter {
 	 * @param query String								Query needed to create the forest
 	
 	 * @return DelegateForest<DBCMVertex,DBCMEdge>		Forest, comprised of vertices and edges. */
-	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) throws Exception {
+	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) {
 		//run query
 		SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
 		sjw.setQuery(query);
@@ -364,16 +359,8 @@ public class DistanceDownstreamInserter {
 					
 					// add the edge now if the edge does not exist
 					// need to handle the duplicate issue again
-					try
-					{
-						forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-							vertStore.get(sct.getObject()+""));
-					}catch (RuntimeException ex)
-					{
-						ex.printStackTrace();
-						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-						// ok.. I am going to ignore for now that this is a duplicate edge
-					}
+					forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
+						vertStore.get(sct.getObject()+""));
 		}
 		logger.info("Creating Forest Complete >>>>>> ");
 		return forest;

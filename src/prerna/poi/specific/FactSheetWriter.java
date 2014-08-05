@@ -510,17 +510,17 @@ public class FactSheetWriter {
 				if (j==1)
 					uniqueInterfaces.add(row.get(j));
 				if (j==2) {
-					if (!row.get(j).equals(systemName))
+					if (!row.get(j).toString().equals(systemName))
 						uniqueSystemsInterfaced.add(row.get(j));
-					if (row.get(j).equals("AHLTA"))
+					if (row.get(j).toString().equals("AHLTA"))
 						ahltaUpstream.add(row.get(1)); 
-					if (row.get(j).equals("CHCS"))
+					if (row.get(j).toString().equals("CHCS"))
 						chcsUpstream.add(row.get(1));
-					if (row.get(j).equals("CIS-Essentris"))
+					if (row.get(j).toString().equals("CIS-Essentris"))
 						cisUpstream.add(row.get(1));
-					if (row.get(j).equals("CDR"))
+					if (row.get(j).toString().equals("CDR"))
 						cdrUpstream.add(row.get(1));
-					if (row.get(j).equals(systemName)) {
+					if (row.get(j).toString().equals(systemName)) {
 						cellToWriteOn = rowToWriteOn.getCell(1);
 						font1.setColor(lightBlue);
 						downstreamStyle.setFont(font1);
@@ -528,17 +528,17 @@ public class FactSheetWriter {
 					}
 				}					
 				if (j==3) {
-					if (!row.get(j).equals(systemName))
+					if (!row.get(j).toString().equals(systemName))
 						uniqueSystemsInterfaced.add(row.get(j));
-					if (row.get(j).equals("AHLTA"))
+					if (row.get(j).toString().equals("AHLTA"))
 						ahltaDownstream.add(row.get(1)); 
-					if (row.get(j).equals("CHCS"))
+					if (row.get(j).toString().equals("CHCS"))
 						chcsDownstream.add(row.get(1));
-					if (row.get(j).equals("CIS-Essentris"))
+					if (row.get(j).toString().equals("CIS-Essentris"))
 						cisDownstream.add(row.get(1));
-					if (row.get(j).equals("CDR"))
+					if (row.get(j).toString().equals("CDR"))
 						cdrDownstream.add(row.get(1));
-					if (row.get(j).equals(systemName)) {
+					if (row.get(j).toString().equals(systemName)) {
 						cellToWriteOn = rowToWriteOn.getCell(1);
 						font.setColor(darkBlue);
 						upstreamStyle.setFont(font);
@@ -547,9 +547,9 @@ public class FactSheetWriter {
 				}
 				if (j==4) {
 					uniqueDataObjects.add(row.get(j));
-					if (row.get(2).equals(systemName))
+					if (row.get(2).toString().equals(systemName))
 						uniqueDownStreamData.add(row.get(j));
-					if (row.get(3).equals(systemName))
+					if (row.get(3).toString().equals(systemName))
 						uniqueUpStreamData.add(row.get(j));
 					cellToWriteOn = rowToWriteOn.getCell(j+1);
 					String value = ((String) row.get(j) ).replaceAll("\"", "");

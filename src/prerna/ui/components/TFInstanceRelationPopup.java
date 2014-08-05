@@ -139,13 +139,13 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
 						for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 						{
-							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).equals(thisVert.getProperty(Constants.VERTEX_TYPE)))
+							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString()))
 								fileName = fileName + "<" + pickedVertex[vertIndex].getURI() + ">";
 						}
 					} else {
 						for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 						{
-							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).equals(thisVert.getProperty(Constants.VERTEX_TYPE)))
+							if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString()))
 								fileName = fileName + "(<" + pickedVertex[vertIndex].getURI() + ">)";
 						}
 					}

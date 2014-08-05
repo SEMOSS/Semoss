@@ -90,7 +90,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 				{
 					for(int i=0;i<processedList.size();i++)
 					{
-						if(processedList.get(i)[0].equals(sys))
+						if(processedList.get(i)[0].toString().equals(sys))
 						{
 							processedList.get(i)[7] = cost;
 						}

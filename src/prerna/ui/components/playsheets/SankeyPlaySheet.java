@@ -67,7 +67,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 			elementLinks.put("target", listElement[1]);
 			elementSource.put("name", listElement[0]);
 			elementTarget.put("name", listElement[1]);
-			if (listElement[2].equals("")) {
+			if (listElement[2].toString().equals("")) {
 				elementLinks.put("value", value);	
 			}
 			else { 
@@ -88,7 +88,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 					newelementLinks.put("target", listElement[j+2]);
 					newElementSource.put("name", listElement[j]);
 					newElementTarget.put("name", listElement[j+2]);					
-					if (listElement[j+3].equals("")) {
+					if (listElement[j+3].toString().equals("")) {
 						newelementLinks.put("value", value);	
 					}
 					else { 

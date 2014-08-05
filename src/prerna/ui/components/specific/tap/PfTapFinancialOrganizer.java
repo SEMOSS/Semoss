@@ -94,8 +94,8 @@ public class PfTapFinancialOrganizer {
 
 		}
 		for (int i = 0; i<returnedList.size(); i++){
-			Object type = returnedList.get(i)[0];
-			Object primeString = returnedList.get(i)[1];
+			String type = returnedList.get(i)[0].toString();
+			String primeString = returnedList.get(i)[1].toString();
 			Object phase = returnedList.get(i)[2];
 			String phaseTask = (String) returnedList.get(i)[4];
 			Double overheadRate = (Double) returnedList.get(i)[5];

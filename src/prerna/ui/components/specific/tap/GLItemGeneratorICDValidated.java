@@ -1516,7 +1516,7 @@ public class GLItemGeneratorICDValidated {
 				boolean filledData = true;
 
 				for(int colIndex = 0;colIndex < names.length;colIndex++) {
-					if(sjss.getVar(names[colIndex]) != null && !sjss.getVar(names[colIndex]).equals(relationship)) {
+					if(sjss.getVar(names[colIndex]) != null && !sjss.getVar(names[colIndex]).toString().equals(relationship)) {
 						if(colIndex == 3 && !sjss.getVar(names[colIndex]).toString().isEmpty()) {
 							properties.add((String) sjss.getVar(names[colIndex]));
 						}
