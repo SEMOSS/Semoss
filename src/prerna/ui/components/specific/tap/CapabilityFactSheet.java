@@ -40,9 +40,9 @@ import com.teamdev.jxbrowser.chromium.events.LoadAdapter;
 public class CapabilityFactSheet extends BrowserPlaySheet{
 
 	Hashtable allHash = new Hashtable();
-	Hashtable capabilityHash = new Hashtable();
+	Hashtable<String, ArrayList<String>> capabilityHash = new Hashtable<String, ArrayList<String>>();
 	//keys are processed capabilities and values are semoss stored capabilities
-	public Hashtable capabilityProcessed = new Hashtable();
+	public Hashtable<String,String> capabilityProcessed = new Hashtable<String,String>();
 	
 	CapabilityFactSheetListener singleCapFactSheetCall = new CapabilityFactSheetListener();
 	
@@ -72,7 +72,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		browser.addLoadListener(new LoadAdapter() {
 
     	    public void onFinishLoadingFrame(FinishLoadingEvent event) {
-   	    	
+
 	   	    	File file = new File(DIHelper.getInstance().getProperty("BaseFolder") + "/html/MHS-FactSheets/export.json");
 	   			if(file.exists()) {
 	   				file.delete();
@@ -93,11 +93,11 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable Includes the data series.*/
-	public Hashtable processQueryData()
+	public Hashtable<String, ArrayList<String>> processQueryData()
 	{
 		addPanel();
-		ArrayList dataArrayList = new ArrayList();
-		String[] var = wrapper.getVariables(); 		
+		ArrayList<String> dataArrayList = new ArrayList<String>();
+		String[] var = wrapper.getVariables();
 		for (int i=0; i<list.size(); i++)
 		{	
 			Object[] listElement = list.get(i);
@@ -156,7 +156,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", dataSeries);
 		allHash.put("capability", capability);
 
-		//callItAllHash();
+		callItAllHash();
 		updateProgressBar("100%...Capability Fact Sheet Generation Complete", 100);
 		return allHash;
 	}
@@ -166,7 +166,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		System.err.println(">>> callIt");
 		Gson gson = new Gson();
 //		browser.executeScript("capabilityList('" + gson.toJson(capabilityHash) + "');");
-		String json = gson.toJson(capabilityHash);
+//		String json = gson.toJson(capabilityHash);
 		browser.executeJavaScript("start('" + gson.toJson(capabilityHash) + "');");
 		System.out.println(gson.toJson(capabilityHash));
 	}
@@ -179,6 +179,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.loadURL("file://" + workingDir + "/html/MHS-FactSheets/index.html#/cap");
 		browser.executeJavaScript("start('" + gson.toJson(allHash) + "');");
+		System.out.println(gson.toJson(allHash));
 	}
 	
 }

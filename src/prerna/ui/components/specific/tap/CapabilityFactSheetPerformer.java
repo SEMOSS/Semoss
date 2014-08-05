@@ -20,11 +20,8 @@ package prerna.ui.components.specific.tap;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
-
-import javax.swing.JList;
 
 import org.apache.log4j.Logger;
 
@@ -34,10 +31,9 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
- * This class contains the queries and query processing required to gather the information needed to generate the Capability Fact Sheet Reports
+ * This class contains the queries and query processing rearequired to gather the information needed to generate the Capability Fact Sheet Reports
  * Used in conjunction with CapabilityFactSheetListener
  */
 public class CapabilityFactSheetPerformer {
@@ -53,7 +49,7 @@ public class CapabilityFactSheetPerformer {
 	 * @param query 		String containing the SPARQL query to run
 	 * @return list 		ArrayList<ArrayList<Object>> containing the results of the query 
 	 */
-	public ArrayList runListQuery(String engineName, String query) {
+	public ArrayList<Object> runListQuery(String engineName, String query) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -72,7 +68,7 @@ public class CapabilityFactSheetPerformer {
 							list.add(colIndex, (Double) sjss.getVar(names[colIndex]));
 						}
 						else if(((String)sjss.getVar(names[colIndex])).length()>0)
-							list.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"",""));
+							list.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"","").replaceAll("‘","'").replaceAll("’","'").replaceAll("\\(","").replaceAll("\\)","").replaceAll("-","").replaceAll(" ","_"));
 						else
 							list.add(colIndex, "Not Applicable");
 					}
@@ -92,9 +88,7 @@ public class CapabilityFactSheetPerformer {
 	 * @param query 		String containing the SPARQL query to run
 	 * @return list 		ArrayList<ArrayList<Object>> containing the results of the query 
 	 */
-	public ArrayList runQuery(String engineName, String query) {
-		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		Object[] repo = (Object[]) repoList.getSelectedValues();
+	public ArrayList<ArrayList<Object>> runQuery(String engineName, String query) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
@@ -113,7 +107,9 @@ public class CapabilityFactSheetPerformer {
 						if (sjss.getVar(names[colIndex]) instanceof Double) {
 							values.add(colIndex, (Double) sjss.getVar(names[colIndex]));
 						}
-						else values.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"",""));						
+						else values.add(colIndex, ((String) sjss.getVar(names[colIndex])).replaceAll("\"","").replaceAll("‘","'").replaceAll("’","'").replaceAll("\\(","").replaceAll("\\)","").replaceAll("-","").replaceAll(" ","_"));
+						if(((String) sjss.getVar(names[colIndex])).contains("‘"))
+						System.out.println(((String) sjss.getVar(names[colIndex])));
 					}
 				}
 				list.add(values);
@@ -121,7 +117,11 @@ public class CapabilityFactSheetPerformer {
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}
-
+//		if(list.isEmpty()) {
+//			ArrayList<Object> values = new ArrayList<Object>();
+//			values.add("None for this capability");
+//			list.add(values);
+//		}
 		return list;
 	}
 	public int getUniqueNumber(ArrayList resultsList, int col)
@@ -369,7 +369,7 @@ public class CapabilityFactSheetPerformer {
 		String dataObjectQuery = "SELECT DISTINCT ?Data (IF(SUM(IF(?CRM = 'C'||?CRM = 'M',1,0))>0,'C','R' )AS ?CRMCount) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task ?Needs ?Data.}} GROUP BY ?Data ORDER BY ?Data";		
 		dataObjectQuery = dataObjectQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<Object> dataObjectResultsList = runQuery(HRCoreEngine, dataObjectQuery);
+		ArrayList<ArrayList<Object>> dataObjectResultsList = runQuery(HRCoreEngine, dataObjectQuery);
 
 		returnHash.put(ConstantsTAP.DATA_OBJECT_QUERY, dataObjectResultsList);
 		masterHash.put(ConstantsTAP.DATA_OBJECT_QUERY, dataObjectResultsList);
@@ -389,7 +389,7 @@ public class CapabilityFactSheetPerformer {
 		String bluObjectQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}} ORDER BY ?BusinessLogicUnit";		
 		bluObjectQuery = bluObjectQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<Object> bluObjectResultsList = runQuery(HRCoreEngine, bluObjectQuery);
+		ArrayList<ArrayList<Object>> bluObjectResultsList = runQuery(HRCoreEngine, bluObjectQuery);
 
 		returnHash.put(ConstantsTAP.BLU_QUERY, bluObjectResultsList);
 		masterHash.put(ConstantsTAP.BLU_QUERY, bluObjectResultsList);
@@ -409,8 +409,8 @@ public class CapabilityFactSheetPerformer {
 		String functionalGapQuery = "SELECT DISTINCT (COALESCE(?FError1,?FError2) AS ?FError) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability) {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{{?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?FError1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>} {?FError_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_BusinessLogicUnit ?BusinessLogicUnit}{?FError1 ?FError_Needs_BusinessLogicUnit ?BusinessLogicUnit} } UNION { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Task_Needs_Data <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data ?Data}{?FError2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>} {?FError_Needs_Data <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Task ?Task_Needs_Data ?Data}{?FError2 ?FError_Needs_Data ?Data} }} ORDER BY ?FError";		
 		functionalGapQuery = functionalGapQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<Object> functionalGapResultsList = runQuery(HRCoreEngine, functionalGapQuery);
-
+		ArrayList<ArrayList<Object>> functionalGapResultsList = runQuery(HRCoreEngine, functionalGapQuery);
+		
 		returnHash.put(ConstantsTAP.FUNCTIONAL_GAP_QUERY, functionalGapResultsList);
 		masterHash.put(ConstantsTAP.FUNCTIONAL_GAP_QUERY, functionalGapResultsList);
 		
@@ -435,8 +435,8 @@ public class CapabilityFactSheetPerformer {
 		String bpQuery = "SELECT DISTINCT ?BusinessProcess WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task ?Needs ?BusinessProcess}} ORDER BY ?BusinessProcess";		
 		bpQuery = bpQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 				
-		ArrayList<Object> taskResultsList = runQuery(HRCoreEngine, taskQuery);
-		ArrayList<Object> bpResultsList = runQuery(HRCoreEngine, bpQuery);
+		ArrayList<ArrayList<Object>> taskResultsList = runQuery(HRCoreEngine, taskQuery);
+		ArrayList<ArrayList<Object>> bpResultsList = runQuery(HRCoreEngine, bpQuery);
 
 		returnHash.put(ConstantsTAP.TASK_QUERY, taskResultsList);
 		returnHash.put(ConstantsTAP.BP_QUERY, bpResultsList);
@@ -455,7 +455,6 @@ public class CapabilityFactSheetPerformer {
 		
 		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();	
 		
-		
 		//BR Count
 		String brQuery = "SELECT DISTINCT ?BusinessRule WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Access_a_Healthy_and_Fit_Force> AS ?Capability ){?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task> ; }{?BusinessRule <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessRule>; }{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task <http://semoss.org/ontologies/Relation/Supports> ?BusinessRule.} } ORDER BY ?BusinessRule";		
 		brQuery = brQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
@@ -469,9 +468,9 @@ public class CapabilityFactSheetPerformer {
 		tsQuery = tsQuery.replaceAll("Access_a_Healthy_and_Fit_Force",capabilityName);
 
 				
-		ArrayList<Object> brResultsList = runQuery(HRCoreEngine, brQuery);
-		ArrayList<Object> bsResultsList = runQuery(HRCoreEngine, bsQuery);
-		ArrayList<Object> tsResultsList = runQuery(HRCoreEngine, tsQuery);
+		ArrayList<ArrayList<Object>> brResultsList = runQuery(HRCoreEngine, brQuery);
+		ArrayList<ArrayList<Object>> bsResultsList = runQuery(HRCoreEngine, bsQuery);
+		ArrayList<ArrayList<Object>> tsResultsList = runQuery(HRCoreEngine, tsQuery);
 
 		returnHash.put(ConstantsTAP.BR_QUERY, brResultsList);
 		returnHash.put(ConstantsTAP.BS_QUERY, bsResultsList);

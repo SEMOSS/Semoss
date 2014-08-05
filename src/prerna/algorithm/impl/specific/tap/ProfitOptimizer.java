@@ -36,7 +36,7 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.SerOptPlaySheet;
 
 /**
- * This class is used to optimize calculations for the profit function.
+ * This class is used to optimize calculations for the profit function for services optimization.
  */
 public class ProfitOptimizer extends UnivariateSvcOptimizer{
 	

@@ -20,9 +20,15 @@ package prerna.algorithm.impl.specific.tap;
 
 /**
  * This class is used to calculate the number of years to decommission systems based on the budget.
+ * It is used in TAP Systems optimization.
  */
 public class SysNetSavingsFunction extends UnivariateSysOptFunction{
 	
+	/**
+	 * Given a specific budget, calculates the savings up until .
+	 * Gets the list of potential yearly savings and yearly budgets.
+	 * @param a 	Budget used in the service optimizer.
+	 * @return 		Profit. */
 	public double calculateRet(double budget, double n)
 	{
 		calculateInvestment(budget,n);
