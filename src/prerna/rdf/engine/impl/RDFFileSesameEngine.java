@@ -427,8 +427,21 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 */
 	public void exportDB() throws RepositoryException, RDFHandlerException, IOException
 	{
-		System.err.println("Exporting database");
-		rc.export(new RDFXMLPrettyWriter(new FileWriter(fileName)));
+		FileWriter writer = null;
+		try{
+			System.err.println("Exporting database");
+			writer = new FileWriter(fileName);
+			rc.export(new RDFXMLPrettyWriter(writer));
+		}catch(IOException e) {
+			e.printStackTrace();
+		} finally {
+			try{
+				if(writer!=null)
+					writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	/**

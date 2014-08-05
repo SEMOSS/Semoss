@@ -183,6 +183,13 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 					e.printStackTrace();
 					retSt = null;
 					retBool = false;
+				} finally{
+					try {
+						if(ris!=null)
+							ris.close();
+					} catch(IOException e) {
+						e.printStackTrace();
+					}
 				}
 
 				

@@ -62,13 +62,22 @@ public class CSVMetamodelBuilder {
 		{
 			File propFile = propFiles.get(0);
 			Properties propDataProp = new Properties();
+			FileInputStream fileIn = null;
 			try {
-				propDataProp.load(new FileInputStream(propFile));				
+				fileIn = new FileInputStream(propFile);
+				propDataProp.load(fileIn);				
 			} catch (FileNotFoundException e) {
 				throw new FileReaderException("Could not find CSV PropFile: " + propFiles.get(0));
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileReaderException("Could not process CSV PropFile headers in " + propFiles.get(0));
+			} finally {
+				try {
+					if(fileIn!=null)
+						fileIn.close();
+				}catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			initaiatePropFileData();
