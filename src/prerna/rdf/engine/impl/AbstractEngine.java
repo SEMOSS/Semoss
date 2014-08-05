@@ -719,12 +719,20 @@ public abstract class AbstractEngine implements IEngine {
 	 * Writes the database back with updated properties if necessary
 	 */
 	public void saveConfiguration() {
-
+		FileOutputStream fileOut = null;
 		try {
 			System.err.println("Writing to file " + propFile);
-			prop.store(new FileOutputStream(propFile), null);
+			fileOut = new FileOutputStream(propFile);
+			prop.store(fileOut, null);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				if(fileOut!=null)
+					fileOut.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

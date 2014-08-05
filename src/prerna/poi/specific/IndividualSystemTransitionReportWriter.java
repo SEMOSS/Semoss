@@ -105,6 +105,7 @@ public class IndividualSystemTransitionReportWriter {
 			Utility.writeWorkbook(wb, fileLoc);
 			success = true;
 		} catch (Exception ex) {
+			success = false;
 			ex.printStackTrace();
 		}
 		return success;

@@ -172,9 +172,10 @@ public class POIWriter {
 	public XSSFWorkbook getWorkbook(String readFileLoc) {
 		XSSFWorkbook wb = null;
 		if(readFileLoc != null) {
+			FileInputStream stream = null;
 			try {
 				File inFile = new File(readFileLoc);
-				FileInputStream stream;
+
 				if(inFile.exists()){
 					stream = new FileInputStream(inFile);
 					wb = new XSSFWorkbook(stream);
@@ -184,6 +185,13 @@ public class POIWriter {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				try{
+					if(stream!=null)
+						stream.close();
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 		} else {
 			wb = new XSSFWorkbook();

@@ -53,7 +53,7 @@ public class JTableExcelExportListener extends AbstractListener {
 	 */
 	public boolean runExport() {
 		boolean successfulExport = true;
-
+		FileOutputStream stream = null;
 		try{
 			TableModel model = this.table.getModel();
 			XSSFWorkbook wb = new XSSFWorkbook();
@@ -78,12 +78,19 @@ public class JTableExcelExportListener extends AbstractListener {
 			}
 
 			//Write all data to file
-			FileOutputStream stream = new FileOutputStream(this.filename);
+			stream = new FileOutputStream(this.filename);
 			wb.write(stream);
 			stream.close();
 		} catch(IOException e) {
 			successfulExport = false;
 			System.out.println(e);
+		} finally {
+			try {
+				if(stream!=null)
+					stream.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return successfulExport;

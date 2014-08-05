@@ -163,12 +163,14 @@ public abstract class AbstractFileReader {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not read user-specified .smss file located at: " + fileName);
-		}
-		try {
-			fis.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not close file reader for .smss file located at: " + fileName);
+		} finally {
+			try{
+				if(fis!=null)
+					fis.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+				throw new FileReaderException("Could not close file reader for .smss file located at: " + fileName);
+			}
 		}
 	}
 
@@ -179,14 +181,23 @@ public abstract class AbstractFileReader {
 	 */
 	protected void openProp(String fileName) throws FileReaderException {
 		Properties rdfPropMap = new Properties();
+		FileInputStream fileIn = null;
 		try {
-			rdfPropMap.load(new FileInputStream(fileName));
+			fileIn = new FileInputStream(fileName);
+			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not find user-specified prop file with CSV metamodel data located at: " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not read user-specified prop file with CSV metamodel data located at: " + fileName);
+		} finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		for(String name: rdfPropMap.stringPropertyNames()){
 			rdfMap.put(name, rdfPropMap.getProperty(name).toString());
@@ -399,6 +410,13 @@ public abstract class AbstractFileReader {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileWriterException("Could not close OWL file writer");
+		} finally {
+			try {
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		closeOWL();

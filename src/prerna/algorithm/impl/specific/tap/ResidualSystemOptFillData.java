@@ -308,16 +308,6 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	private void printVector(int[] matrix, ArrayList<String> rowList)
-	{
-		for(int i=0;i<matrix.length;i++)
-		{
-			String rowEntry = rowList.get(i);
-			if(matrix[i]>0.0)
-				System.out.println("Provider exists for..."+rowEntry);
-		}
-	}
-	
 	private int[][] createEmptyMatrix(int[][] matrix, int row,int col)
 	{
 		matrix = new int[row][col];

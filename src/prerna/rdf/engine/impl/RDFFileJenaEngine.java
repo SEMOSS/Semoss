@@ -156,10 +156,12 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void openDB(String propFile) {
+		FileInputStream fileIn = null;
 		try {
 			Properties prop = new Properties();
 			jenaModel = ModelFactory.createDefaultModel();
-			prop.load(new FileInputStream(propFile));
+			fileIn = new FileInputStream(propFile);
+			prop.load(fileIn);
 			String fileName = prop.getProperty(Constants.RDF_FILE_NAME);
 			String rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
 			String baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
@@ -175,6 +177,13 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
