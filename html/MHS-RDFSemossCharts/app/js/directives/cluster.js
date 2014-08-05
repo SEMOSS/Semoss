@@ -17,8 +17,6 @@ app.directive('d3Cluster', function() {
             var nodeName = "nodeName";
             var groupingCategoryInstances = {};
 
-            d3.select(window).on('resize', resize);
-
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data.length == 0 || scope.data == '') {
                     clusterData = {};
@@ -27,7 +25,6 @@ app.directive('d3Cluster', function() {
                         clusterData = {};
                         clusterData = scope.data.dataSeries;
                         update(clusterData);
-
                     }
                 }
             });
@@ -53,7 +50,7 @@ app.directive('d3Cluster', function() {
                 return array;
             };
 
-            function structureBarData(d, groupingCategory, nodeName){
+            function structureBarData(d){
                 var clusterPropertyCategories = {};
                 var clusterPropertyCategoriesInverse = {};
                 var n = 0;
@@ -119,18 +116,48 @@ app.directive('d3Cluster', function() {
                 scope.setNodeData({nodeData: output});
             }
 
-
+            var fill = d3.scale.category20();
             var w = parseInt(d3.select('#' + scope.containerId).style('width'));
             var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
             var vis = d3.select('#' + scope.containerId).append("svg")
                 .attr("width", w)
                 .attr("height", h);
 
+            var groupPath = function (d) {
+                var groupPathReturn = "";
+                if(d.values.length == 1){
+                    groupPathReturn = ("M" + (d.values[0].x + 0.04) + "," + d.values[0].y + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y + 0.03) + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y - 0.03) + "Z");
+                }else if(d.values.length == 2){
+                    groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
+                }else{
+                    groupPathReturn = ("M" +
+                        d3.geom.hull(d.values.map(function (i) {
+                            return [i.x, i.y];
+                        }))
+                            .join("L")
+                        + "Z");
+                }
+                return groupPathReturn;
+            };
+
+            var groupFill = function (d, i) {
+                return fill(d.key);
+            };
+
+            vis.style("opacity", 1e-6)
+                .transition()
+                .duration(1000)
+                .style("opacity", 1);
+
+            var force = d3.layout.force();
+
+            var node;
+
+            var pathElements;
+
             function update(updateData) {
                 var data = updateData;
                 var nodes = data.map(Object);
-
-                var fill = d3.scale.category20();
 
                 groupingCategoryInstances = getCategoryInstances(groupingCategory, nodes);
 
@@ -138,37 +165,15 @@ app.directive('d3Cluster', function() {
                     return groupingCategoryInstances[d[groupingCategory]];
                 }).entries(nodes);
 
-                var groupPath = function (d) {
-                    var groupPathReturn = "";
-                    if(d.values.length == 1){
-                        groupPathReturn = ("M" + (d.values[0].x + 0.04) + "," + d.values[0].y + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y + 0.03) + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y - 0.03) + "Z");
-                    }else if(d.values.length == 2){
-                        groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
-                    }else{
-                        groupPathReturn = ("M" +
-                            d3.geom.hull(d.values.map(function (i) {
-                                return [i.x, i.y];
-                            }))
-                                .join("L")
-                            + "Z");
-                    }
-                    return groupPathReturn;
-                };
-
-                var groupFill = function (d, i) {
-                    return fill(d.key);
-                };
-
-
-
-                var force = d3.layout.force()
+                force
                     .nodes(nodes)
                     .links([])
                     .size([w, h])
                     .start();
 
-                var node = vis.selectAll("circle.node")
-                    .data(nodes)
+                node = vis.selectAll("circle.node")
+                    .data(nodes);
+                node
                     .enter().append("circle")
                     .attr("class", "node")
                     .attr("cx", function (d) {
@@ -187,11 +192,6 @@ app.directive('d3Cluster', function() {
                     .style("stroke-width", 1.5)
                     .call(force.drag);
 
-                vis.style("opacity", 1e-6)
-                    .transition()
-                    .duration(1000)
-                    .style("opacity", 1);
-
                 node.on("click", function(d){
                     structureNodeData(d, groupingCategory, nodeName);
                     var allCircles = d3.selectAll("circle.node"),
@@ -207,6 +207,13 @@ app.directive('d3Cluster', function() {
                         "stroke-width": 3.0
                     });
                 });
+
+                node.attr("cx", function (d) {
+                    return d.x;
+                })
+                    .attr("cy", function (d) {
+                        return d.y;
+                    });
 
                 force.on("tick", function (e) {
                     var k = 6 * e.alpha;
@@ -224,7 +231,7 @@ app.directive('d3Cluster', function() {
                             return d.y;
                         });
 
-                    vis.selectAll("path")
+                    pathElements = vis.selectAll("path")
                         .data(groups)
                         .attr("d", groupPath)
                         .enter().insert("path", "circle")
@@ -235,22 +242,17 @@ app.directive('d3Cluster', function() {
                         .style("opacity", .2)
                         .attr("d", groupPath)
                         .on("click", function(d){
-
-                            structureBarData(d, groupingCategory, nodeName);
-
+                            structureBarData(d);
+//                                console.log(d);
                             var allPaths = d3.selectAll("#" + scope.containerId + " path"),
                                 selectedPath = d3.select(this);
                             //set all circles (and previously selected nodes) to default stroke & stroke-width
                             allPaths.style({
-                                "stroke": groupFill,
-                                "fill": groupFill,
                                 "stroke-width": 40,
                                 "opacity":.2
                             });
                             //set selected node to <color> and <border> size
                             selectedPath.style({
-                                "stroke": groupFill,
-                                "fill": groupFill,
                                 "opacity":.8,
                                 "stroke-width": 50
                             });
@@ -258,10 +260,14 @@ app.directive('d3Cluster', function() {
                 });
             }
 
-            function resize(){
+            d3.select(window).on('resize', resize);
+
+            function resize() {
+                console.log("phil's log");
                 w = parseInt(d3.select('#' + scope.containerId).style('width'));
                 h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
                 d3.select('#clusterContainer svg').attr("width", w).attr("height", h);
+                force.size([w, h]).resume();
             }
         }
     }
