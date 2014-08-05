@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 /**
- * This class is used to calculate the profitability of a service.
+ * This class is used to calculate the profitability of a service and is used in TAP services optimization.
  */
 public class ProfitFunction extends UnivariateSvcOptFunction{
 	
@@ -31,7 +31,6 @@ public class ProfitFunction extends UnivariateSvcOptFunction{
 	 * Given a specific budget, calculate the profit.
 	 * Gets the list of potential yearly savings and yearly budgets.
 	 * @param a 	Budget used in the service optimizer.
-	
 	 * @return 		Profit. */
 	@Override
 	public double value(double a) {

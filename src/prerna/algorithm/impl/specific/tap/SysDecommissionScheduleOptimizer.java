@@ -397,7 +397,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	 */
 	public void displaySystemSiteSpecifics()
 	{
-		ArrayList <Object []> list = new ArrayList();
+		ArrayList <Object []> list = new ArrayList<Object []>();
 		String[] colNames = new String[maxYears+1];
 		colNames[0]="System";
 		for(int i=1;i<=maxYears;i++)
@@ -420,7 +420,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	public void displaySystemCostSavingsSpecifics()
 	{
 		Hashtable<String,String> sysToOwner = optFunctions.getSysToOwnerHash();
-		ArrayList <Object []> list = new ArrayList();
+		ArrayList <Object []> list = new ArrayList<Object []>();
 		String[] colNames = new String[maxYears+3];
 		colNames[0] = "System";
 		colNames[1] = "System Owner";
