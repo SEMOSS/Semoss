@@ -309,7 +309,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		String[] headers = new String[]{"Required Direct Interfaces with DHMSM - Legacy Provider","Required Direct Interfaces with DHMSM - Legacy Consumer","Existing Legacy Interfaces Required to Endure","Existing Legacy Interfaces Recommended for Removal","Proposed Future Interfaces with DHMSM - Legacy Provider","Proposed Temporary Interfaces with DHMSM - Legacy Consumer"};
 		int[] barChartVals = new int[]{0,0,0,0,0,0};
 		ArrayList<Object[]> interfaceRowList = (ArrayList<Object[]>) sysLPIInterfaceHash.get(dataKey);
-		HashSet<String> dataObjectList = new HashSet<String>();
+		HashSet<String> dataObjectListForConsumers = new HashSet<String>();
+		HashSet<String> dataObjectListForProviders = new HashSet<String>();
 		
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
@@ -322,13 +323,16 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			//if it says need to add interface from our system to dhmsm, then legacy - provider
 			if(comment.contains("need to add interface "+systemName.toLowerCase()+"->dhmsm"))
 			{
-				addedInterface = true;
-				barChartVals[0] = barChartVals[0]+1;
+				if(!dataObjectListForProviders.contains(interfaceRow[4].toString())) {
+					dataObjectListForProviders.add(interfaceRow[4].toString());
+					addedInterface = true;
+					barChartVals[0] = barChartVals[0]+1;
+				}
 			}
 			else if(comment.contains("need to add interface dhmsm->"+systemName.toLowerCase()))
 			{
-				if(!dataObjectList.contains(interfaceRow[4].toString())) {
-					dataObjectList.add(interfaceRow[4].toString());
+				if(!dataObjectListForConsumers.contains(interfaceRow[4].toString())) {
+					dataObjectListForConsumers.add(interfaceRow[4].toString());
 					addedInterface = true;
 					barChartVals[1] = barChartVals[1]+1;
 				}

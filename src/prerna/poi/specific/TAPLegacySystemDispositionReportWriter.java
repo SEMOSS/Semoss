@@ -186,6 +186,10 @@ public class TAPLegacySystemDispositionReportWriter {
 		HashMap<String, Object> barHash = new HashMap<String, Object>();
 		barHash = report.createInterfaceBarChart(barHash);
 		
+		String replaceSysName = reportSheet.getRow(24).getCell(10).getStringCellValue();
+		replaceSysName = replaceSysName.replace("@SYSTEM@", sysName);
+		reportSheet.getRow(24).getCell(10).setCellValue(replaceSysName);
+		
 		XSSFSheet chartSheet = wb.getSheetAt(1);
 		int[] dataList = (int[])barHash.get("data");
 		for(int i = 0; i < dataList.length; i++)
@@ -201,6 +205,10 @@ public class TAPLegacySystemDispositionReportWriter {
 		reportSheet.getRow(17).getCell(10).setCellValue(interfaceModCost);
 
 		generateSysBudgetData();
+		
+		String replaceSysName = reportSheet.getRow(13).getCell(9).getStringCellValue();
+		replaceSysName = replaceSysName.replace("@SYSTEM@", sysName);
+		reportSheet.getRow(13).getCell(9).setCellValue(replaceSysName);
 		Hashtable<String, Object> innerHash = sysBudgetHash.get(sysName);
 		if(innerHash != null) 
 		{

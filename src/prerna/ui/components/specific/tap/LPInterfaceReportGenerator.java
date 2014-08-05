@@ -218,17 +218,17 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 							boolean otherwise = true;
 							if(lpiV.contains(upstreamSystemURI) && sorV.contains(upstreamSystemURI + data)) { // upstream system is LPI and SOR of data
 								otherwise = false;
-								comment += "Need to add interface " + upstreamSysName  + " -> DHMSM. ";
+								comment += "Need to add interface " + upstreamSysName  + "->DHMSM. ";
 							} else if(sorV.contains(upstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // upstream system is SOR and has a probability
 								otherwise = false;
-								comment += "Recommend review of developing interface between " + upstreamSysName  + " -> DHMSM. ";
+								comment += "Recommend review of developing interface between " + upstreamSysName  + "->DHMSM. ";
 							} 
 							if(lpiV.contains(downstreamSystemURI) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
 								otherwise = false;
-								comment += "Need to add interface " + downstreamSysName  + " -> DHMSM. ";
+								comment += "Need to add interface " + downstreamSysName  + "->DHMSM. ";
 							} else if(sorV.contains(downstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
 								otherwise = false;
-								comment += "Recommend review of developing interface between " + downstreamSysName  + " -> DHMSM. ";
+								comment += "Recommend review of developing interface between " + downstreamSysName  + "->DHMSM. ";
 							} 
 							if(otherwise) {
 								if(hpV.contains(upstreamSystemURI) || hpV.contains(downstreamSystemURI)) {
