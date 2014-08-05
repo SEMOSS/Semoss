@@ -148,8 +148,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 					if(query != null && !query.isEmpty()) {
 						filler.extQuery = query;
 					}
-					Thread aThread = new Thread(filler);
-					aThread.start();
+					filler.run();
 				}
 				setSelected(field);
 				setParams.add(field.fieldName);
@@ -237,8 +236,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 						if(query != null && !query.isEmpty()) {
 							filler.extQuery = query;
 						}
-						Thread aThread = new Thread(filler);
-						aThread.start();
+						filler.run();
 					}
 					setSelected(field);
 					newChangedParams.add(field.fieldName);
