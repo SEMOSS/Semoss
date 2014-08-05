@@ -97,7 +97,12 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		//custom query 
 		if (btnCustomSparql.isSelected()) {
 			String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
-			String playSheetString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST)).getSelectedItem()+"";
+			JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
+			String playSheetString = playSheetComboBox.getSelectedItem()+"";
+			if(playSheetString.startsWith("*"))
+			{
+				playSheetString = playSheetComboBox.getName();
+			}
 			exQueryProcessor.processCustomQuery(engineName, query, playSheetString);
 
 		} 

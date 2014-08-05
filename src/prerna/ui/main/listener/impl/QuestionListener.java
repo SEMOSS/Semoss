@@ -101,6 +101,7 @@ public class QuestionListener implements IChakraListener {
 			{
 				String addPlaySheet = layoutValue.substring(layoutValue.lastIndexOf(".") +1);
 				playSheetComboBox.addItem("*" + addPlaySheet);
+				playSheetComboBox.setName(layoutValue); // This is used to get the full layout value in ProcessQueryListener if the custom playsheet has been selected
 				playSheetComboBox.setSelectedItem("*" + addPlaySheet);
 			}
 			else{
