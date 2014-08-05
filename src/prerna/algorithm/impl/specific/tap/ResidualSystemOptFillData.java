@@ -78,28 +78,27 @@ public class ResidualSystemOptFillData{
 	 */
 	public ArrayList<String> runListQuery(String engineName, String query) {
 		ArrayList<String> list = new ArrayList<String>();
-		if(query!="")
-		{
-		try {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-	
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-			wrapper.setQuery(query);
-			wrapper.setEngine(engine);
-			wrapper.executeQuery();
-	
-			String[] names = wrapper.getVariables();
-			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
-				list.add((String) sjss.getVar(names[0]));
+		if(!query.isEmpty()) {
+			try {
+				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+
+				SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+				wrapper.setQuery(query);
+				wrapper.setEngine(engine);
+				wrapper.executeQuery();
+
+				String[] names = wrapper.getVariables();
+				while (wrapper.hasNext()) {
+					SesameJenaSelectStatement sjss = wrapper.next();
+					list.add((String) sjss.getVar(names[0]));
 				}
-		} catch (RuntimeException e) {
-			Utility.showError("Cannot find engine: "+engineName);
-		}
+			} catch (RuntimeException e) {
+				Utility.showError("Cannot find engine: " + engineName);
+			}
 		}
 		return list;
 	}
-	
+
 	public ArrayList<String> deepCopy(ArrayList<String> list)
 	{
 		ArrayList<String> retList = new ArrayList<String>();
