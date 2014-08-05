@@ -19,12 +19,14 @@
 package prerna.ui.components;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.query.BindingSet;
+import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
@@ -34,6 +36,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.SEMOSSEdge;
@@ -415,8 +418,13 @@ public class RDFEngineHelper {
 	 * Loads base relations from the OWL file.
 	 * @param owlFilePath 	String that contains the path to the OWL file.
 	
-	 * @return Hashtable 	Hashtable of base relations. */
-	public static Hashtable loadBaseRelationsFromOWL(String owlFilePath) throws Exception{
+	 * @return Hashtable 	Hashtable of base relations. 
+	 * @throws RepositoryException 
+	 * @throws IOException 
+	 * @throws RDFParseException 
+	 * @throws MalformedQueryException 
+	 * @throws QueryEvaluationException */
+	public static Hashtable loadBaseRelationsFromOWL(String owlFilePath) throws RepositoryException, RDFParseException, IOException, MalformedQueryException, QueryEvaluationException {
 		Hashtable<String,String> baseFilterHash = new Hashtable<String,String>();
 		Repository myRepository = new SailRepository(new MemoryStore());
 		myRepository.initialize();
