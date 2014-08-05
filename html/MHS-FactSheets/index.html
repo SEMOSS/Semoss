@@ -41,52 +41,52 @@
         </div>
       </div>
 
-<div class="container" id="IndexCtrl" ng-controller="IndexCtrl">
+    <!-- lets see what happens <div class="container" id="IndexCtrl" ng-controller="IndexCtrl">-->
 
-  <div class="container" ng-hide="data">
+	<div class="container" ng-hide="data">
 
-  <div class="page-header">
-    <h1>Capability List</h1>
-  </div>
+		<div class="page-header">
+		    <h1>Capability List</h1>
+		</div>
 
-  <input type="text" ng-model="query" size="100" placeholder="Search for a capability"></input><br/><br/>
+  		<input type="text" ng-model="query" size="100" placeholder="Search for a capability"></input><br/><br/>
 
-  <ul>
-    <li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
-  </ul>
+		<ul>
+			<li ng-repeat="cap in list.dataSeries | filter:query" ng-click="getFactSheet(cap)"><a ng-href="">{{cap | replaceUnderscores }}</a></li>
+		</ul>
 
-</div> <!-- /container -->
+	</div> <!-- /container -->
 
-<div class="container" ng-show="data">
+	<div class="container" ng-show="data">
 
-  <div class="page-header"></div> <!-- creates a pretty page break line -->
+		<div class="page-header"></div> <!-- creates a pretty page break line -->
 
-  <h3>Capability Overview: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
-  <br/>
+		<h3>Capability Overview: {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</h3>
+		<br/>
 
-  <div class="row equalColumns">
+		<div class="row equalColumns">
 
-  <div class="col-md-2"  style="word-wrap: break-word">
-      <center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
-    </div>
-    <div class="col-md-10" style="word-wrap: break-word">
-      {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
-    </div>
-  </div> <!--row-->
-      <div class="row equalColumns">
-        <div class="col-md-2" style="word-wrap: break-word">
-          <center><b>Capability Group</b></center>
-        </div>
-        <div class="col-md-10" style="word-wrap: break-word">
-			{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }} -
-          {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[3] | replaceUnderscores}}
-        </div>
-      </div> <!--row-->
-      <div class="row equalColumns">
-        <div class="col-md-2"><center><b>Mission Outcomes</b></center></div>
-        <div class="col-md-10" style="word-wrap: break-word">
-          <ul>
-            <li ng-repeat="outcome in data.dataSeries.CapabilityOverviewSheet.MISSION_OUTCOME_QUERY">
+			<div class="col-md-2"  style="word-wrap: break-word">
+			<center><b>{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[0] | replaceUnderscores }}</b></center>
+			</div>
+			<div class="col-md-10" style="word-wrap: break-word">
+	      		{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[1] | replaceUnderscores }}
+	    	</div>
+    	</div> <!--row-->
+      	<div class="row equalColumns">
+        	<div class="col-md-2" style="word-wrap: break-word">
+       			<center><b>Capability Group</b></center>
+        	</div>
+        	<div class="col-md-10" style="word-wrap: break-word">
+				{{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[2] | replaceUnderscores }} -
+		        {{ data.dataSeries.CapabilityOverviewSheet.CAPABILITY_GROUP_QUERY[3] | replaceUnderscores}}
+	        </div>
+		</div> <!--row-->
+      	<div class="row equalColumns">
+        	<div class="col-md-2"><center><b>Mission Outcomes</b></center></div>
+        	<div class="col-md-10" style="word-wrap: break-word">
+          	<ul>
+            	<li ng-repeat="outcome in data.dataSeries.CapabilityOverviewSheet.MISSION_OUTCOME_QUERY">
               {{outcome | replaceUnderscores}}
             </li>
           </ul>
