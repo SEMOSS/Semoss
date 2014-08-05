@@ -244,6 +244,13 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			retBool = false;
+		} finally {
+			try{
+				if(ris!=null)
+					ris.close();
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;

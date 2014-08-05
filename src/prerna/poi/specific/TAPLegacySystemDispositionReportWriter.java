@@ -146,8 +146,9 @@ public class TAPLegacySystemDispositionReportWriter {
 		OCONUSMapExporter imageExporter = new OCONUSMapExporter();
 		String imageLoc = imageExporter.processData(listWithSysName);
 		
+		FileInputStream inputStream = null;
 		try {
-			FileInputStream inputStream = new FileInputStream(imageLoc); //FileInputStream obtains input bytes from the image file
+			inputStream = new FileInputStream(imageLoc); //FileInputStream obtains input bytes from the image file
 			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
 			int pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 			inputStream.close();
@@ -166,6 +167,13 @@ public class TAPLegacySystemDispositionReportWriter {
 			logger.info("CONUS Map image not found for this system");
 		} catch (IOException e) {
 			logger.info("CONUS Map image not found for this system");
+		} finally {
+			try {
+				if(inputStream!=null)
+					inputStream.close();
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

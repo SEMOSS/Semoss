@@ -565,75 +565,73 @@ public class Utility {
 		return engine;
 	}
 
-	// TODO: TO BE REMOVED
-	/**
-	 * Creates base relations for a specific engine and RDF Map.
-	 * Splits RDF map values into tokens in order to obtain the subject/predicate/object triple.
-	 * Put these values into the base filter hash and then add the triple into the base relation engine.
-	 * @param 	RDF map
-	 * @param 	The base sesame engine for the RDF map
+//	/**
+//	 * Creates base relations for a specific engine and RDF Map.
+//	 * Splits RDF map values into tokens in order to obtain the subject/predicate/object triple.
+//	 * Put these values into the base filter hash and then add the triple into the base relation engine.
+//	 * @param 	RDF map
+//	 * @param 	The base sesame engine for the RDF map
+//
+//	 * @return 	Hashtable containing base triple relations */
+//	private static Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) {
+//		String relationName = "BaseData";
+//		Hashtable baseFilterHash = new Hashtable();
+//		if(rdfMap.containsKey(relationName)){ //load using what is on the map
+//			String value = rdfMap.getProperty(relationName);
+//			System.out.println(" Relations are " + value);
+//			StringTokenizer relTokens = new StringTokenizer(value, ";");
+//			while (relTokens.hasMoreTokens()) {
+//				String rel = relTokens.nextToken();
+//				String relNames = rdfMap.getProperty(rel);
+//				StringTokenizer rdfTokens = new StringTokenizer(relNames, ";");
+//				
+//				while (rdfTokens.hasMoreTokens()) {
+//					StringTokenizer stmtTokens = new StringTokenizer(rdfTokens.nextToken(), "+");
+//					String subject = stmtTokens.nextToken();
+//					String predicate = stmtTokens.nextToken();
+//					String object = stmtTokens.nextToken();
+//					baseFilterHash.put(subject, subject);
+//					baseFilterHash.put(object, object);
+//					baseFilterHash.put(predicate, predicate);
+//					// create the statement now
+//					baseRelEngine.addStatement(subject, predicate, object, true);
+//				}// statement while
+//			}// relationship while
+//		}//if using map
+//		return baseFilterHash;
+//	}
 
-	 * @return 	Hashtable containing base triple relations */
-	private static Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) {
-		String relationName = "BaseData";
-		Hashtable baseFilterHash = new Hashtable();
-		if(rdfMap.containsKey(relationName)){ //load using what is on the map
-			String value = rdfMap.getProperty(relationName);
-			System.out.println(" Relations are " + value);
-			StringTokenizer relTokens = new StringTokenizer(value, ";");
-			while (relTokens.hasMoreTokens()) {
-				String rel = relTokens.nextToken();
-				String relNames = rdfMap.getProperty(rel);
-				StringTokenizer rdfTokens = new StringTokenizer(relNames, ";");
-				
-				while (rdfTokens.hasMoreTokens()) {
-					StringTokenizer stmtTokens = new StringTokenizer(rdfTokens.nextToken(), "+");
-					String subject = stmtTokens.nextToken();
-					String predicate = stmtTokens.nextToken();
-					String object = stmtTokens.nextToken();
-					baseFilterHash.put(subject, subject);
-					baseFilterHash.put(object, object);
-					baseFilterHash.put(predicate, predicate);
-					// create the statement now
-					baseRelEngine.addStatement(subject, predicate, object, true);
-				}// statement while
-			}// relationship while
-		}//if using map
-		return baseFilterHash;
-	}
-
-	/**
-	 * Checks for an OWL and adds it to the engine. 
-	 * Sets the base data hash from the engine properties, commits the database, and creates the base relation engine.
-	 * @param 	List of properties for a specific engine
-	 * @param 	Engine to set
-	 */
-	private static void createBaseRelationEngine(Properties engineProp, AbstractEngine engine)
-	{
-		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
-		// If OWL file doesn't exist, go the old way and create the base relation engine
-		String owlFileName = (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName() + "_" + Constants.OWL);
-		if(owlFileName == null)
-		{
-			owlFileName = "./db/" + engine.getEngineName() + "/" + engine.getEngineName() + ".OWL";
-		}
-		baseRelEngine.fileName = owlFileName;
-		baseRelEngine.openDB(null);
-		engine.addConfiguration(Constants.OWL, owlFileName);
-		if(engineProp.containsKey("BaseData")) {
-			//TODO: Need to find a way to write this into the prop file
-			try {
-				Hashtable hash = createBaseRelations(engineProp, baseRelEngine);
-				engine.setBaseHash(hash);
-			} catch (RuntimeException e) {
-				// TODO: Specify exception
-				e.printStackTrace();
-			}
-		}			
-		baseRelEngine.commit();
-		engine.setBaseData(baseRelEngine);
-	}
-	// TODO: TO BE REMOVED
+//	/**
+//	 * Checks for an OWL and adds it to the engine. 
+//	 * Sets the base data hash from the engine properties, commits the database, and creates the base relation engine.
+//	 * @param 	List of properties for a specific engine
+//	 * @param 	Engine to set
+//	 */
+//	private static void createBaseRelationEngine(Properties engineProp, AbstractEngine engine)
+//	{
+//		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
+//		// If OWL file doesn't exist, go the old way and create the base relation engine
+//		String owlFileName = (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName() + "_" + Constants.OWL);
+//		if(owlFileName == null)
+//		{
+//			owlFileName = "./db/" + engine.getEngineName() + "/" + engine.getEngineName() + ".OWL";
+//		}
+//		baseRelEngine.fileName = owlFileName;
+//		baseRelEngine.openDB(null);
+//		engine.addConfiguration(Constants.OWL, owlFileName);
+//		if(engineProp.containsKey("BaseData")) {
+//			//TODO: Need to find a way to write this into the prop file
+//			try {
+//				Hashtable hash = createBaseRelations(engineProp, baseRelEngine);
+//				engine.setBaseHash(hash);
+//			} catch (RuntimeException e) {
+//				// TODO: Specify exception
+//				e.printStackTrace();
+//			}
+//		}			
+//		baseRelEngine.commit();
+//		engine.setBaseData(baseRelEngine);
+//	}
 
 	/**
 	 * Cleans a string based on certain patterns
@@ -730,6 +728,9 @@ public class Utility {
 	public static String retrieveResult(String api, Hashtable <String,String> params)
 	{
 		String output = "";
+		BufferedReader stream = null;
+		InputStreamReader inputStream = null;
+		CloseableHttpClient httpclient = null;
 		try
 		{
 			URIBuilder uri = new URIBuilder(api);
@@ -741,7 +742,7 @@ public class Utility {
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
 		            builder.build());
-		    CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(
+		    httpclient = HttpClients.custom().setSSLSocketFactory(
 		            sslsf).build();
 
 			HttpPost get = new HttpPost(api);
@@ -764,7 +765,8 @@ public class Utility {
 			
 			if(entity != null)
 			{
-				BufferedReader stream = new BufferedReader(new InputStreamReader(entity.getContent()));
+				inputStream = new InputStreamReader(entity.getContent());
+				stream = new BufferedReader(inputStream);
 				String data = null;
 				while((data = stream.readLine()) != null)
 					output = output + data;
@@ -782,6 +784,23 @@ public class Utility {
 			logger.debug(e);
 		} catch (KeyManagementException e) {
 			logger.debug(e);
+		} finally {
+				try {
+					if(inputStream!=null)
+						inputStream.close();
+					if(stream!=null)
+						stream.close();
+				} catch (IOException e) {
+					logger.error("Error closing input stream for image");
+				}
+				try {
+					if(httpclient!=null)
+						httpclient.close();
+					if(stream!=null)
+						stream.close();
+				} catch (IOException e) {
+					logger.error("Error closing socket for httpclient");
+				}
 		}
 		if(output.length() == 0)
 			output = null;
@@ -791,8 +810,8 @@ public class Utility {
 
 	public static InputStream getStream(String api, Hashtable <String,String> params)
 	{
-		String output = "";
 		HttpEntity entity ;
+		CloseableHttpClient httpclient = null;
 		try
 		{
 			URIBuilder uri = new URIBuilder(api);
@@ -804,7 +823,7 @@ public class Utility {
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
 		            builder.build());
-		    CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(
+		    httpclient = HttpClients.custom().setSSLSocketFactory(
 		            sslsf).build();
 
 			HttpPost get = new HttpPost(api);
@@ -845,6 +864,13 @@ public class Utility {
 		} catch (KeyManagementException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try{
+				if(httpclient!=null)
+					httpclient.close();
+			}catch(IOException e){
+				e.printStackTrace();
+			}
 		}
 		return null;
 	}

@@ -46,7 +46,7 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 	 * @throws FileReaderException 
 	 */
 	public void importFile(String fileName) throws FileReaderException {
-		FileInputStream poiReader;
+		FileInputStream poiReader = null;
 		XSSFWorkbook workbook = null;
 		try {
 			poiReader = new FileInputStream(fileName.replace(";",""));
@@ -57,6 +57,13 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not read Microsoft Excel File " + fileName.replace(";",""));
+		} finally {
+			try{
+				if(poiReader!=null)
+					poiReader.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		try {
 			poiReader.close();

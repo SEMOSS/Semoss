@@ -378,7 +378,8 @@ public class FactSheetWriter {
 			logger.error("Health Grid image not found for this system");
 		} finally {
 			try {
-				inputStream.close();
+				if(inputStream != null)
+					inputStream.close();
 			} catch (IOException e) {
 				logger.error("Error closing input stream for image");
 			}
@@ -973,24 +974,25 @@ public class FactSheetWriter {
 		int pictureIdx = 0;
 		int pictureIdx2 = 0;
 
-		FileInputStream inputStream = null;
+		FileInputStream inputStream1 = null;
+		FileInputStream inputStream2 = null;
 		try {
-			inputStream = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
-			byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
+			inputStream1 = new FileInputStream(picFileLoc); //FileInputStream obtains input bytes from the image file
+			byte[] bytes = IOUtils.toByteArray(inputStream1); //Get the contents of an InputStream as a byte[].
 			pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
-			inputStream.close();
+			inputStream1.close();
 
-			inputStream = new FileInputStream(picFileLoc2); //FileInputStream obtains input bytes from the image file
-			bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
+			inputStream2 = new FileInputStream(picFileLoc2); //FileInputStream obtains input bytes from the image file
+			bytes = IOUtils.toByteArray(inputStream2); //Get the contents of an InputStream as a byte[].
 			pictureIdx2 = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 		} catch (FileNotFoundException e) {
 			try {
-				inputStream = new FileInputStream(templateCONUSFileLoc);
-				byte[] bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
+				inputStream1 = new FileInputStream(templateCONUSFileLoc);
+				byte[] bytes = IOUtils.toByteArray(inputStream1); //Get the contents of an InputStream as a byte[].
 				pictureIdx = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 
-				inputStream = new FileInputStream(templateOCONUSFileLoc); //FileInputStream obtains input bytes from the image file
-				bytes = IOUtils.toByteArray(inputStream); //Get the contents of an InputStream as a byte[].
+				inputStream2 = new FileInputStream(templateOCONUSFileLoc); //FileInputStream obtains input bytes from the image file
+				bytes = IOUtils.toByteArray(inputStream2); //Get the contents of an InputStream as a byte[].
 				pictureIdx2 = wb.addPicture(bytes, XSSFWorkbook.PICTURE_TYPE_PNG); //Adds a picture to the workbook
 
 				rowToWriteOn = sheetToWriteOver.getRow(6);
@@ -1002,19 +1004,20 @@ public class FactSheetWriter {
 			} 
 			catch (IOException e1) {
 				logger.error("CONUS and OCONUS map images not able to be loaded");
-			} finally {
-				try {
-					inputStream.close();
-				} catch (IOException e2) {
-					logger.error("Error closing input stream for image");
-				}
 			}
 		} catch (IOException e) {
 			logger.error("Error closing input stream for image");
 		} finally {
 			try {
-				inputStream.close();
-			} catch (IOException e) {
+				if(inputStream1!=null)
+					inputStream1.close();
+			} catch (IOException e2) {
+				logger.error("Error closing input stream for image");
+			}
+			try {
+				if(inputStream2!=null)
+					inputStream2.close();
+			} catch (IOException e2) {
 				logger.error("Error closing input stream for image");
 			}
 		}

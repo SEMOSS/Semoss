@@ -479,6 +479,11 @@ public class DIHelper {
 				try{
 					if(qPropfileIn!=null)
 						qPropfileIn.close();
+
+				}catch(IOException e) {
+					e.printStackTrace();
+				}
+				try{
 					if(ontologyPropfileIn!=null)
 						ontologyPropfileIn.close();
 				}catch(IOException e) {

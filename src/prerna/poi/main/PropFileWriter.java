@@ -217,6 +217,13 @@ public class PropFileWriter {
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new FileReaderException("Could not read default database files");
+		} finally{
+			try{
+				if(pw!=null)
+					pw.close();
+			}catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		BufferedReader read = null;

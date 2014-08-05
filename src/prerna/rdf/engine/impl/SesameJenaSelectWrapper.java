@@ -189,6 +189,14 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally{
+			try{
+				if(ris!=null) {
+					ris.close();
+				}
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
