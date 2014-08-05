@@ -53,7 +53,7 @@ public class SORpropInsertListener  extends AbstractListener {
 				//insertProcessor.runDeleteQueries();
 				success = insertProcessor.runCoreInsert();
 				errorMessage = insertProcessor.getErrorMessage();
-				if (!(errorMessage == "")) {
+				if (!errorMessage.isEmpty()) {
 					Utility.showError(errorMessage);
 				}
 			}
@@ -64,7 +64,7 @@ public class SORpropInsertListener  extends AbstractListener {
 			insertProcessor.setInsertCoreDB(engineName);
 			success = insertProcessor.runCoreInsert();
 			errorMessage = insertProcessor.getErrorMessage();
-			if (!(errorMessage == "")) {
+			if (!errorMessage.isEmpty()) {
 				Utility.showError(errorMessage);
 			}
 		}
