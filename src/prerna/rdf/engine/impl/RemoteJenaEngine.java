@@ -173,9 +173,11 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void openDB(String propFile) {
+		FileInputStream fileIn = null;
 		try {
 			prop = new Properties();
-			prop.load(new FileInputStream(propFile));
+			fileIn = new FileInputStream(propFile);
+			prop.load(fileIn);
 			this.serviceURI = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
 			this.connected = true;
 		} catch (RuntimeException e) {
@@ -186,6 +188,13 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
