@@ -17,4 +17,14 @@ public class SPARQLModifierConstant {
 	{
 		this.constant = constant;
 	}
+
+	@Override
+	public boolean equals(Object obj){
+		if(obj instanceof SPARQLModifierConstant){
+			if(this.constant.equals(((SPARQLModifierConstant) obj).constant)){
+				return true;
+			}
+		}
+		return false;
+	}
 }

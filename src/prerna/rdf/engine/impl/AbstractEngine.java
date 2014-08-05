@@ -1202,7 +1202,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * 
 	 * @return Hashtable containing base triple relations
 	 */
-	private Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) throws Exception {
+	private Hashtable createBaseRelations(Properties rdfMap, RDFFileSesameEngine baseRelEngine) {
 		String relationName = "BaseData";
 		Hashtable baseFilterHash = new Hashtable();
 		if (rdfMap.containsKey(relationName)) { // load using what is on the map

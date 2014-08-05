@@ -247,7 +247,7 @@ public class GraphDataModel {
 			loadBaseData(engine);
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
-			boolean loadHierarchy = !(subjects.toString().equals("") && predicates.equals("") && objects.equals("")); 
+			boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0); 
 			if(loadHierarchy) {
 				try {
 					RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
