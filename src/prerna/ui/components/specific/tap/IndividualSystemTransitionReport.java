@@ -164,7 +164,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 		HashMap<String, Object> sysInfoHash = getSysInfo();
 		HashMap<String, Object> sysSiteHash = new HashMap<String,Object>();
-		if(reportType.equals("HPI")) {
+		if(reportType.equals("HPI")||reportType.equals("HPNI")) {
 			siteQuery = siteQuery.replace("@SYSTEM@", systemURI);
 			sysSiteHash = getQueryDataWithHeaders(TAP_Site_Data, siteQuery);
 		}
@@ -203,9 +203,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			templateFileName = "Individual_System_LPNI_Transition_Report_Template.xlsx";
 		else if(reportType.equals("HPI"))
 			templateFileName = "Individual_System_HPI_Transition_Report_Template.xlsx";
+		else if(reportType.equals("HPNI"))
+			templateFileName = "Individual_System_HPNI_Transition_Report_Template.xlsx";
 		writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),templateFileName);
 		writer.writeSystemInfoSheet("System Overview",sysInfoHash);
-		if(reportType.equals("HPI"))
+		if(reportType.equals("HPI")||reportType.equals("HPNI"))
 			writer.writeSystemSiteDetails("System Overview",sysSiteHash);
 		writer.writeHWSWSheet("Software Lifecycles", storeSoftwareData.get(0), storeSoftwareData.get(1), storeSoftwareData.get(2));
 		writer.writeHWSWSheet("Hardware Lifecycles", storeHardwareData.get(0), storeHardwareData.get(1), storeHardwareData.get(2));
@@ -248,7 +250,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 
-		if(reportType.equals("LPI") || reportType.equals("HPI")) {
+		if(reportType.equals("LPI") || reportType.equals("HPI")||reportType.equals("HPNI")) {
 			return createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 		} else {
 			return createLPNIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash, dhmsmSORList, lpiSystemList);
