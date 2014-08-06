@@ -66,6 +66,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		this.add(lblBLUSelectHeader, gbc_lblBLUSelectHeader);
 		
 		updateProvideDataBLUButton = new CustomButton("Select Provide");
+		updateProvideDataBLUButton.setName("updateProvideDataBLUButton");
 		updateProvideDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(updateProvideDataBLUButton,  ".toggleButton");
 		updateProvideDataBLUButton.setVisible(true);		
@@ -79,6 +80,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		this.add(updateProvideDataBLUButton, gbc_updateDataBLUButton);
 		
 		updateConsumeDataBLUButton = new CustomButton("Select Consume");
+		updateConsumeDataBLUButton.setName("updateConsumeDataBLUButton");
 		updateConsumeDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(updateConsumeDataBLUButton,  ".toggleButton");
 		updateConsumeDataBLUButton.setVisible(true);		

@@ -66,54 +66,43 @@ public class UpdateDataListListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(e.getSource().equals(updateProvideDataButton)||e.getSource().equals(updateConsumeDataButton))
+		if(((JButton)e.getSource()).getName().equals(updateProvideDataButton.getName()) || ((JButton)e.getSource()).getName().equals(updateConsumeDataButton.getName()))
 		{
 			ArrayList<String> dataList =  new ArrayList<String>();
 			getQueryResults();
+			
 			if(dataSelectPanel.hsdCheck.isSelected())
 			{
-				if(e.getSource().equals(updateProvideDataButton)) 
-				{
+				if(((JButton)e.getSource()).getName().equals(updateProvideDataButton.getName()))  {
 					dataList.addAll(hsdProvideList);
-				}
-				else 
-				{
+				} else {
 					dataList.addAll(hsdConsumeList);
 				}
 			}
 
 			if(dataSelectPanel.hssCheck.isSelected())
 			{
-				if(e.getSource().equals(updateProvideDataButton)) 
-				{
+				if(((JButton)e.getSource()).getName().equals(updateProvideDataButton.getName())) {
 					dataList.addAll(hssProvideList);
-				}
-				else 
-				{
+				} else {
 					dataList.addAll(hssConsumeList);
 				}
 			}
 
 			if(dataSelectPanel.fhpCheck.isSelected())
 			{
-				if(e.getSource().equals(updateProvideDataButton)) 
-				{
+				if(((JButton)e.getSource()).getName().equals(updateProvideDataButton.getName())) {
 					dataList.addAll(fhpProvideList);
-				}
-				else 
-				{
+				} else {
 					dataList.addAll(fhpConsumeList);
 				}
 			}
 
 			if(dataSelectPanel.dhmsmCheck.isSelected())
 			{
-				if(e.getSource().equals(updateProvideDataButton)) 
-				{
+				if(((JButton)e.getSource()).getName().equals(updateProvideDataButton.getName())) {
 					dataList.addAll(dhmsmProvideList);
-				}
-				else 
-				{
+				} else {
 					dataList.addAll(dhmsmConsumeList);
 				}
 			}

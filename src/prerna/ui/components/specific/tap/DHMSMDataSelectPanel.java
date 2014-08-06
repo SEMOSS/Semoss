@@ -116,6 +116,7 @@ public class DHMSMDataSelectPanel extends JPanel {
 		dhmsmCheck.addActionListener(dataCheckBoxListener);
 
 		updateProvideDataButton = new CustomButton("Select Provide");
+		updateProvideDataButton.setName("updateProvideDataButton");
 		updateProvideDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(updateProvideDataButton,  ".toggleButton");
 		updateProvideDataButton.setVisible(true);		
@@ -129,6 +130,7 @@ public class DHMSMDataSelectPanel extends JPanel {
 		this.add(updateProvideDataButton, gbc_updateProvideDataButton);
 
 		updateConsumeDataButton = new CustomButton("Select Consume");
+		updateConsumeDataButton.setName("updateConsumeDataButton");
 		updateConsumeDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(updateConsumeDataButton,  ".toggleButton");
 		updateConsumeDataButton.setVisible(true);		

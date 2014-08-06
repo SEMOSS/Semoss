@@ -96,6 +96,7 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 	public void createOptimizationTypeComponents()
 	{
 		rdbtnProfit = new JRadioButton("Savings");
+		rdbtnProfit.setName("rdbtnProfit");
 		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		rdbtnProfit.setSelected(true);
 		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
@@ -109,6 +110,7 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 
 		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
 		rdbtnROI = new JRadioButton("ROI");
+		rdbtnROI.setName("rdbtnROI");
 		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
 		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
@@ -120,6 +122,7 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 
 
 		rdbtnBreakeven = new JRadioButton("Recoup Period");
+		rdbtnBreakeven.setName("rdbtnBreakeven");
 		rdbtnBreakeven.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnBreakeven = new GridBagConstraints();
 		gbc_rdbtnBreakeven.gridwidth = 2;
@@ -423,6 +426,7 @@ public class SerOptPlaySheet extends InputPanelPlaySheet{
 	public void createAdvParamPanelsToggles()
 	{
 		showParamBtn = new ToggleButton("Show Advanced Parameters");
+		showParamBtn.setName("showParamBtn");
 		showParamBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(showParamBtn,  ".toggleButton");
 		

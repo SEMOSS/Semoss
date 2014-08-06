@@ -40,27 +40,21 @@ public class TransOverheadRadioButtonListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
-
 		JRadioButton overhead = (JRadioButton)DIHelper.getInstance().getLocalProp(Constants.TRANSITION_APPLY_OVERHEAD_RADIO);
 		JRadioButton noOverhead = (JRadioButton)DIHelper.getInstance().getLocalProp(Constants.TRANSITION_NOT_APPLY_OVERHEAD_RADIO);
 		
-		if (actionevent.getSource().equals(overhead)&& noOverhead.isSelected())
-		{
+		if (((JRadioButton)actionevent.getSource()).getName().equals(overhead.getName()) && noOverhead.isSelected()) {
 			noOverhead.setSelected(!overhead.isSelected());
 		}
-		else if (actionevent.getSource().equals(noOverhead)&& overhead.isSelected())
-		{
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(noOverhead.getName()) && overhead.isSelected()) {
 			overhead.setSelected(!noOverhead.isSelected());
 		}
-		else if (actionevent.getSource().equals(overhead)&& !noOverhead.isSelected())
-		{
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(overhead.getName()) && !noOverhead.isSelected()) {
 			overhead.setSelected(true);
 		}
-		else if (actionevent.getSource().equals(noOverhead)&& !overhead.isSelected())
-		{
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(noOverhead.getName()) && !overhead.isSelected()) {
 			noOverhead.setSelected(true);
 		}
-		
 	}
 
 	/**

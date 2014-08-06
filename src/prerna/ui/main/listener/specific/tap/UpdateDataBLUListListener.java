@@ -62,7 +62,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(e.getSource().equals(updateProvideDataBLUButton)||e.getSource().equals(updateConsumeDataBLUButton))
+		if(((JButton)e.getSource()).getName().equals(updateProvideDataBLUButton.getName()) || ((JButton)e.getSource()).getName().equals(updateConsumeDataBLUButton.getName()))
 		{
 			dataBLUSelectPanel.setVisible(true);
 			ArrayList<String> dataList =  new ArrayList<String>();
@@ -78,7 +78,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 					for(int sysInd = 0;sysInd < systems.size();sysInd++)
 					{
 						String sys = systems.get(sysInd);
-						if(e.getSource().equals(updateProvideDataBLUButton))
+						if(((JButton)e.getSource()).getName().equals(updateProvideDataBLUButton.getName()))
 							dataList.addAll(dhelp.getAllDataFromSys(sys, "C"));
 						else
 						{
@@ -86,7 +86,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 							dataList.removeAll(dhelp.getAllDataFromSys(sys,"C"));
 						}
 					}
-					if(e.getSource().equals(updateProvideDataBLUButton))
+					if(((JButton)e.getSource()).getName().equals(updateProvideDataBLUButton.getName()))
 					{
 						String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
 						bluQuery = addBindings("System",systems, bluQuery);
@@ -100,7 +100,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 				String dataProvideQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
 				String dataConsumeQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'R'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
 				String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-				if(e.getSource().equals(updateProvideDataBLUButton))
+				if(((JButton)e.getSource()).getName().equals(updateProvideDataBLUButton.getName()))
 				{}
 				ArrayList<String> capabilities = new ArrayList<String>();
 				if(!capSelectPanel.getSelectedCapabilities().isEmpty())
@@ -110,7 +110,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 					dataConsumeQuery = addBindings("Capability",capabilities, dataConsumeQuery);
 					ArrayList<String> dataProvideList = runListQuery(engine,dataProvideQuery);
 					ArrayList<String> dataConsumeList = runListQuery(engine,dataConsumeQuery);
-					if(e.getSource().equals(updateProvideDataBLUButton))
+					if(((JButton)e.getSource()).getName().equals(updateProvideDataBLUButton.getName()))
 					{
 						dataList = dataProvideList;
 						bluQuery = addBindings("Capability",capabilities, bluQuery);
