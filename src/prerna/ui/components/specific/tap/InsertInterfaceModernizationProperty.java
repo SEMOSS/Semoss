@@ -1,7 +1,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -18,9 +18,10 @@ public class InsertInterfaceModernizationProperty {
 
 	static final Logger logger = LogManager.getLogger(InsertInterfaceModernizationProperty.class.getName());
 
-	private String lpiSysListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} ORDER BY ?entity BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-	private String lpniSysListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' }} ORDER BY ?entity BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-
+	//queries to determine type of system
+	private String reportTypeQuery = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
+	
+	private String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
 	private String totalDirectCostKey = "directCost";
 	private String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
@@ -41,8 +42,7 @@ public class InsertInterfaceModernizationProperty {
 
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
-		HashSet<String> lpiList = runListQuery(HR_Core, lpiSysListQuery);
-		HashSet<String> lpniList = runListQuery(HR_Core, lpniSysListQuery);
+		Hashtable<String,String> reportTypeHash = processReportTypeQuery();
 
 		IndividualSystemTransitionReport generateCostInfo = new IndividualSystemTransitionReport();
 
@@ -56,22 +56,12 @@ public class InsertInterfaceModernizationProperty {
 		generateCostInfo.getCostInfo();
 		generateCostInfo.getLPNIInfo();
 
-		for(String sysURI : lpiList) {
+		for(String sysName : reportTypeHash.keySet()){
+			String sysURI = sysURIPrefix + sysName;
 			generateCostInfo.setSystemURI(sysURI);
-			generateCostInfo.setSystemName(sysURI.substring(sysURI.lastIndexOf("/")+1));
-			generateCostInfo.setReportType("LPI");
-			HashMap<String, Object> sysLPInterfaceWithCostHash = generateCostInfo.calculateInterfaceModernizationCost();
-			Object cost = (Double) sysLPInterfaceWithCostHash.get(totalDirectCostKey);
-			if(cost == null) {
-				cost = "NA";
-			}
-			addProperty(sysURI, costPropertyURI, cost, false);
-		}
-
-		for(String sysURI : lpniList) {
-			generateCostInfo.setSystemURI(sysURI);
-			generateCostInfo.setSystemName(sysURI.substring(sysURI.lastIndexOf("/")+1));
-			generateCostInfo.setReportType("LPNI");
+			generateCostInfo.setSystemName(sysName);
+			String reportType = reportTypeHash.get(sysName);
+			generateCostInfo.setReportType(reportType);
 			HashMap<String, Object> sysLPInterfaceWithCostHash = generateCostInfo.calculateInterfaceModernizationCost();
 			Object cost = (Double) sysLPInterfaceWithCostHash.get(totalDirectCostKey);
 			if(cost == null) {
@@ -88,20 +78,20 @@ public class InsertInterfaceModernizationProperty {
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
 
-	private HashSet<String> runListQuery(IEngine engine, String query) 
-	{
-		HashSet<String> dataSet = new HashSet<String>();
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
-		String[] names = sjsw.getVariables();
+	public Hashtable<String,String> processReportTypeQuery() {
+		Hashtable<String,String> retList = new Hashtable<String,String>();
 
-		while(sjsw.hasNext())
-		{
+		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, reportTypeQuery);
+		String[] varName = sjsw.getVariables();
+		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String var = sjss.getRawVar(names[0]).toString().replace("\"", "");
-			dataSet.add(var);
+			String entity = sjss.getRawVar(varName[0]).toString();
+			String instance = Utility.getInstanceName(entity);
+			String reportType = sjss.getRawVar(varName[1]).toString();
+			retList.put(instance,reportType);
 		}
 
-		return dataSet;
+		return retList;
 	}
 
 	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
