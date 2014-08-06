@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -57,7 +58,7 @@ import prerna.util.Utility;
  */
 public class FactSheetWriter {
 
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(FactSheetWriter.class.getName());
 
 	public String systemName;
 

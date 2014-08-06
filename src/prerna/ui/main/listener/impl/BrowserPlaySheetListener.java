@@ -21,7 +21,9 @@ package prerna.ui.main.listener.impl;
 import javax.swing.JInternalFrame;
 import javax.swing.event.InternalFrameEvent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 
 
@@ -29,7 +31,7 @@ import prerna.ui.components.playsheets.BrowserPlaySheet;
  */
 public class BrowserPlaySheetListener extends PlaySheetListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BrowserPlaySheetListener.class.getName());
 	
 	/**
 	 * TODO unused method

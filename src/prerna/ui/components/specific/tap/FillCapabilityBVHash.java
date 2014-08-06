@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -42,7 +43,7 @@ public class FillCapabilityBVHash implements Runnable{
 	Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
 	SesameJenaSelectWrapper wrapper;
 	Hashtable tempSelectHash = new Hashtable();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FillCapabilityBVHash.class.getName());
 	
 	//Necessary items to create a filler
 	/**

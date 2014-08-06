@@ -30,6 +30,7 @@ import org.apache.commons.math3.optim.univariate.UnivariateOptimizer;
 import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -40,7 +41,7 @@ import prerna.ui.components.specific.tap.SerOptPlaySheet;
  */
 public class RecoupOptimizer extends UnivariateSvcOptimizer{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RecoupOptimizer.class.getName());
 	
 	/**
 	 * This method runs the actual optimization to provide an optimized breakeven point and optimized budget constraint for the recoup.

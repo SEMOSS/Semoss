@@ -23,6 +23,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -46,7 +47,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	GraphPlaySheet ps = null;
 	DelegateForest forest;
 	public SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class.getName());
 	double value;
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();

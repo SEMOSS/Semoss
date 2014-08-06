@@ -33,6 +33,7 @@ import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.ReportSheetWriter;
@@ -52,7 +53,7 @@ import prerna.util.Utility;
  */
 public class SourceReportGenButtonListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SourceReportGenButtonListener.class.getName());
 	ArrayList<String> queryArray = new ArrayList<String>();
 	ArrayList<String> outputArray = new ArrayList<String>();
 	

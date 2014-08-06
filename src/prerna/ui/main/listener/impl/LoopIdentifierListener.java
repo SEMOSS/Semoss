@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LoopIdentifierProcessor;
@@ -34,7 +35,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
 public class LoopIdentifierListener implements ActionListener{
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LoopIdentifierListener.class.getName());
 	
 	/**
 	 * Constructor for LoopIdentifierListener.

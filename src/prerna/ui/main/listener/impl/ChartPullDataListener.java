@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -35,7 +36,7 @@ import com.teamdev.jxbrowser.chromium.Browser;
  */
 public class ChartPullDataListener implements ActionListener {
 	GraphPlaySheet ps = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ChartPullDataListener.class.getName());
 	Browser browser = null;
 	
 	/**

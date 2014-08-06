@@ -8,13 +8,14 @@ import javax.swing.JTextArea;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LPOptimizer;
 
 	public class SysDecommissionSchedulingSavingsOptimizer extends LPOptimizer{
 		
-		protected Logger logger = Logger.getLogger(getClass());
+		protected static final Logger logger = LogManager.getLogger(SysDecommissionSchedulingSavingsOptimizer.class.getName());
 		
 		double budget;
 		int numYears;

@@ -30,6 +30,7 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.plaf.basic.BasicInternalFrameUI;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -47,7 +48,7 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public IEngine engine = null;
 	protected String questionNum = null;
 	public JComponent pane = null;
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(AbstractRDFPlaySheet.class.getName());
 	public JProgressBar jBar = new JProgressBar();
 	String playsheetType = null;
 	

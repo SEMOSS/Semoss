@@ -29,6 +29,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
@@ -43,7 +44,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 	
 	// will have 2 string arrays one for the perspective and one for the question
 	Hashtable model = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ImportTypeSelectionListener.class.getName());
 	
 	// needs to find what is being selected from event
 	// based on that refresh the view of questions for that given perspective

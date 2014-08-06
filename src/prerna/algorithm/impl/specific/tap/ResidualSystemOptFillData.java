@@ -2,6 +2,7 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -16,7 +17,7 @@ public class ResidualSystemOptFillData{
 	
 	SysOptPlaySheet playSheet=null;
 	
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(ResidualSystemOptFillData.class.getName());
 	ArrayList<String> sysList;
 	ArrayList<String> dataList;
 	ArrayList<String> bluList;

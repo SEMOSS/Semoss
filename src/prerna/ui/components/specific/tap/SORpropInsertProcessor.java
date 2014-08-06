@@ -8,6 +8,7 @@ import java.util.StringTokenizer;
 import java.util.Map.Entry;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
@@ -20,7 +21,7 @@ import prerna.util.Utility;
 
 public class SORpropInsertProcessor extends AggregationHelper {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SORpropInsertProcessor.class.getName());
 	private IEngine coreDB;
 	
 	private String tapCoreBaseURI = "http://health.mil/ontologies/Relation/";

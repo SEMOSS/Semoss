@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -31,7 +32,7 @@ import prerna.util.QuestionPlaySheetStore;
  * When the refresh graph button is pressed, this gets the active sheet and calls the repaint.
  */
 public class FilterRefreshListener implements IChakraListener {	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FilterRefreshListener.class.getName());
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

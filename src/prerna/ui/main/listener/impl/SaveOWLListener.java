@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -33,7 +34,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class SaveOWLListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SaveOWLListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

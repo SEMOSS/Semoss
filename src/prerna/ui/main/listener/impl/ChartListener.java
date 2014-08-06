@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.BrowserTabSheet3;
@@ -32,7 +33,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class ChartListener implements ActionListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ChartListener.class.getName());
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

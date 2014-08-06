@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import javax.swing.JPanel;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.LogManager;
 
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
@@ -41,7 +42,7 @@ import java.util.logging.*;
  * This class is used to create the appropriate window depending on the browser specified (Mozilla, IE, Safari).
  */
 public class BrowserGraphPanel extends JPanel{
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BrowserGraphPanel.class.getName());
 	
 	public Browser browser = null;
 	/**

@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.JMenu;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -37,7 +38,7 @@ public class ShapePopup extends JMenu{
 	IPlaySheet ps = null;
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ShapePopup.class.getName());
 	/**
 	 * Constructor for ShapePopup.
 	 * @param name String

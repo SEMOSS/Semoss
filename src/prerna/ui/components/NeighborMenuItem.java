@@ -21,6 +21,7 @@ package prerna.ui.components;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -40,7 +41,7 @@ public class NeighborMenuItem extends JMenuItem{
 	String predicateURI = null;
 	String name = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(NeighborMenuItem.class.getName());
 
 	/**
 	 * Constructor for NeighborMenuItem.

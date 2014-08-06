@@ -86,6 +86,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.InternalFrameListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -120,7 +121,7 @@ import com.ibm.icu.util.StringTokenizer;
  */
 public class PlayPane extends JFrame {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PlayPane.class.getName());
 
 	// Left Control Panel Components
 	public JComboBox perspectiveSelector, questionSelector, playSheetComboBox;

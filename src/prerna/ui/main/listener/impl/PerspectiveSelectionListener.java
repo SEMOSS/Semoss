@@ -29,6 +29,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -43,7 +44,7 @@ import prerna.util.StringNumericComparator;
 public class PerspectiveSelectionListener extends AbstractListener {
 	public JComponent view = null;
 	Hashtable model = null;
-	Logger logger = Logger.getLogger(getClass());	
+	static final Logger logger = LogManager.getLogger(PerspectiveSelectionListener.class.getName());	
 	
 	// needs to find what is being selected from event
 	// based on that refresh the view of questions for that given perspective

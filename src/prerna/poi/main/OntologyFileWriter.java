@@ -26,6 +26,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Scanner;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.FileReaderException;
@@ -37,7 +38,7 @@ import prerna.util.Constants;
  */
 public class OntologyFileWriter {
 
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(OntologyFileWriter.class.getName());
 
 	public String fileName;
 	File file;

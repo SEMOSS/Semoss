@@ -21,6 +21,7 @@ package prerna.ui.main.listener.specific.tap;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.BrowserTabSheet3;
@@ -32,7 +33,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class HealthGridChartListener implements ActionListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(HealthGridChartListener.class.getName());
 
 	/**
 	 * Loads the html file used for the health grid chart playsheet

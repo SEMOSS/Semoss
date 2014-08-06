@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.JMenu;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -36,7 +37,7 @@ public class LayoutPopup extends JMenu{
 	IPlaySheet ps = null;
 	String [] layoutNames = {Constants.FR, Constants.KK, Constants.SPRING, Constants.ISO, Constants.CIRCLE_LAYOUT, Constants.TREE_LAYOUT, Constants.RADIAL_TREE_LAYOUT, Constants.BALLOON_LAYOUT};
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LayoutPopup.class.getName());
 	/**
 	 * Constructor for LayoutPopup.
 	 * @param name String

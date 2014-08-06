@@ -32,6 +32,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
@@ -56,7 +57,7 @@ public class QuestionListener implements IChakraListener {
 	JTextArea sparqlArea = null;
 	Hashtable panelHash = new Hashtable();
 	String prevQuestionId = "";
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(QuestionListener.class.getName());
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

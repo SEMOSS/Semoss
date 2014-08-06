@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -48,7 +49,7 @@ import prerna.util.Utility;
  */
 public class ActiveSystemUpdater {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ActiveSystemUpdater.class.getName());
 	
 	IEngine engine = null;
 	// specific URIs that do not change

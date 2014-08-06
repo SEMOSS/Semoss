@@ -3,6 +3,7 @@ package prerna.ui.components.specific.tap;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
@@ -17,7 +18,7 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AllLegacySystemsDispositionPlaySheet.class.getName());
 	private String checkModPropQuery = "ASK WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> AS ?contains) {?p ?contains ?prop ;} }";
 	private String modPropDeleteQuery = "DELETE { ?system ?contains ?prop } WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> AS ?contains) {?p ?contains ?prop ;} }";
 

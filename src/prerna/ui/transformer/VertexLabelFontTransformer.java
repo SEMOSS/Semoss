@@ -23,6 +23,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -34,7 +35,7 @@ import prerna.util.Constants;
 public class VertexLabelFontTransformer implements Transformer <SEMOSSVertex, Font> {	
 
 	Hashtable <String, Object> verticeURI2Show = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(VertexLabelFontTransformer.class.getName());
 	int initialDefaultSize=8;
 	int currentDefaultSize;
 	int maxSize = 55;

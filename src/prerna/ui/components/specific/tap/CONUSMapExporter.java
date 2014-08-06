@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -42,7 +43,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class CONUSMapExporter {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CONUSMapExporter.class.getName());
 	
 	/**
 	 * Constructor for CONUSMapExporter.

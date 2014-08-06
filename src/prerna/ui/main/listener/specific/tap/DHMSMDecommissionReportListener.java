@@ -29,6 +29,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.DHMSMDataAccessLatencyFileImporter;
@@ -45,7 +46,7 @@ import prerna.util.DIHelper;
  */
 public class DHMSMDecommissionReportListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMDecommissionReportListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.

@@ -22,6 +22,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.InternalFrameListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
@@ -31,7 +32,7 @@ import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
 public class DataLatencyPlayInternalFrameListener implements InternalFrameListener {
 
 	Thread thread;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencyPlayInternalFrameListener.class.getName());
 	
 	/**
 	 * Method internalFrameClosed.

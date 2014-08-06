@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -46,7 +47,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 public class GraphPlaySheetExportListener  extends AbstractListener{
 
 	public static GraphPlaySheetExportListener listener = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphPlaySheetExportListener.class.getName());
 	GraphPlaySheet playSheet;
 
 	/**

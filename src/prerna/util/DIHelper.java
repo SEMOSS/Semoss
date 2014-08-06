@@ -33,6 +33,7 @@ import java.util.Properties;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -77,7 +78,7 @@ public class DIHelper {
 	// cached questions for an engine
 	Hashtable <String, Hashtable> engineQHash = new Hashtable<String, Hashtable>();
 	// Logger
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DIHelper.class.getName());
 	
 	/**
 	 * Constructor for DIHelper.

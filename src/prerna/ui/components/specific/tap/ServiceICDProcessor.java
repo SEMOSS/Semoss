@@ -23,6 +23,7 @@ import java.util.Hashtable;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -38,7 +39,7 @@ import prerna.util.DIHelper;
  */
 public class ServiceICDProcessor {
 	
-		Logger logger = Logger.getLogger(getClass());
+		static final Logger logger = LogManager.getLogger(ServiceICDProcessor.class.getName());
 		public Hashtable finalHash = new Hashtable();
 		SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 		public String namesKey = "serviceNames";

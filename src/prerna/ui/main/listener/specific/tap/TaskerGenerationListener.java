@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
@@ -40,7 +41,7 @@ import prerna.util.DIHelper;
 public class TaskerGenerationListener implements IChakraListener {
 
 	TaskerGenerationProcessor processor = new TaskerGenerationProcessor();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TaskerGenerationListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**

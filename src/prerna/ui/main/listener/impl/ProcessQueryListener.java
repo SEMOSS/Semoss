@@ -32,6 +32,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ExecuteQueryProcessor;
@@ -54,7 +55,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	JPanel paramPanel = null;
 	// right hand side panel
 	JComponent rightPanel = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ProcessQueryListener.class.getName());
 	JTextArea sparql = null;
 	boolean custom = false;
 	boolean append = false;

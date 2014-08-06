@@ -26,6 +26,7 @@ import java.util.Hashtable;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
@@ -49,7 +50,7 @@ import prerna.util.Utility;
  */
 public class AggregationHelper implements IAggregationHelper {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AggregationHelper.class.getName());
 
 	public String errorMessage = "";
 

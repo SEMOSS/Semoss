@@ -26,6 +26,7 @@ import java.util.Hashtable;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.InterfaceReportWriter;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
  * Used in conjunction with SystemInfoGenListener
  */
 public class InterfaceReportProcessor {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(InterfaceReportProcessor.class.getName());
 	String tapCoreEngine = "TAP_Core_Data";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	Hashtable<String,Hashtable> masterHash;

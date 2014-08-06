@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import javax.swing.JComponent;
 import javax.swing.JTextArea;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -40,7 +41,7 @@ import prerna.util.Utility;
  */
 public class SerOptBtnListener implements IChakraListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SerOptBtnListener.class.getName());
 
 	SerOptPlaySheet playSheet;
 	JTextArea consoleArea;

@@ -39,6 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.helpers.EntityFiller;
@@ -51,7 +52,7 @@ import prerna.util.Utility;
  */
 public class ParamPanel extends JPanel implements ActionListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ParamPanel.class.getName());
 
 	Hashtable<String, String> params = null;
 	Hashtable<String, String> paramType = null;

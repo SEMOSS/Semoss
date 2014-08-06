@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -39,7 +40,7 @@ import prerna.ui.components.specific.tap.InputPanelPlaySheet;
  */
 public class UnivariateOpt implements IAlgorithm{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(UnivariateOpt.class.getName());
 	
 	InputPanelPlaySheet playSheet;
 	public int maxYears;

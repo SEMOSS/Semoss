@@ -34,6 +34,7 @@ import org.apache.commons.math3.optim.univariate.UnivariateOptimizer;
 import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.specific.tap.DHMSMCapabilitySelectPanel;
@@ -49,7 +50,7 @@ import prerna.util.Utility;
  */
 public class UnivariateSysOptimizer extends UnivariateOpt{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(UnivariateSysOptimizer.class.getName());
 	
 	String bindStr = "";
 	

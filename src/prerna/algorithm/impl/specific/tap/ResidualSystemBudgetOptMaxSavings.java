@@ -6,13 +6,14 @@ import java.util.Hashtable;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LPOptimizer;
 
 	public class ResidualSystemBudgetOptMaxSavings extends LPOptimizer{
 		
-		protected Logger logger = Logger.getLogger(getClass());
+		protected static final Logger logger = LogManager.getLogger(ResidualSystemBudgetOptMaxSavings.class.getName());
 		ArrayList<String> sysList;
 		ArrayList<String> dataList;
 		ArrayList<String> bluList;

@@ -2,6 +2,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -17,7 +18,7 @@ import com.bigdata.rdf.model.BigdataURIImpl;
 @SuppressWarnings("serial")
 public class SystemTransitionReport extends AbstractRDFPlaySheet{
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class.getName());
 	private IEngine hr_Core;
 
 	@Override

@@ -35,6 +35,7 @@ import javax.swing.JLabel;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -49,7 +50,7 @@ public class DataLatencyInitiationListener implements ActionListener{
 
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencyInitiationListener.class.getName());
 	private JTextField dataLatencyHoursTextField;
 	private JTextField dataLatencyWeeksTextField;
 	private JTextField dataLatencyDaysTextField;

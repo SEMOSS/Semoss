@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.JMenuItem;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -36,7 +37,7 @@ public class NeighborRelationMenuItem extends JMenuItem{
 	String predicateURI = null;
 	String name = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(NeighborRelationMenuItem.class.getName());
 
 	/**
 	 * Constructor for NeighborRelationMenuItem.

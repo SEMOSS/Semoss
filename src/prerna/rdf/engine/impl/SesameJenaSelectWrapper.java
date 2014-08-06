@@ -27,6 +27,7 @@ import java.util.List;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
@@ -54,7 +55,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	transient QuerySolution curSt = null;	
 	transient public IEngine engine = null;
 	transient String query = null;
-	transient Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
 	transient SesameJenaSelectStatement retSt = null;
 	transient ObjectInputStream ris = null;

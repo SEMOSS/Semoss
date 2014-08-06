@@ -25,6 +25,7 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -41,7 +42,7 @@ public class SimilarityFunctions {
 	ArrayList <Object []> list;
 	SesameJenaSelectWrapper wrapper;
 	ArrayList <String> comparisonObjectList;
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(SimilarityFunctions.class.getName());
 	final static String COUNT = "Count";
 	public final static String VALUE = "Value";
 

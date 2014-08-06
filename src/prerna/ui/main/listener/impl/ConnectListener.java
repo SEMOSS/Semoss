@@ -24,6 +24,7 @@ import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -39,7 +40,7 @@ public class ConnectListener implements IChakraListener {
 
 	JTextField view = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ConnectListener.class.getName());
 	
 	
 	/**

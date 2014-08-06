@@ -26,6 +26,7 @@ import java.util.Iterator;
 
 import javax.swing.JInternalFrame;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -43,7 +44,7 @@ public class GraphNodeRankListener implements ActionListener {
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphNodeRankListener.class.getName());
 	/**
 	 * Method setPlaysheet.  Sets the playsheet that the listener will access.
 	 * @param ps GraphPlaySheet

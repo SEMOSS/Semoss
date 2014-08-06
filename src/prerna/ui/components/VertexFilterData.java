@@ -22,6 +22,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -105,7 +106,7 @@ public class VertexFilterData {
 	public int count = 0;
 	int edgeCount = 0;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(VertexFilterData.class.getName());
 	
 	/**
 	 * Gets value at a particular row and column index.

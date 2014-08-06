@@ -44,7 +44,7 @@ import prerna.util.Utility;
  */
 public class UnivariateSvcOptimizer extends UnivariateOpt{
 	
-//	Logger logger = Logger.getLogger(getClass());
+//	static final Logger logger = LogManager.getLogger(UnivariateSvcOptimizer.class.getName());
 	
 	String bindStr = "";
 	OptimizationOrganizer optOrg;

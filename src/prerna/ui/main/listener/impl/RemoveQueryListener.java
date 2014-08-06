@@ -32,6 +32,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -58,7 +59,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 
 	// right hand side panel
 	JComponent rightPanel = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RemoveQueryListener.class.getName());
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

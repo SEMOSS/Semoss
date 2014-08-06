@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.LayoutMenuItem;
@@ -31,7 +32,7 @@ import prerna.ui.components.LayoutMenuItem;
 public class LayoutMenuListener implements ActionListener {
 
 	public static LayoutMenuListener instance = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LayoutMenuListener.class.getName());
 	
 	/**
 	 * Constructor for LayoutMenuListener.

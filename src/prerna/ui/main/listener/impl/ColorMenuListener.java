@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ColorMenuItem;
@@ -31,7 +32,7 @@ import prerna.ui.components.ColorMenuItem;
 public class ColorMenuListener implements ActionListener {
 
 	public static ColorMenuListener instance = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ColorMenuListener.class.getName());
 	
 	/**
 	 * Constructor for ColorMenuListener.

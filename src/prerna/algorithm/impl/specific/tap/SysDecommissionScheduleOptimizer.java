@@ -28,6 +28,7 @@ import java.util.Hashtable;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -48,7 +49,7 @@ import prerna.util.Utility;
  */
 public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SysDecommissionScheduleOptimizer.class.getName());
 	
 	DHMSMSysDecommissionSchedulingPlaySheet playSheet;
 	public int maxYears;

@@ -36,6 +36,7 @@ import javax.swing.JToggleButton;
 import org.apache.jena.larq.IndexLARQ;
 import org.apache.jena.larq.IndexWriterFactory;
 import org.apache.jena.larq.LARQ;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexWriter;
@@ -65,7 +66,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
  */
 public class SearchController implements KeyListener, FocusListener, ActionListener, Runnable {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SearchController.class.getName());
 
 	private JTextField searchText;
 	private Model jenaModel = null;

@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -38,7 +39,7 @@ import prerna.util.DIHelper;
  */
 public class SystemBudgetPropInserter {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SystemBudgetPropInserter.class.getName());
 	String query;
 	String propName = "SustainmentBudget";
 	SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();

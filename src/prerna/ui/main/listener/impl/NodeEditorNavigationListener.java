@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -43,7 +44,7 @@ import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
  */
 public class NodeEditorNavigationListener implements LoadListener{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(NodeEditorNavigationListener.class.getName());
 
 	SEMOSSVertex node = null;
 	Browser browser = null;

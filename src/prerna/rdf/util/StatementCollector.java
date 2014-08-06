@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -20,7 +21,7 @@ import org.openrdf.query.algebra.helpers.VarNameCollector;
 
 public class StatementCollector extends QueryModelVisitorBase<Exception> {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(StatementCollector.class.getName());
 	private List<StatementPattern> statementPatterns = new Vector();
 	public Hashtable<String, String> sourceTargetHash = new Hashtable<String, String>();
 	public Hashtable constantHash = new Hashtable();

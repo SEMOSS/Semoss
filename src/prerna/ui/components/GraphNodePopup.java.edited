@@ -32,7 +32,7 @@ public class GraphNodePopup extends JPopupMenu {
 	IPlaySheet ps = null;
 	// sets the picked node list
 	DBCMVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(MyApp.class.getName());
 	Component comp = null;
 	int x;
 	int y;

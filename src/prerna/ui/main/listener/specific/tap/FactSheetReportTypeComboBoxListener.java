@@ -24,6 +24,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -36,7 +37,7 @@ import prerna.util.DIHelper;
  */
 public class FactSheetReportTypeComboBoxListener extends AbstractListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FactSheetReportTypeComboBoxListener.class.getName());
 
 	// needs to find which report type is being selected from event
 	// based on that either hide or show additional criteria

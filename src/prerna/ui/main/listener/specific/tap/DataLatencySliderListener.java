@@ -25,6 +25,7 @@ import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
@@ -39,7 +40,7 @@ public class DataLatencySliderListener implements ChangeListener{
 
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencySliderListener.class.getName());
 	DataLatencyPerformer latePerf;
 	JTextField hoursTextField;
 	JTextField daysTextField;

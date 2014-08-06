@@ -32,6 +32,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
@@ -52,7 +53,7 @@ public class DataLatencyPlayPopup extends JInternalFrame implements Runnable {
 	public double hoursValue;
 	public GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencyPlayPopup.class.getName());
 	DataLatencyPerformer latePerf;
 	private JTextField dataLatencyHoursTextField;
 	private JTextField dataLatencyWeeksTextField;

@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -43,7 +44,7 @@ import com.teamdev.jxbrowser.chromium.LoggerProvider;
 /**
  */
 public class SimilarityHeatMapSheet extends BrowserPlaySheet{
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(SimilarityHeatMapSheet.class.getName());
 	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
 	String comparisonObjectTypeX = "";

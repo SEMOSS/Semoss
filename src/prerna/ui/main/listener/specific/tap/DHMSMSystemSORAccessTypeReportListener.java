@@ -27,6 +27,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -40,7 +41,7 @@ import prerna.util.DIHelper;
  */
 public class DHMSMSystemSORAccessTypeReportListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSystemSORAccessTypeReportListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.

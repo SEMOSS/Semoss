@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -15,7 +16,7 @@ import prerna.util.DIHelper;
 public class SysDecommissionOptimizationFunctions {
 	
 
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(SysDecommissionOptimizationFunctions.class.getName());
 	
 	//stores list of systems and then hashtable of systems to their min time and work volumes
 	private Hashtable<String, Double> sysToMinTimeHashPerSite;

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -35,7 +36,7 @@ import prerna.ui.components.specific.tap.DHMSMSystemCapabilityOverlapProcessor;
 public class DHMSMSystemCapabilityOverlapListener implements IChakraListener {
 
 	DHMSMSystemCapabilityOverlapProcessor processor = new DHMSMSystemCapabilityOverlapProcessor();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSystemCapabilityOverlapListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**

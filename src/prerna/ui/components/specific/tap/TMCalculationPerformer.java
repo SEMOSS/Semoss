@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -54,7 +55,7 @@ public class TMCalculationPerformer implements IAlgorithm{
 	Hashtable<String, Hashtable> combined = new Hashtable<String, Hashtable>();
 	Hashtable<String, Double> systemCount = new Hashtable<String, Double>();
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TMCalculationPerformer.class.getName());
 
 	/**
 	 * Constructor for TMCalculationPerformer.

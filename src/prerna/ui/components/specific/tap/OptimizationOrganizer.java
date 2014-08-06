@@ -21,6 +21,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -51,7 +52,7 @@ public class OptimizationOrganizer {
 	private String icdSerCreateQuery;
 	private String sysURI = "http://health.mil/ontologies/Concept/System/";
 
-	private Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(OptimizationOrganizer.class.getName());
 	private Hashtable<String, Double> serviceHash;
 	private Object[][] icdServiceMatrix;
 	private ArrayList<String> icdServiceRowNames;

@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.jgrapht.graph.SimpleGraph;
 import org.openrdf.model.Literal;
@@ -49,7 +50,7 @@ public class GraphDataModel {
 	 * This contains all data that is fundamental to a SEMOSS Graph
 	 * This data mainly consists of the edgeStore and vertStore as well as models/repository connections
 	 */
-	private Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(GraphDataModel.class.getName());
 	public enum CREATION_METHOD {CREATE_NEW, OVERLAY, UNDO};
 	CREATION_METHOD method;
 	

@@ -21,6 +21,7 @@ package prerna.ui.components;
 import javax.swing.JTextField;
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
@@ -33,7 +34,7 @@ import prerna.util.DIHelper;
 public class PropertyTableModel extends AbstractTableModel {
 	
 	PropertySpecData data = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PropertyTableModel.class.getName());
 	String uriVal = Constants.PROP_URI;
 	String uriVal2 = Constants.PREDICATE_URI;
 

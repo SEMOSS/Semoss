@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
 
@@ -44,7 +45,7 @@ public class RegCalculationPerformer implements IAlgorithm{
 	String nodeUri;
 	String dependentVar;
 	ArrayList<String> independentVarList;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RegCalculationPerformer.class.getName());
 	double[] yValues;
 	double[][] xValues;
 

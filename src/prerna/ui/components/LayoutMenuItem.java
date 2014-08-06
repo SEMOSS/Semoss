@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -36,7 +37,7 @@ import prerna.util.Utility;
  */
 public class LayoutMenuItem extends JMenuItem{
 	IPlaySheet ps = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LayoutMenuItem.class.getName());
 	String layout = null;
 	
 	/**

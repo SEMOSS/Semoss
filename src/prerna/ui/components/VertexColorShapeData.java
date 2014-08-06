@@ -23,6 +23,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -55,7 +56,7 @@ public class VertexColorShapeData {
 	String [][] shapeColorRows = null;
 	
 	int count = 0;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(VertexColorShapeData.class.getName());
 	
 	/**
 	 * Sets the type hashtable.

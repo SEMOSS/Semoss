@@ -33,6 +33,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -44,7 +45,7 @@ import prerna.util.Constants;
  */
 public class LegendPanel2 extends JPanel {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LegendPanel2.class.getName());
 
 	public ArrayList<PaintLabel> icons;
 	public ArrayList<JLabel> labels;

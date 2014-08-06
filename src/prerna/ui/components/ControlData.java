@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
@@ -75,7 +76,7 @@ public class ControlData{
 	// these are the properties that are always on
 	Hashtable <String, String> propOnT = new Hashtable<String, String>();
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ControlData.class.getName());
 	
 	/**
 	 * Constructor for ControlData.

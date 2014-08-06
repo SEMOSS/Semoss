@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map.Entry;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 /**
@@ -29,7 +30,7 @@ import org.apache.log4j.Logger;
  */
 public class FactSheetSysSimCalculator {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FactSheetSysSimCalculator.class.getName());
 
 	ArrayList<String> sysList = new ArrayList<String>();
 	final String crmKey = "!CRM!";

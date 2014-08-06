@@ -23,6 +23,7 @@ import java.awt.event.ActionListener;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.KruskalMinimumSpanningTree;
@@ -45,7 +46,7 @@ public class MSTPopupMenuListener implements ActionListener {
 	IPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(MSTPopupMenuListener.class.getName());
 	
 	/**
 	 * Method setPlaysheet.

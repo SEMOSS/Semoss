@@ -26,6 +26,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -42,7 +43,7 @@ import prerna.util.Utility;
  */
 public class CalculateTransitionCostsButtonListener implements IChakraListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CalculateTransitionCostsButtonListener.class.getName());
 	SesameJenaSelectWrapper selectWrapper;
 	GridFilterData gfd = new GridFilterData();
 	JTable table = null;

@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 
@@ -38,7 +39,7 @@ public class SesameJenaBooleanWrapper {
 	String query = null;
 	com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SesameJenaBooleanWrapper.class.getName());
 	
 	/**
 	 * Method setGqr. - Sets the Graph query result.

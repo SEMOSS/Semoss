@@ -29,6 +29,7 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -52,7 +53,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
  */
 public class GraphNodeListener extends ModalLensGraphMouse implements IChakraListener
 {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphNodeListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

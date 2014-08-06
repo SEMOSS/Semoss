@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 
@@ -44,7 +45,7 @@ public class GridFilterData {
 	
 	public ArrayList<Object []> dataList = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GridFilterData.class.getName());
 	
 	/**
 	 * Gets the value at a particular row and column index.

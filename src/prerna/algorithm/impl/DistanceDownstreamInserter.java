@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
@@ -46,7 +47,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
 public class DistanceDownstreamInserter {
 
 	Hashtable masterHash = new Hashtable();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DistanceDownstreamInserter.class.getName());
 	String RELATION_URI = null;
 	String PROP_URI = null;
 	IEngine engine;

@@ -24,7 +24,7 @@ public class TypeColorShapeTable {
 	String [] colors = null;
 	static TypeColorShapeTable instance = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(MyApp.class.getName());
 	
 	protected TypeColorShapeTable()
 	{

@@ -26,6 +26,7 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.DeconflictingReportSheetWriter;
@@ -43,7 +44,7 @@ import prerna.util.DIHelper;
  * Results in the creation of the deconflicting/missing ICD data report
  */
 public class DeconflictingReportButtonListener implements IChakraListener{
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DeconflictingReportButtonListener.class.getName());
 	
 	ArrayList<String> outputArray = new ArrayList<String>();
 	Hashtable<String,String> queries = new Hashtable<String,String>();

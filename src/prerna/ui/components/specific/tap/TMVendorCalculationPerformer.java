@@ -29,6 +29,7 @@ import java.util.Set;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -53,7 +54,7 @@ public class TMVendorCalculationPerformer implements IAlgorithm {
 	Hashtable<String, Object> TMhash = new Hashtable<String, Object>();
 	Hashtable<String, Hashtable> combined = new Hashtable<String, Hashtable>();
 	Hashtable<String, Double> fulfillment = new Hashtable<String,Double>();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TMVendorCalculationPerformer.class.getName());
 
 	/**
 	 * Constructor for TMVendorCalculationPerformer.

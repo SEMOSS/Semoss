@@ -8,6 +8,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import org.apache.log4j.Appender;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.RollingFileAppender;
 
@@ -21,7 +22,7 @@ import prerna.util.Utility;
 
 public class AggregateTAPServicesIntoTAPCoreListener extends AbstractListener{
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AggregateTAPServicesIntoTAPCoreListener.class.getName());
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
