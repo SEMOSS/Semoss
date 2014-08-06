@@ -205,6 +205,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(showParamBtn, gbc_showParamBtn);
 		
 		showSystemSelectBtn = new ToggleButton("Select System Functionality");
+		showSystemSelectBtn.setName("showSystemSelectBtn");
 		showSystemSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(showSystemSelectBtn,  ".toggleButton");
 		
@@ -217,6 +218,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(showSystemSelectBtn, gbc_showSystemSelectBtn);
 		
 		showSystemCapSelectBtn = new ToggleButton("Select Capability Functionality");
+		showSystemCapSelectBtn.setName("showSystemCapSelectBtn");
 		showSystemCapSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(showSystemCapSelectBtn,  ".toggleButton");
 		
@@ -436,6 +438,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	{
 
 		rdbtnProfit = new JRadioButton("Savings");
+		rdbtnProfit.setName("rdbtnProfit");
 		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		rdbtnProfit.setSelected(true);
 		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
@@ -447,6 +450,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
 
 		rdbtnROI = new JRadioButton("ROI");
+		rdbtnROI.setName("rdbtnROI");
 		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
 		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
@@ -456,6 +460,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
 		
 		rdbtnIRR = new JRadioButton("IRR");
+		rdbtnIRR.setName("rdbtnIRR");
 		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
 		gbc_rdbtnIRR.anchor = GridBagConstraints.WEST;

@@ -43,7 +43,7 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 
 		
-		if (actionevent.getSource().equals(proRdBtn)&& proRdBtn.isSelected())
+		if (((JRadioButton)actionevent.getSource()).getName().equals(proRdBtn.getName()) && proRdBtn.isSelected())
 		{
 			roiRdBtn.setSelected(!proRdBtn.isSelected());
 			if(isSerOpt)
@@ -51,11 +51,11 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 			else
 				irrRdBtn.setSelected(!proRdBtn.isSelected());
 		}
-		else if (actionevent.getSource().equals(proRdBtn)&& !proRdBtn.isSelected())
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(proRdBtn.getName()) && !proRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(true);
 		}
-		else if (actionevent.getSource().equals(roiRdBtn)&& roiRdBtn.isSelected())
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(roiRdBtn.getName()) && roiRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(!roiRdBtn.isSelected());
 			if(isSerOpt)
@@ -63,25 +63,25 @@ public class OptFunctionRadioBtnListener implements IChakraListener {
 			else
 				irrRdBtn.setSelected(!roiRdBtn.isSelected());
 		}
-		else if (actionevent.getSource().equals(roiRdBtn)&& !roiRdBtn.isSelected())
+		else if (((JRadioButton)actionevent.getSource()).getName().equals(roiRdBtn.getName()) && !roiRdBtn.isSelected())
 		{
 			roiRdBtn.setSelected(true);
 		}
-		else if (isSerOpt&&actionevent.getSource().equals(bkeRdBtn)&& bkeRdBtn.isSelected())
+		else if (isSerOpt && ((JRadioButton)actionevent.getSource()).getName().equals(bkeRdBtn.getName()) && bkeRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(!bkeRdBtn.isSelected());
 			roiRdBtn.setSelected(!bkeRdBtn.isSelected());
 		}
-		else if (isSerOpt&&actionevent.getSource().equals(bkeRdBtn)&& !bkeRdBtn.isSelected())
+		else if (isSerOpt && ((JRadioButton)actionevent.getSource()).getName().equals(bkeRdBtn.getName()) && !bkeRdBtn.isSelected())
 		{
 			bkeRdBtn.setSelected(true);
 		}
-		else if (!isSerOpt&&actionevent.getSource().equals(irrRdBtn)&& irrRdBtn.isSelected())
+		else if (!isSerOpt && ((JRadioButton)actionevent.getSource()).getName().equals(irrRdBtn.getName()) && irrRdBtn.isSelected())
 		{
 			proRdBtn.setSelected(!irrRdBtn.isSelected());
 			roiRdBtn.setSelected(!irrRdBtn.isSelected());
 		}
-		else if (!isSerOpt&&actionevent.getSource().equals(irrRdBtn)&& !irrRdBtn.isSelected())
+		else if (!isSerOpt && ((JRadioButton)actionevent.getSource()).getName().equals(irrRdBtn.getName()) && !irrRdBtn.isSelected())
 		{
 			irrRdBtn.setSelected(true);
 		}

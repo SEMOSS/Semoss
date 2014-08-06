@@ -3376,6 +3376,7 @@ public class PlayPane extends JFrame {
 		advancedFunctionsPanel.add(calculateTransitionCostsButton, gbc_calculateTransitionCostsButton);
 
 		rdbtnApplyTapOverhead = new JRadioButton("Apply TAP Overhead in Calculation");
+		rdbtnApplyTapOverhead.setName("rdbtnApplyTapOverhead");
 		rdbtnApplyTapOverhead.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnApplyTapOverhead = new GridBagConstraints();
 		gbc_rdbtnApplyTapOverhead.anchor = GridBagConstraints.WEST;
@@ -3386,6 +3387,7 @@ public class PlayPane extends JFrame {
 		rdbtnApplyTapOverhead.setSelected(true);
 
 		rdbtnDoNotApplyOverhead = new JRadioButton("Do Not Apply TAP Overhead in Calculation");
+		rdbtnDoNotApplyOverhead.setName("rdbtnDoNotApplyOverhead");
 		rdbtnDoNotApplyOverhead.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_rdbtnDoNotApplyOverhead = new GridBagConstraints();
 		gbc_rdbtnDoNotApplyOverhead.anchor = GridBagConstraints.WEST;

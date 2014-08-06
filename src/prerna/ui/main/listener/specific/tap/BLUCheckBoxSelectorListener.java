@@ -50,7 +50,7 @@ public class BLUCheckBoxSelectorListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if(e.getSource().equals(allElemCheckBox))
+		if(((JCheckBox)e.getSource()).getName().equals(allElemCheckBox.getName()))
 		{
 			if(allElemCheckBox.isSelected())
 			{

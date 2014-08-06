@@ -55,6 +55,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		this.add(lblSystemSelectHeader, gbc_lblSystemSelectHeader);
 
 		allDataCheck = new JCheckBox("All");
+		allDataCheck.setName("allDataCheck");
 		GridBagConstraints gbc_allDataCheck = new GridBagConstraints();
 		gbc_allDataCheck.anchor = GridBagConstraints.WEST;
 		gbc_allDataCheck.gridx = 0;
