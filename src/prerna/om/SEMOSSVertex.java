@@ -439,5 +439,7 @@ public class SEMOSSVertex{
 		navHash.put(edgeType, vertHash);
 	}
 	
-	
+	public boolean equals(SEMOSSVertex vert) {
+		return this.getURI().equals(vert.getURI());
+	}
 }
