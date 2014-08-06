@@ -26,6 +26,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -44,7 +45,7 @@ import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	
 	Model jenaModel = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RemoteJenaEngine.class.getName());
 	String propFile = null;
 	String serviceURI = null;
 	boolean connected = false;

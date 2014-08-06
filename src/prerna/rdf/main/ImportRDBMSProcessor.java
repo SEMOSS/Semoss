@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
@@ -37,7 +38,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ImportRDBMSProcessor {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 	
 	private StringBuilder tableMapping = new StringBuilder();
 	private StringBuilder propertyTypeMapping = new StringBuilder();

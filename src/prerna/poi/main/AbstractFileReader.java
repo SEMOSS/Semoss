@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
@@ -73,7 +74,7 @@ public abstract class AbstractFileReader {
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
-	protected final Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
 	// OWL variables
 	protected RepositoryConnection rcOWL;

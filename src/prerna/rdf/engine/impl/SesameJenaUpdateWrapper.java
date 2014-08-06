@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.MalformedQueryException;
@@ -43,7 +44,7 @@ public class SesameJenaUpdateWrapper {
 
 	com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SesameJenaUpdateWrapper.class.getName());
 	
 	/**
 	 * Method setGqr.  Sets the graph query result to the active graph query result.

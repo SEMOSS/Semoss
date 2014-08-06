@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
@@ -38,7 +39,7 @@ import prerna.util.DIHelper;
 public class SystemInfoGenButtonListener implements IChakraListener {
 
 	SystemInfoGenProcessor processor = new SystemInfoGenProcessor();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SystemInfoGenButtonListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
@@ -68,7 +69,7 @@ import com.ibm.icu.util.StringTokenizer;
  */
 public abstract class AbstractEngine implements IEngine {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
 
 	String engineName = null;
 	String propFile = null;

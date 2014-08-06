@@ -23,6 +23,7 @@ import java.awt.Shape;
 import java.util.Hashtable;
 import java.util.Random;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
@@ -44,7 +45,7 @@ public class TypeColorShapeTable {
 	String [] colors = null;
 	static TypeColorShapeTable instance = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TypeColorShapeTable.class.getName());
 	
 	/**
 	 * Constructor for TypeColorShapeTable.

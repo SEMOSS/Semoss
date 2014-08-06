@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
@@ -72,7 +73,7 @@ import edu.uci.ics.jung.visualization.renderers.Renderer;
  */
 public class BigDataEngine {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BigDataEngine.class.getName());
 
 	BigdataSail bdSail = null;
 	Properties bdProp = null;

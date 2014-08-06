@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
@@ -40,7 +41,7 @@ import prerna.util.Utility;
  * Used in conjunction with SystemInfoGenListener
  */
 public class DataInterfaceWithDHMSMProcessor {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataInterfaceWithDHMSMProcessor.class.getName());
 	String hrCoreEngineName = "HR_Core";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	ArrayList<String> headersList = new ArrayList<String>();

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
@@ -39,7 +40,7 @@ import prerna.util.DIHelper;
 public class DataInterfaceWithDHMSMButtonListener implements IChakraListener {
 
 	DataInterfaceWithDHMSMProcessor processor = new DataInterfaceWithDHMSMProcessor();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataInterfaceWithDHMSMButtonListener.class.getName());
 
 	/**
 	 * This is executed when the btnFactSheetReport is pressed by the user

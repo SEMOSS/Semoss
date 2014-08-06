@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.FileReaderException;
@@ -40,7 +41,7 @@ import prerna.util.Utility;
  */
 public class DHMSMUpdateDataFromFileListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMUpdateDataFromFileListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.

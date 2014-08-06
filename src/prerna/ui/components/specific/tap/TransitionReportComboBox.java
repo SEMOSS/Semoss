@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -30,7 +31,7 @@ import prerna.util.DIHelper;
  */
 public class TransitionReportComboBox extends ParamComboBox implements Runnable {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TransitionReportComboBox.class.getName());
 	
 	Object[] repos = new Object[1];
 	

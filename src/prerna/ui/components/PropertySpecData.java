@@ -23,6 +23,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 
@@ -69,7 +70,7 @@ public class PropertySpecData {
 	Hashtable<String, String> predicateHash = new Hashtable<String, String>();
 	Hashtable<String, String> propertyHash = new Hashtable<String, String>();
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PropertySpecData.class.getName());
 
 	/**
 	 * Adds predicates to the hashtable.
