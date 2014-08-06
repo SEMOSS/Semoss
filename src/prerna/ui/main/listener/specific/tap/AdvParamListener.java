@@ -44,7 +44,7 @@ public class AdvParamListener implements ActionListener {
 	 * @param e ActionEvent
 	 */
 	public void actionPerformed(ActionEvent e) {
-		if(e.getSource().equals(showParamBtn))
+		if(((JToggleButton)e.getSource()).getName().equals(showParamBtn.getName()))
 		{
 			if(showParamBtn.isSelected())
 			{
@@ -64,7 +64,7 @@ public class AdvParamListener implements ActionListener {
 			ps.advParamPanel.setVisible(false);
 			showParamBtn.setSelected(false);
 			
-			if(e.getSource().equals(showSystemSelectBtn))
+			if(((JToggleButton)e.getSource()).getName().equals(showSystemSelectBtn.getName()))
 			{
 				showSystemCapSelectBtn.setSelected(false);
 				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
@@ -76,7 +76,7 @@ public class AdvParamListener implements ActionListener {
 				}
 
 			}
-			else if(e.getSource().equals(showSystemCapSelectBtn))
+			else if(((JToggleButton)e.getSource()).getName().equals(showSystemCapSelectBtn.getName()))
 			{
 				showSystemSelectBtn.setSelected(false);
 				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
