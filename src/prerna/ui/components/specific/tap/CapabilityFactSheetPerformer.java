@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -37,7 +38,7 @@ import prerna.util.DIHelper;
  * Used in conjunction with CapabilityFactSheetListener
  */
 public class CapabilityFactSheetPerformer {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CapabilityFactSheetPerformer.class.getName());
 	String HRCoreEngine = "HR_Core";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	CapabilityFactSheetCapSimCalculator capSim;

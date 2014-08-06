@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
@@ -17,7 +18,7 @@ import prerna.util.Utility;
 
 public class ExecuteQueryProcessor {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ExecuteQueryProcessor.class.getName());
 	boolean custom = false; 
 	boolean append = false;
 	IPlaySheet playSheet = null;

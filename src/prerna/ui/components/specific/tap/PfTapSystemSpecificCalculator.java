@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.GridFilterData;
@@ -32,7 +33,7 @@ import prerna.ui.components.GridFilterData;
  */
 public class PfTapSystemSpecificCalculator {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PfTapSystemSpecificCalculator.class.getName());
 	
 	GridFilterData gfd = new GridFilterData();
 	public Date startDate = null;

@@ -27,6 +27,7 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -46,7 +47,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
  */
 public class PickedStateListener implements ItemListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PickedStateListener.class.getName());
 	VisualizationViewer viewer;
 	
 	/**

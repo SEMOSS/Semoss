@@ -30,6 +30,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -44,7 +45,7 @@ import prerna.util.DIHelper;
  */
 public class ChartControlPanel extends JPanel {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ChartControlPanel.class.getName());
 	public JButton btnGraphImageExport;
 	ChartImageExportListener imageExportListener;
 	BrowserPlaySheet bps;

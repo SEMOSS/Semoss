@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.JMenuItem;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -38,7 +39,7 @@ public class ShapeMenuItem extends JMenuItem{
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
 	String shape = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ShapeMenuItem.class.getName());
 
 	/**
 	 * Constructor for ShapeMenuItem.

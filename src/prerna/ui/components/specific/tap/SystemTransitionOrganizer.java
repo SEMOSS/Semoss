@@ -3,6 +3,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -11,7 +12,7 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 
 public class SystemTransitionOrganizer {
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(SystemTransitionOrganizer.class.getName());
 	private static String healthMilDataURI = "http://health.mil/ontologies/Concept/DataObject";
 	private static String siteDB = "TAP_Site_Data";
 	private static String costDB = "TAP_Cost_Data";

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -39,7 +40,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	static final String uriKey = "uriKey";
 	static final String queryKey = "queryKey";
 	static final String varKey = "varKey";
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CustomVizTableBuilder.class.getName());
 
 
 	@Override

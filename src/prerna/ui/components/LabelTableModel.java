@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 
@@ -29,7 +30,7 @@ import org.apache.log4j.Logger;
 public class LabelTableModel extends AbstractTableModel {
 	
 	ControlData data = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LabelTableModel.class.getName());
 	String [] columnNames = {"Type", "Property", "Select"};
 
 	/**

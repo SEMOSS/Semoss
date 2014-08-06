@@ -25,6 +25,7 @@ import java.awt.Stroke;
 import java.util.Hashtable;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -36,7 +37,7 @@ import prerna.util.Constants;
 public class EdgePaintTransformer implements Transformer <SEMOSSEdge, Paint> {
 	
 	Hashtable<String, Paint> edgeHash = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(EdgePaintTransformer.class.getName());
 	public static VertexPaintTransformer tx = null;
 	
 	/**

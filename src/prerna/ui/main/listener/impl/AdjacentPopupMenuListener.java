@@ -28,6 +28,7 @@ import java.util.Vector;
 
 import javax.swing.JMenuItem;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
@@ -51,7 +52,7 @@ public class AdjacentPopupMenuListener implements ActionListener {
 	IPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AdjacentPopupMenuListener.class.getName());
 	
 	/**
 	 * Method setPlaysheet.  Sets the instance of the playsheet.

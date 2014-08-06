@@ -25,6 +25,7 @@ import javax.swing.event.InternalFrameListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.OPropertyTableModel;
@@ -39,7 +40,7 @@ import prerna.util.DIHelper;
  */
 public class PlaySheetOWLListener implements InternalFrameListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PlaySheetOWLListener.class.getName());
 	/**
 	 * TODO unused method
 	 * Method internalFrameActivated.

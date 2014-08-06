@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import javax.swing.JButton;
 import javax.swing.JInternalFrame;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.teamdev.jxbrowser.chromium.Browser;
@@ -48,7 +49,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	  
 	  ChartPullDataListener cp = null;
 	  GraphPlaySheet ps = null;
-	  Logger logger = Logger.getLogger(getClass());
+	  static final Logger logger = LogManager.getLogger(BrowserTabSheet3.class.getName());
 	  public Browser browser = BrowserFactory.create();
 	  public JButton pullData;
 	  

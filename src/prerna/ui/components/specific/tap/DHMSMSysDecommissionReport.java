@@ -16,6 +16,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.GridFilterData;
@@ -25,7 +26,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class DHMSMSysDecommissionReport {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSysDecommissionReport.class.getName());
 
 	GridFilterData gfd = new GridFilterData();
 	//hashtable storing all the data objects and the time they are needed: real, near-real, or archive

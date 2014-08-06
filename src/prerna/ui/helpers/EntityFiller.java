@@ -28,6 +28,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
  */
 public class EntityFiller implements Runnable {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(EntityFiller.class.getName());
 
 	public JComboBox box;
 	public String type;

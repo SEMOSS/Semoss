@@ -20,6 +20,7 @@ package prerna.rdf.main;
 
 import info.aduna.iteration.CloseableIteration;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
@@ -45,7 +46,7 @@ import org.openrdf.sail.memory.MemoryStore;
  */
 public class RDFTester {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RDFTester.class.getName());
 	
 	SailConnection sc = null;
 	Sail sail = null;

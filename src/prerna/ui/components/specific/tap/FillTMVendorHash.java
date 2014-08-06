@@ -26,6 +26,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -50,7 +51,7 @@ public class FillTMVendorHash extends GridPlaySheet{
 	ArrayList <String []> list;
 	GridFilterData gfd = new GridFilterData();
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FillTMVendorHash.class.getName());
 	
 	//Necessary items to create a filler
 	/**

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Vector;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -34,7 +35,7 @@ import prerna.util.PropComparator;
  */
 public class EdgeLabelTransformer implements Transformer <SEMOSSEdge, String> {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(EdgeLabelTransformer.class.getName());
 	ControlData data = null;
 	
 	/**

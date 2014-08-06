@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -18,7 +19,7 @@ import com.teamdev.jxbrowser.chromium.JSValue;
  */
 public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SimilarityBarChartBrowserFunction.class.getName());
 	Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash;
 	final String valueString = "Score";
 	final String keyString = "key";

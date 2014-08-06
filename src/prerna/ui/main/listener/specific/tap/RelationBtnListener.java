@@ -19,9 +19,11 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+
 import javax.swing.JComponent;
 import javax.swing.JTextArea;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.RelationFunction;
@@ -34,7 +36,7 @@ import prerna.ui.helpers.AlgorithmRunner;
  */
 public class RelationBtnListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RelationBtnListener.class.getName());
 
 	RelationPlaySheet playSheet;
 	JTextArea consoleArea;

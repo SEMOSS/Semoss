@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -45,7 +46,7 @@ import prerna.ui.components.specific.tap.RelationPlaySheet;
  */
 public class RelationFunction implements IAlgorithm {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RelationFunction.class.getName());
 	RelationPlaySheet playSheet;
 	IEngine engine;
 	String[] names; 

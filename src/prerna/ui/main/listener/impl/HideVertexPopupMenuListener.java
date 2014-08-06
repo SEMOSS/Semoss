@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -34,7 +35,7 @@ public class HideVertexPopupMenuListener implements ActionListener {
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(HideVertexPopupMenuListener.class.getName());
 	
 	/**
 	 * Method setPlaysheet.  Sets the play sheet that the listener will access.

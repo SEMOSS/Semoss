@@ -25,6 +25,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.UpdateProcessor;
@@ -37,7 +38,7 @@ import prerna.util.DIHelper;
  */
 public class CustomUpdateButtonListener implements IChakraListener{
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CustomUpdateButtonListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

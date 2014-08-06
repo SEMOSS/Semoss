@@ -20,6 +20,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.SysIRROptimizer;
@@ -33,7 +34,7 @@ import prerna.ui.helpers.AlgorithmRunner;
  */
 public class SysOptBtnListener extends SerOptBtnListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SysOptBtnListener.class.getName());
 	/**
 	 * Method actionPerformed.
 	 * @param arg0 ActionEvent

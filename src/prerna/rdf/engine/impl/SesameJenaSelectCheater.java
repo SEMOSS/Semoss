@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -53,7 +54,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	//IEngine engine = null;
 	transient BindingSet bs;
 	transient String query = null;	
-	transient Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SesameJenaSelectCheater.class.getName());
 	transient int count=0;
 	String [] var = null;
 	transient int tqrCount=0;

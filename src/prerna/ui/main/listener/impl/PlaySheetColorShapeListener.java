@@ -28,6 +28,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ShapeColorTableModel;
@@ -41,7 +42,7 @@ import prerna.util.DIHelper;
  */
 public class PlaySheetColorShapeListener implements InternalFrameListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PlaySheetColorShapeListener.class.getName());
 	
 	/**
 	 * TODO unused method

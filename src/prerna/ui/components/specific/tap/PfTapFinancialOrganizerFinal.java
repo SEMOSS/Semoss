@@ -32,6 +32,7 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -49,7 +50,7 @@ import prerna.util.DIHelper;
  */
 public class PfTapFinancialOrganizerFinal {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PfTapFinancialOrganizerFinal.class.getName());
 
 	SesameJenaSelectWrapper wrapper;
 	Hashtable<Integer, Integer> yearIdxTable = new Hashtable<Integer, Integer>();

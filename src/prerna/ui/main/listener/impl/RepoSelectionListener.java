@@ -26,6 +26,7 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -63,7 +64,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 	{
 	}
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RepoSelectionListener.class.getName());
 	// when the repo is selected, load the specific properties file
 	// along with it load the database and the questions
 

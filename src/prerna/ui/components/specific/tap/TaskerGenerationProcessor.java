@@ -26,6 +26,7 @@ import java.util.Hashtable;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.TaskerGenerationWriter;
@@ -42,7 +43,7 @@ import prerna.util.Utility;
  * Used in conjunction with TaskerGenerationListener
  */
 public class TaskerGenerationProcessor {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TaskerGenerationProcessor.class.getName());
 	public String coreDB = "";
 	String tapSiteEngine = "TAP_Site_Data";
 //	String tapPortfolioEngine = "TAP_Portfolio";

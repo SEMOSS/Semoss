@@ -41,6 +41,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.search.SearchController;
@@ -74,7 +75,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 public class ControlPanel extends JPanel {
 
 	private JTextField searchText;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ControlPanel.class.getName());
 	GraphTextSizeListener textSizeListener;
 	GraphVertexSizeListener vertSizeListener;
 	boolean showRingsButton = false;

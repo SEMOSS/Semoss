@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
  */
 public class DHMSMSystemCapabilityOverlapProcessor {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSystemCapabilityOverlapProcessor.class.getName());
 	String hrCoreEngine = "HR_Core";
 	Hashtable<String,String> capToFunctionalAreaHash = new Hashtable<String,String> ();
 	Hashtable<String,Hashtable> masterHash=  new Hashtable<String,Hashtable>();

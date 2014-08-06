@@ -21,6 +21,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.IslandIdentifierProcessor;
@@ -35,7 +36,7 @@ public class IslandIdentifierListener implements ActionListener{
 
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(IslandIdentifierListener.class.getName());
 	
 	/**
 	 * Constructor for IslandIdentifierListener.

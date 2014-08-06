@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
@@ -38,7 +39,7 @@ public class DistanceDownstreamListener implements ActionListener {
 	SEMOSSVertex [] pickedVertex = null;
 	Hashtable nodeTable = new Hashtable();
 	Hashtable edgeTable = new Hashtable();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DistanceDownstreamListener.class.getName());
 	
 	/**
 	 * Constructor for DistanceDownstreamListener.

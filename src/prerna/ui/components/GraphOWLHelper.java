@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
@@ -34,7 +35,7 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
  */
 public class GraphOWLHelper {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphOWLHelper.class.getName());
 
 	/**
 	 * Loads the hierarchy of concepts (subjects).

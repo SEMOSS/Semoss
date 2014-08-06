@@ -27,6 +27,7 @@ import java.util.Hashtable;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -44,7 +45,7 @@ import prerna.util.Utility;
  * Used in conjunction with FactSheetListener
  */
 public class FactSheetProcessor {
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(FactSheetProcessor.class.getName());
 	private String tapCoreEngine = "TAP_Core_Data";
 	private String tapSiteEngine = "TAP_Site_Data";
 	private String tapCostEngine = "TAP_Cost_Data";

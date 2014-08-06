@@ -28,6 +28,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -50,7 +51,7 @@ public class DHMSMFunctionalAreaSelectorListener extends AbstractListener {
 	JCheckBox DHMSMCheckBox;
 	IEngine engine;
 	
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(DHMSMFunctionalAreaSelectorListener.class.getName());
 
 	/**
 	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report

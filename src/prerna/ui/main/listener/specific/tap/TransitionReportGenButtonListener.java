@@ -26,6 +26,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JToggleButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.ParamComboBox;
@@ -46,7 +47,7 @@ import prerna.util.Utility;
  */
 public class TransitionReportGenButtonListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TransitionReportGenButtonListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 	
 	/**

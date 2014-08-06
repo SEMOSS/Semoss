@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
@@ -37,7 +38,7 @@ import prerna.util.Utility;
  */
 public class SysBPCapInsertProcessor extends AggregationHelper {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SysBPCapInsertProcessor.class.getName());
 	private IEngine coreDB;
 	
 	public final String DATAC = "Data";

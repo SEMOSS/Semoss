@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LPOptimizer;
@@ -15,7 +16,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	
 	SysOptPlaySheet playSheet=null;
 	
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(ResidualSystemOptimizer.class.getName());
 	public ArrayList<String> sysList;
 	ArrayList<String> dataList;
 	ArrayList<String> bluList;

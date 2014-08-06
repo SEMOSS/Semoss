@@ -2,6 +2,7 @@ package prerna.poi.specific;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -12,7 +13,7 @@ import prerna.util.DIHelper;
 
 public class FactSheetImageExportProcessor {
 
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(FactSheetImageExportProcessor.class.getName());
 
 	public void runImageExport() {
 		//Select Systems

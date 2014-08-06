@@ -25,6 +25,7 @@ import java.util.logging.Level;
 
 import javax.swing.JInternalFrame;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.teamdev.jxbrowser.chromium.Browser;
@@ -49,7 +50,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	  LoadListener navListener = null;
 	  
 	  GraphPlaySheet ps = null;
-	  Logger logger = Logger.getLogger(getClass());
+	  static final Logger logger = LogManager.getLogger(BrowserTabSheetFullAddress.class.getName());
 	  public Browser browser = null;
 	  String fileName;
 	  

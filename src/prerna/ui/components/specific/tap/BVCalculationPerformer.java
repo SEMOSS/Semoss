@@ -32,6 +32,7 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -57,7 +58,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 
 	public Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BVCalculationPerformer.class.getName());
 	GridFilterData gfd = new GridFilterData();
 	String type;
 	double soaAlphaValue;

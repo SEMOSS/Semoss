@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -41,7 +42,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class ColorShapeClearRefreshListener implements IChakraListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ColorShapeClearRefreshListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

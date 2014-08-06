@@ -22,6 +22,7 @@ import java.awt.Color;
 
 import javax.swing.JMenuItem;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -41,7 +42,7 @@ public class ColorMenuItem extends JMenuItem{
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
 	String color = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ColorMenuItem.class.getName());
 
 	/**
 	 * Constructor for ColorMenuItem.

@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -40,7 +41,7 @@ import prerna.util.DIHelper;
 public class InterfaceReportListener implements IChakraListener {
 
 	InterfaceReportProcessor processor = new InterfaceReportProcessor();
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(InterfaceReportListener.class.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**

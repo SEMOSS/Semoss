@@ -21,6 +21,7 @@ package prerna.ui.transformer;
 import java.util.Vector;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -32,7 +33,7 @@ import prerna.util.Constants;
  */
 public class EdgeTooltipTransformer implements Transformer <SEMOSSEdge, String> {
 	
-	Logger logger = Logger.getLogger(getClass());	
+	static final Logger logger = LogManager.getLogger(EdgeTooltipTransformer.class.getName());	
 	ControlData data = null;
 	
 	/**

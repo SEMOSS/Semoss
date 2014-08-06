@@ -31,6 +31,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -56,7 +57,7 @@ public class ImportDataListener implements IChakraListener {
 
 	JTextField view = null;
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ImportDataListener.class.getName());
 	
 	/**
 	 * Method setModel.  Sets the model that the listener will access.

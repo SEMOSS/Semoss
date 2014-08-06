@@ -21,6 +21,7 @@ package prerna.poi.specific;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.util.CellReference;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -42,7 +43,7 @@ import prerna.util.Utility;
  */
 public class BasicReportWriter {
 
-	final Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BasicReportWriter.class.getName());
 	public Hashtable<String,XSSFCellStyle> myStyles;
 	XSSFWorkbook wb;
 	String fileLoc;

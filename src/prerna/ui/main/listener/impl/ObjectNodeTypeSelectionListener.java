@@ -26,6 +26,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -39,7 +40,7 @@ import prerna.util.DIHelper;
  */
 public class ObjectNodeTypeSelectionListener extends AbstractListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ObjectNodeTypeSelectionListener.class.getName());
 	String subjectNodeType = "";
 	String objectNodeType = "";
 	int exportNo = 1;

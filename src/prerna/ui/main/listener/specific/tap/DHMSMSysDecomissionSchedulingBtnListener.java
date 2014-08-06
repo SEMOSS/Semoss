@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import javax.swing.JComponent;
 import javax.swing.JTextArea;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -37,7 +38,7 @@ import prerna.util.Utility;
  */
 public class DHMSMSysDecomissionSchedulingBtnListener implements IChakraListener {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSysDecomissionSchedulingBtnListener.class.getName());
 
 	DHMSMSysDecommissionSchedulingPlaySheet playSheet;
 	JTextArea consoleArea;

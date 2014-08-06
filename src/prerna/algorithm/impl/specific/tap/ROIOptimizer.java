@@ -30,6 +30,7 @@ import org.apache.commons.math3.optim.univariate.UnivariateOptimizer;
 import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -40,7 +41,7 @@ import prerna.ui.components.specific.tap.SerOptPlaySheet;
  */
 public class ROIOptimizer extends UnivariateSvcOptimizer{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ROIOptimizer.class.getName());
 	
 	/**
 	 * Runs the appropriate optimization iteration.

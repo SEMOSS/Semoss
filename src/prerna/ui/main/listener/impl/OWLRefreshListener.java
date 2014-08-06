@@ -26,6 +26,7 @@ import javax.swing.JComponent;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
@@ -47,7 +48,7 @@ public class OWLRefreshListener implements IChakraListener {
 	// when refresh is pressed
 	// get the active sheet and call the repaint
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(OWLRefreshListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.

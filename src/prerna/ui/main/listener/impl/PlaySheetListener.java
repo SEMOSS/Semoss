@@ -24,6 +24,7 @@ import javax.swing.JToggleButton;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.InternalFrameListener;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -36,7 +37,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class PlaySheetListener implements InternalFrameListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(PlaySheetListener.class.getName());
 	
 	/**
 	 * TODO unused method

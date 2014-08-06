@@ -7,11 +7,12 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 public class ClusteringDataProcessor {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ClusteringDataProcessor.class.getName());
 
 	// matrix to hold the instance numerical property values
 	private Double[][] numericalMatrix;

@@ -24,6 +24,7 @@ import java.util.StringTokenizer;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -42,7 +43,7 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 
 	public Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(CapabilityBVCalculationPerformer.class.getName());
 	GridFilterData gfd = new GridFilterData();
 	
 	/**

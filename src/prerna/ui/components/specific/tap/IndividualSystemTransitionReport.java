@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
@@ -75,7 +76,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashSet<String> servicesProvideList = new HashSet<String>();
 	private HashSet<String> servicesConsumeList = new HashSet<String>();
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(IndividualSystemTransitionReport.class.getName());
 
 	public void setTAP_Cost_Data(IEngine TAP_Cost_Data) {
 		this.TAP_Cost_Data = TAP_Cost_Data;

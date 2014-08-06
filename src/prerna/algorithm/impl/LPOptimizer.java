@@ -21,6 +21,7 @@ package prerna.algorithm.impl;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -30,7 +31,7 @@ import prerna.ui.components.api.IPlaySheet;
  */
 public class LPOptimizer extends AbstractOptimizer{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(LPOptimizer.class.getName());
 	
 	public LpSolve solver;
 	

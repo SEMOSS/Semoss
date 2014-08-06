@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import javax.swing.JList;
 import javax.swing.JMenu;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -48,7 +49,7 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 	IPlaySheet ps = null;
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RelationPredictPopup.class.getName());
 
 	// both of them bind
 	String mainQuery = null;

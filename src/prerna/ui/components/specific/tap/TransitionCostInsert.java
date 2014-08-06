@@ -24,6 +24,7 @@ import java.util.StringTokenizer;
 import javax.swing.JList;
 import javax.swing.JProgressBar;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -36,7 +37,7 @@ import prerna.util.DIHelper;
  */
 public class TransitionCostInsert implements Runnable {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TransitionCostInsert.class.getName());
 	JProgressBar jBar;
 	String Query;
 	

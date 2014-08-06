@@ -21,6 +21,7 @@ package prerna.util;
 import java.util.Hashtable;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
@@ -31,7 +32,7 @@ import prerna.ui.components.api.IPlaySheet;
 @SuppressWarnings("serial")
 public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(QuestionPlaySheetStore.class.getName());
 
 	public static QuestionPlaySheetStore store = null;
 	//public Vector 

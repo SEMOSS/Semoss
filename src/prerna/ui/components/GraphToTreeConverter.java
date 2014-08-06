@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
@@ -38,7 +39,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
  */
 public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphToTreeConverter.class.getName());
 
 	Hashtable<String, ArrayList<SEMOSSVertex>> uriVertHash = new Hashtable();
 	DelegateForest newForest;

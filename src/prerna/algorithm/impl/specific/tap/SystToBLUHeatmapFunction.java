@@ -38,6 +38,7 @@ import java.util.logging.Level;
 
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -64,7 +65,7 @@ import prerna.util.QuestionPlaySheetStore;
  * This class is used to process through two variables to identify relationships.
  */
 public class SystToBLUHeatmapFunction implements IAlgorithm {	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SystToBLUHeatmapFunction.class.getName());
 	SysToBLUDataGapsPlaySheet playSheet;
 	IEngine engine;
 	String[] names; 

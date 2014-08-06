@@ -20,6 +20,7 @@
 
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 
@@ -29,7 +30,7 @@ import org.apache.log4j.Logger;
 public class EdgeFilterTableModel extends AbstractTableModel {
 	
 	VertexFilterData data = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(EdgeFilterTableModel.class.getName());
 
 	/**
 	 * Constructor for EdgeFilterTableModel.

@@ -33,6 +33,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -46,7 +47,7 @@ public class NodeInfoPopup extends JInternalFrame{
 
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(NodeInfoPopup.class.getName());
 	GridFilterData gfd = new GridFilterData();
 	JTable table = null;
 	JDesktopPane pane = null;

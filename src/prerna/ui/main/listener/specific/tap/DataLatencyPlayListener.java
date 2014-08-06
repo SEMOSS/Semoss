@@ -24,6 +24,7 @@ import java.beans.PropertyVetoException;
 
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -37,7 +38,7 @@ public class DataLatencyPlayListener implements ActionListener{
 
 	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DataLatencyPlayListener.class.getName());
 	
 	/**
 	 * Constructor for DataLatencyPlayListener.

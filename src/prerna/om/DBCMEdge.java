@@ -22,6 +22,7 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
@@ -42,7 +43,7 @@ public class DBCMEdge {
 
 	transient Hashtable uriHash = new Hashtable();
 	public Hashtable <String, Object> propHash = new Hashtable();
-	transient Logger logger = Logger.getLogger(getClass());
+	transient static final Logger logger = LogManager.getLogger(DBCMEdge.class.getName());
 	
 	/**
 	 * 	

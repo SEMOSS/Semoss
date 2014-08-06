@@ -27,6 +27,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -49,7 +50,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 	IPlaySheet ps = null;
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TFRelationPopup.class.getName());
 
 	String mainQuery, mainQueryJENA, neighborQuery, neighborQueryJENA;
 	

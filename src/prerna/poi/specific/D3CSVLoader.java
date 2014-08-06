@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.openrdf.model.Literal;
@@ -92,7 +93,7 @@ public class D3CSVLoader {
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
 	
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(D3CSVLoader.class.getName());
 	
 	private Properties rdfMap;
 	private ICsvMapReader mapReader;

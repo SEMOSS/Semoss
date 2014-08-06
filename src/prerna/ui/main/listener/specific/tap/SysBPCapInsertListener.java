@@ -27,6 +27,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.BooleanProcessor;
@@ -39,7 +40,7 @@ import prerna.util.Utility;
 
 public class SysBPCapInsertListener extends AbstractListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SysBPCapInsertListener.class.getName());
 	
 	
 	@Override

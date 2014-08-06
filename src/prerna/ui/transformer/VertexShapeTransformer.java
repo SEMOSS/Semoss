@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -37,7 +38,7 @@ public class VertexShapeTransformer implements Transformer <SEMOSSVertex, Shape>
 	
 	Hashtable<String, Double> vertSizeHash;
 	Hashtable<String, Double> vertSelectionHash;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(VertexShapeTransformer.class.getName());
 	double maxSize = 100.0;
 	double minSize = 0.0;
 	double currentDefaultScale;

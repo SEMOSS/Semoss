@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -33,7 +34,7 @@ import prerna.ui.components.specific.tap.SOAAnalysisPerformer;
 public class SOATransitionListener  implements IChakraListener{
 
 	public static SOATransitionListener listener = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SOATransitionListener.class.getName());
 	GraphPlaySheet playSheet;
 
 	/**

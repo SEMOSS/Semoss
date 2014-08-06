@@ -25,6 +25,7 @@ import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
  */
 public class VendorHeatMapBtnListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(VendorHeatMapBtnListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.

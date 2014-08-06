@@ -26,6 +26,7 @@ import java.util.HashMap;
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -43,7 +44,7 @@ import prerna.util.QuestionPlaySheetStore;
  */
 public class HealthGridExporter {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(HealthGridExporter.class.getName());
 	
 	/**
 	 * Constructor for HealthGridExporter.

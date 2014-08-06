@@ -20,6 +20,7 @@ package prerna.ui.components;
 
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -32,7 +33,7 @@ import prerna.util.DIHelper;
  */
 public class BooleanProcessor {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(BooleanProcessor.class.getName());
 	String query;
 	IEngine engine;
 	

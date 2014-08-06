@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -44,7 +45,7 @@ import prerna.util.Utility;
 
 public class TAPLegacySystemDispositionReportWriter {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
 
 	private String sysName;
 	private String sysURI;

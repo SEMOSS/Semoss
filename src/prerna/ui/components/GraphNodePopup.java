@@ -25,6 +25,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
@@ -62,7 +63,7 @@ public class GraphNodePopup extends JPopupMenu {
 	GraphPlaySheet ps = null;
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(GraphNodePopup.class.getName());
 	Component comp = null;
 	IEngine engine;
 	int x;

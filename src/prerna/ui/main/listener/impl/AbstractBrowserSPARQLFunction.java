@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.main.listener.impl;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.teamdev.jxbrowser.chromium.BrowserFunction;
@@ -31,7 +32,7 @@ import prerna.rdf.engine.api.IEngine;
  */
 public abstract class AbstractBrowserSPARQLFunction implements BrowserFunction {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(AbstractBrowserSPARQLFunction.class.getName());
 	IEngine engine;
 	
 	/**

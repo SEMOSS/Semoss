@@ -30,6 +30,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 /**
@@ -37,7 +38,7 @@ import org.apache.log4j.Logger;
  */
 public class EdgeFilterRenderer extends JComboBox implements TableCellRenderer, TableCellEditor {
 	
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(EdgeFilterRenderer.class.getName());
 	protected Vector listeners = new Vector();
 	int originalValue;
 	static Double [] data = {new Double(100),new Double(200)};

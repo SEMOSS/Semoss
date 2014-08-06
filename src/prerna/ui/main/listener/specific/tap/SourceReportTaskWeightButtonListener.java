@@ -25,6 +25,7 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
@@ -47,7 +48,7 @@ import prerna.util.Utility;
  */
 public class SourceReportTaskWeightButtonListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SourceReportTaskWeightButtonListener.class.getName());
 	ArrayList<String> outputArray = new ArrayList<String>();
 	String repo="";
 	IEngine engine;

@@ -24,6 +24,7 @@ import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JTextField;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -41,7 +42,7 @@ import prerna.util.Utility;
  */
 public class SysDecommissionOptimizationListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SysDecommissionOptimizationListener.class.getName());
 
 	/**
 	 * This is executed when the btnFactSheetReport is pressed by the user

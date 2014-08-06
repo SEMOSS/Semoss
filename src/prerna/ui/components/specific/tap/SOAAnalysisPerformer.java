@@ -29,6 +29,7 @@ import javax.swing.JDesktopPane;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSEdge;
@@ -48,7 +49,7 @@ import prerna.util.Utility;
  */
 public class SOAAnalysisPerformer implements Runnable {
 	//IPlaySheet playSheet = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SOAAnalysisPerformer.class.getName());
 	GraphPlaySheet newPlaySheet;
 	Hashtable retValues = new Hashtable();
 	GraphPlaySheet oldPlaySheet = null;

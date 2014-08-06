@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
@@ -38,7 +39,7 @@ import prerna.util.Utility;
  * Used in conjunction with SystemInfoGenListener
  */
 public class DHMSMSystemSORAccessTypeReportProcessor {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMSystemSORAccessTypeReportProcessor.class.getName());
 	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
 	String hrCoreEngine = "HR_Core";

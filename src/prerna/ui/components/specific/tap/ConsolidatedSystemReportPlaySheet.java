@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
@@ -24,7 +25,7 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ConsolidatedSystemReportPlaySheet.class.getName());
 	
 	private static String modernizationProp = "InterfaceModernizationCost";
 	

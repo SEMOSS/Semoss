@@ -138,7 +138,7 @@ public class PlayPane extends JFrame {
 	public JButton calculateBVButton;
 	public JButton fillTMHashButton;
 	public JButton calculateTMButton;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(MyApp.class.getName());
 	
 	public JTable labelTable;
 	

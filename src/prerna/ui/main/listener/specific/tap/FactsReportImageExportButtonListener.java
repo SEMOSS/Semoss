@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.poi.specific.FactSheetImageExportProcessor;
@@ -33,7 +34,7 @@ import prerna.ui.components.api.IChakraListener;
  */
 public class FactsReportImageExportButtonListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(FactsReportImageExportButtonListener.class.getName());
 	FactSheetImageExportProcessor processor = new FactSheetImageExportProcessor();
 
 	/**

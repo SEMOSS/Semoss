@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
@@ -17,7 +18,7 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 public class ServicesAggregationProcessor extends AggregationHelper {
 
 	Logger fileLogger = Logger.getLogger("reportsLogger");
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ServicesAggregationProcessor.class.getName());
 
 	private IEngine servicesDB;
 	private IEngine coreDB;
