@@ -29,6 +29,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -45,7 +46,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	// may be this is a good time to put this on tomcat
 
 
-	protected Logger logger = Logger.getLogger(getClass());
+	protected static final Logger logger = LogManager.getLogger(AbstractFileWatcher.class.getName());
 	
 	// processes the files with the given extension
 	

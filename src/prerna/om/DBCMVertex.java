@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
@@ -41,7 +42,7 @@ public class DBCMVertex{
 	Vector <DBCMEdge> inEdge = new Vector<DBCMEdge>();
 	Vector <DBCMEdge> outEdge = new Vector<DBCMEdge>();
 	
-	transient Logger logger = Logger.getLogger(getClass());
+	transient static final Logger logger = LogManager.getLogger(DBCMVertex.class.getName());
 	
 	// TODO need to find a way to identify the source i.e. put that as a property
 	

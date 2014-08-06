@@ -4,13 +4,14 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 /** Generic clustering algorithm to cluster instances based on their categorical and numerical properties.
  * 
  */
 public class ClusteringAlgorithm {
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(ClusteringAlgorithm.class.getName());
 	
 	// instance variables that must be defined for clustering to work
 	private ArrayList<Object[]> masterTable;

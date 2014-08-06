@@ -20,6 +20,7 @@ package prerna.rdf.engine.impl;
 
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -45,7 +46,7 @@ import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	
 	Model d2rqModel = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RDBMSD2RQEngine.class.getName());
 	String propFile = null;
 	boolean connected = false;
 

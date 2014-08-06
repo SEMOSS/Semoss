@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
@@ -46,7 +47,7 @@ import com.hp.hpl.jena.util.FileManager;
 public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	
 	Model jenaModel = null;
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(RDFFileJenaEngine.class.getName());
 	String propFile = null;
 	boolean connected = false;
 

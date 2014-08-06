@@ -25,6 +25,7 @@ import java.util.Enumeration;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IChakraListener;
@@ -39,7 +40,7 @@ import prerna.util.DIHelper;
  */
 public class DHMSMUpdateDataListener implements IChakraListener {
 
-	Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(DHMSMUpdateDataListener.class.getName());
 	
 	/**
 	 * Method actionPerformed.

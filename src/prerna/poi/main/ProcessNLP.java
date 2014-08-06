@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
@@ -53,7 +54,7 @@ public class ProcessNLP {
 	private int ArticleNUM = 0;
 	private String CurrentSentence = "";
 
-	private final Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(ProcessNLP.class.getName());
 	
 	public ProcessNLP(){
 		lp = LexicalizedParser.loadModel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\englishPCFG.ser");

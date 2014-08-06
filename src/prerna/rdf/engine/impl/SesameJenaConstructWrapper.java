@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
@@ -51,7 +52,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 	transient com.hp.hpl.jena.rdf.model.Statement curSt = null;
 	transient SesameJenaConstructStatement retSt = null;
 	public transient boolean queryBoolean = true;
-	transient Logger logger = Logger.getLogger(getClass());
+	static final Logger logger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
 	transient SesameJenaConstructWrapper remoteWrapperProxy = null;
 	transient ObjectInputStream ris = null;// remote input stream
 	
