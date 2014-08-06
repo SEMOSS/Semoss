@@ -1,6 +1,6 @@
 package prerna.ui.components.specific.tap;
 
-import java.util.HashSet;
+import java.util.Hashtable;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
@@ -11,9 +11,6 @@ import prerna.util.DIHelper;
 public class AllLegacySystemsDispositionProcessor {
 
 	private IEngine hr_Core;
-	private String lpiListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-	private String lpniListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-
 
 	public void processReports() throws EngineException, FileReaderException
 	{
@@ -23,18 +20,10 @@ public class AllLegacySystemsDispositionProcessor {
 		}
 
 		TAPLegacySystemDispositionReportWriter indiviudalSysWriter = new TAPLegacySystemDispositionReportWriter();
-		
-		HashSet<String> lpiList = indiviudalSysWriter.processSingleUniqueReturnQuery(hr_Core, lpiListQuery);
-		indiviudalSysWriter.setLpiList(lpiList);
-		HashSet<String> lpniList = indiviudalSysWriter.processSingleUniqueReturnQuery(hr_Core, lpniListQuery);
-		indiviudalSysWriter.setLpniList(lpniList);
+		Hashtable<String,String> reportTypeHash = indiviudalSysWriter.processReportTypeQuery();
+		indiviudalSysWriter.setReportTypeHash(reportTypeHash);
 
-		for(String s : lpiList) {
-			indiviudalSysWriter.setSysURI(s);
-			indiviudalSysWriter.writeToExcel();
-		}
-		
-		for(String s : lpniList) {
+		for(String s : reportTypeHash.keySet()) {
 			indiviudalSysWriter.setSysURI(s);
 			indiviudalSysWriter.writeToExcel();
 		}

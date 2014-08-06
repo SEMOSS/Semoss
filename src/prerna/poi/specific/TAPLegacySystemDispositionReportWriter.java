@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
@@ -49,12 +48,10 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	private String sysName;
 	private String sysURI;
+	private Hashtable<String,String> reportTypeHash = new Hashtable<String,String>();
 
 	//queries to determine type of system being passed in
-	private String lpiListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-	private String lpniListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N'}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
-	private HashSet<String> lpiList = new HashSet<String>();
-	private HashSet<String> lpniList = new HashSet<String>();
+	private String reportTypeQuery = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
 	
 	//query for basic sys information
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
@@ -384,33 +381,38 @@ public class TAPLegacySystemDispositionReportWriter {
 	private void writeTransitionAnalysis() {
 		String lpiDescription = "LPI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
 		String lpniDescription = "LPNI systems were designated by the Functional Advisory Council (FAC) as having a low probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
-
-		if(lpiList.isEmpty()) {
-			lpiList = processSingleUniqueReturnQuery(HR_Core, lpiListQuery);
-		} 
-		if(lpiList.contains(sysURI)){
+		String hpiDescription = "HPI systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM EHR solution and were also designated as requiring integration with DHMSM in order to support data exchange.";
+		String hpniDescription = "HPNI systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
+		
+		if(reportTypeHash.isEmpty())
+			reportTypeHash = processReportTypeQuery();
+		String reportType = reportTypeHash.get(sysName).replaceAll("\"", "");
+		if(reportType.equals("LPI")) {
 			reportSheet.getRow(8).getCell(4).setCellValue("Low Probability with Integration (LPI)");
 			reportSheet.getRow(8).getCell(7).setCellValue(lpiDescription);
-		} else {
-			if(lpniList.isEmpty()) {
-				lpniList = processSingleUniqueReturnQuery(HR_Core, lpniListQuery);
-			}
-			if(lpniList.contains(sysURI)) {
-				reportSheet.getRow(8).getCell(4).setCellValue("Low Probability without Integration (LPNI)");
-				reportSheet.getRow(8).getCell(7).setCellValue(lpniDescription);
-			} 
+		} else if(reportType.equals("LPNI")) {
+			reportSheet.getRow(8).getCell(4).setCellValue("Low Probability without Integration (LPNI)");
+			reportSheet.getRow(8).getCell(7).setCellValue(lpniDescription);
+		} else if(reportType.equals("HPI")) {
+			reportSheet.getRow(8).getCell(4).setCellValue("High Probability with Integration (HPI)");
+			reportSheet.getRow(8).getCell(7).setCellValue(hpiDescription);
+		} else if(reportType.equals("HPNI")) {
+			reportSheet.getRow(8).getCell(4).setCellValue("High Probability without Integration (HPNI)");
+			reportSheet.getRow(8).getCell(7).setCellValue(hpniDescription);
 		}
 	}
 
-	public HashSet<String> processSingleUniqueReturnQuery(IEngine engine, String query) {
-		HashSet<String> retList = new HashSet<String>();
+	public Hashtable<String,String> processReportTypeQuery() {
+		Hashtable<String,String> retList = new Hashtable<String,String>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, reportTypeQuery);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String entity = sjss.getRawVar(varName[0]).toString();
-			retList.add(entity);
+			String instance = Utility.getInstanceName(entity);
+			String reportType = sjss.getRawVar(varName[1]).toString();
+			retList.put(instance,reportType);
 		}
 
 		return retList;
@@ -518,12 +520,8 @@ public class TAPLegacySystemDispositionReportWriter {
 		return sjsw;
 	}
 	
-	public void setLpiList(HashSet<String> lpiList) {
-		this.lpiList = lpiList;
-	}
-	
-	public void setLpniList(HashSet<String> lpniList) {
-		this.lpniList = lpniList;
+	public void setReportTypeHash(Hashtable<String,String> reportTypeHash) {
+		this.reportTypeHash = reportTypeHash;
 	}
 	
 	public void setSysURI(String sysURI) {
