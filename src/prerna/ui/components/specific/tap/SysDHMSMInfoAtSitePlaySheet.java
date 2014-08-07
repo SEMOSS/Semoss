@@ -3,9 +3,13 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -13,6 +17,7 @@ import prerna.util.Utility;
 @SuppressWarnings("serial")
 public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(SysDHMSMInfoAtSitePlaySheet.class.getName());
 	private String GET_SYSTEMS_AT_SITE = "SELECT DISTINCT ?DCSite ?System WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite;} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?DCSite";
 	private String siteEngineName = "TAP_Site_Data";
 

@@ -4,15 +4,20 @@ import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(LifeCycleGridPlaySheet.class.getName());
 	private int year, month;
 
 	@Override
@@ -82,6 +87,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
 				String sys = (String)sjss.getVar(names[0]);
 				String glTag = (String)sjss.getVar(names[1]);
+				System.out.println(sjss.getVar(names[2]));
 				Integer cost = ((Double)sjss.getVar(names[2])).intValue();
 				String retVarString = queryString.substring(0,queryString.indexOf("WHERE")).toLowerCase();
 				boolean isHardware = retVarString.contains("hardware")||retVarString.contains("hw");
@@ -100,6 +106,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 			}
 		} catch (RuntimeException e) {
 			logger.error("Cannot find engine: TAP_Cost_Data");
+			e.printStackTrace();
 		}
 
 		return processedList;

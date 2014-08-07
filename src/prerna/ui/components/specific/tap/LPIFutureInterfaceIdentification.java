@@ -29,14 +29,19 @@ import java.util.Vector;
 
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
 public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(LPIFutureInterfaceIdentification.class.getName());
 	String statusQuery;
 	String statusQueryEngineName;
 	IEngine statusEngine;

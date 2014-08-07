@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -34,6 +37,7 @@ import com.google.gson.Gson;
  */
 public class CONUSMapPlaySheet extends BrowserPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(CONUSMapPlaySheet.class.getName());
 	Hashtable allHash;
 	HashSet data;
 	/**

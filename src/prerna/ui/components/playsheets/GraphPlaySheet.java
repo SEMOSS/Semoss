@@ -46,6 +46,8 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.KruskalMinimumSpanningTree;
@@ -138,6 +140,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 * parameters c. The composed SPARQL Query d. Perspective selected e. The question selected by the user f. Filter
 	 * criterias including slider values
 	 */
+	private static final Logger logger = LogManager.getLogger(GraphPlaySheet.class.getName());
 	protected GraphDataModel gdm = new GraphDataModel();
 	public DelegateForest forest = null;
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
