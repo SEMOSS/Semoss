@@ -155,6 +155,10 @@ public class CSVMetamodelBuilder {
 				fileRead = new FileReader(fileName);
 				listReader = new CsvListReader(fileRead, CsvPreference.STANDARD_PREFERENCE);
 				this.header = listReader.getHeader(true);
+
+				initiateDataTypeHash();
+				getAllDataType(listReader);
+				getAllowedDataType();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 				throw new FileReaderException("Could not find CSV file: " + files.get(0));
@@ -169,10 +173,6 @@ public class CSVMetamodelBuilder {
 					e.printStackTrace();
 				}
 			}
-
-			initiateDataTypeHash();
-			getAllDataType(listReader);
-			getAllowedDataType();
 			return dataType;
 		}
 
