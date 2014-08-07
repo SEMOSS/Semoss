@@ -35,6 +35,10 @@ public class AbstractCustomVizBuilder implements ICustomVizBuilder{
 	public String getQuery() {
 		return semossQuery.getQuery();
 	}
+	
+	public SEMOSSQuery getSEMOSSQuery(){
+		return this.semossQuery;
+	}
 
 	@Override
 	public void buildQuery() {
