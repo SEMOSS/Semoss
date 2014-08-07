@@ -352,7 +352,7 @@ public class FactSheetWriter {
 
 		//Application Health Grid
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = File.separator + "export" + File.separator + "Images" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Images" + System.getProperty("file.separator");
 		String picFileName = systemName.replaceAll(":", "")+"_Health_Grid_Export.png";
 		String picFileLoc = workingDir + folder + picFileName;
 		FileInputStream inputStream = null;

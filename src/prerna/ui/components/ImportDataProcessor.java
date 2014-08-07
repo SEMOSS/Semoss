@@ -34,7 +34,7 @@ public class ImportDataProcessor {
 	static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
 
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, RDBMS};
-	public enum IMPORT_TYPE {CSV, NLP, EXCEL};
+	public enum IMPORT_TYPE {CSV, NLP, EXCEL, OCR};
 
 	String baseDirectory;
 	Hashtable<String, String> propHash;

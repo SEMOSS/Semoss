@@ -98,8 +98,10 @@ public class ImportDataListener implements IChakraListener {
 			importType = ImportDataProcessor.IMPORT_TYPE.CSV;
 		else if(typeSelection.equals("Microsoft Excel format"))
 			importType = ImportDataProcessor.IMPORT_TYPE.EXCEL;
-		else if(typeSelection.equals("Natural Language Proessing"))
+		else if(typeSelection.equals("Natural Language Processing"))
 			importType = ImportDataProcessor.IMPORT_TYPE.NLP;
+		else if(typeSelection.equals("Optical Character Recognition + NLP"))
+			importType = ImportDataProcessor.IMPORT_TYPE.OCR;
 		
 		String fileNames = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_FIELD)).getText();
 		if(fileNames.equals(""))

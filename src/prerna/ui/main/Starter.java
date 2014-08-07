@@ -43,7 +43,6 @@ import com.ibm.icu.util.StringTokenizer;
  * The Starter class is run to start the SEMOSS application.  This launches the Splash Screen and the base user interface.
  */
 public class Starter {
-	
 	Object monitor = new Object();
 	private static String govWarningString ="You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only."
 			+"\n"
@@ -87,6 +86,7 @@ public class Starter {
 	public static void main(String [] args) throws Exception
 	{
 		Starter starter = new Starter();
+		System.setProperty("file.separator", "/");
 //		Utility.showMessage(govWarningString);
 		String workingDir = System.getProperty("user.dir");
 		String propFile = workingDir + "/RDF_Map.prop";

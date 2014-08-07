@@ -72,7 +72,7 @@ public class SourceReportGenButtonListener implements IChakraListener {
 		JTextField RFPNameField=(JTextField)DIHelper.getInstance().getLocalProp(ConstantsTAP.RFP_NAME_FIELD);
 		writer.RFPName = RFPNameField.getText();
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String writeFileName = "Vendor Input Report " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx";
 		String fileLoc = workingDir + folder + writeFileName;
 		String templateLoc = workingDir + folder + "Report_Template.xlsx";

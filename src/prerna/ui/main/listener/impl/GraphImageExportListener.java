@@ -94,7 +94,7 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 		FileOutputStream graphicsFileOut = null;
 		try {
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String folder = File.separator+"export"+File.separator+"Images"+File.separator;
+			String folder = System.getProperty("file.separator")+"export"+System.getProperty("file.separator")+"Images"+System.getProperty("file.separator");
 			String writeFileName = "Graph_Export_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "");
 			if(exportType.equals(this.HIGH_QUALITY_IMAGE_TYPE)) {
 				writeFileName += ".eps";
@@ -107,7 +107,7 @@ public class GraphImageExportListener extends AbstractAction implements IChakraL
 			File exportFile = new File(fileLoc);
 			if(!exportFile.getCanonicalFile().isDirectory()) {
 				if(!exportFile.mkdirs())
-				Utility.showError("Please create the following directory structure in the working folder where SEMOSS currently resides:\n\n~"+File.separator+"export"+File.separator+"Images"+File.separator);
+				Utility.showError("Please create the following directory structure in the working folder where SEMOSS currently resides:\n\n~"+System.getProperty("file.separator")+"export"+System.getProperty("file.separator")+"Images"+System.getProperty("file.separator"));
 				return;
 			}
 			fileLoc += writeFileName;

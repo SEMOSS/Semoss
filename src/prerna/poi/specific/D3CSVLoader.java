@@ -149,7 +149,7 @@ public class D3CSVLoader {
 
 		reader.openOWLWithOutConnection();
 		ArrayList<String> files = new ArrayList<String>();
-		files.add(workingDir+File.separator+"db"+File.separator+"D3"+File.separator+"Ships2.csv");
+		files.add(workingDir+System.getProperty("file.separator")+"db"+System.getProperty("file.separator")+"D3"+System.getProperty("file.separator")+"Ships2.csv");
 		for(int i = 0; i<files.size();i++)
 		{
 			String fileName = files.get(i);

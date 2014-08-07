@@ -114,7 +114,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	public void writeToExcel() throws FileReaderException
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String templateName = "TAP_Legacy_System_Dispositions_Template.xlsx";
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));

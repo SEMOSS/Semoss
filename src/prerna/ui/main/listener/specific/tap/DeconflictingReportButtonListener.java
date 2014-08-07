@@ -305,7 +305,7 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 							
 			DeconflictingReportSheetWriter writer = new DeconflictingReportSheetWriter();
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String folder = File.separator + "export" + File.separator + "Reports" + File.separator + "Deconflicting" + File.separator;
+			String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator") + "Deconflicting" + System.getProperty("file.separator");
 			String writeFileName = system+"_System Export_30102013.xlsx";
 			String fileLoc = workingDir + folder + writeFileName;
 			String templateLoc = workingDir + folder + "Report_Deconflicting_Template.xlsx";

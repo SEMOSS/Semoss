@@ -382,7 +382,8 @@ public class POIReader extends AbstractFileReader {
 					logger.info("Done processing: " + sheetToLoad);	
 				}
 			}
-		} finally {
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 	}
 
