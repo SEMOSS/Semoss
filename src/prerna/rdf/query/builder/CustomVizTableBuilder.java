@@ -340,7 +340,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		retArray.addAll(nodePropV);
 		retArray.addAll(edgePropV);
 		// add the filter queries
-		String defaultQueryPattern = this.semossQuery.getQueryPattern(false);
+		String defaultQueryPattern = this.semossQuery.getQueryPattern();
 		for(Hashtable<String, String> headerHash : retArray){
 			String varName = headerHash.get(this.varKey);
 			String filterQuery = "";

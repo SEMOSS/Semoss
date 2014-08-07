@@ -11,8 +11,10 @@ public class SEMOSSQuery {
 	private Hashtable<TriplePart, ISPARQLReturnModifier> retModifyPhrase = new Hashtable<TriplePart,ISPARQLReturnModifier>();
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
+	private SPARQLOrderBy orderBy = null;
 	private SPARQLBindings bindings = null;
 	private Integer limit = null;
+	private Integer offset = null;
 	private String customQueryStructure ="";
 	private String queryType;
 	private boolean distinct = false;
@@ -45,7 +47,7 @@ public class SEMOSSQuery {
 			query= query+ "DISTINCT ";
 		String retVarString = createReturnVariableString();
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString(true);
+		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
 		
 	}
@@ -55,14 +57,14 @@ public class SEMOSSQuery {
 		String countQuery = "SELECT ";
 		String retVarString = createCountReturnVariableString();
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString(false);
+		String postWhereString = createPostPatternString();
 		countQuery=countQuery+retVarString + wherePatternString +postWhereString;
 		return countQuery;
 	}
 	
-	public String getQueryPattern(boolean includeLimit){
+	public String getQueryPattern(){
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString(includeLimit);
+		String postWhereString = createPostPatternString();
 		return wherePatternString + postWhereString;
 	}
 	
@@ -155,20 +157,33 @@ public class SEMOSSQuery {
 		return retVarString;
 	}
 	
-	public String createPostPatternString(boolean includeLimit)
+	public void addAllVarToOrderBy()
+	{
+		orderBy = new SPARQLOrderBy(retVars);
+	}
+	
+	public String createPostPatternString()
 	{
 		String postWhereString = "";
-		if(includeLimit && limit != null)
+		if(orderBy != null)
 		{
-			postWhereString = "LIMIT " + limit;
+			postWhereString = postWhereString + " " + orderBy.getString();
+		}
+		if(limit != null)
+		{
+			postWhereString = postWhereString + " " + "LIMIT " + limit;
+		}
+		if(offset != null)
+		{
+			postWhereString = postWhereString + " " + "OFFSET " + offset;
 		}
 		if(groupBy != null)
 		{
-			postWhereString = groupBy.getString();
+			postWhereString = postWhereString + " " + groupBy.getString();
 		}
 		if(bindings != null)
 		{
-			postWhereString += " " + bindings.getBindingString();
+			postWhereString = postWhereString + " " + bindings.getBindingString();
 		}
 		return postWhereString;
 	}
@@ -374,6 +389,11 @@ public class SEMOSSQuery {
 	public void setLimit(Integer limit)
 	{
 		this.limit = limit;
+	}
+
+	public void setOffset(Integer offset)
+	{
+		this.offset = offset;
 	}
 	
 }
