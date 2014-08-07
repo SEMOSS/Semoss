@@ -363,7 +363,7 @@ public class FactSheetProcessor {
 	 */
 	public void writeToFile(String service, String systemName, Hashtable systemDataHash) {
 		FactSheetWriter writer = new FactSheetWriter();
-		String folder = File.separator + "export" + File.separator + "Reports" + File.separator + "FactSheets" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator") + "FactSheets" + System.getProperty("file.separator");
 		String writeFileName;
 		//		if (service != null) {
 		//			writeFileName = service.replaceAll(" ", "_") + "_" + systemName.replaceAll(":", "") + "_Fact_Sheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";

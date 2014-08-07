@@ -223,7 +223,7 @@ public class TaskerGenerationProcessor {
 	 */
 	public void writeToFile(String systemName, Hashtable systemDataHash) {
 		TaskerGenerationWriter writer = new TaskerGenerationWriter();
-		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String writeFileName;
 
 		writeFileName = "Tasker_for_" +systemName.replaceAll(":", "") + "_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";

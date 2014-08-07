@@ -59,7 +59,7 @@ public class SplashScreen extends JWindow {
 		JLabel picLabel = new JLabel();
 		try {
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String picFileURL = workingDir +File.separator+"pictures"+File.separator+"semosslogo.jpg";
+			String picFileURL = workingDir +System.getProperty("file.separator")+"pictures"+System.getProperty("file.separator")+"semosslogo.jpg";
 			image = ImageIO.read(new File(picFileURL));
 			picLabel = new JLabel(new ImageIcon(image));
 			picLabel.setSize(661, 335);
