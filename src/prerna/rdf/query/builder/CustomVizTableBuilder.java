@@ -51,8 +51,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
 //		parsePropertiesFromPath(); 
-		configureQuery();
-		semossQuery.createQuery();		
+		configureQuery();	
 	}
 
 	public Hashtable<String, ArrayList<Hashtable<String,String>>> getPropsFromPath() 
@@ -317,10 +316,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		this.edgePropV = selectedEdgePropsList;
 	}
 	
-	public String getQueryPattern(){
-		return this.semossQuery.getQueryPattern();
-	}
-	
 	public Integer runCountQuery(){
 		String q = this.semossQuery.getCountQuery();
 		logger.info("Count query generated : " + q);
@@ -345,7 +340,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		retArray.addAll(nodePropV);
 		retArray.addAll(edgePropV);
 		// add the filter queries
-		String defaultQueryPattern = this.semossQuery.getQueryPattern();
+		String defaultQueryPattern = this.semossQuery.getQueryPattern(false);
 		for(Hashtable<String, String> headerHash : retArray){
 			String varName = headerHash.get(this.varKey);
 			String filterQuery = "";
