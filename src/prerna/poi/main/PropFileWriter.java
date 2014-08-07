@@ -198,6 +198,8 @@ public class PropFileWriter {
 		// also write the base properties
 		// ie ONTOLOGY, DREAMER, ENGINE, ENGINE CLASS
 		FileWriter pw = null;
+		BufferedReader read = null;
+		Reader fileRead = null;
 		try {
 			File newFile = new File(propFileName);
 			pw = new FileWriter(newFile);
@@ -211,24 +213,6 @@ public class PropFileWriter {
 			if(this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
-		} catch(FileNotFoundException ex) {
-			ex.printStackTrace();
-			throw new FileReaderException("Could not find default database files");
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			throw new FileReaderException("Could not read default database files");
-		} finally{
-			try{
-				if(pw!=null)
-					pw.close();
-			}catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		BufferedReader read = null;
-		Reader fileRead = null;
-		try {
 			fileRead = new FileReader(defaultName);
 			read = new BufferedReader(fileRead);
 			String currentLine;
@@ -248,6 +232,7 @@ public class PropFileWriter {
 			try {
 				fileRead.close();
 				read.close();
+				pw.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileReaderException("Could not close smss file reader");
