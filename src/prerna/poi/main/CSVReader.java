@@ -938,21 +938,14 @@ public class CSVReader extends AbstractFileReader {
 			throw new FileReaderException("Could not find CSV file located at " + fileName);
 		}		
 		try {
-			readCSVFile.close();
+			header = mapReader.getHeader(true);
+			headerList = Arrays.asList(header);
+			// last header in CSV file is the absolute path to the prop file
+			propFile = header[header.length-1];
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
 		}
-		// store the headers of each of the columns
-		try {
-			header = mapReader.getHeader(true);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Error with CSV file located at " + fileName + ". Error processing headers");
-		}
-		headerList = Arrays.asList(header);
-		// last header in CSV file is the absolute path to the prop file
-		propFile = header[header.length-1];
 	}
 
 }
