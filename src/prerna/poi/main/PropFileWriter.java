@@ -89,17 +89,17 @@ public class PropFileWriter {
 			throw new EngineException("Database name is invalid.");
 		}
 		this.engineName = dbName;
-		engineDirectoryName = "db" + File.separator + dbName;
-		engineDirectory = new File(baseDirectory +"/"+ engineDirectoryName);
+		engineDirectoryName = "db" + System.getProperty("file.separator") + dbName;
+		engineDirectory = new File(baseDirectory +System.getProperty("file.separator")+ engineDirectoryName);
 		try {
 			// make the new folder to store everything in
 			engineDirectory.mkdir();
 			// define the owlFile location
-			this.owlFile = "db"+ File.separator + engineName + File.separator + engineName + "_OWL.OWL";
+			this.owlFile = "db"+ System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			// if question sheet was not specified, we need to make a copy of the default questions
 			if(questionFile == null || questionFile.equals("")){
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
-				copyFile(baseDirectory + File.separator + questionFileName, baseDirectory + File.separator + defaultQuestionProp);
+				copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory + System.getProperty("file.separator") + defaultQuestionProp);
 			}
 			// if it was specified, get it in the format for the map file and move the file to the new directory
 			else {
@@ -112,7 +112,7 @@ public class PropFileWriter {
 			// if the map was not specified, copy default map.  All augmentation of the map must be done after poi reader though
 			if(ontologyName == null || ontologyName.equals("")) {
 				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
-				copyFile(baseDirectory + File.separator + ontologyFileName, baseDirectory + File.separator + defaultOntologyProp);
+				copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory + System.getProperty("file.separator") + defaultOntologyProp);
 			}
 			// if it was specified, don't copy default---will augment after running reader
 			else {
@@ -138,7 +138,7 @@ public class PropFileWriter {
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if(dbPropFile == null || dbPropFile.equals("")){
-				propFileName = baseDirectory + File.separator + defaultDBPropName;
+				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
 				writeCustomDBProp(propFileName, dbName);
 			}
 			else {
@@ -188,7 +188,7 @@ public class PropFileWriter {
 	 * @throws FileReaderException 
 	 */
 	private void writeCustomDBProp(String defaultName, String dbname) throws FileReaderException {
-		String jnlName = engineDirectoryName + File.separator + dbname+".jnl";
+		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname+".jnl";
 		//move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
 		//change the name of the file from default to engine name
@@ -232,7 +232,6 @@ public class PropFileWriter {
 			fileRead = new FileReader(defaultName);
 			read = new BufferedReader(fileRead);
 			String currentLine;
-			fileRead.close();
 			while((currentLine = read.readLine()) != null){
 				if(currentLine.contains("@FileName@")){
 					currentLine = currentLine.replace("@FileName@", jnlName);
@@ -245,14 +244,14 @@ public class PropFileWriter {
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new FileReaderException("Could not read default database smss file");
-		}
-		
-		try {
-			read.close();
-			pw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not close smss file reader");
+		} finally {
+			try {
+				fileRead.close();
+				read.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileReaderException("Could not close smss file reader");
+			}
 		}
 	}
 }

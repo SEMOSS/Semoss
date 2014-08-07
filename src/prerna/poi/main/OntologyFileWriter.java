@@ -65,9 +65,9 @@ public class OntologyFileWriter {
 		fileName = ontologyFileName;
 		// clean the temp custom map file name if necessary
 		if(ontologyFileName.contains("/"))
-			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("/")) + File.separator + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("/")+1);
+			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("/")) + System.getProperty("file.separator") + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("/")+1);
 		else
-			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("\\")) + File.separator + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("\\")+1);
+			tempFileName = ontologyFileName.substring(0, ontologyFileName.lastIndexOf("\\")) + System.getProperty("file.separator") + "TEMP_" + ontologyFileName.substring(ontologyFileName.lastIndexOf("\\")+1);
 		// opens the current custom map file and creates a new custom map temp file
 		openFile();
 		insertValues(newURIvalues,newBaseURIvalues, newRelURIvalues,newBaseRelURIvalues, propURI);

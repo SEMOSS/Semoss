@@ -121,7 +121,7 @@ public class InterfaceReportProcessor {
 		
 		
 		InterfaceReportWriter writer = new InterfaceReportWriter();
-		String folder = File.separator + "export" + File.separator + "Reports" + File.separator;
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String writeFileName = "Interface_Report_"+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_") + ".xlsx";
 
 		String fileLoc = workingDir + folder + writeFileName;

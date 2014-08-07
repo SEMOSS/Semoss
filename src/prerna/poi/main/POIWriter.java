@@ -85,8 +85,8 @@ public class POIWriter {
 			readFile = "BaseGILoadingSheets.xlsx";
 		}
 		String folder = "export";
-		String fileLoc = workingDir + File.separator + folder + File.separator + writeFile;
-		String readFileLoc = workingDir + File.separator + folder + File.separator + readFile;
+		String fileLoc = workingDir + System.getProperty("file.separator") + folder + System.getProperty("file.separator") + writeFile;
+		String readFileLoc = workingDir + System.getProperty("file.separator") + folder + System.getProperty("file.separator") + readFile;
 
 		ExportLoadingSheets(fileLoc, hash, readFileLoc, formatData);
 	}
