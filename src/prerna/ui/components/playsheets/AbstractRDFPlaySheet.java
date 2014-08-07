@@ -48,7 +48,7 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public IEngine engine = null;
 	protected String questionNum = null;
 	public JComponent pane = null;
-	protected static final Logger logger = LogManager.getLogger(AbstractRDFPlaySheet.class.getName());
+	private static final Logger logger = LogManager.getLogger(AbstractRDFPlaySheet.class.getName());
 	public JProgressBar jBar = new JProgressBar();
 	String playsheetType = null;
 	

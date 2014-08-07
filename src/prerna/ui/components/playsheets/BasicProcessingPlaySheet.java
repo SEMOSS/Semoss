@@ -25,6 +25,9 @@ import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -43,6 +46,7 @@ import com.hp.hpl.jena.query.ResultSet;
  */
 public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(BasicProcessingPlaySheet.class.getName());
 	protected ResultSet rs = null;
 	protected GridFilterData gfd = new GridFilterData();
 	protected String [] names = null;
