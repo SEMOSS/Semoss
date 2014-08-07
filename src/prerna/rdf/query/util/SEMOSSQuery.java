@@ -12,6 +12,7 @@ public class SEMOSSQuery {
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
 	private SPARQLBindings bindings = null;
+	private Integer limit = null;
 	private String customQueryStructure ="";
 	private String queryType;
 	private boolean distinct = false;
@@ -44,7 +45,7 @@ public class SEMOSSQuery {
 			query= query+ "DISTINCT ";
 		String retVarString = createReturnVariableString();
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString();
+		String postWhereString = createPostPatternString(true);
 		query=query+retVarString + wherePatternString +postWhereString;
 		
 	}
@@ -54,14 +55,14 @@ public class SEMOSSQuery {
 		String countQuery = "SELECT ";
 		String retVarString = createCountReturnVariableString();
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString();
+		String postWhereString = createPostPatternString(false);
 		countQuery=countQuery+retVarString + wherePatternString +postWhereString;
 		return countQuery;
 	}
 	
-	public String getQueryPattern(){
+	public String getQueryPattern(boolean includeLimit){
 		String wherePatternString = createPatternClauses();
-		String postWhereString = createPostPatternString();
+		String postWhereString = createPostPatternString(includeLimit);
 		return wherePatternString + postWhereString;
 	}
 	
@@ -154,16 +155,16 @@ public class SEMOSSQuery {
 		return retVarString;
 	}
 	
-	public String createPostPatternString()
+	public String createPostPatternString(boolean includeLimit)
 	{
 		String postWhereString = "";
+		if(includeLimit && limit != null)
+		{
+			postWhereString = "LIMIT " + limit;
+		}
 		if(groupBy != null)
 		{
 			postWhereString = groupBy.getString();
-		}
-		else
-		{
-			postWhereString = "";
 		}
 		if(bindings != null)
 		{
@@ -368,6 +369,11 @@ public class SEMOSSQuery {
 	public void setBindings(SPARQLBindings bindings)
 	{
 		this.bindings = bindings;
+	}
+
+	public void setLimit(Integer limit)
+	{
+		this.limit = limit;
 	}
 	
 }
