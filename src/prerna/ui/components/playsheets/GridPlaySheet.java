@@ -29,6 +29,9 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
@@ -41,6 +44,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
+	private static final Logger logger = LogManager.getLogger(GridPlaySheet.class.getName());
 	@Override
 	public void addPanel()
 	{

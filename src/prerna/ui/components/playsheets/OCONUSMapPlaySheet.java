@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -35,6 +38,7 @@ import com.teamdev.jxbrowser.chromium.JSValue;
  */
 public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(OCONUSMapPlaySheet.class.getName());
 	Hashtable allHash;
 	HashSet data;
 	/**

@@ -4,6 +4,9 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.impl.ClusteringAlgorithm;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -13,6 +16,7 @@ import prerna.util.DIHelper;
 @SuppressWarnings("serial")
 public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
+	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
 	
 	public ClusteringVizPlaySheet() {

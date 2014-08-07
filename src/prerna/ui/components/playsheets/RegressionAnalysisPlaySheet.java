@@ -49,6 +49,9 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -71,6 +74,7 @@ import com.hp.hpl.jena.query.ResultSet;
 /**
  */
 public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
+	private static final Logger logger = LogManager.getLogger(RegressionAnalysisPlaySheet.class.getName());
 	public RegressionAnalysisPlaySheet() {
 	}
 

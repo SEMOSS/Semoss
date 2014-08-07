@@ -23,8 +23,12 @@ import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
@@ -34,6 +38,7 @@ import prerna.util.Constants;
 @SuppressWarnings("serial")
 public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(LifeCycleNodeGraphPlaySheet.class.getName());
 	public int year;
 	public int month;
 	

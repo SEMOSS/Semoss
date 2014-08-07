@@ -33,9 +33,13 @@ import javax.swing.Painter;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
@@ -52,6 +56,7 @@ import com.teamdev.jxbrowser.chromium.BrowserFactory;
 @SuppressWarnings("serial")
 public class LifeCycleSliderChart extends GridPlaySheet{
 
+	private static final Logger logger = LogManager.getLogger(LifeCycleSliderChart.class.getName());
 	//public JPanel cheaterPanel = new JPanel();
 	public Browser browser = BrowserFactory.create();
 	Hashtable <String, String[]> hardwareHash;

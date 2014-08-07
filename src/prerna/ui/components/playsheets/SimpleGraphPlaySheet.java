@@ -20,6 +20,8 @@ package prerna.ui.components.playsheets;
 
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
 import prerna.om.SEMOSSEdge;
@@ -36,6 +38,7 @@ import prerna.util.Constants;
  */
 public class SimpleGraphPlaySheet extends GraphPlaySheet{
 
+	private static final Logger logger = LogManager.getLogger(SimpleGraphPlaySheet.class.getName());
 	/**
 	 * Method createForest.  Takes the base information from the query and inserts it into the jena model.
 	 */

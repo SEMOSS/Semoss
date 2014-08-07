@@ -23,9 +23,13 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
@@ -38,6 +42,7 @@ import prerna.util.DIHelper;
 @SuppressWarnings("serial")
 public class VendorHeatMapSheet extends HeatMapPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(VendorHeatMapSheet.class.getName());
 	Hashtable allHash;
 	
 	/**

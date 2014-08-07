@@ -37,6 +37,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.ui.components.WrapLayout;
 import prerna.ui.swing.custom.CustomButton;
@@ -50,7 +53,8 @@ import com.hp.hpl.jena.query.ResultSet;
  */
 public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 
-	
+
+	private static final Logger logger = LogManager.getLogger(RegExplorerPlaySheet.class.getName());
 	String depVarText;
 	ArrayList<String> indepVarTextList;
 	ArrayList<Double> indepVarMedianValues;

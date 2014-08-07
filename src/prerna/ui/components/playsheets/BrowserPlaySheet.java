@@ -32,6 +32,9 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
@@ -47,6 +50,7 @@ import com.teamdev.jxbrowser.chromium.LoggerProvider;
  */
 public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(BrowserPlaySheet.class.getName());
 	public Boolean empty = false;
 	public Browser browser;
 	protected String fileName;

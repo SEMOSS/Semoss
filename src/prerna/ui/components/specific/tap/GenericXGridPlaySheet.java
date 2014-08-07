@@ -8,16 +8,21 @@ import java.util.Vector;
 
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 /** 
  * Given two variables, this class creates X's in a table if there is a relationship between them.
  */
 public class GenericXGridPlaySheet extends GridPlaySheet {
-	
+
+	private static final Logger logger = LogManager.getLogger(GenericXGridPlaySheet.class.getName());
 	@Override
 	public void createData() {
 		list = new ArrayList<Object[]>();

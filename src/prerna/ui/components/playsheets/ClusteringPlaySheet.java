@@ -21,6 +21,9 @@ package prerna.ui.components.playsheets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.impl.ClusteringAlgorithm;
 
 /**
@@ -29,6 +32,7 @@ import prerna.algorithm.impl.ClusteringAlgorithm;
 @SuppressWarnings("serial")
 public class ClusteringPlaySheet extends GridPlaySheet{
 
+	private static final Logger logger = LogManager.getLogger(ClusteringPlaySheet.class.getName());
 	private int numClusters;
 
 	@Override

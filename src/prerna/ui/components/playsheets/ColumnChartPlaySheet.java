@@ -10,6 +10,8 @@ import java.util.Set;
 
 import javax.swing.JButton;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
@@ -32,6 +34,7 @@ import prerna.util.DIHelper;
 
 public class ColumnChartPlaySheet extends BrowserPlaySheet{
 
+	private static final Logger logger = LogManager.getLogger(ColumnChartPlaySheet.class.getName());
 	GraphDataModel gdm = new GraphDataModel();
 	
 	public ColumnChartPlaySheet() 

@@ -28,6 +28,9 @@ import java.util.StringTokenizer;
 
 import javax.swing.JDesktopPane;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -40,6 +43,7 @@ import prerna.util.DIHelper;
  */
 public class DualEngineGridPlaySheet extends GridPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(DualEngineGridPlaySheet.class.getName());
 	String query1;
 	String query2;
 	String engineName1;
