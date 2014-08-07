@@ -26,8 +26,12 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
@@ -36,6 +40,7 @@ import prerna.util.Constants;
  */
 public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 
+	private static final Logger logger = LogManager.getLogger(GraphPlaySheetTimeDownParameters.class.getName());
 	public int timeDown1;
 	public int timeDown2=-1;
 	public int timeDown3=-1;
