@@ -9,6 +9,7 @@ import prerna.error.FileWriterException;
 import prerna.error.NLPException;
 
 public class NLPReader extends AbstractFileReader {
+	
 	public Hashtable<String,Object> temp = new Hashtable<String,Object>(); 
 	public Hashtable<String,Object> temp2 = new Hashtable<String,Object>();
 	public Hashtable<String,Object> temp3 = new Hashtable<String,Object>();
