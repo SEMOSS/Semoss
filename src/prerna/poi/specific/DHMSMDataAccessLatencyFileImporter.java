@@ -65,12 +65,6 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 				e.printStackTrace();
 			}
 		}
-		try {
-			poiReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not close input stream to Microsoft Excel File " + fileName.replace(";",""));
-		}
 		XSSFSheet sheet = workbook.getSheet("Data Requirements");
 
 		// determine number of sheets to load

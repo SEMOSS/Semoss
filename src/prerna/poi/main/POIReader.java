@@ -185,13 +185,6 @@ public class POIReader extends AbstractFileReader {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xls, .xlsx) file");
-		} finally {
-			try {
-				if(poiReader!=null)
-					poiReader.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
 		}
 		// load the Loader tab to determine which sheets to load
 		XSSFSheet lSheet = workbook.getSheet("Loader");
@@ -247,6 +240,12 @@ public class POIReader extends AbstractFileReader {
 					}
 				}
 			}
+		}
+		try {
+			if(poiReader!=null)
+				poiReader.close();
+		}catch(IOException e) {
+			e.printStackTrace();
 		}
 	}
 
