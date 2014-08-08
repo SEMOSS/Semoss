@@ -276,9 +276,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemTasker">
 	<BeingIn rdf:resource="http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-	<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Tasker">
 	<DistributedTo rdf:resource="http://semoss.org/ontologies/Concept/System"/>
 </rdf:Description>
