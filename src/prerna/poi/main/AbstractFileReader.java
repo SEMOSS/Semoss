@@ -74,7 +74,7 @@ public abstract class AbstractFileReader {
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
-	protected static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
+	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
 	// OWL variables
 	protected RepositoryConnection rcOWL;
