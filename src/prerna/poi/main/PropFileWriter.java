@@ -228,15 +228,25 @@ public class PropFileWriter {
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new FileReaderException("Could not read default database smss file");
-		} finally {
-			try {
+		}
+		try{
+			if(fileRead!=null)
 				fileRead.close();
-				read.close();
-				pw.close();
-			} catch (IOException e) {
+		}catch (IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not close smss file reader");
-			}
+		}
+		try{
+			if(read!=null)
+				read.close();
+		}catch (IOException e) {
+				e.printStackTrace();
+		}
+		
+		try{
+			if(pw!=null)
+				pw.close();
+		}catch (IOException e) {
+				e.printStackTrace();
 		}
 	}
 }
