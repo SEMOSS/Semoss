@@ -31,6 +31,8 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -50,6 +52,8 @@ import prerna.util.DIHelper;
  */
 public class POIReader extends AbstractFileReader {
 
+	private static final Logger logger = LogManager.getLogger(POIReader.class.getName());
+	
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * @param engineName 	String grabbed from the user interface specifying which database to add the data
