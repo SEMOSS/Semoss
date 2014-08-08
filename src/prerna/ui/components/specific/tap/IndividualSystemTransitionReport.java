@@ -254,7 +254,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
 
-		if(reportType.equals("LPI") || reportType.equals("HPI")||reportType.equals("HPNI")) {
+		if(reportType.equals("LPI") || reportType.equals("HPI")) {
 			return createLPIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash);
 		} else {
 			return createLPNIInterfaceWithCostHash(sysLPIInterfaceHash, loeForSysGlItemHash, loeForGenericGlItemHash, dhmsmSORList, lpiSystemList);
