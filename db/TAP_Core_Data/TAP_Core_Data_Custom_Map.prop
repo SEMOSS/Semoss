@@ -95,7 +95,6 @@ Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 Requirement_Provide_DataObject http://health.mil/ontologies/Relation/Provide
-System_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 FError_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 System_Receives-Submits_SystemTasker http://health.mil/ontologies/Relation/Receives-Submits
 Service_Replaces_InterfaceControlDocument http://health.mil/ontologies/Relation/Replaces
@@ -180,7 +179,6 @@ System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relat
 InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
 Service_Exposes_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Exposes
-System_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 DataObject_MapsTo_CCD_CLASS http://semoss.org/ontologies/Relation/MapsTo
 DataObject_Connected_CDR_CLASS http://semoss.org/ontologies/Relation/Connected
 System_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
