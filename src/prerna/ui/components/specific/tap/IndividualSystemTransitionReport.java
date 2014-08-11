@@ -54,7 +54,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	//store interface query results
 	HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-
+	
 	private int costPerHr = 150;
 
 	private String headerKey = "headers";

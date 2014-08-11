@@ -289,7 +289,8 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 	public HashMap<String, Object> getSysLPIInterfaceData(String systemName) {
 		HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-		lpSystemInterfacesQuery = lpSystemInterfacesQuery.replaceAll("@SYSTEMNAME@", systemName);
+		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
+		lpSystemInterfacesQuery = lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
 		this.query = lpSystemInterfacesQuery;
 		this.engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		createData();			
