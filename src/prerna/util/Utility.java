@@ -796,14 +796,7 @@ public class Utility {
 		} catch (KeyManagementException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			try{
-				if(httpclient!=null)
-					httpclient.close();
-			}catch(IOException e){
-				e.printStackTrace();
-			}
-		}
+		} 
 		return null;
 	}
 
