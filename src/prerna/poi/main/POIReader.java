@@ -72,7 +72,7 @@ public class POIReader extends AbstractFileReader {
 		openEngineWithConnection(engineName);
 
 		// load map file for existing db
-		if(!customMap.equals(""))
+		if(!customMap.isEmpty())
 		{
 			openProp(customMap);
 		}
