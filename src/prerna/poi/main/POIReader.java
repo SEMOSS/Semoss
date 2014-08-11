@@ -101,7 +101,7 @@ public class POIReader extends AbstractFileReader {
 		openEngineWithoutConnection(engineName);
 
 		// load map file for db if user wants to use specific URIs
-		if(!customMap.equals("")) 
+		if(!customMap.isEmpty()) 
 		{
 			openProp(customMap);
 		}
