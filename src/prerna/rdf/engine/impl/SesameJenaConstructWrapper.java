@@ -174,6 +174,17 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 						//System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
 						retBool = true;
 					}
+					else
+					{
+						try{
+							if(ris!=null) {
+								ris.close();
+							}
+						} catch(IOException e) {
+							e.printStackTrace();
+						}
+					}
+
 				} catch (RuntimeException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -184,13 +195,6 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 					e.printStackTrace();
 					retSt = null;
 					retBool = false;
-				} finally{
-					try {
-						if(ris!=null)
-							ris.close();
-					} catch(IOException e) {
-						e.printStackTrace();
-					}
 				}
 
 				
