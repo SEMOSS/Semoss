@@ -213,6 +213,17 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 							bs = (BindingSet)myObject;
 							tqrCount++;
 						}
+						else
+						{
+							try{
+								if(ris!=null) {
+									ris.close();
+								}
+							} catch(IOException e) {
+								e.printStackTrace();
+							}
+						}
+
 						//logger.info(tqrCount);
 					}
 					sub = bs.getValue(queryVar[count*3].substring(1));
@@ -245,13 +256,6 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			retBool = false;
-		} finally {
-			try{
-				if(ris!=null)
-					ris.close();
-			} catch(IOException e) {
-				e.printStackTrace();
-			}
 		}
 		logger.debug(" Next " + retBool);
 		return retBool;
