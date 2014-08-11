@@ -53,7 +53,7 @@ import prerna.util.DIHelper;
 public class POIReader extends AbstractFileReader {
 
 	private static final Logger logger = LogManager.getLogger(POIReader.class.getName());
-	
+
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * @param engineName 	String grabbed from the user interface specifying which database to add the data
@@ -70,7 +70,7 @@ public class POIReader extends AbstractFileReader {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithConnection(engineName);
-		
+
 		// load map file for existing db
 		if(!customMap.equals(""))
 		{
@@ -99,7 +99,7 @@ public class POIReader extends AbstractFileReader {
 	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
 		String[] files = prepareReader(fileNames, customBase, owlFile);
 		openEngineWithoutConnection(engineName);
-		
+
 		// load map file for db if user wants to use specific URIs
 		if(!customMap.equals("")) 
 		{
@@ -290,103 +290,99 @@ public class POIReader extends AbstractFileReader {
 		logger.info("Number of Columns: " + (lastColumn+1));
 
 		// processing starts
-		try {
-			logger.info("Number of Rows: " + lastRow);
-			for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
-				// first cell is the name of relationship
-				XSSFRow nextRow = lSheet.getRow(rowIndex);
-				
-				if(nextRow == null)
+		logger.info("Number of Rows: " + lastRow);
+		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
+			// first cell is the name of relationship
+			XSSFRow nextRow = lSheet.getRow(rowIndex);
+
+			if(nextRow == null)
+			{
+				continue;
+			}
+
+			// get the name of the relationship
+			if (rowIndex == 1)
+			{
+				relName = nextRow.getCell(0).getStringCellValue();
+			}
+
+			// set the name of the subject instance node to be a string
+			if (nextRow.getCell(1) != null	&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK)
+			{
+				nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
+			}
+
+			// to prevent errors when java thinks there is a row of data when the row is empty
+			XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
+			String instanceSubjectNode = "";
+			if(instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceSubjectNodeCell.toString().isEmpty())
+			{
+				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
+			}
+			else
+			{
+				continue;
+			}
+
+			// get the name of the object instance node if relationship
+			String instanceObjectNode = "";
+			int startCol = 1;
+			int offset = 1;
+			if (sheetType.equalsIgnoreCase("Relation")) {
+				nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
+				XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
+				if(instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceObjectNodeCell.toString().isEmpty())
 				{
-					continue;
-				}
-				
-				// get the name of the relationship
-				if (rowIndex == 1)
-				{
-					relName = nextRow.getCell(0).getStringCellValue();
-				}
-				
-				// set the name of the subject instance node to be a string
-				if (nextRow.getCell(1) != null	&& nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK)
-				{
-					nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
-				}
-				
-				// to prevent errors when java thinks there is a row of data when the row is empty
-				XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
-				String instanceSubjectNode = "";
-				if(instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceSubjectNodeCell.toString().isEmpty())
-				{
-					instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
+					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 				}
 				else
 				{
 					continue;
 				}
-			
-				// get the name of the object instance node if relationship
-				String instanceObjectNode = "";
-				int startCol = 1;
-				int offset = 1;
-				if (sheetType.equalsIgnoreCase("Relation")) {
-					nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
-					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-					if(instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK && !instanceObjectNodeCell.toString().isEmpty())
-					{
-						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
-					}
-					else
-					{
-						continue;
-					}
-					startCol++;
-					offset++;
-				}
+				startCol++;
+				offset++;
+			}
 
-				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-				//process properties
-				for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
-					if(propNames.size() <= (colIndex-offset)) {
-						continue;
-					}
-					String propName = propNames.elementAt(colIndex - offset).toString();
-					String propValue = "";
-					if (nextRow.getCell(colIndex) == null && nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK && nextRow.getCell(colIndex).toString().isEmpty()) {
-						continue;
-					}
-					if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
-						if(DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))){
-							Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
-							propHash.put(propName, date);
-						}
-						else{
-							Double dbl = new Double(nextRow.getCell(colIndex).getNumericCellValue());
-							propHash.put(propName, dbl);
-						}
-					} else {
-						nextRow.getCell(colIndex).setCellType(XSSFCell.CELL_TYPE_STRING);
-						propValue = nextRow.getCell(colIndex).getStringCellValue();
-						propHash.put(propName, propValue);
-					}
+			Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+			//process properties
+			for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
+				if(propNames.size() <= (colIndex-offset)) {
+					continue;
 				}
-
-				if (sheetType.equalsIgnoreCase("Relation")) 
-				{
-					// adjust indexing since first row in java starts at 0
-					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex+1));
-					createRelationship(subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
-				} 
-				else 
-				{
-					addNodeProperties(subjectNode, instanceSubjectNode, propHash);
+				String propName = propNames.elementAt(colIndex - offset).toString();
+				String propValue = "";
+				if (nextRow.getCell(colIndex) == null && nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK && nextRow.getCell(colIndex).toString().isEmpty()) {
+					continue;
 				}
-				if(rowIndex == (lastRow-1)){
-					logger.info("Done processing: " + sheetToLoad);	
+				if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
+					if(DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))){
+						Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
+						propHash.put(propName, date);
+					}
+					else{
+						Double dbl = new Double(nextRow.getCell(colIndex).getNumericCellValue());
+						propHash.put(propName, dbl);
+					}
+				} else {
+					nextRow.getCell(colIndex).setCellType(XSSFCell.CELL_TYPE_STRING);
+					propValue = nextRow.getCell(colIndex).getStringCellValue();
+					propHash.put(propName, propValue);
 				}
 			}
-		} catch(Exception e) {
-			e.printStackTrace();
+
+			if (sheetType.equalsIgnoreCase("Relation")) 
+			{
+				// adjust indexing since first row in java starts at 0
+				logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex+1));
+				createRelationship(subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
+			} 
+			else 
+			{
+				addNodeProperties(subjectNode, instanceSubjectNode, propHash);
+			}
+			if(rowIndex == (lastRow-1)){
+				logger.info("Done processing: " + sheetToLoad);	
+			}
 		}
 	}
 
