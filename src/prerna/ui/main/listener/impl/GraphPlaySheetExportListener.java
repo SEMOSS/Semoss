@@ -96,8 +96,6 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		NewplaySheet.setRs(rs);
 		
 		NewplaySheet.setTitle(title);
-		//NewplaySheet.setQuery(selectQuery);
-		//NewplaySheet.setRDFEngine((IEngine)engine);
 		NewplaySheet.setQuestionID(question);
 		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		NewplaySheet.setJDesktopPane(pane);
@@ -139,8 +137,6 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		
 		//the second token coming from between the first two brackets must have all period and semicolons removed
 		String secondToken = QueryBracketTokens.nextToken();
-		//String secondTokensansSemi = "";
-		//String secondTokensansPer = "";
 		String newsecondToken = null;
 		if(secondToken.contains(";") && secondToken.contains(".")){
 			String secondTokensansSemi = secondToken.replaceAll(";", " ");
