@@ -268,27 +268,31 @@ public class ClusteringDataProcessor {
 		ArrayList<Integer> numericalPropIndices = new ArrayList<Integer>();
 		ArrayList<Integer> dateTypeIndices = new ArrayList<Integer>();
 		ArrayList<Integer> simpleDateTypeIndices = new ArrayList<Integer>();
+		
 		//iterate through columns
 		for(int j = 0; j < varNames.length; j++) {
 			String type = "";
 			if(j != 0) {
 				//iterate through rows
-				boolean categorical = false;
+				int numCategorical = 0;
+				int numNumerical = 0;
 				for(int i = 0; i < masterTable.size(); i++) {
 					Object[] dataRow = masterTable.get(i);
 					if(dataRow[j] != null && !dataRow[j].toString().equals("")) {
 						String colEntryAsString = dataRow[j].toString();
 						type = processType(colEntryAsString);
 						if(type.equals("STRING")) {
-							categorical = true;
-							categoryPropNames.add(varNames[j]);
-							categoryPropIndices.add(j);
-							logger.info("Found " + varNames[j] + " to be a categorical data column");
-							break;
+							numCategorical++;
+						} else {
+							numNumerical++;
 						}
 					}
 				}
-				if(!categorical) {
+				if(numCategorical > numNumerical) {
+					categoryPropNames.add(varNames[j]);
+					categoryPropIndices.add(j);
+					logger.info("Found " + varNames[j] + " to be a categorical data column");
+				} else {
 					numericalPropNames.add(varNames[j]);
 					numericalPropIndices.add(j);
 					logger.info("Found " + varNames[j] + " to be a numerical data column");
@@ -343,8 +347,9 @@ public class ClusteringDataProcessor {
 							numericalMatrix[row][counter] = (Double) dataRow[idx];
 						}
 					} catch (ParseException e) {
-						//THIS SHOULD NEVER HAPPEN
-						logger.info("INTERNAL ERROR WITH TYPECASTING - SHOULD NEVER HAPEN!!! :(");
+						logger.error("Column Variable " + numericalPropNames.get(idx) + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
+					} catch (ClassCastException e) {
+						logger.error("Column Variable " + numericalPropNames.get(idx) + " was found to be a numerical property but had a value of " + dataRow[idx]);
 					}
 				}
 				// default values are null in new Double[][]
@@ -368,6 +373,7 @@ public class ClusteringDataProcessor {
 	 * @return		The type of the value
 	 */
 	private static String processType(String s) {
+		
 		boolean isDouble = true;
 		try {
 			Double.parseDouble(s);
