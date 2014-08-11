@@ -18,19 +18,15 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
-import javax.xml.bind.DatatypeConverter;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.model.Statement;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -190,15 +186,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally{
-			try{
-				if(ris!=null) {
-					ris.close();
-				}
-			} catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
+		} 
 		logger.debug(" Next " + retBool);
 		return retBool;
 	}
