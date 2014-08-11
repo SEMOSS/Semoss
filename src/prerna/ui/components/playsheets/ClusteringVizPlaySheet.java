@@ -1,8 +1,15 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.Hashtable;
+
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -10,6 +17,10 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.ClusteringAlgorithm;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.GridTableModel;
+import prerna.ui.components.GridTableRowSorter;
+import prerna.ui.components.NewScrollBarUI;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -18,6 +29,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
+	private Object[][] gridSheetData;
 	
 	public ClusteringVizPlaySheet() {
 		super();
@@ -25,6 +37,30 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/cluster.html";
 	}
+	
+	@Override
+	public void createView() {
+		super.createView();
+		JPanel panel = new JPanel();
+		table = new JTable(gridSheetData, names);
+		panel.add(table);
+		GridBagLayout gbl_mainPanel = new GridBagLayout();
+		gbl_mainPanel.columnWidths = new int[]{0, 0};
+		gbl_mainPanel.rowHeights = new int[]{0, 0};
+		gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		panel.setLayout(gbl_mainPanel);
+		addScrollPanel(panel);
+		GridFilterData gfd = new GridFilterData();
+		gfd.setColumnNames(names);
+		gfd.setDataList(list);
+		GridTableModel model = new GridTableModel(gfd);
+		table.setModel(model);
+		table.setRowSorter(new GridTableRowSorter(model));
+
+		jTab.addTab("Raw Data", panel);
+	}
+	
 	
 	@Override
 	public Hashtable processQueryData()
@@ -56,6 +92,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		//declare matrix and counter for matrix
+		gridSheetData = new Object[list.size()][list.get(0).length + 1];
+		int counter = 0;
+		//iterate through query return
 		for(Object[] dataRow : list) {
 			Object[] newDataRow = new Object[dataRow.length + 1];
 			String instance = "";
@@ -68,6 +108,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
 			newDataRow[dataRow.length] = clusterNumber;
 			newList.add(newDataRow);
+			//add to matrix
+			gridSheetData[counter] = newDataRow;
+			counter++;
 		}
 		list = newList;
 		String[] newNames = new String[names.length + 1];
@@ -76,6 +119,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		}
 		newNames[names.length] = "CluserID";
 		names = newNames;
+		
 		
 		dataHash = processQueryData();
 	}
@@ -89,7 +133,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		sjsw.executeQuery();	
 		names = sjsw.getVariables();
 		list = new ArrayList<Object[]>();
-		
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Object[] dataRow = new Object[names.length];
@@ -116,5 +159,17 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			numClusters = Integer.parseInt(query.substring(0,semi));
 			this.query = query.substring(semi+1);
 		}
+	}
+	
+	public void addScrollPanel(JPanel rawDataPanel) {
+		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+		
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		rawDataPanel.add(scrollPane, gbc_scrollPane);
 	}
 }

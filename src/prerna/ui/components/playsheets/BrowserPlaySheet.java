@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import javax.swing.JDesktopPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
@@ -55,6 +56,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	public Browser browser;
 	protected String fileName;
 	JSplitPane splitPane;
+	protected JTabbedPane jTab;
 	public Hashtable output = null;
 	ChartControlPanel controlPanel;
 	protected Hashtable dataHash = new Hashtable();
@@ -204,6 +206,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		browser = BrowserFactory.create();
 		try {
 			table = new JTable();
+			this.jTab = new JTabbedPane();
 			JPanel mainPanel = new JPanel();
 			setWindow();
 			createControlPanel();
@@ -213,7 +216,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			splitPane.setOneTouchExpandable(true);
 			splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 			splitPane.setLeftComponent(controlPanel);
-			splitPane.setRightComponent(mainPanel);
+			splitPane.setRightComponent(this.jTab);
+			this.jTab.addTab("Vizualization", mainPanel);
 
 			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
 			this.addInternalFrameListener(psListener);

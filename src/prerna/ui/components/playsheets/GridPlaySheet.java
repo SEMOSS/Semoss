@@ -39,6 +39,7 @@ import prerna.ui.main.listener.impl.JTableExcelExportListener;
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
  */
+@SuppressWarnings("serial")
 public class GridPlaySheet extends BasicProcessingPlaySheet{
 	
 	/**
