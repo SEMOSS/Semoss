@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
@@ -29,7 +28,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
-	private Object[][] gridSheetData;
+	ArrayList<Object[]> clusterInfo;
 	
 	public ClusteringVizPlaySheet() {
 		super();
@@ -42,7 +41,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void createView() {
 		super.createView();
 		JPanel panel = new JPanel();
-		table = new JTable(gridSheetData, names);
+		table = new JTable();
 		panel.add(table);
 		GridBagLayout gbl_mainPanel = new GridBagLayout();
 		gbl_mainPanel.columnWidths = new int[]{0, 0};
@@ -52,7 +51,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		panel.setLayout(gbl_mainPanel);
 		addScrollPanel(panel);
 		GridFilterData gfd = new GridFilterData();
+		list.addAll(0, clusterInfo);
 		gfd.setColumnNames(names);
+		//append cluster information to list data
 		gfd.setDataList(list);
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
@@ -69,8 +70,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		for(Object[] dataRow : list) {
 			Hashtable<String, Object> instanceHash = new Hashtable<String, Object>();
 			// add name and cluster under special names first
+			instanceHash.put("ClusterID", dataRow[dataRow.length - 1]);			
 			instanceHash.put("NodeName", dataRow[0]);
-			instanceHash.put("ClusterID", dataRow[dataRow.length-1]);			
 			//loop through properties and add to innerHash
 			for(int i = 1; i < dataRow.length - 1; i++) {
 				instanceHash.put(names[i], dataRow[i]);
@@ -92,9 +93,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		//declare matrix and counter for matrix
-		gridSheetData = new Object[list.size()][list.get(0).length + 1];
-		int counter = 0;
+		//store cluster final state information
+		clusterInfo = new ArrayList<Object[]>(numClusters);
+		clusterInfo = clusterAlg.getClusterRows();
 		//iterate through query return
 		for(Object[] dataRow : list) {
 			Object[] newDataRow = new Object[dataRow.length + 1];
@@ -106,20 +107,17 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				newDataRow[i] = dataRow[i];
 			}
 			Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
-			newDataRow[dataRow.length] = clusterNumber;
+			newDataRow[newDataRow.length - 1] = clusterNumber;
 			newList.add(newDataRow);
 			//add to matrix
-			gridSheetData[counter] = newDataRow;
-			counter++;
 		}
 		list = newList;
 		String[] newNames = new String[names.length + 1];
 		for(int i = 0; i < names.length; i++) {
 			newNames[i] = names[i];
 		}
-		newNames[names.length] = "CluserID";
+		newNames[newNames.length - 1] = "CluserID";
 		names = newNames;
-		
 		
 		dataHash = processQueryData();
 	}
