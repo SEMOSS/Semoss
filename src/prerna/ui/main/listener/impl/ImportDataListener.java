@@ -158,6 +158,7 @@ public class ImportDataListener implements IChakraListener {
 			ex.printStackTrace();
 			Utility.showError("Import has failed.\n" + ex.getMessage());
 		} catch (RuntimeException ex) {
+			ex.printStackTrace();
 			Utility.showError("Import has failed.\n");
 		} catch (NLPException e1) {
 			Utility.showError("Import has failed.\n");
