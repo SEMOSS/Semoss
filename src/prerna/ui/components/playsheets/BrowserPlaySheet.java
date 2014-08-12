@@ -217,7 +217,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 			splitPane.setLeftComponent(controlPanel);
 			splitPane.setRightComponent(this.jTab);
-			this.jTab.addTab("Vizualization", mainPanel);
+			this.jTab.addTab("Visualization", mainPanel);
 
 			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
 			this.addInternalFrameListener(psListener);
