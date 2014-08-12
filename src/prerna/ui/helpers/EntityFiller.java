@@ -61,134 +61,113 @@ public class EntityFiller implements Runnable {
 		logger.info(" Engine Name is  " + engineName);
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
-		if (box != null && type != null) { 
-			// if options for the parameter have been explicitly defined on the question sheet
-			// parse and use just those
-			if(DIHelper.getInstance().getProperty(
-					type + "_" + Constants.OPTION) != null){
-				// try to pick this from DBCM Properties table
-				// this will typically be of the format
-				String options = DIHelper.getInstance().getProperty(
-						type + "_" + Constants.OPTION);
-				// this is a string with ; delimited values
-				StringTokenizer tokens = new StringTokenizer(options, ";");
-				
-				// sorry for the cryptic crap below
-				int tknIndex = 0;
-				for (; tokens.hasMoreTokens(); names.addElement(tokens
-						.nextToken()), tknIndex++)
-					;
-				
-				DefaultComboBoxModel model = new DefaultComboBoxModel(names);
-				
-				box.setModel(model);
-				box.setEditable(false);
-				//DIHelper.getInstance().setLocalProperty(type, names);
+		synchronized(box) {
+			if (box != null && type != null) {
+				// if options for the parameter have been explicitly defined on the question sheet
+				// parse and use just those
+				if(DIHelper.getInstance().getProperty(type + "_" + Constants.OPTION) != null) {
+					// try to pick this from DBCM Properties table
+					// this will typically be of the format
+					String options = DIHelper.getInstance().getProperty(
+							type + "_" + Constants.OPTION);
+					// this is a string with ; delimited values
+					StringTokenizer tokens = new StringTokenizer(options, ";");
+
+					// sorry for the cryptic crap below
+					int tknIndex = 0;
+					for (; tokens.hasMoreTokens(); names.addElement(tokens
+							.nextToken()), tknIndex++)
+						;
+
+					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+
+					box.setModel(model);
+					box.setEditable(false);
+					//DIHelper.getInstance().setLocalProperty(type, names);
+				}
+				// the the param options have not been explicitly defined and the combo box has not been cached
+				// time for the main processing
+				else if (DIHelper.getInstance().getLocalProp(type) == null) {
+					//check if URI is used in param filler
+					if(!type.contains("http://")) {
+						names.addElement("Incorrect Param Fill");
+						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+						box.setModel(model);
+						return;
+					}
+					// use the type query defined on RDF Map unless external query has been defined
+					String sparqlQuery = DIHelper.getInstance().getProperty(
+							"TYPE" + "_" + Constants.QUERY);
+
+					Hashtable paramTable = new Hashtable();
+					paramTable.put(Constants.ENTITY, type);
+					if (extQuery!=null) {
+						sparqlQuery=extQuery;
+					} else {
+						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
+					}
+
+					// get back all of the URIs that are of that type
+					names = engine.getEntityOfType(sparqlQuery);				
+					// try to query for the label
+					logger.info("Names " + names);
+					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
+					if (paramHash.isEmpty()) {
+						names.addElement("Concept Doesn't Exist in DB");
+						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+						box.setModel(model);
+						return;
+					}
+					//keys are the labels, objects are the URIs
+					Set nameC = paramHash.keySet();
+					nameVector = new Vector(nameC);
+					Collections.sort(nameVector);
+
+					// if it is a paramcombobox, set the whole hashtable--will need to look up the URI for selected label later
+					if(box instanceof ParamComboBox) {
+						((ParamComboBox)box).setData(paramHash, nameVector);
+					} else {
+						// else just set the model on the box with the list
+						DefaultComboBoxModel model = new DefaultComboBoxModel(nameVector);
+						box.setModel(model);
+					}
+
+					box.setEditable(false);
+				} else {
+					names.addElement("Unknown");			
+				}
 			}
-			// the the param options have not been explicitly defined and the combo box has not been cached
-			// time for the main processing
-			else if (DIHelper.getInstance().getLocalProp(type) == null) {
-				//check if URI is used in param filler
-				if(!type.contains("http://"))
-				{
-					names.addElement("Incorrect Param Fill");
-					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
-					box.setModel(model);
-					return;
-				}
-				// use the type query defined on RDF Map unless external query has been defined
-				String sparqlQuery = DIHelper.getInstance().getProperty(
-						"TYPE" + "_" + Constants.QUERY);
-				
-				Hashtable paramTable = new Hashtable();
-				paramTable.put(Constants.ENTITY, type);
-				if (extQuery!=null)
-				{
-					sparqlQuery=extQuery;
-				}
-				else
-				{
-					sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
-				}
-				
-				// get back all of the URIs that are of that type
-				names = engine.getEntityOfType(sparqlQuery);
-//				if(engine instanceof AbstractEngine){
-//					Vector<String> baseNames = ((AbstractEngine)engine).getBaseDataEngine().getEntityOfType(sparqlQuery);
-//					for(String name: baseNames) 
-//						if(!names.contains(name)) 
-//							names.addAll(baseNames);
-//				}
-				
-				// try to query for the label
-				
-				logger.info("Names " + names);
-				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-				if (paramHash.isEmpty())
-				{
-					names.addElement("Concept Doesn't Exist in DB");
-					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
-					box.setModel(model);
-					return;
-				}
-				//keys are the labels, objects are the URIs
-				Set nameC = paramHash.keySet();
-				nameVector = new Vector(nameC);
-				Collections.sort(nameVector);
-				
-				// if it is a paramcombobox, set the whole hashtable--will need to look up the URI for selected label later
-				if(box instanceof ParamComboBox)
-					((ParamComboBox)box).setData(paramHash, nameVector);
-				// else just set the model on the box with the list
-				else
-				{
-					DefaultComboBoxModel model = new DefaultComboBoxModel(nameVector);
-					box.setModel(model);
-				}
+			// if the type is not null but their is no box to fill
+			// fills the names array with all URIs of set type
+			else if (type !=null) {
+				if (DIHelper.getInstance().getLocalProp(type) == null) {
+					String sparqlQuery = DIHelper.getInstance().getProperty(
+							"TYPE" + "_" + Constants.QUERY);
+					Hashtable paramTable = new Hashtable();
+					paramTable.put(Constants.ENTITY, type);
+					if (extQuery!=null) {
+						sparqlQuery=extQuery;
+					} else {
+						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
+					}
 					
-				box.setEditable(false);
-			}
-			else
-			{
-				names.addElement("Unknown");			
-			}
-
-		}
-		// if the type is not null but their is no box to fill
-		// fills the names array with all URIs of set type
-		else if (type !=null)
-		{
-			if (DIHelper.getInstance().getLocalProp(type) == null) {
-				String sparqlQuery = DIHelper.getInstance().getProperty(
-						"TYPE" + "_" + Constants.QUERY);
-				Hashtable paramTable = new Hashtable();
-				paramTable.put(Constants.ENTITY, type);
-				if (extQuery!=null)
-				{
-					sparqlQuery=extQuery;
+					names = engine.getEntityOfType(sparqlQuery);
+					Collections.sort(names);
+					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
+					if (paramHash.isEmpty()) {
+						names.addElement("Concept Doesn't Exist in DB");
+						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+						box.setModel(model);
+						return;
+					}
+					//keys are the labels, objects are the URIs
+					Set nameC = paramHash.keySet();
+					nameVector = new Vector(nameC);
+					Collections.sort(nameVector);
 				}
-				else
-				{
-					sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
-				}	
-
-				names = engine.getEntityOfType(sparqlQuery);
-				Collections.sort(names);
-				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-				if (paramHash.isEmpty())
-				{
-					names.addElement("Concept Doesn't Exist in DB");
-					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
-					box.setModel(model);
-					return;
-				}
-				//keys are the labels, objects are the URIs
-				Set nameC = paramHash.keySet();
-				nameVector = new Vector(nameC);
-				Collections.sort(nameVector);
 			}
+			box.notify();
 		}
-
 	}
 
 	/**
