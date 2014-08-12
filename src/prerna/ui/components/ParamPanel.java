@@ -26,7 +26,9 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -149,7 +151,16 @@ public class ParamPanel extends JPanel implements ActionListener {
 					if(query != null && !query.isEmpty()) {
 						filler.extQuery = query;
 					}
-					filler.run();
+					Thread aThread = new Thread(filler);
+					aThread.start();
+					
+					synchronized(field) {
+						try {
+							field.wait();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
 				}
 				setSelected(field);
 				setParams.add(field.fieldName);
@@ -237,7 +248,16 @@ public class ParamPanel extends JPanel implements ActionListener {
 						if(query != null && !query.isEmpty()) {
 							filler.extQuery = query;
 						}
-						filler.run();
+						Thread aThread = new Thread(filler);
+						aThread.start();
+						
+						synchronized(field) {
+							try {
+								field.wait();
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						}
 					}
 					setSelected(field);
 					newChangedParams.add(field.fieldName);
