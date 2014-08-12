@@ -351,7 +351,7 @@ public class POIReader extends AbstractFileReader {
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
 				String propValue = "";
-				if (nextRow.getCell(colIndex) == null && nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK && nextRow.getCell(colIndex).toString().isEmpty()) {
+				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK || nextRow.getCell(colIndex).toString().isEmpty()) {
 					continue;
 				}
 				if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
