@@ -42,8 +42,6 @@ public class ClusteringAlgorithm {
 	//rows for the matrix depending on cluster
 	private ArrayList<Object[]> clusterRows;
 	
-	private DecimalFormat nf = new DecimalFormat("###.##");
-
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
@@ -330,7 +328,7 @@ public class ClusteringAlgorithm {
 				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
 				int freq = propValHash.get(propWithHighFreq);
 				double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-				System.out.print(categoryPropNames.get(numberInd) +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");					
+				System.out.print(categoryPropNames.get(numberInd) +": "+propWithHighFreq+" "+freq+"(frequency) and "+ percent+"%(percentage), ");					
 			}
 			
 			//print instances
@@ -364,6 +362,7 @@ public class ClusteringAlgorithm {
 					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
 					int freq = propValHash.get(propWithHighFreq);
 					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+					DecimalFormat nf = new DecimalFormat("###.##");
 					clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
 					
 				} else if(numericalPropNames.indexOf(prop)>-1) {
