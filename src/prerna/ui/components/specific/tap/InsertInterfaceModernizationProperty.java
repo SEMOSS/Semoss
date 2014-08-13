@@ -87,7 +87,7 @@ public class InsertInterfaceModernizationProperty {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String entity = sjss.getRawVar(varName[0]).toString();
 			String instance = Utility.getInstanceName(entity);
-			String reportType = sjss.getRawVar(varName[1]).toString();
+			String reportType = sjss.getVar(varName[1]).toString();
 			retList.put(instance,reportType);
 		}
 
