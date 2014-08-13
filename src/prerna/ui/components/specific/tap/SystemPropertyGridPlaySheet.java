@@ -16,7 +16,6 @@ import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -34,8 +33,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	private String[] varNames;
 	private String[] costDataVarNames;
 	private Integer costDataLength = 0;
-
-	private DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 	
 	private boolean useAccountingFormat = true;
 
@@ -91,8 +88,10 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 						if(costInfo != null) {
 							for(int j = 0; j < costDataLength; j++) {
 								if(costInfo.get(costDataVarNames[j+1]) != null) {
-									if(useAccountingFormat)
+									if(useAccountingFormat) {
+										DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 										addRow[i+j] = nf.format(Math.round(costInfo.get(costDataVarNames[j+1])));
+									}
 									else
 										addRow[i+j] = Math.round(costInfo.get(costDataVarNames[j+1]));										
 								}

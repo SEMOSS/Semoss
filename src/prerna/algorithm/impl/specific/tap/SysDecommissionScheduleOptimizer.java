@@ -78,7 +78,6 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	private ArrayList<String> systemList = new ArrayList<String>();
 	private Hashtable<String, Double[]> sysToBudgetHash;
 	
-	private DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 	
 	/**
 	 * Method setVariables.
@@ -450,14 +449,18 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 					if(i<5) {
 						if(fyRow[i]==null)
 							budgetRow[i+3]=null;
-						else
+						else {
+							DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 							budgetRow[i+3] = nf.format(Math.round(fyRow[i]));
+						}
 					}
 					else {
 						if(fyRow[4]==null)
 							budgetRow[i+3]=null;
-						else
+						else {
+							DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 							budgetRow[i+3] = nf.format(Math.round(fyRow[4]));
+						}
 					}
 				}
 			}
@@ -476,8 +479,10 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		systemCostSavingsRow[0] = sys;
 		systemCostSavingsRow[1] = owner;//to put system owner here
 		systemCostSavingsRow[2] = item;
-		for(int i=1;i<maxYears+1;i++)
+		for(int i=1;i<maxYears+1;i++) {
+			DecimalFormat nf = new DecimalFormat("\u00A4 #,##0.00");
 			systemCostSavingsRow[i+2] = nf.format(Math.round(systemCostSavingsMatrix.get(i-1)[sysInd]));
+		}
 		return systemCostSavingsRow;
 	}
 	
