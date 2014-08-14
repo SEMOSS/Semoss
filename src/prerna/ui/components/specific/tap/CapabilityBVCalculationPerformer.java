@@ -173,7 +173,7 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			FillCapabilityBVHash filler = new FillCapabilityBVHash(query, (IEngine)engine);
 
 			Thread playThread = new Thread(filler);
-			playThread.start();
+			playThread.run();
 		}
 	}
 	
