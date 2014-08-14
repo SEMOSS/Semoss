@@ -22,11 +22,11 @@ public class ClusteringDataProcessor {
 	// Hashtable containing the instance name as the key and the value being the row it's information is contained in the numerical and categorical Matrices
 	private Hashtable<String, Integer> instanceHash = new Hashtable<String, Integer>();
 	// list of all the categorical property names 
-	private ArrayList<String> categoryPropNames = new ArrayList<String>();
+	private String[] categoryPropNames;
 	// list of all the numerical property names
-	private ArrayList<String> numericalPropNames = new ArrayList<String>();
+	private String[] numericalPropNames;
 	// list the weights associated with each categorical property used to calculate the categorical similarity score
-	private ArrayList<Double> weights = new ArrayList<Double>(); // has length the same as category prop names
+	private double[] weights; // has length the same as category prop names
 
 	// static class used to calculate different distance measures for numerical similarity score
 	private static DistanceCalculator disCalculator = new DistanceCalculator();
@@ -45,23 +45,32 @@ public class ClusteringDataProcessor {
 		processMasterTable();
 		calculateWeights();
 	}
+	
+	//indexing used for visualization
+	private int[] totalNumericalPropIndices;
+	private Integer[] categoryPropIndices; 
 
+	public int[] getTotalNumericalPropIndices() {
+		return totalNumericalPropIndices;
+	}
+	
+	public Integer[] getCategoryPropIndices() {
+		return categoryPropIndices;
+	}
+	
 	public Hashtable<String, Integer> getInstanceHash() {
 		return instanceHash;
 	}
-
 	public Double[][] getNumericalMatrix() {
 		return numericalMatrix;
 	}
-
 	public String[][] getCategoricalMatrix() {
 		return categoricalMatrix;
 	}
-
-	public ArrayList<String> getCategoryPropNames() {
+	public String[] getCategoryPropNames() {
 		return categoryPropNames;
 	}
-	public ArrayList<String> getNumericalPropNames() {
+	public String[] getNumericalPropNames() {
 		return numericalPropNames;
 	}
 
@@ -95,7 +104,7 @@ public class ClusteringDataProcessor {
 		double categorySimilarity = 0;
 
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
-		for(int i = 0; i < weights.size(); i++) {
+		for(int i = 0; i < weights.length; i++) {
 			// sumProperties contains the total number of instances for the property
 			double sumProperties = 0;
 			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
@@ -108,10 +117,10 @@ public class ClusteringDataProcessor {
 			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
 				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
 			}
-			categorySimilarity += weights.get(i) * numOccuranceInCluster / sumProperties;
+			categorySimilarity += weights[i] * numOccuranceInCluster / sumProperties;
 		}
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
-		double coeff = 1.0 * categoryPropNames.size() / varNames.length;
+		double coeff = 1.0 * categoryPropNames.length / varNames.length;
 
 		logger.info("Calculated similarity score for categories: " + coeff * categorySimilarity);
 		return coeff * categorySimilarity;
@@ -167,7 +176,7 @@ public class ClusteringDataProcessor {
 		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
 
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
-		double coeff = 1.0 * numericalPropNames.size() / varNames.length;
+		double coeff = 1.0 * numericalPropNames.length / varNames.length;
 
 		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
 		return coeff * numericalSimilarity;
@@ -178,20 +187,24 @@ public class ClusteringDataProcessor {
 	 */
 	private void calculateWeights() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getPropOccurance();
-		ArrayList<Double> entropyArr = calculateEntropy(trackPropOccurance);
+		double[] entropyArr = calculateEntropy(trackPropOccurance);
+		int numWeights = entropyArr.length;
+		weights = new double[numWeights];
 
 		double totalEntropy = 0;
-		for(double entropyVal : entropyArr) {
-			totalEntropy += entropyVal;
+		for(int i = 0; i < numWeights; i++) {
+			totalEntropy += entropyArr[i];
 		}
 
-		for(double entropyVal : entropyArr) {
-			weights.add(entropyVal / totalEntropy);
+		int counter = 0;
+		for(int i = 0; i < numWeights; i++) {
+			weights[counter] = (entropyArr[i] / totalEntropy);
+			counter++;
 		}
 
 		// output category and weight to console
-		for(int i = 0; i < weights.size(); i++) {
-			logger.info("Category " + categoryPropNames.get(i) + " has weight " + weights.get(i));
+		for(int i = 0; i < weights.length; i++) {
+			logger.info("Category " + categoryPropNames[i] + " has weight " + weights[i]);
 		}
 	}
 
@@ -200,10 +213,13 @@ public class ClusteringDataProcessor {
 	 * @param trackPropOccurance	A list containing a hashtable that stores all the different instances of a given property
 	 * @return						A list containing the entropy for each categorical property
 	 */
-	private ArrayList<Double> calculateEntropy(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
-		ArrayList<Double> entropyArr = new ArrayList<Double>();
+	private double[] calculateEntropy(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
+		double[] entropyArr = new double[trackPropOccurance.size()];
 
-		for(Hashtable<String, Integer> columnInformation : trackPropOccurance) {
+		int numWeights = entropyArr.length;
+		int counter = 0;
+		for(int i = 0; i < numWeights; i++) {
+			Hashtable<String, Integer> columnInformation = trackPropOccurance.get(i);
 			ArrayList<Integer> columnPropInstanceCountArr = new ArrayList<Integer>();
 
 			int totalCountOfPropInstances = 0;
@@ -215,15 +231,17 @@ public class ClusteringDataProcessor {
 			}
 
 			double sumProb = 0;
-			for(Integer propCount : columnPropInstanceCountArr) {
+			int columnPropInstanceSize = columnPropInstanceCountArr.size();
+			for(int j = 0; j < columnPropInstanceSize; j++) {
+				Integer propCount = columnPropInstanceCountArr.get(j);
 				Double probability = (double) ( 1.0 * propCount / totalCountOfPropInstances);
 				sumProb += probability * logBase2(probability);
 			}
-
+			
 			Double entropy = sumProb / unqiueCountOfPropInstances;
-			entropyArr.add(entropy);
+			entropyArr[counter] = entropy;
 		}
-
+		
 		return entropyArr;
 	}
 
@@ -264,10 +282,17 @@ public class ClusteringDataProcessor {
 	 * Processes through the masterTable and determines which columns are numerical and which are categorical
 	 */
 	private void processMasterTable() {
-		ArrayList<Integer> categoryPropIndices = new ArrayList<Integer>();
-		ArrayList<Integer> numericalPropIndices = new ArrayList<Integer>();
-		ArrayList<Integer> dateTypeIndices = new ArrayList<Integer>();
-		ArrayList<Integer> simpleDateTypeIndices = new ArrayList<Integer>();
+		categoryPropNames = new String[varNames.length];
+		categoryPropIndices = new Integer[varNames.length];
+		numericalPropNames = new String[varNames.length];
+		Integer[] numericalPropIndices = new Integer[varNames.length];
+		Integer[] dateTypeIndices = new Integer[varNames.length];
+		Integer[] simpleDateTypeIndices = new Integer[varNames.length];
+		
+		int categoryPropNamesCounter = 0;
+		int numericalPropNamesCounter = 0;
+		int dateTypeIndicesCounter = 0;
+		int simpleDateTypeIndicesCounter = 0;
 		
 		//iterate through columns
 		for(int j = 0; j < varNames.length; j++) {
@@ -289,15 +314,21 @@ public class ClusteringDataProcessor {
 					}
 				}
 				if(numCategorical > numNumerical) {
-					categoryPropNames.add(varNames[j]);
-					categoryPropIndices.add(j);
+					categoryPropNames[categoryPropNamesCounter] = varNames[j];
+					categoryPropIndices[categoryPropNamesCounter] = j;
+					categoryPropNamesCounter++;
 					logger.info("Found " + varNames[j] + " to be a categorical data column");
 				} else {
-					numericalPropNames.add(varNames[j]);
-					numericalPropIndices.add(j);
+					numericalPropNames[numericalPropNamesCounter] = varNames[j];
+					numericalPropIndices[numericalPropNamesCounter] = j;
+					numericalPropNamesCounter++;
 					logger.info("Found " + varNames[j] + " to be a numerical data column");
 					if(type.equals("DATE")){
-						dateTypeIndices.add(j);
+						dateTypeIndices[dateTypeIndicesCounter] = j;
+						dateTypeIndicesCounter++;
+					} else if(type.equals("SIMPLEDATE")){
+						simpleDateTypeIndices[simpleDateTypeIndicesCounter] = j;
+						simpleDateTypeIndicesCounter++;
 					}
 				}
 			} else {
@@ -308,8 +339,39 @@ public class ClusteringDataProcessor {
 					instanceHash.put(colEntry, i);
 				}
 			}
-		}		
+		}
+		categoryPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(categoryPropNames);
+		categoryPropIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(categoryPropIndices);
+		numericalPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(numericalPropNames);
+		numericalPropIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(numericalPropIndices);
+		dateTypeIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(dateTypeIndices);
+		simpleDateTypeIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(simpleDateTypeIndices);
+		
 		constructMatrices(categoryPropIndices, numericalPropIndices, dateTypeIndices, simpleDateTypeIndices);
+		
+		int numericSize = 0;
+		if(numericalPropIndices != null) {
+			numericSize = numericalPropIndices.length;
+		}
+		int dateSize = 0;
+		if(dateTypeIndices != null) {
+			dateSize = dateTypeIndices.length;
+		}
+		int simpleDateSize = 0;
+		if(simpleDateTypeIndices != null) {
+			simpleDateSize = simpleDateTypeIndices.length;
+		}
+		totalNumericalPropIndices = new int[numericSize + dateSize + simpleDateSize];
+		int i = 0;
+		for(i = 0; i < numericSize; i++) {
+			totalNumericalPropIndices[i] = numericalPropIndices[i];
+		}
+		for(i = 0; i < dateSize; i++) {
+			totalNumericalPropIndices[i+numericSize] = dateTypeIndices[i];
+		}
+		for(i = 0; i < simpleDateSize; i++) {
+			totalNumericalPropIndices[i+numericSize+dateSize] = dateTypeIndices[i];
+		}
 	}
 
 	/**
@@ -319,10 +381,10 @@ public class ClusteringDataProcessor {
 	 * @param dateTypeIndices			The indices in the masterTable that contain date numerical properties
 	 * @param simpleDateTypeIndices 
 	 */
-	private void constructMatrices(ArrayList<Integer> categoryPropIndices, ArrayList<Integer> numericalPropIndices, ArrayList<Integer> dateTypeIndices, ArrayList<Integer> simpleDateTypeIndices) {
+	private void constructMatrices(Integer[] categoryPropIndices, Integer[] numericalPropIndices, Integer[] dateTypeIndices, Integer[] simpleDateTypeIndices) {
 
-		numericalMatrix = new Double[masterTable.size()][numericalPropIndices.size()];
-		categoricalMatrix = new String[masterTable.size()][categoryPropIndices.size()];
+		numericalMatrix = new Double[masterTable.size()][numericalPropIndices.length];
+		categoricalMatrix = new String[masterTable.size()][categoryPropIndices.length];
 
 		for(int row = 0; row < masterTable.size(); row++) {
 			int counter = 0;
@@ -331,13 +393,13 @@ public class ClusteringDataProcessor {
 			for(Integer idx : numericalPropIndices) {
 				if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
 					try {
-						if(dateTypeIndices.contains(idx)) {
+						if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
 							SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 							formatLongDate.setLenient(true);
 							Date valDate = formatLongDate.parse(dataRow[idx].toString());
 							Long dateAsLong = valDate.getTime();
 							numericalMatrix[row][counter] = dateAsLong.doubleValue();
-						} else if(simpleDateTypeIndices.contains(idx)){
+						} else if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
 							SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy");
 							formatLongDate.setLenient(true);
 							Date valDate = formatLongDate.parse(dataRow[idx].toString());
@@ -347,9 +409,9 @@ public class ClusteringDataProcessor {
 							numericalMatrix[row][counter] = (Double) dataRow[idx];
 						}
 					} catch (ParseException e) {
-						logger.error("Column Variable " + numericalPropNames.get(idx) + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
+						logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
 					} catch (ClassCastException e) {
-						logger.error("Column Variable " + numericalPropNames.get(idx) + " was found to be a numerical property but had a value of " + dataRow[idx]);
+						logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 					}
 				}
 				// default values are null in new Double[][]
@@ -423,4 +485,5 @@ public class ClusteringDataProcessor {
 	private double logBase2(double x) {
 		return Math.log(x) / Math.log(2);
 	}
+	
 }

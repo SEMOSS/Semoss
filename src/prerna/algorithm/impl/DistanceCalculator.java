@@ -24,7 +24,7 @@ public class DistanceCalculator {
 		
 		BigDecimal sumSquare = new BigDecimal(0);
 		for(int i = 0; i < values1.length; i++) {
-			sumSquare.add(values1[i].subtract(values2[i]).pow(2));
+			sumSquare = sumSquare.add(values1[i].subtract(values2[i]).pow(2));
 		}
 		return sqrt(sumSquare);
 	}
