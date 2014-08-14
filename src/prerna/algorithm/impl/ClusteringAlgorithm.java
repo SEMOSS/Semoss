@@ -11,62 +11,76 @@ import org.apache.log4j.Logger;
  * 
  */
 public class ClusteringAlgorithm {
-	static final Logger logger = LogManager.getLogger(ClusteringAlgorithm.class.getName());
-	
+
+	private static final Logger logger = LogManager.getLogger(ClusteringAlgorithm.class.getName());
+
 	// instance variables that must be defined for clustering to work
 	private ArrayList<Object[]> masterTable;
 	private String[] varNames;
-	
+
 	private ClusteringDataProcessor cdp;
 
 	//the index of each instance and the total number of instances
 	private Hashtable<String,Integer> instanceIndexHash;
 	private int numInstances;
-	
+
 	// the total number of clusters, the number of instances in each cluster, and the cluster each instance is assinged to
 	private int numClusters;
 	private int[] clustersNumInstances;
 	private ArrayList<Integer> clustersAssigned;
-	
+
 	//the category and number values for each instance
 	private String[][] instanceCategoryMatrix;
 	private Double[][] instanceNumberMatrix;
-	
+
 	//the category and number values for each cluster
 	private ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix;
 	private Double[][] clusterNumberMatrix;
-	
+
 	//determines whether the algorithm completed successfully.
 	private boolean success = false;
-	
+
 	//rows for the matrix depending on cluster
 	private ArrayList<Object[]> clusterRows;
-	
+
+	//Constructor
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
 	}
-	
+
+	//indexing used for visualization
+	private int[] numericalPropIndices;
+	private Integer[] categoryPropIndices; 
+
+	public int[] getNumericalPropIndices() {
+		return numericalPropIndices;
+	}
+
+	public Integer[] getCategoryPropIndices() {
+		return categoryPropIndices;
+	}
+
 	public Boolean isSuccessful() {
 		return success;
 	}
-	
+
 	public void setNumClusters(int numClusters) {
 		this.numClusters = numClusters;
 	}
-	
+
 	public ArrayList<Integer> getClustersAssigned() {
 		return clustersAssigned;
 	}
-	
+
 	public Hashtable<String,Integer> getInstanceIndexHash() {
 		return instanceIndexHash;
 	}
-	
+
 	public ArrayList<Object[]> getClusterRows() {
 		return clusterRows;
 	}
-	
+
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
 	 * These properties are pulled from the instanceCategoryMatrix and instanceNumberMatrix, that are filled prior to start.
 	 * The final cluster each instance is assigned to is stored in clustersAssigned.
@@ -74,21 +88,21 @@ public class ClusteringAlgorithm {
 	 * The number of instances in each cluster is stored in clustersNumInstances.
 	 */
 	public void execute() throws IllegalArgumentException {
-		
+
 		cdp = new ClusteringDataProcessor(masterTable,varNames);
-		
+
 		instanceCategoryMatrix = cdp.getCategoricalMatrix();
 		instanceNumberMatrix = cdp.getNumericalMatrix();
 		instanceIndexHash = cdp.getInstanceHash();
 		numInstances = instanceIndexHash.size();
-		
+
 		//randomly assign one instance to each cluster
 		clustersAssigned = randomlyAssignClusters();
 		//make the custer number matrix from initial assignments
 		clusterNumberMatrix = createClustersNumberProperties();
 		//make the cluster category matrix from initial assingments
 		clusterCategoryMatrix = createClustersCategoryProperties();
-		
+
 		boolean noChange = false;
 		int iterationCount = 0;
 		int maxIterations = 1000;
@@ -96,7 +110,7 @@ public class ClusteringAlgorithm {
 		//or quit after some ridiculously large number of times with an error
 		while(!noChange&&iterationCount<maxIterations) {
 			noChange = true;
-			
+
 			for(String instance : instanceIndexHash.keySet()) {
 				int instanceInd = instanceIndexHash.get(instance);
 				int newClusterForInstance = findNewClusterForInstance(instanceInd);
@@ -122,9 +136,10 @@ public class ClusteringAlgorithm {
 
 		printOutClusters();
 		createClusterRowsForGrid();
-//		printOutClusterForInstance();
-//		printClusterNumberMatrix();
-//		printClusterCategoryMatrix();
+		
+		//need indices for visualization
+		categoryPropIndices = cdp.getCategoryPropIndices();
+		numericalPropIndices = cdp.getTotalNumericalPropIndices();
 	}
 
 
@@ -173,12 +188,12 @@ public class ClusteringAlgorithm {
 		return clusterIndWithMaxSimilarity;
 	}
 
-	
+
 	/** Creates the initial cluster number property matrix.
 	 * This stores the property values for each cluster based on the one instance assigned to that cluster.
-	**/
+	 **/
 	public Double[][] createClustersNumberProperties() {
-		
+
 		Double[][] clusterNumberMatrix = new Double[numClusters][instanceNumberMatrix[0].length];
 		for(int clusterInd=0;clusterInd<numClusters;clusterInd++) {
 			for(int numberInd=0;numberInd<instanceNumberMatrix[0].length;numberInd++) {
@@ -198,25 +213,25 @@ public class ClusteringAlgorithm {
 		}
 		return clusterNumberMatrix;
 	}
-	
-	
+
+
 	/** Updates the cluster number properties matrix for the instance that is switching clusters
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
-	**/
+	 **/
 	public Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
-		
+
 		//iterate through every numerical property of instance
 		//remove from the old cluster index using old val (avg) * oldNum in cluster
 		for(int numberInd = 0;numberInd<instanceNumberMatrix[instanceInd].length;numberInd++) {
 			double numberValForInstance = instanceNumberMatrix[instanceInd][numberInd];
-			
+
 			if(oldClusterForInstance>-1) {
 				double oldNumberValForInstance = clusterNumberMatrix[oldClusterForInstance][numberInd];
 				double valToPut = (oldNumberValForInstance * clustersNumInstances[oldClusterForInstance] - numberValForInstance) /  (clustersNumInstances[oldClusterForInstance] - 1);
 				clusterNumberMatrix[oldClusterForInstance][numberInd] = valToPut;
 			}
-			
+
 			double newClusterValForInstance = clusterNumberMatrix[newClusterForInstance][numberInd];
 			double valToPut = (newClusterValForInstance * clustersNumInstances[newClusterForInstance] + numberValForInstance) /  (clustersNumInstances[newClusterForInstance] + 1);
 			clusterNumberMatrix[newClusterForInstance][numberInd] = valToPut;
@@ -226,7 +241,7 @@ public class ClusteringAlgorithm {
 
 	/** Creates the initial cluster category property matrix.
 	 * This stores the property values for each cluster based on the one instance assigned to that cluster.
-	**/
+	 **/
 	public ArrayList<ArrayList<Hashtable<String,Integer>>> createClustersCategoryProperties() {
 		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
 		ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix = new ArrayList<ArrayList<Hashtable<String,Integer>>>();
@@ -238,16 +253,16 @@ public class ClusteringAlgorithm {
 			}
 			clusterCategoryMatrix.add(listForCluster);
 		}
-		
+
 		//iterate through every instance
 		for(int instanceInd=0;instanceInd<clustersAssigned.size();instanceInd++) {
 			int clusterInd = clustersAssigned.get(instanceInd);
 			//if the instance is assigned to a cluster, then put its categorical properties in the cluster category properties Matrix
 			if(clusterInd>-1) {
-		
+
 				for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
 					String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
-					
+
 					//add the category properties to the new cluster
 					Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
 					propValHash.put(categoryValForInstance, 1);
@@ -255,22 +270,22 @@ public class ClusteringAlgorithm {
 				}
 			}
 		}
-		
+
 		return clusterCategoryMatrix;
-		
+
 	}
-	
+
 	/** Updates the cluster category property matrix for the instance that is switching clusters
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
-	**/
+	 **/
 	public ArrayList<ArrayList<Hashtable<String,Integer>>> updateClustersCategoryProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
-		
+
 		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
 
 		for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
 			String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
-			
+
 			if(oldClusterForInstance>-1) {
 				//remove the category property from the old cluster
 				Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
@@ -285,7 +300,7 @@ public class ClusteringAlgorithm {
 					System.out.println("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
 				}
 			}
-			
+
 			//add the category properties to the new cluster
 			Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
 			//if there is already a count going for the same property as the instance, add to it, otherwise create a new hash entry
@@ -300,26 +315,26 @@ public class ClusteringAlgorithm {
 				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 			}
 		}
-		
+
 		return clusterCategoryMatrix;
 	}
-	
+
 	/**
 	 * Print each cluster with categorical and numerical properties and a list of all instances
 	 */
 	private void printOutClusters() {
 		System.out.print("Cluster Results-");
-		
-		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
-		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
-		
+
+		String[] numericalPropNames = cdp.getNumericalPropNames();
+		String[] categoryPropNames = cdp.getCategoryPropNames();
+
 		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
 			System.out.print("\n\nCluster "+clusterInd+":");
-			
+
 			//print numerical props
 			System.out.print("\nNumerical Properties- ");
 			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ )
-				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
+				System.out.print(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
 
 			//print categorical props
 			System.out.print("\nCategorical Properties- ");
@@ -328,9 +343,10 @@ public class ClusteringAlgorithm {
 				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
 				int freq = propValHash.get(propWithHighFreq);
 				double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-				System.out.print(categoryPropNames.get(numberInd) +": "+propWithHighFreq+" "+freq+"(frequency) and "+ percent+"%(percentage), ");					
+				DecimalFormat nf = new DecimalFormat("###.##");
+				System.out.print(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");					
 			}
-			
+
 			//print instances
 			System.out.print("\nInstances- ");
 			for(String instance : instanceIndexHash.keySet()) {
@@ -340,45 +356,46 @@ public class ClusteringAlgorithm {
 			}
 		}
 	}
-	
+
 	/**
 	 * Print each cluster with categorical and numerical properties and a list of all instances
 	 */
 	private void createClusterRowsForGrid() {
 		clusterRows = new ArrayList<Object[]>();
-		
-		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
-		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
-		
+
+		String[] numericalPropNames = cdp.getNumericalPropNames();
+		String[] categoryPropNames = cdp.getCategoryPropNames();
+
 		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
 			Object[] clusterRow = new Object[varNames.length+1];
 			clusterRow[0] = "";
-			
+
 			for(int propInd=1;propInd<varNames.length;propInd++) {
 				String prop = varNames[propInd];
-				if(categoryPropNames.indexOf(prop)>-1) {
-					int categoryInd = categoryPropNames.indexOf(prop);
+				int categoryInd = ArrayUtilityMethods.calculateIndexOfArray(categoryPropNames, prop);
+				if(categoryInd >-1) {
 					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
 					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
 					int freq = propValHash.get(propWithHighFreq);
 					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
 					DecimalFormat nf = new DecimalFormat("###.##");
 					clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
-					
-				} else if(numericalPropNames.indexOf(prop)>-1) {
-					int numberInd = numericalPropNames.indexOf(prop);
-					clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
-				}
-				else {
-					logger.error("No properties matched for "+prop);
+				} else {
+					int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
+					if(numberInd > -1) {
+						clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
+					} else {
+						logger.error("No properties matched for "+prop);
+
+					}
 				}
 			}
 			clusterRow[varNames.length] = clusterInd;
 			clusterRows.add(clusterRow);
 		}		
 	}
-	
-	private String printMostFrequentProperties(int clusterInd,Hashtable<String, Integer> propValHash) {
+
+	private String printMostFrequentProperties(int clusterInd, Hashtable<String, Integer> propValHash) {
 		String propWithHighFreq = "";
 		int highestFreq = -1;
 		for(String propVal : propValHash.keySet()) {
@@ -390,51 +407,5 @@ public class ClusteringAlgorithm {
 		}
 		return propWithHighFreq;
 	}
-	
-//	/**
-//	 * Prints the cluster each instance is assigned to.
-//	 */
-//	private void printOutClusterForInstance() {
-//		System.out.println("Cluster for each index:");
-//		for(String instance : instanceIndexHash.keySet()) {
-//			System.out.print(instance+": "+clustersAssigned.get(instanceIndexHash.get(instance))+", ");
-//		}
-//	}
-//	
-//	/**
-//	 * Prints the numerical properties of each cluster
-//	 */
-//	private void printClusterNumberMatrix() {
-//		System.out.println("Cluster Numerical Properties:");
-//
-//		ArrayList<String> numericalPropNames = cdp.getNumericalPropNames();
-//		for(int clusterInd=0;clusterInd<clusterNumberMatrix.length;clusterInd++ ) {
-//			System.out.println("Cluster " + clusterInd + " Numerical Properties: ");
-//			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ ) {
-//				System.out.print(numericalPropNames.get(numberInd) +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
-//			}
-//			System.out.println("\n");
-//		}
-//	}
-//	
-//	/**
-//	 * Prints the categorical properties of each cluster
-//	 */
-//	private void printClusterCategoryMatrix() {
-//		System.out.println("\nCluster Category Properties:");
-//
-//		ArrayList<String> categoryPropNames = cdp.getCategoryPropNames();
-//		for(int clusterInd=0;clusterInd<clusterCategoryMatrix.size();clusterInd++ ) {
-//			System.out.println("Cluster " + clusterInd + " Categorical Properties: ");
-//			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
-//				System.out.print(categoryPropNames.get(numberInd)+": {");
-//				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
-//				for(String propVal : propValHash.keySet()) {
-//					System.out.print(propVal+": "+propValHash.get(propVal)+"; ");
-//				}		
-//				System.out.println("},");
-//			}
-//			System.out.println();
-//		}
-//	}
+
 }
