@@ -102,7 +102,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			dataList.add(instanceHash);
 		}
 		
-		Hashtable<Integer, Object> barData = new Hashtable<Integer, Object>(numClusters);
+		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[numClusters];
 		for(int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
 			Hashtable<String, Hashtable<String, Object>> clusterData = new Hashtable<String, Hashtable<String, Object>>(allClusterInfo.keySet().size());
@@ -119,10 +119,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 						innerHash.put("dataSeries", propBins);
 						innerHash.put("names", new String[]{propName, "Distribution"});
-						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
-						Hashtable<String, Object> outerHash = new Hashtable<String, Object>();
-						outerHash.put(propName, innerHash);
-						clusterData.put(propName, outerHash);
+						clusterData.put(propName, innerHash);
 					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
 						String[] uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
@@ -131,13 +128,11 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						innerHash.put("dataSeries", propBins);
 						innerHash.put("names", new String[]{propName, "Frequency"});
 						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
-						Hashtable<String, Object> outerHash = new Hashtable<String, Object>();
-						outerHash.put(propName, innerHash);
-						clusterData.put(propName, outerHash);
+						clusterData.put(propName, innerHash);
 					}
 				}
 			}
-			barData.put(i, clusterData);
+			barData[i] = clusterData;
 		}
 		allHash.put("dataSeries", dataList);
 		allHash.put("barData", barData);
