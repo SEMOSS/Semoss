@@ -101,16 +101,17 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			}
 			dataList.add(instanceHash);
 		}
-
-		ArrayList<Hashtable<String, Object>> barData = new ArrayList<Hashtable<String, Object>>(numClusters);
+		
+		Hashtable<Integer, Object> barData = new Hashtable<Integer, Object>(numClusters);
 		for(int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
+			Hashtable<String, Hashtable<String, Object>> clusterData = new Hashtable<String, Hashtable<String, Object>>(allClusterInfo.keySet().size());
 			for(String propName : allClusterInfo.keySet()) {
 				int idx = ArrayUtilityMethods.calculateIndexOfArray(names, propName);
 				Object[] values = allClusterInfo.get(propName);
 				values = ArrayUtilityMethods.removeAllNulls(values);
 				if(values != null) {
-					if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx)) {
+					if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx) & values.length > 5) {					
 						// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
 						Arrays.sort(values);
 						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
@@ -121,8 +122,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
 						Hashtable<String, Object> outerHash = new Hashtable<String, Object>();
 						outerHash.put(propName, innerHash);
-						barData.add(outerHash);
-					} else if (ArrayUtilityMethods.arrayContainsValue(categoryPropIndices, idx)) {
+						clusterData.put(propName, outerHash);
+					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
 						String[] uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 						Hashtable<String, Object>[] propBins = calculateCategoricalBins(stringValues, uniqueValues);
@@ -132,10 +133,11 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
 						Hashtable<String, Object> outerHash = new Hashtable<String, Object>();
 						outerHash.put(propName, innerHash);
-						barData.add(outerHash);
+						clusterData.put(propName, outerHash);
 					}
 				}
 			}
+			barData.put(i, clusterData);
 		}
 		allHash.put("dataSeries", dataList);
 		allHash.put("barData", barData);
@@ -254,7 +256,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		clusterAlg.execute();
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
 		categoryPropIndices = clusterAlg.getCategoryPropIndices();
-		ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
+		int[] clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		//store cluster final state information
@@ -270,7 +272,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				}
 				newDataRow[i] = dataRow[i];
 			}
-			Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
+			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
 			newDataRow[newDataRow.length - 1] = clusterNumber;
 			newList.add(newDataRow);
 			//add to matrix
