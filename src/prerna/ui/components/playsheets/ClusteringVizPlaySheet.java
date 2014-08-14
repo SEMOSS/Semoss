@@ -117,7 +117,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
 						Hashtable<String, Object>[] propBins = calculateNumericBins(numValues);
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-						innerHash.put("dataSeries", propBins);
+						// cause JS is dumb
+						Object[] propBinsArr = new Object[]{propBins};
+						innerHash.put("dataSeries", propBinsArr);
 						innerHash.put("names", new String[]{propName, "Distribution"});
 						clusterData.put(propName, innerHash);
 					} else {
@@ -125,7 +127,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						String[] uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 						Hashtable<String, Object>[] propBins = calculateCategoricalBins(stringValues, uniqueValues);
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-						innerHash.put("dataSeries", propBins);
+						// cause JS is dumb
+						Object[] propBinsArr = new Object[]{propBins};
+						innerHash.put("dataSeries", propBinsArr);
 						innerHash.put("names", new String[]{propName, "Frequency"});
 						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
 						clusterData.put(propName, innerHash);
