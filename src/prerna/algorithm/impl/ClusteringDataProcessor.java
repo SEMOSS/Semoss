@@ -84,11 +84,18 @@ public class ClusteringDataProcessor {
 	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length
 	 */
 	public Double getSimilarityScore(int dataIdx, int clusterIdx, Double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
-		Double[] instanceNumericalInfo = numericalMatrix[dataIdx];
-		String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
-
-		double numericalSimilarity = calcuateNumericalSimilarity(clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
-		double categorySimilarity = calculateCategorySimilarity(instaceCategoricalInfo, categoryClusterInfo);
+		double numericalSimilarity = (double) 0;
+		double categorySimilarity = (double) 0;
+		
+		if(numericalMatrix != null) {
+			Double[] instanceNumericalInfo = numericalMatrix[dataIdx];
+			numericalSimilarity = calcuateNumericalSimilarity(clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
+		}
+		if(categoricalMatrix != null) {
+			String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
+			categorySimilarity = calculateCategorySimilarity(instaceCategoricalInfo, categoryClusterInfo);
+		}
+		
 
 		return numericalSimilarity + categorySimilarity;
 	}
@@ -382,49 +389,59 @@ public class ClusteringDataProcessor {
 	 * @param simpleDateTypeIndices 
 	 */
 	private void constructMatrices(Integer[] categoryPropIndices, Integer[] numericalPropIndices, Integer[] dateTypeIndices, Integer[] simpleDateTypeIndices) {
-
-		numericalMatrix = new Double[masterTable.size()][numericalPropIndices.length];
-		categoricalMatrix = new String[masterTable.size()][categoryPropIndices.length];
-
+		
+		if(numericalPropIndices != null) {
+			numericalMatrix = new Double[masterTable.size()][numericalPropIndices.length];
+		}
+		if(categoryPropIndices != null) {
+			categoricalMatrix = new String[masterTable.size()][categoryPropIndices.length];
+		}
+		
 		for(int row = 0; row < masterTable.size(); row++) {
 			int counter = 0;
 
 			Object[] dataRow = masterTable.get(row);
-			for(Integer idx : numericalPropIndices) {
-				if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
-					try {
-						if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
-							SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-							formatLongDate.setLenient(true);
-							Date valDate = formatLongDate.parse(dataRow[idx].toString());
-							Long dateAsLong = valDate.getTime();
-							numericalMatrix[row][counter] = dateAsLong.doubleValue();
-						} else if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
-							SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy");
-							formatLongDate.setLenient(true);
-							Date valDate = formatLongDate.parse(dataRow[idx].toString());
-							Long dateAsLong = valDate.getTime();
-							numericalMatrix[row][counter] = dateAsLong.doubleValue();
-						} else {
-							numericalMatrix[row][counter] = (Double) dataRow[idx];
+			if(numericalPropIndices != null)
+			{
+				for(Integer idx : numericalPropIndices) {
+					if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
+						try {
+							if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
+								SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+								formatLongDate.setLenient(true);
+								Date valDate = formatLongDate.parse(dataRow[idx].toString());
+								Long dateAsLong = valDate.getTime();
+								numericalMatrix[row][counter] = dateAsLong.doubleValue();
+							} else if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
+								SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy");
+								formatLongDate.setLenient(true);
+								Date valDate = formatLongDate.parse(dataRow[idx].toString());
+								Long dateAsLong = valDate.getTime();
+								numericalMatrix[row][counter] = dateAsLong.doubleValue();
+							} else {
+								numericalMatrix[row][counter] = (Double) dataRow[idx];
+							}
+						} catch (ParseException e) {
+							logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
+						} catch (ClassCastException e) {
+							logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 						}
-					} catch (ParseException e) {
-						logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
-					} catch (ClassCastException e) {
-						logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 					}
+					// default values are null in new Double[][]
+	//				else {
+	//					numericalMatrix[row][counter] = null;
+	//				} 
+					counter++;
 				}
-				// default values are null in new Double[][]
-//				else {
-//					numericalMatrix[row][counter] = null;
-//				} 
-				counter++;
 			}
 
 			counter = 0;
-			for(Integer idx : categoryPropIndices) {
-				categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
-				counter++;
+			if(categoryPropIndices != null) 
+			{
+				for(Integer idx : categoryPropIndices) {
+					categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
+					counter++;
+				}
 			}
 		}
 	}
