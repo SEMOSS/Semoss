@@ -61,8 +61,9 @@ public class EntityFiller implements Runnable {
 		logger.info(" Engine Name is  " + engineName);
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
-		synchronized(box) {
-			if (box != null && type != null) {
+		
+		if (box != null && type != null) {
+			synchronized(box) {
 				// if options for the parameter have been explicitly defined on the question sheet
 				// parse and use just those
 				if(DIHelper.getInstance().getProperty(type + "_" + Constants.OPTION) != null) {
@@ -136,37 +137,37 @@ public class EntityFiller implements Runnable {
 				} else {
 					names.addElement("Unknown");			
 				}
+				box.notify();
 			}
-			// if the type is not null but their is no box to fill
-			// fills the names array with all URIs of set type
-			else if (type !=null) {
-				if (DIHelper.getInstance().getLocalProp(type) == null) {
-					String sparqlQuery = DIHelper.getInstance().getProperty(
-							"TYPE" + "_" + Constants.QUERY);
-					Hashtable paramTable = new Hashtable();
-					paramTable.put(Constants.ENTITY, type);
-					if (extQuery!=null) {
-						sparqlQuery=extQuery;
-					} else {
-						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
-					}
-					
-					names = engine.getEntityOfType(sparqlQuery);
-					Collections.sort(names);
-					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
-					if (paramHash.isEmpty()) {
-						names.addElement("Concept Doesn't Exist in DB");
-						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
-						box.setModel(model);
-						return;
-					}
-					//keys are the labels, objects are the URIs
-					Set nameC = paramHash.keySet();
-					nameVector = new Vector(nameC);
-					Collections.sort(nameVector);
+		}
+		// if the type is not null but their is no box to fill
+		// fills the names array with all URIs of set type
+		else if (type !=null) {
+			if (DIHelper.getInstance().getLocalProp(type) == null) {
+				String sparqlQuery = DIHelper.getInstance().getProperty(
+						"TYPE" + "_" + Constants.QUERY);
+				Hashtable paramTable = new Hashtable();
+				paramTable.put(Constants.ENTITY, type);
+				if (extQuery!=null) {
+					sparqlQuery=extQuery;
+				} else {
+					sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 				}
+
+				names = engine.getEntityOfType(sparqlQuery);
+				Collections.sort(names);
+				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
+				if (paramHash.isEmpty()) {
+					names.addElement("Concept Doesn't Exist in DB");
+					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+					box.setModel(model);
+					return;
+				}
+				//keys are the labels, objects are the URIs
+				Set nameC = paramHash.keySet();
+				nameVector = new Vector(nameC);
+				Collections.sort(nameVector);
 			}
-			box.notify();
 		}
 	}
 
