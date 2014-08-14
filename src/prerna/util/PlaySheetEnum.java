@@ -38,8 +38,10 @@ public enum PlaySheetEnum {
 	Clustering("Clustering", "prerna.ui.components.playsheets.ClusteringVizPlaySheet", "ClusteringVizPlaySheet Hint: numClusters;SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }"),
 	Sankey_Diagram("Sankey Diagram","prerna.ui.components.playsheets.SankeyPlaySheet", "SankeyPlaySheet Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ... }"),
 	World_Heat_Map("World Heat Map","prerna.ui.components.playsheets.WorldHeatMapPlaySheet", "WorldHeatMapPlaySheet Hint: SELECT ?country ?numericHeatValue WHERE{ ... }"),
-	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }");
-	
+	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }"),
+	Circle_Pack("Circle Pack","prerna.ui.components.playsheets.CirclePackPlaySheet", "CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }"),
+	Parallel_Sets("Parallel Sets","prerna.ui.components.playsheets.ParallelSetsPlaySheet", "ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }"),
+	Dendrogram("Dendrogram","prerna.ui.components.playsheets.DendrogramPlaySheet", "DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }");
 
 	private final String sheetName;
 	private final String sheetClass;
