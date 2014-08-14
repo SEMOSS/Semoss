@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+@import url(css/d3.parsets.css);
+
+body {
+  font-family: sans-serif;
+  font-size: 16px;
+  width: 960px;
+  margin: 1em auto;
+  position: relative;
+}
+h1, h2, .dimension text {
+  text-align: center;
+  font-family: "lucida sans","PT Sans", Helvetica;
+  font-weight: 300;
+}
+h1 {
+  font-size: 2em;
+  margin: .5em 0 0 0;
+}
+h2 {
+  font-size: 2em;
+  margin: 1em 0 0.5em;
+  border-bottom: solid #ccc 1px;
+}
+p.meta, p.footer {
+  font-size: 13px;
+  color: #333;
+}
+p.meta {
+  text-align: center;
+}
+
+text.icicle { pointer-events: none; }
+
+.options { font-size: 12px; text-align: center; padding: 5px 0; }
+.curves { float: left; }
+.source { float: right; }
+pre, code { font-family: "Menlo", monospace; }
+
+.html .value,
+.javascript .string,
+.javascript .regexp {
+  color: #756bb1;
+}
+
+.html .tag,
+.css .tag,
+.javascript .keyword {
+  color: #3182bd;
+}
+
+.comment {
+  color: #636363;
+}
+
+.html .doctype,
+.javascript .number {
+  color: #31a354;
+}
+
+.html .attribute,
+.css .attribute,
+.javascript .class,
+.javascript .special {
+  color: #e6550d;
+}
+</style>
+
+<body>
+<div id="nav" style="position: top; z-index:1;" >
+  <img src="img/parsets.png" style="margin-top:5px; margin-right:7px;">
+  <span class="brand" strong style="font-size: 125%;"><b>Parallel Sets</span>
+</div>
+
+<div id="vis"><noscript><img src="img/parsets.png"></noscript></div>
+
+<div class="options">
+
+  <span class="curves"><label for="curved"><input type="checkbox" id="curved" onchange="curves.call(this)"> Curves?</label></span>
+</div>
+
+
+<p style="text-align: left"><label for="icicle"><input type="checkbox" id="icicle"> Icicle plot?</label>
+
+<!--<p><label for="slow"><input type="checkbox" id="slow" onchange="vis.call(chart.duration(this.checked ? 5000 : 500))"> Go slow!</label>-->
+
+
+<script src="lib/d3.v3.js"></script>
+<script src="lib/d3.parsets.js"></script>
+<!--<script src="lib/highlight.min.js"></script>-->
+<!--<script src="data.js"></script>-->
+<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
+
+<script>
+
+var chart, vis, ice;
+//start(dataString);
+//needed to bring this function out of the start function so it can run when referenced instead of returning an undefined function error
+function curves() {
+  var t = vis.transition().duration(500);
+  if (ice) {
+    t.delay(1000);
+    icicle();
+  }
+  t.call(chart.tension(this.checked ? .5 : 1));
+}
+
+function start(dataString){
+  var jsonData = jQuery.parseJSON(dataString);
+  var data = jsonData.dataSeries;
+
+	chart = d3.parsets()
+    .dimensions(jsonData.headers);
+
+	vis = d3.select("#vis").append("svg")
+    .attr("width", chart.width())
+    .attr("height", chart.height());
+
+var partition = d3.layout.partition()
+    .sort(null)
+    .size([chart.width(), chart.height() * 5 / 4])
+    .children(function(d) { return d.children ? d3.values(d.children) : null; })
+    .value(function(d) { return d.count; });
+
+	ice = false;
+
+//d3.csv("ParallelSets.csv", function(csv) {
+var csv=data;
+  vis.datum(csv).call(chart);
+
+  window.icicle = function() {
+    var newIce = this.checked,
+        tension = chart.tension();
+    if (newIce === ice) return;
+    if (ice = newIce) {
+      var dimensions = [];
+      vis.selectAll("g.dimension")
+         .each(function(d) { dimensions.push(d); });
+      dimensions.sort(function(a, b) { return a.y - b.y; });
+      var root = d3.parsets.tree({children: {}}, csv, dimensions.map(function(d) { return d.name; }), function() { return 1; }),
+          nodes = partition(root),
+          nodesByPath = {};
+      nodes.forEach(function(d) {
+        var path = d.name,
+            p = d;
+        while ((p = p.parent) && p.name) {
+          path = p.name + "\0" + path;
+        }
+        if (path) nodesByPath[path] = d;
+      });
+      var data = [];
+	  var node;
+      vis.on("mousedown.icicle", stopClick, true)
+        .select(".ribbon").selectAll("path")
+          .each(function(d) {
+            node = nodesByPath[d.path],
+                s = d.source,
+                t = d.target;
+            s.node.x0 = t.node.x0 = 0;
+            s.x0 = t.x0 = node.x;
+            s.dx0 = s.dx;
+            t.dx0 = t.dx;
+            s.dx = t.dx = node.dx;
+            data.push(d);
+          });
+      iceTransition(vis.selectAll("path"))
+          .attr("d", function(d) {
+            var s = d.source,
+                t = d.target;
+            return ribbonPath(s, t, tension);
+          })
+          .style("stroke-opacity", 1);
+      iceTransition(vis.selectAll("text.icicle")
+          .data(data)
+        .enter().append("text")
+          .attr("class", "icicle")
+          .attr("text-anchor", "middle")
+          .attr("dy", ".3em")
+          .attr("transform", function(d) {
+            return "translate(" + [d.source.x0 + d.source.dx / 2, d.source.dimension.y0 + d.target.dimension.y0 >> 1] + ")rotate(90)";
+          })
+          //.text(function(d) { return d.source.dx > 15 ? d.node.name/*.substring(0, 10)*/ : null; })
+		  .text(truncateText(function(d) { return d.node.name; }, function(d) {return node.dy; }))
+          .style("opacity", 1e-6))
+          .style("opacity", 1);
+      iceTransition(vis.selectAll("g.dimension rect, g.category")
+          .style("opacity", 1))
+          .style("opacity", 1e-6)
+          .each("end", function() { d3.select(this).attr("visibility", "hidden"); });
+      iceTransition(vis.selectAll("text.dimension"))
+          .attr("transform", "translate(0,-5)");
+      vis.selectAll("tspan.sort").style("visibility", "hidden");
+    } else {
+      vis.on("mousedown.icicle", null)
+        .select(".ribbon").selectAll("path")
+          .each(function(d) {
+            var s = d.source,
+                t = d.target;
+            s.node.x0 = s.node.x;
+            s.x0 = s.x;
+            s.dx = s.dx0;
+            t.node.x0 = t.node.x;
+            t.x0 = t.x;
+            t.dx = t.dx0;
+          });
+      iceTransition(vis.selectAll("path"))
+          .attr("d", function(d) {
+            var s = d.source,
+                t = d.target;
+            return ribbonPath(s, t, tension);
+          })
+          .style("stroke-opacity", null);
+      iceTransition(vis.selectAll("text.icicle"))
+          .style("opacity", 1e-6).remove();
+      iceTransition(vis.selectAll("g.dimension rect, g.category")
+          .attr("visibility", null)
+          .style("opacity", 1e-6))
+          .style("opacity", 1);
+      iceTransition(vis.selectAll("text.dimension"))
+          .attr("transform", "translate(0,-25)");
+      vis.selectAll("tspan.sort").style("visibility", null);
+    }
+  };
+  d3.select("#icicle")
+      .on("change", icicle)
+      .each(icicle);
+//});
+
+function iceTransition(g) {
+  return g.transition().duration(1000);
+}
+
+function ribbonPath(s, t, tension) {
+  var sx = s.node.x0 + s.x0,
+      tx = t.node.x0 + t.x0,
+      sy = s.dimension.y0,
+      ty = t.dimension.y0;
+  return (tension === 1 ? [
+      "M", [sx, sy],
+      "L", [tx, ty],
+      "h", t.dx,
+      "L", [sx + s.dx, sy],
+      "Z"]
+   : ["M", [sx, sy],
+      "C", [sx, m0 = tension * sy + (1 - tension) * ty], " ",
+           [tx, m1 = tension * ty + (1 - tension) * sy], " ", [tx, ty],
+      "h", t.dx,
+      "C", [tx + t.dx, m1], " ", [sx + s.dx, m0], " ", [sx + s.dx, sy],
+      "Z"]).join("");
+}
+
+function stopClick() { d3.event.stopPropagation(); }
+
+// Given a text function and width function, truncates the text if necessary to
+// fit within the given width.
+function truncateText(text, width) {
+  return function(d, i) {
+    var t = this.textContent = text(d, i),
+        w = width(d, i);
+    if (this.getComputedTextLength() < w) return t;
+    this.textContent = "…" + t;
+    var lo = 0,
+        hi = t.length + 1,
+        x;
+    while (lo < hi) {
+      var mid = lo + hi >> 1;
+      if ((x = this.getSubStringLength(0, mid)) < w) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo > 1 ? t.substr(0, lo - 2) + "…" : "";
+  };
+}
+}
+</script>
+
