@@ -41,7 +41,7 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 		ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
 		clusterAlg.setNumClusters(numClusters);
 		clusterAlg.execute();
-		ArrayList<Integer> clusterAssigned = clusterAlg.getClustersAssigned();
+		int[] clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		for(Object[] dataRow : list) {
@@ -53,7 +53,7 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 				}
 				newDataRow[i] = dataRow[i];
 			}
-			Integer clusterNumber = clusterAssigned.get(instanceIndexHash.get(instance));
+			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
 			newDataRow[dataRow.length] = clusterNumber;
 			newList.add(newDataRow);
 		}

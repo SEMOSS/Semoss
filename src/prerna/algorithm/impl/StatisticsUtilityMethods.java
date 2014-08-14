@@ -14,7 +14,7 @@ public class StatisticsUtilityMethods {
 			Arrays.sort(values);
 		}
 
-		int n = (int) Math.round(values.length * lowerPercent / 100);
+		int n = (int) Math.floor(values.length * lowerPercent / 100);
 		return values[n];
 	}
 
