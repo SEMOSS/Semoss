@@ -69,8 +69,12 @@ public class ArrayUtilityMethods {
 	}
 
 	public static boolean arrayContainsValue(int[] arr, int value) {
-		int size = arr.length;
 		
+		if(arr == null) {
+			return false;
+		}
+		
+		int size = arr.length;
 		if(size == 0) {
 			return false; //empty array
 		}
