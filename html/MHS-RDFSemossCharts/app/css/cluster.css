@@ -1,28 +1,101 @@
-#rightNodePane{
-    padding: 0px 10px;
-    background-color: #eee;
-    top: 0;
-    right: 0;
-    width: 500px;
-    height: 180px;
-    position: fixed;
-    z-index: 3;
-    border-left: 1px solid #ccc;
+.sm-btn {
+    padding: 3px 8px;
+    border-radius: 3px;
 }
 
-#rightGroupPane{
-    padding: 0px 10px;
+.btn-light {
+    color: #444;
+    background: linear-gradient(to bottom, #ffffff 0, #eeeeee 100%);
+    background-color: white;
+    border: 1px solid #ccc;
+    outline: none;
+}
+
+.btn-light:hover {
+    background: linear-gradient(to bottom, #f7f7f7 0, #e5e5e5 100%);
+    /* W3C */
+    border: 1px solid #c5c5c5;
+}
+
+.btn-light:active,
+.btn-light.toggled {
+    background: #e0e0e0;
+    border: 1px solid #bbb;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+#clusterNavbar{
     background-color: #eee;
-    top: 170px;
+    width: 100%;
+    padding-top: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
+    position: fixed;
+    z-index: 6;
+    border-bottom: 1px solid #ccc;
+    -webkit-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+    -moz-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+    box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+}
+
+.rightNodePane{
+    padding: 10px 10px;
+    background-color: #eee;
+    top: 30px;
     right: 0;
     bottom: 0;
     width: 500px;
-    z-index: 2;
     position: fixed;
+    z-index: 2;
     border-left: 1px solid #ccc;
-    -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
-    -moz-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
-    box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.065);
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.rightNodePane.clusterPaneHidden{
+    right: -530px;
+}
+.barContainer.clusterPaneHidden{
+    right: -530px;
+}
+
+.nodeContainer{
+    border-bottom: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    margin-top: -6px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    height: 107px;
+    overflow-y: scroll;
+    background-color: #fff;
+    -o-text-overflow: ellipsis;
+    -ms-text-overflow: ellipsis;
+    text-overflow: ellipsis;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.barContainer{
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    margin-top: -5px;
+    top: 225px;
+    right: 10px;
+    bottom: 10px;
+    width: 498px;
+    position: fixed;
+    overflow-y: scroll;
+    background-color: #fff;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .titleContainer{
@@ -41,42 +114,14 @@ path.domain{
     fill: black;
 }
 
-.barContainer{
-    border-bottom: 1px solid #ccc;
-    border-left: 1px solid #ccc;
-    border-right: 1px solid #ccc;
-    border-top: 1px solid #ccc;
-    top: 205px;
-    right: 10px;
-    bottom: 10px;
-    width: 498px;
-    position: fixed;
-    overflow-y: scroll;
-    background-color: #fff;
-}
+
 
 .barContainerContents{
     height: 400px;
     background-color: #fff;
 }
 
-.nodeContainer{
-    border-bottom: 1px solid #ccc;
-    border-left: 1px solid #ccc;
-    border-right: 1px solid #ccc;
-    border-top: 1px solid #ccc;
-    padding: 5px;
-    top: 33px;
-    right: 10px;
-    width: 488px;
-    height: 125px;
-    position: fixed;
-    overflow-y: scroll;
-    background-color: #fff;
-    -o-text-overflow: ellipsis;
-    -ms-text-overflow: ellipsis;
-    text-overflow: ellipsis;
-}
+
 
 .nodeContainerText{
     -o-text-overflow: ellipsis;
@@ -84,12 +129,24 @@ path.domain{
     text-overflow: ellipsis;
 }
 
+#hideClusterPropButton{
+    float: right;
+    margin-right: 20px;
+}
+
 #clusterContainer{
     position: absolute;
     right: 500px;
-    top: 0;
+    top: 42px;
     left: 0;
     bottom: 0;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+#clusterContainer.clusterPaneHidden{
+    right: 0;
 }
 
 #thecontroller{

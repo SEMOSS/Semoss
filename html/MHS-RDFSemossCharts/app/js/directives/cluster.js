@@ -8,7 +8,8 @@ app.directive('d3Cluster', function() {
             data: '=',
             setGroupData: "&",
             setNodeData: "&",
-            containerId: "="
+            containerId: "=",
+            isClusterPropActive: "="
         },
         link: function(scope) {
             var clusterData = {};
@@ -16,6 +17,7 @@ app.directive('d3Cluster', function() {
             var groupingCategory = "ClusterID";
             var nodeName = "nodeName";
             var groupingCategoryInstances = {};
+            var barData = [];
 
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data.length == 0 || scope.data == '') {
@@ -24,6 +26,7 @@ app.directive('d3Cluster', function() {
                     if (clusterData != scope.data.dataSeries) {
                         clusterData = {};
                         clusterData = scope.data.dataSeries;
+                        barData = scope.data.barData;
                         update(clusterData);
                     }
                 }
@@ -50,55 +53,10 @@ app.directive('d3Cluster', function() {
                 return array;
             };
 
-            function structureBarData(d){
-                var clusterPropertyCategories = {};
-                var clusterPropertyCategoriesInverse = {};
-                var n = 0;
-                var output = {};
-                for(var key in d.values[0]){
-                    if(key != "x" && key != "y" && key != "px" && key != "py"){
-                        if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory && key != nodeName){
-                            clusterPropertyCategories[key] = n;
-                            clusterPropertyCategoriesInverse[n] = key;
-                            n++;
-                        }
-                    }
-                }
-                for(var h=0; h < n; h++){
-                    var propToAugment = clusterPropertyCategoriesInverse[h];
-                    output[propToAugment] = {'names':[propToAugment,'Frequency'],'dataSeries':[[]]};
-                }
-                //loop through each circle
-                for(var i=0; i < d.values.length; i++){
-                    //loop through each property
-                    for(var j=0; j < n; j++){
-                        var propToAugment = clusterPropertyCategoriesInverse[j];
-                        var xName = d.values[i][propToAugment];
-                        var matchFound = false;
-                        var newObject = {
-                            seriesName: 'Frequency',
-                            x: xName,
-                            y: 1,
-                            y0:0
-                        };
-                        //if xName doesn't exist, add new object to output
-                        for(var s = 0; s<output[propToAugment]["dataSeries"][0].length; s++){
-                            if(output[propToAugment]["dataSeries"][0][s]['x'] == xName){
-                                matchFound = true;
-                            }
-                        }
-                        if(!matchFound){
-                            output[propToAugment]["dataSeries"][0].push(newObject);
-                        }else{
-                            //locate object with matching x value
-                            for(var t = 0; t < output[propToAugment]["dataSeries"][0].length; t++){
-                                if(output[propToAugment]["dataSeries"][0][t]['x'] == xName){
-                                    output[propToAugment]["dataSeries"][0][t]['y']++;
-                                }
-                            }
-                        }
-                    }
-                }
+            function structureBarData(d, barDataArray){
+                var barDataCopy = jQuery.extend(true, {}, barDataArray);
+                var output = [];
+                output = barDataCopy[d.key];
                 scope.setGroupData({groupData: output});
             }
 
@@ -112,7 +70,6 @@ app.directive('d3Cluster', function() {
                         }
                     }
                 }
-
                 scope.setNodeData({nodeData: output});
             }
 
@@ -162,7 +119,7 @@ app.directive('d3Cluster', function() {
                 groupingCategoryInstances = getCategoryInstances(groupingCategory, nodes);
 
                 var groups = d3.nest().key(function (d) {
-                    return groupingCategoryInstances[d[groupingCategory]];
+                    return d[groupingCategory];
                 }).entries(nodes);
 
                 force
@@ -184,7 +141,7 @@ app.directive('d3Cluster', function() {
                     })
                     .attr("r", 8)
                     .style("fill", function (d, i) {
-                        return fill(groupingCategoryInstances[d[groupingCategory]]);
+                        return fill(d[groupingCategory]);
                     })
                     .style("stroke", function (d, i) {
                         return "#777";
@@ -242,8 +199,7 @@ app.directive('d3Cluster', function() {
                         .style("opacity", .2)
                         .attr("d", groupPath)
                         .on("click", function(d){
-                            structureBarData(d);
-//                                console.log(d);
+                            structureBarData(d, barData);
                             var allPaths = d3.selectAll("#" + scope.containerId + " path"),
                                 selectedPath = d3.select(this);
                             //set all circles (and previously selected nodes) to default stroke & stroke-width
@@ -260,15 +216,19 @@ app.directive('d3Cluster', function() {
                 });
             }
 
-            d3.select(window).on('resize', resize);
-
             function resize() {
-                console.log("phil's log");
                 w = parseInt(d3.select('#' + scope.containerId).style('width'));
                 h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+                console.log("resizing");
                 d3.select('#clusterContainer svg').attr("width", w).attr("height", h);
                 force.size([w, h]).resume();
             }
-        }
+
+            d3.select(window).on('resize', resize);
+            scope.$watch('isClusterPropActive', function() {
+                setTimeout(resize, 300);
+            });
+        },
+        template:"<div></div>"
     }
-});
+})
