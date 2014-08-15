@@ -12,7 +12,10 @@ app.controller('dataCtrl', function($scope, $http) {
 
     $scope.setGroupData = function(groupData) {
         $scope.$apply(function(){
+//            $scope.groupData = {};
+
             $scope.groupData = groupData;
+//            console.log($scope.groupData);
         });
     };
 
