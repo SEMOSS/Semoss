@@ -56,15 +56,6 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 		JComboBox source = (JComboBox) arg0.getSource();
 		int length = source.getName().length();
 		this.exportNo = Integer.parseInt(source.getName().substring(length-1, length));
-
-		JComboBox subjectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
-		JComboBox objectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
-		if(subjectNodeTypeComboBox.getSelectedItem() != null && objectNodeTypeComboBox.getSelectedItem() != null) {
-			this.subjectNodeType = subjectNodeTypeComboBox.getSelectedItem().toString();
-			this.objectNodeType = objectNodeTypeComboBox.getSelectedItem().toString();
-		}
-		
-		runQuery(this.subjectNodeType, this.objectNodeType);
 	}
 	
 	/**
@@ -73,7 +64,18 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 	 */
 	public void updateFromSubjectNodeTypeComboBox(int exportNo) {
 		this.exportNo = exportNo;
-		this.actionPerformed(null);
+		updateComboBoxes();
+	}
+	
+	private void updateComboBoxes() {
+		JComboBox subjectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
+		JComboBox objectNodeTypeComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + this.exportNo);
+		if(subjectNodeTypeComboBox.getSelectedItem() != null && objectNodeTypeComboBox.getSelectedItem() != null) {
+			this.subjectNodeType = subjectNodeTypeComboBox.getSelectedItem().toString();
+			this.objectNodeType = objectNodeTypeComboBox.getSelectedItem().toString();
+		}
+		
+		runQuery(this.subjectNodeType, this.objectNodeType);
 	}
 
 	/**
