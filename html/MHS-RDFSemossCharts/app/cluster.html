@@ -1,38 +1,43 @@
 <!doctype html>
 <html lang="en" ng-app="app">
 <head>
-  <meta charset="utf-8">
-  <title>Cluster</title>
-  <link rel="stylesheet" href="css/bootstrap.css">
-  <link rel="stylesheet" href="css/cluster.css">
-  <script src="lib/angular/angular.js"></script>
-  <script src="js/clusterapp.js"></script>
-  <script src="js/clustercontrollers.js"></script>
-  <script src="js/clusterfilters.js"></script>
-  <script src="js/directives/cluster.js"></script>
-  <script src="js/directives/clustercolumnchart.js"></script>
-  <script src="lib/d3.min.js"></script>
-  <script src="lib/jquery/jquery-1.8.3.min.js"></script>
-  <script src="lib/bootstrap.js"></script>
+    <meta charset="utf-8">
+    <title>Cluster</title>
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/cluster.css">
+    <script src="lib/angular/angular.js"></script>
+    <script src="js/clusterapp.js"></script>
+    <script src="js/clustercontrollers.js"></script>
+    <script src="js/clusterfilters.js"></script>
+    <script src="js/directives/cluster.js"></script>
+    <script src="js/directives/clustercolumnchart.js"></script>
+    <!--<script src="data/barData.js"></script>-->
+    <script src="lib/d3.min.js"></script>
+    <!--<script src="lib/d3/d3.tip.js"></script>-->
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/bootstrap.js"></script>
+
 </head>
 <body>
 <div id='thecontroller' ng-controller="dataCtrl">
-    <div id="clusterContainer">
-        <d3-cluster data="data" set-group-data="setGroupData(groupData)" set-node-data="setNodeData(nodeData)" id="clusterViz" container-id="'clusterContainer'"></d3-cluster>
+    <div id = "clusterNavbar">
+        <p style="float: left; margin-top: 5px; font-size:large"; ><b>Cluster Visualization</b></p>
+        <button id="hideClusterPropButton" class="sm-btn btn-light" ng-click="isClusterPropActive = !isClusterPropActive " style="padding-left: 9px; padding-right: 9px;" ng-class="{'toggled': isClusterPropActive }">Hide Cluster Properties</button>
     </div>
-    <div id="rightNodePane">
-        <h4> Node Properties</h4>
-        <div class = "nodeContainer">
+    <div id="clusterContainer" ng-class="{'clusterPaneHidden': isClusterPropActive}">
+        <d3-cluster data="data" set-group-data="setGroupData(groupData)" set-node-data="setNodeData(nodeData)" id="clusterViz" container-id="'clusterContainer'" is-cluster-prop-active="isClusterPropActive"></d3-cluster>
+    </div>
+    <div class="rightNodePane" ng-class="{'clusterPaneHidden': isClusterPropActive}">
+        <p style="padding-top: 10px"><b> Node Properties</b></p>
+        <div class = "nodeContainer" >
             <div ng-repeat = "(nodeDatumName, nodeDatum) in nodeData">
                 <p class = "nodeContainerText"><b>{{nodeDatumName + ": "}}</b> {{nodeDatum}}</p>
             </div>
         </div>
-    </div>
-    <div id="rightGroupPane">
-        <h4> Group Properties</h4>
-        <div class = "barContainer">
+        <p style = "margin-top:6px"><b> Group Properties</b></p>
+        <div class = "barContainer" ng-class="{'clusterPaneHidden': isClusterPropActive}">
             <div ng-repeat = "(groupDatumName, groupDatum) in groupData">
-                <h4 style = "text-align:center; margin-top: 20px">{{groupDatum.names[1] + " vs. " + groupDatumName}}</h4>
+                <p style = "text-align:center; margin-top: 20px">{{groupDatum.names[1] + " vs. " + groupDatumName}}</p>
                 <div class="barContainerContents">
                     <columnchart container-class="'barContainerContents'" data="groupDatum" control="columnchartBrowseCtrl"></columnchart>
                 </div>
@@ -42,6 +47,15 @@
     </div>
 </div>
 <script>
+
+//    function start(startData) {
+//        var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+//        ctrlScope.setJSONData(startData);
+//    }
+//    $(document).ready(function() {
+//        start(avnwxData);
+//    });
+
     function start(dataString) {
 		var jsonData = jQuery.parseJSON(dataString);
 		var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
