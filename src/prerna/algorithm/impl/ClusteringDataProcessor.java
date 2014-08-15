@@ -221,11 +221,10 @@ public class ClusteringDataProcessor {
 	 * @return						A list containing the entropy for each categorical property
 	 */
 	private double[] calculateEntropy(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
-		double[] entropyArr = new double[trackPropOccurance.size()];
-
-		int numWeights = entropyArr.length;
-		int counter = 0;
-		for(int i = 0; i < numWeights; i++) {
+		int numWeights = trackPropOccurance.size();
+		double[] entropyArr = new double[numWeights];
+		int i;
+		for(i = 0; i < numWeights; i++) {
 			Hashtable<String, Integer> columnInformation = trackPropOccurance.get(i);
 			ArrayList<Integer> columnPropInstanceCountArr = new ArrayList<Integer>();
 
@@ -246,7 +245,7 @@ public class ClusteringDataProcessor {
 			}
 			
 			Double entropy = sumProb / unqiueCountOfPropInstances;
-			entropyArr[counter] = entropy;
+			entropyArr[i] = entropy;
 		}
 		
 		return entropyArr;
