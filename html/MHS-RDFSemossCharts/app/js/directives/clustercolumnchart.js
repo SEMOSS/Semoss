@@ -7,7 +7,7 @@ app.directive('columnchart', function($filter, $rootScope) {
             containerClass: "="
 //            control: "=",
 //            sendUri: "&"
-        }, 
+        },
         link: function(scope, ele, attrs) {
             var margin = {top: 20, right: 40, bottom: 100, left: 80},
                 container = {width: 0, height: 0},
@@ -18,12 +18,12 @@ app.directive('columnchart', function($filter, $rootScope) {
                 names = [], nodes = [], edges = [],
                 xAxisText = "", yAxisText = "",
                 standardBarOpacity = .65,
-				barsTransitionDuration = 230, axisTransitionDuration = 1000,
-				axisLabelPadding = 15, currentLeftMargin = 0, currentWidth = 0,
-				absoluteBarPadding = 1, barPadding = 0.05,
+                barsTransitionDuration = 230, axisTransitionDuration = 1000,
+                axisLabelPadding = 15, currentLeftMargin = 0, currentWidth = 0,
+                absoluteBarPadding = 1, barPadding = 0.05,
                 yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
+            var columnData = {};
 
-            console.log("asdfasdfasdf");
             scope.internalControl = scope.control || {};
             scope.$on('filterValue', function(event, args){
                 console.log("holy cow col chart ::::: " + event.name + " " + args);
@@ -51,20 +51,24 @@ app.directive('columnchart', function($filter, $rootScope) {
                     //don't want to do anything if there is no freakin data
                     console.log("no data");
                 } else {
-                    dataSeriesObject.length = 0;
-                    dataSeriesKeys.length = 0;
-                    names.length = 0;
-                    dataSeriesObject = scope.data.dataSeries;
-                    console.log(dataSeriesObject);
-                    dataSeriesKeys = dataSeriesObject[0].map(function(d) { return d.x});
-                    xAxisText = scope.data.names[0];
-                    console.log(xAxisText);
-                    names = scope.data.names;
-                    console.log(names);
+                    if(columnData != scope.data){
+                        columnData = scope.data;
+//                        console.log(columnData);
+                        dataSeriesObject.length = 0;
+                        dataSeriesKeys.length = 0;
+                        names.length = 0;
+                        dataSeriesObject = columnData.dataSeries;
+//                    console.log(dataSeriesObject);
+                        dataSeriesKeys = dataSeriesObject[0].map(function(d) { return d.x});
+                        xAxisText = columnData.names[0];
+//                    console.log(xAxisText);
+                        names = columnData.names;
+//                    console.log(names);
 //                    nodes = scope.data.nodes;
 //                    edges = scope.data.edges;
-                    legendArray.length = 0;
-                    update();
+                        legendArray.length = 0;
+                        update();
+                    }
                 }
             });
 
@@ -76,25 +80,25 @@ app.directive('columnchart', function($filter, $rootScope) {
             });
 
             var color;
-                //d3.scale.linear()
-                //.domain([0, dataSeriesObject.length - 1])
-                //.range(["#aad", "#556"]);
+            //d3.scale.linear()
+            //.domain([0, dataSeriesObject.length - 1])
+            //.range(["#aad", "#556"]);
 
-			var createCount = 0;
+            var createCount = 0;
 
             //setup x
-			var xScale = d3.scale.ordinal()
-				.rangeRoundBands([0, container.width ], barPadding);
+            var xScale = d3.scale.ordinal()
+                .rangeRoundBands([0, container.width ], barPadding);
 
             //setup y
-			var yScale = d3.scale.linear()
+            var yScale = d3.scale.linear()
                 .rangeRound([container.height, 0]);
 
 
-			var yAxis = d3.svg.axis()
-				.scale(yScale)
-				.orient("left")
-				.tickSize(0);
+            var yAxis = d3.svg.axis()
+                .scale(yScale)
+                .orient("left")
+                .tickSize(0);
 
             // add the graph canvas to the body of the webpage
             var svg = d3.select(ele[0]).append("svg")
@@ -124,7 +128,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                     else
                         console.log("NOT showing context menu as no edge or node was clicked");
                 })
-			.append("g")
+                .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
                 .attr("width", container.width)
                 .attr("height", container.height);
@@ -145,7 +149,7 @@ app.directive('columnchart', function($filter, $rootScope) {
             var layer = svg.selectAll(".layer");
             var rect = layer.selectAll(".bar");
 
-            d3.select(window).on("resize", resize);
+//            d3.select(window).on("resize", resize);
 
             //x axis
             svg.append("svg:g")
@@ -153,21 +157,21 @@ app.directive('columnchart', function($filter, $rootScope) {
                 .attr("transform", "translate(0," + container.height + ")");
             //x axis text/label
             svg.selectAll("g.x.axis").append("text")
-				.attr("class", "label")
-				.attr("x", container.width/2)
-				.attr("y", margin.bottom - 6)
-				.style("text-anchor", "end")
-				.text("");
-			//x axis line
-			svg.selectAll("g.x.axis").append("svg:line")
-				.attr("class", "x-axis-line")
-				.attr("x1", 0)
-				.attr("y1", 0)
-				.attr("x2", 0)
-				.attr("y2", 0)
-				.style("stroke", "black")
-				.style("stroke-width", 1)
-				.style("shape-rendering", "crispEdges");
+                .attr("class", "label")
+                .attr("x", container.width/2)
+                .attr("y", margin.bottom - 6)
+                .style("text-anchor", "end")
+                .text("");
+            //x axis line
+            svg.selectAll("g.x.axis").append("svg:line")
+                .attr("class", "x-axis-line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", 0)
+                .attr("y2", 0)
+                .style("stroke", "black")
+                .style("stroke-width", 1)
+                .style("shape-rendering", "crispEdges");
 
             //y axis
             svg.append("g")
@@ -541,7 +545,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 else {
                     rect
                         .attr("y", function (d) {
-							console.log(d);
+                            console.log(d);
                             return yScale(d.y0 + Number(d.y));
                         })
                         .attr("height", function (d) {
@@ -556,7 +560,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 console.log("transitioning to stacked");
                 stacked = true;
                 yScale.domain([0, yStackMax]);
-				
+
                 rect.transition()
                     .duration(500)
                     .delay(function(d, i) { return i * 10; })
@@ -576,7 +580,7 @@ app.directive('columnchart', function($filter, $rootScope) {
             //font size is dynamically calculated based on bar width (available space)
             function getFontSize(){
                 var font = Math.round(xScale.rangeBand() / 2);
-                console.log("Range Band: " + xScale.rangeBand());
+//                console.log("Range Band: " + xScale.rangeBand());
                 if(font >12) {
                     font = 12;
                 }
