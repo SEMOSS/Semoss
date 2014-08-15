@@ -99,7 +99,7 @@ public class CustomizeSparqlBtnListener implements IChakraListener {
 				area.setForeground(Color.GRAY);
 			} 
 			// if sparql area currently has a hint
-			else if (area.getText().startsWith("Hint:")) {
+			else if (area.getText().contains("Hint:")) {
 				// set text with current playsheet hint and set font to italics and gray
 				area.setText(PlaySheetEnum.getHintFromName(selectedPlaySheet));
 				area.setFont(new Font("Tahoma", Font.ITALIC, 11));
