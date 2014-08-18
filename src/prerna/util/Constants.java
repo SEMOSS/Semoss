@@ -304,6 +304,11 @@ public class Constants {
 	public static final String APPRECIATION_TEXT_BOX = "appreciationValueTextField";
 	public static final String DEPRECIATION_TEXT_BOX = "depreciationValueTextField";
 	
+	//Common Subgraph
+	public static final String COMMON_SUBGRAPH_THRESHOLD_TEXT_BOX = "commonSubgraphThresholdTextField";
+	public static final String COMMON_SUBGRAPH_COMBO_BOX_0 = "commonSubgraphComboBox0";
+	public static final String COMMON_SUBGRAPH_COMBO_BOX_1 = "commonSubgraphComboBox1";
+	
 	//Central System Sys-BP Sys-Activity Aggregation Thresholds
 	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
 	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";

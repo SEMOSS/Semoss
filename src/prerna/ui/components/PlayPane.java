@@ -292,7 +292,7 @@ public class PlayPane extends JFrame {
 	private Panel functionalAreaPanel;
 	public JCheckBox HSDCheckBox, HSSCheckBox, FHPCheckBox, DHMSMCheckBox;
 	public JButton btnCalculateVendorTMAlone;
-	public JButton btnDeconflictingReport;
+	public JButton btnDeconflictingReport, btnCommonSubgraph;
 
 	// Fact Sheet Report Generator Panel
 	private JSeparator separator_7;
@@ -307,6 +307,10 @@ public class PlayPane extends JFrame {
 	public JButton btnTaskerGeneration, btnInterfaceReportButton;
 	public JButton btnSystemInfoGenButton, btnDataInterfaceWithDHMSM;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
+	
+	//MHS TAP: REPORT GENERATOR: COMMON SUBGRAPH
+	public JTextField commonSubgraphThresholdTextField;
+	public JComboBox<String> commonSubgraphComboBox0,commonSubgraphComboBox1;
 	
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
@@ -2836,6 +2840,108 @@ public class PlayPane extends JFrame {
 		gbc_btnDataInterfaceWithDHMSM.gridy = 4;
 		TaskerGenerationPanel.add(btnDataInterfaceWithDHMSM, gbc_btnDataInterfaceWithDHMSM);
 		Style.registerTargetClassName(btnDataInterfaceWithDHMSM, ".standardButton");
+		
+		///Common Subgraph functions --> ultimately to be used for database recommender. temporarily here for George's testing
+		
+		JSeparator separator_10 = new JSeparator();
+		GridBagConstraints gbc_separator_10 = new GridBagConstraints();
+		gbc_separator_10.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separator_10.gridwidth = 1;
+		gbc_separator_10.insets = new Insets(5, 5, 5, 5);
+		gbc_separator_10.gridx = 0;
+		gbc_separator_10.gridy = 7;
+		tapReportPanel.add(separator_10, gbc_separator_10);
+
+		JPanel commonSubgraphPanel = new JPanel();
+		commonSubgraphPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_commonSubgraphPanel = new GridBagConstraints();
+		gbc_commonSubgraphPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_commonSubgraphPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_commonSubgraphPanel.gridx = 0;
+		gbc_commonSubgraphPanel.gridy = 8;
+		tapReportPanel.add(commonSubgraphPanel, gbc_commonSubgraphPanel);
+		GridBagLayout gbl_commonSubgraphPanel = new GridBagLayout();
+		gbl_commonSubgraphPanel.columnWidths = new int[] { 10, 10, 0, 0, 75, 75, 300 };
+		gbl_commonSubgraphPanel.rowHeights = new int[] { 0, 0, 0, 0, 0 };
+		gbl_commonSubgraphPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		gbl_commonSubgraphPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
+		commonSubgraphPanel.setLayout(gbl_commonSubgraphPanel);
+
+		JLabel commonSubgraphTitleLabel = new JLabel("Determine Common Subgraph between Databases");
+		GridBagConstraints gbc_commonSubgraphTitleLabel = new GridBagConstraints();
+		gbc_commonSubgraphTitleLabel.gridwidth = 3;
+		gbc_commonSubgraphTitleLabel.fill = GridBagConstraints.BOTH;
+		gbc_commonSubgraphTitleLabel.insets = new Insets(5, 0, 10, 5);
+		gbc_commonSubgraphTitleLabel.gridx = 1;
+		gbc_commonSubgraphTitleLabel.gridy = 0;
+		commonSubgraphPanel.add(commonSubgraphTitleLabel, gbc_commonSubgraphTitleLabel);
+		commonSubgraphTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		
+		JLabel lblCommonSubgraphThreshold = new JLabel("Similarity Threshold:");
+		lblCommonSubgraphThreshold.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblCommonSubgraphThreshold = new GridBagConstraints();
+		gbc_lblCommonSubgraphThreshold.anchor = GridBagConstraints.WEST;
+		gbc_lblCommonSubgraphThreshold.insets = new Insets(0, 0, 5, 5);
+		gbc_lblCommonSubgraphThreshold.gridx = 2;
+		gbc_lblCommonSubgraphThreshold.gridy = 1;
+		commonSubgraphPanel.add(lblCommonSubgraphThreshold, gbc_lblCommonSubgraphThreshold);
+
+		commonSubgraphThresholdTextField = new JTextField();
+		commonSubgraphThresholdTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		commonSubgraphThresholdTextField.setMinimumSize(new Dimension(122, 28));
+		commonSubgraphThresholdTextField.setSize(new Dimension(10, 28));
+		commonSubgraphThresholdTextField.setText("2.0");
+		commonSubgraphThresholdTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_commonSubgraphThresholdTextField = new GridBagConstraints();
+		gbc_commonSubgraphThresholdTextField.anchor = GridBagConstraints.WEST;
+		gbc_commonSubgraphThresholdTextField.insets = new Insets(0, 0, 5, 5);
+		gbc_commonSubgraphThresholdTextField.gridx = 3;
+		gbc_commonSubgraphThresholdTextField.gridy = 1;
+		commonSubgraphPanel.add(commonSubgraphThresholdTextField, gbc_commonSubgraphThresholdTextField);
+		commonSubgraphThresholdTextField.setColumns(12);
+		
+		/////TODO FIX
+		JLabel commonSubgraphDatabaseLabel = new JLabel("Select Databases:");
+		GridBagConstraints gbc_commonSubgraphDatabaseLabel = new GridBagConstraints();
+		gbc_commonSubgraphDatabaseLabel.anchor = GridBagConstraints.WEST;
+		gbc_commonSubgraphDatabaseLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_commonSubgraphDatabaseLabel.gridx = 2;
+		gbc_commonSubgraphDatabaseLabel.gridy = 2;
+		commonSubgraphPanel.add(commonSubgraphDatabaseLabel, gbc_commonSubgraphDatabaseLabel);
+
+		commonSubgraphComboBox0 = new JComboBox<String>();
+		commonSubgraphComboBox0.setEditable(false);
+		GridBagConstraints gbc_commonSubgraphComboBox0 = new GridBagConstraints();
+		gbc_commonSubgraphComboBox0.gridwidth = 1;
+		gbc_commonSubgraphComboBox0.insets = new Insets(0, 0, 5, 5);
+		gbc_commonSubgraphComboBox0.fill = GridBagConstraints.HORIZONTAL;
+		gbc_commonSubgraphComboBox0.gridx = 2;
+		gbc_commonSubgraphComboBox0.gridy = 3;
+		commonSubgraphPanel.add(commonSubgraphComboBox0, gbc_commonSubgraphComboBox0);
+		
+		commonSubgraphComboBox1 = new JComboBox<String>();
+		commonSubgraphComboBox1.setEditable(false);
+		GridBagConstraints gbc_commonSubgraphComboBox1 = new GridBagConstraints();
+		gbc_commonSubgraphComboBox1.gridwidth = 1;
+		gbc_commonSubgraphComboBox1.insets = new Insets(0, 0, 5, 5);
+		gbc_commonSubgraphComboBox1.fill = GridBagConstraints.HORIZONTAL;
+		gbc_commonSubgraphComboBox1.gridx = 3;
+		gbc_commonSubgraphComboBox1.gridy = 3;
+		commonSubgraphPanel.add(commonSubgraphComboBox1, gbc_commonSubgraphComboBox1);
+		///
+		
+
+		btnCommonSubgraph = new CustomButton("Run Common Subgraph");
+		btnCommonSubgraph.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnCommonSubgraph = new GridBagConstraints();
+		gbc_btnCommonSubgraph.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnCommonSubgraph.gridwidth = 2;
+		gbc_btnCommonSubgraph.insets = new Insets(0, 0, 5, 5);
+		gbc_btnCommonSubgraph.gridx = 2;
+		gbc_btnCommonSubgraph.gridy = 4;
+		gbc_btnCommonSubgraph.fill = GridBagConstraints.HORIZONTAL;
+		commonSubgraphPanel.add(btnCommonSubgraph,gbc_btnCommonSubgraph);
+		Style.registerTargetClassName(btnCommonSubgraph,".standardButton");
 		
 		JPanel dhmsmReportPanel = new JPanel();
 		dhmsmReportPanel.setBackground(SystemColor.control);
