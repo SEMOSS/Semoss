@@ -115,6 +115,18 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			exportDataDBComboBoxModel.addElement(engineName);
 			exportDataDBComboBox.repaint();
 			
+			//initialize combo box for common subgraph
+			JComboBox commonSubgraphComboBox0 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_0);
+			DefaultComboBoxModel commonSubgraphComboBox0Model = (DefaultComboBoxModel) commonSubgraphComboBox0.getModel();
+			commonSubgraphComboBox0Model.addElement(engineName);
+			commonSubgraphComboBox0.repaint();
+			
+			JComboBox commonSubgraphComboBox1 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_1);
+			DefaultComboBoxModel commonSubgraphComboBox1Model = (DefaultComboBoxModel) commonSubgraphComboBox1.getModel();
+			commonSubgraphComboBox1Model.addElement(engineName);
+			commonSubgraphComboBox1.repaint();
+			
+			
 			JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
 					Constants.MAIN_FRAME);
 			frame2.repaint();
