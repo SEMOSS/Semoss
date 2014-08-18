@@ -3,7 +3,6 @@ package prerna.algorithm.impl;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -17,7 +16,8 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 	private int[] numWinsForCluster;
 	private double n;
 	private int originalNumClusters;
-	
+	PrintWriter writer = null;
+
 	//Constructor
 	public AgglomerativeClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		super(masterTable, varNames);
@@ -45,17 +45,17 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		
 		int i;
 		for(i = 0; i < numClusters; i++) {
-			gammaArr[i] = lambdaArr[i] = (double) 1 / numClusters;
-			numWinsForCluster[i] = 1;
+			gammaArr[i] = (double) 1 / numClusters;
+			lambdaArr[i] = numWinsForCluster[i] = 1;
 		}
 		//continue until there are no changes, so when noChange == true, quit.
 		//or quit after some ridiculously large number of times with an error
 		Boolean oneCluster = false;
-		PrintWriter writer = null;
 		try {
 			writer = new PrintWriter("Clustering_Algorithm_Output_NumCluster_" + numClusters + "_LearningFactor_" + n + ".txt");
 			writer.println("Initial Number of clusters = " + numClusters);
 			writer.println("Learning Factor = " + n);
+			writer.println("");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -67,6 +67,8 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 					oneCluster = true;
 					break;
 				} else {
+					writer.println("Iteration number " + (iterationCount+1));
+
 					int instanceInd = instanceIndexHash.get(instance);
 					int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount + 1 + originalNumClusters);
 					int oldClusterForInstance = clustersAssigned[instanceInd];
@@ -90,8 +92,6 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 						clustersAssigned[instanceInd] = newClustersForInstance;
 					}
 					
-					
-					writer.println("Iteration number " + (iterationCount+1));
 					writer.println("Number of clusters = " + numClusters);
 					writer.println("Number of instances in each cluster: ");
 					for(int j = 0; j < numClusters; j++) {
@@ -196,6 +196,9 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
 		}
 		
+		writer.println("Found min cluster: #" + topTwoClustersWithMaxSimilarity[0] + " with value of " + minScore);
+		writer.println("Found runner up cluster: #" + topTwoClustersWithMaxSimilarity[1] + " with value of " + minScore);
+
 		return topTwoClustersWithMaxSimilarity[0];
 	}
 	
@@ -203,90 +206,8 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		this.n = n;
 	}
 	
-	/** Updates the cluster number properties matrix for the instance that is switching clusters
-	 * This removes the instance's properties from the old clusters properties.
-	 * This add the instance's properties to the new cluster's properties.
-	 **/
-	@Override
-	protected final Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
-		//iterate through every numerical property of instance
-		//remove from the old cluster index using old val (avg) * oldNum in cluster
-		if(instanceNumberMatrix != null)
-		{
-			int numNumericalProps = instanceNumberMatrix[0].length;
-			int numberIdx;
-			if(oldClusterForInstance > -1) {
-//				if((clustersNumInstances[oldClusterForInstance] - 1) == 0) {
-//					deleteCluster(oldClusterForInstance);
-//					numClusters--;
-//				} else {			
-					for(numberIdx = 0; numberIdx < numNumericalProps; numberIdx++) {
-						double numberValForInstance = instanceNumberMatrix[instanceInd][numberIdx];
-						// update the old cluster
-						double oldNumberValForInstance = clusterNumberMatrix[oldClusterForInstance][numberIdx];
-						double valToPut = (oldNumberValForInstance * clustersNumInstances[oldClusterForInstance] - numberValForInstance) /  (clustersNumInstances[oldClusterForInstance] - 1);
-						clusterNumberMatrix[oldClusterForInstance][numberIdx] = valToPut;
-					}
-//				}
-			}
-			for(numberIdx = 0; numberIdx < numNumericalProps; numberIdx++) {
-				// update the new cluster
-				double numberValForInstance = instanceNumberMatrix[instanceInd][numberIdx];
-				double newClusterValForInstance = clusterNumberMatrix[newClusterForInstance][numberIdx];
-				double valToPut = (newClusterValForInstance * clustersNumInstances[newClusterForInstance] + numberValForInstance) /  (clustersNumInstances[newClusterForInstance] + 1);
-				clusterNumberMatrix[newClusterForInstance][numberIdx] = valToPut;
-			}
-			return clusterNumberMatrix;
-		}
-		return null;
-	}
-
-	/** Updates the cluster category property matrix for the instance that is switching clusters
-	 * This removes the instance's properties from the old clusters properties.
-	 * This add the instance's properties to the new cluster's properties.
-	 **/
-	@Override
-	protected final ArrayList<ArrayList<Hashtable<String,Integer>>> updateClustersCategoryProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
-		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
-		for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
-			String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
-
-			if(oldClusterForInstance>-1) {
-				//remove the category property from the old cluster
-				Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
-				//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
-				if(propValHash.containsKey(categoryValForInstance)) {
-					int propCount = propValHash.get(categoryValForInstance);
-					propCount --;
-					if(propCount == 0) {
-						propValHash.remove(categoryValForInstance);
-					} else {
-						propValHash.put(categoryValForInstance,propCount);
-					}
-				}
-				else{
-					System.out.println("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
-				}
-			}
-			//add the category properties to the new cluster
-			Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
-			//if there is already a count going for the same property as the instance, add to it, otherwise create a new hash entry
-			if(propValHash.containsKey(categoryValForInstance)) {
-				int propCount = propValHash.get(categoryValForInstance);
-				propCount ++;
-				propValHash.put(categoryValForInstance,propCount);
-				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
-			}
-			else{
-				propValHash.put(categoryValForInstance, 1);
-				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
-			}
-		}
-		return clusterCategoryMatrix;
-	}
-	
 	private void deleteCluster(int oldClusterForInstance) {
-		System.out.println("Removing cluster " + oldClusterForInstance);
+		writer.println("Removing cluster " + oldClusterForInstance);
 		int i;
 		int counter = 0;
 		// reduce size of num cluster array
