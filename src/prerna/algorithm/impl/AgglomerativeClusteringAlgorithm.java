@@ -190,16 +190,36 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			gammaArr[i] = (double) numWinsForCluster[i] / totalCount;
 		}
 		
+		boolean cannotIncrease = true;
 		double newLambdaWinner = lambdaArr[topTwoClustersWithMaxSimilarity[0]] + n;
-		if(newLambdaWinner > 1) {
+		double newLamdbaRunnerUp = lambdaArr[topTwoClustersWithMaxSimilarity[1]] - n * secondScore;
+		//cannot increase winner
+		if(newLambdaWinner > 1 && newLamdbaRunnerUp > 0) {
 			lambdaArr[topTwoClustersWithMaxSimilarity[0]] = (double) 1;
-		} else {
+			if((newLamdbaRunnerUp - n*secondScore) > 0) {
+				lambdaArr[topTwoClustersWithMaxSimilarity[1]] = newLamdbaRunnerUp - n*secondScore;
+			} else {
+				lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
+			}
+		// can increase winner and decrease runner up
+		} else if(newLambdaWinner < 1 && newLamdbaRunnerUp > 0) {
 			lambdaArr[topTwoClustersWithMaxSimilarity[0]] = newLambdaWinner;
+			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = newLamdbaRunnerUp;
+		// cannot decrease runner up
+		} else if(newLambdaWinner < 1 && newLamdbaRunnerUp < 0) {
+			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
+			if((newLambdaWinner + n) > 1) {
+				lambdaArr[topTwoClustersWithMaxSimilarity[0]] = (double) 1;
+			} else {
+				lambdaArr[topTwoClustersWithMaxSimilarity[0]] = newLambdaWinner + n;
+			}
+		//cannot increase winner or decrease runner up
+		} else {
+			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
+			lambdaArr[topTwoClustersWithMaxSimilarity[0]] = (double) 1;
 		}
 		
-		double newLamdbaRunnerUp = lambdaArr[topTwoClustersWithMaxSimilarity[1]] - n * secondScore;
 		if(newLamdbaRunnerUp > 0) {
-			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = newLamdbaRunnerUp;
 		} else {
 			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
 		}
