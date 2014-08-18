@@ -197,7 +197,7 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		}
 		
 		writer.println("Found min cluster: #" + topTwoClustersWithMaxSimilarity[0] + " with value of " + minScore);
-		writer.println("Found runner up cluster: #" + topTwoClustersWithMaxSimilarity[1] + " with value of " + minScore);
+		writer.println("Found runner up cluster: #" + topTwoClustersWithMaxSimilarity[1] + " with value of " + secondScore);
 
 		return topTwoClustersWithMaxSimilarity[0];
 	}
