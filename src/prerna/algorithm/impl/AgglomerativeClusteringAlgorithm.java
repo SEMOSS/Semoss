@@ -1,5 +1,7 @@
 package prerna.algorithm.impl;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -28,7 +30,7 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 	 * The number of instances in each cluster is stored in clustersNumInstances.
 	 */
 	@Override
-	public boolean execute() throws IllegalArgumentException {
+	public boolean execute() {
 		
 		setUpAlgorithmVariables();
 		
@@ -48,60 +50,79 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		}
 		//continue until there are no changes, so when noChange == true, quit.
 		//or quit after some ridiculously large number of times with an error
+		Boolean oneCluster = false;
+		PrintWriter writer = null;
+		try {
+			writer = new PrintWriter("Clustering_Algorithm_Output_NumCluster_" + numClusters + "_LearningFactor_" + n + ".txt");
+			writer.println("Initial Number of clusters = " + numClusters);
+			writer.println("Learning Factor = " + n);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 		while(!noChange && iterationCount <= maxIterations) {
 			noChange = true;
 			for(String instance : instanceIndexHash.keySet()) {
-				int instanceInd = instanceIndexHash.get(instance);
-				System.out.println(numClusters);
-				int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount + 1 + originalNumClusters);
-				int oldClusterForInstance = clustersAssigned[instanceInd];
-				if(newClustersForInstance != oldClusterForInstance) {
-					noChange = false;
-					clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance, newClustersForInstance, clusterNumberMatrix, clustersNumInstances);
-					clusterCategoryMatrix = updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClustersForInstance, clusterCategoryMatrix);
-					if(oldClusterForInstance > -1) {
-						clustersNumInstances[oldClusterForInstance]--;
-						// if there is now nothing in the cluster in cluster, delete it and adjust all indices for variables
-						if(clustersNumInstances[oldClusterForInstance] == 0) {
-							deleteCluster(oldClusterForInstance);
-							numClusters--;
-							if(newClustersForInstance > oldClusterForInstance) {
-								// since all indices above the old cluster have dropped by one
-								newClustersForInstance--;
+				if(numClusters == 1) {
+					writer.close();
+					oneCluster = true;
+					break;
+				} else {
+					int instanceInd = instanceIndexHash.get(instance);
+					int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount + 1 + originalNumClusters);
+					int oldClusterForInstance = clustersAssigned[instanceInd];
+					if(newClustersForInstance != oldClusterForInstance) {
+						noChange = false;
+						clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance, newClustersForInstance, clusterNumberMatrix, clustersNumInstances);
+						clusterCategoryMatrix = updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClustersForInstance, clusterCategoryMatrix);
+						if(oldClusterForInstance > -1) {
+							clustersNumInstances[oldClusterForInstance]--;
+							// if there is now nothing in the cluster in cluster, delete it and adjust all indices for variables
+							if(clustersNumInstances[oldClusterForInstance] == 0) {
+								deleteCluster(oldClusterForInstance);
+								numClusters--;
+								if(newClustersForInstance > oldClusterForInstance) {
+									// since all indices above the old cluster have dropped by one
+									newClustersForInstance--;
+								}
 							}
 						}
+						clustersNumInstances[newClustersForInstance]++;
+						clustersAssigned[instanceInd] = newClustersForInstance;
 					}
-					clustersNumInstances[newClustersForInstance]++;
-					clustersAssigned[instanceInd] = newClustersForInstance;
+					
+					
+					writer.println("Iteration number " + (iterationCount+1));
+					writer.println("Number of clusters = " + numClusters);
+					writer.println("Number of instances in each cluster: ");
+					for(int j = 0; j < numClusters; j++) {
+						writer.println("\t" + j + "\t" + clustersNumInstances[j]);
+					}
+					writer.println("Gamma for each cluster: ");
+					for(int j = 0; j < numClusters; j++) {
+						writer.println("\t" + j + "\t" + gammaArr[j]);
+					}
+					writer.println("Lambda for each cluster: ");
+					for(int j = 0; j < numClusters; j++) {
+						writer.println("\t" + j + "\t" + lambdaArr[j]);
+					}
+					writer.println("Number of wins for each cluster: ");
+					for(int j = 0; j < numClusters; j++) {
+						writer.println("\t" + j + "\t" + numWinsForCluster[j]);
+					}
 				}
-				
-				System.out.println("Iteration number " + (iterationCount+1));
-				System.out.println("Number of clusters = " + numClusters);
-				System.out.println("Number of instances in each cluster: ");
-				for(int j = 0; j < numClusters; j++) {
-					System.out.println("\t" + j + "\t" + clustersNumInstances[j]);
-				}
-				System.out.println("Gamma for each cluster: ");
-				for(int j = 0; j < numClusters; j++) {
-					System.out.println("\t" + j + "\t" + gammaArr[j]);
-				}
-				System.out.println("Lambda for each cluster: ");
-				for(int j = 0; j < numClusters; j++) {
-					System.out.println("\t" + j + "\t" + lambdaArr[j]);
-				}
-				System.out.println("Number of wins for each cluster: ");
-				for(int j = 0; j < numClusters; j++) {
-					System.out.println("\t" + j + "\t" + numWinsForCluster[j]);
-				}
-				iterationCount++;
+				iterationCount++;	
 			}			
 		}
 		if(iterationCount == maxIterations) {
 			success = false;
 			System.out.println("Completed Maximum Number of iterations without finding a solution");
 		}
-		else {
+		else if(oneCluster){
 			success = true;
+			writer.close();
+		} else {
+			success = true;
+			writer.close();
 		}
 		return success;
 	}
