@@ -155,12 +155,12 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	public void genStorageInformation(IEngine db, String infoType) {
 		Hashtable systemDataHash = getQueryResultHash(db, SYSTEM_DATA_QUERY);
 		Hashtable systemBLUHash = getQueryResultHash(db, SYSTEM_BLU_QUERY);	
-		if (infoType.equals("Capability")) {
+		if (infoType.equals("BusinessProcess")) {
 			Hashtable bpDataHash = getQueryResultHash(db, BUSINESS_PROCESSES_DATA_QUERY);
 			Hashtable bpBLUHash = getQueryResultHash(db, BUSINESS_PROCESSES_BLU_QUERY);
 			genRelationsForStorage(bpDataHash, bpBLUHash, systemDataHash, systemBLUHash);
 		}
-		else if (infoType.equals("BusinessProcess")) {		
+		else if (infoType.equals("Capability")) {		
 			Hashtable capDataHash = getQueryResultHash(db, CAPABILITY_DATA_QUERY);
 			Hashtable capBLUHash = getQueryResultHash(db, CAPABILITY_BLU_QUERY);
 			genRelationsForStorage(capDataHash, capBLUHash, systemDataHash, systemBLUHash);
