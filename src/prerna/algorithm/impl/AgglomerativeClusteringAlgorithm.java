@@ -46,7 +46,8 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		int i;
 		for(i = 0; i < numClusters; i++) {
 			gammaArr[i] = (double) 1 / numClusters;
-			lambdaArr[i] = numWinsForCluster[i] = 1;
+			lambdaArr[i] = 0.5;
+			numWinsForCluster[i] = 1;
 		}
 		//continue until there are no changes, so when noChange == true, quit.
 		//or quit after some ridiculously large number of times with an error
@@ -59,16 +60,17 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+		int counter = 0;
 		while(!noChange && iterationCount <= maxIterations) {
 			noChange = true;
+			writer.println("////////////////////////////////Iteration numer " + counter);
 			for(String instance : instanceIndexHash.keySet()) {
 				if(numClusters == 1) {
 					writer.close();
 					oneCluster = true;
 					break;
 				} else {
-					writer.println("Iteration number " + (iterationCount+1));
-
+					writer.println("Iteration numer: " + counter + ". Looking at instance: " + instance);
 					int instanceInd = instanceIndexHash.get(instance);
 					int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount + 1 + originalNumClusters);
 					int oldClusterForInstance = clustersAssigned[instanceInd];
@@ -111,7 +113,8 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 					}
 				}
 				iterationCount++;	
-			}			
+			}
+			counter++;
 		}
 		if(iterationCount == maxIterations) {
 			success = false;
@@ -187,11 +190,16 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			gammaArr[i] = (double) numWinsForCluster[i] / totalCount;
 		}
 		
-		lambdaArr[topTwoClustersWithMaxSimilarity[0]] += n;
+		double newLambdaWinner = lambdaArr[topTwoClustersWithMaxSimilarity[0]] + n;
+		if(newLambdaWinner > 1) {
+			lambdaArr[topTwoClustersWithMaxSimilarity[0]] = (double) 1;
+		} else {
+			lambdaArr[topTwoClustersWithMaxSimilarity[0]] = newLambdaWinner;
+		}
 		
-		double newLamdba = lambdaArr[topTwoClustersWithMaxSimilarity[1]] - n * secondScore;
-		if(newLamdba > 0) {
-			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = newLamdba;
+		double newLamdbaRunnerUp = lambdaArr[topTwoClustersWithMaxSimilarity[1]] - n * secondScore;
+		if(newLamdbaRunnerUp > 0) {
+			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = newLamdbaRunnerUp;
 		} else {
 			lambdaArr[topTwoClustersWithMaxSimilarity[1]] = (double) 0;
 		}
