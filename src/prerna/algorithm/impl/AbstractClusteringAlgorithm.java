@@ -181,7 +181,7 @@ public abstract class AbstractClusteringAlgorithm {
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
 	 **/
-	protected final Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
+	protected Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
 		//iterate through every numerical property of instance
 		//remove from the old cluster index using old val (avg) * oldNum in cluster
 		if(instanceNumberMatrix != null)
@@ -211,7 +211,7 @@ public abstract class AbstractClusteringAlgorithm {
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
 	 **/
-	protected final ArrayList<ArrayList<Hashtable<String,Integer>>> updateClustersCategoryProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
+	protected ArrayList<ArrayList<Hashtable<String,Integer>>> updateClustersCategoryProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
 		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
 		for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
 			String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];

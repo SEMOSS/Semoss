@@ -109,7 +109,6 @@ public class ClusteringDataProcessor {
 	private double calculateCategorySimilarity(String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) {
 
 		double categorySimilarity = 0;
-
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
 			// sumProperties contains the total number of instances for the property
@@ -129,7 +128,7 @@ public class ClusteringDataProcessor {
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * categoryPropNames.length / varNames.length;
 
-		logger.info("Calculated similarity score for categories: " + coeff * categorySimilarity);
+//		logger.info("Calculated similarity score for categories: " + coeff * categorySimilarity);
 		return coeff * categorySimilarity;
 	}
 
@@ -185,7 +184,7 @@ public class ClusteringDataProcessor {
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * numericalPropNames.length / varNames.length;
 
-		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
+//		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
 		return coeff * numericalSimilarity;
 	}
 
