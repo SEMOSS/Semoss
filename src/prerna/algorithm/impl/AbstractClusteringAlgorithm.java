@@ -99,15 +99,30 @@ public abstract class AbstractClusteringAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			clustersAssigned[i] = -1;
 		}
-		//assigns one random instance to each cluster to start
-		int count = 0;
-		while(count < numClusters) {
-			int randomInstance = (int)(Math.random() *numInstances);
-			if(clustersAssigned[randomInstance] == -1) {
-				clustersAssigned[randomInstance] = count;
-				count++;
+		//assigns one random instance to the first cluster
+//		int randomInstance = (int)(Math.random() *numInstances);
+		clustersAssigned[0] = 0;
+		Double[][] initialClusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, 1);
+		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = createClustersCategoryProperties(instanceCategoryMatrix, clustersAssigned, 1);
+	
+		for(i = 1; i < numClusters; i++) {
+			int j;
+			int minIndex = -1; //initialize to impossible value for index
+			double minSimilarity = (double) 2; //initialize to value larger than 1 since max value is 1
+			for(j = 1; j < numInstances; j++) {
+				double similarityClusterVal = cdp.getSimilarityScore(j,0,initialClusterNumberMatrix,initialClusterCategoryMatrix.get(0));
+				if(similarityClusterVal < minSimilarity && !ArrayUtilityMethods.arrayContainsValue(clustersAssigned, j)) {
+					minIndex = j;
+					minSimilarity =  similarityClusterVal;
+				}
 			}
+			initialClusterNumberMatrix = updateClustersNumberProperties(minIndex, -1, 0, initialClusterNumberMatrix, new int[]{i});
+			initialClusterCategoryMatrix = updateClustersCategoryProperties(minIndex, -1, 0, initialClusterCategoryMatrix);
+			
+			clustersAssigned[minIndex] = i;
+			System.out.println("///////////////////" + minIndex);
 		}
+		
 		return clustersAssigned;
 	}
 
