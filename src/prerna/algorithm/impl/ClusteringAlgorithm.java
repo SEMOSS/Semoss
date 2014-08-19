@@ -94,10 +94,12 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
 				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
 				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-				int freq = propValHash.get(propWithHighFreq);
-				double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-				DecimalFormat nf = new DecimalFormat("###.##");
-				System.out.print(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");					
+				if(!propWithHighFreq.equals("")) {
+					int freq = propValHash.get(propWithHighFreq);
+					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+					DecimalFormat nf = new DecimalFormat("###.##");
+					System.out.print(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
+				}
 			}
 
 			//print instances
@@ -148,10 +150,12 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 				if(categoryInd >-1) {
 					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
 					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-					int freq = propValHash.get(propWithHighFreq);
-					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-					DecimalFormat nf = new DecimalFormat("###.##");
-					clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+					if(!propWithHighFreq.equals("")) {
+						int freq = propValHash.get(propWithHighFreq);
+						double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+						DecimalFormat nf = new DecimalFormat("###.##");
+						clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+					}
 				} else {
 					int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
 					if(numberInd > -1) {
