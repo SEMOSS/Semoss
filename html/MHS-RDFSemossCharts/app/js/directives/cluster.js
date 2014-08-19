@@ -17,7 +17,11 @@ app.directive('d3Cluster', function() {
             var groupingCategory = "ClusterID";
             var nodeName = "nodeName";
             var groupingCategoryInstances = {};
+            var numberOfClusters = 0;
             var barData = [];
+            var w = parseInt(d3.select('#' + scope.containerId).style('width'));
+            var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+
 
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data.length == 0 || scope.data == '') {
@@ -45,14 +49,6 @@ app.directive('d3Cluster', function() {
                 return categoryInstances;
             };
 
-            var getCategoryArray = function(catData){
-                var array = [];
-                for(var key in catData){
-                    array.push(key);
-                }
-                return array;
-            };
-
             function structureBarData(d, barDataArray){
                 var barDataCopy = jQuery.extend(true, {}, barDataArray);
                 var output = [];
@@ -74,8 +70,6 @@ app.directive('d3Cluster', function() {
             }
 
             var fill = d3.scale.category20();
-            var w = parseInt(d3.select('#' + scope.containerId).style('width'));
-            var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
             var vis = d3.select('#' + scope.containerId).append("svg")
                 .attr("width", w)
                 .attr("height", h);
@@ -117,6 +111,7 @@ app.directive('d3Cluster', function() {
                 var nodes = data.map(Object);
 
                 groupingCategoryInstances = getCategoryInstances(groupingCategory, nodes);
+                numberOfClusters = Object.keys(groupingCategoryInstances).length;
 
                 var groups = d3.nest().key(function (d) {
                     return d[groupingCategory];
@@ -126,6 +121,7 @@ app.directive('d3Cluster', function() {
                     .nodes(nodes)
                     .links([])
                     .size([w, h])
+                    .charge(-10)
                     .start();
 
                 node = vis.selectAll("circle.node")
@@ -174,11 +170,53 @@ app.directive('d3Cluster', function() {
 
                 force.on("tick", function (e) {
                     var k = 6 * e.alpha;
+                    var heightAmplification;
+                    var heightOffset = -h/2;
+                    var widthAmplification;
+                    var widthOffset = -w/2;
+//                    var aspectRatio = w/h;
+
+                    if(numGroups > 20){
+                        heightAmplification = 0.010;
+                        widthAmplification = 0.010;
+                    }else if(numGroups > 10){
+                        heightAmplification = 0.008;
+                        widthAmplification = 0.010;
+                    }else if(numGroups > 5){
+                        heightAmplification = 0.007;
+                        widthAmplification = 0.006;
+                    }else{
+                        heightAmplification = 0.005;
+                        widthAmplification = 0.005;
+                    }
+
                     var theta = 2 * Math.PI / numGroups;
 
+                    function calculatePositionIncrements(i){
+//                        if(aspectRatio < 0.668){
+//                            var yPositionIncrement = Math.sin(i * theta) * 4 * k;
+//                            var xPositionIncrement = Math.cos(i * theta) * 4 * k;
+//                        }else if(aspectRatio < 1.497){
+                            var n = Math.ceil(Math.sqrt(numberOfClusters)+1);
+                            var j = Math.ceil((Math.pow(n, 2)/numberOfClusters)*i);
+                            var yPositionIncrement = (heightOffset + Math.ceil(j / n)*(h / n)) * heightAmplification * k;
+                            var xPositionIncrement = (widthOffset + (j % n)*(w / n)) * widthAmplification * k;
+//                        }else{
+//                            var yPositionIncrement = Math.sin(i * theta) * 2 * k - 5 * k;
+//                            var xPositionIncrement = Math.cos(i * theta) * 2 * k - 5 * k;
+//                        }
+                        return {
+                            yPositionIncrement: yPositionIncrement,
+                            xPositionIncrement: xPositionIncrement
+                        }
+                    }
+
                     nodes.forEach(function (o, i) {
-                        o.y += Math.sin(groupingCategoryInstances[o[groupingCategory]] * theta) * 2 * k;
-                        o.x += Math.cos(groupingCategoryInstances[o[groupingCategory]] * theta) * 2 * k;
+                        var index = groupingCategoryInstances[o[groupingCategory]];
+                        var increments = calculatePositionIncrements(index);
+                        o.y += increments.yPositionIncrement;
+                        o.x += increments.xPositionIncrement;
+
                     });
 
                     node.attr("cx", function (d) {
@@ -222,6 +260,8 @@ app.directive('d3Cluster', function() {
                 console.log("resizing");
                 d3.select('#clusterContainer svg').attr("width", w).attr("height", h);
                 force.size([w, h]).resume();
+
+
             }
 
             d3.select(window).on('resize', resize);
