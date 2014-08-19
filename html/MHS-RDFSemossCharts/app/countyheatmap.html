@@ -39,8 +39,8 @@
       
 			
 		</style>
-	
  
+	
 		<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
@@ -52,9 +52,7 @@
 	<body>
 		<script type="text/javascript">
 			
-			//var dataString = {"dataSeries":[{"size":1000000,"System":"AFCHIPS","Facility":"CHARLESTON_AFB","lat":32.887015,"lon":-80.0235}]}
-
-
+//			var dataString = {"propertyNames":[],"locationName":"fips","value":"SuicidesPerCapita","dataSeries":[{"SuicidesPerCapita"=0.0, "fips"=39157.0}, {"SuicidesPerCapita"=0.0, "fips"=47099.0}, {"SuicidesPerCapita"=0.0, "fips"=29023.0}, {"SuicidesPerCapita"=0.0, "fips"=29179.0}, {"SuicidesPerCapita"=0.0, "fips"=36043.0}, {"SuicidesPerCapita"=0.0, "fips"=36109.0}, {"SuicidesPerCapita"=1.229279E-4, "fips"=37057.0}, {"SuicidesPerCapita"=0.0, "fips"=17073.0}, {"SuicidesPerCapita"=9.420631E-5, "fips"=17019.0}, {"SuicidesPerCapita"=0.0, "fips"=31009.0}, {"SuicidesPerCapita"=0.0, "fips"=37033.0}, {"SuicidesPerCapita"=0.0, "fips"=46047.0}, {"SuicidesPerCapita"=0.0, "fips"=54075.0}, {"SuicidesPerCapita"=1.4482859E-4, "fips"=22057.0}, {"SuicidesPerCapita"=0.0, "fips"=51175.0}, {"SuicidesPerCapita"=0.0, "fips"=22027.0}, {"SuicidesPerCapita"=1.089278E-4, "fips"=22017.0}, {"SuicidesPerCapita"=1.436601E-4, "fips"=18091.0}, {"SuicidesPerCapita"=0.0, "fips"=38101.0}, {"SuicidesPerCapita"=0.0, "fips"=53019.0}]}
 			
 			//Width and height
 			var w = 1500;
@@ -98,6 +96,7 @@
 					var dataArray = [];
 
 				for (var key in data) {
+						
 						dataElement = {
 							locationName: data[key][locationName], 
 							value: data[key][value]			
@@ -121,7 +120,7 @@
 	//				colorsRed = ["#FFFFCC","#FFEDA0","#FED976","#FEB24C","#FD8D3C","#FC4E2A","#E31A1C","#BD0026","#800026"],
 	//				colorsBlue = ["#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B"],
 	//				colorsGreen = ["#F7FCF5","#E5F5E0","#C7E9C0","#A1D99B","#74C476","#41AB5D","#238B45","#006D2C","#00441B"];
-				
+
 				var colorScale = d3.scale.quantile()
                 .domain([ d3.min(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100, buckets - 1, d3.max(dataArray, function (d) { return d.value; })/d3.max(dataArray, function (d) { return d.value; })*100])
                 .range(colors);
@@ -132,7 +131,7 @@
 				.data([0].concat(colorScale.quantiles()), function(d) { return d; })
 				.enter().append("g")
 				.attr("class", "legend");
-	  
+
 				legend.append("rect")
 					.attr("x", function(d, i) { return legendElementWidth * i; })
 					.attr("y",450)
@@ -151,9 +150,8 @@
 					})
 					.attr("x", function(d, i) { return legendElementWidth * i; })
 					.attr("y", 450 + 50);	
-					
+
 				var tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
-				
 					var countryOn = d.id;
 					var retval = "<div> <span class='light'>" + locationName + ":</span> " + countryOn + "</div>";
 
@@ -172,7 +170,7 @@
 					});
 							
 				//Load in GeoJSON data
-				var json = usCounties;
+				var json = countyData;
 					//Bind data and create one path per GeoJSON feature
 					var coloredCountry = svg.selectAll("path")
 					   .data(json.features)
