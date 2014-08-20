@@ -11,19 +11,17 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.DHMSMTransitionQueryConstants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class InsertInterfaceModernizationProperty {
 
-	static final Logger logger = LogManager.getLogger(InsertInterfaceModernizationProperty.class.getName());
+	static final Logger LOGGER = LogManager.getLogger(InsertInterfaceModernizationProperty.class.getName());
 
-	//queries to determine type of system
-	private String reportTypeQuery = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
-	
-	private String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
-	private String totalDirectCostKey = "directCost";
-	private String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
+	private final String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
+	private final String totalDirectCostKey = "directCost";
+	private final String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
 	private IEngine HR_Core;
 
@@ -81,7 +79,7 @@ public class InsertInterfaceModernizationProperty {
 	public Hashtable<String,String> processReportTypeQuery() {
 		Hashtable<String,String> retList = new Hashtable<String,String>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, reportTypeQuery);
+		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, DHMSMTransitionQueryConstants.SYS_TYPE_QUERY);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
@@ -95,7 +93,7 @@ public class InsertInterfaceModernizationProperty {
 	}
 
 	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
-		logger.info("PROCESSING QUERY: " + query);
+		LOGGER.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
