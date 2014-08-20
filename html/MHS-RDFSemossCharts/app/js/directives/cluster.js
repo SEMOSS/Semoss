@@ -36,6 +36,33 @@ app.directive('d3Cluster', function() {
                 }
             });
 
+            var zoom = d3.behavior.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", zoomed);
+
+            var drag = d3.behavior.drag()
+                .origin(function(d) { return d; })
+                .on("dragstart", dragstarted)
+                .on("drag", dragged)
+                .on("dragend", dragended);
+
+            function zoomed() {
+                container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+            }
+
+            function dragstarted(d) {
+                d3.event.sourceEvent.stopPropagation();
+                d3.select(this).classed("dragging", true);
+            }
+
+            function dragged(d) {
+                d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+            }
+
+            function dragended(d) {
+                d3.select(this).classed("dragging", false);
+            }
+
             var getCategoryInstances = function(cat, nodeData){
                 var categoryInstances = {};
                 var j = 0;
@@ -72,7 +99,11 @@ app.directive('d3Cluster', function() {
             var fill = d3.scale.category20();
             var vis = d3.select('#' + scope.containerId).append("svg")
                 .attr("width", w)
-                .attr("height", h);
+                .attr("height", h)
+//                .append("g")
+                .call(zoom);
+
+            var container = vis.append("g");
 
             var groupPath = function (d) {
                 var groupPathReturn = "";
@@ -95,7 +126,7 @@ app.directive('d3Cluster', function() {
                 return fill(d.key);
             };
 
-            vis.style("opacity", 1e-6)
+            container.style("opacity", 1e-6)
                 .transition()
                 .duration(1000)
                 .style("opacity", 1);
@@ -124,7 +155,7 @@ app.directive('d3Cluster', function() {
                     .charge(-10)
                     .start();
 
-                node = vis.selectAll("circle.node")
+                node = container.selectAll("circle.node")
                     .data(nodes);
                 node
                     .enter().append("circle")
@@ -226,7 +257,7 @@ app.directive('d3Cluster', function() {
                             return d.y;
                         });
 
-                    pathElements = vis.selectAll("path")
+                    pathElements = container.selectAll("path")
                         .data(groups)
                         .attr("d", groupPath)
                         .enter().insert("path", "circle")
