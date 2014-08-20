@@ -70,7 +70,7 @@ import com.ibm.icu.text.DecimalFormat;
 public class Utility {
 
 	public static int id = 0;
-	static Logger logger = Logger.getLogger(prerna.util.Utility.class);
+	static Logger LOGGER = Logger.getLogger(prerna.util.Utility.class);
 
 	/**
 	 * Matches the given query against a specified pattern.
@@ -637,7 +637,7 @@ public class Utility {
 					found = true;
 				}catch (RuntimeException ignored)
 				{
-					logger.debug(ignored);
+					LOGGER.debug(ignored);
 				}
 				if(!found){
 					try{
@@ -645,7 +645,7 @@ public class Utility {
 						paramHash.put(key, dub);
 					}catch (RuntimeException ignored)
 					{
-						logger.debug(ignored);
+						LOGGER.debug(ignored);
 					}
 				}
 				//if(!found)
@@ -703,17 +703,17 @@ public class Utility {
 			}
 		}catch(RuntimeException ex)
 		{
-			logger.debug(ex);
+			LOGGER.debug(ex);
 		} catch (IOException ex) {
-			logger.debug(ex);
+			LOGGER.debug(ex);
 		} catch (NoSuchAlgorithmException e) {
-			logger.debug(e);
+			LOGGER.debug(e);
 		} catch (KeyStoreException e) {
-			logger.debug(e);
+			LOGGER.debug(e);
 		} catch (URISyntaxException e) {
-			logger.debug(e);
+			LOGGER.debug(e);
 		} catch (KeyManagementException e) {
-			logger.debug(e);
+			LOGGER.debug(e);
 		} finally {
 				try {
 					if(inputStream!=null)
@@ -721,7 +721,7 @@ public class Utility {
 					if(stream!=null)
 						stream.close();
 				} catch (IOException e) {
-					logger.error("Error closing input stream for image");
+					LOGGER.error("Error closing input stream for image");
 				}
 				try {
 					if(httpclient!=null)
@@ -729,7 +729,7 @@ public class Utility {
 					if(stream!=null)
 						stream.close();
 				} catch (IOException e) {
-					logger.error("Error closing socket for httpclient");
+					LOGGER.error("Error closing socket for httpclient");
 				}
 		}
 		if(output.length() == 0)
@@ -796,6 +796,16 @@ public class Utility {
 			e.printStackTrace();
 		} 
 		return null;
+	}
+	
+	public static SesameJenaSelectWrapper processQuery(IEngine engine, String query) {
+		LOGGER.info("PROCESSING QUERY: " + query);
+		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//run the query against the engine provided
+		sjsw.setEngine(engine);
+		sjsw.setQuery(query);
+		sjsw.executeQuery();	
+		return sjsw;
 	}
 
 	

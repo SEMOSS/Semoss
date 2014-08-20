@@ -10,7 +10,8 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.util.DHMSMTransitionQueryConstants;
+import prerna.util.DHMSMTransitionUtility;
+import prerna.util.Utility;
 
 public class DHMSMIntegrationTransitionCost {
 	
@@ -38,13 +39,13 @@ public class DHMSMIntegrationTransitionCost {
 	
 	public void generateCostInformation() {
 		if(loeForSysGlItemAndPhaseHash.isEmpty()) {
-			loeForSysGlItemAndPhaseHash = getSysGLItemAndPhase(hrCore, DHMSMTransitionQueryConstants.SYS_SPECIFIC_LOE_AND_PHASE_QUERY);
+			loeForSysGlItemAndPhaseHash = getSysGLItemAndPhase(hrCore, DHMSMTransitionUtility.SYS_SPECIFIC_LOE_AND_PHASE_QUERY);
 		}
 		if(genericLoeForSysGLItemAndPhaseHash.isEmpty()) {
-			genericLoeForSysGLItemAndPhaseHash = getGenericGLItemAndPhase(hrCore, DHMSMTransitionQueryConstants.GENERIC_LOE_AND_PHASE_QUERY);
+			genericLoeForSysGLItemAndPhaseHash = getGenericGLItemAndPhase(hrCore, DHMSMTransitionUtility.GENERIC_LOE_AND_PHASE_QUERY);
 		}
 		if(avgLoeForSysGLItemAndPhaseHash.isEmpty()) {
-			avgLoeForSysGLItemAndPhaseHash = getAvgSysGLItemAndPhase(hrCore, DHMSMTransitionQueryConstants.AVERAGE_LOE_AND_PHASE_QUERY);
+			avgLoeForSysGLItemAndPhaseHash = getAvgSysGLItemAndPhase(hrCore, DHMSMTransitionUtility.AVERAGE_LOE_AND_PHASE_QUERY);
 		}
 	}
 	
@@ -52,7 +53,7 @@ public class DHMSMIntegrationTransitionCost {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -85,7 +86,7 @@ public class DHMSMIntegrationTransitionCost {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -117,7 +118,7 @@ public class DHMSMIntegrationTransitionCost {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -231,15 +232,5 @@ public class DHMSMIntegrationTransitionCost {
 		}
 
 		return finalCost;
-	}
-	
-	private static SesameJenaSelectWrapper processQuery(IEngine engine, String query){
-		LOGGER.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();	
-		return sjsw;
 	}
 }
