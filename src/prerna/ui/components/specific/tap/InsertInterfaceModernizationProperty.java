@@ -1,7 +1,6 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -9,9 +8,7 @@ import org.apache.log4j.Logger;
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.util.DHMSMTransitionQueryConstants;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -40,7 +37,7 @@ public class InsertInterfaceModernizationProperty {
 
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
-		Hashtable<String,String> reportTypeHash = processReportTypeQuery();
+		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(HR_Core);
 
 		IndividualSystemTransitionReport generateCostInfo = new IndividualSystemTransitionReport();
 
@@ -75,31 +72,4 @@ public class InsertInterfaceModernizationProperty {
 		( (BigDataEngine) HR_Core).commit();
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
-
-	public Hashtable<String,String> processReportTypeQuery() {
-		Hashtable<String,String> retList = new Hashtable<String,String>();
-
-		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, DHMSMTransitionQueryConstants.SYS_TYPE_QUERY);
-		String[] varName = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String entity = sjss.getRawVar(varName[0]).toString();
-			String instance = Utility.getInstanceName(entity);
-			String reportType = sjss.getVar(varName[1]).toString();
-			retList.put(instance,reportType);
-		}
-
-		return retList;
-	}
-
-	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
-		LOGGER.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();	
-		return sjsw;
-	}
-
 }

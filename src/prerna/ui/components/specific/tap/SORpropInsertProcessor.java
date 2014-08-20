@@ -2,10 +2,8 @@ package prerna.ui.components.specific.tap;
 
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.Map.Entry;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -21,7 +19,7 @@ import prerna.util.Utility;
 
 public class SORpropInsertProcessor extends AggregationHelper {
 	
-	static final Logger logger = LogManager.getLogger(SORpropInsertProcessor.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SORpropInsertProcessor.class.getName());
 	private IEngine coreDB;
 	
 	private String tapCoreBaseURI = "http://health.mil/ontologies/Relation/";
@@ -76,11 +74,11 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	
 	public boolean runCoreInsert() {
 		boolean methodSuccess = true;
-		logger.info("Core DB is: " + coreDB.getEngineName());
+		LOGGER.info("Core DB is: " + coreDB.getEngineName());
 		
 		//1. Query and store the Data
-		Hashtable systemDataHash = getQueryResultHash(coreDB, SYSTEM_DATA_QUERY);
-		Hashtable systemDataSORHash = getQueryResultHash(coreDB, SYSTEM_DATA_SOR_QUERY);
+		Hashtable<String, Set<String>> systemDataHash = getQueryResultHash(coreDB, SYSTEM_DATA_QUERY);
+		Hashtable<String, Set<String>> systemDataSORHash = getQueryResultHash(coreDB, SYSTEM_DATA_SOR_QUERY);
 		
 		if (!(coreDB.getEngineName().equals("TAP_Core_Data"))) {
 			this.errorMessage = "Select TAP_Core_Data from the database list.";
@@ -108,7 +106,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		return methodSuccess;		
 	}
 	
-	private void processRelations(Hashtable systemDataHash, Hashtable systemDataSORHash) {		
+	private void processRelations(Hashtable<String, Set<String>> systemDataHash, Hashtable<String, Set<String>> systemDataSORHash) {		
 				
 		Vector<String> sorSysDataV = concatHashToVector(systemDataSORHash);
 		Vector<String> sysDataV = concatHashToVector(systemDataHash);
@@ -165,7 +163,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		//logger.info("*****SubProp URI: "+ semossPropertyBaseURI + "Calculated" + " typeURI : " + RDF.TYPE.toString() + " propbase: " + semossRelationBaseURI + "Contains");				
 	}
 	
-	private Vector<String> concatHashToVector(Hashtable concatHashTable) {
+	private Vector<String> concatHashToVector(Hashtable<String, Set<String>> concatHashTable) {
 		Vector<String> concatV = new Vector<String>();
 		String concatValue = "";
 		
@@ -173,7 +171,7 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		concatHashKeySet.addAll(concatHashTable.keySet());
 				
 		for (String key : concatHashKeySet) {
-			Set<String> values = (Set<String>) concatHashTable.get(key);
+			Set<String> values = concatHashTable.get(key);
 			for (String value : values) {
 				concatValue = key + "@" + value;
 				concatV.add(concatValue);
@@ -200,21 +198,20 @@ public class SORpropInsertProcessor extends AggregationHelper {
 		}
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
-		logger.info("System: " + sys + ", Data: " + dataObject + ", Pred: " + pred);
+		LOGGER.info("System: " + sys + ", Data: " + dataObject + ", Pred: " + pred);
 	}
 	
 	public void setInsertCoreDB(String insertEngine) {
 		this.coreDB = (IEngine) DIHelper.getInstance().getLocalProp(insertEngine);
 	}
 	
-	public Hashtable getQueryResultHash(IEngine db, String query) {
-		Hashtable queryDataHash = new Hashtable();
-		SesameJenaSelectWrapper queryDataWrapper = processQuery(db, query);
-		queryDataHash = hashTableResultProcessor(queryDataWrapper);
+	public Hashtable<String, Set<String>> getQueryResultHash(IEngine db, String query) {
+		SesameJenaSelectWrapper queryDataWrapper = Utility.processQuery(db, query);
+		Hashtable<String, Set<String>> queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;
 	}
 	
-	public Hashtable hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
+	public Hashtable<String, Set<String>> hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
 		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {

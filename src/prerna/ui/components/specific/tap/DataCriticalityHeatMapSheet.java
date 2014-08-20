@@ -1,6 +1,5 @@
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
@@ -8,8 +7,8 @@ import java.util.Set;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /** Heat map that dynamically updates with critical data objects given a certain threshold.
  */
@@ -28,8 +27,7 @@ public class DataCriticalityHeatMapSheet extends SimilarityHeatMapSheet {
 		
 	public void createData() {
 		SimilarityFunctions sdf = new SimilarityFunctions();
-		AggregationHelper helper = new AggregationHelper();
-		SesameJenaSelectWrapper sjsw = helper.processQuery(coreDB, dhmsmCapDataQuery);		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(coreDB, dhmsmCapDataQuery);		
 		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
