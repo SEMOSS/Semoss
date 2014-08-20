@@ -886,6 +886,10 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
           IEngine jenaEngine = new InMemorySesameEngine();
           ((InMemorySesameEngine)jenaEngine).setRepositoryConnection(gdm.rc);
           
+          if(query == null) {
+        	  logger.debug("Query not set for current GraphPlaySheet");
+        	  return;
+          }
           SesameJenaConstructWrapper sjsc;
           
           if(query.toUpperCase().contains("CONSTRUCT"))

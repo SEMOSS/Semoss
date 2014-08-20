@@ -25,14 +25,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Vector;
 
-import javax.swing.JComboBox;
 import javax.swing.JDesktopPane;
-import javax.swing.JList;
 import javax.swing.JPanel;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
@@ -43,7 +41,6 @@ import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -52,69 +49,36 @@ import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 
 /**
- * The CommonSubgraphFunctions class creates two graphs and finds a common subgraph between them using the CSIA algorithm.
+ * The CommonSubgraphFunctions class takes two metamodels and finds a common subgraph between them using the CSIA algorithm.
  */
 public class CommonSubgraphFunctions {
 
-	protected Logger logger = Logger.getLogger(getClass());
+	private static final Logger logger = LogManager.getLogger(CommonSubgraphFunctions.class.getName());
 	
-	//V and W that show all the vertices in the orginial graphs that are still to be mapped
+	//V and W that show all the vertices in the original graphs.
 	ArrayList<SEMOSSVertex> vertexList0;
 	ArrayList<SEMOSSVertex> vertexList1;
 		
-	//X and Y that show all the verticies that have been mapped from V and W (vertexList0 and vertexList1)
+	//X and Y that show all the vertices that have been mapped from V and W (vertexList0 and vertexList1)
 	ArrayList<SEMOSSVertex> mappedVertexList0;
 	ArrayList<SEMOSSVertex> mappedVertexList1;
 
-	//X and Y that show all the verticies that have been mapped from V and W (vertexList0 and vertexList1)
+	//X and Y that show all the vertices that have been mapped from V and W (vertexList0 and vertexList1) and are to be saved as final
 	ArrayList<SEMOSSVertex> mappedVertexListFinal0;
 	ArrayList<SEMOSSVertex> mappedVertexListFinal1;
 	
+	//the highest number of vertices currently mapped
 	int nmax;
-//	int n0;
-//	int numOfFirstTriesCounter;
-//	int numOfFirstTriesMax;
-	//number of possible mappings to check.
+	//number of mapping options to check. Keeps the code from going forever with highly webbed databases.
 	int numOfPossibleConnections;
-	
-//	boolean directed;
 		
 	/**
-	 * Method CSIA.
-	 * @param options Hashtable<String,Integer>
-	 * @return Hashtable<String,Hashtable<String,Hashtable<String,Object>>> 
+	 * Determines the common subgraph between the two selected databases.
+	 * Displays the original two metamodels as graphs and the common subgraph between them as another graph.
+	 * @param threshold The minimum similarity the two types must have to be considered a possible match.
 	 */
-	
-	public void CSIA(double threshold)
-	{
-//		String query0 = "CONSTRUCT {?Data1 ?provide ?System1. ?System2 ?passes ?System3. ?passes ?contains ?prop. ?passes ?subprop ?relation. ?provide ?contains2 ?crm.} WHERE { BIND( <http://health.mil/ontologies/Concept/DataObject/Account> AS ?Data1). { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System1 ?provide ?Data1 ;} BIND(<http://semoss.org/ontologies/Relation/Contains/CRM> AS ?contains2). {?provide ?contains2 ?crm ;} } UNION { BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System2), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes).{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} {?carries ?contains ?prop ;} } BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation)} BINDINGS ?crm {('C') ('M')}";
-//		String query1 = "CONSTRUCT {?Data1 ?provide ?System1. ?System2 ?passes ?System3. ?passes ?contains ?prop. ?passes ?subprop ?relation. ?provide ?contains2 ?crm.} WHERE { BIND( <http://health.mil/ontologies/Concept/DataObject/Appointment> AS ?Data1). { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?System1 ?provide ?Data1 ;} BIND(<http://semoss.org/ontologies/Relation/Contains/CRM> AS ?contains2). {?provide ?contains2 ?crm ;} } UNION { BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System2), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes).{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} {?carries ?contains ?prop ;} } BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation)} BINDINGS ?crm {('C') ('M')}";
-//		//String query0 = "CONSTRUCT {?System1 ?Upstream ?ICD. ?ICD ?Downstream ?System2. ?ICD ?carries ?Data1. ?ICD ?contains2 ?prop2. ?System3 ?Upstream2 ?ICD2. ?ICD2 ?contains1 ?prop. ?ICD2 ?Downstream2 ?System1.?ICD2 ?carries2 ?Data2.?System1 ?Provide ?BLU} WHERE { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}  BIND(<http://health.mil/ontologies/Concept/System/DMLSS> AS ?System1){{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Data1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Upstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}  {?ICD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Data2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?carries2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System1 ?Provide ?BLU}}}";
-//		//String query1 = "CONSTRUCT {?System1 ?Upstream ?ICD. ?ICD ?Downstream ?System2. ?ICD ?carries ?Data1. ?ICD ?contains2 ?prop2. ?System3 ?Upstream2 ?ICD2. ?ICD2 ?contains1 ?prop. ?ICD2 ?Downstream2 ?System1.?ICD2 ?carries2 ?Data2.?System1 ?Provide ?BLU} WHERE { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}  BIND(<http://health.mil/ontologies/Concept/System/DMLSS(JMAR)> AS ?System1){{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Data1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Upstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}  {?ICD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Data2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?carries2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System1 ?Provide ?BLU}}}";
-//
-//		vertexList0 = new ArrayList<SEMOSSVertex>();
-//		vertexList1 = new ArrayList<SEMOSSVertex>();
-		
-//		logger.info("Generating graph from query 0: "+query0);
-//		vertexList0 = createGraphs(query0);
-//		logger.info("Generating graph from query 1: "+query1);
-//		vertexList1 = createGraphs(query1);
-//		
-//		logger.info("Generating graph 0 ");
-//		vertexList0 = createTestGraphs1();
-//		logger.info("Generating graph 1");
-//		vertexList1 = createTestGraphs2();
-//		
-		JComboBox commonSubgraphComboBox0 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_0);
-		JComboBox commonSubgraphComboBox1 = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_1);
-		String engine0Name = (String)commonSubgraphComboBox0.getSelectedItem();
-		String engine1Name = (String)commonSubgraphComboBox1.getSelectedItem();
-		
-		if(engine0Name==null||engine1Name==null||engine0Name.equals(engine1Name)) {
-			logger.info("Please select 2 different databases from the database lists in order to run the common subgraph algorithm");
-			return;
-		}
-		
+	public void CSIA(double threshold,String engine0Name,String engine1Name)
+	{			
 		IEngine engine0 = (IEngine) DIHelper.getInstance().getLocalProp(engine0Name + "");
 		IEngine engine1 = (IEngine) DIHelper.getInstance().getLocalProp(engine1Name + "");
 		
@@ -125,42 +89,42 @@ public class CommonSubgraphFunctions {
 		GraphPlaySheet playSheet1 = createMetamodel(engine1);
 		vertexList1 = createVertexList(playSheet1);
 		
-		logger.info("Printing verticies in graph 0: ");
+		logger.debug("Printing verticies in graph 0: ");
 		printVertexList(vertexList0);
-		logger.info("Printing verticies in graph 1: ");
+		logger.debug("Printing verticies in graph 1: ");
 		printVertexList(vertexList1);
 		
 		double[][] similarityMapping = createSimilarityMapping(vertexList0,vertexList1);
-//		double threshold = 2.0;
 		Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions = initialize(threshold, similarityMapping);
-//		printMappingOptions(mappingOptions);
+		printMappingOptions(mappingOptions);
 		mappedVertexList0 = new ArrayList<SEMOSSVertex>();
 		mappedVertexList1 = new ArrayList<SEMOSSVertex>();
 
 		mappedVertexListFinal0 = new ArrayList<SEMOSSVertex>();
 		mappedVertexListFinal1 = new ArrayList<SEMOSSVertex>();
 		nmax = 0;
-//		n0 = 10;
-//		numOfFirstTriesCounter=0;
-//		numOfFirstTriesMax=5;
-		numOfPossibleConnections=10;//1;
-//		directed=true;
+		numOfPossibleConnections=10;
 		
 		backtrack(mappingOptions);
 		printMap(mappedVertexListFinal0,mappedVertexListFinal1);
 		
-		//setJDesktopPane
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playSheet0.setJDesktopPane(pane);
 		playSheet0.createView();
 		playSheet1.setJDesktopPane(pane);
 		playSheet1.createView();
 		
-		GraphPlaySheet mergedPlaySheet = createGraph(playSheet0,playSheet1);
-		mergedPlaySheet = createGrid(mergedPlaySheet,engine0.getEngineName(),engine1.getEngineName());
+		GraphPlaySheet subgraphPlaySheet = createSubgraph(playSheet0,playSheet1);
+		subgraphPlaySheet = createSubgraphGrid(subgraphPlaySheet,engine0.getEngineName(),engine1.getEngineName());
 	}
 	
-	public GraphPlaySheet createGraph(GraphPlaySheet playSheet0, GraphPlaySheet playSheet1){
+	/**
+	 * Creates and displays the subgraph as a GraphPlaySheet
+	 * @param playSheet0 First GraphPlaySheet displaying metamodel from first database selected
+	 * @param playSheet1 Second GraphPlaySheet displaying metamodel from second database selected
+	 * @return GraphPlaySheet displaying metamodel that is the largest common subgraph of the two databases.
+	 */
+	private GraphPlaySheet createSubgraph(GraphPlaySheet playSheet0, GraphPlaySheet playSheet1){
 		QuestionPlaySheetStore.getInstance().idCount++;
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ "Common Subgraph for "+playSheet0.engine.getEngineName()+" "+playSheet1.engine.getEngineName();
 		DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN, false);
@@ -203,7 +167,14 @@ public class CommonSubgraphFunctions {
 		return newPlaySheet;		
 	}
 	
-	private GraphPlaySheet createGrid(GraphPlaySheet playSheet, String engine0Name, String engine1Name){
+	/**
+	 * Creates and displays a grid as a second tab on the GraphPlaySheet
+	 * @param playSheet GraphPlaySheet displaying metamodel that is the largest common subgraph of the two databases.
+	 * @param engine0Name	First Database's name
+	 * @param engine1Name	Second Database's name
+	 * @return GraphPlaySheet displaying metamodel that is the largest common subgraph of the two databases with the GridPlaySheet tab detailing with mapping
+	 */
+	private GraphPlaySheet createSubgraphGrid(GraphPlaySheet playSheet, String engine0Name, String engine1Name){
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		String[] colNames = new String[2];
 		colNames[0]=engine0Name+" Node";
@@ -230,7 +201,13 @@ public class CommonSubgraphFunctions {
 		return playSheet;
 	}
 	
-	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel) {
+	/**
+	 * Creates and displays a grid from the list of elements on the panel provided.
+	 * @param colNames	Names of the columns
+	 * @param list	List of elements to put in each row
+	 * @param panel	Panel to add the grid to
+	 */
+	private void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel) {
 		GridScrollPane pane = new GridScrollPane(colNames, list);
 		
 		panel.removeAll();
@@ -247,7 +224,12 @@ public class CommonSubgraphFunctions {
 		panel.repaint();
 	}
 	
-	
+	/**
+	 * Checks if a list contains the given vertex. Returns true if so, false if not.
+	 * @param vertURI URI of the vertex to look for
+	 * @param vertList	ArrayList<SEMOSSVertex> to look for vertex in
+	 * @return true if list contains a vertex with the given URI. False if not.
+	 */
 	private boolean isVertexURIInList(String vertURI,ArrayList<SEMOSSVertex> vertList) {
 		for(int i=0;i<vertList.size();i++) {
 			SEMOSSVertex comparisonVert = vertList.get(i);
@@ -256,29 +238,40 @@ public class CommonSubgraphFunctions {
 		}
 		return false;
 	}
-	public void printVertexList(ArrayList<SEMOSSVertex> vertList)
+	
+	/**
+	 * Outputs the verticies in a list for debugging purposes.
+	 * Also prints all the edges for each vertex.
+	 * @param vertList ArrayList<SEMOSSVertex> of verticies to print out
+	 */
+	private void printVertexList(ArrayList<SEMOSSVertex> vertList)
 	{
 		for(SEMOSSVertex vert : vertList)
 		{
-			logger.info("Printing Graph ... vertex: "+vert.getURI());
+			logger.debug("Printing Graph ... vertex: "+vert.getURI());
 			Iterator<SEMOSSEdge> outEdgeIt = vert.getOutEdges().iterator();
 			while(outEdgeIt.hasNext())
 			{
 				SEMOSSEdge edge= (SEMOSSEdge) outEdgeIt.next();
-				logger.info("Printing Graph ... vertex: "+vert.getURI()+" out edge is "+edge.getURI());
-				logger.info("Printing Graph ... vertex: "+vert.getURI()+" other vertex is "+edge.inVertex.getURI());
+				logger.debug("Printing Graph ... vertex: "+vert.getURI()+" out edge is "+edge.getURI());
+				logger.debug("Printing Graph ... vertex: "+vert.getURI()+" other vertex is "+edge.inVertex.getURI());
 			}
 			Iterator<SEMOSSEdge> inEdgeIt = vert.getInEdges().iterator();
 			while(inEdgeIt.hasNext())
 			{
 				SEMOSSEdge edge= (SEMOSSEdge) inEdgeIt.next();
-				logger.info("Printing Graph ... vertex: "+vert.getURI()+" in edge is "+edge.getURI());
-				logger.info("Printing Graph ... vertex: "+vert.getURI()+" other vertex is "+edge.outVertex.getURI());
+				logger.debug("Printing Graph ... vertex: "+vert.getURI()+" in edge is "+edge.getURI());
+				logger.debug("Printing Graph ... vertex: "+vert.getURI()+" other vertex is "+edge.outVertex.getURI());
 			}
 		}
 	}
 	
-	public void printMap(ArrayList<SEMOSSVertex> vertList0,ArrayList<SEMOSSVertex> vertList1)
+	/**
+	 * Prints the mapping that has been determined for debugging purposes.
+	 * @param vertList0 ArrayList<SEMOSSVertex> of verticies from the first database that were mapped
+	 * @param vertList1 ArrayList<SEMOSSVertex> of verticies from the second database that were mapped to
+	 */
+	private void printMap(ArrayList<SEMOSSVertex> vertList0,ArrayList<SEMOSSVertex> vertList1)
 	{
 		if(vertList0.size()==0)
 			logger.info("Printing Map ... no mapping exists");
@@ -291,26 +284,33 @@ public class CommonSubgraphFunctions {
 
 	}
 	
-	public void printMappingOptions(Hashtable<SEMOSSVertex,ArrayList<SEMOSSVertex>> mapOptions)
+	/**
+	 * Prints the possible mapping options from database 2 that are possible for each node in database 1.
+	 * @param mapOptions Hashtable<SEMOSSVertex,ArrayList<SEMOSSVertex>> storing the SEMOSSVertex from database 1 and all its possible mappings in database2.
+	 */
+	private void printMappingOptions(Hashtable<SEMOSSVertex,ArrayList<SEMOSSVertex>> mapOptions)
 	{
-		logger.info("Printing Map Options ...");
+		logger.debug("Printing Map Options ...");
 		Iterator<SEMOSSVertex> optionIt = mapOptions.keySet().iterator();
 		while(optionIt.hasNext())
 		{
 			SEMOSSVertex vert = (SEMOSSVertex)optionIt.next();
-			System.out.println("Printing Map Options ... vertex is: "+vert.getURI());
-			//logger.info("Printing Map Options ... vertex is: "+vert.getURI());
+			logger.debug("Printing Map Options ... vertex is: "+vert.getURI());
 			ArrayList<SEMOSSVertex> mapOptionsForVert = mapOptions.get(vert);
-			for(SEMOSSVertex mapVerts : mapOptionsForVert)
-				System.out.print(mapVerts.getURI().substring(mapVerts.getURI().lastIndexOf("/"))+"    ");
-				//logger.info("Printing Map Options ... vertex is: "+vert.getURI()+" option is: " + mapVerts.getURI());
-				//logger.info("Printing Map Options ... vertex is: "+vert.getURI()+" option is: " + mapVerts.getURI());
-			System.out.println();
-			
+			for(SEMOSSVertex mapVerts : mapOptionsForVert) {
+				logger.debug(mapVerts.getURI().substring(mapVerts.getURI().lastIndexOf("/"))+"    ");
+				//logger.debug("Printing Map Options ... vertex is: "+vert.getURI()+" option is: " + mapVerts.getURI());
+				//logger.debug("Printing Map Options ... vertex is: "+vert.getURI()+" option is: " + mapVerts.getURI());
+			}
 		}
 	}
 	
-	public GraphPlaySheet createMetamodel(IEngine engine){
+	/**
+	 * Creates the GraphPlaySheet for a database that shows the metamodel.
+	 * @param engine IEngine to create the metamodel from
+	 * @return GraphPlaySheet that displays the metamodel
+	 */
+	private GraphPlaySheet createMetamodel(IEngine engine){
 		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
 		//hard code playsheet attributes since no insight exists for this
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
@@ -334,8 +334,13 @@ public class CommonSubgraphFunctions {
 		return playSheet;
 	}
 
-	public ArrayList<SEMOSSVertex> createVertexList(GraphPlaySheet playSheet){
-		Hashtable<String, SEMOSSVertex> vertHash = new Hashtable<String,SEMOSSVertex>();//((GraphPlaySheet)playSheet).vertStore;
+	/**
+	 * Creates a list of the nodes in the GraphPlaySheet
+	 * @param playSheet GraphPlaySheet to pull the nodes from
+	 * @return ArrayList<SEMOSSVertex> that contains all the verticies on the GraphPlaySheet
+	 */
+	private ArrayList<SEMOSSVertex> createVertexList(GraphPlaySheet playSheet){
+		Hashtable<String, SEMOSSVertex> vertHash = new Hashtable<String,SEMOSSVertex>();
 		vertHash = playSheet.getGraphData().getVertStore();
 		
 		ArrayList<SEMOSSVertex> vertexList = new ArrayList<SEMOSSVertex>();
@@ -344,114 +349,18 @@ public class CommonSubgraphFunctions {
 		{
 			SEMOSSVertex vert = vertHash.get((String)vertIterator.next());
 			vertexList.add(vert);
-//			System.out.println((String)vert.getProperty(Constants.VERTEX_NAME));
 		}
 		return vertexList;		
 	}
 	
-	public ArrayList<SEMOSSVertex> createGraphs(String query){
-
-		ArrayList<SEMOSSVertex> vertexList = new ArrayList<SEMOSSVertex>();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		
-		String id = "Common Subgraph";
-		String question = QuestionPlaySheetStore.getInstance().getIDCount() +". "+ id;
-				
-		GraphPlaySheet playSheet = new GraphPlaySheet();
-					
-		playSheet.setQuery(query);
-		playSheet.setRDFEngine((IEngine) engine);
-		playSheet.setQuestionID(question);
-		
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		playSheet.setJDesktopPane(pane);
-
-		// put it into the store
-		QuestionPlaySheetStore.getInstance().put(question, playSheet);
-		
-		playSheet.createData();
-		
-		Hashtable<String, SEMOSSVertex> vertHash = new Hashtable<String,SEMOSSVertex>();//((GraphPlaySheet)playSheet).vertStore;
-		vertHash = ((GraphPlaySheet)playSheet).getGraphData().getVertStore();
-
-		Iterator<String> vertIterator = vertHash.keySet().iterator();
-		while(vertIterator.hasNext())
-		{
-			SEMOSSVertex vert = vertHash.get((String)vertIterator.next());
-			vertexList.add(vert);
-		}
-		return vertexList;
-	}
-
-	public ArrayList<SEMOSSVertex> createTestGraphs1()
-	{
-		ArrayList<SEMOSSVertex> vertexList = new ArrayList<SEMOSSVertex>();
-		SEMOSSVertex vert1 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number1>");
-		SEMOSSVertex vert2 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number2>");
-		SEMOSSVertex vert3 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number3>");
-		SEMOSSVertex vert4 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number4>");
-		SEMOSSVertex vert5 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number5>");
-		SEMOSSVertex vert6 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number6>");
-
-//		SEMOSSVertex vert7 = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/number7>");
-		
-		SEMOSSEdge edge12 = new SEMOSSEdge(vert1,vert2,"<http://semoss.org/ontologies/Relation/Numbers/number1:number2>");
-		SEMOSSEdge edge13 = new SEMOSSEdge(vert1,vert3,"<http://semoss.org/ontologies/Relation/Numbers/number1:number3>");
-		SEMOSSEdge edge34 = new SEMOSSEdge(vert3,vert4,"<http://semoss.org/ontologies/Relation/Numbers/number3:number4>");
-		SEMOSSEdge edge42 = new SEMOSSEdge(vert4,vert2,"<http://semoss.org/ontologies/Relation/Numbers/number4:number2>");
-		SEMOSSEdge edge53 = new SEMOSSEdge(vert5,vert3,"<http://semoss.org/ontologies/Relation/Numbers/number5:number3>");
-		SEMOSSEdge edge54 = new SEMOSSEdge(vert5,vert4,"<http://semoss.org/ontologies/Relation/Numbers/number5:number4>");
-		SEMOSSEdge edge56 = new SEMOSSEdge(vert5,vert6,"<http://semoss.org/ontologies/Relation/Numbers/number5:number6>");
-
-//		SEMOSSEdge edge27 = new SEMOSSEdge(vert2,vert7,"<http://semoss.org/ontologies/Relation/Numbers/number2:number7>");
-
-		vertexList.add(vert1);
-		vertexList.add(vert2);
-		vertexList.add(vert3);
-		vertexList.add(vert4);
-		vertexList.add(vert5);
-		vertexList.add(vert6);
-//		vertexList.add(vert7);
-		return vertexList;
-	}
-	
-	public ArrayList<SEMOSSVertex> createTestGraphs2()
-	{
-		ArrayList<SEMOSSVertex> vertexList = new ArrayList<SEMOSSVertex>();
-		SEMOSSVertex vertA = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterA>");
-		SEMOSSVertex vertB = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterB>");
-		SEMOSSVertex vertC = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterC>");
-		SEMOSSVertex vertD = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterD>");
-		SEMOSSVertex vertE = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterE>");
-//		SEMOSSVertex vertF = new SEMOSSVertex("<http://health.mil/ontologies/Concept/Node/letterF>");
-		
-		SEMOSSEdge edgeAB = new SEMOSSEdge(vertA,vertB,"<http://semoss.org/ontologies/Relation/Letters/letterA:letterB>");
-		SEMOSSEdge edgeAC = new SEMOSSEdge(vertA,vertC,"<http://semoss.org/ontologies/Relation/Letters/letterA:letterC>");
-		SEMOSSEdge edgeBC = new SEMOSSEdge(vertB,vertC,"<http://semoss.org/ontologies/Relation/Letters/letterB:letterC>");
-		SEMOSSEdge edgeCD = new SEMOSSEdge(vertC,vertD,"<http://semoss.org/ontologies/Relation/Letters/letterC:letterD>");
-
-		SEMOSSEdge edgeDE = new SEMOSSEdge(vertD,vertE,"<http://semoss.org/ontologies/Relation/Letters/letterD:letterE>");
-		SEMOSSEdge edgeEC = new SEMOSSEdge(vertE,vertC,"<http://semoss.org/ontologies/Relation/Letters/letterE:letterC>");
-		
-//		SEMOSSEdge edgeED = new SEMOSSEdge(vertE,vertD,"<http://semoss.org/ontologies/Relation/Letters/letterE:letterD>");
-//		SEMOSSEdge edgeEB = new SEMOSSEdge(vertE,vertB,"<http://semoss.org/ontologies/Relation/Letters/letterE:letterB>");
-		
-//		SEMOSSEdge edgeDF = new SEMOSSEdge(vertD,vertF,"<http://semoss.org/ontologies/Relation/Letters/letterD:letterF>");
-		
-		vertexList.add(vertA);
-		vertexList.add(vertB);
-		vertexList.add(vertC);
-		vertexList.add(vertD);
-		vertexList.add(vertE);
-//		vertexList.add(vertF);
-		return vertexList;
-	}
-	
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
-		return sjss.getRawVar(varName);
-	}
-
-	public double[][] createSimilarityMapping(ArrayList<SEMOSSVertex> vertList0, ArrayList<SEMOSSVertex> vertList1) {
+	/**
+	 * Determines the similarity score between each element in the first list and every element in the second list.
+	 * Returns a matrix with the similarity of each combination.
+	 * @param vertList0 List of vertices from the first database to compare
+	 * @param vertList1 List of vertices from the second database to compare
+	 * @return	double[][] with the similarity score of each.
+	 */
+	private double[][] createSimilarityMapping(ArrayList<SEMOSSVertex> vertList0, ArrayList<SEMOSSVertex> vertList1) {
 		double[][] similarityMapping = null;
 		try {
 			similarityMapping = IntakePortal.WordNetMappingFunction(createStringList(vertexList0), createStringList(vertexList1));
@@ -463,7 +372,12 @@ public class CommonSubgraphFunctions {
 		return similarityMapping;
 	}
 	
-	public ArrayList<String> createStringList(ArrayList<SEMOSSVertex> vertList) {
+	/**
+	 * Turns a SEMOSSVertex ArrayList into an ArrayList of URIs.
+	 * @param vertList ArrayList<SEMOSSVertex> to convert
+	 * @return ArrayList<String> list of SEMOSSVertices URIs
+	 */
+	private ArrayList<String> createStringList(ArrayList<SEMOSSVertex> vertList) {
 		ArrayList<String> stringList = new ArrayList<String>();
 		for(SEMOSSVertex vert : vertList) {
 			String uri = vert.getURI();
@@ -472,7 +386,15 @@ public class CommonSubgraphFunctions {
 		return stringList;
 	}
 	
-	public Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> initialize(double threshold, double[][] similarityMapping)
+	/**
+	 * Initializes the mappingOptions data store.
+	 * This holds all the possible mappings in database 2 for each node in database1.
+	 * mappings are possible if the similarity between the two nodes is greater than the required threshold.
+	 * @param threshold Double representing the minimum similarity value to be a mapping 
+	 * @param similarityMapping	double[][] that stores the similarity between every combination of nodes
+	 * @return Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 */
+	private Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> initialize(double threshold, double[][] similarityMapping)
 	{
 		Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions = new Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>>();
 		for(int vert0Ind=0;vert0Ind<vertexList0.size();vert0Ind++)
@@ -490,7 +412,16 @@ public class CommonSubgraphFunctions {
 		return mappingOptions;
 	}
 	
-	public Boolean possibleVertexMap(double threshold, double[][] similarityMapping, int vert0Ind, int vert1Ind)
+	/**
+	 * Determines if two vertices can be mapped to each other based on their similarity and the threshold
+	 * We have looked at other ways of determining a possible mapping and are left as commented code.
+	 * @param threshold Double representing the minimum similarity value to be a mapping 
+	 * @param similarityMapping	double[][] that stores the similarity between every combination of nodes
+	 * @param vert0Ind Vertex from database 1 to check
+	 * @param vert1Ind Vertex from database 2 to check
+	 * @return true if possible mapping, false if not.
+	 */
+	private Boolean possibleVertexMap(double threshold, double[][] similarityMapping, int vert0Ind, int vert1Ind)
 	{
 		if(similarityMapping[vert0Ind][vert1Ind] >= threshold)
 			return true;
@@ -514,10 +445,10 @@ public class CommonSubgraphFunctions {
 	 * 	Checking if the matrix is extendable.
 	 * If it is extendable, it will return the next Vertex to map.
 	 * If it is not extendable, it will return null.
-	 * @param mappingOptions
-	 * @return
+	 * @param mappingOptions Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 * @return SEMOSSVertex from database 1 that should be the next vertex to map
 	 */
-	public SEMOSSVertex extendable(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
+	private SEMOSSVertex extendable(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
 	{
 
 //		int q = mappedVertexList0.size();
@@ -545,7 +476,12 @@ public class CommonSubgraphFunctions {
 
 	}
 
-	public Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> refine(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
+	/**
+	 * Refines the possible mapping options based on the newly mapped verticies.
+	 * @param mappingOptions Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 * @return Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 */
+	private Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> refine(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
 	{
 //		logger.info("refine");
 
@@ -572,7 +508,15 @@ public class CommonSubgraphFunctions {
 		return refinedMappingOptions;
 	}
 
-	public Boolean possibleEdgeMap(SEMOSSVertex vert0, SEMOSSVertex mappedVert0,SEMOSSVertex vert1,SEMOSSVertex mappedVert1)
+	/**
+	 * Determines if an edge between two vertices in database 1 can map to an edge between two vertices in database 2.
+	 * @param vert0 Vertex from database 1 that has not been mapped yet
+	 * @param mappedVert0 Vertex from database 1 that has been mapped
+	 * @param vert1 Vertex from database 2 that has not been mapped yet
+	 * @param mappedVert1 Vertex from database 2 that has been mapped
+	 * @return true if edges can map, false if not.
+	 */
+	private Boolean possibleEdgeMap(SEMOSSVertex vert0, SEMOSSVertex mappedVert0,SEMOSSVertex vert1,SEMOSSVertex mappedVert1)
 	{
 		//TODO: extend to island nodes
 		String mappedVert0URI = mappedVert0.getURI();
@@ -616,23 +560,13 @@ public class CommonSubgraphFunctions {
 		return true;
 	}
 	
-	public Integer findVertInMappedList(SEMOSSVertex vert, ArrayList<SEMOSSVertex> vertList)
+	/**
+	 * Pick the next vertex from database 1 to map.
+	 * @param mappingOptions Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 * @return SEMOSSVertex representing the next vertex in database 1 to map.
+	 */
+	private SEMOSSVertex pickVertex(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
 	{
-		String vertURI = vert.getURI();
-		int index=0;
-		while(index<vertList.size())
-		{
-			if(vertURI.equals(vertList.get(index).getURI()))
-				return index;
-			index++;
-		}
-		return -1;
-	}
-	
-	
-	public SEMOSSVertex pickVertex(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
-	{
-
 		SEMOSSVertex chosenVertex = null;
 		int minNumOptions = -1;
 		if(mappedVertexList0.size()>0)
@@ -696,7 +630,13 @@ public class CommonSubgraphFunctions {
 		return chosenVertex;
 	}
 	
-	public ArrayList<SEMOSSVertex> getMappableVerticies(SEMOSSVertex vert, Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
+	/**
+	 * Selects all vertices in database 2 that may be mapped to a given vertex from database 1.
+	 * @param vert SEMOSSVertex from database 1 that we are trying to find mappings for
+	 * @param mappingOptions Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 * @return ArrayList<SEMOSSVertex> of possible vertices from database 2 that can be mapped to.
+	 */
+	private ArrayList<SEMOSSVertex> getMappableVerticies(SEMOSSVertex vert, Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
 	{
 		ArrayList<SEMOSSVertex> optionsList =  mappingOptions.get(vert);
 		int numInEdgesVert = vert.getInEdges().size();
@@ -735,60 +675,57 @@ public class CommonSubgraphFunctions {
 		return retList;
 	}
 	
-	public void backtrack(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
+	/**
+	 * Recursive method to construct the common subgraph for two given graphs.
+	 * Constructs common subgraph one vertex at a time selecting available alternatives.
+	 * Backtracks if contraction is impossible in an explored direction and continues in another.
+	 * @param mappingOptions Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> where every key is a vertex in the first database and the value is its possible mappings.
+	 */
+	private void backtrack(Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> mappingOptions)
 	{
-//		logger.info("backtrack "+numTimes+"number of nodes in subgraph"+mappedVertexListFinal0.size());
-
 		//next vertex to map. null if no longer extendable.
 		SEMOSSVertex vert0 = extendable(mappingOptions);
 		if(vert0!=null)
 		{					
-//				logger.info("Backtrack ... picked vertex is "+vert0.getURI());
+				logger.debug("Backtrack ... picked vertex is "+vert0.getURI());
 				ArrayList<SEMOSSVertex> possibleMappedVertexList = getMappableVerticies(vert0,mappingOptions);
-//				for(SEMOSSVertex printing : possibleMappedVertexList)
-//				{
-//					logger.info("Backtrack ... picked vertex is "+vert0.getURI() + " possible mapping is "+printing.getURI());
-//				}
+				for(SEMOSSVertex printing : possibleMappedVertexList)
+					logger.debug("Backtrack ... picked vertex is "+vert0.getURI() + " possible mapping is "+printing.getURI());
 				int index = 0;
 				while(index<possibleMappedVertexList.size()&&index<numOfPossibleConnections)
 				{
 					SEMOSSVertex possibleMappedVertex = possibleMappedVertexList.get(index);
-//				for(SEMOSSVertex possibleMappedVertex : possibleMappedVertexList)
-//				{
-//					logger.info("Backtrack ... picked vertex is "+vert0.getURI() + " mapping with vertex " +possibleMappedVertex.getURI());
+					logger.debug("Backtrack ... picked vertex is "+vert0.getURI() + " mapping with vertex " +possibleMappedVertex.getURI());
 
 					mappedVertexList0.add(vert0);
 					mappedVertexList1.add(possibleMappedVertex);
-//					logger.info("Mapped vertex lists with added vertices are ... ");
+					logger.debug("Mapped vertex lists with added vertices are ... ");
 //					printMap(mappedVertexList0, mappedVertexList1);
 					Hashtable<SEMOSSVertex, ArrayList<SEMOSSVertex>> refinedMappingOptions = refine(mappingOptions);
-	//				refinedMappingOptions = refineLeaves(refinedMappingOptions,vert0,possibleMappedVertex);
-//					logger.info("Refined Mapping Options");
+					logger.debug("Refined Mapping Options");
 //					printMappingOptions(refinedMappingOptions);
-//					logger.info("Starting a new iteration of backtrack from for loop for vertex "+possibleMappedVertex.getURI());
-//					if(nmax<n0)
-						backtrack(refinedMappingOptions);
-//					logger.info("Returning from previous backtrack to for loop for vertex "+possibleMappedVertex.getURI());
+					logger.debug("Starting a new iteration of backtrack from for loop for vertex "+possibleMappedVertex.getURI());
+					backtrack(refinedMappingOptions);
+					logger.debug("Returning from previous backtrack to for loop for vertex "+possibleMappedVertex.getURI());
 					mappedVertexList0.remove(vert0);
 					mappedVertexList1.remove(possibleMappedVertex);
-//					logger.info("Mapped vertex lists with removed verticies are ... ");
-	//				printMap(mappedVertexList0,mappedVertexList1);
+					logger.debug("Mapped vertex lists with removed verticies are ... ");
+//					printMap(mappedVertexList0,mappedVertexList1);
 					index++;
 				}
 				
 				vertexList0.remove(vert0);
-//				logger.info("Starting a new iteration of backtrack after removing vert0 "+vert0.getURI());
-//				if(nmax<n0)//&&numOfFirstTriesCounter<numOfFirstTriesMax)
-					backtrack(mappingOptions);
+				logger.debug("Starting a new iteration of backtrack after removing vert0 "+vert0.getURI());
+				backtrack(mappingOptions);
 //				logger.info("Returning from previous backtrack and adding vert0 "+vert0.getURI());
-		//		vertexList0.add(vert0);
+//				vertexList0.add(vert0);
 		}
 		else
 		{
-			logger.info("Backtrack ... Extendable is false");
+			logger.debug("Backtrack ... Extendable is false");
 			if(mappedVertexList0.size()>nmax)
 			{
-				printMap(mappedVertexList0,mappedVertexList1);
+//				printMap(mappedVertexList0,mappedVertexList1);
 				nmax=mappedVertexList0.size();
 				mappedVertexListFinal0=deepCopy(mappedVertexList0);
 				mappedVertexListFinal1=deepCopy(mappedVertexList1);
@@ -796,11 +733,15 @@ public class CommonSubgraphFunctions {
 		}
 	}
 	
-	public ArrayList<SEMOSSVertex> deepCopy (ArrayList<SEMOSSVertex> toCopy)
+	/**
+	 * Creates a deep copy of an ArrayList<SEMOSSVertex>
+	 * @param toCopy ArrayList<SEMOSSVertex> that should be copied
+	 * @return ArrayList<SEMOSSVertex> that is a copy of the original array
+	 */
+	private ArrayList<SEMOSSVertex> deepCopy (ArrayList<SEMOSSVertex> toCopy)
 	{
 		ArrayList<SEMOSSVertex> retList = new ArrayList<SEMOSSVertex>();
-		for(SEMOSSVertex vert : toCopy)
-		{
+		for(SEMOSSVertex vert : toCopy) {
 			retList.add(vert);
 		}
 		return retList;
