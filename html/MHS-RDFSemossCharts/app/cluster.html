@@ -5,6 +5,9 @@
     <title>Cluster</title>
     <link rel="stylesheet" href="css/bootstrap.css">
     <link rel="stylesheet" href="css/cluster.css">
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <script src="lib/jquery/jquery-1.11.0.min.js"></script>
+    <script src="lib/jquery/jquery-ui.min.js"></script>
     <script src="lib/angular/angular.js"></script>
     <script src="js/clusterapp.js"></script>
     <script src="js/clustercontrollers.js"></script>
@@ -14,20 +17,23 @@
     <!--<script src="data/barData.js"></script>-->
     <script src="lib/d3.min.js"></script>
     <!--<script src="lib/d3/d3.tip.js"></script>-->
-    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <!--<script src="lib/jquery/jquery-1.8.3.min.js"></script>-->
     <script src="lib/bootstrap.js"></script>
+    <script>
 
+    </script>
 </head>
 <body>
-<div id='thecontroller' ng-controller="dataCtrl">
+<div id='thecontroller' class="clearfix" ng-controller="dataCtrl">
     <div id = "clusterNavbar">
-        <p style="float: left; margin-top: 5px; font-size:large"; ><b>Cluster Visualization</b></p>
-        <button id="hideClusterPropButton" class="sm-btn btn-light" ng-click="isClusterPropActive = !isClusterPropActive " style="padding-left: 9px; padding-right: 9px;" ng-class="{'toggled': isClusterPropActive }">Hide Cluster Properties</button>
+        <p style="float: left; margin-top: 5px; font-size:large" ><b>Cluster Visualization</b></p>
     </div>
-    <div id="clusterContainer" ng-class="{'clusterPaneHidden': isClusterPropActive}">
-        <d3-cluster data="data" set-group-data="setGroupData(groupData)" set-node-data="setNodeData(nodeData)" id="clusterViz" container-id="'clusterContainer'" is-cluster-prop-active="isClusterPropActive"></d3-cluster>
+    <div class="container-container">
+        <div id="clusterContainer">
+            <d3-cluster data="data" set-group-data="setGroupData(groupData)" set-node-data="setNodeData(nodeData)" id="clusterViz" container-id="'clusterContainer'" is-cluster-prop-active="isClusterPropActive"></d3-cluster>
+        </div>
     </div>
-    <div class="rightNodePane" ng-class="{'clusterPaneHidden': isClusterPropActive}">
+    <div id="rightNodePane" class="rightNodePane">
         <p style="padding-top: 10px"><b> Node Properties</b></p>
         <div class = "nodeContainer" >
             <div ng-repeat = "(nodeDatumName, nodeDatum) in nodeData">
@@ -35,7 +41,7 @@
             </div>
         </div>
         <p style = "margin-top:6px"><b> Group Properties</b></p>
-        <div class = "barContainer" ng-class="{'clusterPaneHidden': isClusterPropActive}">
+        <div class = "barContainer">
             <div ng-repeat = "(groupDatumName, groupDatum) in groupData">
                 <p style = "text-align:center; margin-top: 20px"><b>{{groupDatum.names[1] + " vs. " + groupDatumName}}</b></p>
                 <div class="barContainerContents">
@@ -56,11 +62,12 @@
 //        start(avnwxData);
 //    });
 
-    function start(dataString) {
-		var jsonData = jQuery.parseJSON(dataString);
-		var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
-        ctrlScope.setJSONData(jsonData);
-    }
+
+        function start(dataString) {
+            var jsonData = jQuery.parseJSON(dataString);
+            var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
+            ctrlScope.setJSONData(jsonData);
+        }
 </script>
 </body>
 </html>

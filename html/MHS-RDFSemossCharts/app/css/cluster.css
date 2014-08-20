@@ -1,3 +1,8 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
 .sm-btn {
     padding: 3px 8px;
     border-radius: 3px;
@@ -38,19 +43,26 @@
     box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
 }
 
-.rightNodePane{
+#rightNodePane{
     padding: 10px 10px;
     background-color: #eee;
-    top: 30px;
-    right: 0;
+    width: 300px;
+    position: absolute;
+    top: 32px;
     bottom: 0;
-    width: 500px;
-    position: fixed;
+    left: 0;
     z-index: 2;
-    border-left: 1px solid #ccc;
-    -webkit-transition: all 0.3s ease;
-    -moz-transition: all 0.3s ease;
-    transition: all 0.3s ease;
+    border-right: 1px solid #ccc;
+}
+
+#clusterContainer{
+    top: 42px;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    overflow: hidden;
+    z-index: 1;
 }
 
 .rightNodePane.clusterPaneHidden{
@@ -62,14 +74,14 @@
 
 .nodeContainer{
     border-bottom: 1px solid #ccc;
-    border-top: 1px solid #ccc;
     border-left: 1px solid #ccc;
     border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
     margin-top: -6px;
     padding-left: 5px;
     padding-right: 5px;
     padding-bottom: 5px;
-    height: 107px;
+    height: calc(30% - 37px);
     overflow-y: scroll;
     background-color: #fff;
     -o-text-overflow: ellipsis;
@@ -87,10 +99,8 @@
     border-top: 1px solid #ccc;
     margin-top: -5px;
     top: 225px;
-    right: 10px;
     bottom: 10px;
-    width: 498px;
-    position: fixed;
+    height: calc(70% - 37px);
     overflow-y: scroll;
     background-color: #fff;
     -webkit-transition: all 0.3s ease;
@@ -121,8 +131,6 @@ path.domain{
     background-color: #fff;
 }
 
-
-
 .nodeContainerText{
     -o-text-overflow: ellipsis;
     -ms-text-overflow: ellipsis;
@@ -134,27 +142,21 @@ path.domain{
     margin-right: 20px;
 }
 
-#clusterContainer{
-    position: absolute;
-    right: 500px;
-    top: 42px;
-    left: 0;
-    bottom: 0;
-    -webkit-transition: all 0.3s ease;
-    -moz-transition: all 0.3s ease;
-    transition: all 0.3s ease;
-}
+
 
 #clusterContainer.clusterPaneHidden{
     right: 0;
 }
 
 #thecontroller{
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
-    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+
+.container-container {
+    position: relative;
+    height: 100%;
+    float: right;
 }
 
 .d3-tip {
@@ -189,4 +191,8 @@ path.domain{
 #clusterContainer .tooltip-inner {
     text-align:left;
     max-width: none;
+}
+
+.clearfix {
+    clear: both;
 }

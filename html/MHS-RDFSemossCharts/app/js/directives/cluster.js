@@ -20,7 +20,7 @@ app.directive('d3Cluster', function() {
             var numberOfClusters = 0;
             var barData = [];
             var w = parseInt(d3.select('#' + scope.containerId).style('width'));
-            var h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
+            var h = parseInt(d3.select('#' + scope.containerId).style('height'));
 
 
             scope.$watch('data', function() {
@@ -100,7 +100,6 @@ app.directive('d3Cluster', function() {
             var vis = d3.select('#' + scope.containerId).append("svg")
                 .attr("width", w)
                 .attr("height", h)
-//                .append("g")
                 .call(zoom);
 
             var container = vis.append("g");
@@ -284,21 +283,32 @@ app.directive('d3Cluster', function() {
                         });
                 });
             }
-
+            resize();
             function resize() {
-                w = parseInt(d3.select('#' + scope.containerId).style('width'));
-                h = parseInt(d3.select('#' + scope.containerId).style('height')) - 5;
-                console.log("resizing");
-                d3.select('#clusterContainer svg').attr("width", w).attr("height", h);
+                w = parseInt(d3.select('#clusterContainer').style('width'));
+                h = parseInt(d3.select('#clusterContainer').style('height'));
+                console.log(resize);
+                d3.select("svg").attr("width", w).attr("height", h);
                 force.size([w, h]).resume();
 
-
+                var documentWidth = $(document).width();
+                var resizeableWidth = $("#rightNodePane").width();
+                var clusterWidth = $("#clusterContainer").width();
+                $(".container-container").width(documentWidth - resizeableWidth);
             }
 
             d3.select(window).on('resize', resize);
             scope.$watch('isClusterPropActive', function() {
                 setTimeout(resize, 300);
             });
+
+            $("#rightNodePane").resizable(
+                {handles: 'e'
+                });
+            $("#rightNodePane").bind("resize", function (event, ui) {
+                resize();
+            });
+
         },
         template:"<div></div>"
     }
