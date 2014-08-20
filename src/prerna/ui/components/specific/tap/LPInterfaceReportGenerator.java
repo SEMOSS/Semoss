@@ -25,42 +25,35 @@ import java.util.Vector;
 
 import javax.swing.JDesktopPane;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.DHMSMTransitionQueryConstants;
 import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 	private String lpSystemInterfacesQuery = "SELECT DISTINCT ?LPSystem ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Recommendation WHERE { {SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?LPSystem) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem)  (COALESCE(IF(BOUND(?y),IF(?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question','Low','High'),IF(BOUND(?x),IF(?DownstreamSysProb1 != 'High' &&?DownstreamSysProb1 != 'Question','Low','High'),'')), '') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) (COALESCE(?HIEsys, '') AS ?HIE) ?DHMSMcrm WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) LET(?d := 'd') OPTIONAL{ { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION {{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} }} FILTER(REGEX(STR(?LPSystem), '^http://health.mil/ontologies/Concept/System/@SYSTEMNAME@$')) } ORDER BY ?Data";
-	private String headerKey = "headers";
-	private String resultKey = "data";
+	private final String HEADER_KEY = "headers";
+	private final String RESULT_KEY = "data";
 
-	private String systemTypeQuery = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
-	private String hrCore_GetSORQuery = "SELECT DISTINCT (CONCAT(STR(?system), STR(?data)) AS ?sysDataKey) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system";
+	private final String LP_SYS_KEY = "LPSystem";
+	private final String INTERFACE_TYPE_KEY = "InterfaceType";
+	private final String INTERFACING_SYS_KEY = "InterfacingSystem";
+	private final String PROBABILITY_KEY = "Probability";
+	private final String DHMSM_SOR_KEY = "DHMSM";
+	private final String COMMENT_KEY = "Recommendation";
+	private final String DOWNSTREAM_KEY = "Downstream";
+	private final String DHMSM_PROVIDE_KEY = "Provide";
+	private final String DHMSM_CONSUME_KEY = "Consumes";
+	private final String DATA_KEY = "Data";	
 
-	String lpSysKey = "LPSystem";
-	String interfaceTypeKey = "InterfaceType";
-	String interfacingSystemKey = "InterfacingSystem";
-	String probabilityKey = "Probability";
-	String dhmsmSORKey = "DHMSM";
-	String commentKey = "Recommendation";
-	String interfaceKey = "Interface";	
-
-	private final String downstreamKey = "Downstream";
-	private final String dhmsmProvideKey = "Provide";
-	private final String dhmsmConsumeKey = "Consumes";
-	private final String dataKey = "Data";	
-
-	private final String lpiKey = "LPI";
-	private final String lpniKey = "LPNI";
-	private final String hpiKey = "HPI";
-	private final String hpniKey = "HPNI";
+	private final String LPI_KEY = "LPI";
+//	private final String lpniKey = "LPNI"; 
+	private final String HPI_KEY = "HPI";
+	private final String HPNI_KEY = "HPNI";
 
 	/**
 	 * This is the function that is used to create the first view 
@@ -106,30 +99,29 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 			SesameJenaSelectStatement sjss = sjw.next();
 
 			//For comment writing
-			String sysName = sjss.getVar(lpSysKey) + "";
-			String interfacingSysName = sjss.getVar(interfacingSystemKey) + ""; 
-
+			String sysName = sjss.getVar(LP_SYS_KEY).toString();
+			String interfacingSysName = sjss.getVar(INTERFACING_SYS_KEY).toString(); 
 			//For logic
-			String system = sjss.getRawVar(lpSysKey) + "";
-			String interfacingSystem = sjss.getRawVar(interfacingSystemKey) + "";
-			String interfaceType = sjss.getRawVar(interfaceTypeKey) + "";
-			String dhmsmSOR = sjss.getRawVar(dhmsmSORKey) + "";
+			String system = sjss.getRawVar(LP_SYS_KEY).toString();
+			String interfacingSystem = sjss.getRawVar(INTERFACING_SYS_KEY).toString();
+			String interfaceType = sjss.getRawVar(INTERFACE_TYPE_KEY).toString();
+			String dhmsmSOR = sjss.getRawVar(DHMSM_SOR_KEY).toString();
 			String comment = "";
-			String data = sjss.getRawVar(dataKey) + "";
-			String probability = sjss.getVar(probabilityKey) + "";
+			String data = sjss.getRawVar(DATA_KEY).toString();
+			String probability = sjss.getVar(PROBABILITY_KEY).toString();
 
 			Object[] values = new Object[names.length];
 			int count = 0;
 			for(int colIndex = 0;colIndex < names.length;colIndex++)
 			{
-				if(names[colIndex].contains(commentKey))
+				if(names[colIndex].contains(COMMENT_KEY))
 				{ 
 					// determine which system is upstream or downstream
 					String upstreamSysName = "";
 					String upstreamSystemURI = "";
 					String downstreamSysName = "";
 					String downstreamSystemURI = "";
-					if(interfaceType.contains(downstreamKey)) { // lp system is providing data to interfacing system
+					if(interfaceType.contains(DOWNSTREAM_KEY)) { // lp system is providing data to interfacing system
 						upstreamSystemURI = system;
 						upstreamSysName = sysName;
 						downstreamSystemURI = interfacingSystem;
@@ -151,53 +143,54 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 					}
 					
 					// DHMSM is SOR of data
-					if(dhmsmSOR.contains(dhmsmProvideKey)) 
+					if(dhmsmSOR.contains(DHMSM_PROVIDE_KEY)) 
 					{
-						if(upstreamSysType.equals(lpiKey)) { // upstream system is LPI
-							comment += "Need to add interface DHMSM->" + upstreamSysName + ". ";
+						if(upstreamSysType.equals(LPI_KEY)) { // upstream system is LPI
+							comment = comment.concat("Need to add interface DHMSM->").concat(upstreamSysName).concat(". ");
 						} 
 						// new business rule might be added - will either un-comment or remove after discussion today
 //						else if (upstreamSysType.equals(lpniKey)) { // upstream system is LPNI
 //							comment += "Recommend review of developing interface DHMSM->" + upstreamSysName + ". ";
 //						} 
-						else if (downstreamSysType.equals(lpiKey)) { // upstream system is not LPI and downstream system is LPI
-							comment += "Need to add interface DHMSM->" + downstreamSysName + "." + 
-									" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ". ";
+						else if (downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
+							comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(" Recommend review of removing interface ")
+									.concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
 						} 
-						if (upstreamSysType.equals(hpiKey)) { // upstream is HPI
-							comment += "Provide temporary integration between DHMSM->" + upstreamSysName + " until all deployment sites for " + upstreamSysName + " field DHMSM (and any additional legal requirements). ";
-						} else if(downstreamSysType.equals(hpiKey)) { // upstream sys is not HPI and downstream is HPI
-							comment += "Provide temporary integration between DHMSM->" + downstreamSysName + " until all deployment sites for " + downstreamSysName + " field DHMSM (and any additional legal requirements)." +
-									" Recommend review of removing interface " + upstreamSysName + "->" + downstreamSysName + ". ";
+						if (upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
+							comment = comment.concat("Provide temporary integration between DHMSM->").concat(upstreamSysName).concat(" until all deployment sites for ").concat(upstreamSysName)
+									.concat(" field DHMSM (and any additional legal requirements). ");
+						} else if(downstreamSysType.equals(HPI_KEY)) { // upstream sys is not HPI and downstream is HPI
+							comment = comment.concat("Provide temporary integration between DHMSM->").concat(downstreamSysName).concat(" until all deployment sites for ").concat(downstreamSysName).concat(" field DHMSM (and any additional legal requirements).")
+									.concat(" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
 						} 
-						if(!upstreamSysType.equals(lpiKey) && !upstreamSysType.equals(hpiKey) && !downstreamSysType.equals(lpiKey) && !downstreamSysType.equals(hpiKey))
+						if(!upstreamSysType.equals(LPI_KEY) && !upstreamSysType.equals(HPI_KEY) && !downstreamSysType.equals(LPI_KEY) && !downstreamSysType.equals(HPI_KEY))
 						{
-							if(upstreamSysType.equals(hpiKey) || upstreamSysType.equals(hpniKey) || downstreamSysType.equals(hpiKey) || downstreamSysType.equals(hpniKey)) { //if either system is HP
+							if(upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) || downstreamSysType.equals(HPNI_KEY)) { //if either system is HP
 								comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
 							} else {
 								comment = "Stay as-is beyond FOC.";
 							}
 						}
 					} // DHMSM is consumer of data
-					else if(dhmsmSOR.contains(dhmsmConsumeKey)) 
+					else if(dhmsmSOR.contains(DHMSM_CONSUME_KEY)) 
 					{
 						boolean otherwise = true;
-						if(upstreamSysType.equals(lpiKey) && sorV.contains(upstreamSystemURI + data)) { // upstream system is LPI and SOR of data
+						if(upstreamSysType.equals(LPI_KEY) && sorV.contains(upstreamSystemURI + data)) { // upstream system is LPI and SOR of data
 							otherwise = false;
-							comment += "Need to add interface " + upstreamSysName  + "->DHMSM. ";
-						} else if(sorV.contains(upstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // upstream system is SOR and has a probability
+							comment = comment.concat("Need to add interface ").concat(upstreamSysName).concat("->DHMSM. ");
+						} else if(sorV.contains(upstreamSystemURI + data) && !probability.equals("null") && !probability.equals("") ) { // upstream system is SOR and has a probability
 							otherwise = false;
-							comment += "Recommend review of developing interface between " + upstreamSysName  + "->DHMSM. ";
+							comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
 						} 
-						if(downstreamSysType.equals(lpiKey) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
+						if(downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSystemURI + data)) { // downstream system is LPI and SOR of data
 							otherwise = false;
-							comment += "Need to add interface " + downstreamSysName  + "->DHMSM. ";
+							comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->DHMSM. ");
 						} else if(sorV.contains(downstreamSystemURI + data) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
 							otherwise = false;
-							comment += "Recommend review of developing interface between " + downstreamSysName  + "->DHMSM. ";
+							comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
 						} 
 						if(otherwise) {
-							if(upstreamSysType.equals(hpiKey) || upstreamSysType.equals(hpniKey) || downstreamSysType.equals(hpiKey) || downstreamSysType.equals(hpniKey)) { //if either system is HP
+							if(upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) || downstreamSysType.equals(HPNI_KEY)) { //if either system is HP
 								comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
 							} else {
 								comment = "Stay as-is beyond FOC.";
@@ -205,7 +198,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 						}
 					} // other cases DHMSM doesn't touch data object
 					else {
-						if(upstreamSysType.equals(hpiKey) || upstreamSysType.equals(hpniKey) || downstreamSysType.equals(hpiKey) || downstreamSysType.equals(hpniKey)) { //if either system is HP
+						if(upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) || downstreamSysType.equals(HPNI_KEY)) { //if either system is HP
 							comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
 						} else {
 							comment = "Stay as-is beyond FOC.";
@@ -227,7 +220,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
-		sjsw.setQuery(systemTypeQuery);
+		sjsw.setQuery(DHMSMTransitionQueryConstants.SYS_TYPE_QUERY);
 		sjsw.executeQuery();
 
 		String[] varName = sjsw.getVariables();
@@ -243,7 +236,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	private Vector<String> processPeripheralWrapper(){
 		String[] names = new String[1];
 		SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
-		sorWrapper.setQuery(hrCore_GetSORQuery);
+		sorWrapper.setQuery(DHMSMTransitionQueryConstants.SYS_SOR_DATA_CONCAT_QUERY);
 		sorWrapper.setEngine(engine);
 		sorWrapper.executeQuery();
 		names = sorWrapper.getVariables();
@@ -253,7 +246,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		{
 			SesameJenaSelectStatement sjss = sorWrapper.next();
 			int colIndex = 0;
-			String val = sjss.getRawVar(names[colIndex]) + "";
+			String val = sjss.getRawVar(names[colIndex]).toString();
 			if(val.substring(0, 1).equals("\"")) {
 				val = val.substring(1, val.length()-1);
 			}
@@ -269,8 +262,8 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		this.query = lpSystemInterfacesQuery;
 		this.engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		createData();			
-		sysLPIInterfaceHash.put(headerKey, removeSystemFromStringArray(getNames()));
-		sysLPIInterfaceHash.put(resultKey, removeSystemFromArrayList(getList()));
+		sysLPIInterfaceHash.put(HEADER_KEY, removeSystemFromStringArray(getNames()));
+		sysLPIInterfaceHash.put(RESULT_KEY, removeSystemFromArrayList(getList()));
 		return sysLPIInterfaceHash;
 	}
 

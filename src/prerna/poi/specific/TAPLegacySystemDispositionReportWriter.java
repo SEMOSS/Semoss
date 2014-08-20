@@ -39,20 +39,18 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.specific.tap.IndividualSystemTransitionReport;
 import prerna.ui.components.specific.tap.OCONUSMapExporter;
 import prerna.util.Constants;
+import prerna.util.DHMSMTransitionQueryConstants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class TAPLegacySystemDispositionReportWriter {
 
-	static final Logger logger = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
+	static final Logger LOGGER = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
 
 	private String sysName;
 	private String sysURI;
 	private Hashtable<String,String> reportTypeHash = new Hashtable<String,String>();
 
-	//queries to determine type of system being passed in
-	private String reportTypeQuery = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
-	
 	//query for basic sys information
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
 
@@ -78,7 +76,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	private XSSFWorkbook wb;
 	private XSSFSheet reportSheet;
 	
-	private double atoCost = 150000;
+	private final double atoCost = 150000;
 	private int atoYear;
 	private int atoRenewalYear;
 	
@@ -162,9 +160,9 @@ public class TAPLegacySystemDispositionReportWriter {
 			Picture pict = drawing.createPicture(anchor, pictureIdx); //Creates a picture
 			pict.resize(0.618);
 		} catch (FileNotFoundException e){
-			logger.info("CONUS Map image not found for this system");
+			LOGGER.info("CONUS Map image not found for this system");
 		} catch (IOException e) {
-			logger.info("CONUS Map image not found for this system");
+			LOGGER.info("CONUS Map image not found for this system");
 		} finally {
 			try {
 				if(inputStream!=null)
@@ -405,7 +403,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	public Hashtable<String,String> processReportTypeQuery() {
 		Hashtable<String,String> retList = new Hashtable<String,String>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, reportTypeQuery);
+		SesameJenaSelectWrapper sjsw = processQuery(HR_Core, DHMSMTransitionQueryConstants.SYS_TYPE_QUERY);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
@@ -511,7 +509,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 
 	private SesameJenaSelectWrapper processQuery(IEngine engine, String query) {
-		logger.info("PROCESSING QUERY: " + query);
+		LOGGER.info("PROCESSING QUERY: " + query);
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
