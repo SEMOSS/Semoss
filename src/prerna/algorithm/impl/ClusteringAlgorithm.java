@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
  */
 public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 
-	private static final Logger logger = LogManager.getLogger(ClusteringAlgorithm.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithm.class.getName());
 
 	//Constructor
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
@@ -33,7 +33,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		boolean success;
 		boolean noChange = false;
 		int iterationCount = 0;
-		int maxIterations = 1000;
+		int maxIterations = 1000000;
 		//continue until there are no changes, so when noChange == true, quit.
 		//or quit after some ridiculously large number of times with an error
 		while(!noChange && iterationCount <= maxIterations) {
@@ -52,12 +52,13 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 					clustersNumInstances[newClusterForInstance]++;
 					clustersAssigned[instanceInd] = newClusterForInstance;
 				}
-			}			
+			}
+			iterationCount++;
 		}
 		//if it quits after the ridiculously large number of times, print out the error
 		if(iterationCount == maxIterations) {
 			success = false;
-			System.out.println("Completed Maximum Number of iterations without finding a solution");
+			LOGGER.info("Completed Maximum Number of iterations without finding a solution");
 		}
 		else {
 			success = true;
@@ -76,21 +77,21 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	 * Print each cluster with categorical and numerical properties and a list of all instances
 	 */
 	private void printOutClusters() {
-		System.out.print("Cluster Results-");
+		LOGGER.info("Cluster Results-");
 
 		String[] numericalPropNames = cdp.getNumericalPropNames();
 		String[] categoryPropNames = cdp.getCategoryPropNames();
 
 		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
-			System.out.print("\n\nCluster "+clusterInd+":");
+			LOGGER.info("\n\nCluster "+clusterInd+":");
 
 			//print numerical props
-			System.out.print("\nNumerical Properties- ");
+			LOGGER.info("\nNumerical Properties- ");
 			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ )
-				System.out.print(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
+				LOGGER.info(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
 
 			//print categorical props
-			System.out.print("\nCategorical Properties- ");
+			LOGGER.info("\nCategorical Properties- ");
 			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
 				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
 				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
@@ -98,16 +99,16 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 					int freq = propValHash.get(propWithHighFreq);
 					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
 					DecimalFormat nf = new DecimalFormat("###.##");
-					System.out.print(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
+					LOGGER.info(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
 				}
 			}
 
 			//print instances
-			System.out.print("\nInstances- ");
+			LOGGER.info("\nInstances- ");
 			for(String instance : instanceIndexHash.keySet()) {
 				int clusterAssigned = clustersAssigned[instanceIndexHash.get(instance)];
 				if(clusterAssigned == clusterInd)
-					System.out.print(instance+", ");
+					LOGGER.info(instance+", ");
 			}
 		}
 	}
@@ -161,8 +162,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 					if(numberInd > -1) {
 						clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
 					} else {
-						logger.error("No properties matched for " + prop);
-
+						LOGGER.error("No properties matched for " + prop);
 					}
 				}
 			}

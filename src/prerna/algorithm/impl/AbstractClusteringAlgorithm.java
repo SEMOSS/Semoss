@@ -3,8 +3,13 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 public abstract class AbstractClusteringAlgorithm {
 
+	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithm.class.getName());
+	
 	// instance variables that must be defined for clustering to work
 	protected ArrayList<Object[]> masterTable;
 	protected String[] varNames;
@@ -99,8 +104,6 @@ public abstract class AbstractClusteringAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			clustersAssigned[i] = -1;
 		}
-		//assigns one random instance to the first cluster
-//		int randomInstance = (int)(Math.random() *numInstances);
 		clustersAssigned[0] = 0;
 		Double[][] initialClusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, 1);
 		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = createClustersCategoryProperties(instanceCategoryMatrix, clustersAssigned, 1);
@@ -120,7 +123,6 @@ public abstract class AbstractClusteringAlgorithm {
 			initialClusterCategoryMatrix = updateClustersCategoryProperties(minIndex, -1, 0, initialClusterCategoryMatrix);
 			
 			clustersAssigned[minIndex] = i;
-			System.out.println("///////////////////" + minIndex);
 		}
 		
 		return clustersAssigned;
@@ -242,7 +244,7 @@ public abstract class AbstractClusteringAlgorithm {
 					clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
 				}
 				else{
-					System.out.println("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
+					LOGGER.info("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
 				}
 			}
 			//add the category properties to the new cluster
