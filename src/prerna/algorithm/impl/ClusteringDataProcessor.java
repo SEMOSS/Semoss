@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -55,23 +56,23 @@ public class ClusteringDataProcessor {
 	}
 	
 	public Integer[] getCategoryPropIndices() {
-		return categoryPropIndices;
+		return categoryPropIndices.clone();
 	}
 	
 	public Hashtable<String, Integer> getInstanceHash() {
-		return instanceHash;
+		return (Hashtable<String, Integer>) instanceHash.clone();
 	}
 	public Double[][] getNumericalMatrix() {
-		return numericalMatrix;
+		return numericalMatrix.clone();
 	}
 	public String[][] getCategoricalMatrix() {
-		return categoricalMatrix;
+		return categoricalMatrix.clone();
 	}
 	public String[] getCategoryPropNames() {
-		return categoryPropNames;
+		return categoryPropNames.clone();
 	}
 	public String[] getNumericalPropNames() {
-		return numericalPropNames;
+		return numericalPropNames.clone();
 	}
 
 	/**
@@ -405,13 +406,13 @@ public class ClusteringDataProcessor {
 					if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
 						try {
 							if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
-								SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+								SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
 								formatLongDate.setLenient(true);
 								Date valDate = formatLongDate.parse(dataRow[idx].toString());
 								Long dateAsLong = valDate.getTime();
 								numericalMatrix[row][counter] = dateAsLong.doubleValue();
 							} else if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
-								SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy");
+								SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
 								formatLongDate.setLenient(true);
 								Date valDate = formatLongDate.parse(dataRow[idx].toString());
 								Long dateAsLong = valDate.getTime();
@@ -464,7 +465,7 @@ public class ClusteringDataProcessor {
 
 		// will analyze date types as numerical data
 		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
 		Date longdate = null;
 		try {
 			formatLongDate.setLenient(true);
@@ -477,7 +478,7 @@ public class ClusteringDataProcessor {
 		}
 
 		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy");
+		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
 		Date simpleDate = null;
 		try {
 			formatSimpleDate.setLenient(true);
