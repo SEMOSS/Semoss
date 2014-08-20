@@ -21,6 +21,7 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JTextField;
 
@@ -30,7 +31,12 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-
+/**
+ * CommonSubgraphButtonListener calls the common subgraph algorithm when commonSubgraphButton is clicked.
+ * Determines the largest common subgraph between the metamodels of the two databases selected when the nodes are above the minimum threshold.
+ * @author ksmart
+ *
+ */
 public class CommonSubgraphButtonListener implements IChakraListener{
 	
 	public void actionPerformed(ActionEvent arg0) {
@@ -43,8 +49,19 @@ public class CommonSubgraphButtonListener implements IChakraListener{
 			Utility.showError("Threshold must be a number");
 			return;
 		}
+		
+		JComboBox<String> commonSubgraphComboBox0 = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_0);
+		JComboBox<String> commonSubgraphComboBox1 = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.COMMON_SUBGRAPH_COMBO_BOX_1);
+		String engine0Name = (String)commonSubgraphComboBox0.getSelectedItem();
+		String engine1Name = (String)commonSubgraphComboBox1.getSelectedItem();
+		
+		if(engine0Name==null||engine1Name==null||engine0Name.equals(engine1Name)) {
+			Utility.showError("Please select 2 different databases from the database lists in order to run the common subgraph algorithm");
+			return;
+		}
+		
 		CommonSubgraphFunctions csf = new CommonSubgraphFunctions();
-		csf.CSIA(thresholdValue);
+		csf.CSIA(thresholdValue,engine0Name,engine1Name);
 	}
 	
 	/**
