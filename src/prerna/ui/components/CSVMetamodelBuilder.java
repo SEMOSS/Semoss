@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import org.supercsv.io.CsvListReader;
@@ -313,7 +314,7 @@ public class CSVMetamodelBuilder {
 		//TODO: combine determining long date vs. simple date into a loop
 
 		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
 		Date longdate = null;
 		try {
 			formatLongDate.setLenient(true);
@@ -327,7 +328,7 @@ public class CSVMetamodelBuilder {
 		}
 
 		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy");
+		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
 		Date simpleDate = null;
 		try {
 			formatSimpleDate.setLenient(true);

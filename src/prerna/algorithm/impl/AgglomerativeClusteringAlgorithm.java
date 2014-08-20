@@ -190,7 +190,6 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			gammaArr[i] = (double) numWinsForCluster[i] / totalCount;
 		}
 		
-		boolean cannotIncrease = true;
 		double newLambdaWinner = lambdaArr[topTwoClustersWithMaxSimilarity[0]] + n;
 		double newLamdbaRunnerUp = lambdaArr[topTwoClustersWithMaxSimilarity[1]] - n * secondScore;
 		//cannot increase winner

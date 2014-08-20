@@ -1272,14 +1272,14 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	}
 	
 	protected void processControlData(SEMOSSEdge edge){
-		String edgeType = edge.getProperty(Constants.EDGE_TYPE)+"";
+		String edgeType = edge.getProperty(Constants.EDGE_TYPE).toString();
 		for(String prop : edge.getPropertyKeys()){
 			controlData.addProperty(edgeType, prop);
 		}
 	}
 	
 	protected void processControlData(SEMOSSVertex vert){
-		String vertType = vert.getProperty(Constants.VERTEX_TYPE)+"";
+		String vertType = vert.getProperty(Constants.VERTEX_TYPE).toString();
 		for(String prop : vert.getPropertyKeys()){
 			controlData.addProperty(vertType, prop);
 		}
