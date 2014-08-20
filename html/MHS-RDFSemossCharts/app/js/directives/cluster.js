@@ -303,7 +303,7 @@ app.directive('d3Cluster', function() {
             });
 
             $("#rightNodePane").resizable(
-                {handles: 'e'
+                {handles: 'e', minWidth: 200
                 });
             $("#rightNodePane").bind("resize", function (event, ui) {
                 resize();
