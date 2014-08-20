@@ -1,10 +1,9 @@
 package prerna.ui.components.specific.tap;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 
 public interface IAggregationHelper {
 
@@ -12,18 +11,17 @@ public interface IAggregationHelper {
 	String semossRelationBaseURI = "http://semoss.org/ontologies/Relation/";
 	String semossPropertyBaseURI = "http://semoss.org/ontologies/Relation/Contains/";
 	
-	Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
-	Hashtable<String, Hashtable<String, Object>> removeDataHash = new Hashtable<String, Hashtable<String, Object>>();
+	HashMap<String, HashMap<String, Object>> dataHash = new HashMap<String, HashMap<String, Object>>();
+	HashMap<String, HashMap<String, Object>> removeDataHash = new HashMap<String, HashMap<String, Object>>();
 
-	public Hashtable<String, Set<String>> allRelations = new Hashtable<String, Set<String>>();
-	public Hashtable<String, Set<String>> allConcepts = new Hashtable<String, Set<String>>();
+	public HashMap<String, Set<String>> allRelations = new HashMap<String, Set<String>>();
+	public HashMap<String, Set<String>> allConcepts = new HashMap<String, Set<String>>();
 	
 	// processing and aggregating methods
-	public SesameJenaSelectWrapper processQuery(IEngine engine, String query);
 	
-	public void processData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data);
+	public void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
 	
-	public void deleteData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data);
+	public void deleteData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
 	
 	public void processNewConcepts(IEngine engine, String newConceptType);
 	

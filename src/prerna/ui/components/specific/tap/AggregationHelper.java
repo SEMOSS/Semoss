@@ -21,8 +21,8 @@ package prerna.ui.components.specific.tap;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
@@ -40,7 +40,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -50,22 +49,12 @@ import prerna.util.Utility;
  */
 public class AggregationHelper implements IAggregationHelper {
 
-	static final Logger logger = LogManager.getLogger(AggregationHelper.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(AggregationHelper.class.getName());
 
 	public String errorMessage = "";
 
 	// Fundamental Methods
-	public SesameJenaSelectWrapper processQuery(IEngine engine, String query){
-		logger.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();	
-		return sjsw;
-	}
-
-	public void processData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data)
+	public void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data)
 	{
 		for( String sub : data.keySet())
 		{
@@ -78,12 +67,12 @@ public class AggregationHelper implements IAggregationHelper {
 					concept_triple = false;
 				}
 				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
-				logger.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
 	
-	public void deleteData(IEngine engine, Hashtable<String, Hashtable<String, Object>> data)
+	public void deleteData(IEngine engine, HashMap<String, HashMap<String, Object>> data)
 	{
 		for( String sub : data.keySet())
 		{
@@ -96,7 +85,7 @@ public class AggregationHelper implements IAggregationHelper {
 					concept_triple = false;
 				}
 				( (BigDataEngine) engine).removeStatement(sub, pred, obj, concept_triple);
-				logger.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 		//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
@@ -132,7 +121,7 @@ public class AggregationHelper implements IAggregationHelper {
 		( (BigDataEngine) engine).addStatement(newConceptType, subclassOf, concept, true);
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		existingBaseEngine.addStatement(newConceptType, subclassOf, concept, true);
-		logger.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
+		LOGGER.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
 		
 	}
 
@@ -144,26 +133,26 @@ public class AggregationHelper implements IAggregationHelper {
 		( (BigDataEngine) engine).addStatement(newRelationshipType, subpropertyOf, relation, true);
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		existingBaseEngine.addStatement(newRelationshipType, subpropertyOf, relation, true);
-		logger.info("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
+		LOGGER.info("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 	}
 	
 	public void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object)
 	{
 		String pred = RDF.TYPE.toString();
 		((BigDataEngine) engine).addStatement(subject, pred, object, true);
-		logger.info("ADDING CONCEPT INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
+		LOGGER.info("ADDING CONCEPT INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
 	}
 
 	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object) 
 	{
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		((BigDataEngine) engine).addStatement(subject, subpropertyOf, object, true);
-		logger.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
+		LOGGER.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
 	}
 
 	public void addToDataHash(Object[] returnTriple) 
 	{
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
 		if(dataHash.containsKey(returnTriple[0].toString()))
 		{
@@ -177,7 +166,7 @@ public class AggregationHelper implements IAggregationHelper {
 	
 	public void addToDeleteHash(Object[] returnTriple)
 	{
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		innerHash.put(returnTriple[1].toString(), returnTriple[2]);
 		if(removeDataHash.containsKey(returnTriple[0].toString()))
 		{
@@ -265,11 +254,11 @@ public class AggregationHelper implements IAggregationHelper {
 			return new String[]{""};
 		}
 
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			logger.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADDING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -277,7 +266,7 @@ public class AggregationHelper implements IAggregationHelper {
 			Double addValue = ( (Literal) value).doubleValue();
 			Double currentValue = (Double) innerHash.get(prop);
 			value = addValue + currentValue;
-			logger.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADJUSTING SUM:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -296,17 +285,17 @@ public class AggregationHelper implements IAggregationHelper {
 			value = value.toString().substring(1, value.toString().length()-1); // remove annoying 
 		}
 		
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			logger.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADDING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
 			innerHash = dataHash.get(sub);
 			Object currentString = innerHash.get(prop);
 			value = currentString.toString().substring(0, currentString.toString().length()-1) + ";" + value.toString();
-			logger.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADJUSTING STRING:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		return new Object[]{sub, prop, value};
 	}
@@ -326,11 +315,11 @@ public class AggregationHelper implements IAggregationHelper {
 			return new String[]{""};
 		}
 
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
 			value = ((Literal) value).doubleValue();
-			logger.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADDING DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -343,7 +332,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					logger.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					LOGGER.debug("ADJUSTING MIN DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -357,7 +346,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = ((Literal) value).doubleValue();
-					logger.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					LOGGER.debug("ADJUSTING MAX DOUBLE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -383,11 +372,11 @@ public class AggregationHelper implements IAggregationHelper {
 			return new String[]{""};
 		}
 
-		Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{	
 			value = (Date) ((XMLGregorianCalendar) ((Literal) value).calendarValue()).toGregorianCalendar().getTime();
-			logger.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			LOGGER.debug("ADDING DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		else
 		{
@@ -400,7 +389,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = newDate;
-					logger.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					LOGGER.debug("ADJUSTING MIN DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else
@@ -414,7 +403,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					// return the value being passed in
 					value = newDate;
-					logger.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
+					LOGGER.debug("ADJUSTING MAX DATE:     " + sub + " -----> {" + prop + " --- " + value + "}");
 				}
 				// if the new value is not to be used, return the originally value already in dataHash
 				else

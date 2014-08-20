@@ -18,12 +18,9 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Dimension;
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 
 /**
@@ -31,10 +28,10 @@ import prerna.util.DIHelper;
  */
 public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 
-	String hrCoreDB = "HR_Core";
+	private final String hrCoreDB = "HR_Core";
 	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
-	String capabilityQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
-	String businessProcessQuery = "SELECT DISTINCT ?BusinessProcess WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}}";	
+	private final String capabilityQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";
+	private final String businessProcessQuery = "SELECT DISTINCT ?BusinessProcess WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}}";	
 	
 	/**
 	 * Constructor for CapSimHeatMapSheet.
@@ -67,7 +64,8 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 				processor.genStorageInformation(coreDB, comparisonType);
 			}		
 		sdf.setComparisonObjectList(comparisonObjectList);
-		Hashtable resultHash = processor.storageHash;		
+		Hashtable resultHash = new Hashtable();
+		resultHash.putAll(processor.storageHash);		
 		
 		updateProgressBar("50%...Evaluating Data Objects Created for a " + comparisonType, 50);
 		Hashtable dataCScoreHash = (Hashtable) resultHash.get(processor.DATAC);

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -16,7 +15,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
-import prerna.util.DHMSMTransitionQueryConstants;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -279,25 +278,25 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	public void getCostInfo(){
 		// get data for all systems
 		if(loeForGenericGlItemHash.isEmpty()) {
-			loeForGenericGlItemHash = getGenericGLItem(TAP_Cost_Data, DHMSMTransitionQueryConstants.LOE_GENERIC_GLITEM_QUERY);
+			loeForGenericGlItemHash = getGenericGLItem(TAP_Cost_Data, DHMSMTransitionUtility.LOE_GENERIC_GLITEM_QUERY);
 		}
 		if(avgLoeForSysGlItemHash.isEmpty()) {
-			avgLoeForSysGlItemHash = getAvgSysGLItem(TAP_Cost_Data, DHMSMTransitionQueryConstants.AVG_LOE_SYS_GLITEM_QUERY);
+			avgLoeForSysGlItemHash = getAvgSysGLItem(TAP_Cost_Data, DHMSMTransitionUtility.AVG_LOE_SYS_GLITEM_QUERY);
 		} 
 		if(serviceToDataHash.isEmpty()) {
-			serviceToDataHash = getServiceToData(TAP_Cost_Data, DHMSMTransitionQueryConstants.SERVICE_TO_DATA_QUERY);
+			serviceToDataHash = getServiceToData(TAP_Cost_Data, DHMSMTransitionUtility.SERVICE_TO_DATA_QUERY);
 		}
 		if(loeForSysGlItemHash.isEmpty()) {
-			loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, DHMSMTransitionQueryConstants.LOE_SYS_GLITEM_QUERY);
+			loeForSysGlItemHash = getSysGLItem(TAP_Cost_Data, DHMSMTransitionUtility.LOE_SYS_GLITEM_QUERY);
 		}
 	}
 	
 	public void getLPNIInfo() {
 		if(dhmsmSORList.isEmpty()) {
-			dhmsmSORList = runListQuery(HR_Core, DHMSMTransitionQueryConstants.DHMSM_SOR_QUERY);
+			dhmsmSORList = runListQuery(HR_Core, DHMSMTransitionUtility.DHMSM_SOR_QUERY);
 		}
 		if(lpiSystemList.isEmpty()) {
-			lpiSystemList = runListQuery(HR_Core, DHMSMTransitionQueryConstants.LPI_SYS_QUERY);
+			lpiSystemList = runListQuery(HR_Core, DHMSMTransitionUtility.LPI_SYS_QUERY);
 		}
 	}
 
@@ -829,10 +828,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		ArrayList<String> dataObjectsProvided = new ArrayList<String>();
 		ArrayList<String> dataObjectsConsumed = new ArrayList<String>();
 		ArrayList<String> systemsToAdd = new ArrayList<String>();
-		Hashtable<String,ArrayList<String>> dataConsumedFromHash = new Hashtable<String,ArrayList<String>>();
+		HashMap<String,ArrayList<String>> dataConsumedFromHash = new HashMap<String,ArrayList<String>>();
 
 		//making list of SOR systems
-		SesameJenaSelectWrapper sjsw = processQuery(engine,sysSORDataQuery);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine,sysSORDataQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
@@ -916,7 +915,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		otherSysSORDataQuery += " BINDINGS ?System {"+systemsBindings+"}";
 
 		ArrayList<Object[]> otherSysList = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper sjsw3 = processQuery(engine,otherSysSORDataQuery);
+		SesameJenaSelectWrapper sjsw3 = Utility.processQuery(engine,otherSysSORDataQuery);
 		String[] names3 = sjsw3.getVariables();
 		while(sjsw3.hasNext())
 		{
@@ -962,7 +961,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		dataHash.put(HEADER_KEY, names);
 
@@ -992,7 +991,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -1021,7 +1020,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -1049,7 +1048,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -1076,7 +1075,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		HashMap<String, String> dataHash = new HashMap<String, String>();
 
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -1093,7 +1092,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashSet<String> runListQuery(IEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
-		SesameJenaSelectWrapper sjsw = processQuery(engine, query);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
@@ -1125,16 +1124,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		for(int j=0;j<retArray.length;j++)
 			retArray[j] = names[j+1];
 		return retArray;
-	}
-
-	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
-		LOGGER.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();	
-		return sjsw;
 	}
 
 	@Override

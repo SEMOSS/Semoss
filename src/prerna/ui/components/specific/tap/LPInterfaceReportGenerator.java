@@ -20,7 +20,6 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Vector;
 
 import javax.swing.JDesktopPane;
@@ -29,7 +28,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.DHMSMTransitionQueryConstants;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
@@ -71,7 +70,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		list = new ArrayList<Object[]>();
 
 		Vector<String> sysDataSOR = processPeripheralWrapper();
-		Hashtable<String, String> sysTypeHash = processReportTypeQuery();
+		HashMap<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(engine);
 
 		//Process main query
 		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
@@ -92,7 +91,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, Hashtable<String, String> sysTypeHash){
+	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, HashMap<String, String> sysTypeHash){
 		// now get the bindings and generate the data
 		while(sjw.hasNext())
 		{
@@ -214,29 +213,10 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		}
 	}
 
-	public Hashtable<String,String> processReportTypeQuery() {
-		Hashtable<String,String> retList = new Hashtable<String,String>();
-
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(DHMSMTransitionQueryConstants.SYS_TYPE_QUERY);
-		sjsw.executeQuery();
-
-		String[] varName = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String entity = sjss.getRawVar(varName[0]).toString();
-			String reportType = sjss.getVar(varName[1]).toString();
-			retList.put(entity,reportType);
-		}
-		return retList;
-	}
-
 	private Vector<String> processPeripheralWrapper(){
 		String[] names = new String[1];
 		SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
-		sorWrapper.setQuery(DHMSMTransitionQueryConstants.SYS_SOR_DATA_CONCAT_QUERY);
+		sorWrapper.setQuery(DHMSMTransitionUtility.SYS_SOR_DATA_CONCAT_QUERY);
 		sorWrapper.setEngine(engine);
 		sorWrapper.executeQuery();
 		names = sorWrapper.getVariables();
