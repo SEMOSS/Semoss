@@ -124,6 +124,9 @@ path.domain{
     fill: black;
 }
 
+.ui-resizable-handle .ui-resizable-e{
+    cursor: pointer;
+}
 
 
 .barContainerContents{
