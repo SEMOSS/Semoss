@@ -4,9 +4,10 @@ app.directive('columnchart', function($filter, $rootScope) {
         restrict: 'AE',
         scope: {
             data: "=",
-            containerClass: "="
+            containerClass: "=",
 //            control: "=",
 //            sendUri: "&"
+            barChartResized: "="
         },
         link: function(scope, ele, attrs) {
             var margin = {top: 20, right: 40, bottom: 100, left: 80},
@@ -23,10 +24,11 @@ app.directive('columnchart', function($filter, $rootScope) {
                 absoluteBarPadding = 1, barPadding = 0.05,
                 yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
             var columnData = {};
+            var barChartSignal = false;
 
             scope.internalControl = scope.control || {};
             scope.$on('filterValue', function(event, args){
-                console.log("holy cow col chart ::::: " + event.name + " " + args);
+//                console.log("holy cow col chart ::::: " + event.name + " " + args);
                 highlightColumn(args);
             });
 
@@ -72,12 +74,14 @@ app.directive('columnchart', function($filter, $rootScope) {
                 }
             });
 
-            $rootScope.$on('gridster-resized', function(newSizes){
-                //need to check and make sure the containerClass that is trying to resize actually has values in it
-                if($("." + scope.containerClass).length > 0) {
-                    resize();
-                }
-            });
+
+
+//            $rootScope.$on('gridster-resized', function(newSizes){
+//                //need to check and make sure the containerClass that is trying to resize actually has values in it
+//                if($("." + scope.containerClass).length > 0) {
+//                    resize();
+//                }
+//            });
 
             var color;
             //d3.scale.linear()
@@ -102,7 +106,7 @@ app.directive('columnchart', function($filter, $rootScope) {
 
             // add the graph canvas to the body of the webpage
             var svg = d3.select(ele[0]).append("svg")
-                .attr("width", container.width + margin.left + margin.right)
+                .attr("width", d3.max([container.width + margin.left + margin.right, 300]))
                 .attr("height", container.height + margin.top + margin.bottom)
                 .on('click', function() {
                     console.log("click");
@@ -149,7 +153,6 @@ app.directive('columnchart', function($filter, $rootScope) {
             var layer = svg.selectAll(".layer");
             var rect = layer.selectAll(".bar");
 
-//            d3.select(window).on("resize", resize);
 
             //x axis
             svg.append("svg:g")
@@ -545,7 +548,6 @@ app.directive('columnchart', function($filter, $rootScope) {
                 else {
                     rect
                         .attr("y", function (d) {
-                            console.log(d);
                             return yScale(d.y0 + Number(d.y));
                         })
                         .attr("height", function (d) {
@@ -593,14 +595,14 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when window is resized
             //adjust positioning of all items
             function resize() {
-                console.log("resizing");
+                console.log("resizingasdfasdfasdf");
                 //set container width and height
                 containerSize(scope.containerClass, container, margin);
 
-                currentWidth = container.width - (currentLeftMargin - margin.left);
+                currentWidth = d3.max([container.width - (currentLeftMargin - margin.left), 170]);
 
                 d3.select(ele[0]).select("svg")
-                    .attr("width", container.width + margin.left + margin.right)
+                    .attr("width", d3.max([container.width + margin.left + margin.right, 300]))
                     .attr("height", container.height + margin.top + margin.bottom);
 
                 //update xScale based on new margin
@@ -684,6 +686,15 @@ app.directive('columnchart', function($filter, $rootScope) {
                         .attr("opacity", standardBarOpacity);
                 }
             }
+
+            scope.$watch('barChartResized', function() {
+                    if(barChartSignal != scope.barChartResized){
+                        barChartSignal = scope.barChartResized;
+                        resize();
+                        console.log("asdfasdfasdfasfdasdf");
+                    }
+            });
+
         }
     }
 });
