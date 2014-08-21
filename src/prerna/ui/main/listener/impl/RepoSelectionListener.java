@@ -19,6 +19,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
@@ -76,41 +77,32 @@ public class RepoSelectionListener implements ListSelectionListener {
 	public void valueChanged(ListSelectionEvent e) {
 		logger.info("Repository Changed");
 		JList list = (JList)e.getSource(); //DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		if (!list.isSelectionEmpty())
+		List selectedList = list.getSelectedValuesList();
+		String selectedValue = selectedList.get(selectedList.size()-1).toString();
+		if (!list.isSelectionEmpty() && !e.getValueIsAdjusting())
 		{
-			logger.info("Engine selected " + list.getSelectedValue()); //e.getFirstIndex();
 			// now get the prop file
 			// need to change this to local prop
-			 //String qPropName = (String)DIHelper.getInstance().getCoreProp().get(list.getSelectedValue() + "_" + Constants.DREAMER);
-			 //String ontologyPropName = (String)DIHelper.getInstance().getCoreProp().get(list.getSelectedValue() + "_" + Constants.ONTOLOGY);
 			
-			// logger.info("Question file to load " + qPropName);
-			// logger.info("Ontology file to load " + qPropName);
-			
-			// and use the prop file to load the engine and perspectives
-			//DIHelper.getInstance().loadEngineProp(list.getSelectedValue()+"", qPropName, ontologyPropName);
 			// do this after
 			// need a method in the DIHelper which loads a properties file first
 			// and then loads perspectives etc.
 			// once this is done.. keep the core properties pointed to it / need to modify the calls on process query listener etc.
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
-			//Hashtable perspectiveHash = (Hashtable) DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE);
-			//Vector<String> perspectives = Utility.convertEnumToStringVector(perspectiveHash.keys(), perspectiveHash.size());
+			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 			Vector<String> perspectives = engine.getPerspectives();
 			Collections.sort(perspectives);
-			//logger.info("Perspectives " + perspectiveHash);
-			JComboBox box = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
+			
+			JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
 			box.removeAllItems();
 			
+			for(int itemIndex = 0;itemIndex < perspectives.size(); itemIndex++) {
+				box.addItem(perspectives.get(itemIndex).toString());
+			}
 			
-			for(int itemIndex = 0;itemIndex < perspectives.size();((JComboBox)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR)).addItem(perspectives.get(itemIndex)), itemIndex++);
-
-			//box.setSelectedIndex(0);
-			//box.firePopupMenuWillBecomeVisible();
 			//fill transition report combo box
 			try{
 				TransitionReportComboBox transCostReportcomboBox = (TransitionReportComboBox) DIHelper.getInstance().getLocalProp(Constants.TRANSITION_REPORT_COMBO_BOX);
-				transCostReportcomboBox.setEngine(list.getSelectedValue()+"");
+				transCostReportcomboBox.setEngine(selectedValue);
 				transCostReportcomboBox.run();
 			}
 			catch(RuntimeException ex){
@@ -119,7 +111,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			//Fill Fact Sheet Report Select System Combo Box
 			try {
 				FactSheetReportComboBox factSheetReportcomboBox = (FactSheetReportComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
-				factSheetReportcomboBox.setEngine(list.getSelectedValue()+"");
+				factSheetReportcomboBox.setEngine(selectedValue);
 				factSheetReportcomboBox.run();
 			}
 			catch (RuntimeException e1) {
@@ -128,7 +120,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			//Fill tasker generation select system combo box
 			try {
 				FactSheetReportComboBox taskerGenerationReportComboBox = (FactSheetReportComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TASKER_GENERATION_SYSTEM_COMBO_BOX);
-				taskerGenerationReportComboBox.setEngine(list.getSelectedValue()+"");
+				taskerGenerationReportComboBox.setEngine(selectedValue);
 				taskerGenerationReportComboBox.run();
 			}
 			catch (RuntimeException e1) {
@@ -138,7 +130,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			//Fill Capability Fact Sheet Report Select Capability Combo Box
 			try {
 				FactSheetReportComboBox capabilityFactSheetReportComboBox = (FactSheetReportComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.CAPABILITY_FACT_SHEET_CAP_COMBO_BOX);
-				capabilityFactSheetReportComboBox.setEngine(list.getSelectedValue()+"");
+				capabilityFactSheetReportComboBox.setEngine(selectedValue);
 				capabilityFactSheetReportComboBox.setKey("Capability");
 				capabilityFactSheetReportComboBox.run();
 			}
@@ -147,40 +139,34 @@ public class RepoSelectionListener implements ListSelectionListener {
 			}
 			try{
 				ServiceSelectPanel transitionSerPanel = (ServiceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.TRANSITION_SERVICE_PANEL);
-				transitionSerPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
+				transitionSerPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 				transitionSerPanel.getServices();
-
 			}
 			catch(RuntimeException ex){
 				logger.debug(ex);
 			}
 			try{
 				SourceSelectPanel sourceSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.SOURCE_SELECT_PANEL);
-				sourceSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
+				sourceSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 				sourceSelPanel.getCapabilities();
 			}catch(Exception ex){
 				logger.debug(ex);}
 			
 			try{
 				SourceSelectPanel dhmsmCapSelPanel = (SourceSelectPanel) DIHelper.getInstance().getLocalProp(Constants.DHMSM_CAPABILITY_SELECT_PANEL);
-				dhmsmCapSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(list.getSelectedValue()+"");
+				dhmsmCapSelPanel.engine=(IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
 				dhmsmCapSelPanel.getCapabilities();
 				
 				SelectRadioButtonPanel radioSelPanel = (SelectRadioButtonPanel) DIHelper.getInstance().getLocalProp(Constants.SELECT_RADIO_PANEL);
 				radioSelPanel.engine=dhmsmCapSelPanel.engine;
 				radioSelPanel.clear();
-
-				
 			}catch(RuntimeException ex){
-				logger.debug(ex);}
-			
+				logger.debug(ex);
+			}			
 			try{
 				DHMSMSystemSelectPanel dhmsmSystemSelectPanel = (DHMSMSystemSelectPanel) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_SYSTEM_SELECT_PANEL);
 				dhmsmSystemSelectPanel.addElements();
-
-				
 			}catch(RuntimeException ex){
-
 				logger.debug(ex);
 			}
 		}
