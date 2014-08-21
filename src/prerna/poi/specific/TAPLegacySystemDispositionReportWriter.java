@@ -76,8 +76,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	private XSSFSheet reportSheet;
 	
 	private final double atoCost = 150000;
-	private int atoYear;
-	private int atoRenewalYear;
+	int[] atoDateList = new int[2];
 	private String description;
 	private String sysOwner;
 	private String ato;
@@ -112,12 +111,8 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	public int getAtoYear(){
-		return this.atoYear;
-	}
-	
-	public int getAtoRenewalYear(){
-		return this.atoRenewalYear;
+	public int[] getAtoDateList(){
+		return this.atoDateList;
 	}
 	
 	public double getAtoCost(){
@@ -252,9 +247,6 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		
-		ArrayList<Integer> atoDateList = new ArrayList<Integer>();
-		atoDateList.add(atoYear);
-		atoDateList.add(atoRenewalYear);
 		for(Integer date : atoDateList) {
 			if(date == 2015){
 				reportSheet.getRow(18).getCell(10).setCellValue(atoCost);
@@ -334,10 +326,10 @@ public class TAPLegacySystemDispositionReportWriter {
 		reportSheet.getRow(16).getCell(6).setCellValue(interfaceModCost);
 
 		int counter = 0;
-		if(atoYear >= 2015 && atoYear <= 2019) {
+		if(atoDateList[0] >= 2015 && atoDateList[0] <= 2019) {
 			counter++;
 		}
-		if(atoRenewalYear >= 2015 && atoRenewalYear <= 2019) {
+		if(atoDateList[1] >= 2015 && atoDateList[1] <= 2019) {
 			counter++;
 		}
 		double totalAtoCost = counter * atoCost;
@@ -464,14 +456,17 @@ public class TAPLegacySystemDispositionReportWriter {
 			sysOwner = sjss.getVar(varNames[1]).toString();
 			ato = sjss.getVar(varNames[2]).toString();
 		}
-
+		
+		int atoYear = 0;
+		int atoRenewalYear = 0;
+		
 		if(description == null){
 			description = "Data Not Received";
 		}
 		if(sysOwner == null){
 			sysOwner = "Data Not Received";
 		}
-		if(ato == null || ato.equals("") || ato.equals("NA")){
+		if(ato == null || ato.equals("") || ato.equals("NA") || ato.equals("Data Not Received")){
 			// no ato information -> assume ato date is year 2015
 			ato = "Data Not Received";
 			atoYear = 2015;
@@ -504,12 +499,17 @@ public class TAPLegacySystemDispositionReportWriter {
 					} else {
 						day = c.get(Calendar.DAY_OF_MONTH) + "";
 					}
-					System.out.println(c.get(Calendar.MONTH));
 					atoRenewalDate = (c.get(Calendar.YEAR) + 3) + "-" + month + "-" + day;
 				}
 			} catch (ParseException e) {
 				//ignore
 			}
+		}
+		
+		atoDateList = new int[]{atoYear, atoRenewalYear};
+		if(atoDateList[0] < 2015) {
+			atoDateList[0] = atoDateList[1];
+			atoDateList[1] += 3; 
 		}
 	}
 

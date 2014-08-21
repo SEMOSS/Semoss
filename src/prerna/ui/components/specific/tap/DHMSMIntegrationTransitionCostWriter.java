@@ -42,7 +42,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private String systemName;
 	private double costPerHr = 150.0;
 	private double sumHWSWCost;
-	ArrayList<Integer> atoDateList = new ArrayList<Integer>();
+	int[] atoDateList = new int[2];
 
 	private TAPLegacySystemDispositionReportWriter diacapReport;
 	
@@ -95,6 +95,10 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	public void calculateValuesForReport() throws EngineException 
 	{
+		//clear list since we call this method in a loop when generating all reports
+		sysCostInfo.clear();
+		consolidatedSysCostInfo.clear();
+		
 		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
 		this.systemName = Utility.getInstanceName(sysURI);
 		sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
@@ -114,8 +118,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 		
 		sumHWSWCost = hwCostAndUpdates[1] + swCostAndUpdates[1];
 		
-		atoDateList.add(diacapReport.getAtoYear());
-		atoDateList.add(diacapReport.getAtoRenewalYear());
+		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
 	private void consolodateCostHash() {
@@ -235,6 +238,10 @@ public class DHMSMIntegrationTransitionCostWriter {
 		reportSheet.getRow(24).getCell(7).setCellValue(sumHWSWCost);
 		
 		int numATO = 0;
+		if(atoDateList[0] < 2015) {
+			atoDateList[0] = atoDateList[1];
+			atoDateList[1] += 3; 
+		}
 		for(Integer date : atoDateList) {
 			if(date == 2015){
 				reportSheet.getRow(26).getCell(2).setCellValue(atoCost);
