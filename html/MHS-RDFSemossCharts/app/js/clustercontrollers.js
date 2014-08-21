@@ -25,4 +25,11 @@ app.controller('dataCtrl', function($scope, $http) {
             console.log(nodeData);
         });
     };
+
+    $scope.resizeBarChart = function() {
+        $scope.$apply(function(){
+            $scope.barChartResized = !$scope.barChartResized;
+            console.log($scope.barChartResized);
+        });
+    };
 });
