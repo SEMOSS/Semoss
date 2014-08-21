@@ -20,10 +20,11 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
+import java.util.HashSet;
 
 import javax.swing.JDesktopPane;
 
+import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -69,7 +70,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 		list = new ArrayList<Object[]>();
 
-		Vector<String> sysDataSOR = processPeripheralWrapper();
+		HashSet<String> sysDataSOR = DHMSMTransitionUtility.processSysDataSOR(engine);
 		HashMap<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(engine);
 
 		//Process main query
@@ -91,7 +92,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> sorV, HashMap<String, String> sysTypeHash){
+	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, HashSet<String> sorV, HashMap<String, String> sysTypeHash){
 		// now get the bindings and generate the data
 		while(sjw.hasNext())
 		{
@@ -103,8 +104,8 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 			//For logic
 			String system = sjss.getRawVar(LP_SYS_KEY).toString();
 			String interfacingSystem = sjss.getRawVar(INTERFACING_SYS_KEY).toString();
-			String interfaceType = sjss.getRawVar(INTERFACE_TYPE_KEY).toString();
-			String dhmsmSOR = sjss.getRawVar(DHMSM_SOR_KEY).toString();
+			String interfaceType = sjss.getVar(INTERFACE_TYPE_KEY).toString();
+			String dhmsmSOR = sjss.getVar(DHMSM_SOR_KEY).toString();
 			String comment = "";
 			String data = sjss.getRawVar(DATA_KEY).toString();
 			String probability = sjss.getVar(PROBABILITY_KEY).toString();
@@ -132,11 +133,11 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 						downstreamSysName = sysName;
 					}
 					
-					String upstreamSysType = sysTypeHash.get(upstreamSystemURI);
+					String upstreamSysType = sysTypeHash.get(upstreamSysName);
 					if(upstreamSysType == null) {
 						upstreamSysType = "No Probability";
 					}
-					String downstreamSysType = sysTypeHash.get(downstreamSystemURI);
+					String downstreamSysType = sysTypeHash.get(downstreamSysName);
 					if(downstreamSysType == null) {
 						downstreamSysType = "No Probability";
 					}
@@ -213,34 +214,16 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		}
 	}
 
-	private Vector<String> processPeripheralWrapper(){
-		String[] names = new String[1];
-		SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
-		sorWrapper.setQuery(DHMSMTransitionUtility.SYS_SOR_DATA_CONCAT_QUERY);
-		sorWrapper.setEngine(engine);
-		sorWrapper.executeQuery();
-		names = sorWrapper.getVariables();
-
-		Vector<String> retV = new Vector<String>();
-		while(sorWrapper.hasNext())
-		{
-			SesameJenaSelectStatement sjss = sorWrapper.next();
-			int colIndex = 0;
-			String val = sjss.getRawVar(names[colIndex]).toString();
-			if(val.substring(0, 1).equals("\"")) {
-				val = val.substring(1, val.length()-1);
-			}
-			retV.add(val);
-		}
-		return retV;
-	}
-
-	public HashMap<String, Object> getSysLPIInterfaceData(String systemName) {
+	public HashMap<String, Object> getSysLPIInterfaceData(String systemName) throws EngineException 
+	{
 		HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
 		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
 		lpSystemInterfacesQuery = lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
 		this.query = lpSystemInterfacesQuery;
 		this.engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		if(engine == null) {
+			throw new EngineException("HR_Core Database is not available");
+		}
 		createData();			
 		sysLPIInterfaceHash.put(HEADER_KEY, removeSystemFromStringArray(getNames()));
 		sysLPIInterfaceHash.put(RESULT_KEY, removeSystemFromArrayList(getList()));

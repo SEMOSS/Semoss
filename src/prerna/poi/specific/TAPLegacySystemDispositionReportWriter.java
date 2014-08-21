@@ -44,7 +44,7 @@ import prerna.util.Utility;
 
 public class TAPLegacySystemDispositionReportWriter {
 
-	static final Logger LOGGER = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(TAPLegacySystemDispositionReportWriter.class.getName());
 
 	private String sysName;
 	private String sysURI;
@@ -65,9 +65,9 @@ public class TAPLegacySystemDispositionReportWriter {
 	private String systemBudgetQuery = "SELECT DISTINCT ?system ?year ?cost WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systembudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?system <http://semoss.org/ontologies/Relation/Has> ?systembudget} {?year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> } {?systembudget <http://semoss.org/ontologies/Relation/OccursIn> ?year} {?systembudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?cost} }";
 	private HashMap<String, HashMap<String, Object>> sysBudgetHash = new HashMap<String, HashMap<String, Object>>(); //cannot use Double because when no info received it is stored as "No_cost_info_received."
 
-	private String bindingsKey = "@BINDING_STRING@";
-	private String numProductKey = "numProducts";
-	private String updateCostKey = "upgradeCostKey";
+	private final String bindingsKey = "@BINDING_STRING@";
+	private final String numProductKey = "numProducts";
+	private final String updateCostKey = "upgradeCostKey";
 
 	private IEngine HR_Core;
 	private IEngine TAP_Portfolio;
@@ -78,6 +78,10 @@ public class TAPLegacySystemDispositionReportWriter {
 	private final double atoCost = 150000;
 	private int atoYear;
 	private int atoRenewalYear;
+	private String description;
+	private String sysOwner;
+	private String ato;
+	private String atoRenewalDate;
 	
 	private IndividualSystemTransitionReport report;
 	
@@ -108,7 +112,29 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	public void writeToExcel() throws FileReaderException
+	public int getAtoYear(){
+		return this.atoYear;
+	}
+	
+	public int getAtoRenewalYear(){
+		return this.atoRenewalYear;
+	}
+	
+	public double getAtoCost(){
+		return this.atoCost;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public HashMap<String, HashMap<String, Double>> getSysSWHash(){
+		return (HashMap<String, HashMap<String, Double>>) this.sysSWHash.clone();
+	}
+	
+	@SuppressWarnings("unchecked")
+	public HashMap<String, HashMap<String, Double>> getSysHWHash(){
+		return (HashMap<String, HashMap<String, Double>>) this.sysHWHash.clone();
+	}
+	
+	public void writeToExcel() throws FileReaderException, EngineException
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
@@ -124,8 +150,10 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 
 		reportSheet = wb.getSheetAt(0);
+		processBasisSysInfo();
 		writeBasicSysDescription();
 		writeTransitionAnalysis();
+		generateModernizationActivitiesData();
 		ArrayList<Double> costInfo = writeModernizationActivities();
 		writeModernizationTimeline(costInfo);
 		writeInterfaceSummary();
@@ -172,7 +200,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	private void writeInterfaceSummary() {
+	private void writeInterfaceSummary() throws EngineException {
 		if(report == null) {
 			report = new IndividualSystemTransitionReport();
 		}
@@ -224,7 +252,6 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		
-		
 		ArrayList<Integer> atoDateList = new ArrayList<Integer>();
 		atoDateList.add(atoYear);
 		atoDateList.add(atoRenewalYear);
@@ -242,7 +269,8 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 
-		for(int i = 0; i < 5; i++){
+		for(int i = 0; i < 5; i++)
+		{
 			double costHWSW = reportSheet.getRow(16).getCell(10+i).getNumericCellValue();
 			double costIntMod = reportSheet.getRow(17).getCell(10+i).getNumericCellValue();
 			double costDIACAP = reportSheet.getRow(18).getCell(10+i).getNumericCellValue();
@@ -270,11 +298,10 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 	}
-
-	private ArrayList<Double> writeModernizationActivities() {
-		generateModernizationActivitiesData();
-		HashMap<String, Double> innerHash = new HashMap<String, Double>();
-		innerHash = sysHWHash.get(sysName);
+	
+	public double[] calculateHwSwCostAndNumUpdates(HashMap<String, HashMap<String, Double>> sysSwHwHash)
+	{
+		HashMap<String, Double> innerHash = sysSwHwHash.get(sysName);
 		Double hwNumUpdates = (double) 0;
 		Double hwCost = (double) 0;
 		if(innerHash != null) {
@@ -287,30 +314,23 @@ public class TAPLegacySystemDispositionReportWriter {
 				hwCost = (double) 0;
 			}
 		}
+		
+		return new double[]{hwNumUpdates, hwCost};
+	}
 
-		innerHash = sysSWHash.get(sysName);
-		Double swNumUpdates = (double) 0;
-		Double swCost = (double) 0;
-		if(innerHash != null){
-			swNumUpdates = innerHash.get(numProductKey);
-			if(swNumUpdates == null) {
-				swNumUpdates = (double) 0;
-			}
-			swCost = innerHash.get(updateCostKey);
-			if(swCost == null) {
-				swCost = (double) 0;
-			}
-		}
+	private ArrayList<Double> writeModernizationActivities() {
+		double[] hwCostAndUpdate = calculateHwSwCostAndNumUpdates(sysHWHash);
+		double[] swCostAndUpdate = calculateHwSwCostAndNumUpdates(sysSWHash);
 
 		Double interfaceModCost = sysInterfaceModHash.get(sysName);
 		if(interfaceModCost == null) {
 			interfaceModCost = (double) 0;
 		}
 
-		reportSheet.getRow(14).getCell(4).setCellValue(hwNumUpdates);
-		reportSheet.getRow(14).getCell(6).setCellValue(hwCost);
-		reportSheet.getRow(15).getCell(4).setCellValue(swNumUpdates);
-		reportSheet.getRow(15).getCell(6).setCellValue(swCost);
+		reportSheet.getRow(14).getCell(4).setCellValue(hwCostAndUpdate[0]);
+		reportSheet.getRow(14).getCell(6).setCellValue(hwCostAndUpdate[1]);
+		reportSheet.getRow(15).getCell(4).setCellValue(swCostAndUpdate[0]);
+		reportSheet.getRow(15).getCell(6).setCellValue(swCostAndUpdate[1]);
 		reportSheet.getRow(16).getCell(6).setCellValue(interfaceModCost);
 
 		int counter = 0;
@@ -324,17 +344,17 @@ public class TAPLegacySystemDispositionReportWriter {
 		reportSheet.getRow(17).getCell(6).setCellValue(totalAtoCost);
 		
 		//sum up totals
-		reportSheet.getRow(18).getCell(6).setCellValue(swCost + hwCost + interfaceModCost + totalAtoCost);
+		reportSheet.getRow(18).getCell(6).setCellValue(hwCostAndUpdate[1] + swCostAndUpdate[1] + interfaceModCost + totalAtoCost);
 		
 		// pass cost information over to reduce access of hashmaps
 		ArrayList<Double> costInfo = new ArrayList<Double>();
-		costInfo.add(swCost + hwCost);
+		costInfo.add(hwCostAndUpdate[1] + swCostAndUpdate[1]);
 		costInfo.add(interfaceModCost);
 
 		return costInfo;
 	}
 
-	private void generateModernizationActivitiesData() {
+	public void generateModernizationActivitiesData() {
 		if(sysSWHash.isEmpty()){
 			SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, sysSWCostQuery);
 			String[] varNames = sjsw.getVariables();
@@ -400,15 +420,43 @@ public class TAPLegacySystemDispositionReportWriter {
 	}
 
 	private void writeBasicSysDescription() {
+		reportSheet.getRow(3).getCell(1).setCellValue(sysName.replaceAll("_", " "));
+		reportSheet.getRow(3).getCell(4).setCellValue(description.replaceAll("_", " "));
+		// to autosize description row height
+		Font currFont = new Font("Calibri", Font.PLAIN, 10);
+		AttributedString attrStr = new AttributedString(description);
+		attrStr.addAttribute(TextAttribute.FONT, currFont);
+		FontRenderContext frc = new FontRenderContext(null, true, true);
+		LineBreakMeasurer measurer = new LineBreakMeasurer(attrStr.getIterator(), frc);
+		int nextPos = 0;
+		int lineCnt = 0;
+		while (measurer.getPosition() < description.length())
+		{
+		    nextPos = measurer.nextOffset(920f); // mergedCellWidth is the max width of each line
+		    lineCnt++;
+		    measurer.setPosition(nextPos);
+		}
+		XSSFRow currRow = reportSheet.getRow(3);
+		if(lineCnt < 4){
+			lineCnt = 5;
+		}
+		currRow.setHeight((short)(currRow.getHeight() * lineCnt));
+		// end autosize description row height
+		reportSheet.getRow(4).getCell(4).setCellValue(sysOwner);
+		reportSheet.getRow(5).getCell(4).setCellValue(ato);
+		reportSheet.getRow(5).getCell(11).setCellValue(atoRenewalDate);
+	}
+
+	public void processBasisSysInfo() {
 		String query = basicSysInfoQuery.replace(bindingsKey, "<" + sysURI + ">");
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, query);
 		String[] varNames = sjsw.getVariables();
 		// output binds to a single system - query should only return one line
 		// if query returns nothing, never executed
-		String description = "Data Not Received";
-		String sysOwner = "Data Not Received";
-		String ato = "Data Not Received";
-		String atoRenewalDate = "REQUIRES IMMEDIATE ACCREDITATION";
+		description = "Data Not Received";
+		sysOwner = "Data Not Received";
+		ato = "Data Not Received";
+		atoRenewalDate = "REQUIRES IMMEDIATE ACCREDITATION";
 		//String atoRenewal = "";
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
@@ -463,32 +511,6 @@ public class TAPLegacySystemDispositionReportWriter {
 				//ignore
 			}
 		}
-		
-		reportSheet.getRow(3).getCell(1).setCellValue(sysName.replaceAll("_", " "));
-		reportSheet.getRow(3).getCell(4).setCellValue(description.replaceAll("_", " "));
-		// to autosize description row height
-		Font currFont = new Font("Calibri", Font.PLAIN, 10);
-		AttributedString attrStr = new AttributedString(description);
-		attrStr.addAttribute(TextAttribute.FONT, currFont);
-		FontRenderContext frc = new FontRenderContext(null, true, true);
-		LineBreakMeasurer measurer = new LineBreakMeasurer(attrStr.getIterator(), frc);
-		int nextPos = 0;
-		int lineCnt = 0;
-		while (measurer.getPosition() < description.length())
-		{
-		    nextPos = measurer.nextOffset(920f); // mergedCellWidth is the max width of each line
-		    lineCnt++;
-		    measurer.setPosition(nextPos);
-		}
-		XSSFRow currRow = reportSheet.getRow(3);
-		if(lineCnt < 4){
-			lineCnt = 5;
-		}
-		currRow.setHeight((short)(currRow.getHeight() * lineCnt));
-		// end autosize description row height
-		reportSheet.getRow(4).getCell(4).setCellValue(sysOwner);
-		reportSheet.getRow(5).getCell(4).setCellValue(ato);
-		reportSheet.getRow(5).getCell(11).setCellValue(atoRenewalDate);
 	}
 
 	public void setReportTypeHash(HashMap<String,String> reportTypeHash) {
