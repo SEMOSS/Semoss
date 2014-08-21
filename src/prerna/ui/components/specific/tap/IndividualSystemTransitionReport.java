@@ -294,10 +294,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	
 	public void getLPNIInfo() {
 		if(dhmsmSORList.isEmpty()) {
-			dhmsmSORList = DHMSMTransitionUtility.runListQuery(HR_Core, DHMSMTransitionUtility.DHMSM_SOR_QUERY);
+			dhmsmSORList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.DHMSM_SOR_QUERY);
 		}
 		if(lpiSystemList.isEmpty()) {
-			lpiSystemList = DHMSMTransitionUtility.runListQuery(HR_Core, DHMSMTransitionUtility.LPI_SYS_QUERY);
+			lpiSystemList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.LPI_SYS_QUERY);
 		}
 	}
 

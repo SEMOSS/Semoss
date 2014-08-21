@@ -272,7 +272,7 @@ public class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static HashSet<String> runListQuery(IEngine engine, String query) 
+	public static HashSet<String> runVarListQuery(IEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
@@ -282,6 +282,22 @@ public class DHMSMTransitionUtility {
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String var = sjss.getVar(names[0]).toString().replace("\"", "");
+			dataSet.add(var);
+		}
+
+		return dataSet;
+	}
+	
+	public static HashSet<String> runRawVarListQuery(IEngine engine, String query) 
+	{
+		HashSet<String> dataSet = new HashSet<String>();
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		String[] names = sjsw.getVariables();
+
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String var = sjss.getRawVar(names[0]).toString().replace("\"", "");
 			dataSet.add(var);
 		}
 
