@@ -60,7 +60,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	public Hashtable processQueryData()
 	{
 		data = new HashSet();
-		String[] var = wrapper.getVariables(); 	
+		String[] var = getVariableArray(); 	
 
 		//Possibly filter out all US Facilities from the query?
 
@@ -102,6 +102,10 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 
 
 		return allHash;
+	}
+	
+	public String[] getVariableArray() {
+		return wrapper.getVariables(); 	
 	}
 
 	@Override
