@@ -23,6 +23,7 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
@@ -56,48 +57,48 @@ public class PerspectiveSelectionListener extends AbstractListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JComboBox bx = (JComboBox)e.getSource();
-		String perspective = bx.getSelectedItem() + "";
-		logger.info("Selected " + perspective + " <> " + view);
-		JComboBox qp = (JComboBox)view;
-		
-		ArrayList tTip = new ArrayList();
-		qp.removeAllItems();
-		JList list = (JList) DIHelper.getInstance().getLocalProp(
-				Constants.REPO_LIST);
-		// get the selected repository
-		Object[] repos = (Object[]) list.getSelectedValues();
-		Vector questionsV = new Vector();
-
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
-		
-		try
-		{
-			questionsV = engine.getInsights(perspective);
-		}catch(RuntimeException ex)
-		{
-			ex.printStackTrace();
+		String perspective = "";
+		if(bx.getSelectedItem() != null) {
+			perspective = bx.getSelectedItem().toString();
 		}
-		//Hashtable questions = DIHelper.getInstance().getQuestions(perspective);
-		StringNumericComparator comparator = new StringNumericComparator();
-		//logger.fatal(">>>>>>>" + questionsV);
-		if(questionsV != null)
-		{
-			//Vector 
-			//questionsV = new Vector();
-			//for(Enumeration qs = questions.keys(); qs.hasMoreElements(); questionsV.add(qs.nextElement()));
-			
-			Collections.sort(questionsV, comparator);
-			for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
+		if(!perspective.isEmpty()) {
+			logger.info("Selected " + perspective + " <> " + view);
+			JComboBox qp = (JComboBox)view;
+
+			ArrayList tTip = new ArrayList();
+			qp.removeAllItems();
+			JList list = (JList) DIHelper.getInstance().getLocalProp(
+					Constants.REPO_LIST);
+			// get the selected repository
+			List selectedValuesList = list.getSelectedValuesList();
+			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
+			Vector questionsV = new Vector();
+
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
+
+			try
 			{
-		    	tTip.add(questionsV.get(itemIndex));
-		    	ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
-		    	qp.setRenderer(renderer);
-		    	renderer.setTooltips(tTip);
-		    	renderer.setBackground(Color.WHITE);
-				qp.addItem(questionsV.get(itemIndex) );
+				questionsV = engine.getInsights(perspective);
+			}catch(RuntimeException ex)
+			{
+				ex.printStackTrace();
+			}
+			//Hashtable questions = DIHelper.getInstance().getQuestions(perspective);
+			StringNumericComparator comparator = new StringNumericComparator();
+			if(questionsV != null)
+			{
+				Collections.sort(questionsV, comparator);
+				for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
+				{
+					tTip.add(questionsV.get(itemIndex));
+					ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
+					qp.setRenderer(renderer);
+					renderer.setTooltips(tTip);
+					renderer.setBackground(Color.WHITE);
+					qp.addItem(questionsV.get(itemIndex) );
+				}
 			}
 		}
-		//logger.debug(questions);
 
 	}
 

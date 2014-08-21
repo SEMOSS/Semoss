@@ -253,7 +253,9 @@ public class ParamPanel extends JPanel implements ActionListener {
 						
 						synchronized(field) {
 							try {
-								field.wait();
+								while(field.getItemCount() == 0) {
+									field.wait();
+								}
 							} catch (InterruptedException e) {
 								e.printStackTrace();
 							}

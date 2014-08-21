@@ -22,6 +22,7 @@ import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import javax.swing.DefaultComboBoxModel;
@@ -77,24 +78,16 @@ public class QuestionListener implements IChakraListener {
 
 			JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
-			Object[] repos = (Object[]) list.getSelectedValues();
+			List selectedValuesList = list.getSelectedValuesList();
+			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
 
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
-
-			//String id = DIHelper.getInstance().getIDForQuestion(question);
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
 			Insight in = ((AbstractEngine)engine).getInsight2(question).get(0);
-			//id = in.getId();
 
 			// now get the SPARQL query for this id
-			//String sparql = DIHelper.getInstance().getProperty(id + "_" + Constants.QUERY);
 			String sparql = in.getSparql();
-			//Properties prop = DIHelper.getInstance().getEngineProp();
-
-			//String keyToSearch = id + "_" + Constants.LAYOUT;
-			//String layoutValue = prop.getProperty(keyToSearch);
 			String layoutValue = in.getOutput();
 			// save the playsheet for the current question for modifying current query
-			//DIHelper.getInstance().setLocalProperty(Constants.CURRENT_PLAYSHEET, layoutValue);
 			JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
 			// set the model each time a question is choosen to include playsheets that are not in PlaySheetEnum
 			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetEnum.getAllSheetNames().toArray()));
@@ -137,9 +130,6 @@ public class QuestionListener implements IChakraListener {
 			panel.setParams(paramHash3);
 			panel.setParamType(paramHash2);
 			panel.setQuestionId(in.getId());
-			/*if(!id.equals(this.prevQuestionId)) {
-				panel.setNewQuestion(true);
-			}*/
 			panel.paintParam();
 
 			// finally add the param to the core panel
