@@ -9,7 +9,8 @@ app.directive('d3Cluster', function() {
             setGroupData: "&",
             setNodeData: "&",
             containerId: "=",
-            isClusterPropActive: "="
+            isClusterPropActive: "=",
+            resizeBarChart: "&"
         },
         link: function(scope) {
             var clusterData = {};
@@ -287,7 +288,6 @@ app.directive('d3Cluster', function() {
             function resize() {
                 w = parseInt(d3.select('#clusterContainer').style('width'));
                 h = parseInt(d3.select('#clusterContainer').style('height'));
-                console.log(resize);
                 d3.select("svg").attr("width", w).attr("height", h);
                 force.size([w, h]).resume();
 
@@ -307,6 +307,7 @@ app.directive('d3Cluster', function() {
                 });
             $("#rightNodePane").bind("resize", function (event, ui) {
                 resize();
+                scope.resizeBarChart();
             });
 
         },
