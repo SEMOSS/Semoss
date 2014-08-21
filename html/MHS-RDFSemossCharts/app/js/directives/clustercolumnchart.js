@@ -109,22 +109,22 @@ app.directive('columnchart', function($filter, $rootScope) {
                 .attr("width", d3.max([container.width + margin.left + margin.right, 300]))
                 .attr("height", container.height + margin.top + margin.bottom)
                 .on('click', function() {
-                    console.log("click");
+//                    console.log("click");
                     var clicked = d3.select(d3.event.target).data()[0];
                     var uriToSend = getClickedURI(clicked);
                     if(uriToSend !== ""){
-                        console.log("emitting registerClick for " + uriToSend);
+//                        console.log("emitting registerClick for " + uriToSend);
                         scope.$emit('registerClick', uriToSend);
                     }
                     else
                         scope.$emit('registerClick', "");
                 })
                 .on('dblclick', function() {
-                    console.log("double click");
+//                    console.log("double click");
                     var clicked = d3.select(d3.event.target).data()[0];
                     var uriToSend = getClickedURI(clicked);
                     if(uriToSend !== ""){
-                        console.log("showing context menu for " + uriToSend);
+//                        console.log("showing context menu for " + uriToSend);
                         //alert("context menu for " +uriToSend);
                         scope.sendUri({uri:uriToSend});
                         scope.$apply();
@@ -363,7 +363,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                         .attr("dy", ".25em")
                         .style("text-anchor", "end")
                         .text(function(d) {
-                            console.log(d);
+//                            console.log(d);
                             return d;
                         });
 
@@ -412,14 +412,14 @@ app.directive('columnchart', function($filter, $rootScope) {
             } // end of buildBars
 
             function filterData(d){
-                console.log("filtering out " + d);
+//                console.log("filtering out " + d);
                 var newObject = [];
                 for (var i = 0; i<dataSeriesObject.length; ++i){
                     var filtered = filteredLevels.some(function(entry) {
                         return entry === i;
                     });
                     if(!filtered) {
-                        console.log("adding index " + i);
+//                        console.log("adding index " + i);
                         newObject.push(dataSeriesObject[i]);
                     }
                 }
@@ -502,7 +502,7 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when the toggle between stacked and grouped is switched
             //this animation is different than build bars animation--thus different function
             scope.internalControl.transitionGrouped = function transitionGrouped() {
-                console.log("transitioning to grouped");
+//                console.log("transitioning to grouped");
                 stacked = false;
                 yScale.domain([0, yGroupMax]);
 
@@ -559,7 +559,7 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when the toggle between stacked and grouped is switched
             //this animation is different than build bars animation--thus different function
             scope.internalControl.transitionStacked = function transitionStacked() {
-                console.log("transitioning to stacked");
+//                console.log("transitioning to stacked");
                 stacked = true;
                 yScale.domain([0, yStackMax]);
 
@@ -595,7 +595,6 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when window is resized
             //adjust positioning of all items
             function resize() {
-                console.log("resizingasdfasdfasdf");
                 //set container width and height
                 containerSize(scope.containerClass, container, margin);
 
@@ -691,7 +690,6 @@ app.directive('columnchart', function($filter, $rootScope) {
                     if(barChartSignal != scope.barChartResized){
                         barChartSignal = scope.barChartResized;
                         resize();
-                        console.log("asdfasdfasdfasfdasdf");
                     }
             });
 
