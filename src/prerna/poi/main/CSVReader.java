@@ -155,8 +155,8 @@ public class CSVReader extends AbstractFileReader {
 		typeHash.put("DECIMAL", new ParseDouble());
 		typeHash.put("DOUBLE", new ParseDouble());
 		typeHash.put("STRING", new NotNull());
-		typeHash.put("DATE", new ParseDate("yyyy-mm-dd hh:mm:ss"));
-		typeHash.put("SIMPLEDATE", new ParseDate("mm/dd/yyyy"));
+		typeHash.put("DATE", new ParseDate("yyyy-MM-dd hh:mm:ss"));
+		typeHash.put("SIMPLEDATE", new ParseDate("MM/dd/yyyy"));
 		// currently only add in numbers as doubles
 		typeHash.put("NUMBER", new ParseDouble());
 		typeHash.put("INTEGER", new ParseDouble());
@@ -169,7 +169,7 @@ public class CSVReader extends AbstractFileReader {
 		typeHash.put("DOUBLE_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("STRING_OPTIONAL", new Optional());
 		typeHash.put("DATE_OPTIONAL", new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")));
-		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("mm/dd/yyyy")));
+		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("MM/dd/yyyy")));
 		// currently only add in numbers as doubles
 		typeHash.put("NUMBER_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseDouble()));
