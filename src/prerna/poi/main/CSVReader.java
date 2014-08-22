@@ -488,7 +488,7 @@ public class CSVReader extends AbstractFileReader {
 						headException = false;
 				}
 				if(headException == false) {
-					throw new HeaderClassException(sub + " cannot be found as a header");
+					throw new HeaderClassException(obj + " cannot be found as a header");
 				}
 				// create concept uris
 				String relURI = "";
@@ -667,7 +667,7 @@ public class CSVReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(sub + " cannot be found as a header");
+						throw new HeaderClassException(prop + " cannot be found as a header");
 					}
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
