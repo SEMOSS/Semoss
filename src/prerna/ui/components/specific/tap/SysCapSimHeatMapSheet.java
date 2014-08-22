@@ -18,6 +18,7 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;
@@ -64,11 +65,14 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 				processor.genStorageInformation(coreDB, comparisonType);
 			}		
 		sdf.setComparisonObjectList(comparisonObjectList);
+		HashMap getData = new HashMap();
+		
 		Hashtable resultHash = new Hashtable();
 		resultHash.putAll(processor.storageHash);		
 		
 		updateProgressBar("50%...Evaluating Data Objects Created for a " + comparisonType, 50);
-		Hashtable dataCScoreHash = (Hashtable) resultHash.get(processor.DATAC);
+		getData = (HashMap) resultHash.get(processor.DATAC);
+		Hashtable dataCScoreHash = convertMapToTable(getData);
 		logger.info("Finished Data Objects Created Processing.");
 		dataCScoreHash = processHashForCharting(dataCScoreHash);		
 		
@@ -78,7 +82,9 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		dataRScoreHash = processHashForCharting(dataRScoreHash);*/		
 		
 		updateProgressBar("70%...Evaluating Business Logic Provided for a " + comparisonType, 70);
-		Hashtable bluScoreHash = (Hashtable) resultHash.get(processor.BLU);
+		getData.clear();
+		getData = (HashMap) resultHash.get(processor.BLU);
+		Hashtable bluScoreHash = convertMapToTable(getData);
 		logger.info("Finished Business Logic Provided Processing.");
 		bluScoreHash = processHashForCharting(bluScoreHash);		
 			
@@ -92,5 +98,20 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
+	}
+	
+	private Hashtable convertMapToTable(HashMap entry) {
+		Hashtable returnHash = new Hashtable();
+		for(Object key: entry.keySet()){
+			HashMap innerMap = new HashMap();
+			Hashtable returnInnerTable = new Hashtable();
+			innerMap = (HashMap) entry.get(key);
+			for(Object innerKey : innerMap.keySet()) {
+				returnInnerTable.put(innerKey, innerMap.get(innerKey));
+			}
+			returnHash.put(key, returnInnerTable);
+		}
+		
+		return returnHash;
 	}
 }
