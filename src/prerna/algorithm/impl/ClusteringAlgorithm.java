@@ -1,8 +1,6 @@
 package prerna.algorithm.impl;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -72,46 +70,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		
 		return success;
 	}
-
-	/**
-	 * Print each cluster with categorical and numerical properties and a list of all instances
-	 */
-	private void printOutClusters() {
-		LOGGER.info("Cluster Results-");
-
-		String[] numericalPropNames = cdp.getNumericalPropNames();
-		String[] categoryPropNames = cdp.getCategoryPropNames();
-
-		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
-			LOGGER.info("\n\nCluster "+clusterInd+":");
-
-			//print numerical props
-			LOGGER.info("\nNumerical Properties- ");
-			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ )
-				LOGGER.info(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
-
-			//print categorical props
-			LOGGER.info("\nCategorical Properties- ");
-			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
-				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
-				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-				if(!propWithHighFreq.equals("")) {
-					int freq = propValHash.get(propWithHighFreq);
-					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-					DecimalFormat nf = new DecimalFormat("###.##");
-					LOGGER.info(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
-				}
-			}
-
-			//print instances
-			LOGGER.info("\nInstances- ");
-			for(String instance : instanceIndexHash.keySet()) {
-				int clusterAssigned = clustersAssigned[instanceIndexHash.get(instance)];
-				if(clusterAssigned == clusterInd)
-					LOGGER.info(instance+", ");
-			}
-		}
-	}
 	
 	/**
 	 * Given a specific instance, find the cluster it is most similar to.
@@ -130,58 +88,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			}
 		}
 		return clusterIndWithMaxSimilarity;
-	}
-
-	/**
-	 * Print each cluster with categorical and numerical properties and a list of all instances
-	 */
-	private void createClusterRowsForGrid() {
-		clusterRows = new ArrayList<Object[]>();
-
-		String[] numericalPropNames = cdp.getNumericalPropNames();
-		String[] categoryPropNames = cdp.getCategoryPropNames();
-
-		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
-			Object[] clusterRow = new Object[varNames.length+1];
-			clusterRow[0] = "";
-
-			for(int propInd=1;propInd<varNames.length;propInd++) {
-				String prop = varNames[propInd];
-				int categoryInd = ArrayUtilityMethods.calculateIndexOfArray(categoryPropNames, prop);
-				if(categoryInd >-1) {
-					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
-					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-					if(!propWithHighFreq.equals("")) {
-						int freq = propValHash.get(propWithHighFreq);
-						double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-						DecimalFormat nf = new DecimalFormat("###.##");
-						clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
-					}
-				} else {
-					int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
-					if(numberInd > -1) {
-						clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
-					} else {
-						LOGGER.error("No properties matched for " + prop);
-					}
-				}
-			}
-			clusterRow[varNames.length] = clusterInd;
-			clusterRows.add(clusterRow);
-		}		
-	}
-
-	private String printMostFrequentProperties(int clusterInd, Hashtable<String, Integer> propValHash) {
-		String propWithHighFreq = "";
-		int highestFreq = -1;
-		for(String propVal : propValHash.keySet()) {
-			int freq = propValHash.get(propVal);
-			if(freq>highestFreq) {
-				highestFreq = freq;
-				propWithHighFreq = propVal;
-			}
-		}
-		return propWithHighFreq;
 	}
 
 }
