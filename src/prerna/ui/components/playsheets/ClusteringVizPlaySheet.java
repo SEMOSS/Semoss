@@ -228,8 +228,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		double range = max - min;
-		double IQR = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
-		double binSize = 2 * IQR * Math.pow(numOccurances, -1.0/3.0);
+		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
+		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 		int numBins = (int) Math.ceil(range/binSize);
 		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
 
@@ -241,7 +241,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 				innerHash.put("seriesName", "Distribution");
 				innerHash.put("y0", "0");
-				innerHash.put("x", formatter.format(min + currBin*binSize) + "---" + formatter.format(min + (currBin+1) * binSize));
+				innerHash.put("x", formatter.format(min + currBin*binSize) + "  -  " + formatter.format(min + (currBin+1) * binSize));
 				innerHash.put("y", counter);
 				retBins[currBin] = innerHash;
 				currBin++;
