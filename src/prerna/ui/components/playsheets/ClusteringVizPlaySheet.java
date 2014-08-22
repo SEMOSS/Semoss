@@ -14,6 +14,8 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.AbstractClusteringAlgorithm;
+import prerna.algorithm.impl.AgglomerativeClusteringAlgorithm;
 import prerna.algorithm.impl.ArrayUtilityMethods;
 import prerna.algorithm.impl.ClusteringAlgorithm;
 import prerna.algorithm.impl.StatisticsUtilityMethods;
@@ -31,11 +33,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
+	private double n;
+	private String type;
 	private ArrayList<Object[]> clusterInfo;
 
 	//indexing used for bar graph visualizations
 	private int[] numericalPropIndices;
-	private Integer[] categoryPropIndices; 
 
 	public ClusteringVizPlaySheet() {
 		super();
@@ -250,11 +253,15 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	@Override
 	public void createData() {
 		processQuery();
-		ClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list,names);
+		AbstractClusteringAlgorithm clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 		clusterAlg.setNumClusters(numClusters);
-		clusterAlg.execute();
+		if(type.equalsIgnoreCase("agglomerative")) {
+			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
+			((AgglomerativeClusteringAlgorithm) clusterAlg).execute();
+		} else {
+			((ClusteringAlgorithm) clusterAlg).execute();
+		}
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		categoryPropIndices = clusterAlg.getCategoryPropIndices();
 		int[] clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
@@ -313,13 +320,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	 */
 	@Override
 	public void setQuery(String query) {
-		if(query.startsWith("SELECT") || query.startsWith("CONSTRUCT"))
-			this.query=query;
-		else{
-			logger.info("New Query " + query);
-			int semi=query.indexOf(";");
-			numClusters = Integer.parseInt(query.substring(0,semi));
-			this.query = query.substring(semi+1);
+		logger.info("New Query " + query);
+		String[] querySplit = query.split(";");
+		this.query = querySplit[0];
+		this.numClusters = Integer.parseInt(querySplit[1]);
+		if(querySplit.length == 4) {
+			this.n = Double.parseDouble(querySplit[2]);
+			this.type = querySplit[3];
 		}
 	}
 
