@@ -3,6 +3,8 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -34,7 +36,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
 	private double n;
-	private String type;
+	private String type = "";
 	private ArrayList<Object[]> clusterInfo;
 
 	//indexing used for bar graph visualizations
@@ -62,7 +64,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		panel.setLayout(gbl_mainPanel);
 		addScrollPanel(panel);
 		GridFilterData gfd = new GridFilterData();
-		list.addAll(0, clusterInfo);
+		if(clusterInfo != null) {
+			list.addAll(0, clusterInfo);
+		}
 		gfd.setColumnNames(names);
 		//append cluster information to list data
 		gfd.setDataList(list);
@@ -120,10 +124,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
 						Hashtable<String, Object>[] propBins = calculateNumericBins(numValues);
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+						String[] zScore = calculateZScore(numValues);
 						// cause JS is dumb
 						Object[] propBinsArr = new Object[]{propBins};
 						innerHash.put("dataSeries", propBinsArr);
 						innerHash.put("names", new String[]{propName, "Distribution"});
+						innerHash.put("zScore", zScore);
 						clusterData.put(propName, innerHash);
 					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
@@ -145,6 +151,21 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		allHash.put("barData", barData);
 		
 		return allHash;
+	}
+	
+	private String[] calculateZScore(double[] numValues) {
+		NumberFormat formatter = new DecimalFormat("0.#E0");
+		double minVal = numValues[0];
+		double maxVal = numValues[numValues.length - 1];
+		
+		double avg = StatisticsUtilityMethods.getAverage(numValues);
+		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(numValues);
+		
+		String[] zScore = new String[2];
+		zScore[0] = formatter.format((minVal - avg)/stdev);
+		zScore[1] = formatter.format((maxVal - avg)/stdev);
+		
+		return zScore;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -202,6 +223,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	@SuppressWarnings("unchecked")
 	public Hashtable<String, Object>[] calculateNumericBins(double[] numValues) {
+		NumberFormat formatter = new DecimalFormat("0.#E0");
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
@@ -219,7 +241,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 				innerHash.put("seriesName", "Distribution");
 				innerHash.put("y0", "0");
-				innerHash.put("x", (min + currBin*binSize) + "-" + (min + (currBin+1) * binSize));
+				innerHash.put("x", formatter.format(min + currBin*binSize) + "---" + formatter.format(min + (currBin+1) * binSize));
 				innerHash.put("y", counter);
 				retBins[currBin] = innerHash;
 				currBin++;
@@ -253,12 +275,15 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	@Override
 	public void createData() {
 		processQuery();
-		AbstractClusteringAlgorithm clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
-		clusterAlg.setNumClusters(numClusters);
+		AbstractClusteringAlgorithm clusterAlg;
 		if(type.equalsIgnoreCase("agglomerative")) {
+			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
+			clusterAlg.setNumClusters(numClusters);
 			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
 			((AgglomerativeClusteringAlgorithm) clusterAlg).execute();
 		} else {
+			clusterAlg = new ClusteringAlgorithm(list, names);
+			clusterAlg.setNumClusters(numClusters);
 			((ClusteringAlgorithm) clusterAlg).execute();
 		}
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
