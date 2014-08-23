@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorithm{
 	
-	private static final Logger logger = LogManager.getLogger(ClusteringAlgorithm.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(AgglomerativeClusteringAlgorithm.class.getName());
 
 	private double[] gammaArr;
 	private double[] lambdaArr;
