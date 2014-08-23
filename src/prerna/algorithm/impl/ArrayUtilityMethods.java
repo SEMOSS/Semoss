@@ -2,76 +2,80 @@ package prerna.algorithm.impl;
 
 import java.util.Arrays;
 
-import org.apache.lucene.util.ArrayUtil;
+public final class ArrayUtilityMethods {
 
-public class ArrayUtilityMethods {
-
-	public static int calculateIndexOfArray(String[] arr, String value) {
+	private static final String ILLEGAL_ARGS_ERR = "The data array either is null or does not contain any data.";
+	
+	private ArrayUtilityMethods() {
+		
+	}
+	
+	public static int calculateIndexOfArray(final String[] arr, final String value) {
 		int size = arr.length;
-		int i;
-		for(i = 0; i < size; i++) {
-			if(arr[i] != null && arr[i].equals(value)) {
-				return i;
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index].equals(value)) {
+				return index;
 			}
 		}
 		return -1;
 	}
 
-	public static boolean arrayContainsValue(Object[] arr, Object value) {
+	public static boolean arrayContainsValue(final Object[] arr, final Object value) {
 		if(arr == null) {
-			return false;
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
+		
 		int size = arr.length;
-		int i;
-		for(i = 0; i < size; i++) {
-			if(arr[i] != null && arr[i] == value) {
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index] == value) {
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public static boolean arrayContainsValue(String[] arr, String value) {
+	public static boolean arrayContainsValue(final String[] arr, final String value) {
 		if(arr == null) {
-			return false;
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		int size = arr.length;
-		int i;
-		for(i = 0; i < size; i++) {
-			if(arr[i] != null && arr[i].equals(value)) {
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index].equals(value)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	public static int determineLastNonNullValue(Object[] arr) {
+	public static int determineLastNonNullValue(final Object[] arr) {
 		int lastNonNullValue = 0;
 		int size = arr.length;
-		int i;
-		for(i = 0; i < size; i++) {
-			if(arr[i] == null) {
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] == null) {
 				continue;
 			} else {
-				lastNonNullValue = i;
+				lastNonNullValue = index;
 			}
 		}
 		return lastNonNullValue;
 	}
 	
-	public static Object[] trimEmptyValues(Object[] arr) {
+	public static Object[] trimEmptyValues(final Object[] arr) {
 		int lastNonNullValue = determineLastNonNullValue(arr);
 		if(lastNonNullValue == 0) {
 			return null;
 		}
-		Object[] returnArr = Arrays.copyOfRange(arr, 0, lastNonNullValue+1);
-		return returnArr;
+		return Arrays.copyOfRange(arr, 0, lastNonNullValue+1);
 	}
 
-	public static boolean arrayContainsValue(int[] arr, int value) {
+	public static boolean arrayContainsValue(final int[] arr, final int value) {
 		
 		if(arr == null) {
-			return false;
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
 		int size = arr.length;
@@ -79,73 +83,73 @@ public class ArrayUtilityMethods {
 			return false; //empty array
 		}
 		
-		int i;
-		for(i = 0; i < size; i++) {
-			if(arr[i] == value) {
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] == value) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	public static Object[] removeAllNulls(Object[] arr) {
+	public static Object[] removeAllNulls(final Object[] arr) {
 		int positionInOriginalArr;
 		int positionInNewArr;
 		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
 		while (positionInOriginalArr > 0) {
-			Object o = arr[--positionInOriginalArr];
-			if (o != null) {
-				arr[--positionInNewArr] = o;
+			Object value = arr[--positionInOriginalArr];
+			if (value != null) {
+				arr[--positionInNewArr] = value;
 			}
 		}
 		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
 	}
 
-	public static Object[] resizeArray(Object[] arr, int factor) {
+	public static Object[] resizeArray(final Object[] arr, final int factor) {
 		return Arrays.copyOf(arr, arr.length*2); 
 	}
 	
-	public static double[] convertObjArrToDoubleArr(Object[] arr) {
+	public static double[] convertObjArrToDoubleArr(final Object[] arr) {
 		int size = arr.length;
 		double[] retArr = new double[size];
-		int i;
-		for(i = 0; i < size; i++) {
-			Object obj = arr[i];
+		int index;
+		for(index = 0; index < size; index++) {
+			Object obj = arr[index];
 			double val = 0;
 			try {
-				val = Double.valueOf(obj.toString()).doubleValue();
+				val = Double.valueOf(obj.toString());
 			} catch(NumberFormatException ex) {
 				throw new NumberFormatException("Value in Object array cannot be converted to double");
 			}
-			retArr[i] = val;
+			retArr[index] = val;
 		}
 		return retArr;
 	}
 	
-	public static String[] convertObjArrToStringArr(Object[] arr) {
+	public static String[] convertObjArrToStringArr(final Object[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
-		int i;
-		for(i = 0; i < size; i++) {
-			Object obj = arr[i];
+		int index;
+		for(index = 0; index < size; index++) {
+			Object obj = arr[index];
 			String val = null;
 			if(obj != null) {
 				val = obj.toString();
 			}
-			retArr[i] = val;
+			retArr[index] = val;
 		}
 		return retArr;
 	}
 	
-	public static String[] getUniqueArray(String[] arr) {
+	public static String[] getUniqueArray(final String[] arr) {
         int size = arr.length;
         String[] temp = new String[size];
 
 		int counter = 0;
-        int i;
-        for (i = 0; i < size; i++) {
-            if(!arrayContainsValue(temp, arr[i])) {
-                temp[counter++] = arr[i];
+        int index;
+        for (index = 0; index < size; index++) {
+            if(!arrayContainsValue(temp, arr[index])) {
+                temp[counter++] = arr[index];
             }
         }
         String[] uniqueArray = new String[counter];
