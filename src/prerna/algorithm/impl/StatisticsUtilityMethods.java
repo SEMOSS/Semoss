@@ -2,11 +2,17 @@ package prerna.algorithm.impl;
 
 import java.util.Arrays;
 
-public class StatisticsUtilityMethods {
+public final class StatisticsUtilityMethods {
 
-	public static double quartile(double[] values, double lowerPercent, boolean ordered) {
+	private static final String ILLEGAL_ARGS_ERR = "The data array either is null or does not contain any data.";
+
+	private StatisticsUtilityMethods(){
+		
+	}
+	
+	public static double quartile(final double[] values, final double lowerPercent, final boolean ordered) {
 		if (values == null || values.length == 0) {
-			throw new IllegalArgumentException("The data array either is null or does not contain any data.");
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 
 		// Rank order the values if not already ordered
@@ -14,73 +20,73 @@ public class StatisticsUtilityMethods {
 			Arrays.sort(values);
 		}
 
-		int n = (int) Math.floor(values.length * lowerPercent / 100);
-		return values[n];
+		int index = (int) Math.floor(values.length * lowerPercent / 100);
+		return values[index];
 	}
 	
-	public static double getMinimumValue(double[] values) {
+	public static double getMinimumValue(final double[] values) {
 		if( values == null || values.length == 0) {
-			throw new IllegalArgumentException("The data array either is null or does not contain any data.");
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
-		int i;
+		int index;
 		int size = values.length;
 		double minValue = values[0];
-		for(i = 1; i < size; i++) {
-			if(minValue > values[i]) {
-				minValue = values[i];
+		for(index = 1; index < size; index++) {
+			if(minValue > values[index]) {
+				minValue = values[index];
 			}
 		}
 		
 		return minValue;
 	}
 	
-	public static double getMaximumValue(double[] values) {
+	public static double getMaximumValue(final double[] values) {
 		if( values == null || values.length == 0) {
-			throw new IllegalArgumentException("The data array either is null or does not contain any data.");
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
-		int i;
+		int index;
 		int size = values.length;
 		double maxValue = values[0];
-		for(i = 1; i < size; i++) {
-			if(maxValue < values[i]) {
-				maxValue = values[i];
+		for(index = 1; index < size; index++) {
+			if(maxValue < values[index]) {
+				maxValue = values[index];
 			}
 		}
 		
 		return maxValue;
 	}
 	
-	public static double getAverage(double[] values) {
+	public static double getAverage(final double[] values) {
 		if( values == null || values.length == 0) {
-			throw new IllegalArgumentException("The data array either is null or does not contain any data.");
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
-		int i;
+		int index;
 		int size = values.length;
 		double sum = values[0];
-		for(i = 1; i < size; i++) {
-			sum += values[i];
+		for(index = 1; index < size; index++) {
+			sum += values[index];
 		}
 		
 		return sum/size;
 	}
 	
-	public static double getSampleStandardDeviation(double[] values) {
+	public static double getSampleStandardDeviation(final double[] values) {
 		if( values == null || values.length < 1) {
-			throw new IllegalArgumentException("The data array either is null or does not contain any data.");
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
 		double avg = getAverage(values);
-		int i;
+		int index;
 		int size = values.length;
-		double stdev = Math.pow((values[0] - avg),2);
-		for(i = 1; i < size; i++) {
-			stdev += Math.pow((values[i] - avg),2);
+		double stdev = Math.pow(values[0] - avg,2);
+		for(index = 1; index < size; index++) {
+			stdev += Math.pow(values[index] - avg,2);
 		}
 		
-		return stdev/(size - 1);
+		return Math.pow(stdev/(size - 1), 0.5);
 	}
 
 }

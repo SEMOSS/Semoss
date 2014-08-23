@@ -162,8 +162,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(numValues);
 		
 		String[] zScore = new String[2];
-		zScore[0] = formatter.format((minVal - avg)/Math.pow(stdev, 0.5));
-		zScore[1] = formatter.format((maxVal - avg)/Math.pow(stdev, 0.5));
+		zScore[0] = formatter.format((minVal - avg)/stdev);
+		zScore[1] = formatter.format((maxVal - avg)/stdev);
 		
 		return zScore;
 	}
