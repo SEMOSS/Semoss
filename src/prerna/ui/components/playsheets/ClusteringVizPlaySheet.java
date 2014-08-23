@@ -154,7 +154,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	}
 	
 	private String[] calculateZScore(double[] numValues) {
-		NumberFormat formatter = new DecimalFormat("0.#E0");
+		NumberFormat formatter = new DecimalFormat("#.##");
 		double minVal = numValues[0];
 		double maxVal = numValues[numValues.length - 1];
 		
@@ -162,8 +162,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(numValues);
 		
 		String[] zScore = new String[2];
-		zScore[0] = formatter.format((minVal - avg)/stdev);
-		zScore[1] = formatter.format((maxVal - avg)/stdev);
+		zScore[0] = formatter.format((minVal - avg)/Math.pow(stdev, 0.5));
+		zScore[1] = formatter.format((maxVal - avg)/Math.pow(stdev, 0.5));
 		
 		return zScore;
 	}
