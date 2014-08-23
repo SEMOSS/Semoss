@@ -55,8 +55,8 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		}
 		//if it quits after the ridiculously large number of times, print out the error
 		if(iterationCount == maxIterations) {
-			success = false;
 			LOGGER.info("Completed Maximum Number of iterations without finding a solution");
+			success = false;
 		}
 		else {
 			success = true;
