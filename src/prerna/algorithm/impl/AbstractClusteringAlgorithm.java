@@ -71,7 +71,7 @@ public abstract class AbstractClusteringAlgorithm {
 	}
 
 	// method to be defined in specific clustering algorithms
-	public abstract boolean execute();
+	protected abstract boolean execute();
 
 	protected void setUpAlgorithmVariables(){
 		cdp = new ClusteringDataProcessor(masterTable,varNames);
