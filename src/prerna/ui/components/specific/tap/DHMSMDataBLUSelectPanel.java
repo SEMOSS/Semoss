@@ -94,6 +94,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		this.add(updateConsumeDataBLUButton, gbc_updateConsumeDataBLUButton);		
 		
 		updateComplementDataBLUButton = new CustomButton("Select Complement");
+		updateComplementDataBLUButton.setName("updateComplementDataBLUButton");
 		updateComplementDataBLUButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(updateComplementDataBLUButton,  ".toggleButton");
 		updateComplementDataBLUButton.setVisible(true);		

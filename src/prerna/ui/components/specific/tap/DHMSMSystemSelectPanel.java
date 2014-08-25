@@ -52,6 +52,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(lblSystemSelectHeader, gbc_lblSystemSelectHeader);
 		
 		allSysButton = new JCheckBox("All");
+		allSysButton.setName("allSysButton");
 		GridBagConstraints gbc_allSysButton = new GridBagConstraints();
 		gbc_allSysButton.anchor = GridBagConstraints.WEST;
 		gbc_allSysButton.gridx = 0;
@@ -59,6 +60,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(allSysButton, gbc_allSysButton);
 		
 		recdSysButton = new JCheckBox("Rec'd");
+		recdSysButton.setName("recdSysButton");
 		GridBagConstraints gbc_recdSysButton = new GridBagConstraints();
 		gbc_recdSysButton.anchor = GridBagConstraints.WEST;
 		gbc_recdSysButton.gridx = 1;
@@ -66,6 +68,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(recdSysButton, gbc_recdSysButton);
 
 		intDHMSMSysButton = new JCheckBox("Interface");
+		intDHMSMSysButton.setName("intDHMSMSysButton");
 		GridBagConstraints gbc_intDHMSMSysButton = new GridBagConstraints();
 		gbc_intDHMSMSysButton.anchor = GridBagConstraints.WEST;
 		//gbc_intDHMSMSysButton.gridwidth = 2;
@@ -74,6 +77,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(intDHMSMSysButton, gbc_intDHMSMSysButton);
 		
 		notIntDHMSMSysButton = new JCheckBox("No Interface");
+		notIntDHMSMSysButton.setName("notIntDHMSMSysButton");
 		GridBagConstraints gbc_notIntDHMSMSysButton = new GridBagConstraints();
 		gbc_notIntDHMSMSysButton.anchor = GridBagConstraints.WEST;
 		gbc_notIntDHMSMSysButton.gridx = 3;
@@ -81,6 +85,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(notIntDHMSMSysButton, gbc_notIntDHMSMSysButton);
 		
 		lowProbButton = new JCheckBox("Low");
+		lowProbButton.setName("lowProbButton");
 		GridBagConstraints gbc_lowProbButton = new GridBagConstraints();
 		gbc_lowProbButton.anchor = GridBagConstraints.WEST;
 		gbc_lowProbButton.gridx = 0;
@@ -88,6 +93,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(lowProbButton, gbc_lowProbButton);
 		
 		highProbButton = new JCheckBox("High");
+		highProbButton.setName("highProbButton");
 		GridBagConstraints gbc_highProbButton = new GridBagConstraints();
 		gbc_highProbButton.anchor = GridBagConstraints.WEST;
 		gbc_highProbButton.gridx = 1;
@@ -95,6 +101,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(highProbButton, gbc_highProbButton);		
 
 		theaterSysButton = new JCheckBox("Theater");
+		theaterSysButton.setName("theaterSysButton");
 		GridBagConstraints gbc_theaterSysButton = new GridBagConstraints();
 		gbc_theaterSysButton.anchor = GridBagConstraints.WEST;
 		gbc_theaterSysButton.gridx = 2;
@@ -102,6 +109,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(theaterSysButton, gbc_theaterSysButton);
 		
 		garrisonSysButton = new JCheckBox("Garrison");
+		garrisonSysButton.setName("garrisonSysButton");
 		GridBagConstraints gbc_garrisonSysButton = new GridBagConstraints();
 		gbc_garrisonSysButton.anchor = GridBagConstraints.WEST;
 		gbc_garrisonSysButton.gridx = 3;
