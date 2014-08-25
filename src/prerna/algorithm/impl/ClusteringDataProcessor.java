@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 
 public class ClusteringDataProcessor {
 
-	static final Logger logger = LogManager.getLogger(ClusteringDataProcessor.class.getName());
+	static final Logger LOGGER = LogManager.getLogger(ClusteringDataProcessor.class.getName());
 
 	// matrix to hold the instance numerical property values
 	private Double[][] numericalMatrix;
@@ -54,11 +54,9 @@ public class ClusteringDataProcessor {
 	public int[] getTotalNumericalPropIndices() {
 		return totalNumericalPropIndices;
 	}
-	
 	public Integer[] getCategoryPropIndices() {
 		return categoryPropIndices.clone();
 	}
-	
 	public Hashtable<String, Integer> getInstanceHash() {
 		return (Hashtable<String, Integer>) instanceHash.clone();
 	}
@@ -107,8 +105,8 @@ public class ClusteringDataProcessor {
 	 * @param categoryClusterInfo		The categorical cluster information for the cluster we are looking to add the instance into
 	 * @return 							The similarity score associated with the categorical properties
 	 */
-	private double calculateCategorySimilarity(String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) {
-
+	private double calculateCategorySimilarity(String[] instaceCategoricalInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) 
+	{
 		double categorySimilarity = 0;
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
@@ -141,8 +139,8 @@ public class ClusteringDataProcessor {
 	 * @return								The similarity score value associated with the numerical properties
 	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length 
 	 */
-	private Double calcuateNumericalSimilarity(int clusterIdx, Double[] instanceNumericalInfo, Double[][] allNumericalClusterInfo) throws IllegalArgumentException {
-
+	private Double calcuateNumericalSimilarity(int clusterIdx, Double[] instanceNumericalInfo, Double[][] allNumericalClusterInfo) throws IllegalArgumentException 
+	{
 		double numericalSimilarity = 0;
 		double distanceNormalization = 0;
 
@@ -211,7 +209,7 @@ public class ClusteringDataProcessor {
 
 		// output category and weight to console
 		for(int i = 0; i < weights.length; i++) {
-			logger.info("Category " + categoryPropNames[i] + " has weight " + weights[i]);
+			LOGGER.info("Category " + categoryPropNames[i] + " has weight " + weights[i]);
 		}
 	}
 
@@ -323,12 +321,12 @@ public class ClusteringDataProcessor {
 					categoryPropNames[categoryPropNamesCounter] = varNames[j];
 					categoryPropIndices[categoryPropNamesCounter] = j;
 					categoryPropNamesCounter++;
-					logger.info("Found " + varNames[j] + " to be a categorical data column");
+					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
 				} else {
 					numericalPropNames[numericalPropNamesCounter] = varNames[j];
 					numericalPropIndices[numericalPropNamesCounter] = j;
 					numericalPropNamesCounter++;
-					logger.info("Found " + varNames[j] + " to be a numerical data column");
+					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
 					if(type.equals("DATE")){
 						dateTypeIndices[dateTypeIndicesCounter] = j;
 						dateTypeIndicesCounter++;
@@ -405,25 +403,29 @@ public class ClusteringDataProcessor {
 				for(Integer idx : numericalPropIndices) {
 					if(dataRow[idx] != null && !dataRow[idx].toString().equals("")) {
 						try {
-							if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
-								SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-								formatLongDate.setLenient(true);
-								Date valDate = formatLongDate.parse(dataRow[idx].toString());
-								Long dateAsLong = valDate.getTime();
-								numericalMatrix[row][counter] = dateAsLong.doubleValue();
-							} else if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
-								SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-								formatLongDate.setLenient(true);
-								Date valDate = formatLongDate.parse(dataRow[idx].toString());
-								Long dateAsLong = valDate.getTime();
-								numericalMatrix[row][counter] = dateAsLong.doubleValue();
+							if(dateTypeIndices != null) {
+								if(ArrayUtilityMethods.arrayContainsValue(dateTypeIndices, idx)) {
+									SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+									formatLongDate.setLenient(true);
+									Date valDate = formatLongDate.parse(dataRow[idx].toString());
+									Long dateAsLong = valDate.getTime();
+									numericalMatrix[row][counter] = dateAsLong.doubleValue();
+								} 
+							} else if(simpleDateTypeIndices != null) {
+								if(ArrayUtilityMethods.arrayContainsValue(simpleDateTypeIndices, idx)){
+									SimpleDateFormat formatLongDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
+									formatLongDate.setLenient(true);
+									Date valDate = formatLongDate.parse(dataRow[idx].toString());
+									Long dateAsLong = valDate.getTime();
+									numericalMatrix[row][counter] = dateAsLong.doubleValue();
+								}
 							} else {
 								numericalMatrix[row][counter] = (Double) dataRow[idx];
 							}
 						} catch (ParseException e) {
-							logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
+							LOGGER.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
 						} catch (ClassCastException e) {
-							logger.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
+							LOGGER.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 						}
 					}
 					// default values are null in new Double[][]
