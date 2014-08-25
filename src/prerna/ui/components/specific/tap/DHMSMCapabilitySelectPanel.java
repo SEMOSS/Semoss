@@ -52,6 +52,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		this.add(lblCapSelectHeader, gbc_lblCapSelectHeader);
 		
 		allCapButton = new JCheckBox("All Cap");
+		allCapButton.setName("allCapButton");
 		GridBagConstraints gbc_allCapButton = new GridBagConstraints();
 		gbc_allCapButton.anchor = GridBagConstraints.WEST;
 		gbc_allCapButton.gridx = 0;
@@ -59,6 +60,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		this.add(allCapButton, gbc_allCapButton);
 
 		dhmsmCapButton = new JCheckBox("DHMSM");
+		dhmsmCapButton.setName("dhmsmCapButton");
 		GridBagConstraints gbc_dhmsmCapButton = new GridBagConstraints();
 		gbc_dhmsmCapButton.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmCapButton.gridx = 1;
@@ -66,6 +68,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		this.add(dhmsmCapButton, gbc_dhmsmCapButton);
 
 		hsdCapButton = new JCheckBox("HSD");
+		hsdCapButton.setName("hsdCapButton");
 		GridBagConstraints gbc_hsdCapButton = new GridBagConstraints();
 		gbc_hsdCapButton.anchor = GridBagConstraints.WEST;
 		gbc_hsdCapButton.gridx = 0;
@@ -73,6 +76,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		this.add(hsdCapButton, gbc_hsdCapButton);
 		
 		hssCapButton = new JCheckBox("HSS");
+		hssCapButton.setName("hssCapButton");
 		GridBagConstraints gbc_hssCapButton = new GridBagConstraints();
 		gbc_hssCapButton.anchor = GridBagConstraints.WEST;
 		gbc_hssCapButton.gridx = 1;
@@ -80,6 +84,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		this.add(hssCapButton, gbc_hssCapButton);
 		
 		fhpCapButton = new JCheckBox("FHP");
+		fhpCapButton.setName("fhpCapButton");
 		GridBagConstraints gbc_fhpCapButton = new GridBagConstraints();
 		gbc_fhpCapButton.anchor = GridBagConstraints.WEST;
 		gbc_fhpCapButton.gridx = 2;
