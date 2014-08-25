@@ -72,7 +72,7 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 				} else {
 					writer.println("Iteration numer: " + counter + ". Looking at instance: " + instance);
 					int instanceInd = instanceIndexHash.get(instance);
-					int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount + 1 + originalNumClusters);
+					int newClustersForInstance = findNewClusterForInstanceAndUpdateScoreValues(instanceInd, iterationCount, originalNumClusters);
 					int oldClusterForInstance = clustersAssigned[instanceInd];
 					if(newClustersForInstance != oldClusterForInstance) {
 						noChange = false;
@@ -118,7 +118,7 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 		}
 		if(iterationCount == maxIterations) {
 			success = false;
-			System.out.println("Completed Maximum Number of iterations without finding a solution");
+			LOGGER.info("Completed Maximum Number of iterations without finding a solution");
 		}
 		else if(oneCluster){
 			success = true;
@@ -143,7 +143,7 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 	 * For every cluster, call the similarity function between the system and that cluster.
 	 * Compare the similarity score of all the clusters and return the one with max similarity.
 	 */
-	private int findNewClusterForInstanceAndUpdateScoreValues(int instanceInd, int totalCount) throws IllegalArgumentException {
+	private int findNewClusterForInstanceAndUpdateScoreValues(int instanceInd, int iterationCount, int originalNumClusters) throws IllegalArgumentException {
 		int[] topTwoClustersWithMaxSimilarity = new int[2];
 		// get similarity score
 		double similarityToCluster0 = cdp.getSimilarityScore(instanceInd,0,clusterNumberMatrix,clusterCategoryMatrix.get(0));
@@ -191,11 +191,13 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			}
 		}
 		
+		n = n / (iterationCount+1);
+		
 		numWinsForCluster[topTwoClustersWithMaxSimilarity[0]]++;
 		//update all gamma values
 		int i;
 		for(i = 0; i < numClusters; i++) {
-			gammaArr[i] = (double) numWinsForCluster[i] / totalCount;
+			gammaArr[i] = (double) numWinsForCluster[i] / (iterationCount + originalNumClusters + 1);
 		}
 		
 		double newLambdaWinner = lambdaArr[topTwoClustersWithMaxSimilarity[0]] + n;
