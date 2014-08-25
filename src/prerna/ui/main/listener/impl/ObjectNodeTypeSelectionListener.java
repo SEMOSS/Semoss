@@ -56,6 +56,7 @@ public class ObjectNodeTypeSelectionListener extends AbstractListener {
 		JComboBox source = (JComboBox) arg0.getSource();
 		int length = source.getName().length();
 		this.exportNo = Integer.parseInt(source.getName().substring(length-1, length));
+		updateComboBoxes();
 	}
 	
 	/**
