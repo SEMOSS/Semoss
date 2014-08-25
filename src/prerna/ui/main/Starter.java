@@ -87,7 +87,6 @@ public class Starter {
 	{
 		Starter starter = new Starter();
 		System.setProperty("file.separator", "/");
-//		Utility.showMessage(govWarningString);
 		String workingDir = System.getProperty("user.dir");
 		String propFile = workingDir + "/RDF_Map.prop";
 		Logger logger = Logger.getLogger(prerna.ui.main.Starter.class);
@@ -141,6 +140,10 @@ public class Starter {
 
 		// first get the engine file
 		DIHelper.getInstance().loadCoreProp(propFile);
+		if(DIHelper.getInstance().getProperty("SHOW_GOV_WARNING") != null){
+			if(Boolean.parseBoolean(DIHelper.getInstance().getProperty("SHOW_GOV_WARNING")))
+				Utility.showMessage(govWarningString);
+		}
 		File baseFolderCheckFile = new File(DIHelper.getInstance().getProperty("BaseFolder"));
 		if (!(baseFolderCheckFile.exists() && baseFolderCheckFile.isDirectory())) {
 			DIHelper.getInstance().putProperty("BaseFolder",System.getProperty("user.dir"));
