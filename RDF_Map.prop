@@ -17,6 +17,8 @@ SMSSWebWatcher_DIR	C:\\Users\\bkirk\\workspace\\SEMOSS\\db
 SMSSWebWatcher_EXT	.smss
 LOG4J	C:\\Users\\bkirk\\workspace\\SEMOSS\\log4j.prop
 BaseFolder	C:\\Users\\bkirk\\workspace\\SEMOSS
+
+SHOW_GOV_WARNING	true
 GPS_SUDOWL_DEFAULT	false
 GPS_SEARCH_DEFAULT	true
 GPS_PROPERTIES_DEFAULT	true
