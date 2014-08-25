@@ -161,9 +161,26 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		double avg = StatisticsUtilityMethods.getAverage(numValues);
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(numValues);
 		
-		String[] zScore = new String[2];
-		zScore[0] = formatter.format((minVal - avg)/stdev);
-		zScore[1] = formatter.format((maxVal - avg)/stdev);
+		double minZScore = (minVal - avg)/stdev;
+		double maxZScore = (maxVal - avg)/stdev;
+		
+		int index;
+		int start = (int) Math.ceil(minZScore);
+		int end = (int) Math.floor(maxZScore);
+		if( (start-minZScore)/(maxZScore - minZScore) < 0.05 ) {
+			start++;
+		}
+		if( (maxZScore-end)/(maxZScore - minZScore) < 0.05 ) {
+			end--;
+		}
+		String[] zScore = new String[end - start + 3]; //+3 due to minZScore, maxZScore, and including the end value
+		zScore[0] = formatter.format(minZScore);
+		zScore[zScore.length - 1] = formatter.format(maxZScore);
+		int counter = 1;
+		for(index = start; index <= end; index++){
+			zScore[counter] = formatter.format(index);
+			counter++;
+		}
 		
 		return zScore;
 	}
