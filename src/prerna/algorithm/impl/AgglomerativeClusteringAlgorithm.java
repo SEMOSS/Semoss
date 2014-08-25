@@ -127,6 +127,14 @@ public class AgglomerativeClusteringAlgorithm extends AbstractClusteringAlgorith
 			success = true;
 			writer.close();
 		}
+		
+		printOutClusters();
+		createClusterRowsForGrid();
+		
+		//need indices for visualization
+		categoryPropIndices = cdp.getCategoryPropIndices();
+		numericalPropIndices = cdp.getTotalNumericalPropIndices();
+		
 		return success;
 	}
 	
