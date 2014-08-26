@@ -29,7 +29,6 @@ app.controller('dataCtrl', function($scope, $http) {
     $scope.resizeBarChart = function() {
         $scope.$apply(function(){
             $scope.barChartResized = !$scope.barChartResized;
-            console.log($scope.barChartResized);
         });
     };
 });
