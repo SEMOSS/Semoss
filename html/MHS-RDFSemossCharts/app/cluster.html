@@ -17,9 +17,29 @@
     <!--<script src="data/barData.js"></script>-->
     <script src="lib/d3.min.js"></script>
     <script src="lib/bootstrap.js"></script>
-    <script>
+    <style>
 
-    </script>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        svg {
+            font: 10px sans-serif;
+        }
+
+        .caption {
+            font-weight: bold;
+        }
+
+        .key path,
+        .key line {
+            fill:none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+    </style>
 </head>
 <body>
 <div id='thecontroller' class="clearfix" ng-controller="dataCtrl">

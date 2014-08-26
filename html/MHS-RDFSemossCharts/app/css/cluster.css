@@ -199,3 +199,23 @@ path.domain{
 .clearfix {
     clear: both;
 }
+
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+svg {
+    font: 10px sans-serif;
+}
+
+.caption {
+    font-weight: bold;
+}
+
+.key path,
+.key line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
