@@ -201,7 +201,7 @@ app.directive('columnchart', function($filter, $rootScope) {
 
 // A position encoding for the key only.
                     thresholdxScale2 = d3.scale.linear()
-                        .domain([d3.min(zScoreData), d3.max(zScoreData)])
+                        .domain([zScoreData[0], zScoreData[zScoreData.length - 1]])
                         .range([0, container.width]);
 
                     thresholdxAxis2 = d3.svg.axis()
