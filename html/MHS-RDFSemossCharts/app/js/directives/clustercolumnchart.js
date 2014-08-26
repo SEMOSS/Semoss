@@ -5,8 +5,6 @@ app.directive('columnchart', function($filter, $rootScope) {
         scope: {
             data: "=",
             containerClass: "=",
-//            control: "=",
-//            sendUri: "&"
             barChartResized: "="
         },
         link: function(scope, ele, attrs) {
@@ -25,10 +23,21 @@ app.directive('columnchart', function($filter, $rootScope) {
                 yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
             var columnData = {};
             var barChartSignal = false;
+            var zScoreFlag = false;
+            var zScoreData = [];
+            var thresholdwidth = 960,
+                thresholdheight = 500,
+                formatNumber = d3.format(".f");
+            var threshold;
+            var thresholdg;
+            var thresholdxScale2;
+            var thresholdxAxis2;
+
+
+//            var zScoreDataTest = [-3.75,-3,-2,-1,0,1.05];
 
             scope.internalControl = scope.control || {};
             scope.$on('filterValue', function(event, args){
-//                console.log("holy cow col chart ::::: " + event.name + " " + args);
                 highlightColumn(args);
             });
 
@@ -50,24 +59,21 @@ app.directive('columnchart', function($filter, $rootScope) {
 
             scope.$watch('data', function() {
                 if (scope.data == undefined || scope.data == null || scope.data ==  [] || scope.data == '') {
-                    //don't want to do anything if there is no freakin data
                     console.log("no data");
                 } else {
                     if(columnData != scope.data){
                         columnData = scope.data;
-//                        console.log(columnData);
+                        if(columnData.zScore != null){
+                            zScoreFlag = true;
+                            zScoreData = columnData.zScore;
+                        }
                         dataSeriesObject.length = 0;
                         dataSeriesKeys.length = 0;
                         names.length = 0;
                         dataSeriesObject = columnData.dataSeries;
-//                    console.log(dataSeriesObject);
                         dataSeriesKeys = dataSeriesObject[0].map(function(d) { return d.x});
                         xAxisText = columnData.names[0];
-//                    console.log(xAxisText);
                         names = columnData.names;
-//                    console.log(names);
-//                    nodes = scope.data.nodes;
-//                    edges = scope.data.edges;
                         legendArray.length = 0;
                         update();
                     }
@@ -94,6 +100,8 @@ app.directive('columnchart', function($filter, $rootScope) {
             var xScale = d3.scale.ordinal()
                 .rangeRoundBands([0, container.width ], barPadding);
 
+
+
             //setup y
             var yScale = d3.scale.linear()
                 .rangeRound([container.height, 0]);
@@ -109,23 +117,18 @@ app.directive('columnchart', function($filter, $rootScope) {
                 .attr("width", d3.max([container.width + margin.left + margin.right, 300]))
                 .attr("height", container.height + margin.top + margin.bottom)
                 .on('click', function() {
-//                    console.log("click");
                     var clicked = d3.select(d3.event.target).data()[0];
                     var uriToSend = getClickedURI(clicked);
                     if(uriToSend !== ""){
-//                        console.log("emitting registerClick for " + uriToSend);
                         scope.$emit('registerClick', uriToSend);
                     }
                     else
                         scope.$emit('registerClick', "");
                 })
                 .on('dblclick', function() {
-//                    console.log("double click");
                     var clicked = d3.select(d3.event.target).data()[0];
                     var uriToSend = getClickedURI(clicked);
                     if(uriToSend !== ""){
-//                        console.log("showing context menu for " + uriToSend);
-                        //alert("context menu for " +uriToSend);
                         scope.sendUri({uri:uriToSend});
                         scope.$apply();
                     }
@@ -156,17 +159,17 @@ app.directive('columnchart', function($filter, $rootScope) {
 
             //x axis
             svg.append("svg:g")
-                .attr("class", "x axis")
+                .attr("class", "xaxis")
                 .attr("transform", "translate(0," + container.height + ")");
             //x axis text/label
-            svg.selectAll("g.x.axis").append("text")
+            svg.selectAll("g.xaxis").append("text")
                 .attr("class", "label")
                 .attr("x", container.width/2)
                 .attr("y", margin.bottom - 6)
                 .style("text-anchor", "end")
                 .text("");
             //x axis line
-            svg.selectAll("g.x.axis").append("svg:line")
+            svg.selectAll("g.xaxis").append("svg:line")
                 .attr("class", "x-axis-line")
                 .attr("x1", 0)
                 .attr("y1", 0)
@@ -188,20 +191,52 @@ app.directive('columnchart', function($filter, $rootScope) {
             var legendGroup = svg.append("g")
                 .attr("class", "legend");
 
-//			/* Initialize tooltip */
-//			var tip = d3.tip()
-//				.attr('class', 'd3-tip')
-//				.style("z-index", "10000")
-//				//.offset([47, 0])
-//				.html(function(d) {
-//                    return "<div> <span class='light'>" + dataSeriesLabels[d.x] + " " + d.seriesName + ":</span> " + Number(d.y) + "</div>";
-//                });
-//
-//            /* Invoke the tooltip in the context of your visualization */
-//            svg.call(tip);
-
             //where all the magic happens
             function update() {
+
+                if(zScoreFlag){
+
+                    threshold = d3.scale.threshold()
+                        .domain(zScoreData);
+
+// A position encoding for the key only.
+                    thresholdxScale2 = d3.scale.linear()
+                        .domain([d3.min(zScoreData), d3.max(zScoreData)])
+                        .range([0, container.width]);
+
+                    thresholdxAxis2 = d3.svg.axis()
+                        .scale(thresholdxScale2)
+                        .orient("bottom")
+                        .tickSize(5)
+                        .tickValues(threshold.domain())
+                        .tickFormat(function(d) { return formatNumber(d)});
+
+
+                    thresholdg = svg.append("svg:g")
+                        .attr("class", "key")
+                        .attr("transform", "translate(0," + container.height + ")");
+                    //x axis text/label
+//                    svg.selectAll("g.key").append("text")
+//                        .attr("class", "label")
+//                        .attr("x", container.width / 2)
+//                        .attr("y", margin.bottom - 6)
+//                        .style("text-anchor", "end")
+//                        .text("");
+                    //x axis line
+//                    svg.selectAll("g.key").append("svg:line")
+//                        .attr("class", "x-axis-line")
+//                        .attr("x1", 0)
+//                        .attr("y1", 40)
+//                        .attr("x2", 0)
+//                        .attr("y2", 40)
+//                        .style("stroke", "black")
+//                        .style("stroke-width", 1)
+//                        .style("shape-rendering", "crispEdges");
+
+                    thresholdg.call(thresholdxAxis2).append("text")
+                        .attr("class", "caption")
+                        .attr("y", -6)
+                }
 
                 //reset the color scale
                 color = d3.scale.category20();
@@ -247,7 +282,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 }
 
                 //x axis title
-                var xAxisTitle = svg.selectAll("g.x.axis text")
+                var xAxisTitle = svg.selectAll("g.xaxis text")
                     .data([xAxisText]);
                 xAxisTitle
                     .text(function (d) {
@@ -257,7 +292,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                     .exit().remove();
 
                 //x axis ticks
-                var xAxis = svg.select("g.x.axis");
+                var xAxis = svg.select("g.xaxis");
                 var xTick = xAxis.selectAll("tick")
                     .data(dataSeriesKeys);
                 xTick.enter().append("text");
@@ -279,6 +314,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                     .attr("opacity", 1).transition().duration(axisTransitionDuration)
                     .attr("opacity", 0)
                     .remove();
+
                 svg.selectAll(".x-axis-line")
                     .attr("x2", currentWidth);
 
@@ -363,7 +399,6 @@ app.directive('columnchart', function($filter, $rootScope) {
                         .attr("dy", ".25em")
                         .style("text-anchor", "end")
                         .text(function(d) {
-//                            console.log(d);
                             return d;
                         });
 
@@ -371,6 +406,8 @@ app.directive('columnchart', function($filter, $rootScope) {
                 }// end of drawLegend
 
                 d3.selectAll("path.domain").style("shape-rendering", 'crispedges');
+
+                resize();
             } // end of update
 
             function buildBars() {
@@ -390,18 +427,6 @@ app.directive('columnchart', function($filter, $rootScope) {
                 rect
                     .attr("class", "bar")
                     .attr("opacity", standardBarOpacity);
-//                    .on('mouseover', function(d) {
-//                        var bar = d3.select(this);
-//                        bar.transition()
-//                            .duration(100).attr("opacity", 1);
-////                        tip.show(d);
-//                    })
-//                    .on('mouseout', function(d) {
-//                        var bar = d3.select(this);
-//                        bar.transition()
-//                            .duration(400).attr("opacity", standardBarOpacity);
-////                        tip.hide(d);
-//                    });
 
                 if(stacked)
                     buildStacked(true);
@@ -412,14 +437,12 @@ app.directive('columnchart', function($filter, $rootScope) {
             } // end of buildBars
 
             function filterData(d){
-//                console.log("filtering out " + d);
                 var newObject = [];
                 for (var i = 0; i<dataSeriesObject.length; ++i){
                     var filtered = filteredLevels.some(function(entry) {
                         return entry === i;
                     });
                     if(!filtered) {
-//                        console.log("adding index " + i);
                         newObject.push(dataSeriesObject[i]);
                     }
                 }
@@ -502,7 +525,6 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when the toggle between stacked and grouped is switched
             //this animation is different than build bars animation--thus different function
             scope.internalControl.transitionGrouped = function transitionGrouped() {
-//                console.log("transitioning to grouped");
                 stacked = false;
                 yScale.domain([0, yGroupMax]);
 
@@ -521,7 +543,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                     .transition()
                     .duration(axisTransitionDuration)
                     .call(yAxis);
-            }
+            };
 
             //this is called when initially building bars or resizing window
             //this animation is different than transition bars animation--thus different function
@@ -559,7 +581,6 @@ app.directive('columnchart', function($filter, $rootScope) {
             //this is called when the toggle between stacked and grouped is switched
             //this animation is different than build bars animation--thus different function
             scope.internalControl.transitionStacked = function transitionStacked() {
-//                console.log("transitioning to stacked");
                 stacked = true;
                 yScale.domain([0, yStackMax]);
 
@@ -577,12 +598,11 @@ app.directive('columnchart', function($filter, $rootScope) {
                     .transition()
                     .duration(axisTransitionDuration)
                     .call(yAxis);
-            }
+            };
 
             //font size is dynamically calculated based on bar width (available space)
             function getFontSize(){
                 var font = Math.round(xScale.rangeBand() / 2);
-//                console.log("Range Band: " + xScale.rangeBand());
                 if(font >12) {
                     font = 12;
                 }
@@ -607,6 +627,12 @@ app.directive('columnchart', function($filter, $rootScope) {
                 //update xScale based on new margin
                 xScale
                     .rangeRoundBands([0, currentWidth ], barPadding);
+
+                if(zScoreFlag) {
+                    thresholdxScale2.range([0, currentWidth]);
+                    thresholdxAxis2.scale(thresholdxScale2);
+                    thresholdg.call(thresholdxAxis2);
+                }
 
                 //setup y
                 yScale
@@ -633,13 +659,37 @@ app.directive('columnchart', function($filter, $rootScope) {
                 svg.selectAll(".x-axis-line")
                     .attr("x2", currentWidth);
 
-                var xAxis = svg.select("g.x.axis")
-                    .attr("transform", "translate(0," + container.height + ")");
-                xAxis.selectAll(".tick")
-                    .style("font-size", getFontSize())
-                    .attr("transform", function(d, i) { return "translate(" + (xScale(d) + (xScale.rangeBand()) / 2) + ", 0)rotate(-25)" });
-                xAxis.select(".label")
-                    .attr("x", currentWidth/2)
+                ///loook over here
+//                svg.selectAll(".x-axis-line")
+//                    .attr("x2", currentWidth);
+
+
+                if(zScoreFlag) {
+                    var xAxis = svg.select("g.xaxis")
+                        .attr("transform", "translate(0," + container.height + ")");
+                    xAxis.selectAll(".tick")
+                        .style("font-size", getFontSize())
+                        .attr("transform", function(d, i) { return "translate(" + (xScale(d) + (xScale.rangeBand()) / 2) + ", 15)rotate(-25)" });
+                    xAxis.select(".label")
+                        .attr("x", currentWidth/2);
+
+                }else{
+                    var xAxis = svg.select("g.xaxis")
+                        .attr("transform", "translate(0," + container.height + ")");
+                    xAxis.selectAll(".tick")
+                        .style("font-size", getFontSize())
+                        .attr("transform", function(d, i) { return "translate(" + (xScale(d) + (xScale.rangeBand()) / 2) + ", 0)rotate(-25)" });
+                    xAxis.select(".label")
+                        .attr("x", currentWidth/2);
+
+                }
+
+
+
+
+
+
+
 
                 yAxis
                     .ticks(Math.max(container.height/30, 2));
@@ -661,7 +711,6 @@ app.directive('columnchart', function($filter, $rootScope) {
                         .duration(500)
                         .attr("opacity", function (d) {
                             if (d.x === xAxisName) {
-                                //console.log("highlighting " + xAxisName + " vs " + d.x);
                                 return 1;
                             }
                             else
