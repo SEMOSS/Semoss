@@ -188,6 +188,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 .style("stroke-width", 1)
                 .style("shape-rendering", "crispEdges");
 
+
             var legendGroup = svg.append("g")
                 .attr("class", "legend");
 
