@@ -18,15 +18,14 @@
  ******************************************************************************/
 package prerna.util;
 
-import javax.swing.JCheckBox;
-import javax.swing.JRadioButton;
-
-
 /**
  * This class contains the constants referenced elsewhere in the code that are TAP specific.
  */
-public class ConstantsTAP {
+public final class ConstantsTAP {
 	
+	private ConstantsTAP() {
+		
+	}
 
 	//Source Select Report Queries
 	public static final String RFP_NAME_FIELD = "RFPNameField";
@@ -151,8 +150,12 @@ public class ConstantsTAP {
 	//TAP Service Aggregation to Core
 	public static final String TAP_SERVICES_AGGREGATION_BUTTON = "btnAggregateTapServicesIntoTapCore";
 	public static final String TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX = "selectTapServicesComboBox";
-	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreComboBox";
-	public static final String TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY = "TAP_SYSTEM_SERVICES_PROPERTY_AGGREGATION_QUERY";
+	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreForAggregationComboBox";
+	
+	//Create Future Interface DB
+	public static final String HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX = "selectHRCoreForFutureInterfaceDBComboBox";
+	public static final String TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX = "selectFutureInterfaceComboBox";
+	public static final String TAP_FUTURE_INTERFACE_DATABASE_BUTTON = "btnCreateFutureInterfaceDatabase";
 	
 	//Central System Sys-BP Sys-Activity Aggregation Thresholds
 	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";

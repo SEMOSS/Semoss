@@ -271,7 +271,11 @@ public class PlayPane extends JFrame {
 	
 	// Aggregate TAP Services into TAP Core
 	public CustomButton btnAggregateTapServicesIntoTapCore;
-	public JComboBox<String> selectTapServicesComboBox, selectTapCoreComboBox;
+	public JComboBox<String> selectTapServicesComboBox, selectTapCoreForAggregationComboBox;
+	
+	// Create Future Interface Database
+	public CustomButton btnCreateFutureInterfaceDatabase;
+	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox;
 	
 	//System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
@@ -2216,15 +2220,15 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectTapCoreToInsertTapServices.gridy = 2;
 		aggregateTapServicesIntoTapCorePanel.add(lblSelectTapCoreToInsertTapServices, gbc_lblSelectTapCoreToInsertTapServices);
 		
-		selectTapCoreComboBox = new JComboBox<String>();
-		selectTapCoreComboBox.setEditable(false);
-		GridBagConstraints gbc_selectTapCoreComboBox = new GridBagConstraints();
-		gbc_selectTapCoreComboBox.gridwidth = 2;
-		gbc_selectTapCoreComboBox.insets = new Insets(0, 0, 5, 5);
-		gbc_selectTapCoreComboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_selectTapCoreComboBox.gridx = 2;
-		gbc_selectTapCoreComboBox.gridy = 2;
-		aggregateTapServicesIntoTapCorePanel.add(selectTapCoreComboBox, gbc_selectTapCoreComboBox);
+		selectTapCoreForAggregationComboBox = new JComboBox<String>();
+		selectTapCoreForAggregationComboBox.setEditable(false);
+		GridBagConstraints gbc_selectTapCoreForAggregationComboBox = new GridBagConstraints();
+		gbc_selectTapCoreForAggregationComboBox.gridwidth = 2;
+		gbc_selectTapCoreForAggregationComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectTapCoreForAggregationComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectTapCoreForAggregationComboBox.gridx = 2;
+		gbc_selectTapCoreForAggregationComboBox.gridy = 2;
+		aggregateTapServicesIntoTapCorePanel.add(selectTapCoreForAggregationComboBox, gbc_selectTapCoreForAggregationComboBox);
 
 		btnAggregateTapServicesIntoTapCore = new CustomButton("Aggregate TAP Services into TAP Core");
 		btnAggregateTapServicesIntoTapCore.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -2237,13 +2241,101 @@ public class PlayPane extends JFrame {
 		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
 		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
 		
+		//TODO
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		JSeparator separateFutureInterfaceDB = new JSeparator();
+		GridBagConstraints gbc_separateFutureInterfaceDB = new GridBagConstraints();
+		gbc_separateFutureInterfaceDB.fill = GridBagConstraints.HORIZONTAL;
+		gbc_separateFutureInterfaceDB.gridwidth = 6;
+		gbc_separateFutureInterfaceDB.insets = new Insets(0, 0, 0, 0);
+		gbc_separateFutureInterfaceDB.gridx = 0;
+		gbc_separateFutureInterfaceDB.gridy = 18;
+		tapCalcPanel.add(separateFutureInterfaceDB, gbc_separateFutureInterfaceDB);
+		
+		JPanel createFutureInterfaceDB = new JPanel();
+		createFutureInterfaceDB.setBackground(SystemColor.control);
+		GridBagConstraints gbc_createFutureInterfaceDB = new GridBagConstraints();
+		gbc_createFutureInterfaceDB.anchor = GridBagConstraints.WEST;
+		gbc_createFutureInterfaceDB.gridwidth = 6;
+		gbc_createFutureInterfaceDB.insets = new Insets(0, 0, 5, 5);
+		gbc_createFutureInterfaceDB.gridx = 0;
+		gbc_createFutureInterfaceDB.gridy = 19;
+		tapCalcPanel.add(createFutureInterfaceDB, gbc_createFutureInterfaceDB);
+		GridBagLayout gbl_createFutureInterfaceDB = new GridBagLayout();
+		gbl_createFutureInterfaceDB.columnWidths = new int[] { 0, 75, 100, 75 };
+		gbl_createFutureInterfaceDB.rowHeights = new int[] { 0, 0, 0, 0, 0 };
+		gbl_createFutureInterfaceDB.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		gbl_createFutureInterfaceDB.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
+		createFutureInterfaceDB.setLayout(gbl_createFutureInterfaceDB);
+
+		JLabel lblCreateFutureInterfaceDB = new JLabel("Create Future Interface Database");
+		lblCreateFutureInterfaceDB.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblCreateFutureInterfaceDB.setBackground(Color.WHITE);
+		GridBagConstraints gbc_lblCreateFutureInterfaceDB = new GridBagConstraints();
+		gbc_lblCreateFutureInterfaceDB.anchor = GridBagConstraints.WEST;
+		gbc_lblCreateFutureInterfaceDB.gridwidth = 3;
+		gbc_lblCreateFutureInterfaceDB.insets = new Insets(10, 10, 5, 5);
+		gbc_lblCreateFutureInterfaceDB.gridx = 0;
+		gbc_lblCreateFutureInterfaceDB.gridy = 0;
+		createFutureInterfaceDB.add(lblCreateFutureInterfaceDB, gbc_lblCreateFutureInterfaceDB);
+		
+		JLabel lblSelectHRCoreForFutureInterfaceDBComboBox = new JLabel("Select HR Core Database:");
+		GridBagConstraints gbc_lblSelectHRCoreForFutureInterfaceDBComboBox = new GridBagConstraints();
+		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.gridx = 1;
+		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.gridy = 1;
+		createFutureInterfaceDB.add(lblSelectHRCoreForFutureInterfaceDBComboBox, gbc_lblSelectHRCoreForFutureInterfaceDBComboBox);
+		
+		selectHRCoreForFutureInterfaceDBComboBox = new JComboBox<String>();
+		selectHRCoreForFutureInterfaceDBComboBox.setEditable(false);
+		GridBagConstraints gbc_selectHRCoreForFutureInterfaceDBComboBox = new GridBagConstraints();
+		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridwidth = 2;
+		gbc_selectHRCoreForFutureInterfaceDBComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectHRCoreForFutureInterfaceDBComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridx = 2;
+		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridy = 1;
+		createFutureInterfaceDB.add(selectHRCoreForFutureInterfaceDBComboBox, gbc_selectHRCoreForFutureInterfaceDBComboBox);
+		
+		JLabel lblSelectTapCoreToInsertIntoFutureInterfaceDatabase = new JLabel("Select Future Interface Database:");
+		GridBagConstraints gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase = new GridBagConstraints();
+		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.gridx = 1;
+		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.gridy = 2;
+		createFutureInterfaceDB.add(lblSelectTapCoreToInsertIntoFutureInterfaceDatabase, gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase);
+
+		selectFutureInterfaceComboBox = new JComboBox<String>();
+		selectFutureInterfaceComboBox.setEditable(false);
+		GridBagConstraints gbc_selectFutureInterfaceComboBox = new GridBagConstraints();
+		gbc_selectFutureInterfaceComboBox.gridwidth = 2;
+		gbc_selectFutureInterfaceComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectFutureInterfaceComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectFutureInterfaceComboBox.gridx = 2;
+		gbc_selectFutureInterfaceComboBox.gridy = 2;
+		createFutureInterfaceDB.add(selectFutureInterfaceComboBox, gbc_selectFutureInterfaceComboBox);
+
+		btnCreateFutureInterfaceDatabase = new CustomButton("Add Relationships into Future Interface Database");
+		btnCreateFutureInterfaceDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnCreateFutureInterfaceDatabase = new GridBagConstraints();
+		gbc_btnCreateFutureInterfaceDatabase.anchor = GridBagConstraints.NORTHWEST;
+		gbc_btnCreateFutureInterfaceDatabase.gridwidth = 4;
+		gbc_btnCreateFutureInterfaceDatabase.insets = new Insets(10, 20, 10, 0);
+		gbc_btnCreateFutureInterfaceDatabase.gridx = 1;
+		gbc_btnCreateFutureInterfaceDatabase.gridy = 3;
+		createFutureInterfaceDB.add(btnCreateFutureInterfaceDatabase, gbc_btnCreateFutureInterfaceDatabase);
+		Style.registerTargetClassName(btnCreateFutureInterfaceDatabase, ".standardButton");
+		
+		////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
 		JSeparator separateCentralSystemBPActInsert = new JSeparator();
 		GridBagConstraints gbc_separateCentralSystemBPActInsert = new GridBagConstraints();
 		gbc_separateCentralSystemBPActInsert.fill = GridBagConstraints.HORIZONTAL;
 		gbc_separateCentralSystemBPActInsert.gridwidth = 6;
 		gbc_separateCentralSystemBPActInsert.insets = new Insets(0, 0, 0, 0);
 		gbc_separateCentralSystemBPActInsert.gridx = 0;
-		gbc_separateCentralSystemBPActInsert.gridy = 18;
+		gbc_separateCentralSystemBPActInsert.gridy = 20;
 		tapCalcPanel.add(separateCentralSystemBPActInsert, gbc_separateCentralSystemBPActInsert);
 		
 		JPanel inferredRelationshipInsertPanel = new JPanel();
@@ -2253,7 +2345,7 @@ public class PlayPane extends JFrame {
 		gbc_inferredRelationshipInsertPanel.gridwidth = 6;
 		gbc_inferredRelationshipInsertPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_inferredRelationshipInsertPanel.gridx = 0;
-		gbc_inferredRelationshipInsertPanel.gridy = 19;
+		gbc_inferredRelationshipInsertPanel.gridy = 21;
 		tapCalcPanel.add(inferredRelationshipInsertPanel, gbc_inferredRelationshipInsertPanel);
 		GridBagLayout gbl_inferredRelationshipInsertPanel = new GridBagLayout();
 		gbl_inferredRelationshipInsertPanel.columnWidths = new int[] { 0, 75, 100, 75 };

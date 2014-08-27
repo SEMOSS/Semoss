@@ -1,21 +1,16 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.io.IOException;
-import java.util.logging.FileHandler;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
-import org.apache.log4j.Appender;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.RollingFileAppender;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
-import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
