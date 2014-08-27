@@ -1024,7 +1024,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// methods used by all aggregation methods
+	// methods override from aggregation helper
 
 	public void processNewConcepts()
 	{
