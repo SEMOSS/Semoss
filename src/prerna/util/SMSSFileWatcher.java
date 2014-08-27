@@ -99,14 +99,25 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			costDBComboBox.repaint();
 			
 			// initialize combo box for aggregating tap services into tap cost
-			JComboBox selectTapCoreComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX);
-			DefaultComboBoxModel selectTapCoreComboBoxModel = (DefaultComboBoxModel) selectTapCoreComboBox.getModel();
-			selectTapCoreComboBoxModel.addElement(engineName);
-			selectTapCoreComboBox.repaint();
+			JComboBox selectTapCoreForAggregationComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX);
+			DefaultComboBoxModel selectTapCoreForAggregationComboBoxModel = (DefaultComboBoxModel) selectTapCoreForAggregationComboBox.getModel();
+			selectTapCoreForAggregationComboBoxModel.addElement(engineName);
+			selectTapCoreForAggregationComboBox.repaint();
 			
 			JComboBox selectTapServicesComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX);
 			DefaultComboBoxModel selectTapServicesComboBoxModel = (DefaultComboBoxModel) selectTapServicesComboBox.getModel();
 			selectTapServicesComboBoxModel.addElement(engineName);
+			selectTapServicesComboBox.repaint();
+			
+			// initialize combo box for creating future interface db
+			JComboBox selectHRCoreForFutureInterfaceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX);
+			DefaultComboBoxModel selectHRCoreForFutureInterfaceComboBoxModel = (DefaultComboBoxModel) selectHRCoreForFutureInterfaceComboBox.getModel();
+			selectHRCoreForFutureInterfaceComboBoxModel.addElement(engineName);
+			selectHRCoreForFutureInterfaceComboBox.repaint();
+			
+			JComboBox selectTapFutureInterfaceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX);
+			DefaultComboBoxModel selectTapFutureInterfaceComboBoxModel = (DefaultComboBoxModel) selectTapFutureInterfaceComboBox.getModel();
+			selectTapFutureInterfaceComboBoxModel.addElement(engineName);
 			selectTapServicesComboBox.repaint();
 			
 			// initialize combo box for export db information
