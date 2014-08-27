@@ -108,7 +108,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			}
 			dataList.add(instanceHash);
 		}
-		
+
 		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[numClusters];
 		for(int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
@@ -130,6 +130,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						innerHash.put("dataSeries", propBinsArr);
 						innerHash.put("names", new String[]{propName, "Distribution"});
 						innerHash.put("zScore", zScore);
+						//TODO: delete this once testing is done
+						//						innerHash.put("num_data", numValues);
+						//						innerHash.put("avg", StatisticsUtilityMethods.getAverage(numValues));
+						//						innerHash.put("stdev", StatisticsUtilityMethods.getSampleStandardDeviation(numValues));
 						clusterData.put(propName, innerHash);
 					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
@@ -149,21 +153,21 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		}
 		allHash.put("dataSeries", dataList);
 		allHash.put("barData", barData);
-		
+
 		return allHash;
 	}
-	
+
 	private String[] calculateZScore(double[] numValues) {
 		NumberFormat formatter = new DecimalFormat("#.##");
 		double minVal = numValues[0];
 		double maxVal = numValues[numValues.length - 1];
-		
+
 		double avg = StatisticsUtilityMethods.getAverage(numValues);
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(numValues);
-		
+
 		double minZScore = (minVal - avg)/stdev;
 		double maxZScore = (maxVal - avg)/stdev;
-		
+
 		int index;
 		int start = (int) Math.ceil(minZScore);
 		int end = (int) Math.floor(maxZScore);
@@ -181,7 +185,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			zScore[counter] = formatter.format(index);
 			counter++;
 		}
-		
+
 		return zScore;
 	}
 
@@ -253,21 +257,43 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		int i;
 		int currBin = 0;
 		int counter = 0;
+		double start = min;
+		double end = min + binSize;
 		for(i = 0; i < numOccurances; i++) {
-			if(numValues[i] > min+(binSize*currBin)) {
-				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-				innerHash.put("seriesName", "Distribution");
-				innerHash.put("y0", "0");
-				innerHash.put("x", formatter.format(min + currBin*binSize) + "  -  " + formatter.format(min + (currBin+1) * binSize));
-				innerHash.put("y", counter);
-				retBins[currBin] = innerHash;
-				currBin++;
-				counter = 0;
+			if(numValues[i] >= start && numValues[i] < end){
+				counter++;
+			} else {
+				do {
+					Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+					innerHash.put("seriesName", "Distribution");
+					innerHash.put("y0", "0");
+					innerHash.put("x", formatter.format(start) + "  -  " + formatter.format(end));
+					innerHash.put("y", counter);
+					retBins[currBin] = innerHash;
+					currBin++;
+					start += binSize;
+					end += binSize;
+					counter = 0;
+				} while(numValues[i] > end); // continue until adding empty bins until value lies within current bin
+				counter++; // take into consideration the occurrence that didn't fit in the bin;
 			}
-			counter++;
+			if(i == numOccurances - 1) {
+				if(retBins[numBins - 1] == null) {
+					Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+					innerHash.put("seriesName", "Distribution");
+					innerHash.put("y0", "0");
+					innerHash.put("x", formatter.format(start) + "  -  " + formatter.format(end));
+					innerHash.put("y", counter);
+					retBins[currBin] = innerHash;
+				} else {
+					//  case when only one the end point is not included
+					Hashtable<String, Object> innerHash = retBins[numBins - 1];
+					int currCount = (int) innerHash.get("y");
+					innerHash.put("y", currCount+1);
+				}
+			}
 		}
-		//trim in case last hashtable in array is null
-		return (Hashtable<String, Object>[]) ArrayUtilityMethods.trimEmptyValues(retBins);
+		return retBins;
 	}
 
 	public void updateClusterHash(Hashtable<String, Object[]> clusterHash, String propName, Object value) {
