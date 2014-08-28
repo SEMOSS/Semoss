@@ -186,6 +186,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		processNewConcepts();
 		processNewRelationships();
 
+		((BigDataEngine) coreDB).commit();
 		((BigDataEngine) coreDB).infer();
 
 		if(addedToOwl) {

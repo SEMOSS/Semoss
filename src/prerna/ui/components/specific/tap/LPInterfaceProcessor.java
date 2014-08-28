@@ -384,18 +384,6 @@ public class LPInterfaceProcessor {
 		values[1] = provideURI;
 		values[2] = icdURI;
 		relList.add(values);
-		// add background type relationship triple
-		values = new Object[3];
-		values[0] = upstreamSysURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.concat(Utility.getClassName(provideURI));
-		values[2] = icdURI;
-		relList.add(values);
-		// add background relationship triple
-		values = new Object[3];
-		values[0] = upstreamSysURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.substring(0, IAggregationHelper.semossRelationBaseURI.length() - 1);
-		values[2] = icdURI;
-		relList.add(values);
 		
 		// icd -> consume -> downstream
 		String consumeURI = consumeInstanceRel.concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data).concat(":").concat(downstreamSysName);
@@ -404,35 +392,11 @@ public class LPInterfaceProcessor {
 		values[1] = consumeURI;
 		values[2] = downstreamSysURI;
 		relList.add(values);
-		// add background type relationship triple
-		values = new Object[3];
-		values[0] = icdURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.concat(Utility.getClassName(consumeURI));
-		values[2] = downstreamSysURI;
-		relList.add(values);
-		// add background relationship triple
-		values = new Object[3];
-		values[0] = icdURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.substring(0, IAggregationHelper.semossRelationBaseURI.length() - 1);
-		values[2] = downstreamSysURI;
-		relList.add(values);
 		
 		// icd -> payload -> data 
 		values = new Object[3];
 		values[0] = icdURI;
 		values[1] = payloadURI;
-		values[2] = dataURI;
-		relList.add(values);
-		// add background type relationship triple
-		values = new Object[3];
-		values[0] = icdURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.concat(Utility.getClassName(payloadURI));
-		values[2] = dataURI;
-		relList.add(values);
-		// add background relationship triple
-		values = new Object[3];
-		values[0] = icdURI;
-		values[1] = IAggregationHelper.semossRelationBaseURI.substring(0, IAggregationHelper.semossRelationBaseURI.length() - 1);
 		values[2] = dataURI;
 		relList.add(values);
 	}

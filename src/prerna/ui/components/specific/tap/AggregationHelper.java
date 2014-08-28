@@ -147,7 +147,7 @@ public class AggregationHelper implements IAggregationHelper {
 	{
 		String pred = RDF.TYPE.toString();
 		((BigDataEngine) engine).addStatement(subject, pred, object, true);
-		LOGGER.info("ADDING CONCEPT INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
+		LOGGER.info("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
 	}
 
 	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object) 
