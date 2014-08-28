@@ -112,8 +112,9 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		
 		((BigDataEngine) futureStateHrCore).commit();
 		((BigDataEngine) futureStateHrCore).infer();
-
 		addToOWL();
+		// update base filter hash
+		((AbstractEngine) futureStateHrCore).createBaseRelationEngine();
 	}
 
 	public void generateData() throws EngineException {
