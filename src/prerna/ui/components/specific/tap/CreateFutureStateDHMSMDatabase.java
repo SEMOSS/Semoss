@@ -25,7 +25,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 
 	private final String newICDTypeName = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
 	private final String removedICDTypeName = "http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument";
-	private final String icdType = "http://semoss.org/ontologies/Relation/Concept/InterfaceControlDocument";
+	private final String icdType = "http://semoss.org/ontologies/Concept/InterfaceControlDocument";
 	
 	private IEngine hrCore;
 	private IEngine futureStateHrCore;
@@ -66,23 +66,12 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			createBaseRelationsHash(triple);
 			addToDataHash(triple);
 			addToAllConcepts(triple[0].toString());
-			if(!triple[1].toString().contains("http://semoss.org")) {
-				addToAllRelationships(triple[1].toString());
-			}
+			addToAllRelationships(triple[1].toString());
 			addToAllConcepts(triple[2].toString());
 		}
 		
 		Set<String> storePropURI = new HashSet<String>();
 		for(Object[] triple: relPropList){
-			if(triple[0].toString().contains("semoss")) {
-				System.out.println("error!");
-			}
-			if(!triple[1].toString().contains("semoss")) {
-				System.out.println("error!");
-			}
-			if(triple[2].toString().contains("semoss")) {
-				System.out.println("error!");
-			}
 			storePropURI.add(triple[1].toString());
 			addToDataHash(triple);
 			addToAllRelationships(triple[0].toString());
@@ -92,21 +81,14 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			processNewConceptsAtInstanceLevel(futureStateHrCore, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
 		}
 		
-		// process the high lvl concept data
 		processData(futureStateHrCore, dataHash);
+
 		// process the high lvl node data
 		for(String newConcept : allConcepts.keySet()) {
 			processNewConcepts(futureStateHrCore, newConcept);
 			Set<String> instanceSet = allConcepts.get(newConcept);
 			for(String newInstance : instanceSet) {
-				if(newInstance.contains("semoss")) {
-					System.out.println("error!");
-				}
-				if(!newConcept.contains("semoss")) {
-					System.out.println("error!");
-				}
 				processNewConceptsAtInstanceLevel(futureStateHrCore, newInstance, newConcept);
-				processNewConceptsAtInstanceLevel(futureStateHrCore, newInstance, semossConceptBaseURI.substring(0, semossConceptBaseURI.length() - 1));
 			}
 		}
 		// process the high lvl rel data
@@ -114,32 +96,23 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			processNewRelationships(futureStateHrCore, newRelationship);
 			Set<String> instanceSet = allRelations.get(newRelationship);
 			for(String newRelInstance : instanceSet) {
-				if(newRelInstance.contains("semoss")) {
-					System.out.println("error!");
-				}
-				if(!newRelationship.contains("semoss")) {
-					System.out.println("error!");
-				}
 				processNewRelationshipsAtInstanceLevel(futureStateHrCore, newRelInstance, newRelationship);
-				processNewRelationshipsAtInstanceLevel(futureStateHrCore, newRelInstance, semossRelationBaseURI.substring(0, semossRelationBaseURI.length() - 1));
-
 			}
 		}
 		
-		// add subclassing of icd's
+		// add sub-classing of icd's
 		processNewSubclass(futureStateHrCore, icdType, newICDTypeName);
-		processNewConcepts(futureStateHrCore, newICDTypeName);
+		processNewSubclass(futureStateHrCore, icdType, removedICDTypeName);
 		for(String addedICD: addedInterfaces) {
 			processNewConceptsAtInstanceLevel(futureStateHrCore, addedICD, newICDTypeName);
 		}
-		
-		processNewSubclass(futureStateHrCore, icdType, removedICDTypeName);
-		processNewConcepts(futureStateHrCore, removedICDTypeName);
 		for(String removedICD: removedInterfaces) {
 			processNewConceptsAtInstanceLevel(futureStateHrCore, removedICD, removedICDTypeName);
 		}
 		
+		((BigDataEngine) futureStateHrCore).commit();
 		((BigDataEngine) futureStateHrCore).infer();
+
 		addToOWL();
 	}
 
