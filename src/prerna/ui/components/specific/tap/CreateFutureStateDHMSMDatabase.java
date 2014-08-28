@@ -1,22 +1,41 @@
 package prerna.ui.components.specific.tap;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.openrdf.repository.RepositoryConnection;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 
-	private final String newICDTypeName = "http://semoss.org/ontologies/Relation/ProposedInterfaceControlDocument";
-	private final String removedICDTypeName = "http://semoss.org/ontologies/Relation/ProposedDecommissionedInterfaceControlDocument";
+	private final String newICDTypeName = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
+	private final String removedICDTypeName = "http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument";
+	private final String icdType = "http://semoss.org/ontologies/Relation/Concept/InterfaceControlDocument";
 	
 	private IEngine hrCore;
 	private IEngine futureStateHrCore;
 	
 	private ArrayList<Object[]> relList;
-	private ArrayList<Object[]> propList;
+	private ArrayList<Object[]> relPropList;
 	private ArrayList<String> addedInterfaces;
 	private ArrayList<String> removedInterfaces;
+	
+	private HashMap<String, HashMap<String, Set<String>>> baseRelations;
 	
 	public CreateFutureStateDHMSMDatabase() {
 
@@ -35,23 +54,93 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		this.futureStateHrCore = futureStateHrCore;
 	}
 	
-	public void createNewDB() throws EngineException {
-		if(relList == null || propList == null || addedInterfaces == null || removedInterfaces == null) {
+	public void createNewDB() throws EngineException, RepositoryException, RDFHandlerException {
+		if(relList == null || relPropList == null || addedInterfaces == null || removedInterfaces == null) {
 			generateData();
 		}
 		
+		baseRelations = new HashMap<String, HashMap<String, Set<String>>>();
+
+		// process through triples
 		for(Object[] triple: relList){
+			createBaseRelationsHash(triple);
 			addToDataHash(triple);
 			addToAllConcepts(triple[0].toString());
-			addToAllRelationships(triple[1].toString());
+			if(!triple[1].toString().contains("http://semoss.org")) {
+				addToAllRelationships(triple[1].toString());
+			}
 			addToAllConcepts(triple[2].toString());
 		}
 		
-		for(Object[] triple: propList){
+		Set<String> storePropURI = new HashSet<String>();
+		for(Object[] triple: relPropList){
+			if(triple[0].toString().contains("semoss")) {
+				System.out.println("error!");
+			}
+			if(!triple[1].toString().contains("semoss")) {
+				System.out.println("error!");
+			}
+			if(triple[2].toString().contains("semoss")) {
+				System.out.println("error!");
+			}
+			storePropURI.add(triple[1].toString());
 			addToDataHash(triple);
-			addToAllConcepts(triple[0].toString());
+			addToAllRelationships(triple[0].toString());
+		}
+		//add http://semoss.org/ontology/Relation/Contains/PropName -> RDF:TYPE -> http://semoss.org/ontology/Relation/Contains
+		for(String propURI: storePropURI) {
+			processNewConceptsAtInstanceLevel(futureStateHrCore, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
 		}
 		
+		// process the high lvl concept data
+		processData(futureStateHrCore, dataHash);
+		// process the high lvl node data
+		for(String newConcept : allConcepts.keySet()) {
+			processNewConcepts(futureStateHrCore, newConcept);
+			Set<String> instanceSet = allConcepts.get(newConcept);
+			for(String newInstance : instanceSet) {
+				if(newInstance.contains("semoss")) {
+					System.out.println("error!");
+				}
+				if(!newConcept.contains("semoss")) {
+					System.out.println("error!");
+				}
+				processNewConceptsAtInstanceLevel(futureStateHrCore, newInstance, newConcept);
+				processNewConceptsAtInstanceLevel(futureStateHrCore, newInstance, semossConceptBaseURI.substring(0, semossConceptBaseURI.length() - 1));
+			}
+		}
+		// process the high lvl rel data
+		for(String newRelationship : allRelations.keySet()) {
+			processNewRelationships(futureStateHrCore, newRelationship);
+			Set<String> instanceSet = allRelations.get(newRelationship);
+			for(String newRelInstance : instanceSet) {
+				if(newRelInstance.contains("semoss")) {
+					System.out.println("error!");
+				}
+				if(!newRelationship.contains("semoss")) {
+					System.out.println("error!");
+				}
+				processNewRelationshipsAtInstanceLevel(futureStateHrCore, newRelInstance, newRelationship);
+				processNewRelationshipsAtInstanceLevel(futureStateHrCore, newRelInstance, semossRelationBaseURI.substring(0, semossRelationBaseURI.length() - 1));
+
+			}
+		}
+		
+		// add subclassing of icd's
+		processNewSubclass(futureStateHrCore, icdType, newICDTypeName);
+		processNewConcepts(futureStateHrCore, newICDTypeName);
+		for(String addedICD: addedInterfaces) {
+			processNewConceptsAtInstanceLevel(futureStateHrCore, addedICD, newICDTypeName);
+		}
+		
+		processNewSubclass(futureStateHrCore, icdType, removedICDTypeName);
+		processNewConcepts(futureStateHrCore, removedICDTypeName);
+		for(String removedICD: removedInterfaces) {
+			processNewConceptsAtInstanceLevel(futureStateHrCore, removedICD, removedICDTypeName);
+		}
+		
+		((BigDataEngine) futureStateHrCore).infer();
+		addToOWL();
 	}
 
 	public void generateData() throws EngineException {
@@ -60,9 +149,76 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		processor.setGenerateNewTriples(true);
 		processor.generateReport();
 		relList = processor.getRelList();
-		propList = processor.getPropList();
+		relPropList = processor.getPropList();
 		addedInterfaces = processor.getAddedInterfaces();
 		removedInterfaces = processor.getRemovedInterfaces();
+	}
+	
+	public void createBaseRelationsHash(Object[] triple) {
+		String subjectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[0].toString());
+		String predicateBaseURI = semossRelationBaseURI + Utility.getClassName(triple[1].toString());
+		String objectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[2].toString());
+		if(baseRelations.containsKey(subjectBaseURI)) {
+			HashMap<String, Set<String>> innerHash = baseRelations.get(subjectBaseURI);
+			if(innerHash.containsKey(predicateBaseURI)) {
+				innerHash.get(predicateBaseURI).add(objectBaseURI);
+			} else {
+				Set<String> list = new HashSet<String>();
+				list.add(objectBaseURI);
+				innerHash.put(predicateBaseURI, list);
+			}
+		} else {
+			Set<String> list = new HashSet<String>();
+			list.add(objectBaseURI);
+			HashMap<String, Set<String>> innerHash = new HashMap<String, Set<String>>();
+			innerHash.put(predicateBaseURI, list);
+			baseRelations.put(subjectBaseURI, innerHash);
+		}
+	}
+	
+	public void addToOWL() throws RepositoryException, RDFHandlerException 
+	{
+		// get the path to the owlFile
+		String owlFileLocation = DIHelper.getInstance().getProperty(futureStateHrCore.getEngineName() +"_" + Constants.OWL); 
+
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) futureStateHrCore).getBaseDataEngine();
+		for(String subjectURI : baseRelations.keySet()) 
+		{
+			HashMap<String, Set<String>> predicateURIHash = baseRelations.get(subjectURI);
+			for(String predicateURI : predicateURIHash.keySet()) 
+			{
+				Set<String> objectURIList = predicateURIHash.get(predicateURI);
+				for(String objectURI : objectURIList) 
+				{
+					existingBaseEngine.addStatement(subjectURI, predicateURI, objectURI, true);
+				}
+			}
+		}
+		
+		RepositoryConnection exportRC = existingBaseEngine.getRc();
+		FileWriter fWrite = null;
+		try{
+			fWrite = new FileWriter(owlFileLocation);
+			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+			exportRC.export(owlWriter);
+			fWrite.flush();
+			owlWriter.close();	
+		}
+		catch(IOException ex)
+		{
+			ex.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 }

@@ -7,6 +7,8 @@ import javax.swing.JComponent;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
@@ -40,21 +42,18 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 		try {
 			futureStateCreator.generateData();
 			futureStateCreator.createNewDB();
-		
+			Utility.showMessage("Finished adding triples to " + futureDBName);
 		} catch (EngineException e) {
-			Utility.showError("Error with generting new DB.  Make sure DB's are properly defined.");
+			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			Utility.showError("Error with generting new DB");
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			Utility.showError("Error with generting new DB");
 			e.printStackTrace();
 		}
 		
-//		boolean success = sap.runFullAggregation();
-//		if(success)
-//		{
-//			Utility.showMessage("Finished Aggregation!");
-//		}
-//		else
-//		{
-//			Utility.showError("Please Check Error Report for Possible Issues with Data Quality");
-//		}
 	}
 
 	@Override

@@ -581,7 +581,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
-			Object value = sjss.getRawVar(vars[2]);
+			Object value = sjss.getVar(vars[2]);
 			String user = "";
 			if(!TAP_Core)
 			{
