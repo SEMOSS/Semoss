@@ -27,6 +27,11 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import com.bigdata.rdf.model.BigdataLiteralImpl;
+import com.bigdata.rdf.model.BigdataURIImpl;
 import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
 
 
@@ -35,6 +40,7 @@ import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
  */
 public class GridTableRowSorter <M extends TableModel> extends TableRowSorter<TableModel> {
 	MyComparator comparator = new MyComparator();
+	static final Logger logger = LogManager.getLogger(GridTableRowSorter.class.getName());
 	
 	public GridTableRowSorter(TableModel tm){
 		super(tm);
@@ -113,7 +119,7 @@ public class GridTableRowSorter <M extends TableModel> extends TableRowSorter<Ta
 				}
 			}
 
-			System.out.println("UH OH " + o1.getClass() + "     " +o1 + "     " + o2.getClass()+"     " +o2);
+			logger.debug("Need to add logic to compare classes: " + o1.getClass() + "     " +o1 + "  and     " + o2.getClass()+"     " +o2);
 			return (o1.toString()).compareTo(o2.toString());
 		}
     }
