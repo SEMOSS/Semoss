@@ -112,6 +112,14 @@ public class AggregationHelper implements IAggregationHelper {
 		//			proc.processQuery();
 		//		}
 	}
+	
+	public void processNewSubclass(IEngine engine, String parentType, String childType)
+	{
+		String subclassOf = RDFS.SUBCLASSOF.toString();
+		( (BigDataEngine) engine).addStatement(childType, subclassOf, parentType, true);
+		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
+	}
+
 
 	public void processNewConcepts(IEngine engine, String newConceptType)
 	{
@@ -122,7 +130,6 @@ public class AggregationHelper implements IAggregationHelper {
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		existingBaseEngine.addStatement(newConceptType, subclassOf, concept, true);
 		LOGGER.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
-		
 	}
 
 	public void processNewRelationships(IEngine engine, String newRelationshipType) 
@@ -149,7 +156,7 @@ public class AggregationHelper implements IAggregationHelper {
 		((BigDataEngine) engine).addStatement(subject, subpropertyOf, object, true);
 		LOGGER.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
 	}
-
+	
 	public void addToDataHash(Object[] returnTriple) 
 	{
 		HashMap<String, Object> innerHash = new HashMap<String, Object>();
