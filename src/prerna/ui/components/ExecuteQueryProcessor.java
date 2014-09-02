@@ -108,7 +108,10 @@ public class ExecuteQueryProcessor {
 			logger.debug("Appending ");
 			if(playSheet==null)
 				playSheet = QuestionPlaySheetStore.getInstance().getActiveSheet();
+			if(playSheet==null)
+				Utility.showError("Cannot overlay data without selected playsheet");
 			playSheet.setQuery(sparql);
+			playSheet.setRDFEngine(engine);
 		}
 		else
 		{
