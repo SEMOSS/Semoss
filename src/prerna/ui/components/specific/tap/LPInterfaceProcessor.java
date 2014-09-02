@@ -3,12 +3,12 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DHMSMTransitionUtility;
-import prerna.util.Utility;
 
 public class LPInterfaceProcessor {
 
@@ -34,7 +34,7 @@ public class LPInterfaceProcessor {
 	private final String HPI_KEY = "HPI";
 	private final String HPNI_KEY = "HPNI";
 
-	private final String DHMSM_URI = "http://health.mil/ontologies/Concept/DHMSM/DHMSM";
+	private final String DHMSM_URI = "http://health.mil/ontologies/Concept/System/DHMSM";
 
 	private final String provideInstanceRel = "http://health.mil/ontologies/Relation/Provide/";
 	private final String consumeInstanceRel = "http://health.mil/ontologies/Relation/Consume/";
@@ -54,7 +54,7 @@ public class LPInterfaceProcessor {
 	private ArrayList<Object[]> relPropList;
 	private ArrayList<String> addedInterfaces;
 	private ArrayList<String> removedInterfaces;
-
+	private Set<String> sysList;
 
 	public String getQuery() {
 		return query;
@@ -100,6 +100,10 @@ public class LPInterfaceProcessor {
 		return removedInterfaces;
 	}
 	
+	public Set<String> getSysList(){
+		return sysList;
+	}
+	
 	public ArrayList<Object[]> generateReport() {
 		list = new ArrayList<Object[]>();
 
@@ -125,6 +129,7 @@ public class LPInterfaceProcessor {
 		relPropList = new ArrayList<Object[]>();
 		addedInterfaces = new ArrayList<String>();
 		removedInterfaces = new ArrayList<String>();
+		sysList = new HashSet<String>();
 		
 		// becomes true if either user 
 		boolean getComments = false;
@@ -132,17 +137,48 @@ public class LPInterfaceProcessor {
 		{
 			SesameJenaSelectStatement sjss = sjw.next();
 			// get var's
-			String sysName = sjss.getVar(SYS_KEY).toString();
-			String interfaceType = sjss.getVar(INTERFACE_TYPE_KEY).toString();
-			String interfacingSysName = sjss.getVar(INTERFACING_SYS_KEY).toString(); 
-			String probability = sjss.getVar(PROBABILITY_KEY).toString();
-			String icd = sjss.getVar(ICD_KEY).toString();
-			String data = sjss.getVar(DATA_KEY).toString();
-			String format = sjss.getVar(FORMAT_KEY).toString();
-			String freq = sjss.getVar(FREQ_KEY).toString();
-			String prot = sjss.getVar(PROT_KEY).toString();
-			String dhmsmSOR = sjss.getVar(DHMSM).toString();
+			String sysName = "";
+			String interfaceType = "";
+			String interfacingSysName = "";
+			String probability = "";
+			String icd = "";
+			String data = "";
+			String format = "";
+			String freq = "";
+			String prot = "";
+			String dhmsmSOR = "";
 
+			if(sjss.getVar(SYS_KEY) != null) {
+				sysName = sjss.getVar(SYS_KEY).toString();
+			}
+			if(sjss.getVar(INTERFACE_TYPE_KEY) != null) {
+				interfaceType = sjss.getVar(INTERFACE_TYPE_KEY).toString();
+			}
+			if(sjss.getVar(INTERFACING_SYS_KEY) != null) {
+				interfacingSysName = sjss.getVar(INTERFACING_SYS_KEY).toString();
+			}
+			if(sjss.getVar(PROBABILITY_KEY) != null) {
+				probability = sjss.getVar(PROBABILITY_KEY).toString();
+			}
+			if(sjss.getVar(ICD_KEY) != null) {
+				icd = sjss.getVar(ICD_KEY).toString();
+			}
+			if(sjss.getVar(DATA_KEY) != null) {
+				data = sjss.getVar(DATA_KEY).toString();
+			}
+			if(sjss.getVar(FORMAT_KEY) != null) {
+				format = sjss.getVar(FORMAT_KEY).toString();
+			}
+			if(sjss.getVar(FREQ_KEY) != null) {
+				freq = sjss.getVar(FREQ_KEY).toString();
+			}
+			if(sjss.getVar(PROT_KEY) != null) {
+				prot = sjss.getVar(PROT_KEY).toString();
+			}
+			if(sjss.getVar(DHMSM) != null) {
+				dhmsmSOR = sjss.getVar(DHMSM).toString();
+			}
+			
 			// get uri's
 			String system = "";
 			String interfaceTypeURI = "";
@@ -204,6 +240,7 @@ public class LPInterfaceProcessor {
 				values[9] = dhmsmSOR;
 				values[10] = comment;
 			} else {
+				sysList.add(DHMSM_URI);
 				values = new Object[3];
 			}
 
@@ -244,7 +281,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, DHMSM_URI, DHMSM, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
+						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} 
@@ -260,7 +297,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, DHMSM_URI, DHMSM, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
+						addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// add removed interface
 						removedInterfaces.add(icdURI);
@@ -277,7 +314,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, DHMSM_URI, DHMSM, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
+						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} else if(downstreamSysType.equals(HPI_KEY)) { // upstream sys is not HPI and downstream is HPI
@@ -288,7 +325,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, DHMSM_URI, DHMSM, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
+						addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						
 						// add removed interface
@@ -316,7 +353,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, upstreamSystemURI, upstreamSysName, DHMSM_URI, DHMSM, dataURI, data, payloadURI);
+						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} else if(sorV.contains(upstreamSystemURI + dataURI) && !probability.equals("null") && !probability.equals("") ) { // upstream system is SOR and has a probability
@@ -327,7 +364,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, upstreamSystemURI, upstreamSysName, DHMSM_URI, DHMSM, dataURI, data, payloadURI);
+						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} 
@@ -339,7 +376,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, downstreamSystemURI, downstreamSysName, DHMSM_URI, DHMSM, dataURI, data, payloadURI);
+						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} else if(sorV.contains(downstreamSystemURI + dataURI) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
@@ -350,7 +387,7 @@ public class LPInterfaceProcessor {
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 						addedInterfaces.add(newICD);
-						addTriples(newICD, downstreamSystemURI, downstreamSysName, DHMSM_URI, DHMSM, dataURI, data, payloadURI);
+						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 					}
 				} 
@@ -376,7 +413,75 @@ public class LPInterfaceProcessor {
 		return retList;
 	}
 
+	private void addTripleWithDHMSMProvider(String icdURI, String downstreamSysURI, String downstreamSysName, String dataURI, String data, String payloadURI) {
+		// change DHMSM to type System
+		String upstreamSysURI = DHMSM_URI;
+		String upstreamSysName = DHMSM;
+		
+		// dhmsm -> provide -> icd
+		String provideURI = provideInstanceRel.concat(upstreamSysName).concat(":").concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data);
+		Object[] values = new Object[3];
+		values[0] = upstreamSysURI;
+		values[1] = provideURI;
+		values[2] = icdURI;
+		relList.add(values);
+		
+		// icd -> consume -> downstream
+		String consumeURI = consumeInstanceRel.concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data).concat(":").concat(downstreamSysName);
+		values = new Object[3];
+		values[0] = icdURI;
+		values[1] = consumeURI;
+		values[2] = downstreamSysURI;
+		relList.add(values);
+		
+		// icd -> payload -> data 
+		values = new Object[3];
+		values[0] = icdURI;
+		values[1] = payloadURI;
+		values[2] = dataURI;
+		relList.add(values);
+		
+		// dhmsm -> provide -> data
+		values = new Object[3];
+		values[0] = upstreamSysURI;
+		values[1] = provideInstanceRel.concat(upstreamSysName).concat(":").concat(data);
+		values[2] = dataURI;
+		relList.add(values);
+	}
+	
+	private void addTripleWithDHMSMConsumer(String icdURI, String upstreamSysURI, String upstreamSysName, String dataURI, String data, String payloadURI) {
+		// change DHMSM to type System
+		String downstreamSysURI = DHMSM_URI;
+		String downstreamSysName = DHMSM;
+		
+		// upstream -> provide -> icd
+		String provideURI = provideInstanceRel.concat(upstreamSysName).concat(":").concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data);
+		Object[] values = new Object[3];
+		values[0] = upstreamSysURI;
+		values[1] = provideURI;
+		values[2] = icdURI;
+		relList.add(values);
+		
+		// icd -> consume -> downstream
+		String consumeURI = consumeInstanceRel.concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data).concat(":").concat(downstreamSysName);
+		values = new Object[3];
+		values[0] = icdURI;
+		values[1] = consumeURI;
+		values[2] = downstreamSysURI;
+		relList.add(values);
+		
+		// icd -> payload -> data 
+		values = new Object[3];
+		values[0] = icdURI;
+		values[1] = payloadURI;
+		values[2] = dataURI;
+		relList.add(values);
+	}
+	
 	private void addTriples(String icdURI, String upstreamSysURI, String upstreamSysName, String downstreamSysURI, String downstreamSysName, String dataURI, String data, String payloadURI) {
+		sysList.add(upstreamSysURI);
+		sysList.add(downstreamSysURI);
+		
 		// upstream -> provide -> icd
 		String provideURI = provideInstanceRel.concat(upstreamSysName).concat(":").concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data);
 		Object[] values = new Object[3];
