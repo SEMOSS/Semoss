@@ -34,6 +34,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	private ArrayList<Object[]> relPropList;
 	private ArrayList<String> addedInterfaces;
 	private ArrayList<String> removedInterfaces;
+	private Set<String> sysList;
 	
 	private HashMap<String, HashMap<String, Set<String>>> baseRelations;
 	
@@ -100,6 +101,12 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			}
 		}
 		
+		//add sub-classing for systems
+		processNewSubclass(futureStateHrCore, "http://semoss.org/ontologies/Concept/System", "http://semoss.org/ontologies/Concept/ActiveSystem");
+		for(String sysURI : sysList) {
+			processNewConceptsAtInstanceLevel(futureStateHrCore, sysURI, "http://semoss.org/ontologies/Concept/ActiveSystem");
+		}
+		
 		// add sub-classing of icd's
 		processNewSubclass(futureStateHrCore, icdType, newICDTypeName);
 		processNewSubclass(futureStateHrCore, icdType, removedICDTypeName);
@@ -126,6 +133,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		relPropList = processor.getPropList();
 		addedInterfaces = processor.getAddedInterfaces();
 		removedInterfaces = processor.getRemovedInterfaces();
+		sysList = processor.getSysList();
 	}
 	
 	public void createBaseRelationsHash(Object[] triple) {
