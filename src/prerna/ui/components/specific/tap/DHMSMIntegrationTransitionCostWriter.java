@@ -170,16 +170,16 @@ public class DHMSMIntegrationTransitionCostWriter {
 					double cost = consolidatedSysCostInfo.get(key)*costPerHr;
 					totalCost[i] += cost;
 					XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
-					cellToWriteOn.setCellValue(cost);
+					cellToWriteOn.setCellValue(Math.round(cost));
 				}
 				rowToOutput++;
 			}
 		}
 		//
 		double consumerTraining = totalCost[0]*trainingFactor;
-		reportSheet.getRow(13).getCell(2).setCellValue(consumerTraining);
+		reportSheet.getRow(13).getCell(2).setCellValue(Math.round(consumerTraining));
 		double providerTraining = totalCost[1]*trainingFactor;
-		reportSheet.getRow(21).getCell(2).setCellValue(providerTraining);
+		reportSheet.getRow(21).getCell(2).setCellValue(Math.round(providerTraining));
 		
 		for(i = 0; i < 2; i++) {
 			int startRow;
@@ -189,11 +189,11 @@ public class DHMSMIntegrationTransitionCostWriter {
 				startRow = 20;
 			}
 			double sustainmentCost = totalCost[i]*sustainmentFactor;
-			reportSheet.getRow(startRow).getCell(3).setCellValue(sustainmentCost);
+			reportSheet.getRow(startRow).getCell(3).setCellValue(Math.round(sustainmentCost));
 			for(j = 0; j < 3; j++) {
 				sustainmentCost *= (1+inflation);
 				XSSFCell cellToWriteOn = reportSheet.getRow(startRow).getCell(4+j);
-				cellToWriteOn.setCellValue(sustainmentCost);
+				cellToWriteOn.setCellValue(Math.round(sustainmentCost));
 			}
 		}
 		
@@ -233,9 +233,9 @@ public class DHMSMIntegrationTransitionCostWriter {
 			}
 		}
 		
-		reportSheet.getRow(24).getCell(2).setCellValue(sumHWSWCost);
+		reportSheet.getRow(24).getCell(2).setCellValue(Math.round(sumHWSWCost));
 		//since hwsw cost assumed at FY15, total is equal to value at FY15
-		reportSheet.getRow(24).getCell(7).setCellValue(sumHWSWCost);
+		reportSheet.getRow(24).getCell(7).setCellValue(Math.round(sumHWSWCost));
 		
 		int numATO = 0;
 		if(atoDateList[0] < 2015) {
@@ -299,7 +299,6 @@ public class DHMSMIntegrationTransitionCostWriter {
 
 		// clear the list of services already built for each system report
 		HashSet<String> servicesProvideList = new HashSet<String>();
-		
 		String interfaceType = "";
 		String dataObject = "";
 		String dhmsmProvideOrConsume = "";
@@ -352,7 +351,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 					sysCostInfo.remove(rowIdx);
 				}
 			}
-		} 
+		}
 	}
 	
 	public Double calculateCost(String dataObject, String system, String tag, boolean includeGenericCost, HashSet<String> servicesProvideList, int rowIdx)
@@ -448,6 +447,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 
 		return finalCost;
 	}
+	
 	
 	public void addToSysCostHash(String tag, String phase, double loe, int rowIdx) {
 		String key = tag.concat("+").concat(phase);
