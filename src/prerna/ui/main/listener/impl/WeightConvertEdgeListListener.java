@@ -89,11 +89,9 @@ public class WeightConvertEdgeListListener implements ListSelectionListener{
 		}
 		for (SEMOSSEdge edge: edgeArray)
 		{			
-			if(edge.propHash.containsKey(prop) && edge.propHash.get(prop) instanceof Double)
-			{
-					
+			if(edge.propHash.containsKey(prop) && edge.propHash.get(prop) instanceof Double) {
 				double value = (Double)edge.propHash.get(prop);
-				if(highValue ==null)
+				if(highValue == null)
 					highValue = value;
 				if (lowValue == null)
 					lowValue = value;
@@ -103,8 +101,14 @@ public class WeightConvertEdgeListListener implements ListSelectionListener{
 					lowValue = value;
 				
 				edgeWeightHash.put(edge.getURI(), value);
-			}
-		
+			} 
+		}
+		//repeat loop since we need highValue nad lowValue to not be null
+		for (SEMOSSEdge edge: edgeArray)
+		{			
+			if(!edge.propHash.containsKey(prop)) {
+				est.setDash(true);
+			} 
 		}
 		
 		if(highValue==null || lowValue==null ||highValue.equals(lowValue))
