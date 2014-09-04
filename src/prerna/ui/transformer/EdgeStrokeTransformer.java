@@ -59,6 +59,11 @@ public class EdgeStrokeTransformer implements Transformer <SEMOSSEdge, Stroke> {
 		return edges;
 	}
 	
+	public boolean isDash = false;
+	
+	public void setDash(boolean isDash){
+		this.isDash = isDash;
+	}
 
 	/**
 	 * Method transform.
@@ -83,20 +88,21 @@ public class EdgeStrokeTransformer implements Transformer <SEMOSSEdge, Stroke> {
 						double valDouble = (Double) val;
 						float valFloat = (float) valDouble;
 						float newFontFloat = selectedFontFloat * valFloat;
-						retStroke = new BasicStroke(newFontFloat, BasicStroke.CAP_BUTT,
-								BasicStroke.JOIN_MITER, 10.0f);
+						retStroke = new BasicStroke(newFontFloat, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f);
 					} catch (RuntimeException e) {
 						//TODO: Specify exception(s)
-						retStroke = new BasicStroke(selectedFontFloat, BasicStroke.CAP_BUTT,
-								BasicStroke.JOIN_MITER, 10.0f);
+						retStroke = new BasicStroke(selectedFontFloat, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f);
 						// logger.info("shortest path edges");
 					}
 				} else {
-					retStroke = new BasicStroke(unselectedFontFloat);
+					if(isDash) {
+						retStroke = new BasicStroke(standardFontFloat, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10.0f, new float[]{10.0f}, 0.0f);
+					} else {
+						retStroke = new BasicStroke(unselectedFontFloat);
+					}
 				}
 			} else {
-				retStroke = new BasicStroke(standardFontFloat, BasicStroke.CAP_BUTT,
-						BasicStroke.JOIN_ROUND);
+				retStroke = new BasicStroke(standardFontFloat, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND);
 			}
 		}
 		catch(RuntimeException ex) {
