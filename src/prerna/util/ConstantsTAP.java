@@ -155,6 +155,7 @@ public final class ConstantsTAP {
 	//Create Future Interface DB
 	public static final String HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX = "selectHRCoreForFutureInterfaceDBComboBox";
 	public static final String TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX = "selectFutureInterfaceComboBox";
+	public static final String TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX = "selectFutureCostInterfaceComboBox";
 	public static final String TAP_FUTURE_INTERFACE_DATABASE_BUTTON = "btnCreateFutureInterfaceDatabase";
 	
 	//Central System Sys-BP Sys-Activity Aggregation Thresholds
