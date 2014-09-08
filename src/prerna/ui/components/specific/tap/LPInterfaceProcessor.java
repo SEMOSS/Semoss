@@ -18,6 +18,13 @@ public class LPInterfaceProcessor {
 	private HashMap<String, HashMap<String, Double>> avgLoeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
 	private HashMap<String, String> serviceToDataHash = new HashMap<String, String>();
 
+	// direct cost and indirect cost at phase requires
+	private HashMap<String, HashMap<String, HashMap<String, Double>>> loeForSysGlItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+	private HashMap<String, HashMap<String, HashMap<String, Double>>> genericLoeForSysGLItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+	private HashMap<String, HashMap<String, HashMap<String, Double>>> avgLoeForSysGLItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+	private HashMap<Integer, HashMap<String, Double>> sysCostInfo = new HashMap<Integer, HashMap<String, Double>>();
+	private HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
+	
 	// lpni indirect cost also requires
 	private HashSet<String> dhmsmSORList = new HashSet<String>();
 	private HashSet<String> lpiSystemList = new HashSet<String>();
@@ -59,11 +66,13 @@ public class LPInterfaceProcessor {
 
 	private IEngine engine;
 	private boolean generateComments;
-	private boolean generateNewTriples;
 	private String[] names;
 	private ArrayList<Object[]> list;
 
 	// for future DB generation
+	private boolean generateNewTriples;
+	private boolean usePhase;
+
 	private ArrayList<Object[]> relList;
 	private ArrayList<Object[]> relPropList;
 	private ArrayList<String> addedInterfaces;
@@ -90,12 +99,32 @@ public class LPInterfaceProcessor {
 		this.engine = engine;
 	}
 
+	public HashMap<Integer, HashMap<String, Double>> getSysCostInfo() {
+		return sysCostInfo;
+	}
+
+	public HashMap<String, Double> getConsolidatedSysCostInfo() {
+		return consolidatedSysCostInfo;
+	}
+	
+	public void setSysCostInfo(HashMap<Integer, HashMap<String, Double>> sysCostInfo) {
+		this.sysCostInfo = sysCostInfo;
+	}
+
+	public void setConsolidatedSysCostInfo(HashMap<String, Double> consolidatedSysCostInfo) {
+		this.consolidatedSysCostInfo = consolidatedSysCostInfo;
+	}
+	
 	public void setGenerateComments(boolean generateComments) {
 		this.generateComments = generateComments;
 	}
 
 	public void setGenerateNewTriples(boolean generateNewTriples) {
 		this.generateNewTriples = generateNewTriples;
+	}
+	
+	public void setUsePhase(boolean usePhase){
+		this.usePhase = usePhase;
 	}
 
 	public String[] getNames(){
@@ -616,11 +645,19 @@ public class LPInterfaceProcessor {
 						Double finalCost = null;
 						if(dhmsmProvideOrConsume.equals("Consumes") && interfaceType.equals("Downstream")) { // dhmsm consumes and our system is SOR -> direct cost
 							directCost = true;
-							finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList);
+							if(usePhase) {
+								finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList, rowIdx);
+							} else {
+								finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList);
+							}
 						} else if(dhmsmProvideOrConsume.equals("Provides") && !deleteOtherInterfaces) {
 							if(commentSplit[1].contains(systemName)) { // dhmsm provides and our system consumes -> direct cost
 								directCost = true;
-								finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList);
+								if(usePhase) {
+									finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList, rowIdx);
+								} else {
+									finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList);
+								}
 								deleteOtherInterfaces = true;
 								skipFistIteration = true;
 								for(Integer index : indexArr)
@@ -640,6 +677,9 @@ public class LPInterfaceProcessor {
 						}
 	
 						if(finalCost == null) {
+							if(usePhase) {
+								sysCostInfo.remove(rowIdx);
+							}
 							if(deleteOtherInterfaces && !skipFistIteration) {
 								newRow[i+1] = "Interface already taken into consideration.";
 								skipFistIteration = false;
@@ -661,6 +701,9 @@ public class LPInterfaceProcessor {
 								totalIndirectCost += finalCost;
 							}
 						} else {
+							if(usePhase) {
+								sysCostInfo.remove(rowIdx);
+							}
 							newRow[i+1] = "No data present to calculate loe.";
 							newRow[i+2] = "";
 							newRow[i+3] = "";
@@ -837,6 +880,135 @@ public class LPInterfaceProcessor {
 		return finalCost;
 	}
 	
+	
+	public Double calculateCost(String dataObject, String system, String tag, boolean includeGenericCost, HashSet<String> servicesProvideList, int rowIdx)
+	{
+		double sysGLItemCost = 0;
+		double genericCost = 0;
+
+		ArrayList<String> sysGLItemServices = new ArrayList<String>();
+		// get sysGlItem for provider lpi systems
+		HashMap<String, HashMap<String, Double>> sysGLItem = loeForSysGlItemAndPhaseHash.get(dataObject);
+		HashMap<String, HashMap<String, Double>> avgSysGLItem = avgLoeForSysGLItemAndPhaseHash.get(dataObject);
+
+		boolean useAverage = true;
+		boolean servicesAllUsed = false;
+		if(sysGLItem != null)
+		{
+			for(String sysSerGLTag : sysGLItem.keySet())
+			{
+				String[] sysSerGLTagArr = sysSerGLTag.split("\\+\\+\\+");
+				if(sysSerGLTagArr[0].equals(system))
+				{
+					if(sysSerGLTagArr[2].contains(tag))
+					{
+						useAverage = false;
+						String ser = sysSerGLTagArr[1];
+						if(!servicesProvideList.contains(ser)) {
+							sysGLItemServices.add(ser);
+							servicesProvideList.add(ser);
+							HashMap<String, Double> phaseHash = sysGLItem.get(sysSerGLTag);
+							for(String phase : phaseHash.keySet()) {
+								double loe = phaseHash.get(phase);
+								addToSysCostHash(tag, phase, loe, rowIdx);
+								sysGLItemCost += loe;
+							}
+						} else {
+							servicesAllUsed = true;
+						}
+					} // else do nothing - do not care about consume loe
+				}
+			}
+		}
+		// else get the average system cost
+		if(useAverage)
+		{
+			if(avgSysGLItem != null)
+			{
+				for(String serGLTag : avgSysGLItem.keySet())
+				{
+					String[] serGLTagArr = serGLTag.split("\\+\\+\\+");
+					if(serGLTagArr[1].contains(tag))
+					{
+						String ser = serGLTagArr[0];
+						if(!servicesProvideList.contains(ser)) {
+							sysGLItemServices.add(ser);
+							servicesProvideList.add(ser);
+							HashMap<String, Double> phaseHash = avgSysGLItem.get(serGLTag);
+							for(String phase : phaseHash.keySet()) {
+								double loe = phaseHash.get(phase);
+								addToSysCostHash(tag, phase, loe, rowIdx);
+								sysGLItemCost += loe;
+							}
+						} else {
+							servicesAllUsed = true;
+						}
+					}
+				}
+			}
+		}
+
+		if(includeGenericCost)
+		{
+			HashMap<String, HashMap<String, Double>> genericGLItem = genericLoeForSysGLItemAndPhaseHash.get(dataObject);
+			if(genericGLItem != null)
+			{
+				for(String ser : genericGLItem.keySet())
+				{
+					if(sysGLItemServices.contains(ser)) {
+						HashMap<String, Double> phaseHash = genericGLItem.get(ser);
+						for(String phase : phaseHash.keySet()) {
+							double loe = phaseHash.get(phase);
+							addToSysCostHash(tag, phase, loe, rowIdx);
+							genericCost += loe;
+						}
+					} 
+				}
+			}
+		}
+
+		Double finalCost = null;
+		if(!servicesAllUsed) {
+			finalCost = (sysGLItemCost + genericCost) * COST_PER_HOUR;
+		}
+
+		return finalCost;
+	}
+	
+	
+	private void addToSysCostHash(String tag, String phase, double loe, int rowIdx) {
+		String key = tag.concat("+").concat(phase);
+		HashMap<String, Double> innerHash = new HashMap<String, Double>();
+		if(sysCostInfo.containsKey(rowIdx)) {
+			innerHash = sysCostInfo.get(rowIdx);
+			if(innerHash.containsKey(key)){
+				double newLoe = innerHash.get(key) + loe;
+				innerHash.put(key, newLoe);
+
+			} else {
+				innerHash.put(key, loe);
+			}
+		} else {
+			innerHash.put(key, loe);
+			sysCostInfo.put(rowIdx, innerHash);
+		}
+	}
+	
+	public void consolodateCostHash() {
+		for(Integer val : sysCostInfo.keySet()) {
+			HashMap<String, Double> innerHash = sysCostInfo.get(val);
+			for(String key: innerHash.keySet()) {
+				double loe = innerHash.get(key);
+				if(consolidatedSysCostInfo.containsKey(key)) {
+					loe += consolidatedSysCostInfo.get(key);
+					consolidatedSysCostInfo.put(key, loe);
+				} else {
+					consolidatedSysCostInfo.put(key, loe);
+				}
+			}
+		}
+	}
+	
 	public void getCostInfo(final IEngine TAP_Cost_Data){
 		// get data for all systems
 		if(loeForGenericGlItemHash.isEmpty()) {
@@ -850,6 +1022,21 @@ public class LPInterfaceProcessor {
 		}
 		if(loeForSysGlItemHash.isEmpty()) {
 			loeForSysGlItemHash = DHMSMTransitionUtility.getSysGLItem(TAP_Cost_Data);
+		}
+	}
+	
+	public void getCostInfoAtPhaseLevel(final IEngine TAP_Cost_Data){
+		if(loeForSysGlItemAndPhaseHash.isEmpty()) {
+			loeForSysGlItemAndPhaseHash = DHMSMTransitionUtility.getSysGLItemAndPhase(TAP_Cost_Data);
+		}
+		if(genericLoeForSysGLItemAndPhaseHash.isEmpty()) {
+			genericLoeForSysGLItemAndPhaseHash = DHMSMTransitionUtility.getGenericGLItemAndPhase(TAP_Cost_Data);
+		}
+		if(avgLoeForSysGLItemAndPhaseHash.isEmpty()) {
+			avgLoeForSysGLItemAndPhaseHash = DHMSMTransitionUtility.getAvgSysGLItemAndPhase(TAP_Cost_Data);
+		}
+		if(serviceToDataHash.isEmpty()) {
+			serviceToDataHash = DHMSMTransitionUtility.getServiceToData(TAP_Cost_Data);
 		}
 	}
 	

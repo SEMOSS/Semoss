@@ -33,7 +33,6 @@ import prerna.util.DIHelper;
 public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 	private LPInterfaceProcessor processor;
-	private IEngine TAP_Cost_Data;
 	
 	public void setProcessor(LPInterfaceProcessor processor) {
 		this.processor = processor;
