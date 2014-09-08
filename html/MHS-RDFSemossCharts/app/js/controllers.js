@@ -2365,6 +2365,13 @@ function SingleChartCtrl($scope, $http) {
                     return '<b>' + shortKey + '<b>' + graphOptions.xAxis + '</b>: ' + xVal + '<br/><b>' + graphOptions.yAxis + '</b>: ' + yVal + '<br/>';
                 }
             };
+        }else if (graphOptions.chartType == 'column'){
+            return {
+                formatter: function(){
+                    var yVal = this.y.toString().substring(0,6); 
+                    return '<b>' + "Count" + '</b>: ' + yVal;
+                }
+            };
         }else if (graphOptions.chartType == 'bubble'){
             return{
                 formatter: function(){
