@@ -4,13 +4,16 @@ import java.util.Arrays;
 
 public final class ArrayUtilityMethods {
 
-	private static final String ILLEGAL_ARGS_ERR = "The data array either is null or does not contain any data.";
+	private static final String ERROR = "The data array either is null or does not contain any data.";
 	
 	private ArrayUtilityMethods() {
 		
 	}
 	
 	public static int calculateIndexOfArray(final String[] arr, final String value) {
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
 		int size = arr.length;
 		int index;
 		for(index = 0; index < size; index++) {
@@ -23,7 +26,7 @@ public final class ArrayUtilityMethods {
 
 	public static boolean arrayContainsValue(final Object[] arr, final Object value) {
 		if(arr == null) {
-			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+			throw new NullPointerException(ERROR);
 		}
 		
 		int size = arr.length;
@@ -38,7 +41,7 @@ public final class ArrayUtilityMethods {
 	
 	public static boolean arrayContainsValue(final String[] arr, final String value) {
 		if(arr == null) {
-			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+			throw new NullPointerException(ERROR);
 		}
 		int size = arr.length;
 		int index;
@@ -51,7 +54,7 @@ public final class ArrayUtilityMethods {
 	}
 
 	public static int determineLastNonNullValue(final Object[] arr) {
-		int lastNonNullValue = 0;
+		int lastNonNullValue = -1;
 		int size = arr.length;
 		int index;
 		for(index = 0; index < size; index++) {
@@ -66,7 +69,7 @@ public final class ArrayUtilityMethods {
 	
 	public static Object[] trimEmptyValues(final Object[] arr) {
 		int lastNonNullValue = determineLastNonNullValue(arr);
-		if(lastNonNullValue == 0) {
+		if(lastNonNullValue == -1) {
 			return null;
 		}
 		return Arrays.copyOfRange(arr, 0, lastNonNullValue+1);
@@ -75,7 +78,7 @@ public final class ArrayUtilityMethods {
 	public static boolean arrayContainsValue(final int[] arr, final int value) {
 		
 		if(arr == null) {
-			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+			throw new NullPointerException(ERROR);
 		}
 		
 		int size = arr.length;
