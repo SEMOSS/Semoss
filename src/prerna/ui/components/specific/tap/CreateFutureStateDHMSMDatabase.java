@@ -17,15 +17,19 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 
-	private final String newICDTypeName = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
-	private final String removedICDTypeName = "http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument";
-	private final String icdType = "http://semoss.org/ontologies/Concept/InterfaceControlDocument";
+	private final String CURR_ICD_AND_WEIGHT_QUERY = "SELECT DISTINCT ?icd ?weight WHERE{ {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?icd ?payload ?data} {?payload <http://semoss.org/ontologies/Relation/Contains/TypeWeight> ?weight} }";
+	
+	private final String NEW_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
+	private final String REMOVED_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument";
+	private final String ICD_TYPE = "http://semoss.org/ontologies/Concept/InterfaceControlDocument";
 	
 	private IEngine hrCore;
 	private IEngine futureStateHrCore;
@@ -39,7 +43,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	private HashMap<String, HashMap<String, Set<String>>> baseRelations;
 	
 	public CreateFutureStateDHMSMDatabase() {
-
+		
 	}
 	
 	public CreateFutureStateDHMSMDatabase(IEngine hrCore, IEngine futureStateHrCore) {
@@ -108,13 +112,13 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		}
 		
 		// add sub-classing of icd's
-		processNewSubclass(futureStateHrCore, icdType, newICDTypeName);
-		processNewSubclass(futureStateHrCore, icdType, removedICDTypeName);
+		processNewSubclass(futureStateHrCore, ICD_TYPE, NEW_ICD_TYPE);
+		processNewSubclass(futureStateHrCore, ICD_TYPE, REMOVED_ICD_TYPE);
 		for(String addedICD: addedInterfaces) {
-			processNewConceptsAtInstanceLevel(futureStateHrCore, addedICD, newICDTypeName);
+			processNewConceptsAtInstanceLevel(futureStateHrCore, addedICD, NEW_ICD_TYPE);
 		}
 		for(String removedICD: removedInterfaces) {
-			processNewConceptsAtInstanceLevel(futureStateHrCore, removedICD, removedICDTypeName);
+			processNewConceptsAtInstanceLevel(futureStateHrCore, removedICD, REMOVED_ICD_TYPE);
 		}
 		
 		((BigDataEngine) futureStateHrCore).commit();
@@ -199,6 +203,21 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 					fWrite.close();
 			}catch(IOException e) {
 				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void addTriplesToExistingICDs(){
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(futureStateHrCore, CURR_ICD_AND_WEIGHT_QUERY);
+		String[] varNames = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String icdURI = sjss.getRawVar(varNames[0]).toString();
+			Double weight = (Double) sjss.getVar(varNames[1]);
+			if(weight.doubleValue() == 5) {
+				processNewConceptsAtInstanceLevel(futureStateHrCore, icdURI, NEW_ICD_TYPE);
+			} else if(weight.doubleValue() == 0){
+				processNewConceptsAtInstanceLevel(futureStateHrCore, icdURI, REMOVED_ICD_TYPE);
 			}
 		}
 	}

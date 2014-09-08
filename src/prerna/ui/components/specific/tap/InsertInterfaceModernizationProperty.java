@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.tap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.LogManager;
@@ -17,7 +18,6 @@ public class InsertInterfaceModernizationProperty {
 	static final Logger LOGGER = LogManager.getLogger(InsertInterfaceModernizationProperty.class.getName());
 
 	private final String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
-	private final String totalDirectCostKey = "directCost";
 	private final String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
 	private IEngine HR_Core;
@@ -38,31 +38,32 @@ public class InsertInterfaceModernizationProperty {
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
 		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(HR_Core);
+		LPInterfaceProcessor generateCostInfo = new LPInterfaceProcessor();
 
-		IndividualSystemTransitionReport generateCostInfo = new IndividualSystemTransitionReport();
-
-		IEngine TAP_Cost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		if(TAP_Cost == null) {
+		IEngine TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		if(TAP_Cost_Data == null) {
 			throw new EngineException("TAP_Cost_Data Database not found");
 		}
 		
-		generateCostInfo.setTAP_Cost_Data(TAP_Cost);
-		generateCostInfo.setHR_Core(HR_Core);
-		generateCostInfo.getCostInfo();
-		generateCostInfo.getLPNIInfo();
-
+		generateCostInfo.setEngine(HR_Core);
+		generateCostInfo.getCostInfo(TAP_Cost_Data);
+		generateCostInfo.getLPNIInfo(HR_Core);
 		for(String sysName : reportTypeHash.keySet()){
-			String sysURI = sysURIPrefix + sysName;
-			generateCostInfo.setSystemURI(sysURI);
-			generateCostInfo.setSystemName(sysName);
+			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
+			generateCostInfo.setQuery(DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", sysName));
+			ArrayList<Object[]> data = generateCostInfo.generateReport();
 			String reportType = reportTypeHash.get(sysName);
-			generateCostInfo.setReportType(reportType);
-			HashMap<String, Object> sysLPInterfaceWithCostHash = generateCostInfo.calculateInterfaceModernizationCost();
-			Object cost = (Double) sysLPInterfaceWithCostHash.get(totalDirectCostKey);
+			if(reportType.equals("LPI") || reportType.equals("HPI")) {
+				generateCostInfo.createLPIInterfaceWithCostHash(sysName, data);
+			} else {
+				generateCostInfo.createLPNIInterfaceWithCostHash(sysName, data);
+			}
+			
+			Object cost = (Double) generateCostInfo.getTotalDirectCost();
 			if(cost == null) {
 				cost = "NA";
 			}
-			addProperty(sysURI, costPropertyURI, cost, false);
+			addProperty(sysURIPrefix.concat(sysName), costPropertyURI, cost, false);
 		}
 	}
 

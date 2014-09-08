@@ -12,6 +12,20 @@ import prerna.util.DHMSMTransitionUtility;
 
 public class LPInterfaceProcessor {
 
+	// direct cost and indirect costs requires 
+	private HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
+	private HashMap<String, HashMap<String, Double>> loeForGenericGlItemHash = new HashMap<String, HashMap<String, Double>>();
+	private HashMap<String, HashMap<String, Double>> avgLoeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
+	private HashMap<String, String> serviceToDataHash = new HashMap<String, String>();
+
+	// lpni indirect cost also requires
+	private HashSet<String> dhmsmSORList = new HashSet<String>();
+	private HashSet<String> lpiSystemList = new HashSet<String>();
+	
+	private final double COST_PER_HOUR = 150.0;
+	private double totalDirectCost = 0;
+	private double totalIndirectCost = 0;
+	
 	private String query = "SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem) (COALESCE(IF(BOUND(?y),IF((?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question'),'Low','High'),IF(BOUND(?x),IF((?DownstreamSysProb1!='High' && ?DownstreamSysProb1!='Question'),'Low','High'),'')), '') AS ?Probability) ?Interface ?Data ?Format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) ?Recommendation WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?ReceivedInformation) LET(?d := 'd') { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;}OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{ {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} } ORDER BY ?System ?InterfacingSystem";	
 	
 	private final String SYS_KEY = "System";
@@ -56,6 +70,14 @@ public class LPInterfaceProcessor {
 	private ArrayList<String> removedInterfaces;
 	private Set<String> sysList;
 
+	public double getTotalDirectCost() {
+		return totalDirectCost;
+	}
+
+	public double getTotalIndirectCost() {
+		return totalIndirectCost;
+	}
+	
 	public String getQuery() {
 		return query;
 	}
@@ -530,5 +552,314 @@ public class LPInterfaceProcessor {
 		String base = icd.substring(0, icd.lastIndexOf('/')+1);
 		return base.concat(DHMSM).concat("-").concat(sysConsumer).concat("-").concat(dataObject);
 	}
+	
+	
+	public ArrayList<Object[]> createLPIInterfaceWithCostHash(String systemName, ArrayList<Object[]> oldData) 
+	{
+		ArrayList<Object[]> newData = new ArrayList<Object[]>();
+		// clear the list of services already built for each system report
+		HashSet<String> servicesProvideList = new HashSet<String>();
+		totalDirectCost = 0;
+		totalIndirectCost = 0;
+		
+		String interfaceType = "";
+		String interfacingSystem = "";
+		String dataObject = "";
+		String dhmsmProvideOrConsume = "";
+		
+		// used to keep track of rows that have the same data object
+		int rowIdx;
+		ArrayList<Integer> indexArr = new ArrayList<Integer>();
+		boolean deleteOtherInterfaces = false;
+		boolean directCost = true;
+		boolean skipFistIteration = false;
+		for(rowIdx = 0; rowIdx < oldData.size(); rowIdx++)
+		{
+			Object[] row = oldData.get(rowIdx);
+			Object[] newRow = new Object[oldData.get(0).length + 3];
+			for(int i = 0; i < row.length; i++) {
+				if(i == 0) {
+					interfaceType = row[i].toString();
+					newRow[i] = interfaceType;
+				} else if(i == 1) {
+					interfacingSystem = row[i].toString();
+					newRow[i] = interfacingSystem;
+				} else if(i == 4) {
+					if(!dataObject.equals(row[i].toString()))
+					{
+						dataObject = row[i].toString();
+						indexArr = new ArrayList<Integer>();
+						deleteOtherInterfaces = false;
+					}
+					dataObject = row[4].toString();
+					newRow[i] = dataObject;
+				} else if(i == 8) {
+					dhmsmProvideOrConsume = row[i].toString();
+					newRow[i] = dhmsmProvideOrConsume;
+				} else if (i == row.length - 1) {
+					String comment = row[i].toString();
+					
+					String servicesList = serviceToDataHash.get(dataObject);
+					if(servicesList == null) {
+						servicesList = "No Services.";
+					}
+					newRow[i] = servicesList;
+					String[] commentSplit = null;
+					if(comment.contains("Stay as-is"))
+					{
+						newRow[i+1] = "";
+						newRow[i+2] = "";
+						newRow[i+3] = "";
+					} else {
+						commentSplit = comment.split("\\.");
+						commentSplit = commentSplit[0].split("->");
+						Double finalCost = null;
+						if(dhmsmProvideOrConsume.equals("Consumes") && interfaceType.equals("Downstream")) { // dhmsm consumes and our system is SOR -> direct cost
+							directCost = true;
+							finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList);
+						} else if(dhmsmProvideOrConsume.equals("Provides") && !deleteOtherInterfaces) {
+							if(commentSplit[1].contains(systemName)) { // dhmsm provides and our system consumes -> direct cost
+								directCost = true;
+								finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList);
+								deleteOtherInterfaces = true;
+								skipFistIteration = true;
+								for(Integer index : indexArr)
+								{
+									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
+									{
+										Object[] modifyCost = newData.get(index);
+										modifyCost[i+1] = "Interface already taken into consideration.";
+										modifyCost[i+2] = "";
+										modifyCost[i+3] = "";
+									}
+								}
+							} else { // dhmsm provides and other system consumes -> indirect cost
+								finalCost = calculateCost(dataObject, interfacingSystem, "Consume", false, servicesProvideList);
+								directCost = false;
+							}
+						}
+	
+						if(finalCost == null) {
+							if(deleteOtherInterfaces && !skipFistIteration) {
+								newRow[i+1] = "Interface already taken into consideration.";
+								skipFistIteration = false;
+							} else {
+								newRow[i+1] = "Cost already taken into consideration.";
+							}
+							newRow[i+2] = "";
+							newRow[i+3] = "";
+						} else if(finalCost != (double) 0){
+							if(directCost) {
+								newRow[i+1] = comment;
+								newRow[i+2] = finalCost;
+								newRow[i+3] = "";
+								totalDirectCost += finalCost;
+							} else {
+								newRow[i+1] = comment;
+								newRow[i+2] = "";
+								newRow[i+3] = finalCost;
+								totalIndirectCost += finalCost;
+							}
+						} else {
+							newRow[i+1] = "No data present to calculate loe.";
+							newRow[i+2] = "";
+							newRow[i+3] = "";
+						}
+					}
+				} else {
+					newRow[i] = row[i];
+				}
+			}
+			newData.add(newRow);
+		}
+		
+		return newData;
+	}
 
+	public ArrayList<Object[]> createLPNIInterfaceWithCostHash(String systemName, ArrayList<Object[]> oldData) 
+	{
+		ArrayList<Object[]> newData = new ArrayList<Object[]>();
+		// clear the list of services already built for each system report
+		HashSet<String> servicesProvideList = new HashSet<String>();
+		totalDirectCost = 0;
+		totalIndirectCost = 0;
+		String dataObject = "";
+		String interfacingSystem = "";
+		String interfaceType = "";
+		
+		boolean directCost = true;
+		
+		for(Object[] row : oldData)
+		{
+			Object[] newRow = new Object[oldData.get(0).length + 3];
+			for(int i = 0; i < row.length; i++)
+			{
+				if(i == 0) {
+					interfaceType = row[i].toString();
+					newRow[i] = interfaceType;
+				} if(i == 1) {
+					interfacingSystem= row[i].toString(); 
+					newRow[i] = interfacingSystem;
+				} else if(i == 4) {
+					dataObject = row[i].toString(); 
+					newRow[i] = dataObject;
+				} else if(i == row.length - 1) {
+					String comment = row[i].toString();
+					
+					String servicesList = serviceToDataHash.get(dataObject);
+					if(servicesList == null) {
+						servicesList = "No Services";
+					}
+					newRow[i] = servicesList;
+					newRow[i+1] = comment;
+
+					String[] commentSplit = comment.split("\\.");
+					commentSplit = commentSplit[0].split("->");
+					Double finalCost = null;
+					// DHMSM is receiving information from LPNI which is a SOR of the data object
+					if( commentSplit[0].contains(systemName) && commentSplit[1].contains("DHMSM") )
+					{
+						finalCost = calculateCost(dataObject, systemName, "Provide", true, servicesProvideList);
+						directCost = true;
+					} 
+					else if( lpiSystemList.contains(interfacingSystem) && dhmsmSORList.contains(dataObject) && interfaceType.equals("Upstream"))
+					{
+						finalCost = calculateCost(dataObject, interfacingSystem, "Consume", false, servicesProvideList);
+						directCost = false;
+					} 
+						
+					if(finalCost == null) {
+						newRow[i+2] = "";
+						newRow[i+3] = "";
+					} else if(finalCost != (double) 0){
+						if(directCost) {
+							newRow[i+1] = comment;
+							newRow[i+2] = finalCost;
+							newRow[i+3] = "";
+							totalDirectCost += finalCost;
+						} else {
+							newRow[i+1] = comment;
+							newRow[i+2] = "";
+							newRow[i+3] = finalCost;
+							totalIndirectCost += finalCost;
+						}
+					} else {
+						newRow[i+1] = "No data present to calculate loe.";
+						newRow[i+2] = "";
+						newRow[i+3] = "";
+					}
+				} else {
+					newRow[i] = row[i];
+				}
+			}
+			newData.add(newRow);
+		}
+
+		return newData;
+	}
+	
+	private Double calculateCost(String dataObject, String system, String tag, boolean includeGenericCost, HashSet<String> servicesProvideList)
+	{
+		double sysGLItemCost = 0;
+		double genericCost = 0;
+
+		ArrayList<String> sysGLItemServices = new ArrayList<String>();
+		// get sysGlItem for provider lpi systems
+		HashMap<String, Double> sysGLItem = loeForSysGlItemHash.get(dataObject);
+		HashMap<String, Double> avgSysGLItem = avgLoeForSysGlItemHash.get(dataObject);
+
+		boolean useAverage = true;
+		boolean servicesAllUsed = false;
+		if(sysGLItem != null)
+		{
+			for(String sysSerGLTag : sysGLItem.keySet())
+			{
+				String[] sysSerGLTagArr = sysSerGLTag.split("\\+\\+\\+");
+				if(sysSerGLTagArr[0].equals(system))
+				{
+					if(sysSerGLTagArr[2].contains(tag))
+					{
+						useAverage = false;
+						String ser = sysSerGLTagArr[1];
+						if(!servicesProvideList.contains(ser)) {
+							sysGLItemServices.add(ser);
+							servicesProvideList.add(ser);
+							sysGLItemCost += sysGLItem.get(sysSerGLTag);
+						} else {
+							servicesAllUsed = true;
+						}
+					} // else do nothing - do not care about consume loe
+				}
+			}
+		}
+		// else get the average system cost
+		if(useAverage)
+		{
+			if(avgSysGLItem != null)
+			{
+				for(String serGLTag : avgSysGLItem.keySet())
+				{
+					String[] serGLTagArr = serGLTag.split("\\+\\+\\+");
+					if(serGLTagArr[1].contains(tag))
+					{
+						String ser = serGLTagArr[0];
+						if(!servicesProvideList.contains(ser)) {
+							sysGLItemServices.add(ser);
+							servicesProvideList.add(ser);
+							sysGLItemCost += avgSysGLItem.get(serGLTag);
+						} else {
+							servicesAllUsed = true;
+						}
+					}
+				}
+			}
+		}
+
+		if(includeGenericCost)
+		{
+			HashMap<String, Double> genericGLItem = loeForGenericGlItemHash.get(dataObject);
+			if(genericGLItem != null)
+			{
+				for(String ser : genericGLItem.keySet())
+				{
+					if(sysGLItemServices.contains(ser)) {
+						genericCost += genericGLItem.get(ser);
+					} 
+				}
+			}
+		}
+
+		Double finalCost = null;
+		if(!servicesAllUsed) {
+			finalCost = (double) (Math.round(sysGLItemCost + genericCost) * COST_PER_HOUR);
+		}
+
+		return finalCost;
+	}
+	
+	public void getCostInfo(final IEngine TAP_Cost_Data){
+		// get data for all systems
+		if(loeForGenericGlItemHash.isEmpty()) {
+			loeForGenericGlItemHash = DHMSMTransitionUtility.getGenericGLItem(TAP_Cost_Data);
+		}
+		if(avgLoeForSysGlItemHash.isEmpty()) {
+			avgLoeForSysGlItemHash = DHMSMTransitionUtility.getAvgSysGLItem(TAP_Cost_Data);
+		} 
+		if(serviceToDataHash.isEmpty()) {
+			serviceToDataHash = DHMSMTransitionUtility.getServiceToData(TAP_Cost_Data);
+		}
+		if(loeForSysGlItemHash.isEmpty()) {
+			loeForSysGlItemHash = DHMSMTransitionUtility.getSysGLItem(TAP_Cost_Data);
+		}
+	}
+	
+	public void getLPNIInfo(final IEngine HR_Core) {
+		if(dhmsmSORList.isEmpty()) {
+			dhmsmSORList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.DHMSM_SOR_QUERY);
+		}
+		if(lpiSystemList.isEmpty()) {
+			lpiSystemList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.LPI_SYS_QUERY);
+		}
+	}
+	
 }

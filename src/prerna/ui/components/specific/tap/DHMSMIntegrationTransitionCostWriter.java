@@ -37,6 +37,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	public HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
 
 	private IEngine tapCostData;
+	private IEngine hrCore;
 	
 	private String sysURI;
 	private String systemName;
@@ -46,11 +47,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 
 	private TAPLegacySystemDispositionReportWriter diacapReport;
 	
-	private HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-	
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
 	private final String[] tags = new String[]{"Consume", "Provider"};
-	private final String DATA_KEY = "data";
 	private final double sustainmentFactor = 0.18;
 	private final double trainingFactor = 0.15;
 	private final double inflation = 0.018;
@@ -62,9 +60,12 @@ public class DHMSMIntegrationTransitionCostWriter {
 		if(tapCostData==null) {
 				throw new EngineException("Database not found");
 		}
+		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		if(hrCore==null) {
+				throw new EngineException("Database not found");
+		}
 		generateCostInformation();
 	}
-	
 	
 	public void setCostPerHr(double costPerHr) {
 		this.costPerHr = costPerHr;
@@ -99,10 +100,15 @@ public class DHMSMIntegrationTransitionCostWriter {
 		sysCostInfo.clear();
 		consolidatedSysCostInfo.clear();
 		
-		LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
+		LPInterfaceProcessor processor = new LPInterfaceProcessor();
+		processor.getCostInfo(tapCostData);
 		this.systemName = Utility.getInstanceName(sysURI);
-		sysLPIInterfaceHash = sysLPInterfaceData.getSysLPIInterfaceData(systemName);
-		createLPIInterfaceToDetermineCost(sysLPIInterfaceHash);
+		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
+		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
+		processor.setQuery(lpSystemInterfacesQuery);
+		processor.setEngine(hrCore);
+		ArrayList<Object[]> data = processor.generateReport();
+		createLPIInterfaceToDetermineCost(DHMSMTransitionUtility.removeSystemFromArrayList(data));
 		consolodateCostHash();
 		
 		if(diacapReport == null) {
@@ -292,11 +298,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
 	}
 	
-	@SuppressWarnings("unchecked")
-	public void createLPIInterfaceToDetermineCost(HashMap<String, Object> sysLPIInterfaceHash) 
+	public void createLPIInterfaceToDetermineCost(ArrayList<Object[]> oldData) 
 	{
-		ArrayList<Object[]> oldData = (ArrayList<Object[]>) sysLPIInterfaceHash.get(DATA_KEY);
-
 		// clear the list of services already built for each system report
 		HashSet<String> servicesProvideList = new HashSet<String>();
 		String interfaceType = "";
