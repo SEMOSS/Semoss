@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Network Timeline</title>
+
+    <link rel="stylesheet" type="text/css" href="css/ng-table.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link type="text/css" rel="stylesheet" href="css/tooltip.css"></link>
+    <link rel="stylesheet" href="css/d3.slider.css" />
+    <link rel="stylesheet" href="css/network-timeline.css" />
+
+    
+</head>
+<body >
+        <div id="sidebarHeader">
+            <div class="slider-container">
+                <div id="slider"></div>
+            </div>
+        </div>
+        <div id="sidebarContainer">
+            <div id="sidebarContentArea">
+                <div id="sidebarContentLeft">
+                </div>
+                <div id="sidebarContentRight">
+                </div>
+            </div>
+            <div id="sidebarFooter">
+            </div>
+        </div>
+        
+     <script type="text/javascript" src="lib/d3.v3.js"></script>
+    <script type="text/javascript" src="lib/tooltip.js"></script>
+    <script src="lib/jquery/jquery-1.11.0.min.js"></script>
+    <script src="lib/jquery/jquery-ui.min.js"></script>
+    <script src="lib/underscore.js"></script>
+    <script src="lib/bootstrap-slider.js"></script>
+    <script src="lib/d3.slider.js"></script>
+    <script>
+        $("#sidebarContentLeft").resizable({
+                handles: 'e'
+            });
+        start();
+        function start() {
+            
+            d3.select('#slider').call(d3.slider().axis(true).min(2000).max(2100).step(5));
+        }; 
+
+    </script>
+
+</body>
+</html>

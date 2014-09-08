@@ -1,0 +1,125 @@
+* {
+    box-sizing: border-box;
+}
+
+/* jquery UI resizable css */
+.ui-icon { width: 16px; height: 16px; background-image: url(http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.1/themes/base/images/ui-icons_222222_256x240.png)/*{iconsContent}*/; }
+.ui-resizable { position: relative;}
+.ui-resizable-handle { position: absolute;font-size: 0.1px;z-index: 99999; display: block;}
+.ui-resizable-disabled .ui-resizable-handle, .ui-resizable-autohide .ui-resizable-handle { display: none; }
+.ui-resizable-n { cursor: n-resize; height: 7px; width: 100%; top: -5px; left: 0px; }
+.ui-resizable-s { cursor: s-resize; height: 7px; width: 100%; bottom: -5px; left: 0px; }
+.ui-resizable-e { cursor: e-resize; width: 7px; right: -5px; top: 0px; height: 100%; }
+.ui-resizable-w { cursor: w-resize; width: 7px; left: -5px; top: 0px; height: 100%; }
+.ui-resizable-se { cursor: se-resize; width: 12px; height: 12px; right: 1px; bottom: 1px; }
+.ui-resizable-sw { cursor: sw-resize; width: 9px; height: 9px; left: -5px; bottom: -5px; }
+.ui-resizable-nw { cursor: nw-resize; width: 9px; height: 9px; left: -5px; top: -5px; }
+.ui-resizable-ne { cursor: ne-resize; width: 9px; height: 9px; right: -5px; top: -5px;}
+.ui-icon-gripsmall-diagonal-se { background-position: -64px -224px; }
+    
+    
+.slider {
+    width: 800px;
+    margin-top: 13px;
+}
+
+.slider-container {
+    width: 800px;
+    margin: 0 auto;
+}
+
+#sidebarHeader {
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    background-color: #eee;
+    padding: 25px 0px 45px 0;
+    width: 100%;
+    position: fixed;
+    z-index: 2;
+    border-bottom: 1px solid #ccc;
+    -webkit-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+    -moz-box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+    box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.065);
+}
+
+#sidebarContentArea{
+    position: absolute;
+    left: 0px;
+    top: 48px;
+    right: 0px;
+    bottom: 0px;
+    background-color: white;
+}
+
+
+
+#sidebarContentLeft {
+    position: fixed;
+    height: 100%;
+    width:50%;
+    top:80px;
+    bottom: 0px;
+    left: 0px;
+    background-color: #eee;
+    padding: 10px 15px 0px 15px;
+    border-right: 1px solid #ccc;
+}
+
+#sidebarFooter {
+    position: absolute;
+    height: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    background-color:white;
+}
+
+#slider{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.d3-tip {
+    line-height: 1.4;
+    font-weight: bold;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 3px;
+    margin-top: -7px;
+    font-family: sans-serif;
+    font-size: 10px;
+}
+  
+  /* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+}
+  
+  /* Style northward tooltips differently */
+.d3-tip.n:after {
+    margin: -1px 0 0 0;
+    top: 98%;
+    left: 0;
+}
+
+ .ng-table td.text-right {
+     text-align: right;
+ }
+
+ .ng-table td.text-center {
+     text-align: center;
+ }
+
+ .ng-table th.text-center {
+     text-align: center;
+ }
