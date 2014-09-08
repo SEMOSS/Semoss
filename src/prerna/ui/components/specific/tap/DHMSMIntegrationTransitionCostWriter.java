@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -28,16 +27,11 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionCostWriter.class.getName());
 
-	private HashMap<String, HashMap<String, HashMap<String, Double>>> loeForSysGlItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
-	private HashMap<String, HashMap<String, HashMap<String, Double>>> genericLoeForSysGLItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
-	private HashMap<String, HashMap<String, HashMap<String, Double>>> avgLoeForSysGLItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
-	private HashMap<String, String> serviceToDataHash = new HashMap<String, String>();
-	
-	public HashMap<Integer, HashMap<String, Double>> sysCostInfo = new HashMap<Integer, HashMap<String, Double>>();
+	LPInterfaceProcessor processor;
 	public HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
 
-	private IEngine tapCostData;
 	private IEngine hrCore;
+	private IEngine TAP_Cost_Data;
 	
 	private String sysURI;
 	private String systemName;
@@ -56,60 +50,44 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private double atoCost;
 	
 	public DHMSMIntegrationTransitionCostWriter() throws EngineException{
-		tapCostData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		if(tapCostData==null) {
-				throw new EngineException("Database not found");
+		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		if(TAP_Cost_Data==null) {
+			throw new EngineException("TAP_Cost_Data database not found");
 		}
 		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		if(hrCore==null) {
-				throw new EngineException("Database not found");
+				throw new EngineException("HR_Core database not found");
 		}
-		generateCostInformation();
 	}
 	
 	public void setCostPerHr(double costPerHr) {
 		this.costPerHr = costPerHr;
 	}
 	
-	public void setTapCostData(IEngine tapCostData) {
-		this.tapCostData = tapCostData;
-	}
-	
 	public void setSysURI(String sysURI){
 		this.sysURI = sysURI;
-	}
-	
-	public void generateCostInformation() {
-		if(loeForSysGlItemAndPhaseHash.isEmpty()) {
-			loeForSysGlItemAndPhaseHash = DHMSMTransitionUtility.getSysGLItemAndPhase(tapCostData);
-		}
-		if(genericLoeForSysGLItemAndPhaseHash.isEmpty()) {
-			genericLoeForSysGLItemAndPhaseHash = DHMSMTransitionUtility.getGenericGLItemAndPhase(tapCostData);
-		}
-		if(avgLoeForSysGLItemAndPhaseHash.isEmpty()) {
-			avgLoeForSysGLItemAndPhaseHash = DHMSMTransitionUtility.getAvgSysGLItemAndPhase(tapCostData);
-		}
-		if(serviceToDataHash.isEmpty()) {
-			serviceToDataHash = DHMSMTransitionUtility.getServiceToData(tapCostData);
-		}
 	}
 	
 	public void calculateValuesForReport() throws EngineException 
 	{
 		//clear list since we call this method in a loop when generating all reports
-		sysCostInfo.clear();
-		consolidatedSysCostInfo.clear();
-		
-		LPInterfaceProcessor processor = new LPInterfaceProcessor();
-		processor.getCostInfo(tapCostData);
+		if(processor == null){
+			processor = new LPInterfaceProcessor();
+			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
+		} else {
+			processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
+			processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
+		}
 		this.systemName = Utility.getInstanceName(sysURI);
 		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
 		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
 		processor.setQuery(lpSystemInterfacesQuery);
 		processor.setEngine(hrCore);
 		ArrayList<Object[]> data = processor.generateReport();
-		createLPIInterfaceToDetermineCost(DHMSMTransitionUtility.removeSystemFromArrayList(data));
-		consolodateCostHash();
+		processor.setUsePhase(true);
+		processor.createLPIInterfaceWithCostHash(systemName, DHMSMTransitionUtility.removeSystemFromArrayList(data));
+		processor.consolodateCostHash();
+		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
 		
 		if(diacapReport == null) {
 			diacapReport = new TAPLegacySystemDispositionReportWriter(sysURI);
@@ -127,21 +105,6 @@ public class DHMSMIntegrationTransitionCostWriter {
 		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
-	private void consolodateCostHash() {
-		for(Integer val : sysCostInfo.keySet()) {
-			HashMap<String, Double> innerHash = sysCostInfo.get(val);
-			for(String key: innerHash.keySet()) {
-				double loe = innerHash.get(key);
-				if(consolidatedSysCostInfo.containsKey(key)) {
-					loe += consolidatedSysCostInfo.get(key);
-					consolidatedSysCostInfo.put(key, loe);
-				} else {
-					consolidatedSysCostInfo.put(key, loe);
-				}
-			}
-		}
-	}
-
 	public void writeToExcel() throws FileReaderException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
@@ -296,177 +259,5 @@ public class DHMSMIntegrationTransitionCostWriter {
 		
 		String fileName = "DHMSM_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
-	}
-	
-	public void createLPIInterfaceToDetermineCost(ArrayList<Object[]> oldData) 
-	{
-		// clear the list of services already built for each system report
-		HashSet<String> servicesProvideList = new HashSet<String>();
-		String interfaceType = "";
-		String dataObject = "";
-		String dhmsmProvideOrConsume = "";
-		
-		// used to keep track of rows that have the same data object
-		int rowIdx;
-		ArrayList<Integer> indexArr = new ArrayList<Integer>();
-		boolean deleteOtherInterfaces = false;
-		boolean directCost = true;
-		for(rowIdx = 0; rowIdx < oldData.size(); rowIdx++)
-		{
-			Object[] row = oldData.get(rowIdx);
-			interfaceType = row[0].toString();
-			if(!dataObject.equals(row[4].toString()))
-			{
-				dataObject = row[4].toString();
-				indexArr = new ArrayList<Integer>();
-				deleteOtherInterfaces = false;
-			}
-			dataObject = row[4].toString();
-			dhmsmProvideOrConsume = row[8].toString();
-			String comment = row[row.length - 1].toString();
-			if(!comment.contains("Stay as-is"))
-			{
-				String[] commentSplit = comment.split("\\.");
-				commentSplit = commentSplit[0].split("->");
-				Double finalCost = null;
-				if(dhmsmProvideOrConsume.equals("Consumes") && interfaceType.equals("Downstream")) { // dhmsm consumes and our system is SOR -> direct cost
-					directCost = true;
-					finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList, rowIdx);
-				} else if(dhmsmProvideOrConsume.equals("Provides") && !deleteOtherInterfaces) {
-					if(commentSplit[1].contains(systemName)) { // dhmsm provides and our system consumes -> direct cost
-						directCost = true;
-						finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList, rowIdx);
-						deleteOtherInterfaces = true;
-						for(Integer index : indexArr)
-						{
-							if(index < (rowIdx - 1)) // case when first row is the LPI system and hasn't been added to newData yet
-							{
-								sysCostInfo.remove(index);
-							}
-						}
-					} 
-				}
-			
-				if(finalCost != null && finalCost != (double) 0 && directCost){
-					// do nothing -> cost information already in place
-				} else {
-					// shouldn't have added the cost information
-					sysCostInfo.remove(rowIdx);
-				}
-			}
-		}
-	}
-	
-	public Double calculateCost(String dataObject, String system, String tag, boolean includeGenericCost, HashSet<String> servicesProvideList, int rowIdx)
-	{
-		double sysGLItemCost = 0;
-		double genericCost = 0;
-
-		ArrayList<String> sysGLItemServices = new ArrayList<String>();
-		// get sysGlItem for provider lpi systems
-		HashMap<String, HashMap<String, Double>> sysGLItem = loeForSysGlItemAndPhaseHash.get(dataObject);
-		HashMap<String, HashMap<String, Double>> avgSysGLItem = avgLoeForSysGLItemAndPhaseHash.get(dataObject);
-
-		boolean useAverage = true;
-		boolean servicesAllUsed = false;
-		if(sysGLItem != null)
-		{
-			for(String sysSerGLTag : sysGLItem.keySet())
-			{
-				String[] sysSerGLTagArr = sysSerGLTag.split("\\+\\+\\+");
-				if(sysSerGLTagArr[0].equals(system))
-				{
-					if(sysSerGLTagArr[2].contains(tag))
-					{
-						useAverage = false;
-						String ser = sysSerGLTagArr[1];
-						if(!servicesProvideList.contains(ser)) {
-							sysGLItemServices.add(ser);
-							servicesProvideList.add(ser);
-							HashMap<String, Double> phaseHash = sysGLItem.get(sysSerGLTag);
-							for(String phase : phaseHash.keySet()) {
-								double loe = phaseHash.get(phase);
-								addToSysCostHash(tag, phase, loe, rowIdx);
-								sysGLItemCost += loe;
-							}
-						} else {
-							servicesAllUsed = true;
-						}
-					} // else do nothing - do not care about consume loe
-				}
-			}
-		}
-		// else get the average system cost
-		if(useAverage)
-		{
-			if(avgSysGLItem != null)
-			{
-				for(String serGLTag : avgSysGLItem.keySet())
-				{
-					String[] serGLTagArr = serGLTag.split("\\+\\+\\+");
-					if(serGLTagArr[1].contains(tag))
-					{
-						String ser = serGLTagArr[0];
-						if(!servicesProvideList.contains(ser)) {
-							sysGLItemServices.add(ser);
-							servicesProvideList.add(ser);
-							HashMap<String, Double> phaseHash = avgSysGLItem.get(serGLTag);
-							for(String phase : phaseHash.keySet()) {
-								double loe = phaseHash.get(phase);
-								addToSysCostHash(tag, phase, loe, rowIdx);
-								sysGLItemCost += loe;
-							}
-						} else {
-							servicesAllUsed = true;
-						}
-					}
-				}
-			}
-		}
-
-		if(includeGenericCost)
-		{
-			HashMap<String, HashMap<String, Double>> genericGLItem = genericLoeForSysGLItemAndPhaseHash.get(dataObject);
-			if(genericGLItem != null)
-			{
-				for(String ser : genericGLItem.keySet())
-				{
-					if(sysGLItemServices.contains(ser)) {
-						HashMap<String, Double> phaseHash = genericGLItem.get(ser);
-						for(String phase : phaseHash.keySet()) {
-							double loe = phaseHash.get(phase);
-							addToSysCostHash(tag, phase, loe, rowIdx);
-							genericCost += loe;
-						}
-					} 
-				}
-			}
-		}
-
-		Double finalCost = null;
-		if(!servicesAllUsed) {
-			finalCost = (sysGLItemCost + genericCost) * costPerHr;
-		}
-
-		return finalCost;
-	}
-	
-	
-	public void addToSysCostHash(String tag, String phase, double loe, int rowIdx) {
-		String key = tag.concat("+").concat(phase);
-		HashMap<String, Double> innerHash = new HashMap<String, Double>();
-		if(sysCostInfo.containsKey(rowIdx)) {
-			innerHash = sysCostInfo.get(rowIdx);
-			if(innerHash.containsKey(key)){
-				double newLoe = innerHash.get(key) + loe;
-				innerHash.put(key, newLoe);
-
-			} else {
-				innerHash.put(key, loe);
-			}
-		} else {
-			innerHash.put(key, loe);
-			sysCostInfo.put(rowIdx, innerHash);
-		}
 	}
 }

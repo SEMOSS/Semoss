@@ -54,7 +54,6 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			Utility.showError("Error with generting new DB");
 			e.printStackTrace();
 		}
-		
 	}
 
 	@Override
