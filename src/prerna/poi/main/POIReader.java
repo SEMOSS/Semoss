@@ -206,13 +206,14 @@ public class POIReader extends AbstractFileReader {
 			// check to make sure cell is not null
 			if(row != null)
 			{
-				XSSFCell cell = row.getCell(0);
-				if(cell != null)
+				XSSFCell sheetNameCell = row.getCell(0);
+				XSSFCell sheetTypeCell = row.getCell(1);
+				if(sheetNameCell != null && sheetTypeCell != null)
 				{
 					// get the name of the sheet
-					String sheetToLoad = row.getCell(0).getStringCellValue();
+					String sheetToLoad = sheetNameCell.getStringCellValue();
 					// determine the type of load
-					String loadTypeName = row.getCell(1).getStringCellValue();
+					String loadTypeName = sheetTypeCell.getStringCellValue();
 					if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) 
 					{
 						logger.debug("Cell Content is " + sheetToLoad);

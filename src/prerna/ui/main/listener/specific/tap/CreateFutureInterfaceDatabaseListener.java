@@ -40,6 +40,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 
 		CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB);
 		try {
+			futureStateCreator.addTriplesToExistingICDs();
 			futureStateCreator.generateData();
 			futureStateCreator.createNewDB();
 			Utility.showMessage("Finished adding triples to " + futureDBName);

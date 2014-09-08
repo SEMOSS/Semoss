@@ -26,15 +26,19 @@ import javax.swing.JDesktopPane;
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class LPInterfaceReportGenerator extends GridPlaySheet {
 
-	private String lpSystemInterfacesQuery = "SELECT DISTINCT ?System ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Recommendation WHERE { {SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem)  (COALESCE(IF(BOUND(?y),IF(?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question','Low','High'),IF(BOUND(?x),IF(?DownstreamSysProb1 != 'High' &&?DownstreamSysProb1 != 'Question','Low','High'),'')), '') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) (COALESCE(?HIEsys, '') AS ?HIE) ?DHMSMcrm WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) LET(?d := 'd') OPTIONAL{ { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION {{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} }} FILTER(REGEX(STR(?System), '^http://health.mil/ontologies/Concept/System/@SYSTEMNAME@$')) } ORDER BY ?Data";
-	private final String HEADER_KEY = "headers";
-	private final String RESULT_KEY = "data";
-
+	private LPInterfaceProcessor processor;
+	private IEngine TAP_Cost_Data;
+	
+	public void setProcessor(LPInterfaceProcessor processor) {
+		this.processor = processor;
+	}
+	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -49,49 +53,66 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	public void createData() {
 
 		list = new ArrayList<Object[]>();
-
-		LPInterfaceProcessor processor = new LPInterfaceProcessor();
+		
+		if(processor == null) {
+			processor = new LPInterfaceProcessor();
+		}
 		processor.setQuery(query);
 		processor.setEngine(engine);
 		
 		list = processor.generateReport();
 		names = processor.getNames();
 	}
+	
+	// requires the cost information to already be created and set in the processor
+	public HashMap<String, Object> getSysInterfaceWithCostData(String systemName, String reportType) throws EngineException {
+		HashMap<String, Object> sysLPIInterfaceHash = getSysInterfaceData(systemName);
+		
+		HashMap<String, Object> dataHash = new HashMap<String, Object>();
+		String[] oldHeaders = (String[]) sysLPIInterfaceHash.get(DHMSMTransitionUtility.HEADER_KEY);
 
-	public HashMap<String, Object> getSysLPIInterfaceData(String systemName) throws EngineException 
+		String[] newHeaders = new String[oldHeaders.length + 3];
+		for(int i = 0; i < oldHeaders.length; i++)
+		{
+			if(i < oldHeaders.length - 1) {
+				newHeaders[i] = oldHeaders[i];
+			} else {
+				newHeaders[i] = "Services";
+				newHeaders[i+1] = "Recommendation";
+				newHeaders[i+2] = "Direct Cost";
+				newHeaders[i+3] = "Indirect Cost";
+			}
+		}
+		
+		ArrayList<Object[]> newData;
+		if(reportType.equals("LPI") || reportType.equals("HPI")) {
+			newData = processor.createLPIInterfaceWithCostHash(systemName, (ArrayList<Object[]>) sysLPIInterfaceHash.get(DHMSMTransitionUtility.DATA_KEY));
+		} else {
+			processor.getLPNIInfo(engine);
+			newData = processor.createLPNIInterfaceWithCostHash(systemName, (ArrayList<Object[]>) sysLPIInterfaceHash.get(DHMSMTransitionUtility.DATA_KEY));
+		}
+		
+		dataHash.put(DHMSMTransitionUtility.DATA_KEY, newData);
+		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, newHeaders);
+		dataHash.put(DHMSMTransitionUtility.TOTAL_DIRECT_COST_KEY, processor.getTotalDirectCost());
+		dataHash.put(DHMSMTransitionUtility.TOTAL_INDIRECT_COST_KEY, processor.getTotalIndirectCost());
+		
+		return dataHash;
+	}
+
+	public HashMap<String, Object> getSysInterfaceData(String systemName) throws EngineException 
 	{
 		HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
 		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		lpSystemInterfacesQuery = lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
+		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
 		this.query = lpSystemInterfacesQuery;
 		this.engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		if(engine == null) {
 			throw new EngineException("HR_Core Database is not available");
 		}
 		createData();			
-		sysLPIInterfaceHash.put(HEADER_KEY, removeSystemFromStringArray(getNames()));
-		sysLPIInterfaceHash.put(RESULT_KEY, removeSystemFromArrayList(getList()));
+		sysLPIInterfaceHash.put(DHMSMTransitionUtility.HEADER_KEY, DHMSMTransitionUtility.removeSystemFromStringArray(getNames()));
+		sysLPIInterfaceHash.put(DHMSMTransitionUtility.DATA_KEY, DHMSMTransitionUtility.removeSystemFromArrayList(getList()));
 		return sysLPIInterfaceHash;
-	}
-
-	private String[] removeSystemFromStringArray(String[] names)
-	{
-		String[] retArray = new String[names.length-1];
-		for(int j=0;j<retArray.length;j++)
-			retArray[j] = names[j+1];
-		return retArray;
-	}
-
-	private ArrayList<Object[]> removeSystemFromArrayList(ArrayList<Object[]> dataRow)
-	{
-		ArrayList<Object[]> retList = new ArrayList<Object[]>();
-		for(int i=0;i<dataRow.size();i++)
-		{
-			Object[] row = new Object [dataRow.get(i).length-1];
-			for(int j=0;j<row.length;j++)
-				row[j] = dataRow.get(i)[j+1];
-			retList.add(row);
-		}
-		return retList;
 	}
 }
