@@ -275,7 +275,7 @@ public class PlayPane extends JFrame {
 	
 	// Create Future Interface Database
 	public CustomButton btnCreateFutureInterfaceDatabase;
-	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox;
+	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox, selectFutureCostInterfaceComboBox;
 	
 	//System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
@@ -2298,13 +2298,13 @@ public class PlayPane extends JFrame {
 		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridy = 1;
 		createFutureInterfaceDB.add(selectHRCoreForFutureInterfaceDBComboBox, gbc_selectHRCoreForFutureInterfaceDBComboBox);
 		
-		JLabel lblSelectTapCoreToInsertIntoFutureInterfaceDatabase = new JLabel("Select Future Interface Database:");
-		GridBagConstraints gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase = new GridBagConstraints();
-		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.anchor = GridBagConstraints.WEST;
-		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.insets = new Insets(0, 20, 5, 5);
-		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.gridx = 1;
-		gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase.gridy = 2;
-		createFutureInterfaceDB.add(lblSelectTapCoreToInsertIntoFutureInterfaceDatabase, gbc_lblSelectTapCoreToInsertIntoFutureInterfaceDatabase);
+		JLabel lblSelectFutureInterfaceDatabase = new JLabel("Select Future Interface Database:");
+		GridBagConstraints gbc_lblSelectFutureInterfaceDatabase = new GridBagConstraints();
+		gbc_lblSelectFutureInterfaceDatabase.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectFutureInterfaceDatabase.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectFutureInterfaceDatabase.gridx = 1;
+		gbc_lblSelectFutureInterfaceDatabase.gridy = 2;
+		createFutureInterfaceDB.add(lblSelectFutureInterfaceDatabase, gbc_lblSelectFutureInterfaceDatabase);
 
 		selectFutureInterfaceComboBox = new JComboBox<String>();
 		selectFutureInterfaceComboBox.setEditable(false);
@@ -2316,6 +2316,24 @@ public class PlayPane extends JFrame {
 		gbc_selectFutureInterfaceComboBox.gridy = 2;
 		createFutureInterfaceDB.add(selectFutureInterfaceComboBox, gbc_selectFutureInterfaceComboBox);
 
+		JLabel gbc_lblSelectFutureCostInterfaceDatabase = new JLabel("Select Future Cost Interface Database:");
+		GridBagConstraints gbc_gbc_lblSelectFutureCostInterfaceDatabase = new GridBagConstraints();
+		gbc_gbc_lblSelectFutureCostInterfaceDatabase.anchor = GridBagConstraints.WEST;
+		gbc_gbc_lblSelectFutureCostInterfaceDatabase.insets = new Insets(0, 20, 5, 5);
+		gbc_gbc_lblSelectFutureCostInterfaceDatabase.gridx = 1;
+		gbc_gbc_lblSelectFutureCostInterfaceDatabase.gridy = 3;
+		createFutureInterfaceDB.add(gbc_lblSelectFutureCostInterfaceDatabase, gbc_gbc_lblSelectFutureCostInterfaceDatabase);
+		
+		selectFutureCostInterfaceComboBox = new JComboBox<String>();
+		selectFutureCostInterfaceComboBox.setEditable(false);
+		GridBagConstraints gbc_selectFutureCostInterfaceComboBox = new GridBagConstraints();
+		gbc_selectFutureCostInterfaceComboBox.gridwidth = 2;
+		gbc_selectFutureCostInterfaceComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_selectFutureCostInterfaceComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectFutureCostInterfaceComboBox.gridx = 2;
+		gbc_selectFutureCostInterfaceComboBox.gridy = 3;
+		createFutureInterfaceDB.add(selectFutureCostInterfaceComboBox, gbc_selectFutureCostInterfaceComboBox);
+
 		btnCreateFutureInterfaceDatabase = new CustomButton("Add Relationships into Future Interface Database");
 		btnCreateFutureInterfaceDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnCreateFutureInterfaceDatabase = new GridBagConstraints();
@@ -2323,7 +2341,7 @@ public class PlayPane extends JFrame {
 		gbc_btnCreateFutureInterfaceDatabase.gridwidth = 4;
 		gbc_btnCreateFutureInterfaceDatabase.insets = new Insets(10, 20, 10, 0);
 		gbc_btnCreateFutureInterfaceDatabase.gridx = 1;
-		gbc_btnCreateFutureInterfaceDatabase.gridy = 3;
+		gbc_btnCreateFutureInterfaceDatabase.gridy = 4;
 		createFutureInterfaceDB.add(btnCreateFutureInterfaceDatabase, gbc_btnCreateFutureInterfaceDatabase);
 		Style.registerTargetClassName(btnCreateFutureInterfaceDatabase, ".standardButton");
 		
