@@ -120,6 +120,12 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			selectTapFutureInterfaceComboBoxModel.addElement(engineName);
 			selectTapServicesComboBox.repaint();
 			
+			JComboBox selectTapFutureCostInterfaceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX);
+			DefaultComboBoxModel selectTapFutureCostInterfaceComboBoxModel = (DefaultComboBoxModel) selectTapFutureCostInterfaceComboBox.getModel();
+			selectTapFutureCostInterfaceComboBoxModel.addElement(engineName);
+			selectTapFutureCostInterfaceComboBox.repaint();
+			
+			
 			// initialize combo box for export db information
 			JComboBox exportDataDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
 			DefaultComboBoxModel exportDataDBComboBoxModel = (DefaultComboBoxModel) exportDataDBComboBox.getModel();
