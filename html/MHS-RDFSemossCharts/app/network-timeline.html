@@ -139,12 +139,20 @@
 
         nodes = force.nodes();
         links = force.links();
-
-//        d3.select(window).on("resize", resize);
         
         function start(dataString) {
-            
-            d3.select('#slider').call(d3.slider().axis(true).min(2000).max(2100).step(5));
+	        // define the x scale (horizontal)
+	        var mindate = new Date(2016,06,10),
+	            maxdate = new Date(2017,07,21),
+			    timeFormat = d3.time.format("%Y-%m-%d");
+
+			//d3.slider().axis(true).min(timeFormat(mindate)).max(timeFormat(maxdate)).step(5)
+	        console.log(timeFormat(mindate));
+	        console.log(timeFormat(maxdate));
+	        console.log(timeFormat.parse("2016-06-10"));
+	        console.log(timeFormat.parse("2017-07-22"));
+	        console.log(new Date(1500000000000));
+            d3.select('#slider').call(d3.slider().axis(true).min(mindate).max(maxdate).step(2));
 
             newNodes = dataString.nodes;
             newLinks = dataString.edges;
@@ -234,43 +242,16 @@
                         return d.propHash.VERTEX_COLOR_PROPERTY;
                     });
 
-//            nodeEnter.on("click", function(d) {
-//                var allCircles = d3.selectAll("circle.node"),
-//                        selectedCircle = d3.select(this).select("circle");
-//                //set all circles (and previously selected nodes) to default stroke & stroke-width
-//                allCircles.attr({
-//                    "stroke": "#777",
-//                    "stroke-width": 1.5
-//                });
-//                //set selected node to <color> and <border> size
-//                selectedCircle.attr({
-//                    "stroke": "black",
-//                    "stroke-width": 2.0
-//                });
-//
-//                //clear legend selections
-//                d3.select(".legend").selectAll("circle")
-//                        .style("stroke-width", 0)
-//                        .style("stroke", function(node) {
-//                            return node.propHash.VERTEX_TYPE_PROPERTY;
-//                        });
-//
-//                scope.uriSend({data: [d]});
-//            })
-//            .on("dblclick", function(d) {
-//                if (d) {
-//                    $rootScope.$emit('context-modal', d.uri);
-//                }
-//            });
-
             //node enter text...
             nodeEnter.append("text")
                     .attr("class", "nodetext")
                     .attr("x", 12)
                     .attr("dy", ".35em")
                     .attr("stroke", "none")
-                    .style("font-size", "10px");
-            updateLabels();
+                    .style("font-size", "10px")
+		            .text(function(d) {
+			            return d.propHash.VERTEX_TYPE_PROPERTY;
+		            });
 
             //node group removal with transition...
             node.exit()
@@ -380,25 +361,6 @@
                     dr = Math.sqrt(dx * dx + dy * dy);
             return "M" + xScale(d.source.x) + "," + yScale(d.source.y) + "A" + dr + "," + dr + " 0 0,1 " + xScale(d.target.x) + "," + yScale(d.target.y);
         }
-
-        function updateLabels() {
-            d3.selectAll(".force-labels")
-                    .text(function (d) {
-                        for (var type in scope.labels){
-                            var valuesForType = scope.labels[type];
-                            if (type === d.propHash.VERTEX_TYPE_PROPERTY) {
-                                if (_.isObject(d.propHash[valuesForType])) {
-                                    return d.propHash[valuesForType].label;
-                                } else {
-                                    return d.propHash[valuesForType];
-                                }
-                            }
-
-                        }
-                    });
-        }
-
-
 
         start(timeline_data);
     </script>
