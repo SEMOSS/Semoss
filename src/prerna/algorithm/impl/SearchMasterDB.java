@@ -1,5 +1,6 @@
 package prerna.algorithm.impl;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -47,6 +48,10 @@ public class SearchMasterDB {
 	
 	public void setCountBoolean(boolean count) {
 		this.count=count;
+	}
+	
+	public void setDBName(String dbName) {
+		this.dbName=dbName;
 	}
 	/**
 	 * Determines the similarity of a given subgraph to other databases in the Master database.
@@ -316,7 +321,9 @@ public class SearchMasterDB {
 		}
 		for(int i=0;i<finalScoreList.size();i++) {
 			Object[] databaseRow = finalScoreList.get(i);
-			databaseRow[1] = ((Integer)databaseRow[1])*1.0 / totalNum;
+			Double score = ((Integer)databaseRow[1])*1.0 / totalNum;
+			DecimalFormat formatter = new DecimalFormat("#.##");
+			databaseRow[1] = formatter.format(score);
 			finalScoreList.set(i,databaseRow);
 		}
 		return finalScoreList;
