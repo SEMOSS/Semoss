@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Vector;
 
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -36,14 +35,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import edu.ucla.sspace.clustering.Assignments;
-import edu.ucla.sspace.clustering.BaseSpectralCut;
-import edu.ucla.sspace.clustering.EigenCut;
-import edu.ucla.sspace.clustering.SpectralClustering;
 import edu.ucla.sspace.matrix.ArrayMatrix;
-import edu.ucla.sspace.util.Generator;
 
 
 
@@ -81,6 +74,16 @@ public class IntakePortal {
 			
 		}
 		return SchemaMatrix;
+	}
+	
+	public static double WordNetMappingFunction(String schemaElement1, String schemaElement2) throws InvalidFormatException, IOException {
+		
+		schemaElement1 = PreProcess(schemaElement1);
+		schemaElement2 = PreProcess(schemaElement2);
+		
+		//create wordsimilarity scores
+		WS4Jwrapper WordNetScorer = new WS4Jwrapper();
+		return WordNetScorer.dynamicRunner(schemaElement1,schemaElement2);
 	}
 	
 	private static void WordNetMapping() throws InvalidFormatException, IOException {
@@ -134,15 +137,16 @@ public class IntakePortal {
 	}
 	
 	static String splitCamelCase(String s) {
-		   return s.replaceAll(
-		      String.format("%s|%s|%s",
-		         "(?<=[A-Z])(?=[A-Z][a-z])",
-		         "(?<=[^A-Z])(?=[A-Z])",
-		         "(?<=[A-Za-z])(?=[^A-Za-z])"
-		      ),
-		      " "
-		   );
-		}
+		s =  s.replaceAll(
+			      String.format("%s|%s|%s",
+					         "(?<=[A-Z])(?=[A-Z][a-z])",
+					         "(?<=[^A-Z])(?=[A-Z])",
+					         "(?<=[A-Za-z])(?=[^A-Za-z])"
+					      ),
+					      " "
+					   );
+		   return s;
+	}
 
 
 	private static void PreProcess(ArrayList<String> terms) {
@@ -151,6 +155,10 @@ public class IntakePortal {
 			terms.set(i, splitCamelCase(terms.get(i)) );
 			terms.set(i, terms.get(i).replace('_', ' '));
 		}
+	}
+	private static String PreProcess(String term) {
+		term = splitCamelCase(term);
+		return term.replace('_', ' ');
 	}
 
 
