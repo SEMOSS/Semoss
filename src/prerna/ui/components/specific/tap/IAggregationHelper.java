@@ -14,41 +14,45 @@ public interface IAggregationHelper {
 	HashMap<String, HashMap<String, Object>> dataHash = new HashMap<String, HashMap<String, Object>>();
 	HashMap<String, HashMap<String, Object>> removeDataHash = new HashMap<String, HashMap<String, Object>>();
 
-	public HashMap<String, Set<String>> allRelations = new HashMap<String, Set<String>>();
-	public HashMap<String, Set<String>> allConcepts = new HashMap<String, Set<String>>();
+	HashMap<String, Set<String>> allRelations = new HashMap<String, Set<String>>();
+	HashMap<String, Set<String>> allConcepts = new HashMap<String, Set<String>>();
 	
 	// processing and aggregating methods
 	
-	public void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
+	void processData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
 	
-	public void deleteData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
+	void deleteData(IEngine engine, HashMap<String, HashMap<String, Object>> data);
 	
-	public void processNewConcepts(IEngine engine, String newConceptType);
+	void processAllRelationshipSubpropTriples(IEngine engine);
 	
-	public void processNewRelationships(IEngine engine, String newRelationshipType);
+	void processAllConceptTypeTriples(IEngine engine);
 	
-	public void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object);
+	void processNewConcepts(IEngine engine, String newConceptType);
 	
-	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object); 
+	void processNewRelationships(IEngine engine, String newRelationshipType);
 	
-	public void addToDataHash(Object[] returnTriple);
+	void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object);
 	
-	public void addToDeleteHash(Object[] returnTriple);
+	void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object); 
 	
-	public void addToAllConcepts(String uri);
+	void addToDataHash(Object[] returnTriple);
 	
-	public void addToAllRelationships(String uri);
+	void addToDeleteHash(Object[] returnTriple);
 	
-	public void writeToOWL(IEngine engine);
+	void addToAllConcepts(String uri);
+	
+	void addToAllRelationships(String uri);
+	
+	void writeToOWL(IEngine engine);
 	
 	// utility methods
-	public Object[] processSumValues(String sub, String prop, Object value);
+	Object[] processSumValues(String sub, String prop, Object value);
 	
-	public Object[] processConcatString(String sub, String prop, Object value); 
+	Object[] processConcatString(String sub, String prop, Object value); 
 	
-	public Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max);
+	Object[] processMaxMinDouble(String sub, String prop, Object value, boolean max);
 	
-	public Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest);
+	Object[] processMinMaxDate(String sub, String prop, Object value, Boolean latest);
 	
 
 

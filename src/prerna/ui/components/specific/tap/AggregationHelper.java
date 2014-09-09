@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
@@ -60,13 +61,17 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			for ( String pred : data.get(sub).keySet())
 			{
+				if(pred.contains("/Concept/")) {
+					System.out.println(":error");
+				}
+				
 				Object obj = data.get(sub).get(pred);
-				boolean concept_triple = true;
+				boolean conceptTriple = true;
 				if( pred.contains("Relation/Contains"))
 				{
-					concept_triple = false;
+					conceptTriple = false;
 				}
-				( (BigDataEngine) engine).addStatement(sub, pred, obj, concept_triple);
+				( (BigDataEngine) engine).addStatement(sub, pred, obj, conceptTriple);
 				LOGGER.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
@@ -79,12 +84,12 @@ public class AggregationHelper implements IAggregationHelper {
 			for ( String pred : data.get(sub).keySet())
 			{
 				Object obj = data.get(sub).get(pred);
-				boolean concept_triple = true;
+				boolean conceptTriple = true;
 				if( pred.contains("Relation/Contains"))
 				{
-					concept_triple = false;
+					conceptTriple = false;
 				}
-				( (BigDataEngine) engine).removeStatement(sub, pred, obj, concept_triple);
+				( (BigDataEngine) engine).removeStatement(sub, pred, obj, conceptTriple);
 				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
@@ -119,7 +124,6 @@ public class AggregationHelper implements IAggregationHelper {
 		( (BigDataEngine) engine).addStatement(childType, subclassOf, parentType, true);
 		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
 	}
-
 
 	public void processNewConcepts(IEngine engine, String newConceptType)
 	{
@@ -198,6 +202,17 @@ public class AggregationHelper implements IAggregationHelper {
 			allConcepts.get(conceptBaseURI).add(uri);
 		}		
 	}
+	
+	public void processAllConceptTypeTriples(IEngine engine)
+	{
+		for(String newConcept : allConcepts.keySet()) {
+			processNewConcepts(engine, newConcept);
+			Set<String> instanceSet = allConcepts.get(newConcept);
+			for(String newInstance : instanceSet) {
+				processNewConceptsAtInstanceLevel(engine, newInstance, newConcept);
+			}
+		}
+	}
 
 	public void addToAllRelationships(String uri)
 	{
@@ -210,6 +225,17 @@ public class AggregationHelper implements IAggregationHelper {
 		{
 			allRelations.put(relationBaseURI, new HashSet<String>());
 			allRelations.get(relationBaseURI).add(uri);
+		}
+	}
+	
+	public void processAllRelationshipSubpropTriples(IEngine engine)
+	{
+		for(String newRelationship : allRelations.keySet()) {
+			processNewRelationships(engine, newRelationship);
+			Set<String> instanceSet = allRelations.get(newRelationship);
+			for(String newRelInstance : instanceSet) {
+				processNewRelationshipsAtInstanceLevel(engine, newRelInstance, newRelationship);
+			}
 		}
 	}
 	

@@ -30,20 +30,25 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 		
 		JComboBox<String> futureStateDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX);
 		String futureDBName = futureStateDBComboBox.getSelectedItem() + "";
+		
+		JComboBox<String> futureStateCostDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(ConstantsTAP.TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX);
+		String futureCostDBName = futureStateCostDBComboBox.getSelectedItem() + "";
 
 		//get associated engines
 		IEngine hrCoreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDBName);
 		IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp(futureDBName);
-
+		IEngine futureCostDB = (IEngine) DIHelper.getInstance().getLocalProp(futureCostDBName);
+		
 		//send to processor
 		LOGGER.info("Creating " + futureDBName + " from " + hrCoreDBName);
+		LOGGER.info("Creating " + futureCostDBName + " from " + hrCoreDBName);
 
-		CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB);
+		CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB);
 		try {
 			futureStateCreator.addTriplesToExistingICDs();
 			futureStateCreator.generateData();
-			futureStateCreator.createNewDB();
-			Utility.showMessage("Finished adding triples to " + futureDBName);
+			futureStateCreator.createDBs();
+			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
 		} catch (EngineException e) {
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
 			e.printStackTrace();
