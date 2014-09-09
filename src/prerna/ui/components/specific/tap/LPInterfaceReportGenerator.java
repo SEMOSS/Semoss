@@ -33,7 +33,8 @@ import prerna.util.DIHelper;
 public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 	private LPInterfaceProcessor processor;
-	
+	private IEngine tapCostData;
+	private IEngine hrCore;
 	public void setProcessor(LPInterfaceProcessor processor) {
 		this.processor = processor;
 	}
@@ -61,15 +62,32 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		
 		list = processor.generateReport();
 		names = processor.getNames();
+		
 	}
 	
 	// requires the cost information to already be created and set in the processor
 	public HashMap<String, Object> getSysInterfaceWithCostData(String systemName, String reportType) throws EngineException {
-		HashMap<String, Object> sysLPIInterfaceHash = getSysInterfaceData(systemName);
+		if(tapCostData == null) {
+			tapCostData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		}
+		if(hrCore == null) {
+			hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		}
+		if(processor == null) {
+			processor = new LPInterfaceProcessor();
+		}
+		
+		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
+		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
+		processor.setQuery(lpSystemInterfacesQuery);
+		
+		processor.isGenerateCost(true);
+		processor.setEngine(hrCore);
+		processor.getCostInfo(tapCostData);
+		ArrayList<Object[]> newData = processor.generateReport();
 		
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
-		String[] oldHeaders = (String[]) sysLPIInterfaceHash.get(DHMSMTransitionUtility.HEADER_KEY);
-
+		String[] oldHeaders = processor.getNames();
 		String[] newHeaders = new String[oldHeaders.length + 3];
 		for(int i = 0; i < oldHeaders.length; i++)
 		{
@@ -83,35 +101,11 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 			}
 		}
 		
-		ArrayList<Object[]> newData;
-		if(reportType.equals("LPI") || reportType.equals("HPI")) {
-			newData = processor.createLPIInterfaceWithCostHash(systemName, (ArrayList<Object[]>) sysLPIInterfaceHash.get(DHMSMTransitionUtility.DATA_KEY));
-		} else {
-			processor.getLPNIInfo(engine);
-			newData = processor.createLPNIInterfaceWithCostHash(systemName, (ArrayList<Object[]>) sysLPIInterfaceHash.get(DHMSMTransitionUtility.DATA_KEY));
-		}
-		
-		dataHash.put(DHMSMTransitionUtility.DATA_KEY, newData);
-		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, newHeaders);
+		dataHash.put(DHMSMTransitionUtility.DATA_KEY, DHMSMTransitionUtility.removeSystemFromArrayList(newData));
+		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, DHMSMTransitionUtility.removeSystemFromStringArray(newHeaders));
 		dataHash.put(DHMSMTransitionUtility.TOTAL_DIRECT_COST_KEY, processor.getTotalDirectCost());
 		dataHash.put(DHMSMTransitionUtility.TOTAL_INDIRECT_COST_KEY, processor.getTotalIndirectCost());
 		
 		return dataHash;
-	}
-
-	public HashMap<String, Object> getSysInterfaceData(String systemName) throws EngineException 
-	{
-		HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
-		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
-		this.query = lpSystemInterfacesQuery;
-		this.engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		if(engine == null) {
-			throw new EngineException("HR_Core Database is not available");
-		}
-		createData();			
-		sysLPIInterfaceHash.put(DHMSMTransitionUtility.HEADER_KEY, DHMSMTransitionUtility.removeSystemFromStringArray(getNames()));
-		sysLPIInterfaceHash.put(DHMSMTransitionUtility.DATA_KEY, DHMSMTransitionUtility.removeSystemFromArrayList(getList()));
-		return sysLPIInterfaceHash;
 	}
 }

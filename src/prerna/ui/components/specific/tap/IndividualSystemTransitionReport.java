@@ -37,7 +37,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private String siteQuery = "SELECT DISTINCT (COUNT(DISTINCT ?DCSite) AS ?SiteCount) (SAMPLE(?DCSite) AS ?ExampleSite) (GROUP_CONCAT(DISTINCT ?Reg ; SEPARATOR = ', ') AS ?Regions) WHERE { SELECT DISTINCT ?System ?DCSite (CONCAT(SUBSTR(STR(?Region),58)) AS ?Reg) WHERE { BIND(@SYSTEM@ AS ?System) {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} OPTIONAL{ {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?MTF <http://semoss.org/ontologies/Relation/Located> ?Region} }} ORDER BY ?Region} GROUP BY ?System";
 
 	//store interface query results
-	HashMap<String, Object> sysLPIInterfaceHash = new HashMap<String, Object>();
+	HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 	
 	private final String SYS_URI_PREFIX = "http://health.mil/ontologies/Concept/System/";
 
@@ -164,7 +164,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		try {
 			sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost();
 			// perform after the above to improve performance
-			interfaceBarHash = createInterfaceBarChart(sysLPIInterfaceHash);
+			interfaceBarHash = createInterfaceBarChart(sysLPInterfaceWithCostHash);
 		} catch (EngineException e) {
 			Utility.showError(e.getMessage());
 		}
@@ -275,7 +275,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		for(int i=0;i<interfaceRowList.size();i++)
 		{
 			Object[] interfaceRow = interfaceRowList.get(i);
-			String comment = ((String)interfaceRow[interfaceRow.length -1]).toLowerCase();
+			String comment = ((String)interfaceRow[interfaceRow.length - 3]).toLowerCase();
 			String otherSystem = ((String)interfaceRow[1]).toLowerCase();
 			boolean addedInterface = false;		
 			boolean removedInterface = false;
