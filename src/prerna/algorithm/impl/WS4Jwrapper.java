@@ -88,14 +88,14 @@ public class  WS4Jwrapper {
         //	System.out.println("multi element field");
         	// TODO Auto-generated method stub
         	 WS4JConfiguration.getInstance().setMFS(true);
-             System.out.print(word1 +"~"+ word2 +"~");
+ //            System.out.print(word1 +"~"+ word2 +"~");
              for ( RelatednessCalculator rc : rcs ) { 
             	 double[][] s =	getSimilarityMatrix(words1array, words2array, rc); //non normalized
              	//double[][] s = rc.getNormalizedSimilarityMatrix(words1array, words2array); //normalized
              	matrix_average = similarityMatrixAnalysis(s);
-                     System.out.print( matrix_average + "~" );
+//                     System.out.print( matrix_average + "~" );
              }
-             System.out.println("");
+//             System.out.println("");
              return matrix_average;
 		}
 
@@ -162,22 +162,22 @@ public class  WS4Jwrapper {
 			// System.out.println(" single word run");
 			WS4JConfiguration.getInstance().setMFS(true);
 			
-            System.out.print(word1 +"~"+ word2 +"~");
+//            System.out.print(word1 +"~"+ word2 +"~");
             for ( RelatednessCalculator rc : rcs ) { 
             	
             	 s = rc.calcRelatednessOfWords(word1, word2);
             	if(s>100)
             		s = rc.calcRelatednessOfWords("car", "automobile")*normalizer;
-                    System.out.print( s + "~" );
+//                    System.out.print( s + "~" );
                     
             }
-            System.out.println();
+//            System.out.println();
             return s;
     }
         public static void main(String[] args) {
                 long t0 = System.currentTimeMillis();
                 WS4Jwrapper test = new WS4Jwrapper();
-                test.run( "car","automobile" );
+                test.run( "car","plane" );
                 long t1 = System.currentTimeMillis();
                 System.out.println( "Done in "+(t1-t0)+" msec." );
         }
