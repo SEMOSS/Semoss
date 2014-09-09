@@ -36,6 +36,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 			searchAlgo.setCountBoolean(true);
 		else
 			searchAlgo.setCountBoolean(false);
+		searchAlgo.setDBName(this.engine.getEngineName());
 		list = searchAlgo.searchDB();
 		names = searchAlgo.headers;
 	}
