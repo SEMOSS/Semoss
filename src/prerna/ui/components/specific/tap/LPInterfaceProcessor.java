@@ -27,9 +27,12 @@ public class LPInterfaceProcessor {
 	private HashMap<Integer, HashMap<String, Double>> sysCostInfo = new HashMap<Integer, HashMap<String, Double>>();
 	private HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
 	
+	HashSet<String> sysDataSOR = new HashSet<String>();
+	HashMap<String, String> sysTypeHash = new HashMap<String, String>();
+
 	// lpni indirect cost also requires
-	private HashSet<String> dhmsmSORList = new HashSet<String>();
-	private HashSet<String> lpiSystemList = new HashSet<String>();
+	private HashSet<String> dhmsmSORList;
+	private HashSet<String> lpiSystemList;
 	
 	private final double COST_PER_HOUR = 150.0;
 	private double totalDirectCost = 0;
@@ -134,9 +137,6 @@ public class LPInterfaceProcessor {
 		this.consolidatedSysCostInfo = consolidatedSysCostInfo;
 	}
 	
-	public void setGenerateComments(boolean generateComments) {
-	}
-
 	public void setGenerateNewTriples(boolean generateNewTriples) {
 		this.generateNewTriples = generateNewTriples;
 	}
@@ -192,9 +192,13 @@ public class LPInterfaceProcessor {
 	public ArrayList<Object[]> generateReport() {
 		list = new ArrayList<Object[]>();
 
-		HashSet<String> sysDataSOR = DHMSMTransitionUtility.processSysDataSOR(engine);
-		HashMap<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(engine);
-
+		if(sysDataSOR.isEmpty()) {
+			sysDataSOR = DHMSMTransitionUtility.processSysDataSOR(engine);
+		}
+		if(sysTypeHash.isEmpty()) {
+			sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(engine);
+		}
+		
 		//Process main query
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
@@ -464,7 +468,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, DHMSM_URI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, DHMSM_URI, data, rowIdx);
 					}
 				} 
 				// new business rule might be added - will either un-comment or remove after discussion today
@@ -501,7 +505,7 @@ public class LPInterfaceProcessor {
 						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
 						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 						// future cost triple
-						addFutureDBRelTriples(icdURI, newICD, DHMSM_URI, rowIdx);
+						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, data, rowIdx);
 					}
 				} 
 				if (upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
@@ -549,7 +553,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, DHMSM_URI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, DHMSM_URI, data, rowIdx);
 					}
 				} else if(downstreamSysType.equals(HPI_KEY)) { // upstream sys is not HPI and downstream is HPI
 					comment = comment.concat("Provide temporary integration between DHMSM->").concat(downstreamSysName).concat(" until all deployment sites for ").concat(downstreamSysName).concat(" field DHMSM (and any additional legal requirements).")
@@ -581,7 +585,7 @@ public class LPInterfaceProcessor {
 						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
 						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 						// future cost triple
-						addFutureDBRelTriples(icdURI, newICD, DHMSM_URI, rowIdx);
+						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, data, rowIdx);
 					}
 				} 
 				if(!upstreamSysType.equals(LPI_KEY) && !upstreamSysType.equals(HPI_KEY) && !downstreamSysType.equals(LPI_KEY) && !downstreamSysType.equals(HPI_KEY))
@@ -627,7 +631,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, upstreamSystemURI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, data, rowIdx);
 					}
 				} else if(sorV.contains(upstreamSystemURI + dataURI) && !probability.equals("null") && !probability.equals("") ) { // upstream system is SOR and has a probability
 					otherwise = false;
@@ -654,7 +658,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, upstreamSystemURI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, data, rowIdx);
 					}
 				} 
 				if(downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSystemURI + dataURI)) { // downstream system is LPI and SOR of data
@@ -682,7 +686,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, downstreamSystemURI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, data, rowIdx);
 					}
 				} else if(sorV.contains(downstreamSystemURI + dataURI) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
 					otherwise = false;
@@ -709,7 +713,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBRelTriples("", newICD, downstreamSystemURI, rowIdx);
+						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, data, rowIdx);
 					}
 				} 
 				if(otherwise) {
@@ -899,7 +903,7 @@ public class LPInterfaceProcessor {
 		relPropList.add(values);
 	}
 
-	private void addFutureDBRelTriples(String decommissionedICD, String proposedICD, String sysURI, int index) {
+	private void addFutureDBCostRelTriples(String decommissionedICD, String proposedICD, String sysURI, String data, int index) {
 		HashMap<String, Double> info = sysCostInfo.get(index);
 		String previousGLItemURI = "";
 		String previousGLItemName = "";
@@ -922,7 +926,7 @@ public class LPInterfaceProcessor {
 					input = Utility.getInstanceName(decommissionedICD);
 				}
 				String output = Utility.getInstanceName(proposedICD);
-				String glItemName = input.concat("%").concat(output).concat("%").concat(sys).concat("%").concat(glTag).concat("%").concat(sdlcPhase);
+				String glItemName = data.concat("%").concat(output).concat("%").concat(sys).concat("%").concat(glTag).concat("%").concat(sdlcPhase);
 				String glItemURI = "http://health.mil/ontologies/Concept/".concat(sdlcPhase).concat("GLItem/").concat(glItemName);
 				// this relationship may not always exist
 				if(!decommissionedICD.equals("")) {
@@ -1253,241 +1257,12 @@ public class LPInterfaceProcessor {
 	}
 	
 	public void getLPNIInfo(final IEngine HR_Core) {
-		if(dhmsmSORList.isEmpty()) {
+		if(dhmsmSORList == null) {
 			dhmsmSORList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.DHMSM_SOR_QUERY);
 		}
-		if(lpiSystemList.isEmpty()) {
+		if(lpiSystemList == null) {
 			lpiSystemList = DHMSMTransitionUtility.runVarListQuery(HR_Core, DHMSMTransitionUtility.LPI_SYS_QUERY);
 		}
 	}
 	
-	//TODO: remove method and make classes that use this uses generateReport()
-	public ArrayList<Object[]> createLPIInterfaceWithCostHash(String systemName, ArrayList<Object[]> oldData) 
-	{
-		ArrayList<Object[]> newData = new ArrayList<Object[]>();
-		// clear the list of services already built for each system report
-		HashSet<String> servicesProvideList = new HashSet<String>();
-		totalDirectCost = 0;
-		totalIndirectCost = 0;
-		
-		String interfaceType = "";
-		String interfacingSystem = "";
-		String dataObject = "";
-		String dhmsmProvideOrConsume = "";
-		
-		// used to keep track of rows that have the same data object
-		int rowIdx;
-		ArrayList<Integer> indexArr = new ArrayList<Integer>();
-		boolean deleteOtherInterfaces = false;
-		boolean directCost = true;
-		boolean skipFistIteration = false;
-		for(rowIdx = 0; rowIdx < oldData.size(); rowIdx++)
-		{
-			Object[] row = oldData.get(rowIdx);
-			Object[] newRow = new Object[oldData.get(0).length + 3];
-			for(int i = 0; i < row.length; i++) {
-				if(i == 0) {
-					interfaceType = row[i].toString();
-					newRow[i] = interfaceType;
-				} else if(i == 1) {
-					interfacingSystem = row[i].toString();
-					newRow[i] = interfacingSystem;
-				} else if(i == 4) {
-					if(!dataObject.equals(row[i].toString()))
-					{
-						dataObject = row[i].toString();
-						indexArr = new ArrayList<Integer>();
-						deleteOtherInterfaces = false;
-					}
-					dataObject = row[4].toString();
-					newRow[i] = dataObject;
-				} else if(i == 8) {
-					dhmsmProvideOrConsume = row[i].toString();
-					newRow[i] = dhmsmProvideOrConsume;
-				} else if (i == row.length - 1) {
-					String comment = row[i].toString();
-					
-					String servicesList = serviceToDataHash.get(dataObject);
-					if(servicesList == null) {
-						servicesList = "No Services.";
-					}
-					newRow[i] = servicesList;
-					String[] commentSplit = null;
-					if(comment.contains("Stay as-is"))
-					{
-						newRow[i+1] = "";
-						newRow[i+2] = "";
-						newRow[i+3] = "";
-					} else {
-						commentSplit = comment.split("\\.");
-						commentSplit = commentSplit[0].split("->");
-						Double finalCost = null;
-						if(dhmsmProvideOrConsume.equals("Consumes") && interfaceType.equals("Downstream")) { // dhmsm consumes and our system is SOR -> direct cost
-							directCost = true;
-							if(usePhase) {
-								finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList, rowIdx);
-							} else {
-								finalCost = calculateCost(dataObject, systemName, "Provider", true, servicesProvideList);
-							}
-						} else if(dhmsmProvideOrConsume.equals("Provides") && !deleteOtherInterfaces) {
-							if(commentSplit[1].contains(systemName)) { // dhmsm provides and our system consumes -> direct cost
-								directCost = true;
-								if(usePhase) {
-									finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList, rowIdx);
-								} else {
-									finalCost = calculateCost(dataObject, systemName, "Consume", false, servicesProvideList);
-								}
-								deleteOtherInterfaces = true;
-								skipFistIteration = true;
-								for(Integer index : indexArr)
-								{
-									if(index < newData.size() && newData.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
-									{
-										Object[] modifyCost = newData.get(index);
-										modifyCost[i+1] = "Interface already taken into consideration.";
-										modifyCost[i+2] = "";
-										modifyCost[i+3] = "";
-									}
-								}
-							} else { // dhmsm provides and other system consumes -> indirect cost
-								finalCost = calculateCost(dataObject, interfacingSystem, "Consume", false, servicesProvideList);
-								directCost = false;
-							}
-						}
-	
-						if(finalCost == null) {
-							if(usePhase) {
-								sysCostInfo.remove(rowIdx);
-							}
-							if(deleteOtherInterfaces && !skipFistIteration) {
-								newRow[i+1] = "Interface already taken into consideration.";
-								skipFistIteration = false;
-							} else {
-								newRow[i+1] = "Cost already taken into consideration.";
-							}
-							newRow[i+2] = "";
-							newRow[i+3] = "";
-						} else if(finalCost != (double) 0){
-							if(directCost) {
-								newRow[i+1] = comment;
-								newRow[i+2] = finalCost;
-								newRow[i+3] = "";
-								totalDirectCost += finalCost;
-							} else {
-								newRow[i+1] = comment;
-								newRow[i+2] = "";
-								newRow[i+3] = finalCost;
-								totalIndirectCost += finalCost;
-							}
-						} else {
-							if(usePhase) {
-								sysCostInfo.remove(rowIdx);
-							}
-							newRow[i+1] = "No data present to calculate loe.";
-							newRow[i+2] = "";
-							newRow[i+3] = "";
-						}
-					}
-				} else {
-					newRow[i] = row[i];
-				}
-			}
-			newData.add(newRow);
-		}
-		
-		return newData;
-	}
-
-	//TODO: remove method and make classes that use this uses generateReport()
-	public ArrayList<Object[]> createLPNIInterfaceWithCostHash(String systemName, ArrayList<Object[]> oldData) 
-	{
-		ArrayList<Object[]> newData = new ArrayList<Object[]>();
-		// clear the list of services already built for each system report
-		HashSet<String> servicesProvideList = new HashSet<String>();
-		totalDirectCost = 0;
-		totalIndirectCost = 0;
-		String dataObject = "";
-		String interfacingSystem = "";
-		String interfaceType = "";
-		
-		boolean directCost = true;
-		
-		for(Object[] row : oldData)
-		{
-			Object[] newRow = new Object[oldData.get(0).length + 3];
-			for(int rowIdx = 0; rowIdx < row.length; rowIdx++)
-			{
-				if(rowIdx == 0) {
-					interfaceType = row[rowIdx].toString();
-					newRow[rowIdx] = interfaceType;
-				} if(rowIdx == 1) {
-					interfacingSystem= row[rowIdx].toString(); 
-					newRow[rowIdx] = interfacingSystem;
-				} else if(rowIdx == 4) {
-					dataObject = row[rowIdx].toString(); 
-					newRow[rowIdx] = dataObject;
-				} else if(rowIdx == row.length - 1) {
-					String comment = row[rowIdx].toString();
-					
-					String servicesList = serviceToDataHash.get(dataObject);
-					if(servicesList == null) {
-						servicesList = "No Services";
-					}
-					newRow[rowIdx] = servicesList;
-					newRow[rowIdx+1] = comment;
-
-					String[] commentSplit = comment.split("\\.");
-					commentSplit = commentSplit[0].split("->");
-					Double finalCost = null;
-					// DHMSM is receiving information from LPNI which is a SOR of the data object
-					if( commentSplit[0].contains(systemName) && commentSplit[1].contains("DHMSM") )
-					{
-						if(usePhase) {
-							finalCost = calculateCost(dataObject, systemName, "Provide", true, servicesProvideList, rowIdx);
-						} else {
-							finalCost = calculateCost(dataObject, systemName, "Provide", true, servicesProvideList);
-						}
-						directCost = true;
-					} 
-					else if( lpiSystemList.contains(interfacingSystem) && dhmsmSORList.contains(dataObject) && interfaceType.equals("Upstream"))
-					{
-						finalCost = calculateCost(dataObject, interfacingSystem, "Consume", false, servicesProvideList);
-						directCost = false;
-					} 
-						
-					if(finalCost == null) {
-						if(usePhase) {
-							sysCostInfo.remove(rowIdx);
-						}
-						newRow[rowIdx+2] = "";
-						newRow[rowIdx+3] = "";
-					} else if(finalCost != (double) 0){
-						if(directCost) {
-							newRow[rowIdx+1] = comment;
-							newRow[rowIdx+2] = finalCost;
-							newRow[rowIdx+3] = "";
-							totalDirectCost += finalCost;
-						} else {
-							newRow[rowIdx+1] = comment;
-							newRow[rowIdx+2] = "";
-							newRow[rowIdx+3] = finalCost;
-							totalIndirectCost += finalCost;
-						}
-					} else {
-						if(usePhase) {
-							sysCostInfo.remove(rowIdx);
-						}
-						newRow[rowIdx+1] = "No data present to calculate loe.";
-						newRow[rowIdx+2] = "";
-						newRow[rowIdx+3] = "";
-					}
-				} else {
-					newRow[rowIdx] = row[rowIdx];
-				}
-			}
-			newData.add(newRow);
-		}
-
-		return newData;
-	}
 }
