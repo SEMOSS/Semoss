@@ -9,23 +9,49 @@
     <link rel="stylesheet" href="css/d3.slider.css" />
     <link rel="stylesheet" href="css/network-timeline.css" />
 </head>
-<body >
-    <div id="sidebarHeader">
-        <div class="slider-container">
-            <div id="slider"></div>
-        </div>
-    </div>
-    <div id="sidebarContainer">
-        <div id="sidebarContentArea">
-            <div id="sidebarContentLeft">
-
-            </div>
-            <div id="sidebarContentRight">
-
+<body ng-app="main">
+    <div id="controllerID" ng-controller="NetworkCtrl">
+        <div id="sidebarHeader">
+            <div class="slider-container">
+                <div id="slider"></div>
             </div>
         </div>
-        <div id="sidebarFooter"></div>
+        <div id="sidebarContainer">
+            <div id="sidebarContentArea">
+
+                <div id="sidebarContentLeft">
+                    <table ng-table="tableParams" show-filter="true" class="table">
+                        <tr ng-repeat="user in $data">
+                            <td data-title="'Phase'" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center">
+                                {{user.phase}}
+                            </td>
+                            <td data-title="'LOE'" sortable="'LOE'" filter="{ 'LOE': 'text' }" header-class = "text-center" class="text-right" >
+                                {{user.LOE}}
+                            </td>
+                            <td data-title="'Dependent ICDs'" sortable="'dependICDS'" filter="{ 'dependICDS': 'text' }" header-class = "text-center" class="text-right" >
+                                {{user.dependICDS}}
+                            </td>
+                            <td data-title="'GL Item'" sortable="'GLitem'" filter="{ 'GLitem': 'text' }" header-class = "text-center" class="text-right" >
+                                {{user.GLitem}}
+                            </td>
+                            <td data-title="'GL Tag'" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center" class="text-right" >
+                                {{user.gltag}}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div id="sidebarContentRight">
+                    <forcegraph data="forceData"></forcegraph>
+                </div>
+
+            </div>
+            <div id="sidebarFooter"></div>
+        </div>
     </div>
+    <script src="lib/angular/angular_new.js"></script>
+    <script src="js/ng-table.js"></script>
+
     <script type="text/javascript" src="lib/d3.v3.js"></script>
     <script type="text/javascript" src="lib/tooltip.js"></script>
     <script src="lib/jquery/jquery-1.11.0.min.js"></script>
@@ -35,334 +61,476 @@
     <script src="lib/d3.slider.js"></script>
     <script src="data/timeline-data.js"></script>
     <script>
-    
+
 //    	var testData = "{\"edges\":[{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:ABTS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:CHCS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:CHCS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:CHCS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:ABTS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:ABTS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\"}}],\"nodes\":{\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"CHCS-ABTS-Patient_ID\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:ABTS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\"}}]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"CHCS-ABTS-Order_Information\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:ABTS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\"}}]},\"http://health.mil/ontologies/Concept/DataObject/Order_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Inputs\":2,\"VERTEX_COLOR_PROPERTY\":\"255,127,14\",\"VERTEX_TYPE_PROPERTY\":\"DataObject\",\"URI\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"Category\":{\"label\":\"Clinical\"},\"Description\":{\"label\":\"Information_contained_within_medical_orders,_lab_orders,_and_pharmacy_orders.\"},\"InterfaceControlDocument\":2,\"VERTEX_LABEL_PROPERTY\":\"Order_Information\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}}],\"outEdge\":[]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"ABTS-CHCS-Patient_Test_Results\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:CHCS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\"}}]},\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\":{\"uri\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Inputs\":2,\"VERTEX_COLOR_PROPERTY\":\"255,127,14\",\"VERTEX_TYPE_PROPERTY\":\"DataObject\",\"URI\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"Category\":{\"label\":\"Clinical\"},\"Description\":{\"label\":\"Unique_Patient_Identifier_such_as_SSN_or_EDIPI.\"},\"InterfaceControlDocument\":2,\"VERTEX_LABEL_PROPERTY\":\"Patient_ID\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}}],\"outEdge\":[]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"ABTS-CHCS-Order_Information\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Order_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:Order_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Order_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Order_Information:Order_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:CHCS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\"}}]},\"http://health.mil/ontologies/Concept/System/CHCS\":{\"uri\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"User_Consoles\":{\"label\":\"NA\"},\"Number_of_Users\":{\"label\":\"NA\"},\"Inputs\":4,\"TechnicalStandardTM\":1.8893129770992367,\"InterfaceControlDocument\":8,\"ExternalStabilityTM\":4.69,\"Transactional\":{\"label\":\"Yes\"},\"Availability-Required\":{\"label\":\"NA\"},\"VERTEX_TYPE_PROPERTY\":\"System\",\"ATO_Date\":{\"label\":\"NA\"},\"URI\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"GarrisonTheater\":{\"label\":\"Garrison\"},\"End_of_Support_Date\":{\"label\":\"NA\"},\"VERTEX_COLOR_PROPERTY\":\"31,119,180\",\"POC\":{\"label\":\"TBD\"},\"BusinessValue\":0.1034260030872032,\"VERTEX_LABEL_PROPERTY\":\"CHCS\",\"Outputs\":4,\"Full_System_Name\":{\"label\":\"TBD\"},\"Availability-Actual\":0.8766,\"Description\":{\"label\":\"CHCS_is_the_military�s_legacy_computerized_provider_order_entry_system_supporting_over_700_Military_Treatment_Facilities_worldwide._It_provides_for_order-document_laboratory_tests,_radiology_exams,_performs_prescription_transactions,_documents_outpatient_appointments_and_other_care_administered_to_9.1_million_beneficiaries._CHCS_improves_patient_safety_and_enables_improved_quality_of_care.\"},\"Transaction_Count\":{\"label\":\"NA\"}},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Order_Information:CHCS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Order_Information:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:CHCS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:CHCS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Test_Results:CHCS\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Order_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_ID\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\"}}]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"ABTS-CHCS-Patient_ID\",\"Outputs\":2,\"Protocol\":{\"label\":\"TCP\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_ID\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:Patient_ID\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_ID\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_ID:Patient_ID\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_ID:CHCS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_ID:CHCS\"}}]},\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\":{\"uri\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Inputs\":2,\"VERTEX_COLOR_PROPERTY\":\"255,127,14\",\"VERTEX_TYPE_PROPERTY\":\"DataObject\",\"URI\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"Category\":{\"label\":\"Clinical\"},\"Description\":{\"label\":\"Results_from_patient's_lab_and_diagnostic_tests.\"},\"InterfaceControlDocument\":2,\"VERTEX_LABEL_PROPERTY\":\"Patient_Test_Results\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"Army_Blood_Testing_Service_-_CHCS\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}}],\"outEdge\":[]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"CHCS-ABTS-Patient_Test_Results\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Test_Results\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Test_Results\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Test_Results\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Test_Results:Patient_Test_Results\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:ABTS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\"}}]},\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Inputs\":2,\"VERTEX_COLOR_PROPERTY\":\"255,127,14\",\"VERTEX_TYPE_PROPERTY\":\"DataObject\",\"URI\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"Category\":{\"label\":\"Clinical\"},\"Description\":{\"label\":\"Allow_for_the_identification_of_a_patient_and_his_categorization_into_categories._Demographic_categories_may_include:_Date_of_birth,_gender,_birth_year,_country,_address,_ethnicity,_blood_type,_contact_information,_medical_history,_insurance_provider_data.\"},\"InterfaceControlDocument\":2,\"VERTEX_LABEL_PROPERTY\":\"Patient_Demographics_and_Information\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}}],\"outEdge\":[]},\"http://health.mil/ontologies/Concept/System/ABTS\":{\"uri\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"User_Consoles\":{\"label\":\"NA\"},\"Number_of_Users\":{\"label\":\"NA\"},\"Inputs\":4,\"TechnicalStandardTM\":0.0,\"InterfaceControlDocument\":8,\"ExternalStabilityTM\":0.0,\"Transactional\":{\"label\":\"Yes\"},\"Availability-Required\":{\"label\":\"NA\"},\"VERTEX_TYPE_PROPERTY\":\"System\",\"ATO_Date\":{\"label\":\"NA\"},\"URI\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"GarrisonTheater\":{\"label\":\"TBD\"},\"End_of_Support_Date\":{\"label\":\"NA\"},\"VERTEX_COLOR_PROPERTY\":\"31,119,180\",\"POC\":{\"label\":\"TBD\"},\"BusinessValue\":0.0,\"VERTEX_LABEL_PROPERTY\":\"ABTS\",\"Outputs\":4,\"Full_System_Name\":{\"label\":\"Army_Blood_Testing_Service\"},\"Availability-Actual\":{\"label\":\"NA\"},\"Description\":{\"label\":\"NA\"},\"Transaction_Count\":{\"label\":\"NA\"}},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Order_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Order_Information:ABTS\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Order_Information:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_ID\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_ID:ABTS\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_ID:ABTS\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Test_Results\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Test_Results:ABTS\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Test_Results:ABTS\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Order_Information\",\"DataObject\":{\"label\":\"Order_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Order_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_ID\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_ID\",\"DataObject\":{\"label\":\"Patient_ID\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_ID\"}},{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Test_Results\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Test_Results\",\"DataObject\":{\"label\":\"Patient_Test_Results\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Test_Results\"}}]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"CHCS-ABTS-Patient_Demographics_and_Information\",\"Outputs\":2,\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"CHCS:CHCS-ABTS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/CHCS:CHCS-ABTS-Patient_Demographics_and_Information\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"The_operational_objective_of_the_interface_between_CHCS_and_the_ABTS_is_to_share_HIV_laboratory_order_and_results_information_between_CHCS_and_the_ABTS_system_at_ViroMED_Laboratories._CHCS_permits_users_to_accession_and_batch_HIV_laboratory_tests_to_be_processed_by_ABTS._ABTS_enables_laboratory_technicians_to_keep_electronic_records_of_HIV_laboratory_orders_received_and_their_results.\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"CHCS_Interface_List_10012008_Color_Coded_xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"Socket-to-Socket_(HL7)\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/CHCS-ABTS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"NA\"},\"Interface_Name\":{\"label\":\"CHCS_-_Army_Blood_Testing_Service\"},\"Frequency\":{\"label\":\"Batch\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/CHCS-ABTS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"propHash\":{\"EDGE_NAME\":\"CHCS-ABTS-Patient_Demographics_and_Information:ABTS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/CHCS-ABTS-Patient_Demographics_and_Information:ABTS\"}}]},\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\":{\"uri\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"DataObject\":1,\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"System\":2,\"VERTEX_TYPE_PROPERTY\":\"InterfaceControlDocument\",\"VERTEX_LABEL_PROPERTY\":\"ABTS-CHCS-Patient_Demographics_and_Information\",\"Outputs\":2,\"Protocol\":{\"label\":\"TCP\"},\"Inputs\":1,\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"},\"VERTEX_COLOR_PROPERTY\":\"44,160,44\"},\"inEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/System/ABTS\",\"target\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"propHash\":{\"EDGE_NAME\":\"ABTS:ABTS-CHCS-Patient_Demographics_and_Information\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Provide\",\"URI\":\"http://health.mil/ontologies/Relation/Provide/ABTS:ABTS-CHCS-Patient_Demographics_and_Information\"}}],\"outEdge\":[{\"uri\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/DataObject/Patient_Demographics_and_Information\",\"propHash\":{\"Description\":{\"label\":\"ASCII_Data_Transfer\"},\"Type\":{\"label\":\"TBD\"},\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Source\":{\"label\":\"HIV_ICD_21JUL.doc;_Protocol_information_from:_CHCS_Interface_List_10222013.xls\"},\"EDGE_TYPE\":\"Payload\",\"Protocol\":{\"label\":\"TCP\"},\"Data\":{\"label\":\"Patient_Demographics_and_Information\"},\"URI\":\"http://health.mil/ontologies/Relation/Payload/ABTS-CHCS-Patient_Demographics_and_Information:Patient_Demographics_and_Information\",\"Format\":{\"label\":\"ASCII\"},\"Interface_Name\":{\"label\":\"ABTS-CHCS\"},\"Frequency\":{\"label\":\"NA\"}}},{\"uri\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"source\":\"http://health.mil/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient_Demographics_and_Information\",\"target\":\"http://health.mil/ontologies/Concept/System/CHCS\",\"propHash\":{\"EDGE_NAME\":\"ABTS-CHCS-Patient_Demographics_and_Information:CHCS\",\"DataObject\":{\"label\":\"Patient_Demographics_and_Information\"},\"EDGE_TYPE\":\"Consume\",\"URI\":\"http://health.mil/ontologies/Relation/Consume/ABTS-CHCS-Patient_Demographics_and_Information:CHCS\"}}]}},\"title\":\"ABTS - What is the composition of this system? (2)\",\"playsheet\":\"prerna.ui.components.playsheets.GraphPlaySheet\",\"id\":\"1. TAP_Core_Data:System-Perspective:SysP3\"}";
         $("#sidebarContentLeft").resizable({
                 handles: 'e'
             });
 
-        var links = [],
-            nodes = [],
-            newNodes = [],
-            newLinks = [],
-            obj = {},
-            linkedByIndex = {},
-            legendNodes = [],
-            margin = {top: 100, right: 100, bottom: 100, left: 100}, container = {width: 0, height: 0};
+        function start(dataPassed) {
 
-        //TODO: this needs to be refactored to use container and margin objects
-        var width = 0;
-        var height = 0;
-        width = parseInt(d3.select('#sidebarContentLeft').style('width'));
-        height = parseInt(d3.select('#sidebarContentLeft').style('height'));
+            var ctrlScope = angular.element(jQuery('#controllerID')).scope();
+            // calling function in controller
+            ctrlScope.setJSONData(dataPassed);
 
-        var xScale = d3.scale.linear()
-                .domain([0,width])
-                .range([0,width]);
+        };
 
-        var yScale = d3.scale.linear()
-                .domain([0,height])
-                .range([0,height]);
+        angular.module('main', ['ngTable']).
+            controller('NetworkCtrl', function($scope, $filter, ngTableParams, $timeout) {
+                    $scope.forceData = '';
+                    $scope.tableData = [];
 
-        var rScale = d3.scale.linear()
-                .rangeRound([8, 16])
-                .nice();
+                    $timeout(function () {
+                        $scope.forceData = timeline_data;
+                        setTableData($scope.forceData.nodes);
+                    }, 500);
 
-        var lScale = d3.scale.linear()
-                .range([1.5, 4.5]);
+                    $scope.setJSONData = function (data) {
+                        $scope.$apply(function () {
+                            $scope.forceData = jQuery.parseJSON(data);
+                            setTableData($scope.forceData.nodes);
+                        });
+                    };
 
-        /*** Configure zoom behaviour ***/
-//        var zoomer = d3.behavior.zoom()
-//                .scaleExtent([0.1,10])
-//                .x(xScale)
-//                .y(yScale)
-//                .on("zoom", zoom);
+                    function setTableData(nodes) {
+                        var tableData = [];
+                        for (var node in nodes) {
+                            if (nodes[node].propHash.timeHash) {
 
-        var force = d3.layout.force()
-                .size([width, height])
-                .gravity(.09) //attraction to the center of the screen and within the screen layout
-                .linkDistance(60)
-                .charge(-200) //amount of node repulsion(negative) or attraction(positive)
-                .on("tick", tick);
+                                //for (var phase in nodes[node].propHash.timeHash) {
 
-        var drag = force.drag()
-                .origin(function(d) { return d; }); //center of circle
+                                    if (d3.select('.slider').value) {
+
+                                    } else if (!nodes[node].propHash.timeHash.Decommissioned) {
+                                        var newItem = {
+                                            phase: nodes[node].propHash.timeHash.Design.phase,
+                                            LOE: nodes[node].propHash.timeHash.Design.LOE,
+                                            dependICDS: nodes[node].propHash.timeHash.Design.dependICDS,
+                                            GLitem: nodes[node].propHash.timeHash.Design.GLitem,
+                                            gltag: nodes[node].propHash.timeHash.Design.gltag
+                                        };
+
+                                        tableData.push(newItem);
+                                    } else {
+
+                                    }
+                                //}
+                            }
+                        }
+
+                        $scope.tableData = tableData;
+                        $scope.tableParams.count(tableData.length);
+                        $scope.tableParams.reload();
+                    }
+
+                    function getTableData() {
+                        if ($scope.tableData) {
+                            return $scope.tableData;
+                        } else {
+                            return [];
+                        }
+                    }
+
+                    $scope.tableParams = new ngTableParams({
+                        count: getTableData().length,          // count per page
+                        sorting: {
+                            phase: 'asc'     // initial sorting
+                        }
+                    }, {
+                        total: getTableData().length, // length of data
+                        getData: function($defer, params) {
+                            var data = getTableData();
+                            // use build-in angular filter
+                            var filteredData = params.filter() ?
+                                    $filter('filter')(data, params.filter()) :
+                                    data;
+                            var orderedData = params.sorting() ?
+                                    $filter('orderBy')(filteredData, params.orderBy()) :
+                                    data;
+                            params.total(orderedData.length); // set total for recalc pagination
+                            $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
+                        }
+                    });
+            }).
+            directive('forcegraph', function() {
+                    return {
+                        restrict: 'AE',
+                        scope: {
+                            data: '=',
+                            d3Width: '=',
+                            d3Height: '=',
+                            toggleLabel: '=',
+                            uriSend: '&uri',
+                            clearGraph: '=',
+                            control: '=',
+                            sendLegend: '&',
+                            containerClass: "=",
+                            isMenuOpen: "=",
+                            showTitle: "=",
+                            labels: "="
+                        },
+                        link: function (scope, ele, attrs) {
+                            var links = [],
+                                    nodes = [],
+                                    newNodes = [],
+                                    newLinks = [],
+                                    obj = {},
+                                    linkedByIndex = {},
+                                    legendNodes = [],
+                                    margin = {top: 100, right: 100, bottom: 100, left: 100},
+                                    container = {width: 0, height: 0},
+                                    maxLOE = 0,
+                                    minLOE = 0;
+
+                            //TODO: this needs to be refactored to use container and margin objects
+                            var width = 0;
+                            var height = 0;
+                            width = parseInt(d3.select('#sidebarContentRight').style('width'));
+                            height = parseInt(d3.select('#sidebarContentRight').style('height'));
+
+                            scope.$watch('data', function() {
+                                if (!_.isEmpty(scope.data)) {
+
+                                    newNodes = scope.data.nodes;
+                                    newLinks = scope.data.edges;
+
+                                    for (var prop in newNodes) {
+                                        obj = $.extend({}, newNodes[prop]);
+                                        obj.id = prop;
+                                        nodes.push(obj);
+                                    }
+                                    newLinks.forEach(function (link) {
+                                        //depending on if the link.source & link.target are already pointing to
+                                        //strings or object instances
+                                        link.source = findNode(link.source) || findNode(link.source.id);
+                                        link.target = findNode(link.target) || findNode(link.target.id);
+                                        links.push(link);
+                                    });
+
+                                    calculateMaxLOE();
+
+                                    d3.select('#slider')
+                                            .call(d3.slider().axis(true).min(minLOE).max(maxLOE).step(2).on('slide', function (e, v) {
+                                                console.log(e);
+                                                console.log(v);
+                                            }));
+
+
+                                    update();
+                                }
+
+                            });
+
+                            var xScale = d3.scale.linear()
+                                    .domain([0, width])
+                                    .range([0, width]);
+
+                            var yScale = d3.scale.linear()
+                                    .domain([0, height])
+                                    .range([0, height]);
+
+                            var rScale = d3.scale.linear()
+                                    .rangeRound([8, 16])
+                                    .nice();
+
+                            var lScale = d3.scale.linear()
+                                    .range([1.5, 4.5]);
+
+                            /*** Configure zoom behaviour ***/
+                            //        var zoomer = d3.behavior.zoom()
+                            //                .scaleExtent([0.1,10])
+                            //                .x(xScale)
+                            //                .y(yScale)
+                            //                .on("zoom", zoom);
+
+                            var force = d3.layout.force()
+                                    .size([width, height])
+                                    .gravity(.09) //attraction to the center of the screen and within the screen layout
+                                    .linkDistance(60)
+                                    .charge(-200) //amount of node repulsion(negative) or attraction(positive)
+                                    .on("tick", tick);
+
+                            var drag = force.drag()
+                                    .origin(function (d) {
+                                        return d;
+                                    }); //center of circle
 //                .on("dragstart", dragstarted)
 //                .on('drag.force', dragged)
 //                .on("drag", dragged)
 //                .on("dragend", dragended);
 
-        var svg = d3.select('#sidebarContentLeft').append("svg")
-                .attr("width", width)
-                .attr("height", height);
+                            var svg = d3.select(ele[0]).append("svg")
+                                    .attr("width", width)
+                                    .attr("height", height);
 
-        var graph = svg.append("g")
-                .attr("class", "graph");
+                            var graph = svg.append("g")
+                                    .attr("class", "graph");
 //                .call(zoomer); //Attach zoom behaviour.
 
-        var rect = graph.append("rect")
-                .attr("width", width)
-                .attr("height", height)
-                .style("fill", "none")
-            //make transparent (vs black if commented-out)
-                .style("pointer-events", "all");
-        //respond to mouse, even when transparent
+                            var rect = graph.append("rect")
+                                    .attr("width", width)
+                                    .attr("height", height)
+                                    .style("fill", "none")
+                                //make transparent (vs black if commented-out)
+                                    .style("pointer-events", "all");
+                            //respond to mouse, even when transparent
 
-        var vis = graph.append("g")
-                .attr("class", "plotting-area");
+                            var vis = graph.append("g")
+                                    .attr("class", "plotting-area");
 
-        // Per-type markers, as they don't inherit styles.
-        var defs = vis.append("defs").selectAll("marker")
-                .data(["end"])
-                .enter().append("marker")
-                .attr("id", function(d) { return d; })
-                .attr("viewBox", "0 -5 10 10")
-                .attr("refX", 15)
-                .attr("refY", -1.5)
-                .attr("markerWidth", 6)
-                .attr("markerHeight", 6)
-                .attr("orient", "auto")
-                .append("path")
-                .attr("d", "M0,-5L10,0L0,5")
-                .style("pointer-events", "none"); //no events need to be fired off of marker
+                            // Per-type markers, as they don't inherit styles.
+                            var defs = vis.append("defs").selectAll("marker")
+                                    .data(["end"])
+                                    .enter().append("marker")
+                                    .attr("id", function (d) {
+                                        return d;
+                                    })
+                                    .attr("viewBox", "0 -5 10 10")
+                                    .attr("refX", 15)
+                                    .attr("refY", -1.5)
+                                    .attr("markerWidth", 6)
+                                    .attr("markerHeight", 6)
+                                    .attr("orient", "auto")
+                                    .append("path")
+                                    .attr("d", "M0,-5L10,0L0,5")
+                                    .style("pointer-events", "none"); //no events need to be fired off of marker
 
-        //add legend
-        var legendBox = svg.append("g")
-                .attr("class", "legend")
-                .attr("height", 100)
-                .attr("width", 100);
+                            //add legend
+                            var legendBox = svg.append("g")
+                                    .attr("class", "legend")
+                                    .attr("height", 100)
+                                    .attr("width", 100);
 
-        var container = svg.append("g");
+                            var container = svg.append("g");
 
-        var node = vis.selectAll(".node"),
-                link = vis.selectAll(".link");
+                            var node = vis.selectAll(".node"),
+                                    link = vis.selectAll(".link");
 
-        nodes = force.nodes();
-        links = force.links();
-        
-        function start(dataString) {
-	        // define the x scale (horizontal)
-	        var mindate = new Date(2016,06,10),
-	            maxdate = new Date(2017,07,21),
-			    timeFormat = d3.time.format("%Y-%m-%d");
+                            nodes = force.nodes();
+                            links = force.links();
 
-			//d3.slider().axis(true).min(timeFormat(mindate)).max(timeFormat(maxdate)).step(5)
-	        console.log(timeFormat(mindate));
-	        console.log(timeFormat(maxdate));
-	        console.log(timeFormat.parse("2016-06-10"));
-	        console.log(timeFormat.parse("2017-07-22"));
-	        console.log(new Date(1500000000000));
-            d3.select('#slider').call(d3.slider().axis(true).min(mindate).max(maxdate).step(2));
+                            function update() {
+                                /*** Configure zoom behaviour ***/
+                                var zoomer = d3.behavior.zoom()
+                                        .scaleExtent([0.1,10])
+                                        .x(xScale)
+                                        .y(yScale)
+                                        .on("zoom", zoom);
+                                //set up legendNodes array for legend
+                                var flags = {};
+                                legendNodes = nodes.filter(function(node) {
+                                    if (flags[node.propHash.VERTEX_TYPE_PROPERTY]) {
+                                        return false;
+                                    }
+                                    flags[node.propHash.VERTEX_TYPE_PROPERTY] = true;
+                                    return true;
+                                });
 
-            newNodes = dataString.nodes;
-            newLinks = dataString.edges;
+                                //highlight adjacent -> will be moved to a click event
+                                links.forEach(function(d) {
+                                    linkedByIndex[d.source.id + "," + d.target.id] = 1;
+                                });
 
-            for(var prop in newNodes) {
-                obj = $.extend({}, newNodes[prop]);
-                obj.id = prop;
-                nodes.push(obj);
-            }
-            newLinks.forEach(function(link) {
-                //depending on if the link.source & link.target are already pointing to
-                //strings or object instances
-                link.source = findNode(link.source) || findNode(link.source.id);
-                link.target = findNode(link.target) || findNode(link.target.id);
-                links.push(link);
+                                //link update...
+                                link = link.data(links, function(d) {
+                                    return d.source.id + "-" + d.target.id;
+                                });
+
+                                //link enter...
+                                link.enter()
+                                        .insert("path", ".node") //paths should always be placed before the group of nodes/text
+                                        .attr("class", "link")
+                                        .attr("marker-end", function(d) { return "url(#end)"; })
+                                        .attr("id", function(d, i) { return "linkId_" + i; })
+                                        .attr("fill", "none")
+                                        .attr("stroke", "#666")
+                                        .attr("stroke-width", 1.5);
+
+                                //link exit...
+                                link.exit()
+                                        .transition().duration(500)
+                                        .remove();
+
+                                //node update...
+                                node = node.data(nodes, function(d) {
+                                    return d.id;
+                                });
+
+                                //node enter g...
+                                var nodeEnter = node.enter().append("g")
+                                        .attr("class", function(d) { return "node " + d.id; })
+                                        .call(drag);
+
+                                //node enter circle...
+                                nodeEnter.append("circle")
+                                        .attr("class", "node")
+                                        .attr("r", 0).transition().duration(1000)
+                                        .attr("r", 8)
+                                        .attr("fill", function(d){
+                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")")
+                                        })
+                                        .attr("stroke", "#777")
+                                        .attr("stroke-width", 1.5)
+                                        .attr("data-legend", function(d) {
+                                            return d.propHash.VERTEX_COLOR_PROPERTY;
+                                        });
+
+                                //node enter text...
+                                nodeEnter.append("text")
+                                        .attr("class", "nodetext")
+                                        .attr("x", 12)
+                                        .attr("dy", ".35em")
+                                        .attr("stroke", "none")
+                                        .style("font-size", "10px")
+                                        .text(function(d) {
+                                            return d.propHash.VERTEX_TYPE_PROPERTY;
+                                        });
+
+                                //node group removal with transition...
+                                node.exit()
+                                        .selectAll("circle")
+                                        .transition().duration(1000)
+                                        .attr("r", 0)
+                                        .remove();
+                                node.exit()
+                                        .selectAll("text")
+                                        .transition().duration(1000)
+                                        .style("font-size","0px")
+                                        .remove();
+                                node.exit().transition().delay(1000).remove();
+
+                                //legend update...
+                                var legend = legendBox.selectAll('circle')
+                                        .data(legendNodes, function(d) {
+                                            return d.propHash.VERTEX_TYPE_PROPERTY;
+                                        });
+
+                                //legend enter...
+                                legend.enter()
+                                        .append("circle")
+                                        .attr("r", 0)
+                                        .transition().duration(1000)
+                                        .attr("r", 6)
+                                        .attr("stroke-width", 1)
+                                        .attr("stroke", function(d) {
+                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
+                                        })
+                                        .attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 15) + ")"; })
+                                        .style("fill", function(d) {
+                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
+                                        });
+
+                                //legend exit...(move below with legendText exit?)
+                                legend.exit().transition()
+                                        .attr("r", 0)
+                                        .remove();
+
+                                //legendText update...
+                                var legendText = legendBox.selectAll('text')
+                                        .data(legendNodes, function(d) {
+                                            return d.propHash.VERTEX_TYPE_PROPERTY;
+                                        });
+
+                                //legendText enter...
+                                legendText.enter()
+                                        .append("text")
+                                        .transition().duration(1000)
+                                        .attr("x", 12)
+                                        .attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 19) + ")"; })
+                                        .text(function(d) {
+                                            return d.propHash.VERTEX_TYPE_PROPERTY;
+                                        });
+
+                                //legendText exit...
+                                legendText.exit().transition()
+                                        .remove();
+
+                                var legendTextArray = [];
+                                //setting array of just the name values of each type, then sending them to a controller function
+                                for (var i=0; i< legendNodes.length; i++) {
+                                    legendTextArray.push(legendNodes[i].propHash.VERTEX_TYPE_PROPERTY);
+                                }
+
+                                //need to combine this selectALL and the bottom selectAll into one group
+                                d3.select(".legend").selectAll("text")
+                                        .style("cursor", "pointer")
+                                        .on("click", function(d) {
+                                            legendClick(d);
+                                        });
+
+                                d3.select(".legend").selectAll("circle")
+                                        .style("cursor", "pointer")
+                                        .on("click", function(d) {
+                                            legendClick(d);
+                                        });
+
+                                force.start();
+                            }
+
+                            function calculateMaxLOE() {
+                                for (var i=0; i<nodes.length; i++) {
+                                    if (nodes[i].propHash.timeHash) {
+                                        var total = 0;
+                                        if (nodes[i].propHash.timeHash.Design) {
+                                            total += nodes[i].propHash.timeHash.Design.LOE;
+                                        }
+                                        if (nodes[i].propHash.timeHash.Requirements) {
+                                            total += nodes[i].propHash.timeHash.Requirements.LOE;
+                                        }
+                                        if (nodes[i].propHash.timeHash.Test) {
+                                            total += nodes[i].propHash.timeHash.Test.LOE;
+                                        }
+                                        if (nodes[i].propHash.timeHash.Develop) {
+                                            total += nodes[i].propHash.timeHash.Develop.LOE;
+                                        }
+                                    }
+
+                                    if (total > maxLOE) {
+                                        maxLOE = total;
+                                    }
+                                }
+                            }
+
+                            function updatePhase() {
+                                d3.select('.node');
+                            }
+
+                            //find node by 'id' within nodes array
+                            function findNode(id) {
+                                for (var i in nodes) {
+                                    if (nodes[i]["id"] === id)
+                                        return nodes[i]
+                                };
+                            }
+
+                            //Please comment
+                            function zoom() {
+                                tick();
+                            }
+
+                            //Please comment
+                            function tick() {
+                                link.attr("d", linkArc);
+                                node.attr("transform", function(d) {
+                                    return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")"; });
+                            }
+
+                            //create curved paths between nodes
+                            function linkArc(d) {
+                                var dx = xScale(d.target.x) - xScale(d.source.x),
+                                        dy = yScale(d.target.y) - yScale(d.source.y),
+                                        dr = Math.sqrt(dx * dx + dy * dy);
+                                return "M" + xScale(d.source.x) + "," + yScale(d.source.y) + "A" + dr + "," + dr + " 0 0,1 " + xScale(d.target.x) + "," + yScale(d.target.y);
+                            }
+
+
+                        }//end of link
+                    }//end of return
             });
 
-            update();
 
 
-            
-        };
-
-        function update() {
-            /*** Configure zoom behaviour ***/
-            var zoomer = d3.behavior.zoom()
-                    .scaleExtent([0.1,10])
-                    .x(xScale)
-                    .y(yScale)
-                    .on("zoom", zoom);
-            //set up legendNodes array for legend
-            var flags = {};
-            legendNodes = nodes.filter(function(node) {
-                if (flags[node.propHash.VERTEX_TYPE_PROPERTY]) {
-                    return false;
-                }
-                flags[node.propHash.VERTEX_TYPE_PROPERTY] = true;
-                return true;
-            });
-
-            //highlight adjacent -> will be moved to a click event
-            links.forEach(function(d) {
-                linkedByIndex[d.source.id + "," + d.target.id] = 1;
-            });
-
-            //link update...
-            link = link.data(links, function(d) {
-                return d.source.id + "-" + d.target.id;
-            });
-
-            //link enter...
-            link.enter()
-                    .insert("path", ".node") //paths should always be placed before the group of nodes/text
-                    .attr("class", "link")
-                    .attr("marker-end", function(d) { return "url(#end)"; })
-                    .attr("id", function(d, i) { return "linkId_" + i; })
-                    .attr("fill", "none")
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 1.5);
-
-            //link exit...
-            link.exit()
-                    .transition().duration(500)
-                    .remove();
-
-            //node update...
-            node = node.data(nodes, function(d) {
-                return d.id;
-            });
-
-            //node enter g...
-            var nodeEnter = node.enter().append("g")
-                    .attr("class", function(d) { return "node " + d.id; })
-                    .call(drag);
-
-            //node enter circle...
-            nodeEnter.append("circle")
-                    .attr("class", "node")
-                    .attr("r", 0).transition().duration(1000)
-                    .attr("r", 8)
-                    .attr("fill", function(d){
-                        return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")")
-                    })
-                    .attr("stroke", "#777")
-                    .attr("stroke-width", 1.5)
-                    .attr("data-legend", function(d) {
-                        return d.propHash.VERTEX_COLOR_PROPERTY;
-                    });
-
-            //node enter text...
-            nodeEnter.append("text")
-                    .attr("class", "nodetext")
-                    .attr("x", 12)
-                    .attr("dy", ".35em")
-                    .attr("stroke", "none")
-                    .style("font-size", "10px")
-		            .text(function(d) {
-			            return d.propHash.VERTEX_TYPE_PROPERTY;
-		            });
-
-            //node group removal with transition...
-            node.exit()
-                    .selectAll("circle")
-                    .transition().duration(1000)
-                    .attr("r", 0)
-                    .remove();
-            node.exit()
-                    .selectAll("text")
-                    .transition().duration(1000)
-                    .style("font-size","0px")
-                    .remove();
-            node.exit().transition().delay(1000).remove();
-
-            //legend update...
-            var legend = legendBox.selectAll('circle')
-                    .data(legendNodes, function(d) {
-                        return d.propHash.VERTEX_TYPE_PROPERTY;
-                    });
-
-            //legend enter...
-            legend.enter()
-                    .append("circle")
-                    .attr("r", 0)
-                    .transition().duration(1000)
-                    .attr("r", 6)
-                    .attr("stroke-width", 1)
-                    .attr("stroke", function(d) {
-                        return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
-                    })
-                    .attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 15) + ")"; })
-                    .style("fill", function(d) {
-                        return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
-                    });
-
-            //legend exit...(move below with legendText exit?)
-            legend.exit().transition()
-                    .attr("r", 0)
-                    .remove();
-
-            //legendText update...
-            var legendText = legendBox.selectAll('text')
-                    .data(legendNodes, function(d) {
-                        return d.propHash.VERTEX_TYPE_PROPERTY;
-                    });
-
-            //legendText enter...
-            legendText.enter()
-                    .append("text")
-                    .transition().duration(1000)
-                    .attr("x", 12)
-                    .attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 19) + ")"; })
-                    .text(function(d) {
-                        return d.propHash.VERTEX_TYPE_PROPERTY;
-                    });
-
-            //legendText exit...
-            legendText.exit().transition()
-                    .remove();
-
-            var legendTextArray = [];
-            //setting array of just the name values of each type, then sending them to a controller function
-            for (var i=0; i< legendNodes.length; i++) {
-                legendTextArray.push(legendNodes[i].propHash.VERTEX_TYPE_PROPERTY);
-            }
-
-            //need to combine this selectALL and the bottom selectAll into one group
-            d3.select(".legend").selectAll("text")
-                    .style("cursor", "pointer")
-                    .on("click", function(d) {
-                        legendClick(d);
-                    });
-
-            d3.select(".legend").selectAll("circle")
-                    .style("cursor", "pointer")
-                    .on("click", function(d) {
-                        legendClick(d);
-                    });
-
-            force.start();
-        }
-
-        //find node by 'id' within nodes array
-        function findNode(id) {
-            for (var i in nodes) {
-                if (nodes[i]["id"] === id)
-                    return nodes[i]
-            };
-        }
-
-        //Please comment
-        function zoom() {
-            tick();
-        }
-
-        //Please comment
-        function tick() {
-            link.attr("d", linkArc);
-            node.attr("transform", function(d) {
-                return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")"; });
-        }
-
-        //create curved paths between nodes
-        function linkArc(d) {
-            var dx = xScale(d.target.x) - xScale(d.source.x),
-                    dy = yScale(d.target.y) - yScale(d.source.y),
-                    dr = Math.sqrt(dx * dx + dy * dy);
-            return "M" + xScale(d.source.x) + "," + yScale(d.source.y) + "A" + dr + "," + dr + " 0 0,1 " + xScale(d.target.x) + "," + yScale(d.target.y);
-        }
-
-        start(timeline_data);
+        //start(timeline_data);
     </script>
 </body>
 </html>
