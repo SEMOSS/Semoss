@@ -1,6 +1,5 @@
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.LogManager;
@@ -38,28 +37,23 @@ public class InsertInterfaceModernizationProperty {
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
 		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(HR_Core);
-		LPInterfaceProcessor generateCostInfo = new LPInterfaceProcessor();
+		LPInterfaceProcessor processor = new LPInterfaceProcessor();
 
 		IEngine TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data == null) {
 			throw new EngineException("TAP_Cost_Data Database not found");
 		}
 		
-		generateCostInfo.setEngine(HR_Core);
-		generateCostInfo.getCostInfo(TAP_Cost_Data);
-		generateCostInfo.getLPNIInfo(HR_Core);
+		processor.setEngine(HR_Core);
+		processor.getCostInfo(TAP_Cost_Data);
+		processor.getLPNIInfo(HR_Core);
 		for(String sysName : reportTypeHash.keySet()){
 			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-			generateCostInfo.setQuery(DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", sysName));
-			ArrayList<Object[]> data = generateCostInfo.generateReport();
-			String reportType = reportTypeHash.get(sysName);
-			if(reportType.equals("LPI") || reportType.equals("HPI")) {
-				generateCostInfo.createLPIInterfaceWithCostHash(sysName, data);
-			} else {
-				generateCostInfo.createLPNIInterfaceWithCostHash(sysName, data);
-			}
+			processor.setQuery(DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", sysName));
+			processor.isGenerateCost(true);
+			processor.generateReport();
 			
-			Object cost = (Double) generateCostInfo.getTotalDirectCost();
+			Object cost = (Double) processor.getTotalDirectCost();
 			if(cost == null) {
 				cost = "NA";
 			}

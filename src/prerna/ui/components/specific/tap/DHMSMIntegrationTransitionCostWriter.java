@@ -2,7 +2,6 @@ package prerna.ui.components.specific.tap;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.LogManager;
@@ -74,6 +73,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 		if(processor == null){
 			processor = new LPInterfaceProcessor();
 			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
+			processor.getLPNIInfo(hrCore);
+
 		} else {
 			processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
 			processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
@@ -83,9 +84,10 @@ public class DHMSMIntegrationTransitionCostWriter {
 		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
 		processor.setQuery(lpSystemInterfacesQuery);
 		processor.setEngine(hrCore);
-		ArrayList<Object[]> data = processor.generateReport();
 		processor.setUsePhase(true);
-		processor.createLPIInterfaceWithCostHash(systemName, DHMSMTransitionUtility.removeSystemFromArrayList(data));
+		processor.isGenerateCost(true);
+
+		processor.generateReport();
 		processor.consolodateCostHash();
 		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
 		
