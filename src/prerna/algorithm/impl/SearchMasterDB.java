@@ -14,45 +14,123 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.BooleanProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
-
-	//hashtable of verticies and edges in the subgraph to search for
-	Hashtable<String, SEMOSSVertex> vertStore;
-	Hashtable<String, SEMOSSEdge> edgeStore;
 	
-	//variables for creating the db
-	String dbName = "MasterDatabase";
-	IEngine engine;
+	//engine variables
+	String masterDBName = "MasterDatabase";
+	IEngine masterEngine;
 	
 	protected final static String semossURI = "http://semoss.org/ontologies";
 	protected final static String keywordBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/Keyword";
+	protected final static String databaseBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/Database";
 	protected final static String masterConceptBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/MasterConcept";
 	
+	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?Keyword WHERE {BIND(<http://semoss.org/ontologies/Concept/Keyword/@KEYWORD@> AS ?SubgraphKeyword) BIND(<http://semoss.org/ontologies/Concept/Database/@DATABASE@> AS ?Database) {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?Keyword}}";
+	protected final static String instanceExistsQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@KEYWORD@> ;}FILTER( regex (str(?s),'@KEYWORDINSTANCE@$'))}";
 	String masterConceptsQuery = "SELECT DISTINCT ?SubgraphKeyword ?MasterConcept WHERE {{?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword}}";
-	String similarKeywordsQuery = "SELECT DISTINCT ?Database ?SubgraphKeyword ?MasterKeyword WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} OPTIONAL{{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword}}}";
-	String similarMasterConceptsQuery = "SELECT DISTINCT ?Database ?SubgraphKeyword ?MasterConcept WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword}}";
-	String similarEdgesQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo ?MasterKeywordFrom ?MasterKeywordTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}";
-	String similarMasterConceptConnectionsQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}";
+	String similarKeywordsQuery = "SELECT DISTINCT ?Database ?SubgraphKeyword ?MasterKeyword WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} @FILTER@ OPTIONAL{{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword}}}";
+	String similarMasterConceptsQuery = "SELECT DISTINCT ?Database ?SubgraphKeyword ?MasterConcept WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} @FILTER@}";
+	String similarEdgesQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo ?MasterKeywordFrom ?MasterKeywordTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
+	String similarMasterConceptConnectionsQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 
-	
+	//list of keyword and edge types in the subgraph
 	ArrayList<String> keywordList;
+	ArrayList<String> edgeVertInList;
+	ArrayList<String> edgeVertOutList;
+	//list of master concepts associated with the keywords
 	ArrayList<String> masterConceptsList;
-
+	
+	//list for instances
+	ArrayList<String> keywordForInstanceList;
+	ArrayList<String> instanceList;
+	
 	public String[] headers;
 	boolean count=false;
-	//TODO methods to set engines, verticies, edges
+	boolean includeInstance = false;
 	
 	public void setCountBoolean(boolean count) {
 		this.count=count;
 	}
-	
-	public void setDBName(String dbName) {
-		this.dbName=dbName;
+		
+	public void setMasterDBName(String masterDBName) {
+		this.masterDBName=masterDBName;
 	}
+	
+//	/**
+//	 * Method to set KeywordList and EdgeLists if just given these lists.
+//	 * Will likely be used later as alternative to the below method.
+//	 */
+//	public void setKeywordAndEdgeList(ArrayList<String> keywordList,ArrayList<String> edgeVertInList,ArrayList<String> edgeVertOutList) {
+//		this.keywordList = keywordList;
+//		this.edgeVertInList = edgeVertInList;
+//		this.edgeVertOutList = edgeVertOutList;
+//	}
+	
+	/**
+	 * Method to set InstanceLists
+	 * @param keywordForInstanceList
+	 * @param instanceList
+	 */
+	public void setInstanceList(ArrayList<String> keywordForInstanceList,ArrayList<String> instanceList) {
+		includeInstance = true;
+		this.keywordForInstanceList = keywordForInstanceList;
+		this.instanceList = instanceList;
+	}
+	
+	/**
+	 * Method to set KeywordList and EdgeList if given a full subgraph.
+	 * @param vertStore
+	 * @param edgeStore
+	 * @param metamodelSubgraph True if the subgraph is from a metamodel, false if includes instances
+	 */
+	public void setKeywordAndEdgeList(Hashtable<String,SEMOSSVertex> vertStore,Hashtable<String,SEMOSSEdge> edgeStore,boolean metamodelSubgraph) {
+		keywordList = new ArrayList<String>();
+		Iterator<SEMOSSVertex> vertItr = vertStore.values().iterator();
+		while(vertItr.hasNext()) {
+			SEMOSSVertex vert = vertItr.next();
+			String keyword;
+			if(metamodelSubgraph)
+				keyword = (String)vert.getProperty(Constants.VERTEX_NAME);
+			else
+				keyword = (String)vert.getProperty(Constants.VERTEX_TYPE);
+			if(!keywordList.contains(keyword))
+				keywordList.add(keyword);
+		}
+		
+		edgeVertInList = new ArrayList<String>();
+		edgeVertOutList = new ArrayList<String>();
+		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
+		while(edgeItr.hasNext()) {
+			SEMOSSEdge edge = edgeItr.next();
+			String edgeIn;
+			String edgeOut;
+			if(metamodelSubgraph) {
+				edgeIn = (String)edge.inVertex.getProperty(Constants.VERTEX_NAME);
+				edgeOut = (String)edge.outVertex.getProperty(Constants.VERTEX_NAME);
+			} else {
+				edgeIn = (String)edge.inVertex.getProperty(Constants.VERTEX_TYPE);
+				edgeOut = (String)edge.outVertex.getProperty(Constants.VERTEX_TYPE);
+			}
+			if(!edgeListContains(edgeIn,edgeOut)) {
+				edgeVertInList.add(edgeIn);
+				edgeVertOutList.add(edgeOut);
+			}
+		}
+	}
+	
+	private Boolean edgeListContains(String edgeIn, String edgeOut) {
+		for(int inIndex = 0;inIndex<edgeVertInList.size();inIndex++) {
+			if(edgeVertInList.get(inIndex).equals(edgeIn)&&edgeVertOutList.get(inIndex).equals(edgeOut))
+				return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Determines the similarity of a given subgraph to other databases in the Master database.
 	 * Each database, that has any overlap with the subgraph.
@@ -60,46 +138,37 @@ public class SearchMasterDB {
 	 */
 	public ArrayList<Object[]> searchDB() {
 
-		engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(dbName);
+		masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 
-		//create vert store, edgestore for testing.
-		//will ultimately be replaced with a way to input the metamodels.
-		createTestingData();
+		String databaseFilter="";
+		if(includeInstance) {
+			ArrayList<String> databaseList = filterDatabaseList();
+			if(databaseList.isEmpty()) {
+				logger.info("No databases fit the criteria.");
+				return new ArrayList<Object []>();
+			}
+			databaseFilter = createDatabaseFilter(databaseList);
+		}
 
-		keywordList = new ArrayList<String>();
-		Iterator<SEMOSSVertex> vertItr = vertStore.values().iterator();
-		while(vertItr.hasNext()) {
-			SEMOSSVertex vert = vertItr.next();
-			keywordList.add((String)vert.getProperty(Constants.VERTEX_NAME));
-		}
-		
-		ArrayList<String> edgeVertInList = new ArrayList<String>();
-		ArrayList<String> edgeVertOutList = new ArrayList<String>();
-		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
-		while(edgeItr.hasNext()) {
-			SEMOSSEdge edge = edgeItr.next();
-			edgeVertInList.add((String)edge.inVertex.getProperty(Constants.VERTEX_NAME));
-			edgeVertOutList.add((String)edge.outVertex.getProperty(Constants.VERTEX_NAME));
-		}
-				
 		masterConceptsQuery = addBindings(masterConceptsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
-		ArrayList<Object []> keywordMasterConceptsList = executeQuery(masterConceptsQuery);
+		ArrayList<Object []> keywordMasterConceptsList = processQuery(masterConceptsQuery);
 		masterConceptsList = processMasterConceptsList(keywordList,keywordMasterConceptsList);
 		
-		ArrayList<Object []> list = new ArrayList<Object []>();
+		ArrayList<Object[]> list = new ArrayList<Object[]>();
 
 		//to look at keyword level and get all possible combinations of keywords for master concepts
 		if(!count){
 			similarKeywordsQuery = addBindings(similarKeywordsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
-			ArrayList<Object []> similarKeywordsResults = executeQuery(similarKeywordsQuery);
+			similarKeywordsQuery = addDatabaseFilter(similarKeywordsQuery,databaseFilter);
+			ArrayList<Object []> similarKeywordsResults = processQuery(similarKeywordsQuery);
 			similarKeywordsResults = addColumn(similarKeywordsResults,"Node");
 			list.addAll(similarKeywordsResults);
 			
 			similarEdgesQuery = addBindings(similarEdgesQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
-			ArrayList<Object []> similarEdgesList = executeQuery(similarEdgesQuery);
+			similarEdgesQuery = addDatabaseFilter(similarEdgesQuery,databaseFilter);
+			ArrayList<Object []> similarEdgesList = processQuery(similarEdgesQuery);
 			ArrayList<Object []> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
 			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge");
-			
 			list.addAll(processedSimilarEdgesList);
 			
 			headers = new String[4];
@@ -109,10 +178,12 @@ public class SearchMasterDB {
 			headers[3] = "Node or Edge";
 		} else {//to find the score of each database, only considering master concepts and getting unique relationships
 			similarMasterConceptsQuery = addBindings(similarMasterConceptsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
-			ArrayList<Object []> similarMasterConceptsResults = executeQuery(similarMasterConceptsQuery);
+			similarMasterConceptsQuery = addDatabaseFilter(similarMasterConceptsQuery,databaseFilter);
+			ArrayList<Object []> similarMasterConceptsResults = processQuery(similarMasterConceptsQuery);
 			
 			similarMasterConceptConnectionsQuery = addBindings(similarMasterConceptConnectionsQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
-			ArrayList<Object []> similarEdgesList = executeQuery(similarMasterConceptConnectionsQuery);
+			similarMasterConceptConnectionsQuery = addDatabaseFilter(similarMasterConceptConnectionsQuery,databaseFilter);
+			ArrayList<Object []> similarEdgesList = processQuery(similarMasterConceptConnectionsQuery);
 			ArrayList<Object []> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
 			
 			ArrayList<Object[]> fullResultsList = new ArrayList<Object[]>();
@@ -128,39 +199,56 @@ public class SearchMasterDB {
 		return list;
 	}
 	
-	private void createTestingData() {
-		vertStore = new Hashtable<String, SEMOSSVertex>();
-		edgeStore = new Hashtable<String, SEMOSSEdge>();
+	
+	private ArrayList<String> filterDatabaseList() {
+		String databaseQuery = "SELECT DISTINCT ?Database WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>}}";
+		ArrayList<String> databaseList = processListQuery(databaseQuery);
 		
-		//TODO fill verticies and edges store for testing. eventually will be deleted and replaced with setters
-		SEMOSSVertex icd = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument");
-		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject");
-		SEMOSSVertex service = new SEMOSSVertex("http://semoss.org/ontologies/Concept/Service");
-		SEMOSSVertex system = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System");
-		SEMOSSVertex dataElement = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataElement");
-		vertStore.put(icd.uri,icd);
-		vertStore.put(data.uri,data);
-		vertStore.put(service.uri,service);
-		vertStore.put(system.uri,system);
-		vertStore.put(dataElement.uri,dataElement);
-		
-		SEMOSSEdge icdData = new SEMOSSEdge(icd,data,"http://semoss.org/ontologies/Relation/Payload/InterfaceControlDocument:DataObject");
-		SEMOSSEdge serviceICD = new SEMOSSEdge(service,icd,"http://semoss.org/ontologies/Relation/Payload/Service:InterfaceControlDocument");
-		SEMOSSEdge systemData = new SEMOSSEdge(system,data,"http://semoss.org/ontologies/Relation/Payload/System:DataObject");
-		SEMOSSEdge icdSystem = new SEMOSSEdge(icd,system,"http://semoss.org/ontologies/Relation/Payload/InterfaceControlDocument:System");
-		SEMOSSEdge systemICD = new SEMOSSEdge(system,icd,"http://semoss.org/ontologies/Relation/Payload/System:InterfaceControlDocument");
-		SEMOSSEdge serviceData = new SEMOSSEdge(service,data,"http://semoss.org/ontologies/Relation/Payload/Service:DataObject");
-		SEMOSSEdge dataEleData = new SEMOSSEdge(dataElement,data,"http://semoss.org/ontologies/Relation/Payload/DataElement:DataObject");
-		edgeStore.put(icdData.getURI(), icdData);
-		edgeStore.put(serviceICD.getURI(), serviceICD);
-		edgeStore.put(systemData.getURI(), systemData);
-		edgeStore.put(icdSystem.getURI(), icdSystem);
-		edgeStore.put(systemICD.getURI(), systemICD);
-		edgeStore.put(serviceData.getURI(), serviceData);
-		edgeStore.put(dataEleData.getURI(), dataEleData);
+		for(int instanceInd = 0;instanceInd<keywordForInstanceList.size();instanceInd++) {
+			String subgraphKeyword = keywordForInstanceList.get(instanceInd);
+			String instance = instanceList.get(instanceInd);
+			
+			int databaseInd = 0;
+			while(databaseInd<databaseList.size()) {
+				//for this database, check to see if it contains the instance. if not, remove it and continue
+				String databaseName = databaseList.get(databaseInd);
+				IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(databaseName);
+				if(engine == null || !databaseContainsInstance(engine,subgraphKeyword,instance) ) {
+					databaseList.remove(databaseInd);
+				}else {
+					databaseInd++;
+				}
+			}
+		}
+		return databaseList;
 	}
 	
+	private String createDatabaseFilter(ArrayList<String> databaseList) {
+		String databaseFilter ="";
+		for(String db : databaseList) {
+			databaseFilter += "<"+databaseBaseURI + "/"+db+">"+", ";
+		}
+		return databaseFilter.substring(0,databaseFilter.length()-2);
+	}
 	
+	private Boolean databaseContainsInstance(IEngine engine, String subgraphKeyword, String instance) {
+		String getPossibleKeywordsQueryFilled = getPossibleKeywordsQuery.replaceAll("@KEYWORD@",subgraphKeyword).replaceAll("@DATABASE@", engine.getEngineName());
+		ArrayList<String> possibleKeywordList = processListQuery(getPossibleKeywordsQueryFilled);
+		if(possibleKeywordList.isEmpty())
+			return false;
+		for(int i=0;i<possibleKeywordList.size();i++) {
+			String possibleKeyword = possibleKeywordList.get(i);
+			String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORD@", possibleKeyword).replaceAll("@KEYWORDINSTANCE@",possibleKeyword+"/"+instance);
+			
+			BooleanProcessor proc = new BooleanProcessor();
+			proc.setEngine(engine);
+			proc.setQuery(instanceExistsQueryFilled);
+			if(proc.processQuery())
+				return true;
+		}
+		
+		return false;
+	}
 	private ArrayList<String> processMasterConceptsList(ArrayList<String> keywordList, ArrayList<Object []> keywordMasterConceptsList) {
 		ArrayList<String> masterConceptsList = new ArrayList<String>();
 		masterConceptsList.addAll(keywordList);
@@ -238,41 +326,30 @@ public class SearchMasterDB {
 		return query + bindings;
 	}
 	
+	private String addDatabaseFilter(String query,String databaseFilter) {
+		if(!databaseFilter.equals(""))
+			return query.replace("@FILTER@","FILTER (?Database in ("+databaseFilter+"))");
+		else
+			return query.replace("@FILTER@","");
+	}
+	
 	/**
 	 * Executes a query and stores the results.
 	 * @param query String to run.
-	 * @return ArrayList<Object []> that contains the results of the query.
+	 * @return ArrayList<String> that contains the results of the query.
 	 */
-	private ArrayList<Object []> executeQuery(String query) {
-		ArrayList<Object[]> list = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
-		try{
-			wrapper.executeQuery();	
-		} catch (RuntimeException e){
-			logger.error("Could not execute query: "+query);
-		}
-
+	private ArrayList<String> processListQuery(String query) {
+		SesameJenaSelectWrapper wrapper = executeQuery(query);
+		ArrayList<String> list = new ArrayList<String>();
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
-		int count = 0;
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
-				
-				Object [] values = new Object[names.length];
-				for(int colIndex = 0;colIndex < names.length;colIndex++)
-				{
-					values[colIndex] = getVariable(names[colIndex], sjss);
-					logger.debug("Binding Name " + names[colIndex]);
-					logger.debug("Binding Value " + values[colIndex]);
-				}
-				logger.debug("Creating new Value " + values);
-				list.add(count, values);
-				count++;
+				SesameJenaSelectStatement sjss = wrapper.next();				
+				Object value = getVariable(names[0], sjss);
+				list.add((String)value);
 			}
 		} catch (RuntimeException e) {
 			logger.error("Could not store results for query: "+query);
@@ -280,6 +357,42 @@ public class SearchMasterDB {
 		return list;
 	}
 	
+	/**
+	 * Executes a query and stores the results.
+	 * @param query String to run.
+	 * @return ArrayList<Object []> that contains the results of the query.
+	 */
+	private ArrayList<Object []> processQuery(String query) {
+		SesameJenaSelectWrapper wrapper = executeQuery(query);
+		ArrayList<Object[]> list = new ArrayList<Object[]>();
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		try {
+			while(wrapper.hasNext())
+			{
+				SesameJenaSelectStatement sjss = wrapper.next();				
+				Object [] values = new Object[names.length];
+				for(int colIndex = 0;colIndex < names.length;colIndex++)
+					values[colIndex] = getVariable(names[colIndex], sjss);
+				list.add(values);
+			}
+		} catch (RuntimeException e) {
+			logger.error("Could not store results for query: "+query);
+		}
+		return list;
+	}
+	private SesameJenaSelectWrapper executeQuery(String query){
+		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		wrapper.setQuery(query);
+		wrapper.setEngine(masterEngine);
+		try{
+			wrapper.executeQuery();	
+		} catch (RuntimeException e){
+			logger.error("Could not execute query: "+query);
+		}
+		return wrapper;
+	}
 	/**
 	 * Method getVariable. Gets the variable names from the query results.
 	 * @param varName String - the variable name.
