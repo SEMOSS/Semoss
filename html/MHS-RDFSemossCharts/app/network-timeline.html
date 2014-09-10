@@ -82,41 +82,50 @@
 
                     $timeout(function () {
                         $scope.forceData = timeline_data;
-                        setTableData($scope.forceData.nodes);
+                        //setTableData($scope.forceData.nodes);
+	                    setTableData($scope.forceData.edges);
                     }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
                             $scope.forceData = jQuery.parseJSON(data);
-                            setTableData($scope.forceData.nodes);
+                            //setTableData($scope.forceData.nodes);
+	                        setTableData($scope.forceData.edges);
                         });
                     };
 
-                    function setTableData(nodes) {
+                    function setTableData(array) {
                         var tableData = [];
-                        for (var node in nodes) {
-                            if (nodes[node].propHash.timeHash) {
+                        for (var prop = 0; prop < array.length; prop++) {
+                            if (array[prop].propHash.timeHash) {
+	                            if(array[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
+		                            /*
+		                            var newItem = {
+			                            phase: "Decommissioned",
+			                            LOE: 0,
+			                            dependICDS: "",
+			                            GLitem: "",
+			                            gltag: ""
+		                            };
+		                            tableData.push(newItem);
+		                            */
+	                            } else { //requirements, design, test, develop, deploy phases
+		                            for(var timeHashProp in array[prop].propHash.timeHash) {
+			                            var newItem = {
+				                            phase: array[prop].propHash.timeHash[timeHashProp].phase,
+				                            LOE: array[prop].propHash.timeHash[timeHashProp].LOE,
+				                            dependICDS: array[prop].propHash.timeHash[timeHashProp].dependICDS,
+				                            GLitem: array[prop].propHash.timeHash[timeHashProp].GLitem,
+				                            gltag: array[prop].propHash.timeHash[timeHashProp].gltag
+			                            };
+			                            tableData.push(newItem);
+		                            }
 
-                                //for (var phase in nodes[node].propHash.timeHash) {
+	                            }
+                            } else { //timeHash property doesn't exist
 
-                                    if (d3.select('.slider').value) {
-
-                                    } else if (!nodes[node].propHash.timeHash.Decommissioned) {
-                                        var newItem = {
-                                            phase: nodes[node].propHash.timeHash.Design.phase,
-                                            LOE: nodes[node].propHash.timeHash.Design.LOE,
-                                            dependICDS: nodes[node].propHash.timeHash.Design.dependICDS,
-                                            GLitem: nodes[node].propHash.timeHash.Design.GLitem,
-                                            gltag: nodes[node].propHash.timeHash.Design.gltag
-                                        };
-
-                                        tableData.push(newItem);
-                                    } else {
-
-                                    }
-                                //}
                             }
-                        }
+                        } //end of forloop
 
                         $scope.tableData = tableData;
                         $scope.tableParams.count(tableData.length);
@@ -210,12 +219,12 @@
                                     calculateMaxLOE();
 
                                     d3.select('#slider')
-                                            .call(d3.slider().axis(true).min(minLOE).max(maxLOE).step(2).on('slide', function (e, v) {
-                                                console.log(e);
-                                                console.log(v);
+                                        .call(
+		                                    d3.slider().axis(true).min(minLOE).max(maxLOE).step(2).value(0)
+			                                    .on('slide', function (e, v) {
+		                                            console.log(e);
+		                                            console.log(v);
                                             }));
-
-
                                     update();
                                 }
 
@@ -468,20 +477,21 @@
                             }
 
                             function calculateMaxLOE() {
-                                for (var i=0; i<nodes.length; i++) {
-                                    if (nodes[i].propHash.timeHash) {
+
+	                            for (var i=0; i  < links.length; i++) {
+                                    if (links[i].propHash.timeHash) {
                                         var total = 0;
-                                        if (nodes[i].propHash.timeHash.Design) {
-                                            total += nodes[i].propHash.timeHash.Design.LOE;
+                                        if (links[i].propHash.timeHash.Design) {
+                                            total += links[i].propHash.timeHash.Design.LOE;
                                         }
-                                        if (nodes[i].propHash.timeHash.Requirements) {
-                                            total += nodes[i].propHash.timeHash.Requirements.LOE;
+                                        if (links[i].propHash.timeHash.Requirements) {
+                                            total += links[i].propHash.timeHash.Requirements.LOE;
                                         }
-                                        if (nodes[i].propHash.timeHash.Test) {
-                                            total += nodes[i].propHash.timeHash.Test.LOE;
+                                        if (links[i].propHash.timeHash.Test) {
+                                            total += links[i].propHash.timeHash.Test.LOE;
                                         }
-                                        if (nodes[i].propHash.timeHash.Develop) {
-                                            total += nodes[i].propHash.timeHash.Develop.LOE;
+                                        if (links[i].propHash.timeHash.Develop) {
+                                            total += links[i].propHash.timeHash.Develop.LOE;
                                         }
                                     }
 
@@ -489,6 +499,7 @@
                                         maxLOE = total;
                                     }
                                 }
+
                             }
 
                             function updatePhase() {
