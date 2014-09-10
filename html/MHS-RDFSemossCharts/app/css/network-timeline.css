@@ -66,6 +66,14 @@
     border-right: 1px solid #ccc;
 }
 
+#sidebarContentRight {
+    position: absolute;
+    left: 50%;
+    top: 100px;
+    bottom: 0;
+    right: 0;
+}
+
 #sidebarFooter {
     position: absolute;
     height: 0px;
