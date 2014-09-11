@@ -482,7 +482,6 @@ public class ResidualSystemOptFillData{
 	
 	public double[][] fillMatrixFromQuery(String engineName, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
-
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -503,6 +502,19 @@ public class ResidualSystemOptFillData{
 //							matrix[rowIndex][colIndex] = 1.0;
 //						else
 //						{
+						
+						Object val = getVariable(names[2], sjss);
+						if(val instanceof Double)
+							matrix[rowIndex][colIndex] = (Double)val;
+						if(val instanceof Integer)
+							matrix[rowIndex][colIndex] = ((Integer)val) * 1.0;
+						else if(val instanceof String) {
+							try {
+								matrix[rowIndex][colIndex] = Double.parseDouble((String)val);
+							}catch(NumberFormatException e){
+								matrix[rowIndex][colIndex] = 0.0;
+							}
+						}
 							matrix[rowIndex][colIndex] = (Double)getVariable(names[2], sjss);
 //						}
 					}
@@ -517,7 +529,6 @@ public class ResidualSystemOptFillData{
 	
 	public double[] fillVectorFromQuery(String engineName, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
-
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -529,8 +540,20 @@ public class ResidualSystemOptFillData{
 				int rowIndex = rowNames.indexOf(rowName);
 				if(rowIndex>-1)
 				{
-					if(!needsConversion)
-						matrix[rowIndex]= (Double)getVariable(names[1], sjss);
+					if(!needsConversion) {
+						Object val = getVariable(names[1], sjss);
+						if(val instanceof Double)
+							matrix[rowIndex]= (Double)val;
+						if(val instanceof Integer)
+							matrix[rowIndex]= ((Integer)val) * 1.0;
+						else if(val instanceof String) {
+							try {
+								matrix[rowIndex]= Double.parseDouble((String)val);
+							}catch(NumberFormatException e){
+								matrix[rowIndex]= 0.0;
+							}
+						}
+					}
 					else
 					{
 						String requiredVal = (String)getVariable(names[1], sjss);
