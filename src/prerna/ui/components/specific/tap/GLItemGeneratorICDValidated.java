@@ -58,6 +58,12 @@ public class GLItemGeneratorICDValidated {
 	ArrayList <String[]> coreTaskList = new ArrayList<String[]>();
 	ArrayList <String[]> subTaskList = new ArrayList<String[]>();
 	Hashtable<String, String> sysCompHash = new Hashtable<String, String>();
+	private IEngine coreEngine;
+	private String genSpecificDProtQuery = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dprot, (URI(\"http://health.mil/ontologies/Concept/DProt/HTTPS-SOAP\"))) AS ?Prot) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dprot <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?icd ?has ?dprot ;}} }";
+	private String genSpecificDFormQuery = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dform, (URI(\"http://health.mil/ontologies/Concept/DForm/XML\"))) AS ?Form) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dform <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?icd ?has ?dform ;}} }";
+	private String providerDataQuery1 = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm ;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} } BINDINGS ?crm {(\"C\")(\"M\")}";
+	private String providerDataQuery2 = "SELECT DISTINCT ?Service ?Data ?System WHERE { {?Service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}} {?Service <http://semoss.org/ontologies/Relation/Exposes> ?Data} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;} FILTER(!BOUND(?icd2)) } ORDER BY ?System";
+	private String consumerDataQuery = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} }";
 
 	/**
 	 */
@@ -973,7 +979,7 @@ public class GLItemGeneratorICDValidated {
 	 */
 	public void genSpecificProtocol()
 	{
-		String query = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dprot, (URI(\"http://health.mil/ontologies/Concept/DProt/HTTPS-SOAP\"))) AS ?Prot) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dprot <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DProt> ;} {?icd ?has ?dprot ;}} }";
+		String query = this.genSpecificDProtQuery;
 		ArrayList <String[]> list  = retListFromQuery (query);
 		for (int sdlcIdx=0 ; sdlcIdx<sdlcV.size();sdlcIdx++)
 		{
@@ -1001,7 +1007,7 @@ public class GLItemGeneratorICDValidated {
 			}
 		}
 
-		query = "SELECT DISTINCT ?ser ?data ?sys (COALESCE(?dform, (URI(\"http://health.mil/ontologies/Concept/DForm/XML\"))) AS ?Form) WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?icd ?payload ?data ;} OPTIONAL{ BIND(<http://semoss.org/ontologies/Relation/Has> AS ?has) {?dform <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DForm> ;} {?icd ?has ?dform ;}} }";
+		query = this.genSpecificDFormQuery;
 		list  = retListFromQuery (query);
 		for (int sdlcIdx=0; sdlcIdx < sdlcV.size(); sdlcIdx++)
 		{
@@ -1057,22 +1063,15 @@ public class GLItemGeneratorICDValidated {
 		//get all data necessary for ESB instrumentation generic blu pieces
 		query = "SELECT DISTINCT ?ser ?blu ?sys WHERE { BIND(\"Generic\" AS ?sys) {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?blu ;}} ";
 		genericBLUList = retListFromQuery(query);
+		
+		fillProviderDataList();
+		fillConsumerDataList();
 
-		//get all data necessary for provider data pieces
-		query = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm ;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} } BINDINGS ?crm {(\"C\")(\"M\")}";
-		providerDataList = retListFromQuery(query);
-
-		//additional data necessary for provider data pieces due to redefinition of what it means for a system to be a creater of a piece of data
-		query = "SELECT DISTINCT ?Service ?Data ?System WHERE { {?Service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?otherSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} OPTIONAL{{?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?System} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?Data}} {?Service <http://semoss.org/ontologies/Relation/Exposes> ?Data} {?System <http://semoss.org/ontologies/Relation/Provide> ?icd ;} {?icd <http://semoss.org/ontologies/Relation/Consume> ?otherSystem ;} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data ;} FILTER(!BOUND(?icd2)) } ORDER BY ?System";		
-		providerDataList.addAll(retListForAdditionalInfoQuery(query, providerDataList));
 
 		//get all data necessary for provider BLU pieces
 		query = "SELECT DISTINCT ?ser ?blu ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?blu ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?blu ;} }";
 		providerBLUList = retListFromQuery(query);
 
-		//get all data necessary for consumer data pieces
-		query = "SELECT DISTINCT ?ser ?data ?sys WHERE { {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?ser ?exposes ?data ;} {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?sys ?provide ?data ;} {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd ?payload ?data ;} }";
-		consumerList = retListFromQuery(query);
 
 		//get all coreTasks
 		query = "SELECT DISTINCT ?BasisTarget ?TargetPhaseBasisCoreTask ?BasisCoreTask WHERE { {?BasisTarget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BasisTarget> ;}  {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?TargetPhaseBasisCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask> ;} {?BasisTarget ?has ?TargetPhaseBasisCoreTask ;} {?exists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ExistsAs> ;} {?BasisCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BasisCoreTask> ;} {?BasisCoreTask ?exists ?TargetPhaseBasisCoreTask ;} }";
@@ -1082,8 +1081,31 @@ public class GLItemGeneratorICDValidated {
 		query = "SELECT DISTINCT ?BasisTarget ?TargetPhaseBasisCoreTask ?TargetPhaseBasisSubTask WHERE { {?BasisTarget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BasisTarget> ;}  {?has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;} {?TargetPhaseBasisCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask> ;} {?BasisTarget ?has ?TargetPhaseBasisCoreTask ;} {?includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes> ;} {?BasisCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BasisCoreTask> ;} {?TargetPhaseBasisCoreTask ?includes ?TargetPhaseBasisSubTask ;} }";
 		subTaskList = retListFromFinancialQuery(query);
 
+		fillSystemComplexityHash();
+	}
+
+	public void fillProviderDataList(){
+
+		//get all data necessary for provider data pieces
+		
+		providerDataList = retListFromQuery(this.providerDataQuery1);
+
+		//additional data necessary for provider data pieces due to redefinition of what it means for a system to be a creater of a piece of data
+		if(!this.providerDataQuery2.isEmpty())
+		{
+			providerDataList.addAll(retListForAdditionalInfoQuery(this.providerDataQuery2, providerDataList));
+		}
+	}
+	
+	public void fillConsumerDataList(){
+
+		//get all data necessary for consumer data pieces
+		consumerList = retListFromQuery(this.consumerDataQuery);
+	}
+	
+	public void fillSystemComplexityHash(){
 		//get all systemComplexity
-		query = "SELECT DISTINCT ?sys ?complex WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;} {?complex <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity> ;} {?sys ?rated ?complex ;}} ";
+		String query = "SELECT DISTINCT ?sys ?complex WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}  {?rated <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Rated>;} {?complex <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Complexity> ;} {?sys ?rated ?complex ;}} ";
 		ArrayList<String[]> sysCompList = retListFromQuery(query);
 		for (int i=0; i < sysCompList.size(); i++) {
 			sysCompHash.put(sysCompList.get(i)[0], sysCompList.get(i)[1]);
@@ -1349,12 +1371,14 @@ public class GLItemGeneratorICDValidated {
 	public ArrayList<String[]> retListFromQuery(String query)
 	{
 		ArrayList<String[]> list = new ArrayList<String[]>();
-		JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
-		String changedDB = (String) changedDBComboBox.getSelectedItem();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		if (coreEngine == null){
+			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+			String changedDB = (String) changedDBComboBox.getSelectedItem();
+			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		}
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
+		wrapper.setEngine(coreEngine);
 		wrapper.executeQuery();
 		// get the bindings from it
 
@@ -1398,12 +1422,14 @@ public class GLItemGeneratorICDValidated {
 	public ArrayList<String[]> retListForAdditionalInfoQuery(String query, ArrayList<String[]> originalList)
 	{
 		ArrayList<String[]> newListItems = new ArrayList<String[]>();
-		JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
-		String changedDB = (String) changedDBComboBox.getSelectedItem();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		if (coreEngine == null){
+			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+			String changedDB = (String) changedDBComboBox.getSelectedItem();
+			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		}
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
+		wrapper.setEngine(coreEngine);
 		wrapper.executeQuery();
 		// get the bindings from it
 
@@ -1495,14 +1521,15 @@ public class GLItemGeneratorICDValidated {
 	 */
 	public Object[] retListFromRelationshipQuery (String query, String relationship) {
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
-
-		JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
-		String changedDB = (String) changedDBComboBox.getSelectedItem();
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		if (coreEngine == null){
+			JComboBox<String> changedDBComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);
+			String changedDB = (String) changedDBComboBox.getSelectedItem();
+			coreEngine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
+		}
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
-		wrapper.setEngine(engine);
+		wrapper.setEngine(coreEngine);
 		wrapper.executeQuery();
 
 		int count = 0;
@@ -1549,4 +1576,33 @@ public class GLItemGeneratorICDValidated {
 
 		return new Object[] {list, properties};
 	}
+	
+	public void setGenSpecificDProtQuery(String q){
+		this.genSpecificDProtQuery = q;
+	}
+	
+	public void setGenSpecificDFormQuery(String q){
+		this.genSpecificDFormQuery = q;
+	}
+	
+	public void setCoreEngine(IEngine coreEngine){
+		this.coreEngine = coreEngine;
+	}
+
+	public void setProviderDataQuery1(String providerDataQuery1) {
+		this.providerDataQuery1 = providerDataQuery1;
+	}
+
+	public void setProviderDataQuery2(String providerDataQuery2) {
+		this.providerDataQuery2 = providerDataQuery2;
+	}
+
+	public void setConsumerDataQuery(String consumerDataQuery) {
+		this.consumerDataQuery = consumerDataQuery;
+	}
+	
+	public Hashtable<String, Vector<String[]>> getAllDataHash() {
+		return allDataHash;
+	}
+
 }
