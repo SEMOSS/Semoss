@@ -200,9 +200,11 @@ public class UpdateDataBLUListListener extends AbstractListener {
 	{
 		this.sysSelectPanel = sysSelectPanel;
 		if(capSelectPanel == null)
-			includeCapabilityPanel = false;
-		else
+			this.includeCapabilityPanel = false;
+		else {
 			this.capSelectPanel = capSelectPanel;
+			this.includeCapabilityPanel = true;
+		}
 		this.dataBLUSelectPanel = dataBLUSelectPanel;
 		this.showSystemSelectBtn = showSystemSelectBtn;
 	}
