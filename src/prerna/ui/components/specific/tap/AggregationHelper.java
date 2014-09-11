@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -93,36 +94,59 @@ public class AggregationHelper implements IAggregationHelper {
 				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
-		//		StringBuilder deleteQuery = new StringBuilder("DELETE DATA { ");
-		//		boolean notEmpty = false;
-		//		for ( String sub : data.keySet())
-		//		{
-		//			for (String pred : data.get(sub).keySet())
-		//			{
-		//				Object obj = data.get(sub).get(pred);
-		//				if(!sub.equals("") && !pred.equals("") && !obj.equals(""))
-		//				{
-		//					notEmpty = true;
-		//				}
-		//				deleteQuery.append(sub + " " + pred + " " + obj + ". ");
-		//			}
-		//		}
-		//		deleteQuery.append(" }");
-		//		logger.info("DELETE QUERY: " + deleteQuery.toString());
-		//		if(notEmpty)
-		//		{
-		//			UpdateProcessor proc = new UpdateProcessor();
-		//			proc.setEngine(coreDB);
-		//			proc.setQuery(deleteQuery.toString());
-		//			proc.processQuery();
-		//		}
 	}
 	
+	public void processInstanceDataRelations(List<Object[]> data, HashMap<String, HashMap<String, Set<String>>> baseRelations) {
+		for(Object[] triple: data){
+			createBaseRelationsHash(triple, baseRelations);
+			addToDataHash(triple);
+			addToAllConcepts(triple[0].toString());
+			addToAllRelationships(triple[1].toString());
+			if(triple[1].toString().contains("/Concept/")) {
+				System.out.println(":error");
+			}
+			addToAllConcepts(triple[2].toString());
+		}
+	}
+	
+	public void processInstancePropOnRelationshipData(List<Object[]> data, IEngine engine){
+		Set<String> storePropURI = new HashSet<String>();
+		for(Object[] triple: data){
+			storePropURI.add(triple[1].toString());
+			addToDataHash(triple);
+			addToAllRelationships(triple[0].toString());
+		}
+		//add http://semoss.org/ontology/Relation/Contains/PropName -> RDF:TYPE -> http://semoss.org/ontology/Relation/Contains
+		for(String propURI: storePropURI) {
+			processNewConceptsAtInstanceLevel(engine, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
+		}
+	}
+	
+	public void processInstancePropOnNodeData(List<Object[]> data, IEngine engine){
+		Set<String> storePropURI = new HashSet<String>();
+		for(Object[] triple: data){
+			storePropURI.add(triple[1].toString());
+			addToDataHash(triple);
+			addToAllConcepts(triple[0].toString());
+		}
+		//add http://semoss.org/ontology/Relation/Contains/PropName -> RDF:TYPE -> http://semoss.org/ontology/Relation/Contains
+		for(String propURI: storePropURI) {
+			processNewConceptsAtInstanceLevel(engine, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
+		}
+	}
+
 	public void processNewSubclass(IEngine engine, String parentType, String childType)
 	{
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		( (BigDataEngine) engine).addStatement(childType, subclassOf, parentType, true);
 		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
+	}
+	
+	public void processActiveSystemSubclassing(IEngine engine, Set<String> data){
+		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/System", "http://semoss.org/ontologies/Concept/ActiveSystem");
+		for(String sysURI : data) {
+			processNewConceptsAtInstanceLevel(engine, sysURI, "http://semoss.org/ontologies/Concept/ActiveSystem");
+		}
 	}
 
 	public void processNewConcepts(IEngine engine, String newConceptType)
@@ -245,6 +269,73 @@ public class AggregationHelper implements IAggregationHelper {
 		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
 
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
+		RepositoryConnection exportRC = existingBaseEngine.getRc();
+		FileWriter fWrite = null;
+		try{
+			fWrite = new FileWriter(owlFileLocation);
+			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+			exportRC.export(owlWriter);
+			fWrite.flush();
+			owlWriter.close();	
+		}
+		catch(IOException ex)
+		{
+			ex.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void createBaseRelationsHash(Object[] triple, HashMap<String, HashMap<String, Set<String>>> baseRelations) {
+		String subjectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[0].toString());
+		String predicateBaseURI = semossRelationBaseURI + Utility.getClassName(triple[1].toString());
+		String objectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[2].toString());
+		if(baseRelations.containsKey(subjectBaseURI)) {
+			HashMap<String, Set<String>> innerHash = baseRelations.get(subjectBaseURI);
+			if(innerHash.containsKey(predicateBaseURI)) {
+				innerHash.get(predicateBaseURI).add(objectBaseURI);
+			} else {
+				Set<String> list = new HashSet<String>();
+				list.add(objectBaseURI);
+				innerHash.put(predicateBaseURI, list);
+			}
+		} else {
+			Set<String> list = new HashSet<String>();
+			list.add(objectBaseURI);
+			HashMap<String, Set<String>> innerHash = new HashMap<String, Set<String>>();
+			innerHash.put(predicateBaseURI, list);
+			baseRelations.put(subjectBaseURI, innerHash);
+		}
+	}
+	
+	public void writeToOWL(IEngine engine, HashMap<String, HashMap<String, Set<String>>> baseRelations) throws RepositoryException, RDFHandlerException 
+	{
+		// get the path to the owlFile
+		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
+
+		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
+		for(String subjectURI : baseRelations.keySet()) 
+		{
+			HashMap<String, Set<String>> predicateURIHash = baseRelations.get(subjectURI);
+			for(String predicateURI : predicateURIHash.keySet()) 
+			{
+				Set<String> objectURIList = predicateURIHash.get(predicateURI);
+				for(String objectURI : objectURIList) 
+				{
+					existingBaseEngine.addStatement(subjectURI, predicateURI, objectURI, true);
+				}
+			}
+		}
+		
 		RepositoryConnection exportRC = existingBaseEngine.getRc();
 		FileWriter fWrite = null;
 		try{
