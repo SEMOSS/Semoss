@@ -2,6 +2,7 @@
 ##Base Objects##
 
 DataObject http://health.mil/ontologies/Concept/DataObject
+NCRMDSystemUser http://health.mil/ontologies/Concept/NCRMDSystemUser
 Software http://health.mil/ontologies/Concept/Software
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 Service http://health.mil/ontologies/Concept/Service
@@ -67,6 +68,7 @@ Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 BusinessProcess_Consists_Activity http://health.mil/ontologies/Relation/Consists
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
+SystemTasker_BelongsTo_NCRMDSystemUser http://health.mil/ontologies/Relation/BelongsTo
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
@@ -142,6 +144,7 @@ Personnel_CLASS http://semoss.org/ontologies/Concept/Personnel
 SoftwareModule_CLASS http://semoss.org/ontologies/Concept/SoftwareModule
 DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
+NCRMDSystemUser_CLASS http://semoss.org/ontologies/Concept/NCRMDSystemUser
 CCD_CLASS http://semoss.org/ontologies/Concept/CCD
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
@@ -224,6 +227,7 @@ Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 BusinessLogicUnit_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
 Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
+SystemTasker_BelongsTo_NCRMDSystemUser_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 CCD_Element_BelongsTo_CCD_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
