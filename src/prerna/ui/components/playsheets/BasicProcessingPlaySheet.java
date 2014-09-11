@@ -214,8 +214,10 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	@Override
 	public Object getData() {
 		Hashtable dataHash = (Hashtable) super.getData();
-		dataHash.put("data", list);
-		dataHash.put("headers", names);
+		if(list!=null)
+			dataHash.put("data", list);
+		if(names!=null)
+			dataHash.put("headers", names);
 		return dataHash;
 	}
 
