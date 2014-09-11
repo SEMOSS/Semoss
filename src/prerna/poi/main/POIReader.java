@@ -255,10 +255,14 @@ public class POIReader extends AbstractFileReader {
 	 * @param sheetToLoad 	String containing the name of the sheet to load
 	 * @param workbook		XSSFWorkbook containing the sheet to load
 	 * @throws EngineException 
+	 * @throws FileReaderException 
 	 */
-	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException {
+	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException, FileReaderException {
 
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
+		if(lSheet == null) {
+			throw new FileReaderException("Could not find sheet " + sheetToLoad + " in workbook.");
+		}
 		logger.info("Loading Sheet: " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum()+1;
 
