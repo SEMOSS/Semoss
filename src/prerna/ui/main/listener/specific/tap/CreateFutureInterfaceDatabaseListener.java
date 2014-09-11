@@ -13,6 +13,7 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
+import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -42,9 +43,19 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 		//send to processor
 		LOGGER.info("Creating " + futureDBName + " from " + hrCoreDBName);
 		LOGGER.info("Creating " + futureCostDBName + " from " + hrCoreDBName);
-
-		CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB);
+		
 		try {
+			
+			IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			if(tapCost == null) {
+				throw new EngineException("Cost Info Not Found");
+			}
+			
+			GLItemGeneratorSelfReportedFutureInterfaces glgen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB, tapCost);
+			
+			
+			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
+			
 			futureStateCreator.addTriplesToExistingICDs();
 			futureStateCreator.generateData();
 			futureStateCreator.createDBs();
