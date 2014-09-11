@@ -121,11 +121,6 @@ body {
     position: absolute;
     text-align: center;
 }
-
-table tbody tr td {
-    height: 20px;
-}
-  
   /* Style northward tooltips differently */
 .d3-tip.n:after {
     margin: -1px 0 0 0;
@@ -144,3 +139,42 @@ table tbody tr td {
  .ng-table th.text-center {
      text-align: center;
  }
+ .phase {
+    width: 15%;
+    white-space: nowrap;
+    text-overflow:ellipsis;
+     overflow: hidden;
+ }
+ .loe {
+    width: 10%;
+    white-space: nowrap;
+    text-overflow:ellipsis;
+     overflow: hidden;
+ }
+ .icd {
+    width: 30%;
+    white-space: nowrap;
+    text-overflow:ellipsis;
+     overflow: hidden;
+ }
+ 
+ .gl-item {
+    max-width: 30%;
+    white-space: nowrap;
+    text-overflow:ellipsis;
+     overflow: hidden;
+ }
+ 
+ .gl-tag {
+    width: 15%;
+    white-space: nowrap;
+    text-overflow:ellipsis;
+     overflow: hidden;
+ }
+ 
+
+.fixed-layout {
+    table-layout: fixed;
+}
+
+ 
