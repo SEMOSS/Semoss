@@ -51,25 +51,26 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 				throw new EngineException("Cost Info Not Found");
 			}
 			
-			GLItemGeneratorSelfReportedFutureInterfaces glgen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB, tapCost);
+			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB, tapCost);
+			glGen.genData();
 			
-			
-			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
-			
-			futureStateCreator.addTriplesToExistingICDs();
-			futureStateCreator.generateData();
-			futureStateCreator.createDBs();
-			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
+//			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
+//			
+//			futureStateCreator.addTriplesToExistingICDs();
+//			futureStateCreator.generateData();
+//			futureStateCreator.createDBs();
+//			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
 		} catch (EngineException e) {
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
 			e.printStackTrace();
-		} catch (RepositoryException e) {
-			Utility.showError("Error with generting new DB");
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			Utility.showError("Error with generting new DB");
-			e.printStackTrace();
-		}
+		} 
+//		catch (RepositoryException e) {
+//			Utility.showError("Error with generting new DB");
+//			e.printStackTrace();
+//		} catch (RDFHandlerException e) {
+//			Utility.showError("Error with generting new DB");
+//			e.printStackTrace();
+//		}
 	}
 
 	@Override
