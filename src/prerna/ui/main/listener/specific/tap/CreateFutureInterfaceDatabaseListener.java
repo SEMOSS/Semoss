@@ -64,13 +64,13 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
 			e.printStackTrace();
 		} 
-//		catch (RepositoryException e) {
-//			Utility.showError("Error with generting new DB");
-//			e.printStackTrace();
-//		} catch (RDFHandlerException e) {
-//			Utility.showError("Error with generting new DB");
-//			e.printStackTrace();
-//		}
+		catch (RepositoryException e) {
+			Utility.showError("Error with generting new DB");
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			Utility.showError("Error with generting new DB");
+			e.printStackTrace();
+		}
 	}
 
 	@Override

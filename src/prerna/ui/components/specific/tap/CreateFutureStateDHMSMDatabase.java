@@ -1,26 +1,19 @@
 package prerna.ui.components.specific.tap;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
@@ -102,7 +95,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 				
 		((BigDataEngine) futureCostState).commit();
 		((BigDataEngine) futureCostState).infer();
-		addToOWL(futureCostState, baseFutureCostRelations);
+		writeToOWL(futureCostState, baseFutureCostRelations);
 		// update base filter hash
 		((AbstractEngine) futureCostState).createBaseRelationEngine();
 	}
@@ -139,55 +132,9 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		
 		((BigDataEngine) futureState).commit();
 		((BigDataEngine) futureState).infer();
-		addToOWL(futureState, baseFutureRelations);
+		writeToOWL(futureState, baseFutureRelations);
 		// update base filter hash
 		((AbstractEngine) futureState).createBaseRelationEngine();
-	}
-	
-	public void processInstanceDataRelations(ArrayList<Object[]> data, HashMap<String, HashMap<String, Set<String>>> baseRelations) {
-		for(Object[] triple: data){
-			createBaseRelationsHash(triple, baseRelations);
-			addToDataHash(triple);
-			addToAllConcepts(triple[0].toString());
-			addToAllRelationships(triple[1].toString());
-			if(triple[1].toString().contains("/Concept/")) {
-				System.out.println(":error");
-			}
-			addToAllConcepts(triple[2].toString());
-		}
-	}
-	
-	public void processInstancePropOnRelationshipData(ArrayList<Object[]> data, IEngine engine){
-		Set<String> storePropURI = new HashSet<String>();
-		for(Object[] triple: data){
-			storePropURI.add(triple[1].toString());
-			addToDataHash(triple);
-			addToAllRelationships(triple[0].toString());
-		}
-		//add http://semoss.org/ontology/Relation/Contains/PropName -> RDF:TYPE -> http://semoss.org/ontology/Relation/Contains
-		for(String propURI: storePropURI) {
-			processNewConceptsAtInstanceLevel(engine, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
-		}
-	}
-	
-	public void processInstancePropOnNodeData(ArrayList<Object[]> data, IEngine engine){
-		Set<String> storePropURI = new HashSet<String>();
-		for(Object[] triple: data){
-			storePropURI.add(triple[1].toString());
-			addToDataHash(triple);
-			addToAllConcepts(triple[0].toString());
-		}
-		//add http://semoss.org/ontology/Relation/Contains/PropName -> RDF:TYPE -> http://semoss.org/ontology/Relation/Contains
-		for(String propURI: storePropURI) {
-			processNewConceptsAtInstanceLevel(engine, propURI, semossPropertyBaseURI.substring(0, semossPropertyBaseURI.length()-1));
-		}
-	}
-	
-	public void processActiveSystemSubclassing(IEngine engine, Set<String> data){
-		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/System", "http://semoss.org/ontologies/Concept/ActiveSystem");
-		for(String sysURI : data) {
-			processNewConceptsAtInstanceLevel(engine, sysURI, "http://semoss.org/ontologies/Concept/ActiveSystem");
-		}
 	}
 	
 	public void processGlItemsSubclassing(IEngine engine, Set<String> data){
@@ -201,73 +148,6 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem", "http://semoss.org/ontologies/Concept/DeployGLItem");
 		for(String glItemURI : data) {
 			processNewConceptsAtInstanceLevel(engine, glItemURI, "http://semoss.org/ontologies/Concept/TransitionGLItem");
-		}
-	}
-	
-	public void createBaseRelationsHash(Object[] triple, HashMap<String, HashMap<String, Set<String>>> baseRelations) {
-		String subjectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[0].toString());
-		String predicateBaseURI = semossRelationBaseURI + Utility.getClassName(triple[1].toString());
-		String objectBaseURI = semossConceptBaseURI + Utility.getClassName(triple[2].toString());
-		if(baseRelations.containsKey(subjectBaseURI)) {
-			HashMap<String, Set<String>> innerHash = baseRelations.get(subjectBaseURI);
-			if(innerHash.containsKey(predicateBaseURI)) {
-				innerHash.get(predicateBaseURI).add(objectBaseURI);
-			} else {
-				Set<String> list = new HashSet<String>();
-				list.add(objectBaseURI);
-				innerHash.put(predicateBaseURI, list);
-			}
-		} else {
-			Set<String> list = new HashSet<String>();
-			list.add(objectBaseURI);
-			HashMap<String, Set<String>> innerHash = new HashMap<String, Set<String>>();
-			innerHash.put(predicateBaseURI, list);
-			baseRelations.put(subjectBaseURI, innerHash);
-		}
-	}
-	
-	public void addToOWL(IEngine engine, HashMap<String, HashMap<String, Set<String>>> baseRelations) throws RepositoryException, RDFHandlerException 
-	{
-		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
-
-		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
-		for(String subjectURI : baseRelations.keySet()) 
-		{
-			HashMap<String, Set<String>> predicateURIHash = baseRelations.get(subjectURI);
-			for(String predicateURI : predicateURIHash.keySet()) 
-			{
-				Set<String> objectURIList = predicateURIHash.get(predicateURI);
-				for(String objectURI : objectURIList) 
-				{
-					existingBaseEngine.addStatement(subjectURI, predicateURI, objectURI, true);
-				}
-			}
-		}
-		
-		RepositoryConnection exportRC = existingBaseEngine.getRc();
-		FileWriter fWrite = null;
-		try{
-			fWrite = new FileWriter(owlFileLocation);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			exportRC.export(owlWriter);
-			fWrite.flush();
-			owlWriter.close();	
-		}
-		catch(IOException ex)
-		{
-			ex.printStackTrace();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 	
