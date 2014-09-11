@@ -671,7 +671,7 @@ public class Utility {
 			SSLContextBuilder builder = new SSLContextBuilder();
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-		            builder.build());
+		            builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 		    httpclient = HttpClients.custom().setSSLSocketFactory(
 		            sslsf).build();
 
@@ -752,7 +752,7 @@ public class Utility {
 			SSLContextBuilder builder = new SSLContextBuilder();
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-		            builder.build());
+		            builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 		    httpclient = HttpClients.custom().setSSLSocketFactory(
 		            sslsf).build();
 
