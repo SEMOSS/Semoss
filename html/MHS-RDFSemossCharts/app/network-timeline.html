@@ -20,21 +20,21 @@
             <div id="sidebarContentArea">
 
                 <div id="sidebarContentLeft">
-                    <table ng-table="tableParams" show-filter="true" class="table">
+                    <table ng-table="tableParams" show-filter="true" class="table fixed-layout">
                         <tr ng-repeat="user in $data">
-                            <td data-title="'Phase'" class="phase" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center">
+                            <td title="{{user.phase}}" data-title="'Phase'" class="phase" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
                                 {{user.phase}}
                             </td>
-                            <td data-title="'LOE'" class="loe" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center" class="text-right" >
+                            <td title="{{user.LOE}}" data-title="'LOE'" class="loe" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center loe" class="text-right" >
                                 {{user.LOE}}
                             </td>
-                            <td data-title="'Dependent ICDs'" class="icd" sortable="'dependICDS'" filter="{ 'dependICDS': 'text' }" header-class = "text-center" class="text-right" >
+                            <td title="user.dependICDS" data-title="'Dependent ICDs'" class="icd" sortable="'dependICDS'" filter="{ 'dependICDS': 'text' }" header-class = "text-center icd" class="text-right" >
                                 {{user.dependICDS}}
                             </td>
-                            <td data-title="'GL Item'" class="gl-item" sortable="'GLitem'" filter="{ 'GLitem': 'text' }" header-class = "text-center" class="text-right" >
+                            <td title="{{user.GLitem}}" data-title="'GL Item'" class="gl-item" sortable="'GLitem'" filter="{ 'GLitem': 'text' }" header-class = "text-center gl-item" class="text-right" >
                                 {{user.GLitem}}
                             </td>
-                            <td data-title="'GL Tag'" class="gl-tag" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center" class="text-right" >
+                            <td title="{{user.gltag}}" data-title="'GL Tag'" class="gl-tag" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center gl-tag" class="text-right" >
                                 {{user.gltag}}
                             </td>
                         </tr>
@@ -63,8 +63,8 @@
     <script>
 
         //$("#sidebarContentLeft").resizable({
-        //        handles: 'e'
-        //    });
+        //    handles: 'e'
+        //});
 
         function start(dataPassed) {
 
@@ -119,7 +119,6 @@
 			                            };
 			                            tableData.push(newItem);
 		                            }
-
 	                            }
                             } else { //timeHash property doesn't exist
 
@@ -536,6 +535,29 @@
 
                         }//end of link
                     }//end of return
+            }).filter('reduceStringLength', function() {
+                    //returns the string
+                    return function(str, length) {
+                
+                        if (!length) {
+                           length = 15;
+                        }
+                
+                        if (str.length > length) {
+                            return str.substring(0, length) + "...";
+                        } else {
+                            return str;
+                        }
+                    }
+            }).filter('replaceUnderscores', function() {
+                return function(str) {
+                    str = String(str);
+                    var myRe = new RegExp("([^/]*)$");
+                    var shortStr = myRe.exec(str);
+                    var result = shortStr[0].replace(/_/g, " ");
+                    
+                    return result;
+                }
             });
 
 
