@@ -2,6 +2,10 @@
     box-sizing: border-box;
 }
 
+body {
+    overflow: hidden;
+}
+
 /* jquery UI resizable css */
 .ui-icon { width: 16px; height: 16px; background-image: url(http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.1/themes/base/images/ui-icons_222222_256x240.png)/*{iconsContent}*/; }
 .ui-resizable { position: relative;}
@@ -55,21 +59,22 @@
 
 
 #sidebarContentLeft {
-    position: fixed;
+    position: absolute;
     height: 100%;
     width:50%;
-    top:80px;
-    bottom: 0px;
-    left: 0px;
+    top: 0;
+    bottom: 20px;
+    left: 0;
+    overflow: auto;
     background-color: #eee;
-    padding: 10px 15px 0px 15px;
+    padding: 35px 15px 0px 15px;
     border-right: 1px solid #ccc;
 }
 
 #sidebarContentRight {
     position: absolute;
     left: 50%;
-    top: 100px;
+    top: 35px;
     bottom: 0;
     right: 0;
 }
@@ -86,6 +91,10 @@
 #slider{
     margin-left: auto;
     margin-right: auto;
+}
+
+.phase {
+    width: 10px;
 }
 
 .d3-tip {
@@ -111,6 +120,10 @@
     content: "\25BC";
     position: absolute;
     text-align: center;
+}
+
+table tbody tr td {
+    height: 20px;
 }
   
   /* Style northward tooltips differently */
