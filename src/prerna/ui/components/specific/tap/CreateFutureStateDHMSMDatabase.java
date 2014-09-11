@@ -54,10 +54,11 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		
 	}
 	
-	public CreateFutureStateDHMSMDatabase(IEngine hrCore, IEngine futureState, IEngine futureCostDB) {
+	public CreateFutureStateDHMSMDatabase(IEngine hrCore, IEngine futureState, IEngine futureCostDB, IEngine tapCost) {
 		this.hrCore = hrCore;
 		this.futureState = futureState;
 		this.futureCostState = futureCostDB;
+		this.tapCost = tapCost;
 	}
 	
 	public void setHrCore(IEngine hrCore) {
@@ -276,12 +277,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		processor.isGenerateCost(true);
 		processor.setGenerateNewTriples(true);
 		processor.setUsePhase(true);
-		if(tapCost == null) {
-			tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-			if(tapCost == null) {
-				throw new EngineException("Cost Info Not Found");
-			}
-		}
+		
 		processor.getCostInfoAtPhaseLevel(tapCost);
 		processor.generateReport();
 		relList = processor.getRelList();
