@@ -284,7 +284,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	@Override
 	public Object getData() {
 		Hashtable returnHash = (Hashtable) super.getData();
-		returnHash.put("specificData", dataHash);
+		if (dataHash != null)
+			returnHash.put("specificData", dataHash);
 		return returnHash;
 	}
 }
