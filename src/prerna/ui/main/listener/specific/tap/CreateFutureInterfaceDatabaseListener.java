@@ -54,12 +54,11 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB, tapCost);
 			glGen.genData();
 			
-//			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
-//			
-//			futureStateCreator.addTriplesToExistingICDs();
-//			futureStateCreator.generateData();
-//			futureStateCreator.createDBs();
-//			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
+			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
+			futureStateCreator.addTriplesToExistingICDs();
+			futureStateCreator.generateData();
+			futureStateCreator.createDBs();
+			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
 		} catch (EngineException e) {
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
 			e.printStackTrace();

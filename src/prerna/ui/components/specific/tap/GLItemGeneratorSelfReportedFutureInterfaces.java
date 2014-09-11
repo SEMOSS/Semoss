@@ -66,11 +66,11 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		Hashtable<String, Vector<String[]>> allData = generator.getAllDataHash();
 		getData(allData);
 		
-//		((BigDataEngine) futureCostDB).commit();
-//		((BigDataEngine) futureCostDB).infer();
-//		writeToOWL(futureCostDB, baseFutureCostRelations);
-//		// update base filter hash
-//		((AbstractEngine) futureCostDB).createBaseRelationEngine();
+		((BigDataEngine) futureCostDB).commit();
+		((BigDataEngine) futureCostDB).infer();
+		writeToOWL(futureCostDB, baseFutureCostRelations);
+		// update base filter hash
+		((AbstractEngine) futureCostDB).createBaseRelationEngine();
 	}
 	
 	public void getData(Hashtable<String, Vector<String[]>> allData) {
