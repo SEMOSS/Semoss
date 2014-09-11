@@ -3,6 +3,7 @@
 
 DataObject http://health.mil/ontologies/Concept/DataObject
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
+NCRMDSystemUser http://health.mil/ontologies/Concept/NCRMDSystemUser
 Software http://health.mil/ontologies/Concept/Software
 BusinessStandard http://health.mil/ontologies/Concept/BusinessStandard
 Service http://health.mil/ontologies/Concept/Service
@@ -19,8 +20,8 @@ Element http://health.mil/ontologies/Concept/Element
 CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
 Database http://health.mil/ontologies/Concept/Database
 HL7 http://health.mil/ontologies/Concept/HL7
-SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
+SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
 Reference http://health.mil/ontologies/Concept/Reference
@@ -122,6 +123,7 @@ InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relatio
 System_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 Task_Has_Attribute http://health.mil/ontologies/Relation/Has
 System_Consists_SoftwareModule http://health.mil/ontologies/Relation/Consists
+SystemTasker_BelongsTo_NCRMDSystemUser http://health.mil/ontologies/Relation/BelongsTo
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
@@ -191,6 +193,7 @@ Participant_CLASS http://semoss.org/ontologies/Concept/Participant
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
 CapabilityGroup_CLASS http://semoss.org/ontologies/Concept/CapabilityGroup
 CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Concept/CapabilityFunctionalArea
+NCRMDSystemUser_CLASS http://semoss.org/ontologies/Concept/NCRMDSystemUser
 CCD_CLASS http://semoss.org/ontologies/Concept/CCD
 TechStandardIdentifier_CLASS http://semoss.org/ontologies/Concept/TechStandardIdentifier
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
