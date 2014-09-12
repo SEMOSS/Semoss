@@ -66,7 +66,9 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	@Override
 	public void createData()
 	{
-		super.createData();
+		if (!(this.query).equals("NULL") || !this.query.isEmpty()) {
+			super.createData();
+		}
 		SimilarityFunctions sdf = new SimilarityFunctions();
 		addPanel();
 		// this would be create the data
