@@ -270,7 +270,7 @@
 
                                     d3.select('#slider')
                                         .call(
-		                                    d3.slider().axis(true).min(minLOE).max(maxLOE+1).step(2).value(0)
+		                                    d3.slider().axis(true).min(minLOE).max(maxLOE+10).step(2).value(0)
 			                                    .on('slide', function (e, v) {
                                                     scope.$emit('slider-change', v);
                                             }));
@@ -445,7 +445,7 @@
                                         .attr("stroke", "none")
                                         .style("font-size", "10px")
                                         .text(function(d) {
-                                            return d.propHash.VERTEX_TYPE_PROPERTY;
+                                            return d.propHash.VERTEX_LABEL_PROPERTY;
                                         });
 
                                 //node group removal with transition...
