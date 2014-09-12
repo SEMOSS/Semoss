@@ -21,21 +21,18 @@
 
                 <div id="sidebarContentLeft">
                     <table ng-table="tableParams" show-filter="true" class="table fixed-layout">
-                        <tr ng-repeat="user in $data">
+                        <tr ng-repeat="item in $data track by $index">
+                            <td data-title="'ICD'" class="icd" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
+                                {{item.name}}
+                            </td>
                             <td title="{{user.phase}}" data-title="'Phase'" class="phase" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
-                                {{user.phase}}
+                                {{item.phase}}
                             </td>
                             <td title="{{user.LOE}}" data-title="'LOE'" class="loe" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center loe" class="text-right" >
-                                {{user.LOE}}
-                            </td>
-                            <td title="user.dependICDS" data-title="'Dependent ICDs'" class="icd" sortable="'dependICDS'" filter="{ 'dependICDS': 'text' }" header-class = "text-center icd" class="text-right" >
-                                {{user.dependICDS}}
-                            </td>
-                            <td title="{{user.GLitem}}" data-title="'GL Item'" class="gl-item" sortable="'GLitem'" filter="{ 'GLitem': 'text' }" header-class = "text-center gl-item" class="text-right" >
-                                {{user.GLitem}}
+                                {{item.LOE}}
                             </td>
                             <td title="{{user.gltag}}" data-title="'GL Tag'" class="gl-tag" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center gl-tag" class="text-right" >
-                                {{user.gltag}}
+                                {{item.gltag}}
                             </td>
                         </tr>
                     </table>
@@ -59,12 +56,9 @@
     <script src="lib/underscore.js"></script>
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
-    <script src="data/timeline-data.js"></script>
-    <script>
+    <script src="lib/taffy-min.js"></script>
 
-        //$("#sidebarContentLeft").resizable({
-        //    handles: 'e'
-        //});
+    <script>
 
         function start(dataPassed) {
 
@@ -75,60 +69,129 @@
         };
 
         angular.module('main', ['ngTable']).
-            controller('NetworkCtrl', function($scope, $filter, ngTableParams, $timeout) {
+            controller('NetworkCtrl', function($scope, $filter, ngTableParams, $timeout, $rootScope) {
                     $scope.forceData = '';
                     $scope.tableData = [];
+                    var tableDB;
 
-                    $timeout(function () {
-                        $scope.forceData = timeline_data;
-                        //setTableData($scope.forceData.nodes);
-	                    setTableData($scope.forceData.edges);
-                    }, 500);
+//                    $timeout(function () {
+//                        $scope.forceData = timeline_data;
+//                        //createTableDataModel($scope.forceData.nodes);
+//                        createTableDataModel($scope.forceData.edges);
+//                    }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
                             $scope.forceData = jQuery.parseJSON(data);
-                            //setTableData($scope.forceData.nodes);
-	                        setTableData($scope.forceData.edges);
+                            //createTableDataModel($scope.forceData.nodes);
+                            createTableDataModel($scope.forceData.edges);
                         });
                     };
 
-                    function setTableData(array) {
+                    function createTableDataModel(array) {
                         var tableData = [];
                         for (var prop = 0; prop < array.length; prop++) {
+
                             if (array[prop].propHash.timeHash) {
 	                            if(array[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
-		                            /*
-		                            var newItem = {
-			                            phase: "Decommissioned",
-			                            LOE: 0,
-			                            dependICDS: "",
-			                            GLitem: "",
-			                            gltag: ""
-		                            };
-		                            tableData.push(newItem);
-		                            */
-	                            } else { //requirements, design, test, develop, deploy phases
-		                            for(var timeHashProp in array[prop].propHash.timeHash) {
-			                            var newItem = {
-				                            phase: array[prop].propHash.timeHash[timeHashProp].phase,
-				                            LOE: array[prop].propHash.timeHash[timeHashProp].LOE,
-				                            dependICDS: array[prop].propHash.timeHash[timeHashProp].dependICDS,
-				                            GLitem: array[prop].propHash.timeHash[timeHashProp].GLitem,
-				                            gltag: array[prop].propHash.timeHash[timeHashProp].gltag
-			                            };
-			                            tableData.push(newItem);
-		                            }
-	                            }
-                            } else { //timeHash property doesn't exist
+                                    //new item data model
+                                    var newItem = {
+                                        name: array[prop].propHash.EDGE_NAME,
+                                        phase: "Decommissioned",
+                                        startLOE: 0,
+                                        LOE: 0,
+                                        totalLOE: 0,
+                                        dependICDS: "",
+                                        gltag: ""
+                                    };
 
+                                    tableData.push(newItem);
+                                } else { //requirements, design, test, develop, deploy phases
+
+                                    //create total for LOE hours
+                                    var totalLOE = 0;
+                                    var phases = ["Requirements", "Design", "Develop", "Test", "Deploy"];
+
+		                            for(var i=0; i<phases.length; i++) {
+                                        if (array[prop].propHash.timeHash[phases[i]]) {
+
+
+
+                                            //new item data model
+                                            var newItem = {};
+                                            newItem.name = array[prop].propHash.EDGE_NAME;
+                                            newItem.phase = array[prop].propHash.timeHash[phases[i]].phase;
+                                            newItem.startLOE = totalLOE;
+                                            newItem.LOE = array[prop].propHash.timeHash[phases[i]].LOE;
+                                            //set the edges properties
+                                            array[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
+
+                                            //add to previous total
+                                            totalLOE += array[prop].propHash.timeHash[phases[i]].LOE;
+
+                                            //set the edges properties
+                                            array[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
+                                            newItem.totalLOE = totalLOE;
+                                            newItem.dependICDS = array[prop].propHash.timeHash[phases[i]].dependICDS;
+                                            newItem.gltag = array[prop].propHash.timeHash[phases[i]].gltag;
+
+
+
+
+                                            tableData.push(newItem);
+                                        }
+                                    }
+
+                                    var newItem = {
+                                        name: array[prop].propHash.EDGE_NAME,
+                                        phase: "Completed",
+                                        startLOE: totalLOE,
+                                        LOE: 0,
+                                        totalLOE: 500,
+                                        dependICDS: "",
+                                        gltag: ""
+                                    };
+                                    array[prop].propHash.timeHash["Completed"] = newItem;
+
+                                    tableData.push(newItem);
+	                            }
+                            } else {
+                                //new item data model
+                                var newItem = {
+                                    name: array[prop].propHash.EDGE_NAME,
+                                    phase: "N/A",
+                                    startLOE: 0,
+                                    LOE: 0,
+                                    totalLOE: 0,
+                                    dependICDS: "",
+                                    gltag: ""
+                                };
+                                tableData.push(newItem);
                             }
+
                         } //end of forloop
 
-                        $scope.tableData = tableData;
-                        $scope.tableParams.count(tableData.length);
+                        tableDB = TAFFY(tableData);
+
+//
+                    }
+
+                    function setTableData(sliderValue) {
+                        $scope.tableData = tableDB(function() {
+                            if (this.name == "DHMSM-ISITE-Order_Information") {
+                                console.log();
+                            }
+                            return this.totalLOE >= sliderValue && sliderValue > this.startLOE;
+                        }).get();
+
+                        $scope.tableParams.count($scope.tableData.length);
                         $scope.tableParams.reload();
                     }
+
+                    $rootScope.$on('slider-change', function(event, sliderVal) {
+                        console.log(sliderVal);
+                        setTableData(sliderVal);
+                    });
 
                     function getTableData() {
                         if ($scope.tableData) {
@@ -159,21 +222,12 @@
                         }
                     });
             }).
-            directive('forcegraph', function() {
+            directive('forcegraph', function($rootScope) {
                     return {
                         restrict: 'AE',
                         scope: {
                             data: '=',
-                            d3Width: '=',
-                            d3Height: '=',
-                            toggleLabel: '=',
-                            uriSend: '&uri',
-                            clearGraph: '=',
-                            control: '=',
-                            sendLegend: '&',
                             containerClass: "=",
-                            isMenuOpen: "=",
-                            showTitle: "=",
                             labels: "="
                         },
                         link: function (scope, ele, attrs) {
@@ -218,14 +272,17 @@
 
                                     d3.select('#slider')
                                         .call(
-		                                    d3.slider().axis(true).min(minLOE).max(maxLOE).step(2).value(0)
+		                                    d3.slider().axis(true).min(minLOE).max(1000).step(2).value(0)
 			                                    .on('slide', function (e, v) {
-		                                            console.log(e);
-		                                            console.log(v);
+                                                    scope.$emit('slider-change', v);
                                             }));
                                     update();
                                 }
 
+                            });
+
+                            $rootScope.$on('slider-change', function(event, sliderVal) {
+                                updateEdges(sliderVal);
                             });
 
                             var xScale = d3.scale.linear()
@@ -474,6 +531,42 @@
                                 force.start();
                             }
 
+                            function updateEdges(sliderValue) {
+                                d3.selectAll(".link")
+                                    .attr("stroke", function(d) {
+
+                                        var color = "#666";
+                                        if (d.propHash.timeHash) {
+
+                                            if (d.propHash.timeHash["Decommissioned"]) {
+                                                color = "#FF0000";
+                                            } else {
+
+                                                for (var phase in d.propHash.timeHash) {
+                                                    if (d.propHash.timeHash[phase].totalLOE > sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
+
+                                                        if (phase == "Requirements") {
+                                                            color = "#FF9900";
+                                                        } else if (phase == "Design") {
+                                                            color = "#D6A314";
+                                                        } else if (phase == "Develop") {
+                                                            color = "#ADAD29";
+                                                        } else if (phase == "Test") {
+                                                            color = "#85B83D";
+                                                        } else if (phase == "Deploy") {
+                                                            color = "#5CC252";
+                                                        } else if (phase == "Completed") {
+                                                            color = "#33CC66";
+                                                        }
+
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        return color;
+                                    });
+                            }
+
                             function calculateMaxLOE() {
 
 	                            for (var i=0; i  < links.length; i++) {
@@ -498,10 +591,6 @@
                                     }
                                 }
 
-                            }
-
-                            function updatePhase() {
-                                d3.select('.node');
                             }
 
                             //find node by 'id' within nodes array
