@@ -57,6 +57,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
+    <script src="data/timeline-data.js"></script>
 
     <script>
 
@@ -74,11 +75,11 @@
                     $scope.tableData = [];
                     var tableDB;
 
-//                    $timeout(function () {
-//                        $scope.forceData = timeline_data;
-//                        //createTableDataModel($scope.forceData.nodes);
-//                        createTableDataModel($scope.forceData.edges);
-//                    }, 500);
+                    $timeout(function () {
+                        $scope.forceData = timeline_data;
+                        //createTableDataModel($scope.forceData.nodes);
+                        createTableDataModel($scope.forceData.edges);
+                    }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
@@ -178,9 +179,6 @@
 
                     function setTableData(sliderValue) {
                         $scope.tableData = tableDB(function() {
-                            if (this.name == "DHMSM-ISITE-Order_Information") {
-                                console.log();
-                            }
                             return this.totalLOE >= sliderValue && sliderValue > this.startLOE;
                         }).get();
 
@@ -272,7 +270,7 @@
 
                                     d3.select('#slider')
                                         .call(
-		                                    d3.slider().axis(true).min(minLOE).max(1000).step(2).value(0)
+		                                    d3.slider().axis(true).min(minLOE).max(maxLOE+1).step(2).value(0)
 			                                    .on('slide', function (e, v) {
                                                     scope.$emit('slider-change', v);
                                             }));
@@ -558,7 +556,7 @@
                                                 }
                                             } else {
                                                 for (var phase in d.propHash.timeHash) {
-                                                    if (d.propHash.timeHash[phase].totalLOE > sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
+                                                    if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
                                                         if (phase == "Requirements") {
                                                             color = "#FF9900";
