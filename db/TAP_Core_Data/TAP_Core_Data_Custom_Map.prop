@@ -12,6 +12,7 @@ BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
 SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
 Capability http://health.mil/ontologies/Concept/Capability
 CDR http://health.mil/ontologies/Concept/CDR
+NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
 Element http://health.mil/ontologies/Concept/Element
 Database http://health.mil/ontologies/Concept/Database
 HL7 http://health.mil/ontologies/Concept/HL7
@@ -80,6 +81,7 @@ InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Co
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
 DataObject_MapsTo_CCD http://health.mil/ontologies/Relation/MapsTo
+SystemTasker_BelongsTo_NCRMDUser http://health.mil/ontologies/Relation/BelongsTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 System_Supports_Activity http://health.mil/ontologies/Relation/Supports
@@ -155,6 +157,7 @@ FError_CLASS http://semoss.org/ontologies/Concept/FError
 BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 ActivityLevel_CLASS http://semoss.org/ontologies/Concept/ActivityLevel
 TaskerLifecyclePhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecyclePhase
+NCRMDUser_CLASS http://semoss.org/ontologies/Concept/NCRMDUser
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
 Software_CLASS http://semoss.org/ontologies/Concept/Software
@@ -224,6 +227,7 @@ System_Provide_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Pro
 DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_OwnedBy_SystemOwner_CLASS http://semoss.org/ontologies/Relation/OwnedBy
 Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
+SystemTasker_BelongsTo_NCRMDUser_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 BusinessLogicUnit_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
 Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
