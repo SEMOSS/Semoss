@@ -1,6 +1,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
@@ -35,9 +36,15 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	 */
 	public GraphTimePlaySheet() {
 		super();
-		this.setPreferredSize(new Dimension(800,600));
+		this.setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/world-map-timeline.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/network-timeline.html";
+	}
+	
+	@Override
+	public void createView(){
+		this.dataHash = (Hashtable) this.getData();
+		super.createView();
 	}
 	
 	@Override
