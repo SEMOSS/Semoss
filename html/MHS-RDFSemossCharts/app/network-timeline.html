@@ -39,7 +39,7 @@
                 </div>
 
                 <div id="sidebarContentRight">
-                    <forcegraph data="forceData"></forcegraph>
+                    <forcegraph data="forceData" max-loe="maxLOE"></forcegraph>
                 </div>
 
             </div>
@@ -57,6 +57,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
+    <script src="data/timeline-data.js"></script>
 
     <script>
 
@@ -73,12 +74,15 @@
                     $scope.forceData = '';
                     $scope.tableData = [];
                     var tableDB;
+                    var allForceData;
+                    $scope.maxLOE = 0;
 
-//                    $timeout(function () {
-//                        $scope.forceData = timeline_data;
-//                        //createTableDataModel($scope.forceData.nodes);
-//                        createTableDataModel($scope.forceData.edges);
-//                    }, 500);
+                    $timeout(function () {
+                        $scope.forceData = timeline_data;
+//                        allForceData = timeline_data;
+                        //createTableDataModel($scope.forceData.nodes);
+                        createTableDataModel($scope.forceData.edges);
+                    }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
@@ -178,7 +182,7 @@
 
                     function setTableData(sliderValue) {
                         $scope.tableData = tableDB(function() {
-                            return this.totalLOE >= sliderValue && sliderValue > this.startLOE;
+                            return (this.totalLOE >= sliderValue && sliderValue > this.startLOE) || (sliderValue >= $scope.maxLOE && (this.phase == "Completed" || this.phase == "Decommissioned"));
                         }).get();
 
                         $scope.tableParams.count($scope.tableData.length);
@@ -186,7 +190,6 @@
                     }
 
                     $rootScope.$on('slider-change', function(event, sliderVal) {
-                        console.log(sliderVal);
                         setTableData(sliderVal);
                     });
 
@@ -196,6 +199,11 @@
                         } else {
                             return [];
                         }
+                    }
+
+                    function setInitialForceData() {
+
+
                     }
 
                     $scope.tableParams = new ngTableParams({
@@ -226,7 +234,8 @@
                         scope: {
                             data: '=',
                             containerClass: "=",
-                            labels: "="
+                            labels: "=",
+                            maxLoe: "="
                         },
                         link: function (scope, ele, attrs) {
                             var links = [],
@@ -238,8 +247,10 @@
                                     legendNodes = [],
                                     margin = {top: 100, right: 100, bottom: 100, left: 100},
                                     container = {width: 0, height: 0},
-                                    maxLOE = 0,
-                                    minLOE = 0;
+                                    minLOE = 0,
+                                    allForceData,
+                                    previousSliderValue,
+                                    isSliderMade = false;
 
                             //TODO: this needs to be refactored to use container and margin objects
                             var width = 0;
@@ -249,9 +260,15 @@
 
                             scope.$watch('data', function() {
                                 if (!_.isEmpty(scope.data)) {
+                                    //save all the data for later
+                                    allForceData = scope.data;
+                                    setForceData(scope.data, 0);
+                                }
+                            });
 
-                                    newNodes = scope.data.nodes;
-                                    newLinks = scope.data.edges;
+                            function setForceData(newData, sliderValue) {
+                                newNodes = newData.nodes;
+                                newLinks = newData.edges;
 
                                     for (var prop in newNodes) {
                                         obj = $.extend({}, newNodes[prop]);
@@ -266,21 +283,35 @@
                                         links.push(link);
                                     });
 
-                                    calculateMaxLOE();
+                                    if (!isSliderMade) {
+                                        calculateMaxLOE();
+                                        d3.select('#slider')
+                                                .call(
+                                                d3.slider().axis(true).min(minLOE).max(scope.maxLoe + 5).step(2).value(0)
+                                                        .on('slide', function (e, v) {
+                                                            scope.$emit('slider-change', v);
+                                                        }));
 
-                                    d3.select('#slider')
-                                        .call(
-		                                    d3.slider().axis(true).min(minLOE).max(maxLOE+10).step(2).value(0)
-			                                    .on('slide', function (e, v) {
-                                                    scope.$emit('slider-change', v);
-                                            }));
+                                        isSliderMade = true;
+                                    }
                                     update();
-                                }
 
-                            });
+                            }
 
                             $rootScope.$on('slider-change', function(event, sliderVal) {
-                                updateEdges(sliderVal);
+
+                                if (previousSliderValue > 0  && sliderVal !== 0) {
+                                    updateEdgeColor(sliderVal);
+                                } else if (sliderVal == 0) {
+                                    removeEdges(_.difference(allForceData.edges, getInitialEdges(allForceData.edges)));
+                                    update();
+                                } else {
+                                    setForceData({nodes: {}, edges: _.difference(allForceData.edges, getInitialEdges(allForceData.edges))}, sliderVal);
+                                    updateEdgeColor(sliderVal);
+                                }
+
+                                previousSliderValue = sliderVal;
+
                             });
 
                             var xScale = d3.scale.linear()
@@ -405,8 +436,9 @@
                                         .attr("marker-end", function(d) { return "url(#end)"; })
                                         .attr("id", function(d, i) { return "linkId_" + i; })
                                         .attr("fill", "none")
-                                        .attr("stroke", "#666")
                                         .attr("stroke-width", 1.5);
+
+                                link.attr("stroke", "#666");
 
                                 //link exit...
                                 link.exit()
@@ -529,7 +561,29 @@
                                 force.start();
                             }
 
-                            function updateEdges(sliderValue) {
+                            function getInitialEdges() {
+                                var edges = [];
+                                for (var i=0; i<allForceData.edges.length; i++) {
+                                    if (!allForceData.edges[i].propHash.timeHash || !allForceData.edges[i].propHash.timeHash["Decommissioned"]) {
+                                        edges.push(allForceData.edges[i]);
+                                    }
+                                }
+                                return edges;
+                            }
+
+                            //remove edges
+                            function removeEdges(linksToRemove) {
+
+                                for (var j=0; j<linksToRemove.length; j++) {
+                                    for (var i = 0; i < links.length; i++) {
+                                        if (links[i].source.id == linksToRemove[j].source.id && links[i].target.id == linksToRemove[j].target.id) {
+                                            links.splice(i, 1);
+                                        }
+                                    }
+                                }
+                            }
+
+                            function updateEdgeColor(sliderValue) {
                                 var dependICDs = [];
 
                                 for (var i=0; i<links.length; i++) {
@@ -551,7 +605,7 @@
                                         if (d.propHash.timeHash) {
 
                                             if (d.propHash.timeHash["Decommissioned"]) {
-                                                if (_.contains(dependICDs, d.uri) || sliderValue >= maxLOE) {
+                                                if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
                                                     color = "#FF0000";
                                                 }
                                             } else {
@@ -582,7 +636,7 @@
                             }
 
                             function calculateMaxLOE() {
-
+                                var maxLOE = 0;
 	                            for (var i=0; i  < links.length; i++) {
                                     if (links[i].propHash.timeHash) {
                                         var total = 0;
@@ -604,6 +658,9 @@
                                         maxLOE = total;
                                     }
                                 }
+
+                                scope.maxLoe = maxLOE
+                                scope.$apply;
 
                             }
 
