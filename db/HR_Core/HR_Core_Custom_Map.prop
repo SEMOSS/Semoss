@@ -16,6 +16,7 @@ Capability http://health.mil/ontologies/Concept/Capability
 CapabilityTag http://health.mil/ontologies/Concept/CapabilityTag
 CapabilityFunctionalArea http://health.mil/ontologies/Concept/CapabilityFunctionalArea
 CDR http://health.mil/ontologies/Concept/CDR
+NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
 Element http://health.mil/ontologies/Concept/Element
 CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
 Database http://health.mil/ontologies/Concept/Database
@@ -145,6 +146,7 @@ Tasker_DistributedTo_System http://health.mil/ontologies/Relation/DistributedTo
 TechRequirement_Satisfies_Attribute http://health.mil/ontologies/Relation/Satisfies
 FError_Supports_Attribute http://health.mil/ontologies/Relation/Supports
 System_Provide_DataObject http://health.mil/ontologies/Relation/Provide
+SystemTasker_BelongsTo_NCRMDUser http://health.mil/ontologies/Relation/BelongsTo
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
@@ -205,6 +207,7 @@ CDR_CLASS http://semoss.org/ontologies/Concept/CDR
 FError_CLASS http://semoss.org/ontologies/Concept/FError
 ActivityLevel_CLASS http://semoss.org/ontologies/Concept/ActivityLevel
 BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
+NCRMDUser_CLASS http://semoss.org/ontologies/Concept/NCRMDUser
 TaskerLifecyclePhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecyclePhase
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 Gap_CLASS http://semoss.org/ontologies/Concept/Gap
