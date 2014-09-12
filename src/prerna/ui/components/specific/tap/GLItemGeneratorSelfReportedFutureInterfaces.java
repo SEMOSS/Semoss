@@ -30,6 +30,7 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.util.Utility;
 
 /**
  * This class is used to generate items in the GL and is used to update the cost database.
@@ -69,8 +70,6 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		((BigDataEngine) futureCostDB).commit();
 		((BigDataEngine) futureCostDB).infer();
 		writeToOWL(futureCostDB, baseFutureCostRelations);
-		// update base filter hash
-		((AbstractEngine) futureCostDB).createBaseRelationEngine();
 	}
 	
 	public void getData(Hashtable<String, Vector<String[]>> allData) {
@@ -105,114 +104,170 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		// note that all "ser" in these keys now represent future icds
 		// DataObject -> input -> DesignGLItem
 		Vector<String[]> data = allData.get("Data-DesignGLItem");
-		insertRelData(data, DATA_OBJECT, INPUT, DESIGN_GLITEM); //TODO: check is this is actually data
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, DATA_OBJECT, INPUT, DESIGN_GLITEM); 
 		
 		// TestGLItem -> includes -> GLItemCoreTask
 		data = allData.get("TestGLItem-GLItemCT");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, TEST_GLITEM, INCLUDES, GLITEM_CORE_TASK);
 		
 		// RequirementsGLItem -> output -> ICD
 		data = allData.get("RequirementsGLItem-Ser");
-		insertRelData(data, REQUIREMENTS_GLITEM, OUTPUT, ICD); //TODO: check if service is replaced by icd
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, REQUIREMENTS_GLITEM, OUTPUT, ICD);
 		
 		// DevelopGLItem -> output -> ICD
 		data = allData.get("DevelopGLItem-Ser");
-		insertRelData(data, DEVELOP_GLITEM, OUTPUT, ICD); //TODO: check if service is replaced by icd
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, DEVELOP_GLITEM, OUTPUT, ICD);
 		
 		// TestGLItem -> belongs to -> SDLCPhase
 		data = allData.get("TestGLItem-Phase");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, TEST_GLITEM, BELONGS_TO, PHASE);
 
 		// DesignGLItem -> tagged by -> GLTag
 		data = allData.get("DesignGLItemTag");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DESIGN_GLITEM, TAGGED_BY, GLTAG);
 
 		// System -> influences -> DesignGLItem
 		data = allData.get("Sys-DesignGLItem");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, SYSTEM, INFLUENCES, DESIGN_GLITEM);
 
 		// RequirementsGLItem -> includes -> GLItemCoreTask
 		data = allData.get("RequirementsGLItem-GLItemCT");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, REQUIREMENTS_GLITEM, INCLUDES, GLITEM_CORE_TASK);
 
 		// GLItemCoreTask -> includes -> GLItemSubTask
 		data = allData.get("GLItemCT-GLItemST");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, GLITEM_CORE_TASK, INCLUDES, GLITEM_SUB_TASK);
 
 		// GLItemSubTask -> contains/factor -> factor
 		data = allData.get("GLItemSubTaskProp");
+		data.remove(0);
+		data.remove(0);
 		insertPropData(data, GLITEM_SUB_TASK, FACTOR);
 
 		// DesignGLItem -> output -> icd
 		data = allData.get("DesignGLItem-Ser");
-		insertRelData(data, DESIGN_GLITEM, OUTPUT, ICD); //TODO: check if service is replaced by icd
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, DESIGN_GLITEM, OUTPUT, ICD);
 
 		// GLItemCoreTask -> type of -> TargetPhaseBasisCoreTask
 		data = allData.get("GLItemCT-BasisCT");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, GLITEM_CORE_TASK, TYPE_OF, TARGET_PHASE_BASIS_CORE_TASK);
 
 		// GLItemSubTask -> estimated -> TargetPhaseBasisSubTaskComplexityComplexity
 		data = allData.get("GLItemST-STBasisCompComp");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, GLITEM_SUB_TASK, ESTIMATED, TARGET_PHASE_BASIS_SUB_TASK_COMPLEXITY_COMPLEXITY);
 
 		// RequirementsGLItem -> tagged by -> GLTag
 		data = allData.get("RequirementsGLItemTag");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, REQUIREMENTS_GLITEM, TAGGED_BY, GLTAG);
 
 		// DevelopGLItem -> belongs to -> SDLCPhase
 		data = allData.get("DevelopGLItem-Phase");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DEVELOP_GLITEM, BELONGS_TO, PHASE);
 		
 		// TestGLItem -> tagged by -> GLTag
 		data = allData.get("TestGLItemTag");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, TEST_GLITEM, TAGGED_BY, GLTAG);
 
 		// RequirementsGLItem -> belongs to -> SDLCPhase
 		data = allData.get("RequirementsGLItem-Phase");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, REQUIREMENTS_GLITEM, BELONGS_TO, PHASE);
 
 		// DataObject -> input -> RequirementsGLItem
 		data = allData.get("Data-RequirementsGLItem");
-		insertRelData(data, DATA_OBJECT, INPUT, REQUIREMENTS_GLITEM); //TODO: check is this is actually data
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, DATA_OBJECT, INPUT, REQUIREMENTS_GLITEM);
 		
 		// DataObject -> input -> TestGLItem
 		data = allData.get("Data-TestGLItem"); 
-		insertRelData(data, DATA_OBJECT, INPUT, TEST_GLITEM); //TODO: check is this is actually data
+		data.remove(0);
+		data.remove(0);
+		insertRelData(data, DATA_OBJECT, INPUT, TEST_GLITEM);
 		
 		// DesignGLItem -> includes -> GLItemCoreTask
 		data = allData.get("DesignGLItem-GLItemCT");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DESIGN_GLITEM, INCLUDES, GLITEM_CORE_TASK);
 
 		// System -> influences -> DevelopGLItem
 		data = allData.get("Sys-DevelopGLItem");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, SYSTEM, INFLUENCES, DEVELOP_GLITEM);
 		
 		// DataObject -> input -> DevelopGLItem
 		data = allData.get("Data-DevelopGLItem");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DATA_OBJECT, INPUT, DEVELOP_GLITEM);
 
 		// DesignGLItem -> belongs to -> SDLCPhase
 		data = allData.get("DesignGLItem-Phase");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DESIGN_GLITEM, BELONGS_TO, PHASE);
 
 		// TestGLItem -> tagged by -> GLTag
 		data = allData.get("DevelopGLItemTag");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, TEST_GLITEM, TAGGED_BY, GLTAG);
 
 		// DevelopGLItem -> includes -> GLItemCoreTask
 		data = allData.get("DevelopGLItem-GLItemCT");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, DEVELOP_GLITEM, INCLUDES, GLITEM_CORE_TASK);
 
 		// System -> influences -> RequirementsGLItem
 		data = allData.get("Sys-RequirementsGLItem");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, SYSTEM, INFLUENCES, REQUIREMENTS_GLITEM);
 
 		// TestGLItem -> output -> ICD
 		data = allData.get("TestGLItem-Ser");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, TEST_GLITEM, OUTPUT, ICD); //TODO: check if service is replaced by icd
 
 		// System -> influences -> TestGLItem
 		data = allData.get("Sys-TestGLItem");
+		data.remove(0);
+		data.remove(0);
 		insertRelData(data, SYSTEM, INFLUENCES, TEST_GLITEM);
 
 	}
@@ -228,11 +283,18 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		int i;
 		for(i = 0; i < size; i++) {
 			String[] rel = data.get(i);
-			String sub = rel[0];
-			Object obj = rel[1];
-			String subURI = subBaseURI.concat(sub);
+			String sub = Utility.cleanString(rel[0], true);
+			Object retObj = null;
+			String objAsString = rel[1];
+			try {
+				Object obj = Double.parseDouble(objAsString);
+				retObj = obj;
+			} catch(NumberFormatException ex) {
+				retObj = objAsString;
+			}
 			
-			newData.add(new Object[]{subURI, propURI, obj});
+			String subURI = subBaseURI.concat(sub);
+			newData.add(new Object[]{subURI, propURI, retObj});
 		}
 		
 		processInstancePropOnNodeData(newData, futureCostDB);
@@ -255,8 +317,8 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		int i;
 		for(i = 0; i < size; i++) {
 			String[] rel = data.get(i);
-			String sub = rel[0];
-			String obj = rel[1];
+			String sub = Utility.cleanString(rel[0], true);
+			String obj = Utility.cleanString(rel[1], true);
 			String predURI = predBaseURI.concat(sub).concat(":").concat(obj);
 			String subURI = subBaseURI.concat(sub);
 			String objURI = objBaseURI.concat(obj);
