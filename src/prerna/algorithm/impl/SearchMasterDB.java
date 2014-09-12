@@ -17,6 +17,7 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.BooleanProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
@@ -37,6 +38,8 @@ public class SearchMasterDB {
 	String similarMasterConceptsQuery = "SELECT DISTINCT ?Database ?SubgraphKeyword ?MasterConcept WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} @FILTER@}";
 	String similarEdgesQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo ?MasterKeywordFrom ?MasterKeywordTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 	String similarMasterConceptConnectionsQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo WHERE {{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
+	String similarMasterConceptConnectionsOutsideQuery = "SELECT DISTINCT ?Database ?MasterConceptConnection (IF(BOUND(?MasterConceptFrom),?MasterConceptFrom,?BoundMasterConcept) AS ?MCFrom) (IF(BOUND(?MasterConceptTo),?MasterConceptTo,?BoundMasterConcept) AS ?MCTo) WHERE {{{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?BoundMasterConcept} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}UNION{{?Database <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?BoundMasterConcept} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Database <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}@FILTER@}";
+	
 
 	//list of keyword and edge types in the subgraph
 	ArrayList<String> keywordList;
@@ -183,19 +186,25 @@ public class SearchMasterDB {
 			
 			similarMasterConceptConnectionsQuery = addBindings(similarMasterConceptConnectionsQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
 			similarMasterConceptConnectionsQuery = addDatabaseFilter(similarMasterConceptConnectionsQuery,databaseFilter);
-			ArrayList<Object []> similarEdgesList = processQuery(similarMasterConceptConnectionsQuery);
-			ArrayList<Object []> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
+			ArrayList<Object []> similarEdgesResults = processQuery(similarMasterConceptConnectionsQuery);
+			similarEdgesResults = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesResults);
 			
-			ArrayList<Object[]> fullResultsList = new ArrayList<Object[]>();
-			fullResultsList.addAll(similarMasterConceptsResults);
-			fullResultsList.addAll(processedSimilarEdgesList);
-			list = createScoreList(fullResultsList,keywordList.size()+edgeVertInList.size());
+			similarMasterConceptConnectionsOutsideQuery = addBindings(similarMasterConceptConnectionsOutsideQuery,"BoundMasterConcept",masterConceptBaseURI,masterConceptsList);
+			similarMasterConceptConnectionsOutsideQuery = addDatabaseFilter(similarMasterConceptConnectionsOutsideQuery,databaseFilter);			
+			ArrayList<Object []> allEdgesList = processQuery(similarMasterConceptConnectionsOutsideQuery);
 			
-			headers = new String[2];
+			similarMasterConceptsResults = countDatabaseRows(similarMasterConceptsResults);
+			similarEdgesResults = countDatabaseRows(similarEdgesResults);
+			allEdgesList = countDatabaseRows(allEdgesList);
+			
+			list = aggregateScores(similarMasterConceptsResults,similarEdgesResults,allEdgesList,keywordList.size()+edgeVertInList.size());
+			list = normalize(list,2);
+			
+			headers = new String[3];
 			headers[0] = "Database";
-			headers[1] = "Score";
+			headers[1] = "SubgraphScore";
+			headers[2] = "SubgraphAndOutsideEdgeScore";
 		}
-
 		return list;
 	}
 	
@@ -339,20 +348,16 @@ public class SearchMasterDB {
 	 * @return ArrayList<String> that contains the results of the query.
 	 */
 	private ArrayList<String> processListQuery(String query) {
-		SesameJenaSelectWrapper wrapper = executeQuery(query);
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,query);
 		ArrayList<String> list = new ArrayList<String>();
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
-		try {
-			while(wrapper.hasNext())
-			{
-				SesameJenaSelectStatement sjss = wrapper.next();				
-				Object value = getVariable(names[0], sjss);
-				list.add((String)value);
-			}
-		} catch (RuntimeException e) {
-			logger.error("Could not store results for query: "+query);
+		while(wrapper.hasNext())
+		{
+			SesameJenaSelectStatement sjss = wrapper.next();				
+			Object value = getVariable(names[0], sjss);
+			list.add((String)value);
 		}
 		return list;
 	}
@@ -363,36 +368,22 @@ public class SearchMasterDB {
 	 * @return ArrayList<Object []> that contains the results of the query.
 	 */
 	private ArrayList<Object []> processQuery(String query) {
-		SesameJenaSelectWrapper wrapper = executeQuery(query);
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,query);
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
-		try {
-			while(wrapper.hasNext())
-			{
-				SesameJenaSelectStatement sjss = wrapper.next();				
-				Object [] values = new Object[names.length];
-				for(int colIndex = 0;colIndex < names.length;colIndex++)
-					values[colIndex] = getVariable(names[colIndex], sjss);
-				list.add(values);
-			}
-		} catch (RuntimeException e) {
-			logger.error("Could not store results for query: "+query);
+		while(wrapper.hasNext())
+		{
+			SesameJenaSelectStatement sjss = wrapper.next();				
+			Object [] values = new Object[names.length];
+			for(int colIndex = 0;colIndex < names.length;colIndex++)
+				values[colIndex] = getVariable(names[colIndex], sjss);
+			list.add(values);
 		}
 		return list;
 	}
-	private SesameJenaSelectWrapper executeQuery(String query){
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
-		wrapper.setEngine(masterEngine);
-		try{
-			wrapper.executeQuery();	
-		} catch (RuntimeException e){
-			logger.error("Could not execute query: "+query);
-		}
-		return wrapper;
-	}
+	
 	/**
 	 * Method getVariable. Gets the variable names from the query results.
 	 * @param varName String - the variable name.
@@ -402,6 +393,12 @@ public class SearchMasterDB {
 		return sjss.getVar(varName);
 	}
 
+	/**
+	 * Adds a column in the list with the value specified.
+	 * @param list	ArrayList of Object[] where each Object[]
+	 * @param fillVal
+	 * @return
+	 */
 	private ArrayList<Object []> addColumn(ArrayList<Object []> list,String fillVal) {
 		for(int i=0;i<list.size();i++) {
 			Object [] currRow = list.get(i);
@@ -414,39 +411,108 @@ public class SearchMasterDB {
 		return list;
 	}
 	
-	private ArrayList<Object []> createScoreList(ArrayList<Object []> fullResultslist, int totalNum){
-		ArrayList<Object []> finalScoreList = new ArrayList<Object []>();
+	/**
+	 * Counts the number of rows in a list that are related to each database.
+	 * @param databaseRowList	ArrayList of Object[] where each Object[] is a database and an entry to be counted
+	 * @return					New ArrayList of Object[] where each Object[] is a database and its count of rows
+	 */
+	private ArrayList<Object []> countDatabaseRows(ArrayList<Object []> databaseRowList){
+		ArrayList<Object []> databaseCountList = new ArrayList<Object []>();
 		
-		for(int i=0;i<fullResultslist.size();i++) {
-			Object[] row = fullResultslist.get(i);
+		for(int i=0;i<databaseRowList.size();i++) {
+			Object[] row = databaseRowList.get(i);
 			String database = (String) row[0];
-			int databaseRowInd = getIndOfDatabase(finalScoreList,database);
+			int databaseRowInd = getIndex(databaseCountList,database);
 			if(databaseRowInd>-1) {
-				Object[] databaseRow = finalScoreList.get(databaseRowInd);
+				Object[] databaseRow = databaseCountList.get(databaseRowInd);
 				databaseRow[1] = (Integer) databaseRow[1]+1;
-				finalScoreList.set(databaseRowInd, databaseRow);
+				databaseCountList.set(databaseRowInd, databaseRow);
 			} else {
 				Object[] databaseRow = new Object[2];
 				databaseRow[0] = database;
 				databaseRow[1] = 1;
-				finalScoreList.add(databaseRow);
+				databaseCountList.add(databaseRow);
 			}
 		}
-		for(int i=0;i<finalScoreList.size();i++) {
-			Object[] databaseRow = finalScoreList.get(i);
-			Double score = ((Integer)databaseRow[1])*1.0 / totalNum;
-			DecimalFormat formatter = new DecimalFormat("#.##");
-			databaseRow[1] = formatter.format(score);
-			finalScoreList.set(i,databaseRow);
-		}
-		return finalScoreList;
+		return databaseCountList;
 	}
 	
-	private Integer getIndOfDatabase(ArrayList<Object []> finalScoreList,String database){
-		for(int i=0;i<finalScoreList.size();i++) {
-			Object[] row = finalScoreList.get(i);
-			String currDatabase = (String) row[0];
-			if(currDatabase.equals(database))
+	/**
+	 * Calculates preliminary, unnormalized scores for each database.
+	 * @param similarMasterConceptsResults	ArrayList of Object[] where each Object[] is a database and the number of master concepts in the subgraph that it contains
+	 * @param similarEdgesResults			ArrayList of Object[] where each Object[] is a database and the number of edges going between the master concepts in the subgraph
+	 * @param allEdgeResults				ArrayList of Object[] where each Object[] is a database and the number of edges going from/to the master concepts in the subgraph
+	 * @param n								Integer representing the total number of nodes and edges in the subgraph
+	 * @return								ArrayList of Object[] where each Object[] is a database and its two possible score
+	 */
+	private ArrayList<Object []> aggregateScores(ArrayList<Object []> similarMasterConceptsResults,ArrayList<Object []> similarEdgesResults,ArrayList<Object []> allEdgeResults,int n) {
+		ArrayList<Object []> scoreList = new ArrayList<Object []>();
+		for(int i=0;i<similarMasterConceptsResults.size();i++) {
+			Object[] databaseRow = similarMasterConceptsResults.get(i);
+			String database = (String)databaseRow[0];
+			Double p_n = ((Integer)databaseRow[1])*1.0;
+			
+			Double p_e = 0.0;
+			int similarEdgeRowInd = getIndex(similarEdgesResults,database);
+			if(similarEdgeRowInd>-1) {
+				Object[] similarEdgeRow = similarEdgesResults.get(similarEdgeRowInd);
+				p_e = ((Integer)similarEdgeRow[1])*1.0;
+			} else {
+				logger.info("Database "+database + " does not have any similar or inside edges.");
+			}
+			
+			Double q = 0.0;
+			int allEdgeRowInd = getIndex(allEdgeResults,database);
+			if(allEdgeRowInd>-1) {
+				Object[] allEdgeRow = allEdgeResults.get(allEdgeRowInd);
+				q = ((Integer)allEdgeRow[1])*1.0;
+			} else {
+				logger.error("Database "+database + " does not have any edges.");
+			}
+			
+			Object[] newDatabaseRow = new Object[3];
+			newDatabaseRow[0] = database;
+			newDatabaseRow[1] = Utility.round((p_e+p_n)/n,2);
+			newDatabaseRow[2] = Utility.round((p_n-p_e+2*q)/n * (p_n+p_e)/n,2);
+			
+			scoreList.add(i,newDatabaseRow);
+		}
+		return scoreList;
+	}
+	
+	/**
+	 * Goes through the list and normalizes the scores in the col specified.
+	 * @param scoreList	ArrayList of Object[] to search
+	 * @param col		Integer representing the column to normalize
+	 * @return			Normalized List
+	 */
+	private ArrayList<Object []> normalize(ArrayList<Object []> scoreList,int col) {
+		double maxScore = 0.0;
+		for(int i=0;i<scoreList.size();i++) {
+			Object[] databaseRow = scoreList.get(i);
+			Double currScore = (Double)databaseRow[col];
+			if(currScore>maxScore)
+				maxScore=currScore;
+		}
+		for(int i=0;i<scoreList.size();i++) {
+			Object[] databaseRow = scoreList.get(i);
+			databaseRow[col] = Utility.round((Double)databaseRow[col] / maxScore,2);
+		}
+		return scoreList;
+	}
+	
+	/**
+	 * Finds the row in the list that pertains to a specific value.
+	 * If multiple rows, only returns the first one.
+	 * @param list 		ArrayList of Object[] to search
+	 * @param valToFind	String representing the value to look for
+	 * @return			Index of the value. -1 if it does not exist.
+	 */
+	private Integer getIndex(ArrayList<Object []> list,String valToFind){
+		for(int i=0;i<list.size();i++) {
+			Object[] row = list.get(i);
+			String currVal = (String) row[0];
+			if(currVal.equals(valToFind))
 				return i;
 		}
 		return -1;
