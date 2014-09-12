@@ -57,6 +57,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
+    <!--<script src="data/timeline-data.js"></script>-->
 
     <script>
 
@@ -73,13 +74,10 @@
                     $scope.forceData = '';
                     $scope.tableData = [];
                     var tableDB;
-                    var allForceData;
                     $scope.maxLOE = 0;
 
 //                    $timeout(function () {
 //                        $scope.forceData = timeline_data;
-////                        allForceData = timeline_data;
-//                        //createTableDataModel($scope.forceData.nodes);
 //                        createTableDataModel($scope.forceData.edges);
 //                    }, 500);
 
@@ -267,7 +265,12 @@
 
                             function setForceData(newData, sliderValue) {
                                 newNodes = newData.nodes;
-                                newLinks = newData.edges;
+
+                                if (sliderValue == 0) {
+                                    newLinks = getInitialEdges(allForceData.edges);
+                                } else {
+                                    newLinks = newData.edges;
+                                }
 
                                     for (var prop in newNodes) {
                                         obj = $.extend({}, newNodes[prop]);
@@ -329,11 +332,11 @@
                                     .range([1.5, 4.5]);
 
                             /*** Configure zoom behaviour ***/
-                            //        var zoomer = d3.behavior.zoom()
-                            //                .scaleExtent([0.1,10])
-                            //                .x(xScale)
-                            //                .y(yScale)
-                            //                .on("zoom", zoom);
+                            var zoomer = d3.behavior.zoom()
+                                    .scaleExtent([0.1,10])
+                                    .x(xScale)
+                                    .y(yScale)
+                                    .on("zoom", zoom);
 
                             var force = d3.layout.force()
                                     .size([width, height])
@@ -356,8 +359,8 @@
                                     .attr("height", height);
 
                             var graph = svg.append("g")
-                                    .attr("class", "graph");
-//                .call(zoomer); //Attach zoom behaviour.
+                                    .attr("class", "graph")
+                                    .call(zoomer); //Attach zoom behaviour.
 
                             var rect = graph.append("rect")
                                     .attr("width", width)
@@ -400,6 +403,8 @@
 
                             nodes = force.nodes();
                             links = force.links();
+
+                            d3.select(window).on("resize", resize);
 
                             function update() {
                                 /*** Configure zoom behaviour ***/
@@ -691,9 +696,28 @@
                                 return "M" + xScale(d.source.x) + "," + yScale(d.source.y) + "A" + dr + "," + dr + " 0 0,1 " + xScale(d.target.x) + "," + yScale(d.target.y);
                             }
 
+                            function resize() {
+                                var newWidth = 0,
+                                    newHeight = 0;
+
+                                newWidth = parseInt(d3.select('#sidebarContentRight').style('width'));
+                                newHeight = parseInt(d3.select('#sidebarContentRight').style('height'));
+
+
+                                svg.attr("width", newWidth)
+                                        .attr("height", newHeight);
+                                rect.attr("width", newWidth)
+                                        .attr("height", newHeight);
+                                container.attr("width", width)
+                                        .attr("height", newHeight);
+                                force.size([newWidth, newHeight]).resume();
+                            }
+
 
                         }//end of link
                     }//end of return
+
+
             }).filter('reduceStringLength', function() {
                     //returns the string
                     return function(str, length) {
