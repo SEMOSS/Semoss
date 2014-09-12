@@ -148,7 +148,7 @@
                                         startLOE: totalLOE,
                                         LOE: 0,
                                         totalLOE: 500,
-                                        dependICDS: "",
+                                        dependICDS: array[prop].propHash.timeHash["Requirements"].dependICDS,
                                         gltag: ""
                                     };
                                     array[prop].propHash.timeHash["Completed"] = newItem;
@@ -532,6 +532,20 @@
                             }
 
                             function updateEdges(sliderValue) {
+                                var dependICDs = [];
+
+                                for (var i=0; i<links.length; i++) {
+                                    if (links[i].propHash.timeHash) {
+                                        if (!links[i].propHash.timeHash["Decommissioned"]) {
+                                            for (var phase in links[i].propHash.timeHash) {
+                                                if (links[i].propHash.timeHash[phase].totalLOE > sliderValue && sliderValue > links[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
+                                                    dependICDs.push(links[i].propHash.timeHash[phase].dependICDS);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 d3.selectAll(".link")
                                     .attr("stroke", function(d) {
 
@@ -539,9 +553,10 @@
                                         if (d.propHash.timeHash) {
 
                                             if (d.propHash.timeHash["Decommissioned"]) {
-                                                color = "#FF0000";
+                                                if (_.contains(dependICDs, d.uri) || sliderValue >= maxLOE) {
+                                                    color = "#FF0000";
+                                                }
                                             } else {
-
                                                 for (var phase in d.propHash.timeHash) {
                                                     if (d.propHash.timeHash[phase].totalLOE > sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
@@ -557,6 +572,7 @@
                                                             color = "#5CC252";
                                                         } else if (phase == "Completed") {
                                                             color = "#33CC66";
+
                                                         }
 
                                                     }
