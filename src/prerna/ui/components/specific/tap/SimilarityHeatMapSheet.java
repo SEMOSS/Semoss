@@ -160,8 +160,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		return dataRetHash;
 	}
 
-	public void createData()
-	{
+	public void createData() {
+		super.createData();
 	}
 	
 	public void callIt()
