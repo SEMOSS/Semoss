@@ -2,11 +2,14 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -45,6 +48,11 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	public void createView(){
 		this.dataHash = (Hashtable) this.getData();
 		super.createView();
+		try {
+			this.setMaximum(true);
+		} catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -64,39 +72,38 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	@Override
 	public void setQuery(String query) {
 		query = query.trim();
-		if(query.contains("$")){
-			StringTokenizer queryTokens = new StringTokenizer(query, "$");
-			int graphCount = 0;
-			int timeCount = 0;
-			boolean graph = false;
-			// format is query1$engine1$query2$engine2 etc.
-			for (int queryIdx = 0; queryTokens.hasMoreTokens(); queryIdx++){
-				String token = queryTokens.nextToken();
-				if (queryIdx % 2 == 0){
-					if (token.startsWith("CONSTRUCT")){
-						this.graphQueryArray.add(new String[]{token, null});
-						graph = true;
-					}
-					else {
-						this.timeQueryArray.add(new String[]{token, null});
-					}
+
+		String [] tokens = query.split("\\+\\+\\+");
+		int graphCount = 0;
+		int timeCount = 0;
+		boolean graph = false;
+		// format is query1$engine1$query2$engine2 etc.
+		for (int queryIdx = 0; queryIdx < tokens.length; queryIdx++){
+			String token = tokens[queryIdx];
+			if (queryIdx % 2 == 0){
+				if (token.startsWith("CONSTRUCT")){
+					this.graphQueryArray.add(new String[]{token, null});
+					graph = true;
 				}
 				else {
-					if(graph == true){
-						StringTokenizer dbTokens = new StringTokenizer(token, ",");
-						String thisQuery = this.graphQueryArray.get(graphCount)[0];
-						this.graphQueryArray.get(graphCount)[1] = dbTokens.nextToken();
+					this.timeQueryArray.add(new String[]{token, null});
+				}
+			}
+			else {
+				if(graph == true){
+					StringTokenizer dbTokens = new StringTokenizer(token, ",");
+					String thisQuery = this.graphQueryArray.get(graphCount)[0];
+					this.graphQueryArray.get(graphCount)[1] = dbTokens.nextToken();
+					graphCount++;
+					while (dbTokens.hasMoreTokens()){
+						this.graphQueryArray.add(new String[]{thisQuery, dbTokens.nextToken()});
 						graphCount++;
-						while (dbTokens.hasMoreTokens()){
-							this.graphQueryArray.add(new String[]{thisQuery, dbTokens.nextToken()});
-							graphCount++;
-						}
-						graph = false;
 					}
-					else{
-						this.timeQueryArray.get(timeCount)[1] = token;
-						timeCount++;
-					}
+					graph = false;
+				}
+				else{
+					this.timeQueryArray.get(timeCount)[1] = token;
+					timeCount++;
 				}
 			}
 		}
