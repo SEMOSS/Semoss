@@ -66,7 +66,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	@Override
 	public void createView() {	
-		if(list.isEmpty()){
+		if(list!=null && list.isEmpty()){
 			String questionID = getQuestionID();
 			// fill the nodetype list so that they can choose from
 			// remove from store
@@ -90,13 +90,14 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		if(table==null)
 			addPanel();
 
-
 		updateProgressBar("80%...Creating Visualization", 80);
-		gfd.setColumnNames(names);
-		gfd.setDataList(list);
-		GridTableModel model = new GridTableModel(gfd);
-		table.setModel(model);
-		table.setRowSorter(new GridTableRowSorter(model));
+		if(list!=null){
+			gfd.setColumnNames(names);
+			gfd.setDataList(list);
+			GridTableModel model = new GridTableModel(gfd);
+			table.setModel(model);
+			table.setRowSorter(new GridTableRowSorter(model));
+		}
 
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
