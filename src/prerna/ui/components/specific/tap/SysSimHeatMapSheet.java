@@ -85,21 +85,21 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		
 		//first get databack from the 
 		updateProgressBar("20%...Evaluating Data/BLU Score", 20);
-		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System ?UsedBy ?SystemUser}{<http://semoss.org/ontologies/Relation/Provide> <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data .}}";
+		String dataQuery = "SELECT DISTINCT ?System ?Data ?CRM WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?Provide ?Data .}{?System ?UsedBy ?SystemUser}}";
 		dataQuery = addBindings(dataQuery);
-		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?UsedBy ?SystemUser}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU }}";
+		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU }{?System ?UsedBy ?SystemUser}}";
 		bluQuery = addBindings(bluQuery);
 		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(coreDB, dataQuery, bluQuery, SimilarityFunctions.VALUE);
 		dataHash = processHashForCharting(dataBLUHash);
 		
-		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}}";
+		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}{?System ?UsedBy ?SystemUser}}";
 		theaterQuery = addBindings(theaterQuery);
 		updateProgressBar("30%...Evaluating Deployment Score", 30);
 		Hashtable theaterHash = sdf.stringCompareBinaryResultGetter(coreDB, theaterQuery, "Theater", "Garrison", "Both");
 		theaterHash = processHashForCharting(theaterHash);
 		//dataHash = processOverallScore(dataHash, theaterHash);
 		
-		String dwQuery = "SELECT DISTINCT ?System ?Trans WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}{?System <http://semoss.org/ontologies/Relation/Contains/Transactional> ?Trans}}";
+		String dwQuery = "SELECT DISTINCT ?System ?Trans WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/Transactional> ?Trans}{?System ?UsedBy ?SystemUser}}";
 		dwQuery = addBindings(dwQuery);
 		updateProgressBar("40%...Evaluating System Transactional Score", 40);
 		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(coreDB, dwQuery, "'Yes'", "'No'", "Both");
@@ -107,25 +107,25 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		//dataHash = processOverallScore(dataHash, dwHash);
 		
 		//BP
-		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess}}";
+		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess}{?System ?UsedBy ?SystemUser}}";
 		bpQuery = addBindings(bpQuery);
 		updateProgressBar("50%...Evaluating System Supporting Business Processes", 50);
 		Hashtable bpHash = sdf.compareObjectParameterScore(coreDB, bpQuery, SimilarityFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
-		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System ?UsedBy ?SystemUser} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?Activity}}";
+		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?Activity}{?System ?UsedBy ?SystemUser}}";
 		actQuery = addBindings(actQuery);
 		updateProgressBar("55%...Evaluating System Supporting Activity", 55);
 		Hashtable actHash = sdf.compareObjectParameterScore(coreDB, actQuery, SimilarityFunctions.VALUE);
 		actHash = processHashForCharting(actHash);
 		
-		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System <http://semoss.org/ontologies/Relation/UsedBy> ?Personnel}}";
+		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System <http://semoss.org/ontologies/Relation/UsedBy> ?Personnel}{?System ?UsedBy ?SystemUser}}";
 		userQuery = addBindings(userQuery);
 		updateProgressBar("60%...Evaluating System Users", 60);
 		Hashtable userHash = sdf.compareObjectParameterScore(coreDB, userQuery, SimilarityFunctions.VALUE);
 		userHash = processHashForCharting(userHash);
 		
-		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?System ?UsedBy ?SystemUser} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System <http://semoss.org/ontologies/Relation/Utilizes> ?UserInterface}}";
+		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System <http://semoss.org/ontologies/Relation/Utilizes> ?UserInterface}{?System ?UsedBy ?SystemUser}}";
 		uiQuery = addBindings(uiQuery);
 		updateProgressBar("70%...Evaluating User Interface", 70);
 		Hashtable uiHash = sdf.compareObjectParameterScore(coreDB, uiQuery, SimilarityFunctions.VALUE);
