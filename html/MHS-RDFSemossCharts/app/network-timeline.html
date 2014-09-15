@@ -20,6 +20,7 @@
             <div id="sidebarContentArea">
 
                 <div id="sidebarContentLeft">
+                    <div class="sidebar-title">Interface Modernization Status</div>
                     <table ng-table="tableParams" show-filter="true" class="table fixed-layout">
                         <tr ng-repeat="item in $data track by $index">
                             <td data-title="'ICD'" class="icd" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
@@ -39,6 +40,7 @@
                 </div>
 
                 <div id="sidebarContentRight">
+                    <div class="sidebar-title">Network Visualization</div>
                     <forcegraph data="forceData" max-loe="maxLOE"></forcegraph>
                 </div>
 
@@ -148,7 +150,7 @@
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
-                                        totalLOE: 500,
+                                        totalLOE: "N/A",
                                         dependICDS: array[prop].propHash.timeHash["Requirements"].dependICDS,
                                         gltag: ""
                                     };
@@ -179,7 +181,23 @@
 
                     function setTableData(sliderValue) {
                         $scope.tableData = tableDB(function() {
-                            return (this.totalLOE >= sliderValue && sliderValue > this.startLOE) || (sliderValue >= $scope.maxLOE && (this.phase == "Completed" || this.phase == "Decommissioned"));
+
+                            //completed phase only has a start and no end, so only check the startLOE and phase name
+                            if (sliderValue > this.startLOE && this.phase == "Completed") {
+                                return true;
+                            }
+                            //all other phases are based on the start and total LOE
+                            else if (this.totalLOE >= sliderValue && sliderValue > this.startLOE) {
+                                return true;
+                            }
+                            //add the decommissioned systems if the slider is over the maxLOE
+                            else if (sliderValue >= $scope.maxLOE && this.phase == "Decommissioned") {
+                                return true;
+                            }
+                            //all else don't include
+                            else {
+                                return false;
+                            }
                         }).get();
 
                         $scope.tableParams.count($scope.tableData.length);
@@ -187,6 +205,7 @@
                     }
 
                     $rootScope.$on('slider-change', function(event, sliderVal) {
+                        console.log(sliderVal)
                         setTableData(sliderVal);
                     });
 
@@ -196,11 +215,6 @@
                         } else {
                             return [];
                         }
-                    }
-
-                    function setInitialForceData() {
-
-
                     }
 
                     $scope.tableParams = new ngTableParams({
@@ -568,7 +582,7 @@
                             function getInitialEdges() {
                                 var edges = [];
                                 for (var i=0; i<allForceData.edges.length; i++) {
-                                    if (!allForceData.edges[i].propHash.timeHash || !allForceData.edges[i].propHash.timeHash["Decommissioned"]) {
+                                    if (!allForceData.edges[i].propHash.timeHash || (allForceData.edges[i].propHash.timeHash && allForceData.edges[i].propHash.timeHash["Decommissioned"])) {
                                         edges.push(allForceData.edges[i]);
                                     }
                                 }
@@ -641,20 +655,21 @@
 
                             function calculateMaxLOE() {
                                 var maxLOE = 0;
-	                            for (var i=0; i  < links.length; i++) {
-                                    if (links[i].propHash.timeHash) {
+                                var edgeLength = allForceData.edges.length;
+	                            for (var i=0; i  < edgeLength; i++) {
+                                    if (allForceData.edges[i].propHash.timeHash) {
                                         var total = 0;
-                                        if (links[i].propHash.timeHash.Design) {
-                                            total += links[i].propHash.timeHash.Design.LOE;
+                                        if (allForceData.edges[i].propHash.timeHash.Design) {
+                                            total += allForceData.edges[i].propHash.timeHash.Design.LOE;
                                         }
-                                        if (links[i].propHash.timeHash.Requirements) {
-                                            total += links[i].propHash.timeHash.Requirements.LOE;
+                                        if (allForceData.edges[i].propHash.timeHash.Requirements) {
+                                            total += allForceData.edges[i].propHash.timeHash.Requirements.LOE;
                                         }
-                                        if (links[i].propHash.timeHash.Test) {
-                                            total += links[i].propHash.timeHash.Test.LOE;
+                                        if (allForceData.edges[i].propHash.timeHash.Test) {
+                                            total += allForceData.edges[i].propHash.timeHash.Test.LOE;
                                         }
-                                        if (links[i].propHash.timeHash.Develop) {
-                                            total += links[i].propHash.timeHash.Develop.LOE;
+                                        if (allForceData.edges[i].propHash.timeHash.Develop) {
+                                            total += allForceData.edges[i].propHash.timeHash.Develop.LOE;
                                         }
                                     }
 
@@ -663,8 +678,8 @@
                                     }
                                 }
 
-                                scope.maxLoe = maxLOE
-                                scope.$apply;
+                                scope.maxLoe = maxLOE;
+//                                scope.$apply();
 
                             }
 
