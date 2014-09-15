@@ -67,7 +67,7 @@ body {
     left: 0;
     overflow: auto;
     background-color: #eee;
-    padding: 35px 15px 0px 15px;
+    padding: 35px 0px 0px 0px;
     border-right: 1px solid #ccc;
 }
 
@@ -175,6 +175,13 @@ body {
 
 .fixed-layout {
     table-layout: fixed;
+}
+
+.sidebar-title {
+    border-bottom: 1px solid #ccc;
+    font-size: 18px;
+    padding: 5px 10px;
+    text-align: center;
 }
 
  
