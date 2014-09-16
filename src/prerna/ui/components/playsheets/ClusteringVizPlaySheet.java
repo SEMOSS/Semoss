@@ -131,9 +131,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						innerHash.put("names", new String[]{propName, "Distribution"});
 						innerHash.put("zScore", zScore);
 						//TODO: delete this once testing is done
-						//						innerHash.put("num_data", numValues);
-						//						innerHash.put("avg", StatisticsUtilityMethods.getAverage(numValues));
-						//						innerHash.put("stdev", StatisticsUtilityMethods.getSampleStandardDeviation(numValues));
+						//innerHash.put("num_data", numValues);
+						//innerHash.put("avg", StatisticsUtilityMethods.getAverage(numValues));
+						//innerHash.put("stdev", StatisticsUtilityMethods.getSampleStandardDeviation(numValues));
 						clusterData.put(propName, innerHash);
 					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
@@ -329,6 +329,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			clusterAlg.setNumClusters(numClusters);
 			((ClusteringAlgorithm) clusterAlg).execute();
 		}
+		list = clusterAlg.getMasterTable();
+		names = clusterAlg.getVarNames();
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
 		int[] clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();

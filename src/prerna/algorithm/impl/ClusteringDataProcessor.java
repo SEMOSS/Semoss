@@ -41,7 +41,8 @@ public class ClusteringDataProcessor {
 	public ClusteringDataProcessor(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
-
+		
+		formatDuplicateResults();
 		// these methods must be called for the similarity score to be computed 
 		processMasterTable();
 		calculateWeights();
@@ -55,22 +56,42 @@ public class ClusteringDataProcessor {
 		return totalNumericalPropIndices;
 	}
 	public Integer[] getCategoryPropIndices() {
-		return categoryPropIndices.clone();
+		if(categoryPropIndices != null) {
+			return categoryPropIndices.clone();
+		} else {
+			return null;
+		}
 	}
 	public Hashtable<String, Integer> getInstanceHash() {
 		return (Hashtable<String, Integer>) instanceHash.clone();
 	}
 	public Double[][] getNumericalMatrix() {
-		return numericalMatrix.clone();
+		if(numericalMatrix != null) {
+			return numericalMatrix.clone();
+		} else {
+			return null;
+		}
 	}
 	public String[][] getCategoricalMatrix() {
-		return categoricalMatrix.clone();
+		if(categoricalMatrix != null) {
+			return categoricalMatrix.clone();
+		} else {
+			return null;
+		}
 	}
 	public String[] getCategoryPropNames() {
-		return categoryPropNames.clone();
+		if(categoryPropNames != null) {
+			return categoryPropNames.clone();
+		} else {
+			return null;
+		}
 	}
 	public String[] getNumericalPropNames() {
-		return numericalPropNames.clone();
+		if(numericalPropNames != null) {
+			return numericalPropNames.clone();
+		} else {
+			return null;
+		}
 	}
 
 	/**
@@ -256,24 +277,27 @@ public class ClusteringDataProcessor {
 	private ArrayList<Hashtable<String, Integer>> getPropOccurance() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
 
-		for(int i = 0; i < categoricalMatrix[0].length; i++) {
-			trackPropOccuranceArr.add(new Hashtable<String, Integer>());
-		}
-
-		for(String[] results : categoricalMatrix) {
-			for(int i = 0; i < results.length; i++) {		
-				Hashtable<String, Integer> columnInformationHash = trackPropOccuranceArr.get(i);
-				if(columnInformationHash.isEmpty()) {
-					columnInformationHash.put(results[i], 1);
-					//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
-				} else {
-					if(columnInformationHash.get(results[i]) == null) {
+		if(categoricalMatrix != null)
+		{
+			for(int i = 0; i < categoricalMatrix[0].length; i++) {
+				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
+			}
+	
+			for(String[] results : categoricalMatrix) {
+				for(int i = 0; i < results.length; i++) {		
+					Hashtable<String, Integer> columnInformationHash = trackPropOccuranceArr.get(i);
+					if(columnInformationHash.isEmpty()) {
 						columnInformationHash.put(results[i], 1);
 						//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
 					} else {
-						int currCount = columnInformationHash.get(results[i]);
-						columnInformationHash.put(results[i], ++currCount);
-						//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " has occured " + currCount + " times.");
+						if(columnInformationHash.get(results[i]) == null) {
+							columnInformationHash.put(results[i], 1);
+							//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
+						} else {
+							int currCount = columnInformationHash.get(results[i]);
+							columnInformationHash.put(results[i], ++currCount);
+							//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " has occured " + currCount + " times.");
+						}
 					}
 				}
 			}
@@ -286,12 +310,12 @@ public class ClusteringDataProcessor {
 	 * Processes through the masterTable and determines which columns are numerical and which are categorical
 	 */
 	private void processMasterTable() {
-		categoryPropNames = new String[varNames.length];
-		categoryPropIndices = new Integer[varNames.length];
-		numericalPropNames = new String[varNames.length];
-		Integer[] numericalPropIndices = new Integer[varNames.length];
-		Integer[] dateTypeIndices = new Integer[varNames.length];
-		Integer[] simpleDateTypeIndices = new Integer[varNames.length];
+		categoryPropNames = new String[varNames.length - 1];
+		categoryPropIndices = new Integer[varNames.length - 1];
+		numericalPropNames = new String[varNames.length - 1];
+		Integer[] numericalPropIndices = new Integer[varNames.length - 1];
+		Integer[] dateTypeIndices = new Integer[varNames.length - 1];
+		Integer[] simpleDateTypeIndices = new Integer[varNames.length - 1];
 		
 		int categoryPropNamesCounter = 0;
 		int numericalPropNamesCounter = 0;
@@ -502,6 +526,97 @@ public class ClusteringDataProcessor {
 	 */
 	private double logBase2(double x) {
 		return Math.log(x) / Math.log(2);
+	}
+	
+	//make generic
+	private void formatDuplicateResults() {
+		int instanceCounter = 0;
+		String previousInstance = "";
+
+		int i;
+		int numRows = masterTable.size();
+		int numCols = masterTable.get(0).length;
+		String[] uniquePropNames = new String[50];
+		String[] instances = new String[50];
+		int counter = 0;
+		for(i = 0; i < numCols; i++ ) {
+			String previousProp = "";
+			int j;
+			for(j = 0; j < numRows; j++) {
+				Object[] row = masterTable.get(j);
+
+				if(i == 0) {
+					if(previousInstance.equals(row[i])){
+						continue;
+					} else {
+						previousInstance = row[i].toString();
+						try{
+							instances[instanceCounter] = previousInstance;
+						} catch(IndexOutOfBoundsException ex) {
+							instances = (String[]) ArrayUtilityMethods.resizeArray(instances, 2);
+							instances[instanceCounter] = previousInstance;
+						}
+						instanceCounter++;
+					}
+				} else {
+					if(previousProp.equals(row[i])) {
+						continue;
+					} else {
+						previousProp = row[i].toString();
+						try{
+							uniquePropNames[counter] = row[i].toString();
+						} catch(IndexOutOfBoundsException ex) {
+							uniquePropNames = (String[]) ArrayUtilityMethods.resizeArray(uniquePropNames, 2);
+							uniquePropNames[counter] = row[i].toString();
+						}
+						counter++;
+					}
+				}
+			}
+		}
+		
+		instances = (String[]) ArrayUtilityMethods.removeAllNulls(instances);
+		int numInstances = instances.length;
+		if(numInstances == numRows) {
+			return;
+		}
+		ArrayList<Object[]> retMasterTable = new ArrayList<Object[]>();
+		
+		uniquePropNames = (String[]) ArrayUtilityMethods.removeAllNulls(uniquePropNames);
+		uniquePropNames = ArrayUtilityMethods.getUniqueArray(uniquePropNames);
+		varNames = uniquePropNames;
+		
+		int newNumCols = uniquePropNames.length;
+		for(i = 0; i < numInstances; i++) {
+			Object[] newRow = new Object[newNumCols + 1];
+			newRow[0] = instances[i];
+			retMasterTable.add(newRow);
+		}
+		
+		OUTER: for(i = 0; i < numRows; i++) {
+			Object[] row = masterTable.get(i);
+			int j;
+			for(j = 0; j < numInstances; j++) {
+				Object[] newRow = retMasterTable.get(j);
+				if(row[0].equals(newRow[0])){
+					int k;
+					INNER: for(k = 0; k < newNumCols; k++) {
+						int l;
+						for(l = 1; l < row.length; l++) {
+							if(uniquePropNames[k].toString().equals(row[l].toString())){
+								newRow[k+1] = "Yes";
+								continue INNER;
+							} else {
+								newRow[k+1] = "No";
+							}
+						}
+					}
+					continue OUTER;
+				}
+			}
+		}
+		
+		masterTable = retMasterTable;
 	}
 	
 }
