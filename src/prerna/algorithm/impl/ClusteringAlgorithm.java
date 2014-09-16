@@ -78,10 +78,20 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	 */
 	private int findNewClusterForInstance(int instanceInd) throws IllegalArgumentException {
 		int clusterIndWithMaxSimilarity = 0;
-		double maxSimilarity = cdp.getSimilarityScore(instanceInd,0,clusterNumberMatrix,clusterCategoryMatrix.get(0));
+		double maxSimilarity;
+		if(clusterCategoryMatrix != null) {
+			maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberMatrix, clusterCategoryMatrix.get(0));
+		} else {
+			maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberMatrix, null);
+		}
 		int clusterIdx;
 		for(clusterIdx = 1; clusterIdx < numClusters; clusterIdx++) {
-			double similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberMatrix, clusterCategoryMatrix.get(clusterIdx));
+			double similarityForCluster;
+			if(clusterCategoryMatrix != null) {
+				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberMatrix, clusterCategoryMatrix.get(clusterIdx));
+			} else {
+				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberMatrix, null);
+			}
 			if(similarityForCluster > maxSimilarity) {
 				maxSimilarity = similarityForCluster;
 				clusterIndWithMaxSimilarity = clusterIdx;
