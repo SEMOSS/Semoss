@@ -32,6 +32,7 @@ import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
 import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 
@@ -70,6 +71,10 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			this.coreDB = "HR_Core";
 		if (!(this.query).equals("NULL") || this.query.isEmpty()) {
 			super.createData();
+			if (list!=null && list.isEmpty()) {
+				Utility.showError("Query returned no results.");
+				return;
+			}
 		}
 		SimilarityFunctions sdf = new SimilarityFunctions();
 		addPanel();
