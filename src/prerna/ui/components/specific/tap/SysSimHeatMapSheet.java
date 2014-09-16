@@ -24,6 +24,9 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map.Entry;
 
+import javax.swing.event.EventListenerList;
+import javax.swing.event.InternalFrameEvent;
+
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -142,14 +145,41 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		//hashArray.add(userHash);
 		//dataHash = processOverallScoreByAverage(dataHash,hashArray);
 		
+		boolean allQueriesAreEmpty = true;
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
-		paramDataHash.put("Process_Supported", bpHash);
-		paramDataHash.put("Activities_Supported", actHash);
-		paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
-		paramDataHash.put("Deployment_(Theater/Garrison)",  theaterHash);
-		paramDataHash.put("Transactional_(Yes/No)", dwHash);
-		paramDataHash.put("User_Types", userHash);
-		paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
+		if (bpHash != null && !bpHash.isEmpty()) {
+			paramDataHash.put("Business_Processes_Supported", bpHash);
+			allQueriesAreEmpty = false;
+		}
+		if (actHash != null && !actHash.isEmpty()) {
+			paramDataHash.put("Activities_Supported", actHash);
+			allQueriesAreEmpty = false;
+		}
+		if (dataHash != null && !dataHash.isEmpty()) {
+			paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
+			allQueriesAreEmpty = false;
+		}
+		if (theaterHash != null && !theaterHash.isEmpty()) {
+			paramDataHash.put("Deployment_(Theater/Garrison)",  theaterHash);
+			allQueriesAreEmpty = false;
+		}
+		if (dwHash != null && !dwHash.isEmpty()) {
+			paramDataHash.put("Transactional_(Yes/No)", dwHash);
+			allQueriesAreEmpty = false;
+		}
+		if (userHash != null && !userHash.isEmpty()) {
+			paramDataHash.put("User_Types", userHash);
+			allQueriesAreEmpty = false;
+		}
+		if (bpHash != null && !bpHash.isEmpty()) {
+			paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
+			allQueriesAreEmpty = false;
+		}		
+		
+		if (allQueriesAreEmpty == true) {
+			Utility.showError("System Similarity Heat Map returned no results.");
+			return;
+		}
 		
 		//allHash.put("dataSeries", testDataHash);
 		allHash.put("title",  "System Similarity");
