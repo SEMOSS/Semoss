@@ -628,47 +628,47 @@
                                         }
                                     }
                                 }
-                                
+
                                 d3.selectAll(".link")
-                                    .attr("stroke", function(d) {
+                                        .attr("stroke", function(d) {
 
-                                        var color = "#666";
-                                        if (d.propHash.timeHash) {
+                                            var color = "#666";
+                                            if (d.propHash.timeHash) {
 
-                                            if (d.propHash.timeHash["Decommissioned"]) {
-                                                if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
-                                                    color = "#FF0000";
-                                                }
-                                            } else {
-                                                for (var phase in d.propHash.timeHash) {
-                                                    if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
+                                                if (d.propHash.timeHash["Decommissioned"]) {
+                                                    if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
+                                                        color = "#FF0000";
+                                                    }
+                                                } else {
+                                                    for (var phase in d.propHash.timeHash) {
+                                                        if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
-                                                        if (phase == "Requirements") {
-                                                            color = "#FF9900";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
-                                                        } else if (phase == "Design") {
-                                                            color = "#D6A314";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
-                                                        } else if (phase == "Develop") {
-                                                            color = "#ADAD29";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
-                                                        } else if (phase == "Test") {
-                                                            color = "#85B83D";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
-                                                        } else if (phase == "Deploy") {
-                                                            color = "#5CC252";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
-                                                        } else if (phase == "Completed") {
-                                                            color = "#33CC66";
-                                                            nodeICDs.push({uri: d.source.id, color: color});
+                                                            if (phase == "Requirements") {
+                                                                color = "#FF9900";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            } else if (phase == "Design") {
+                                                                color = "#D6A314";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            } else if (phase == "Develop") {
+                                                                color = "#ADAD29";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            } else if (phase == "Test") {
+                                                                color = "#85B83D";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            } else if (phase == "Deploy") {
+                                                                color = "#5CC252";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            } else if (phase == "Completed") {
+                                                                color = "#33CC66";
+                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                            }
+
                                                         }
-
                                                     }
                                                 }
                                             }
-                                        }
-                                        return color;
-                                    })
+                                            return color;
+                                        })
                                         .attr("stroke-width", function(d) {
                                             var width = "1.5";
                                             if (d.propHash.timeHash) {
@@ -696,20 +696,20 @@
 
                                 //node coloring
                                 //similar to the edge one, look for
-//                                d3.selectAll(".node circle")
-//                                        .attr("fill", function(d) {
-//
-//                                            //initialize color
-//                                            var color = ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
-//
-//                                            //loop through to see if node is in a different coloring phase
-//                                            for (var i=0; i<nodeICDs.length; i++) {
-//                                                if (d.uri == nodeICDs[i].uri) {
-//                                                    color = nodeICDs[i].color;
-//                                                }
-//                                            }
-//                                            return color;
-//                                        });
+                                d3.selectAll(".node circle")
+                                        .attr("fill", function(d) {
+
+                                            //initialize color
+                                            var color = ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
+
+                                            //loop through to see if node is in a different coloring phase
+                                            for (var i=0; i<nodeICDs.length; i++) {
+                                                if (d.uri == nodeICDs[i].uri) {
+                                                    color = nodeICDs[i].color;
+                                                }
+                                            }
+                                            return color;
+                                        });
 
                             }
 
