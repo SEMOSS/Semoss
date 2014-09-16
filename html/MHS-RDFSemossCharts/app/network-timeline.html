@@ -464,10 +464,10 @@
                                         .attr("class", "link")
                                         .attr("marker-end", function(d) { return "url(#end)"; })
                                         .attr("id", function(d, i) { return "linkId_" + i; })
-                                        .attr("fill", "none")
-                                        .attr("stroke-width", 1.5);
+                                        .attr("fill", "none");
 
-                                link.attr("stroke", "#666");
+                                link.attr("stroke", "#666")
+                                        .attr("stroke-width", 1.5);
 
                                 //link exit...
                                 link.exit()
@@ -489,9 +489,6 @@
                                         .attr("class", "node")
                                         .attr("r", 0).transition().duration(1000)
                                         .attr("r", 8)
-                                        .attr("fill", function(d){
-                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
-                                        })
                                         .attr("stroke", "#777")
                                         .attr("stroke-width", 1.5)
                                         .attr("data-legend", function(d) {
@@ -507,6 +504,11 @@
                                         .style("font-size", "10px")
                                         .text(function(d) {
                                             return d.propHash.VERTEX_LABEL_PROPERTY;
+                                        });
+
+                                node.selectAll("circle")
+                                        .attr("fill", function(d){
+                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
                                         });
 
                                 //node group removal with transition...
@@ -644,22 +646,22 @@
                                                         if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
                                                             if (phase == "Requirements") {
-                                                                color = "#FF9900";
+                                                                color = "#ECF6BD";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             } else if (phase == "Design") {
-                                                                color = "#D6A314";
+                                                                color = "#C5E5A0";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             } else if (phase == "Develop") {
-                                                                color = "#ADAD29";
+                                                                color = "#9FD483";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             } else if (phase == "Test") {
-                                                                color = "#85B83D";
+                                                                color = "#79C366";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             } else if (phase == "Deploy") {
-                                                                color = "#5CC252";
+                                                                color = "#52B149";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             } else if (phase == "Completed") {
-                                                                color = "#33CC66";
+                                                                color = "#2CA02C";
                                                                 nodeICDs.push({uri: d.source.id, color: color});
                                                             }
 
