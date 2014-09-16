@@ -59,7 +59,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data.js"></script>-->
+    <!--<script src="data/timeline-data2.js"></script>-->
 
     <script>
 
@@ -301,9 +301,20 @@
 
                                     if (!isSliderMade) {
                                         calculateMaxLOE();
+
+                                        var sliderMax = 0;
+                                        var axisState = true;
+                                        if (scope.maxLoe == 0) {
+                                            scope.maxLoe = 1;
+                                            sliderMax = 1;
+                                            axisState = d3.svg.axis().ticks(1);
+                                        } else {
+                                            sliderMax = scope.maxLoe + 5;
+                                        }
+
                                         d3.select('#slider')
                                                 .call(
-                                                d3.slider().axis(true).min(minLOE).max(scope.maxLoe + 5).step(2).value(0)
+                                                d3.slider().axis(axisState).min(minLOE).max(sliderMax).step(1).value(0)
                                                         .on('slide', function (e, v) {
                                                             scope.$emit('slider-change', v);
                                                         }));
@@ -479,7 +490,7 @@
                                         .attr("r", 0).transition().duration(1000)
                                         .attr("r", 8)
                                         .attr("fill", function(d){
-                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")")
+                                            return ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
                                         })
                                         .attr("stroke", "#777")
                                         .attr("stroke-width", 1.5)
@@ -603,7 +614,9 @@
 
                             function updateEdgeColor(sliderValue) {
                                 var dependICDs = [];
+                                var nodeICDs = [];
 
+                                //looping through all links to find the dependent ICDs based on where the slider is
                                 for (var i=0; i<links.length; i++) {
                                     if (links[i].propHash.timeHash) {
                                         if (!links[i].propHash.timeHash["Decommissioned"]) {
@@ -615,7 +628,7 @@
                                         }
                                     }
                                 }
-
+                                
                                 d3.selectAll(".link")
                                     .attr("stroke", function(d) {
 
@@ -632,17 +645,22 @@
 
                                                         if (phase == "Requirements") {
                                                             color = "#FF9900";
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         } else if (phase == "Design") {
                                                             color = "#D6A314";
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         } else if (phase == "Develop") {
                                                             color = "#ADAD29";
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         } else if (phase == "Test") {
                                                             color = "#85B83D";
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         } else if (phase == "Deploy") {
                                                             color = "#5CC252";
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         } else if (phase == "Completed") {
                                                             color = "#33CC66";
-
+                                                            nodeICDs.push({uri: d.source.id, color: color});
                                                         }
 
                                                     }
@@ -650,7 +668,49 @@
                                             }
                                         }
                                         return color;
-                                    });
+                                    })
+                                        .attr("stroke-width", function(d) {
+                                            var width = "1.5";
+                                            if (d.propHash.timeHash) {
+
+                                                if (d.propHash.timeHash["Decommissioned"]) {
+                                                    if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
+                                                        color = "1.5";
+                                                    }
+                                                } else {
+                                                    for (var phase in d.propHash.timeHash) {
+                                                        if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
+
+                                                           if (phase == "Completed") {
+                                                                width = "1.5";
+                                                            } else {
+                                                               width = "2.0"
+                                                           }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            return width;
+                                        });
+
+
+                                //node coloring
+                                //similar to the edge one, look for
+//                                d3.selectAll(".node circle")
+//                                        .attr("fill", function(d) {
+//
+//                                            //initialize color
+//                                            var color = ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
+//
+//                                            //loop through to see if node is in a different coloring phase
+//                                            for (var i=0; i<nodeICDs.length; i++) {
+//                                                if (d.uri == nodeICDs[i].uri) {
+//                                                    color = nodeICDs[i].color;
+//                                                }
+//                                            }
+//                                            return color;
+//                                        });
+
                             }
 
                             function calculateMaxLOE() {
