@@ -69,6 +69,14 @@ public abstract class AbstractClusteringAlgorithm {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
 	}
+	
+	public ArrayList<Object[]> getMasterTable() {
+		return (ArrayList<Object[]>) this.masterTable.clone();
+	}
+	
+	public String[] getVarNames(){
+		return this.varNames.clone();
+	}
 
 	// method to be defined in specific clustering algorithms
 	protected abstract boolean execute();
@@ -114,7 +122,12 @@ public abstract class AbstractClusteringAlgorithm {
 			int minIndex = -1; //initialize to impossible value for index
 			double minSimilarity = (double) 2; //initialize to value larger than 1 since max value is 1
 			for(j = 1; j < numInstances; j++) {
-				double similarityClusterVal = cdp.getSimilarityScore(j,0,initialClusterNumberMatrix,initialClusterCategoryMatrix.get(0));
+				double similarityClusterVal;
+				if(initialClusterCategoryMatrix != null) {
+					similarityClusterVal = cdp.getSimilarityScore(j, 0, initialClusterNumberMatrix, initialClusterCategoryMatrix.get(0));
+				} else {
+					similarityClusterVal = cdp.getSimilarityScore(j, 0, initialClusterNumberMatrix, null);
+				}
 				if(similarityClusterVal < minSimilarity && !ArrayUtilityMethods.arrayContainsValue(clustersAssigned, j)) {
 					minIndex = j;
 					minSimilarity =  similarityClusterVal;
@@ -231,35 +244,38 @@ public abstract class AbstractClusteringAlgorithm {
 	 **/
 	protected ArrayList<ArrayList<Hashtable<String,Integer>>> updateClustersCategoryProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) {
 		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
-		for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
-			String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
-
-			if(oldClusterForInstance>-1) {
-				//remove the category property from the old cluster
-				Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
-				//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
+		if(clusterCategoryMatrix != null)
+		{
+			for(int categoryInd=0;categoryInd<instanceCategoryMatrix[instanceInd].length;categoryInd++) {
+				String categoryValForInstance = instanceCategoryMatrix[instanceInd][categoryInd];
+	
+				if(oldClusterForInstance>-1) {
+					//remove the category property from the old cluster
+					Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(oldClusterForInstance).get(categoryInd);
+					//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
+					if(propValHash.containsKey(categoryValForInstance)) {
+						int propCount = propValHash.get(categoryValForInstance);
+						propCount --;
+						propValHash.put(categoryValForInstance,propCount);
+						clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+					}
+					else{
+						LOGGER.info("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
+					}
+				}
+				//add the category properties to the new cluster
+				Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
+				//if there is already a count going for the same property as the instance, add to it, otherwise create a new hash entry
 				if(propValHash.containsKey(categoryValForInstance)) {
 					int propCount = propValHash.get(categoryValForInstance);
-					propCount --;
+					propCount ++;
 					propValHash.put(categoryValForInstance,propCount);
-					clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+					clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 				}
 				else{
-					LOGGER.info("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
+					propValHash.put(categoryValForInstance, 1);
+					clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 				}
-			}
-			//add the category properties to the new cluster
-			Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(newClusterForInstance).get(categoryInd);
-			//if there is already a count going for the same property as the instance, add to it, otherwise create a new hash entry
-			if(propValHash.containsKey(categoryValForInstance)) {
-				int propCount = propValHash.get(categoryValForInstance);
-				propCount ++;
-				propValHash.put(categoryValForInstance,propCount);
-				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
-			}
-			else{
-				propValHash.put(categoryValForInstance, 1);
-				clusterCategoryMatrix.get(newClusterForInstance).set(categoryInd, propValHash);
 			}
 		}
 		return clusterCategoryMatrix;
@@ -280,22 +296,28 @@ public abstract class AbstractClusteringAlgorithm {
 
 			for(int propInd=1;propInd<varNames.length;propInd++) {
 				String prop = varNames[propInd];
-				int categoryInd = ArrayUtilityMethods.calculateIndexOfArray(categoryPropNames, prop);
-				if(categoryInd >-1) {
-					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
-					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-					if(!propWithHighFreq.equals("")) {
-						int freq = propValHash.get(propWithHighFreq);
-						double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-						DecimalFormat nf = new DecimalFormat("###.##");
-						clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+				if(categoryPropNames != null)
+				{
+					int categoryInd = ArrayUtilityMethods.calculateIndexOfArray(categoryPropNames, prop);
+					if(categoryInd >-1) {
+						Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
+						String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+						if(!propWithHighFreq.equals("")) {
+							int freq = propValHash.get(propWithHighFreq);
+							double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+							DecimalFormat nf = new DecimalFormat("###.##");
+							clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+						}
 					}
 				} else {
-					int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
-					if(numberInd > -1) {
-						clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
-					} else {
-						LOGGER.error("No properties matched for " + prop);
+					if(numericalPropNames != null) 
+					{
+						int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
+						if(numberInd > -1) {
+							clusterRow[propInd] = clusterNumberMatrix[clusterInd][numberInd];
+						} else {
+							LOGGER.error("No properties matched for " + prop);
+						}
 					}
 				}
 			}
@@ -331,19 +353,23 @@ public abstract class AbstractClusteringAlgorithm {
 
 			//print numerical props
 			LOGGER.info("\nNumerical Properties- ");
-			for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ )
-				LOGGER.info(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");				
-
+			if(clusterNumberMatrix != null) {
+				for(int numberInd=0;numberInd<clusterNumberMatrix[0].length;numberInd++ ) {
+					LOGGER.info(numericalPropNames[numberInd] +": "+ clusterNumberMatrix[clusterInd][numberInd]+", ");
+				}
+			}
 			//print categorical props
 			LOGGER.info("\nCategorical Properties- ");
-			for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
-				Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
-				String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
-				if(!propWithHighFreq.equals("")) {
-					int freq = propValHash.get(propWithHighFreq);
-					double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
-					DecimalFormat nf = new DecimalFormat("###.##");
-					LOGGER.info(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
+			if(clusterCategoryMatrix != null) {
+				for(int numberInd=0;numberInd<clusterCategoryMatrix.get(0).size();numberInd++ ) {
+					Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(numberInd);
+					String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+					if(!propWithHighFreq.equals("")) {
+						int freq = propValHash.get(propWithHighFreq);
+						double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+						DecimalFormat nf = new DecimalFormat("###.##");
+						LOGGER.info(categoryPropNames[numberInd] +": "+propWithHighFreq+" "+freq+"(frequency) and "+ nf.format(percent)+"%(percentage), ");	
+					}
 				}
 			}
 
