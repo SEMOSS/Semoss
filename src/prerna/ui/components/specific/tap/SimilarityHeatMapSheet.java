@@ -75,15 +75,11 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
-//    	browser.registerFunction("refreshFunction",  refreshFunction);
-//    	SimilarityBarChartBrowserFunction barChartFunction = new SimilarityBarChartBrowserFunction();
-//    	barChartFunction.setParamDataHash(paramDataHash);
-//    	browser.registerFunction("barChartFunction",  barChartFunction);
 		registerFunctions();
 		browser.loadURL("file://" + workingDir + "/html/MHS-RDFSemossCharts/app/sysDup.html");
-		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
 		while (browser.isLoading()) {
 		    try {
 				TimeUnit.MILLISECONDS.sleep(50);

@@ -63,8 +63,21 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	public void registerFunctions()
 	{
 		super.registerFunctions();
-    	SysSimHealthGridListener healthGridCall = new SysSimHealthGridListener();
-    	browser.registerFunction("healthGrid",  healthGridCall);
+		SysSimHealthGridListener healthGridCall = new SysSimHealthGridListener();
+	   	browser.registerFunction("healthGrid",  healthGridCall);    	
+	}
+	
+	@Override
+	public void createView() {
+		if (!(this.query).equals("NULL") || this.query.isEmpty()) {			
+			if (list!=null && list.isEmpty()) {
+				return;
+			}
+			super.createView();
+		}
+		else if ((this.query).equals("NULL")) {
+			super.createView();
+		}
 	}
 	
 	@Override
@@ -171,7 +184,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			paramDataHash.put("User_Types", userHash);
 			allQueriesAreEmpty = false;
 		}
-		if (bpHash != null && !bpHash.isEmpty()) {
+		if (uiHash != null && !uiHash.isEmpty()) {
 			paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
 			allQueriesAreEmpty = false;
 		}		
