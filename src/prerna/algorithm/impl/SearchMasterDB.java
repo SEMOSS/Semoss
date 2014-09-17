@@ -208,7 +208,7 @@ public class SearchMasterDB {
 			
 //			list = addQuestions(list,relatedQuestionsResults);
 			
-			headers = new String[4];
+			headers = new String[3];
 			headers[0] = "Engine";
 			headers[1] = "SubgraphScore";
 			headers[2] = "SubgraphAndOutsideEdgeScore";
