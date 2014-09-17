@@ -12,12 +12,14 @@
 <body ng-app="main">
     <div id="controllerID" ng-controller="NetworkCtrl">
         <div id="sidebarHeader">
-            <!--<div style="margin-left: 50%">future title</div>-->
-            <!--<button class="btn pull-left" style="margin-left: 5%">Initial State</button>-->
+            <div style="text-align: center; font-size: 18px; padding-bottom: 10px;">Transition Modernization LOE Slider</div>
+            <!--<button class="btn pull-left" style="margin-left: 5%" ng-click="setInitialStateSlider()">Initial State</button>-->
+            <!--<button class="btn pull-right" style="margin-right: 5%" ng-click="setFinalStateSlider()">Final State</button>-->
+
             <div class="slider-container">
                 <div id="slider"></div>
             </div>
-            <!--<button class="btn pull-right" style="margin-right: 5%">Final State</button>-->
+
             <!--<div style="position: absolute; margin-left: 50%">future bottom title</div>-->
         </div>
         <div id="sidebarContainer">
@@ -30,13 +32,13 @@
                             <td data-title="'ICD'" class="icd" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
                                 {{item.name}}
                             </td>
-                            <td title="{{user.phase}}" data-title="'Phase'" class="phase" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
+                            <td title="{{item.phase}}" data-title="'Phase'" class="label" ng-class="((item.phase))" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
                                 {{item.phase}}
                             </td>
-                            <td title="{{user.LOE}}" data-title="'LOE'" class="loe" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center loe" class="text-right" >
+                            <td title="{{item.LOE}}" data-title="'LOE'" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center loe" class="text-right" >
                                 {{item.LOE}}
                             </td>
-                            <td title="{{user.gltag}}" data-title="'GL Tag'" class="gl-tag" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center gl-tag" class="text-right" >
+                            <td title="{{item.gltag}}" data-title="'GL Tag'" sortable="'gltag'" filter="{ 'gltag': 'text' }" header-class = "text-center gl-tag" class="text-right" >
                                 {{item.gltag}}
                             </td>
                         </tr>
@@ -44,7 +46,7 @@
                 </div>
 
                 <div id="sidebarContentRight">
-                    <div class="sidebar-title">Network Visualization</div>
+                    <div class="sidebar-title">Network Transition Visualization</div>
                     <forcegraph data="forceData" max-loe="maxLOE"></forcegraph>
                 </div>
 
