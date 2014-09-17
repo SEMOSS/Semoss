@@ -50,7 +50,7 @@ body {
 #sidebarContentArea{
     position: absolute;
     left: 0px;
-    top: 48px;
+    top: 80px;
     right: 0px;
     bottom: 0px;
     background-color: white;
@@ -182,6 +182,38 @@ body {
     font-size: 18px;
     padding: 5px 10px;
     text-align: center;
+}
+
+.label.Requirements {
+    color:  black;
+    background-color: #ECF6BD;
+}
+
+.label.Design {
+    color:  black;
+    background-color: #C5E5A0;
+}
+
+.label.Develop {
+    color:  black;
+    background-color: #9FD483;
+}
+
+.label.Test {
+    color:  black;
+    background-color: #79C366;
+}
+
+.label.Deploy {
+    background-color: #52B149;
+}
+
+.label.Completed {
+    background-color: #2CA02C;
+}
+
+.label.Decommissioned {
+    background-color: #FF0000;
 }
 
  
