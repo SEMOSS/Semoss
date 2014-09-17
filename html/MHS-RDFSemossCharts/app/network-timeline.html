@@ -12,9 +12,13 @@
 <body ng-app="main">
     <div id="controllerID" ng-controller="NetworkCtrl">
         <div id="sidebarHeader">
+            <!--<div style="margin-left: 50%">future title</div>-->
+            <!--<button class="btn pull-left" style="margin-left: 5%">Initial State</button>-->
             <div class="slider-container">
                 <div id="slider"></div>
             </div>
+            <!--<button class="btn pull-right" style="margin-right: 5%">Final State</button>-->
+            <!--<div style="position: absolute; margin-left: 50%">future bottom title</div>-->
         </div>
         <div id="sidebarContainer">
             <div id="sidebarContentArea">
@@ -261,7 +265,8 @@
                                     minLOE = 0,
                                     allForceData,
                                     previousSliderValue,
-                                    isSliderMade = false;
+                                    isSliderMade = false,
+                                    initialRemovedNodes = [];
 
                             //TODO: this needs to be refactored to use container and margin objects
                             var width = 0;
@@ -278,50 +283,56 @@
                             });
 
                             function setForceData(newData, sliderValue) {
-                                newNodes = newData.nodes;
+//                                newNodes = newData.nodes;
 
                                 if (sliderValue == 0) {
-                                    newLinks = getInitialEdges(allForceData.edges);
+                                    //initial Edges is dependent on initial nodes, must go after
+                                    newNodes = getInitialNodes();
+                                    newLinks = removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes())));
                                 } else {
                                     newLinks = newData.edges;
+                                    newNodes = {};
+                                    for (var i=0; i<newData.nodes.length; i++) {
+                                        newNodes[newData.nodes[i]] = allForceData.nodes[newData.nodes[i]];
+                                    }
                                 }
 
-                                    for (var prop in newNodes) {
-                                        obj = $.extend({}, newNodes[prop]);
-                                        obj.id = prop;
-                                        nodes.push(obj);
+                                for (var prop in newNodes) {
+                                    obj = $.extend({}, newNodes[prop]);
+                                    obj.id = prop;
+                                    nodes.push(obj);
+                                }
+                                newLinks.forEach(function (link) {
+                                    //depending on if the link.source & link.target are already pointing to
+                                    //strings or object instances
+                                    link.source = findNode(link.source) || findNode(link.source.id);
+                                    link.target = findNode(link.target) || findNode(link.target.id);
+                                    links.push(link);
+                                });
+
+                                if (!isSliderMade) {
+                                    calculateMaxLOE();
+
+                                    var sliderMax = 0;
+                                    var axisState = true;
+                                    if (scope.maxLoe == 0) {
+                                        scope.maxLoe = 1;
+                                        sliderMax = 1;
+                                        axisState = d3.svg.axis().ticks(1);
+                                    } else {
+                                        sliderMax = scope.maxLoe + 5;
                                     }
-                                    newLinks.forEach(function (link) {
-                                        //depending on if the link.source & link.target are already pointing to
-                                        //strings or object instances
-                                        link.source = findNode(link.source) || findNode(link.source.id);
-                                        link.target = findNode(link.target) || findNode(link.target.id);
-                                        links.push(link);
-                                    });
 
-                                    if (!isSliderMade) {
-                                        calculateMaxLOE();
+                                    d3.select('#slider')
+                                            .call(
+                                            d3.slider().axis(axisState).min(minLOE).max(sliderMax).step(1).value(0)
+                                                    .on('slide', function (e, v) {
+                                                        scope.$emit('slider-change', v);
+                                                    }));
 
-                                        var sliderMax = 0;
-                                        var axisState = true;
-                                        if (scope.maxLoe == 0) {
-                                            scope.maxLoe = 1;
-                                            sliderMax = 1;
-                                            axisState = d3.svg.axis().ticks(1);
-                                        } else {
-                                            sliderMax = scope.maxLoe + 5;
-                                        }
-
-                                        d3.select('#slider')
-                                                .call(
-                                                d3.slider().axis(axisState).min(minLOE).max(sliderMax).step(1).value(0)
-                                                        .on('slide', function (e, v) {
-                                                            scope.$emit('slider-change', v);
-                                                        }));
-
-                                        isSliderMade = true;
-                                    }
-                                    update();
+                                    isSliderMade = true;
+                                }
+                                update();
 
                             }
 
@@ -330,10 +341,19 @@
                                 if (previousSliderValue > 0  && sliderVal !== 0) {
                                     updateEdgeColor(sliderVal);
                                 } else if (sliderVal == 0) {
-                                    removeEdges(_.difference(allForceData.edges, getInitialEdges(allForceData.edges)));
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+//                                    var diffLinks = _.difference(allForceData.edges, getInitialEdges());
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+
+                                    removeNodes(diffNodes);
+                                    removeEdges(diffLinks);
                                     update();
                                 } else {
-                                    setForceData({nodes: {}, edges: _.difference(allForceData.edges, getInitialEdges(allForceData.edges))}, sliderVal);
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+//                                    var diffLinks = removeEdgesFromRemovedNodes(_.difference(allForceData.edges, getInitialEdges()), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes())));
+
+                                    setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
                                     updateEdgeColor(sliderVal);
                                 }
 
@@ -592,6 +612,26 @@
                                 force.start();
                             }
 
+                            function removeEdgesFromRemovedNodes(edges, removedNodes) {
+                                var returnEdges = [];
+
+                                for (var i=0; i<edges.length; i++) {
+                                    for (var j=0; j<removedNodes.length; j++) {
+                                        var linkToRemovedNode = false;
+                                        if ((edges[i].source == removedNodes[j] || edges[i].source.id == removedNodes[j]) || (edges[i].target == removedNodes[j] ||  edges[i].target.id == removedNodes[j])) {
+                                            linkToRemovedNode = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!linkToRemovedNode) {
+                                        returnEdges.push(edges[i]);
+                                    }
+                                }
+
+                                return returnEdges;
+                            }
+
                             function getInitialEdges() {
                                 var edges = [];
                                 for (var i=0; i<allForceData.edges.length; i++) {
@@ -599,7 +639,74 @@
                                         edges.push(allForceData.edges[i]);
                                     }
                                 }
+
                                 return edges;
+                            }
+
+                            function getInitialNodes() {
+                                var returnNodes = {};
+                                initialRemovedNodes= {};
+
+                                //don't return any node that only has edges with timeHash or if the node is and ICD and has timeHash
+                                for (var node in allForceData.nodes) {
+
+                                    if (allForceData.nodes[node].propHash.VERTEX_TYPE_PROPERTY == "InterfaceControlDocument") {
+
+                                        var hasTimeHash = false;
+                                        //if node has any inEdge with timeHash property, break from loop and change boolean
+                                        for (var i = 0; i < allForceData.nodes[node].inEdge.length; i++) {
+                                            if (allForceData.nodes[node].inEdge[i].propHash.timeHash && !allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                hasTimeHash = true;
+                                                break;
+                                            }
+                                        }
+
+                                        //if node has any outEdge with timeHash property, break from loop and do not add
+                                        if (!hasTimeHash) {
+                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
+                                                if (allForceData.nodes[node].outEdge[i].propHash.timeHash && !allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                    hasTimeHash = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        //add nodes to the returnNodes object if the nodes pass the boolean hasTimeHash
+                                        if (!hasTimeHash) {
+                                            returnNodes[node] = allForceData.nodes[node];
+                                        }
+
+                                    } else {
+
+                                        //boolean to keep track if any edge doesn't have a timeHash
+                                        var notAllTimeHash = false;
+                                        //check inEdge's first if there is any timeHash
+                                        for (var i = 0; i < allForceData.nodes[node].inEdge.length; i++) {
+                                            if (!allForceData.nodes[node].inEdge[i].propHash.timeHash || allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                notAllTimeHash = true;
+                                                break;
+                                            }
+                                        }
+
+                                        //if inEdges already have an edge without timeHash then no need to search through outEdges
+                                        if (!notAllTimeHash) {
+                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
+                                                if (!allForceData.nodes[node].outEdge[i].propHash.timeHash || allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                    notAllTimeHash = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        //add nodes to the returnNodes object if the nodes pass the boolean notAllTimeHash
+                                        if (notAllTimeHash) {
+                                            returnNodes[node] = allForceData.nodes[node];
+                                        }
+
+                                    }
+                                }
+
+                                return returnNodes;
                             }
 
                             //remove edges
@@ -612,6 +719,29 @@
                                         }
                                     }
                                 }
+                            }
+
+                            //remove node and all it's connected links
+                            function removeNodes(nodesToRemove) {
+                                for (var j=0; j<nodesToRemove.length; j++) {
+
+                                    var i = 0,
+                                            n = findNode(nodesToRemove[j]);
+                                    while (i < links.length) {
+                                        if ((links[i]['source'] == n)||(links[i]['target'] == n)) {
+                                            links.splice(i,1);
+                                        }
+                                        else {
+                                            i++;
+                                        }
+                                    }
+                                    nodes.splice(findNodeIndex(nodesToRemove[j]),1);
+                                }
+                            }
+
+                            //finds node in nodes array based on passed in 'id'
+                            function findNodeIndex(id) {
+                                for (var i in nodes) {if (nodes[i]["id"] === id) return i};
                             }
 
                             function updateEdgeColor(sliderValue) {
@@ -645,24 +775,25 @@
                                                     for (var phase in d.propHash.timeHash) {
                                                         if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
+                                                            var uri = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.id : d.target.id;
                                                             if (phase == "Requirements") {
                                                                 color = "#ECF6BD";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             } else if (phase == "Design") {
                                                                 color = "#C5E5A0";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             } else if (phase == "Develop") {
                                                                 color = "#9FD483";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             } else if (phase == "Test") {
                                                                 color = "#79C366";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             } else if (phase == "Deploy") {
                                                                 color = "#52B149";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             } else if (phase == "Completed") {
                                                                 color = "#2CA02C";
-                                                                nodeICDs.push({uri: d.source.id, color: color});
+                                                                nodeICDs.push({uri: uri, color: color});
                                                             }
 
                                                         }
@@ -706,7 +837,7 @@
 
                                             //loop through to see if node is in a different coloring phase
                                             for (var i=0; i<nodeICDs.length; i++) {
-                                                if (d.uri == nodeICDs[i].uri) {
+                                                if (d.uri == nodeICDs[i].uri && d.propHash.VERTEX_TYPE_PROPERTY == "InterfaceControlDocument") {
                                                     color = nodeICDs[i].color;
                                                 }
                                             }
@@ -732,6 +863,9 @@
                                         }
                                         if (allForceData.edges[i].propHash.timeHash.Develop) {
                                             total += allForceData.edges[i].propHash.timeHash.Develop.LOE;
+                                        }
+                                        if (allForceData.edges[i].propHash.timeHash.Deploy) {
+                                            total += allForceData.edges[i].propHash.timeHash.Deploy.LOE;
                                         }
                                     }
 
@@ -798,11 +932,11 @@
             }).filter('reduceStringLength', function() {
                     //returns the string
                     return function(str, length) {
-                
+
                         if (!length) {
                            length = 15;
                         }
-                
+
                         if (str.length > length) {
                             return str.substring(0, length) + "...";
                         } else {
@@ -815,7 +949,7 @@
                     var myRe = new RegExp("([^/]*)$");
                     var shortStr = myRe.exec(str);
                     var result = shortStr[0].replace(/_/g, " ");
-                    
+
                     return result;
                 }
             });
