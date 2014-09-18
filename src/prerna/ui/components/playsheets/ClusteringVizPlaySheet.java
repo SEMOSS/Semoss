@@ -21,6 +21,7 @@ import prerna.algorithm.impl.AgglomerativeClusteringAlgorithm;
 import prerna.algorithm.impl.ArrayUtilityMethods;
 import prerna.algorithm.impl.ClusteringAlgorithm;
 import prerna.algorithm.impl.StatisticsUtilityMethods;
+import prerna.algorithm.impl.specific.tap.ClusteringOptimization;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.GridFilterData;
@@ -130,10 +131,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						innerHash.put("dataSeries", propBinsArr);
 						innerHash.put("names", new String[]{propName, "Distribution"});
 						innerHash.put("zScore", zScore);
-						//TODO: delete this once testing is done
-						//innerHash.put("num_data", numValues);
-						//innerHash.put("avg", StatisticsUtilityMethods.getAverage(numValues));
-						//innerHash.put("stdev", StatisticsUtilityMethods.getSampleStandardDeviation(numValues));
 						clusterData.put(propName, innerHash);
 					} else {
 						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
@@ -319,16 +316,20 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		processQuery();
 		AbstractClusteringAlgorithm clusterAlg;
-		if(type.equalsIgnoreCase("agglomerative")) {
+		//TODO: need to split out the process to deal with duplicate values
+		if(type.equalsIgnoreCase("agglomerative")){
 			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 			clusterAlg.setNumClusters(numClusters);
 			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-			((AgglomerativeClusteringAlgorithm) clusterAlg).execute();
-		} else {
+		} else if(type.equalsIgnoreCase("optimization")){
+			clusterAlg = new ClusteringOptimization(list, names);
+			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
+			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
+		} else{
 			clusterAlg = new ClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
-			((ClusteringAlgorithm) clusterAlg).execute();
 		}
+		clusterAlg.execute();
 		list = clusterAlg.getMasterTable();
 		names = clusterAlg.getVarNames();
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
@@ -394,6 +395,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		String[] querySplit = query.split(";");
 		this.query = querySplit[0];
 		this.numClusters = Integer.parseInt(querySplit[1]);
+		if(querySplit.length == 3) {
+			this.type = "optimization";
+		}
 		if(querySplit.length == 4) {
 			this.n = Double.parseDouble(querySplit[2]);
 			this.type = querySplit[3];
