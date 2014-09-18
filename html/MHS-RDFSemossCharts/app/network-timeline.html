@@ -12,21 +12,25 @@
 <body ng-app="main">
     <div id="controllerID" ng-controller="NetworkCtrl">
         <div id="sidebarHeader">
-            <div style="text-align: center; font-size: 18px; padding-bottom: 10px;">Transition Modernization LOE Slider</div>
-            <!--<button class="btn pull-left" style="margin-left: 5%" ng-click="setInitialStateSlider()">Initial State</button>-->
-            <!--<button class="btn pull-right" style="margin-right: 5%" ng-click="setFinalStateSlider()">Final State</button>-->
+            <div class="header-left">
+                <div class="header-title text-center">Update State</div>
+                <div class="btn-group text-center">
+                    <button type="button" class="btn" ng-click="setInitialStateSlider()">Initial State</button>
+                    <button type="button" class="btn" ng-click="setFinalStateSlider()">Final State</button>
+                </div>
+            </div>
 
             <div class="slider-container">
+                <div class="header-title text-center">Transition Modernization LOE Slider</div>
                 <div id="slider"></div>
             </div>
 
-            <!--<div style="position: absolute; margin-left: 50%">future bottom title</div>-->
         </div>
         <div id="sidebarContainer">
             <div id="sidebarContentArea">
 
                 <div id="sidebarContentLeft">
-                    <div class="sidebar-title">Interface Modernization Status</div>
+                    <div class="sidebar-title header-title text-center">Interface Modernization Status</div>
                     <table ng-table="tableParams" show-filter="true" class="table fixed-layout">
                         <tr ng-repeat="item in $data track by $index">
                             <td data-title="'ICD'" class="icd" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
@@ -46,7 +50,7 @@
                 </div>
 
                 <div id="sidebarContentRight">
-                    <div class="sidebar-title">Network Transition Visualization</div>
+                    <div class="sidebar-title header-title text-center">Network Transition Visualization</div>
                     <forcegraph data="forceData" max-loe="maxLOE"></forcegraph>
                 </div>
 
@@ -65,7 +69,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data2.js"></script>-->
+    <!--<script src="data/timeline-data5.js"></script>-->
 
     <script>
 
@@ -156,7 +160,7 @@
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
-                                        totalLOE: "N/A",
+                                        totalLOE: totalLOE,
                                         dependICDS: array[prop].propHash.timeHash["Requirements"].dependICDS,
                                         gltag: ""
                                     };
@@ -244,6 +248,16 @@
                             $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
                         }
                     });
+
+
+                    $scope.setInitialStateSlider = function() {
+                        $scope.$broadcast("set-slider", 0);
+                    };
+
+                    $scope.setFinalStateSlider = function() {
+                        $scope.$broadcast("set-slider", $scope.maxLOE + 1);
+                    };
+
             }).
             directive('forcegraph', function($rootScope) {
                     return {
@@ -314,28 +328,44 @@
 
                                 if (!isSliderMade) {
                                     calculateMaxLOE();
-
-                                    var sliderMax = 0;
-                                    var axisState = true;
-                                    if (scope.maxLoe == 0) {
-                                        scope.maxLoe = 1;
-                                        sliderMax = 1;
-                                        axisState = d3.svg.axis().ticks(1);
-                                    } else {
-                                        sliderMax = scope.maxLoe + 5;
-                                    }
-
-                                    d3.select('#slider')
-                                            .call(
-                                            d3.slider().axis(axisState).min(minLOE).max(sliderMax).step(1).value(0)
-                                                    .on('slide', function (e, v) {
-                                                        scope.$emit('slider-change', v);
-                                                    }));
-
+                                    createSlider();
                                     isSliderMade = true;
                                 }
                                 update();
 
+                            }
+
+                            scope.$on("set-slider", function(e, v) {
+                                createSlider(v);
+                                scope.$emit('slider-change', v);
+                            });
+
+                            function createSlider(val) {
+                                //remove old slider
+                                d3.select("#slider")
+                                        .select("a").remove();
+
+                                d3.select("#slider")
+                                        .select("svg").remove();
+
+                                //set up new slider
+                                var sliderMax = 0;
+                                var axisState = true;
+                                if (scope.maxLoe == 0) {
+                                    scope.maxLoe = 1;
+                                    sliderMax = 1;
+                                    axisState = d3.svg.axis().ticks(1);
+                                } else {
+                                    sliderMax = scope.maxLoe + 5;
+                                }
+
+                                //set the slider
+                                var sliderVal = val ? val : 0;
+
+                                d3.select("#slider").call(d3.slider().axis(axisState).min(minLOE).max(sliderMax).step(1).value(sliderVal)
+                                        .on('slide', function (e, v) {
+                                            scope.$emit('slider-change', v);
+                                        }));
                             }
 
                             $rootScope.$on('slider-change', function(event, sliderVal) {
@@ -396,10 +426,6 @@
                                     .origin(function (d) {
                                         return d;
                                     }); //center of circle
-//                .on("dragstart", dragstarted)
-//                .on('drag.force', dragged)
-//                .on("drag", dragged)
-//                .on("dragend", dragended);
 
                             var svg = d3.select(ele[0]).append("svg")
                                     .attr("width", width)
@@ -503,7 +529,10 @@
 
                                 //node enter g...
                                 var nodeEnter = node.enter().append("g")
-                                        .attr("class", function(d) { return "node " + d.id; })
+                                        .attr("class", function(d) {
+                                            var label = d.propHash.VERTEX_LABEL_PROPERTY.replace(/"/g, "").replace(/'/g, "").replace(/\(|\)/g, "");
+                                            return "node " + label + " " + d.id;
+                                        })
                                         .call(drag);
 
                                 //node enter circle...
@@ -775,29 +804,38 @@
                                                     }
                                                 } else {
                                                     for (var phase in d.propHash.timeHash) {
+                                                        if (d.source.propHash.VERTEX_LABEL_PROPERTY == "DHMSM-AWCTS-Staff_Data") {
+                                                            console.log('');
+                                                        }
                                                         if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
-                                                            var uri = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.id : d.target.id;
+                                                            var label = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.propHash.VERTEX_LABEL_PROPERTY : d.target.propHash.VERTEX_LABEL_PROPERTY;
+                                                            label = label.replace(/"/g, "").replace(/'/g, "").replace(/\(|\)/g, "");
+
                                                             if (phase == "Requirements") {
                                                                 color = "#ECF6BD";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             } else if (phase == "Design") {
                                                                 color = "#C5E5A0";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             } else if (phase == "Develop") {
                                                                 color = "#9FD483";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             } else if (phase == "Test") {
                                                                 color = "#79C366";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             } else if (phase == "Deploy") {
                                                                 color = "#52B149";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             } else if (phase == "Completed") {
                                                                 color = "#2CA02C";
-                                                                nodeICDs.push({uri: uri, color: color});
+                                                                d3.select("g." + label + " circle").attr("fill", color);
                                                             }
 
+                                                        } else if (phase == "Completed" && sliderValue >= d.propHash.timeHash[phase].totalLOE) {
+                                                            var label = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.propHash.VERTEX_LABEL_PROPERTY : d.target.propHash.VERTEX_LABEL_PROPERTY;
+                                                            label = label.replace(/"/g, "").replace(/'/g, "").replace(/\(|\)/g, "");
+                                                            d3.select("g." + label + " circle").attr("fill", "#2CA02C");
                                                         }
                                                     }
                                                 }
@@ -831,7 +869,7 @@
 
                                 //node coloring
                                 //similar to the edge one, look for
-                                d3.selectAll(".node circle")
+                                /*d3.selectAll(".node circle")
                                         .attr("fill", function(d) {
 
                                             //initialize color
@@ -841,10 +879,11 @@
                                             for (var i=0; i<nodeICDs.length; i++) {
                                                 if (d.uri == nodeICDs[i].uri && d.propHash.VERTEX_TYPE_PROPERTY == "InterfaceControlDocument") {
                                                     color = nodeICDs[i].color;
+                                                    break;
                                                 }
                                             }
                                             return color;
-                                        });
+                                        });*/
 
                             }
 
@@ -885,7 +924,7 @@
                             function findNode(id) {
                                 for (var i in nodes) {
                                     if (nodes[i]["id"] === id)
-                                        return nodes[i]
+                                        return nodes[i];
                                 };
                             }
 
