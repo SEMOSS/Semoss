@@ -48,6 +48,19 @@ public class ClusteringDataProcessor {
 		calculateWeights();
 	}
 	
+	public ArrayList<Object[]> getMasterTable() {
+		return masterTable;
+	}
+	public void setMasterTable(ArrayList<Object[]> masterTable) {
+		this.masterTable = masterTable;
+	}
+	public String[] getVarNames() {
+		return varNames;
+	}
+	public void setVarNames(String[] varNames) {
+		this.varNames = varNames;
+	}
+	
 	//indexing used for visualization
 	private int[] totalNumericalPropIndices;
 	private Integer[] categoryPropIndices; 
@@ -115,7 +128,6 @@ public class ClusteringDataProcessor {
 			String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
 			categorySimilarity = calculateCategorySimilarity(instaceCategoricalInfo, categoryClusterInfo);
 		}
-		
 
 		return numericalSimilarity + categorySimilarity;
 	}
@@ -164,7 +176,10 @@ public class ClusteringDataProcessor {
 	{
 		double numericalSimilarity = 0;
 		double distanceNormalization = 0;
-
+		
+		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
+		double coeff = 1.0 * numericalPropNames.length / varNames.length;
+		
 		int numClusters = allNumericalClusterInfo.length;
 		double[] distance = new double[numClusters];
 
@@ -173,20 +188,28 @@ public class ClusteringDataProcessor {
 			Double[] numericalClusterInfo = allNumericalClusterInfo[i];
 			// deal with null values
 			// set the values to be the same for this property such that the distance becomes 0
+			Double[] copyInstanceNumericalInfo = new Double[instanceNumericalInfo.length];
 			for(int j = 0; j < numericalClusterInfo.length; j++) {
 				if(numericalClusterInfo[j] == null) {
-					if(instanceNumericalInfo[j] == null) {
+					copyInstanceNumericalInfo = instanceNumericalInfo;
+					if(copyInstanceNumericalInfo[j] == null) {
 						numericalClusterInfo[j] = new Double(0);
-						instanceNumericalInfo[j] = new Double(0);
+						copyInstanceNumericalInfo[j] = new Double(0);
 					} else {
-						numericalClusterInfo[j] = instanceNumericalInfo[j];
+						numericalClusterInfo[j] = copyInstanceNumericalInfo[j];
 					}
-				} else if(instanceNumericalInfo[j] == null) {
-					instanceNumericalInfo[j] = numericalClusterInfo[j];
+				} else if(copyInstanceNumericalInfo[j] == null) {
+					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
+				} else {
+					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
 				}
 			}
-			distance[i] = disCalculator.calculateEuclidianDistance(instanceNumericalInfo, numericalClusterInfo);
+			distance[i] = disCalculator.calculateEuclidianDistance(copyInstanceNumericalInfo, numericalClusterInfo);
 			distanceNormalization += distance[i];
+		}
+		
+		if(distanceNormalization == 0) {
+			return coeff; // values are exactly the same
 		}
 		// normalize all the distances to avoid distortion
 		for(int i = 0; i < distance.length; i++) {
@@ -200,9 +223,6 @@ public class ClusteringDataProcessor {
 		}
 		// 
 		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
-
-		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
-		double coeff = 1.0 * numericalPropNames.length / varNames.length;
 
 //		logger.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
 		return coeff * numericalSimilarity;
@@ -528,7 +548,7 @@ public class ClusteringDataProcessor {
 		return Math.log(x) / Math.log(2);
 	}
 	
-	//make generic
+	//TODO: generic
 	private void formatDuplicateResults() {
 		int instanceCounter = 0;
 		String previousInstance = "";
@@ -619,4 +639,89 @@ public class ClusteringDataProcessor {
 		masterTable = retMasterTable;
 	}
 	
+	/**
+	 * 
+	 * @param clusterIdx1				The index for the cluster we are observing
+	 * @param clusterIdx2				The index for the cluster we are comparing the observed cluster to
+	 * @param clusterNumberMatrix		All the numerical properties
+	 * @param clusterCategoryMatrix		All the categorical properties
+	 * @return
+	 */
+	public double calculateClusterToClusterSimilarity(int clusterIdx1, int clusterIdx2, Double[][] clusterNumberMatrix, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix){
+		double numericSimilarity = 0;
+		double categoricalSimilarity = 0;
+		
+		if(clusterNumberMatrix != null) {
+			Double[] numericClusterInfo1 = clusterNumberMatrix[clusterIdx1];
+			numericSimilarity = calcuateNumericalSimilarity(clusterIdx2, numericClusterInfo1, clusterNumberMatrix);
+		}
+		
+		if(clusterCategoryMatrix != null) {
+			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1 = clusterCategoryMatrix.get(clusterIdx1);
+			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2 = clusterCategoryMatrix.get(clusterIdx2);
+			
+			categoricalSimilarity = calculateClusterCategoricalSimilarity(categoricalClusterInfo1, categoricalClusterInfo2);
+		}
+		
+		return numericSimilarity + categoricalSimilarity;
+	}
+	
+	private double calculateClusterCategoricalSimilarity(ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1, ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2) {
+		double coeff = 1.0 * categoryPropNames.length / varNames.length;
+		double similarityScore = 0;
+
+		int i;
+		int size = categoricalClusterInfo1.size();
+		// loop through all properties
+		for(i = 0; i < size; i++) {
+			// for specific property
+			Hashtable<String, Integer> clusterInfo1 = categoricalClusterInfo1.get(i);
+			Hashtable<String, Integer> clusterInfo2 = categoricalClusterInfo2.get(i);
+			
+			int normalizationCount1 = 0;
+			for(String propInstance : clusterInfo1.keySet()) {
+				normalizationCount1 += clusterInfo1.get(propInstance);
+			}
+			int normalizationCount2 = 0;
+			for(String propInstance : clusterInfo2.keySet()) {
+				normalizationCount2 += clusterInfo2.get(propInstance);
+			}
+			
+			if(normalizationCount2 == 0){
+				System.out.println("ERROR - count0");
+			}
+			if(normalizationCount1 == 0){
+				System.out.println("ERROR - count0");
+			}
+			
+			int possibleValues = 0;
+			double sumClusterDiff = 0;
+			for(String propInstance : clusterInfo1.keySet()) {
+				if(clusterInfo2.containsKey(propInstance)) {
+					possibleValues++;
+					// calculate difference between counts
+					int count1 = clusterInfo1.get(propInstance);
+					int count2 = clusterInfo2.get(propInstance);
+					sumClusterDiff += Math.abs((double) count1/normalizationCount1 - (double) count2/normalizationCount2);
+				} else {
+					possibleValues++;
+					//include values that 1st cluster has and 2nd cluster doesn't have
+					int count1 = clusterInfo1.get(propInstance);
+					sumClusterDiff += (double) count1/normalizationCount1;
+				}
+			}
+			//now include values that 2nd cluster has that 1st cluster doesn't have
+			for(String propInstance: clusterInfo2.keySet()) {
+				if(!clusterInfo1.containsKey(propInstance)) {
+					possibleValues++;
+					int count2 = clusterInfo2.get(propInstance);
+					sumClusterDiff += (double) count2/normalizationCount2;
+				}
+			}
+
+			similarityScore += weights[i] * (1 - sumClusterDiff/possibleValues);
+		}
+		
+		return coeff * similarityScore;
+	}
 }

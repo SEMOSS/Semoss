@@ -3,6 +3,7 @@ package prerna.algorithm.impl;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Random;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -79,10 +80,12 @@ public abstract class AbstractClusteringAlgorithm {
 	}
 
 	// method to be defined in specific clustering algorithms
-	protected abstract boolean execute();
+	public abstract boolean execute();
 
 	protected void setUpAlgorithmVariables(){
 		cdp = new ClusteringDataProcessor(masterTable,varNames);
+		masterTable = cdp.getMasterTable();
+		varNames = cdp.getVarNames();
 		instanceCategoryMatrix = cdp.getCategoricalMatrix();
 		instanceNumberMatrix = cdp.getNumericalMatrix();
 		instanceIndexHash = cdp.getInstanceHash();
@@ -113,6 +116,8 @@ public abstract class AbstractClusteringAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			clustersAssigned[i] = -1;
 		}
+//		int randomValue = new Random().nextInt(numInstances+1);
+//		clustersAssigned[randomValue] = 0;
 		clustersAssigned[0] = 0;
 		Double[][] initialClusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, 1);
 		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = createClustersCategoryProperties(instanceCategoryMatrix, clustersAssigned, 1);
@@ -128,7 +133,7 @@ public abstract class AbstractClusteringAlgorithm {
 				} else {
 					similarityClusterVal = cdp.getSimilarityScore(j, 0, initialClusterNumberMatrix, null);
 				}
-				if(similarityClusterVal < minSimilarity && !ArrayUtilityMethods.arrayContainsValue(clustersAssigned, j)) {
+				if(similarityClusterVal < minSimilarity && (clustersAssigned[j] == -1) ) {
 					minIndex = j;
 					minSimilarity =  similarityClusterVal;
 				}
@@ -255,9 +260,14 @@ public abstract class AbstractClusteringAlgorithm {
 					//if the instance's properties are in fact in the clusters properties, remove them, otherwise error.
 					if(propValHash.containsKey(categoryValForInstance)) {
 						int propCount = propValHash.get(categoryValForInstance);
-						propCount --;
-						propValHash.put(categoryValForInstance,propCount);
-						clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+						propCount--;
+						if(propCount == 0) {
+							propValHash.remove(categoryValForInstance);
+							clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+						} else {
+							propValHash.put(categoryValForInstance,propCount);
+							clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
+						}
 					}
 					else{
 						LOGGER.info("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
@@ -279,6 +289,51 @@ public abstract class AbstractClusteringAlgorithm {
 			}
 		}
 		return clusterCategoryMatrix;
+	}
+	
+	protected double calculateFinalInstancesToClusterSimilarity() {
+		double sumSimiliarities = 0;
+		for(String s : instanceIndexHash.keySet()) {
+			int dataIdx = instanceIndexHash.get(s);
+			int clusterIdx = clustersAssigned[dataIdx];
+			sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, clusterNumberMatrix, clusterCategoryMatrix.get(clusterIdx));
+		}
+		return sumSimiliarities;
+	}
+	
+	protected double calculateFinalTotalClusterToClusterSimilarity() {
+		double sumSimiliarities = 0;
+		
+		int i;
+		for(i = 0; i < numClusters - 1; i++) {
+			int j;
+			for(j = i+1; j < numClusters; j++) {
+				sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberMatrix, clusterCategoryMatrix);
+			}
+		}
+		
+		return sumSimiliarities;
+	}
+	
+	//Currently not using method - decided to use total Cluster to Cluster Similarity
+	public double calculateClusterToClusterSmallestSimPath() {
+		double sumSimiliarities = 0;
+		
+		int i;
+		for(i = 0; i < numClusters - 1; i++) {
+			int j;
+			double maxScore = 0;
+			double simScore = 0;
+			for(j = i+1; j < numClusters; j++) {
+				simScore = cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberMatrix, clusterCategoryMatrix);
+				if(simScore > maxScore) {
+					maxScore = simScore;
+				}
+			}
+			sumSimiliarities += maxScore;
+		}
+		
+		return sumSimiliarities;
 	}
 	
 	/**
@@ -382,5 +437,4 @@ public abstract class AbstractClusteringAlgorithm {
 			}
 		}
 	}
-	
 }
