@@ -37,7 +37,7 @@ body {
     top: 0px;
     right: 0px;
     background-color: #eee;
-    padding: 25px 0px 45px 0;
+    padding: 25px 0px 35px 0;
     width: 100%;
     position: fixed;
     z-index: 2;
@@ -50,7 +50,7 @@ body {
 #sidebarContentArea{
     position: absolute;
     left: 0px;
-    top: 80px;
+    top: 87px;
     right: 0px;
     bottom: 0px;
     background-color: white;
@@ -171,17 +171,30 @@ body {
     text-overflow:ellipsis;
      overflow: hidden;
  }
- 
 
 .fixed-layout {
     table-layout: fixed;
 }
 
+.text-center {
+    text-align: center;
+}
+
+.header-title {
+  font-size: 18px;
+}
+
+#sidebarHeader .header-title{
+    padding-bottom: 10px;
+}
+
+.header-left.pull-left {
+    margin-left: 5%;
+}
+
 .sidebar-title {
     border-bottom: 1px solid #ccc;
-    font-size: 18px;
     padding: 5px 10px;
-    text-align: center;
 }
 
 .label.Requirements {
@@ -200,7 +213,6 @@ body {
 }
 
 .label.Test {
-    color:  black;
     background-color: #79C366;
 }
 
