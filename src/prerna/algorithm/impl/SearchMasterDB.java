@@ -1,11 +1,13 @@
 package prerna.algorithm.impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -23,65 +25,92 @@ public class SearchMasterDB {
 	
 	//engine variables
 	String masterDBName = "MasterDatabase";
-	IEngine masterEngine;
-	
+	IEngine masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
+
 	protected final static String semossURI = "http://semoss.org/ontologies";
 	protected final static String keywordBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/Keyword";
 	protected final static String engineBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/Engine";
 	protected final static String masterConceptBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/MasterConcept";
 	
+	//for a given instance and its keyword, find the possible related keywords in another specified engine.
 	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?Keyword WHERE {BIND(<http://semoss.org/ontologies/Concept/Keyword/@KEYWORD@> AS ?SubgraphKeyword) BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}}";
+	//for a given instance, check to see if a given engine contains under the keyword type.
 	protected final static String instanceExistsQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@KEYWORD@> ;}FILTER( regex (str(?s),'@KEYWORDINSTANCE@$'))}";
-	protected final static String masterConceptsQuery = "SELECT DISTINCT ?SubgraphKeyword ?MasterConcept WHERE {{?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword}}";
+	//for a given list of keywords, find their master concepts.
+	protected final static String masterConceptsForSubgraphKeywordsQuery = "SELECT DISTINCT ?Keyword ?MasterConcept WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword}}";
+	protected final static String allMasterConceptsQuery = "SELECT DISTINCT ?MasterConcept WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}}";
 	protected final static String similarKeywordsQuery = "SELECT DISTINCT ?Engine ?SubgraphKeyword ?MasterKeyword WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} @FILTER@ OPTIONAL{{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword}}}";
-	protected final static String similarMasterConceptsQuery = "SELECT DISTINCT ?Engine ?SubgraphKeyword ?MasterConcept WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} @FILTER@}";
+	protected final static String similarMasterConceptsQuery = "SELECT DISTINCT ?Engine ?MasterConcept WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} @FILTER@}";
 	protected final static String similarEdgesQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo ?MasterKeywordFrom ?MasterKeywordTo WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 	protected final static String similarMasterConceptConnectionsQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 	protected final static String similarMasterConceptConnectionsOutsideQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection (IF(BOUND(?MasterConceptFrom),?MasterConceptFrom,?BoundMasterConcept) AS ?MCFrom) (IF(BOUND(?MasterConceptTo),?MasterConceptTo,?BoundMasterConcept) AS ?MCTo) WHERE {{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?BoundMasterConcept} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}UNION{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?BoundMasterConcept} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}@FILTER@}";
-	protected final static String relatedQuestionsQuery = "SELECT DISTINCT ?Engine ?InsightLabel WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?SubgraphKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?SubgraphKeyword} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} {?MasterKeyword <http://semoss.org/ontologies/Relation/Keyword:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Insight> ?Insight}{?Insight <http://semoss.org/ontologies/Relation/Contains/Label> ?InsightLabel} @FILTER@}";
+	protected final static String relatedQuestionsQuery = "SELECT DISTINCT ?Engine ?InsightLabel WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} {?MasterKeyword <http://semoss.org/ontologies/Relation/Keyword:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Insight> ?Insight}{?Insight <http://semoss.org/ontologies/Relation/Contains/Label> ?InsightLabel} @FILTER@}";
 
+	double similarityThresh = 2.7;
+	
 	//list of keyword and edge types in the subgraph
 	ArrayList<String> keywordList;
 	ArrayList<String> edgeVertInList;
 	ArrayList<String> edgeVertOutList;
-	//list of master concepts associated with the keywords
+	
+	//list of master concepts associated with each of the keywords
 	ArrayList<String> masterConceptsList;
 	
-	//list for instances
-	ArrayList<String> keywordForInstanceList;
+	//list for instances, their keywords, and their master concepts
+	private boolean includeInstance = false;
 	ArrayList<String> instanceList;
+	ArrayList<String> keywordForInstanceList;
+	ArrayList<String> mcForInstanceList;
 	
 	public String[] headers;
-	boolean count=false;
-	boolean includeInstance = false;
+	private boolean debugging=false;
 	
-	public void setCountBoolean(boolean count) {
-		this.count=count;
+	public void isDebugging(boolean debugging) {
+		this.debugging=debugging;
 	}
 		
 	public void setMasterDBName(String masterDBName) {
-		this.masterDBName=masterDBName;
+		this.masterDBName = masterDBName;
+		this.masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 	}
 	
 	/**
-	 * Method to set KeywordList and EdgeLists if just given these lists.
-	 * Will likely be used later as alternative to the below method.
-	 */
-	public void setKeywordAndEdgeList(ArrayList<String> keywordList,ArrayList<String> edgeVertInList,ArrayList<String> edgeVertOutList) {
-		this.keywordList = keywordList;
-		this.edgeVertInList = edgeVertInList;
-		this.edgeVertOutList = edgeVertOutList;
-	}
-	
-	/**
-	 * Method to set InstanceLists
+	 * Specify a list of instances and their keywords
+	 * Also finds the master concepts for each of the keywords and sets them.
+	 * Assumes all keywords provided are in the master database, if not, then the master concept is just the keyword
+	 * TODO: make this use wordnet to find a suitable master concept if keyword does not exist for an instance
 	 * @param keywordForInstanceList
 	 * @param instanceList
 	 */
 	public void setInstanceList(ArrayList<String> keywordForInstanceList,ArrayList<String> instanceList) {
 		includeInstance = true;
-		this.keywordForInstanceList = keywordForInstanceList;
 		this.instanceList = instanceList;
+		this.keywordForInstanceList = keywordForInstanceList;
+		
+		//find the master concept for each instance
+		mcForInstanceList = new ArrayList<String>();
+		String getMCQuery = addBindings(masterConceptsForSubgraphKeywordsQuery,"Keyword",keywordBaseURI,keywordForInstanceList);
+		ArrayList<Object []> getMCResults = processQuery(getMCQuery);
+		
+		mcForInstanceList.addAll(keywordForInstanceList);
+		for(int i=0;i<getMCResults.size();i++) {
+			Object[] keywordMCRelation = getMCResults.get(i);
+			String keyword = (String)keywordMCRelation[0];
+			String mc = (String)keywordMCRelation[1];
+			int index = keywordForInstanceList.indexOf(keyword);
+			mcForInstanceList.set(index,mc);
+		}
+	}
+	
+	/**
+	 * Method to set KeywordList and EdgeLists if just given these lists.
+	 * KeywordList should have unique elements
+	 * Edge vert out and edge vert in should match up with one another without duplicate relationship
+	 */
+	public void setKeywordAndEdgeList(ArrayList<String> keywordList,ArrayList<String> edgeVertOutList,ArrayList<String> edgeVertInList) {
+		this.keywordList = keywordList;
+		this.edgeVertOutList = edgeVertOutList;
+		this.edgeVertInList = edgeVertInList;
 	}
 	
 	/**
@@ -125,6 +154,13 @@ public class SearchMasterDB {
 		}
 	}
 	
+	/**
+	 * Checks to see if an edge exists in the edgeList.
+	 * True if does, false if does not.
+	 * @param edgeIn
+	 * @param edgeOut
+	 * @return
+	 */
 	private Boolean edgeListContains(String edgeIn, String edgeOut) {
 		for(int inIndex = 0;inIndex<edgeVertInList.size();inIndex++) {
 			if(edgeVertInList.get(inIndex).equals(edgeIn)&&edgeVertOutList.get(inIndex).equals(edgeOut))
@@ -140,26 +176,47 @@ public class SearchMasterDB {
 	 */
 	public ArrayList<Object[]> searchDB() {
 
-		masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
-
+		if(keywordList == null || keywordList.isEmpty()) {
+			logger.info("No keywords were given to search for.");
+			return new ArrayList<Object []>();
+		}
+		
+		//if including instances, then only include databases that have those instances
+		//by creating a filter string of allowed databases to use in the queries
+		//empty filter if no instances to be included
 		String databaseFilter="";
 		if(includeInstance) {
 			ArrayList<String> databaseList = filterDatabaseList();
 			if(databaseList.isEmpty()) {
-				logger.info("No databases fit the criteria.");
+				logger.error("No databases include the instances given.");
+				Utility.showError("No databases include the instances given.");
 				return new ArrayList<Object []>();
 			}
 			databaseFilter = createDatabaseFilter(databaseList);
 		}
-
-		String mcQuery = addBindings(masterConceptsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
-		ArrayList<Object []> keywordMasterConceptsList = processQuery(mcQuery);
-		masterConceptsList = processMasterConceptsList(keywordList,keywordMasterConceptsList);
 		
+		//determine the master concepts for each keyword.
+		//if the keywords are in the subgraph, then just query
+		//if the keywords are not in the subgraph (i.e. come from NLP),
+		//use word net to find a suitable MC
+		//if MCs still not found, then the entry will be the "keyword"
+		masterConceptsList = getMCsForKeywords();
+		int numVals = 0;
+		for(int i=0;i<masterConceptsList.size();i++) {
+			if(!masterConceptsList.get(i).equals(""))
+				numVals++;
+		}
+		if(numVals==0) {
+			logger.error("No master concepts found for any keywords entered.");
+			Utility.showError("No master concepts found for any keywords entered.");
+			return new ArrayList<Object []>();
+		}
+
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 
 		//to look at keyword level and get all possible combinations of keywords for master concepts
-		if(!count){
+		//this is really only used for testing and debugging purposes. Otherwise, count should always be true.
+		if(debugging){
 			String simKeywords = addBindings(similarKeywordsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
 			simKeywords = addDatabaseFilter(simKeywords,databaseFilter);
 			ArrayList<Object []> similarKeywordsResults = processQuery(simKeywords);
@@ -179,7 +236,7 @@ public class SearchMasterDB {
 			headers[2] = "Mapped Node or Edge In Master";
 			headers[3] = "Node or Edge";
 		} else {//to find the score of each database, only considering master concepts and getting unique relationships
-			String simMCQuery = addBindings(similarMasterConceptsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
+			String simMCQuery = addBindings(similarMasterConceptsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
 			simMCQuery = addDatabaseFilter(simMCQuery,databaseFilter);
 			ArrayList<Object []> similarMasterConceptsResults = processQuery(simMCQuery);
 			
@@ -201,9 +258,9 @@ public class SearchMasterDB {
 			
 			String questions;
 			if(includeInstance) {
-				questions = addBindings(relatedQuestionsQuery,"SubgraphKeyword",keywordBaseURI,keywordForInstanceList);				
+				questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,mcForInstanceList);				
 			} else {
-				questions = addBindings(relatedQuestionsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
+				questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
 			}
 			questions = addDatabaseFilter(questions,databaseFilter);
 			ArrayList<Object []> relatedQuestionsResults = processQuery(questions);
@@ -219,6 +276,7 @@ public class SearchMasterDB {
 		return list;
 	}
 	
+
 	
 	private ArrayList<String> filterDatabaseList() {
 		String databaseQuery = "SELECT DISTINCT ?Engine WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}}";
@@ -243,14 +301,6 @@ public class SearchMasterDB {
 		return databaseList;
 	}
 	
-	private String createDatabaseFilter(ArrayList<String> databaseList) {
-		String databaseFilter ="";
-		for(String db : databaseList) {
-			databaseFilter += "<"+engineBaseURI + "/"+db+">"+", ";
-		}
-		return databaseFilter.substring(0,databaseFilter.length()-2);
-	}
-	
 	private Boolean databaseContainsInstance(IEngine engine, String subgraphKeyword, String instance) {
 		String getPossibleKeywordsQueryFilled = getPossibleKeywordsQuery.replaceAll("@KEYWORD@",subgraphKeyword).replaceAll("@ENGINE@", engine.getEngineName());
 		ArrayList<String> possibleKeywordList = processListQuery(getPossibleKeywordsQueryFilled);
@@ -269,17 +319,75 @@ public class SearchMasterDB {
 		
 		return false;
 	}
-	private ArrayList<String> processMasterConceptsList(ArrayList<String> keywordList, ArrayList<Object []> keywordMasterConceptsList) {
+	
+	private String createDatabaseFilter(ArrayList<String> databaseList) {
+		String databaseFilter ="";
+		for(String db : databaseList) {
+			databaseFilter += "<"+engineBaseURI + "/"+db+">"+", ";
+		}
+		return databaseFilter.substring(0,databaseFilter.length()-2);
+	}
+	
+	private ArrayList<String> getMCsForKeywords() {
 		ArrayList<String> masterConceptsList = new ArrayList<String>();
-		masterConceptsList.addAll(keywordList);
-		for(int i=0;i<keywordMasterConceptsList.size();i++) {
-			Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
-			String keyword = (String)keywordMCRelation[0];
-			String concept = (String)keywordMCRelation[1];
-			int index = keywordList.indexOf(keyword);
-			masterConceptsList.set(index,concept);
+
+		String mcQuery = addBindings(masterConceptsForSubgraphKeywordsQuery,"Keyword",keywordBaseURI,keywordList);
+		ArrayList<Object []> keywordMasterConceptsList = processQuery(mcQuery);
+		//if all the keywords have a master concept, then link them	
+		//if there are keywords without masterconcepts, use word net to see if there are related.
+		//this primarily will happen when input comes from NLP processing.
+		if(keywordList.size()<=keywordMasterConceptsList.size()) {
+			masterConceptsList.addAll(keywordList);
+			for(int i=0;i<keywordMasterConceptsList.size();i++) {
+				Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
+				String keyword = (String)keywordMCRelation[0];
+				String concept = (String)keywordMCRelation[1];
+				int index = keywordList.indexOf(keyword);
+				masterConceptsList.set(index,concept);
+			}
+		}
+		else{
+			ArrayList<String> allMCs = processListQuery(allMasterConceptsQuery);
+			double[][] simScores;
+			try {
+				simScores = IntakePortal.WordNetMappingFunction(deepCopy(keywordList),deepCopy(allMCs));
+				for(int keyInd=0;keyInd<keywordList.size();keyInd++) {
+					String keyword = keywordList.get(keyInd);
+					keywordList.set(keyInd, Utility.cleanString(keyword,true));
+					masterConceptsList.add("");
+					//masterConceptsList.add(Utility.cleanString(keyword,true));
+				}
+				for(int keyInd=0;keyInd<keywordList.size();keyInd++) {
+					int mcInd = 0;
+					while(mcInd<allMCs.size()) {
+						if(simScores[keyInd][mcInd]>similarityThresh) {
+							masterConceptsList.set(keyInd,allMCs.get(mcInd));
+							logger.info("Master Concept for the NLP search term "+keywordList.get(keyInd) + " is " + allMCs.get(mcInd));
+							mcInd=allMCs.size();
+						}
+						mcInd++;
+					}
+					if(masterConceptsList.get(keyInd).equals("")) {
+						logger.error("No Master Concept was found for the NLP search term "+keywordList.get(keyInd));
+					}
+				}
+			} catch (InvalidFormatException e) {
+				logger.error("Invalid Format Exception: could not do word net mapping for keywords and MCs");
+				return new ArrayList<String>();
+			} catch (IOException e) {
+				logger.error("IO Exception: could not do word net mapping for keywords and MCs");
+				return new ArrayList<String>();
+			}
 		}
 		return masterConceptsList;
+	}
+	
+	private ArrayList<String> deepCopy(ArrayList<String> list) {
+		ArrayList<String> copy = new ArrayList<String>();
+		for(String entry : list) {
+			copy.add(entry);
+		}
+		return copy;
 	}
 	
 	private ArrayList<Object []> processSimilarEdgesList(ArrayList<String> edgeVertOutList,ArrayList<String> edgeVertInList,ArrayList<Object []> similarEdgesList) {
@@ -306,13 +414,13 @@ public class SearchMasterDB {
 						String mcc = (String) possibleEdge[1];
 						edge[0] = (String) possibleEdge[0];
 						edge[1] = keywordFrom + Constants.RELATION_URI_CONCATENATOR + keywordTo;
-						if(!count)
+						if(debugging)
 							edge[2] = (String) possibleEdge[4] + Constants.RELATION_URI_CONCATENATOR + (String) possibleEdge[5];
 						else
 							edge[2] = queryMCFrom + Constants.RELATION_URI_CONCATENATOR + queryMCTo;
 						//could put this second edge as the specific verticies going to/from
 						String databaseMCC = database + "-" + mcc;
-						if(!count || !databaseMccList.contains(databaseMCC)){
+						if(debugging || !databaseMccList.contains(databaseMCC)){
 							processedSimilarEdgesList.add(edge);
 							databaseMccList.add(databaseMCC);
 						}
@@ -323,6 +431,7 @@ public class SearchMasterDB {
 
 		return processedSimilarEdgesList;
 	}
+	
 	private String getMasterConcept(String keyword) {
 		int keywordInd = keywordList.indexOf(keyword);
 		if(keywordInd>-1){
@@ -340,7 +449,9 @@ public class SearchMasterDB {
 	private String addBindings(String query,String variable,String baseURI,ArrayList<String> vals) {
 		String bindings = "BINDINGS ?"+variable+" {";
 		for(int i=0;i<vals.size();i++){
-			bindings+="(<"+baseURI+"/"+vals.get(i)+">)";
+			String val = vals.get(i);
+			if(!val.equals(""))
+				bindings+="(<"+baseURI+"/"+vals.get(i)+">)";
 		}
 		bindings+="}";
 		return query + bindings;
