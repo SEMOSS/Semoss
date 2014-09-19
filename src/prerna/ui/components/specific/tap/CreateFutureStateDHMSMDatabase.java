@@ -154,9 +154,9 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	public void generateData() throws EngineException {
 		LPInterfaceProcessor processor = new LPInterfaceProcessor();
 		processor.setEngine(hrCore);
-		processor.isGenerateCost(true);
+//		processor.isGenerateCost(true);
+//		processor.setUsePhase(true);
 		processor.setGenerateNewTriples(true);
-		processor.setUsePhase(true);
 		
 		processor.getCostInfoAtPhaseLevel(tapCost);
 		processor.generateReport();

@@ -461,6 +461,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -468,7 +469,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, DHMSM_URI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} 
 				// new business rule might be added - will either un-comment or remove after discussion today
@@ -478,7 +479,6 @@ public class LPInterfaceProcessor {
 				else if (downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
 					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(" Recommend review of removing interface ")
 							.concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
-					
 					// direct cost if system is downstream
 					if(generateCost  && !costCalculated) {
 						if(sysName.equals(downstreamSysName)) {
@@ -492,7 +492,8 @@ public class LPInterfaceProcessor {
 						}
 					}
 					
-					if(generateNewTriples) { 
+					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -505,7 +506,7 @@ public class LPInterfaceProcessor {
 						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
 						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 						// future cost triple
-						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, data, rowIdx);
+						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} 
 				if (upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
@@ -546,6 +547,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -553,7 +555,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, DHMSM_URI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} else if(downstreamSysType.equals(HPI_KEY)) { // upstream sys is not HPI and downstream is HPI
 					comment = comment.concat("Provide temporary integration between DHMSM->").concat(downstreamSysName).concat(" until all deployment sites for ").concat(downstreamSysName).concat(" field DHMSM (and any additional legal requirements).")
@@ -573,6 +575,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -585,7 +588,7 @@ public class LPInterfaceProcessor {
 						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
 						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 						// future cost triple
-						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, data, rowIdx);
+						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} 
 				if(!upstreamSysType.equals(LPI_KEY) && !upstreamSysType.equals(HPI_KEY) && !downstreamSysType.equals(LPI_KEY) && !downstreamSysType.equals(HPI_KEY))
@@ -624,6 +627,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -631,7 +635,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 					}
 				} else if(sorV.contains(upstreamSystemURI + dataURI) && !probability.equals("null") && !probability.equals("") ) { // upstream system is SOR and has a probability
 					otherwise = false;
@@ -651,6 +655,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -658,7 +663,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 					}
 				} 
 				if(downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSystemURI + dataURI)) { // downstream system is LPI and SOR of data
@@ -679,6 +684,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -686,7 +692,7 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 					}
 				} else if(sorV.contains(downstreamSystemURI + dataURI) && (!probability.equals("null") && !probability.equals("")) ) { // downstream system is SOR and has a probability
 					otherwise = false;
@@ -706,6 +712,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
+						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -713,14 +720,14 @@ public class LPInterfaceProcessor {
 						addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
 						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
 						// future cost triple
-						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, data, rowIdx);
+						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 					}
 				} 
 				if(otherwise) {
 					noCost = true;
 					if(upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) || downstreamSysType.equals(HPNI_KEY)) { //if either system is HP
 						comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements)." ;
-						if(generateNewTriples) { 
+						if(generateNewTriples) {
 							// future db triples - removed interface
 							removedInterfaces.add(icdURI);
 							String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -749,7 +756,7 @@ public class LPInterfaceProcessor {
 			if(getComments && !generateCost) {
 				values[10] = comment;
 			}
-			if(noCost) {
+			if(noCost && !generateNewTriples) {
 				values[11] = comment;
 				values[12] = "";
 				values[13] = "";
@@ -903,7 +910,7 @@ public class LPInterfaceProcessor {
 		relPropList.add(values);
 	}
 
-	private void addFutureDBCostRelTriples(String decommissionedICD, String proposedICD, String sysURI, String data, int index) {
+	private void addFutureDBCostRelTriples(String decommissionedICD, String proposedICD, String sysURI, String dataURI, String data, int index) {
 		HashMap<String, Double> info = sysCostInfo.get(index);
 		String previousGLItemURI = "";
 		String previousGLItemName = "";
@@ -959,6 +966,12 @@ public class LPInterfaceProcessor {
 				values = new Object[3];
 				values[0] = sysURI;
 				values[1] = influencesInstanceRel.concat(sys).concat(":").concat(glItemName);
+				values[2] = glItemURI;
+				costRelList.add(values);
+				// data input gl items
+				values = new Object[3];
+				values[0] = dataURI;
+				values[1] = inputInstanceRel.concat(data).concat(":").concat(glItemName);
 				values[2] = glItemURI;
 				costRelList.add(values);
 				// ordering of gl items
