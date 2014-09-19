@@ -35,6 +35,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 	Hashtable<String, SEMOSSEdge> edgeStore = new Hashtable<String, SEMOSSEdge>();
 	ArrayList<String> keywordList = new ArrayList<String>();
 	ArrayList<String> instanceList = new ArrayList<String>();
+
 	
 	/**
 	 * Method createData.  Creates the data needed to be printout in the grid.
@@ -42,12 +43,12 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		SearchMasterDB searchAlgo = new SearchMasterDB();
-
-		if(query.contains("true"))
-			searchAlgo.setCountBoolean(true);
-		else
-			searchAlgo.setCountBoolean(false);
 		searchAlgo.setMasterDBName(this.engine.getEngineName());
+		
+		if(query.contains("true"))
+			searchAlgo.isDebugging(true);
+		else
+			searchAlgo.isDebugging(false);
 		
 		if(query.contains("1")){
 			createMetamodelSubgraphData();
@@ -150,10 +151,10 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		edgeStore.put(system1ICD1.getURI(), system1ICD1);
 		edgeStore.put(icdSystem2.getURI(), icdSystem2);
 		
-		keywordList.add("DataObject");
-		instanceList.add("Referral_Information");
-		
 		keywordList.add("System");
 		instanceList.add("AHLTA");		
+		
+		keywordList.add("DataObject");
+		instanceList.add("Referral_Information");		
 	}
 }

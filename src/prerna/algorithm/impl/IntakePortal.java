@@ -145,7 +145,8 @@ public class IntakePortal {
 					      ),
 					      " "
 					   );
-		   return s;
+		s = s.toLowerCase();
+		return s;
 	}
 
 
