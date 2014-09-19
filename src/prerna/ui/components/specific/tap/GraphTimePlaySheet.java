@@ -1,21 +1,13 @@
 package prerna.ui.components.specific.tap;
 
-import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
@@ -26,6 +18,9 @@ import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class GraphTimePlaySheet extends BrowserPlaySheet{
 
