@@ -228,4 +228,24 @@ body {
     background-color: #FF0000;
 }
 
+.header-left {
+    float: left;
+    margin-left: 3%;
+}
+
+@media (max-width: 1340px) {
+    .header-left {
+        float: none;
+        margin: 0 0 10px 0;
+    }
+
+    #sidebarContentArea {
+        top: 140px;
+    }
+
+    #slider {
+
+    }
+}
+
  
