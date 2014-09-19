@@ -69,7 +69,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data5.js"></script>-->
+    <!--<script src="data/timeline-data4.js"></script>-->
 
     <script>
 
@@ -147,6 +147,7 @@
                                             newItem.totalLOE = totalLOE;
                                             newItem.dependICDS = array[prop].propHash.timeHash[phases[i]].dependICDS;
                                             newItem.gltag = array[prop].propHash.timeHash[phases[i]].gltag;
+                                            newItem.type = array[prop].propHash.EDGE_TYPE;
 
 
 
@@ -327,7 +328,7 @@
                                 });
 
                                 if (!isSliderMade) {
-                                    calculateMaxLOE();
+                                    scope.maxLoe = calculateMaxLOE();
                                     createSlider();
                                     isSliderMade = true;
                                 }
@@ -374,7 +375,6 @@
                                     updateEdgeColor(sliderVal);
                                 } else if (sliderVal == 0) {
                                     var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
-//                                    var diffLinks = _.difference(allForceData.edges, getInitialEdges());
                                     var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
 
                                     removeNodes(diffNodes);
@@ -383,7 +383,6 @@
                                 } else {
                                     var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
                                     var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
-//                                    var diffLinks = removeEdgesFromRemovedNodes(_.difference(allForceData.edges, getInitialEdges()), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes())));
 
                                     setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
                                     updateEdgeColor(sliderVal);
@@ -804,9 +803,6 @@
                                                     }
                                                 } else {
                                                     for (var phase in d.propHash.timeHash) {
-                                                        if (d.source.propHash.VERTEX_LABEL_PROPERTY == "DHMSM-AWCTS-Staff_Data") {
-                                                            console.log('');
-                                                        }
                                                         if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
 
                                                             var label = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.propHash.VERTEX_LABEL_PROPERTY : d.target.propHash.VERTEX_LABEL_PROPERTY;
@@ -889,35 +885,53 @@
 
                             function calculateMaxLOE() {
                                 var maxLOE = 0;
+                                var tempTotal = 0;
                                 var edgeLength = allForceData.edges.length;
-	                            for (var i=0; i  < edgeLength; i++) {
-                                    if (allForceData.edges[i].propHash.timeHash) {
-                                        var total = 0;
-                                        if (allForceData.edges[i].propHash.timeHash.Design) {
-                                            total += allForceData.edges[i].propHash.timeHash.Design.LOE;
-                                        }
-                                        if (allForceData.edges[i].propHash.timeHash.Requirements) {
-                                            total += allForceData.edges[i].propHash.timeHash.Requirements.LOE;
-                                        }
-                                        if (allForceData.edges[i].propHash.timeHash.Test) {
-                                            total += allForceData.edges[i].propHash.timeHash.Test.LOE;
-                                        }
-                                        if (allForceData.edges[i].propHash.timeHash.Develop) {
-                                            total += allForceData.edges[i].propHash.timeHash.Develop.LOE;
-                                        }
-                                        if (allForceData.edges[i].propHash.timeHash.Deploy) {
-                                            total += allForceData.edges[i].propHash.timeHash.Deploy.LOE;
-                                        }
-                                    }
+                                var edgeHasTimeHash = false;
 
-                                    if (total > maxLOE) {
-                                        maxLOE = total;
+                                //check through the edges for timeHash and get maxLoe
+	                            for (var i=0; i  < edgeLength; i++) {
+                                    tempTotal = getTotalLOE(allForceData.edges[i]);
+
+                                    if (tempTotal > maxLOE) {
+                                        maxLOE = tempTotal;
                                     }
                                 }
 
-                                scope.maxLoe = maxLOE;
-//                                scope.$apply();
+                                //check through the nodes for timeHash and get maxLoe
+                                for (var node in allForceData.nodes) {
+                                    tempTotal = getTotalLOE(allForceData.nodes[node]);
 
+                                    if (tempTotal > maxLOE) {
+                                        maxLOE = tempTotal;
+                                    }
+                                }
+
+                                return maxLOE;
+                            }
+
+                            //adds the loe from all items in the timeHash if item has timeHash property
+                            function getTotalLOE(item) {
+                                var total = 0;
+                                if (item.propHash.timeHash) {
+
+                                    if (item.propHash.timeHash.Design) {
+                                        total += item.propHash.timeHash.Design.LOE;
+                                    }
+                                    if (item.propHash.timeHash.Requirements) {
+                                        total += item.propHash.timeHash.Requirements.LOE;
+                                    }
+                                    if (item.propHash.timeHash.Test) {
+                                        total += item.propHash.timeHash.Test.LOE;
+                                    }
+                                    if (item.propHash.timeHash.Develop) {
+                                        total += item.propHash.timeHash.Develop.LOE;
+                                    }
+                                    if (item.propHash.timeHash.Deploy) {
+                                        total += item.propHash.timeHash.Deploy.LOE;
+                                    }
+                                }
+                                return total;
                             }
 
                             //find node by 'id' within nodes array
