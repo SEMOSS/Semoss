@@ -1574,7 +1574,7 @@ public class PlayPane extends JFrame {
 		gbc_databaseSearchTextField.gridy = 20;
 		loadSheetExportPanel.add(databaseSearchTextField, gbc_databaseSearchTextField);
 
-		btnSearchDatabase = new CustomButton("Update");
+		btnSearchDatabase = new CustomButton("Search");
 		btnSearchDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnSearchDatabase = new GridBagConstraints();
 		gbc_btnSearchDatabase.gridx = 1;
