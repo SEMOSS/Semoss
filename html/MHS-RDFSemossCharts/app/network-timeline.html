@@ -69,7 +69,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data4.js"></script>-->
+    <!--<script src="data/timeline-data.js"></script>-->
 
     <script>
 
@@ -90,32 +90,54 @@
 
 //                    $timeout(function () {
 //                        $scope.forceData = timeline_data;
-//                        createTableDataModel($scope.forceData.edges);
+//
+//                        if (hasTimeHash($scope.forceData.nodes)) {
+//                            createNodeTableModel($scope.forceData.nodes);
+//                        } else {
+//                            createEdgeTableModel($scope.forceData.edges);
+//                        }
+//
+//
 //                    }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
                             $scope.forceData = jQuery.parseJSON(data);
-                            //createTableDataModel($scope.forceData.nodes);
-                            createTableDataModel($scope.forceData.edges);
+
+                            if (hasTimeHash($scope.forceData.nodes)) {
+                                createNodeTableModel($scope.forceData.nodes);
+                            } else {
+                                createEdgeTableModel($scope.forceData.edges);
+                            }
+
                         });
                     };
 
-                    function createTableDataModel(array) {
-                        var tableData = [];
-                        for (var prop = 0; prop < array.length; prop++) {
+                    function hasTimeHash(collection) {
+                        for (var item in collection) {
+                            if (collection[item].propHash.timeHash) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
 
-                            if (array[prop].propHash.timeHash) {
-	                            if(array[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
+                    function createEdgeTableModel(edgeArray) {
+                        var tableData = [];
+                        for (var prop = 0; prop < edgeArray.length; prop++) {
+
+                            if (edgeArray[prop].propHash.timeHash) {
+	                            if(edgeArray[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
                                     //new item data model
                                     var newItem = {
-                                        name: array[prop].propHash.EDGE_NAME,
+                                        name: edgeArray[prop].propHash.EDGE_NAME,
                                         phase: "Decommissioned",
                                         startLOE: 0,
                                         LOE: 0,
                                         totalLOE: 0,
                                         dependICDS: "",
-                                        gltag: ""
+                                        gltag: "",
+                                        type: edgeArray[prop].propHash.EDGE_TYPE
                                     };
 
                                     tableData.push(newItem);
@@ -126,28 +148,28 @@
                                     var phases = ["Requirements", "Design", "Develop", "Test", "Deploy"];
 
 		                            for(var i=0; i<phases.length; i++) {
-                                        if (array[prop].propHash.timeHash[phases[i]]) {
+                                        if (edgeArray[prop].propHash.timeHash[phases[i]]) {
 
 
 
                                             //new item data model
                                             var newItem = {};
-                                            newItem.name = array[prop].propHash.EDGE_NAME;
-                                            newItem.phase = array[prop].propHash.timeHash[phases[i]].phase;
+                                            newItem.name = edgeArray[prop].propHash.EDGE_NAME;
+                                            newItem.phase = edgeArray[prop].propHash.timeHash[phases[i]].phase;
                                             newItem.startLOE = totalLOE;
-                                            newItem.LOE = array[prop].propHash.timeHash[phases[i]].LOE;
+                                            newItem.LOE = edgeArray[prop].propHash.timeHash[phases[i]].LOE;
                                             //set the edges properties
-                                            array[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
+                                            edgeArray[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
 
                                             //add to previous total
-                                            totalLOE += array[prop].propHash.timeHash[phases[i]].LOE;
+                                            totalLOE += edgeArray[prop].propHash.timeHash[phases[i]].LOE;
 
                                             //set the edges properties
-                                            array[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
+                                            edgeArray[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
                                             newItem.totalLOE = totalLOE;
-                                            newItem.dependICDS = array[prop].propHash.timeHash[phases[i]].dependICDS;
-                                            newItem.gltag = array[prop].propHash.timeHash[phases[i]].gltag;
-                                            newItem.type = array[prop].propHash.EDGE_TYPE;
+                                            newItem.dependICDS = edgeArray[prop].propHash.timeHash[phases[i]].dependICDS;
+                                            newItem.gltag = edgeArray[prop].propHash.timeHash[phases[i]].gltag;
+                                            newItem.type = edgeArray[prop].propHash.EDGE_TYPE;
 
 
 
@@ -157,28 +179,30 @@
                                     }
 
                                     var newItem = {
-                                        name: array[prop].propHash.EDGE_NAME,
+                                        name: edgeArray[prop].propHash.EDGE_NAME,
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
                                         totalLOE: totalLOE,
-                                        dependICDS: array[prop].propHash.timeHash["Requirements"].dependICDS,
-                                        gltag: ""
+                                        dependICDS: edgeArray[prop].propHash.timeHash["Requirements"].dependICDS,
+                                        gltag: "",
+                                        type: edgeArray[prop].propHash.EDGE_TYPE
                                     };
-                                    array[prop].propHash.timeHash["Completed"] = newItem;
+                                    edgeArray[prop].propHash.timeHash["Completed"] = newItem;
 
                                     tableData.push(newItem);
 	                            }
                             } else {
                                 //new item data model
                                 var newItem = {
-                                    name: array[prop].propHash.EDGE_NAME,
+                                    name: edgeArray[prop].propHash.EDGE_NAME,
                                     phase: "N/A",
                                     startLOE: 0,
                                     LOE: 0,
                                     totalLOE: 0,
                                     dependICDS: "",
-                                    gltag: ""
+                                    gltag: "",
+                                    type: edgeArray[prop].propHash.EDGE_TYPE
                                 };
                                 tableData.push(newItem);
                             }
@@ -186,28 +210,117 @@
                         } //end of forloop
 
                         tableDB = TAFFY(tableData);
+                        setTableData(0);
+                    }
 
-//
+                    function createNodeTableModel(nodeObj) {
+                        var tableData = [];
+                        for (var prop in nodeObj) {
+
+                            if (nodeObj[prop].propHash.timeHash) {
+                                if(nodeObj[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
+                                    //new item data model
+                                    var newItem = {
+                                        name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                        phase: "Decommissioned",
+                                        startLOE: 0,
+                                        LOE: 0,
+                                        totalLOE: 0,
+                                        dependICDS: "",
+                                        gltag: "",
+                                        type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
+                                    };
+
+                                    tableData.push(newItem);
+                                } else { //requirements, design, test, develop, deploy phases
+
+                                    //create total for LOE hours
+                                    var totalLOE = 0;
+                                    var phases = ["Requirements", "Design", "Develop", "Test", "Deploy"];
+
+                                    for(var i=0; i<phases.length; i++) {
+                                        if (nodeObj[prop].propHash.timeHash[phases[i]]) {
+
+                                            //new item data model
+                                            var newItem = {};
+                                            newItem.name = nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY;
+                                            newItem.phase = nodeObj[prop].propHash.timeHash[phases[i]].phase;
+                                            newItem.startLOE = totalLOE;
+                                            newItem.LOE = nodeObj[prop].propHash.timeHash[phases[i]].LOE;
+                                            //set the edges properties
+                                            nodeObj[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
+
+                                            //add to previous total
+                                            totalLOE += nodeObj[prop].propHash.timeHash[phases[i]].LOE;
+
+                                            //set the edges properties
+                                            nodeObj[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
+                                            newItem.totalLOE = totalLOE;
+                                            newItem.dependICDS = nodeObj[prop].propHash.timeHash[phases[i]].dependICDS;
+                                            newItem.gltag = nodeObj[prop].propHash.timeHash[phases[i]].gltag;
+                                            newItem.type = nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY;
+
+                                            tableData.push(newItem);
+                                        }
+                                    }
+
+                                    var newItem = {
+                                        name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                        phase: "Completed",
+                                        startLOE: totalLOE,
+                                        LOE: 0,
+                                        totalLOE: totalLOE,
+                                        dependICDS: nodeObj[prop].propHash.timeHash["Requirements"].dependICDS,
+                                        gltag: "",
+                                        type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
+                                    };
+                                    nodeObj[prop].propHash.timeHash["Completed"] = newItem;
+
+                                    tableData.push(newItem);
+                                }
+                            } else {
+                                //new item data model
+                                var newItem = {
+                                    name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                    phase: "N/A",
+                                    startLOE: 0,
+                                    LOE: 0,
+                                    totalLOE: 0,
+                                    dependICDS: "",
+                                    gltag: "",
+                                    type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
+                                };
+                                tableData.push(newItem);
+                            }
+
+                        } //end of forloop
+
+                        tableDB = TAFFY(tableData);
+                        setTableData(0);
                     }
 
                     function setTableData(sliderValue) {
                         $scope.tableData = tableDB(function() {
+                            if (sliderValue == 0 && this.type == "InterfaceControlDocument" && this.phase != "Decommissioned" && this.totalLOE == 0) {
+                                return true
+                            } else if (sliderValue !== 0) {
 
-                            //completed phase only has a start and no end, so only check the startLOE and phase name
-                            if (sliderValue > this.startLOE && this.phase == "Completed") {
-                                return true;
-                            }
-                            //all other phases are based on the start and total LOE
-                            else if (this.totalLOE >= sliderValue && sliderValue > this.startLOE) {
-                                return true;
-                            }
-                            //add the decommissioned systems if the slider is over the maxLOE
-                            else if (sliderValue >= $scope.maxLOE && this.phase == "Decommissioned") {
-                                return true;
-                            }
-                            //all else don't include
-                            else {
-                                return false;
+                                //completed phase only has a start and no end, so only check the startLOE and phase name
+                                if (sliderValue > this.startLOE && this.phase == "Completed") {
+                                    return true;
+                                }
+                                //all other phases are based on the start and total LOE
+                                else if (this.totalLOE >= sliderValue && sliderValue > this.startLOE) {
+                                    return true;
+                                }
+                                //add the decommissioned systems if the slider is over the maxLOE
+                                else if (sliderValue >= $scope.maxLOE && this.phase == "Decommissioned") {
+                                    return true;
+                                }
+                                //all else don't include
+                                else {
+                                    return false;
+                                }
                             }
                         }).get();
 
@@ -373,6 +486,7 @@
 
                                 if (previousSliderValue > 0  && sliderVal !== 0) {
                                     updateEdgeColor(sliderVal);
+                                    updateNodeColor(sliderVal);
                                 } else if (sliderVal == 0) {
                                     var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
                                     var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
@@ -386,6 +500,7 @@
 
                                     setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
                                     updateEdgeColor(sliderVal);
+                                    updateNodeColor(sliderVal);
                                 }
 
                                 previousSliderValue = sliderVal;
@@ -675,64 +790,10 @@
 
                             function getInitialNodes() {
                                 var returnNodes = {};
-                                initialRemovedNodes= {};
 
-                                //don't return any node that only has edges with timeHash or if the node is and ICD and has timeHash
                                 for (var node in allForceData.nodes) {
-
-                                    if (allForceData.nodes[node].propHash.VERTEX_TYPE_PROPERTY == "InterfaceControlDocument") {
-
-                                        var hasTimeHash = false;
-                                        //if node has any inEdge with timeHash property, break from loop and change boolean
-                                        for (var i = 0; i < allForceData.nodes[node].inEdge.length; i++) {
-                                            if (allForceData.nodes[node].inEdge[i].propHash.timeHash && !allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
-                                                hasTimeHash = true;
-                                                break;
-                                            }
-                                        }
-
-                                        //if node has any outEdge with timeHash property, break from loop and do not add
-                                        if (!hasTimeHash) {
-                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
-                                                if (allForceData.nodes[node].outEdge[i].propHash.timeHash && !allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
-                                                    hasTimeHash = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        //add nodes to the returnNodes object if the nodes pass the boolean hasTimeHash
-                                        if (!hasTimeHash) {
-                                            returnNodes[node] = allForceData.nodes[node];
-                                        }
-
-                                    } else {
-
-                                        //boolean to keep track if any edge doesn't have a timeHash
-                                        var notAllTimeHash = false;
-                                        //check inEdge's first if there is any timeHash
-                                        for (var i = 0; i < allForceData.nodes[node].inEdge.length; i++) {
-                                            if (!allForceData.nodes[node].inEdge[i].propHash.timeHash || allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
-                                                notAllTimeHash = true;
-                                                break;
-                                            }
-                                        }
-
-                                        //if inEdges already have an edge without timeHash then no need to search through outEdges
-                                        if (!notAllTimeHash) {
-                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
-                                                if (!allForceData.nodes[node].outEdge[i].propHash.timeHash || allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
-                                                    notAllTimeHash = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        //add nodes to the returnNodes object if the nodes pass the boolean notAllTimeHash
-                                        if (notAllTimeHash) {
-                                            returnNodes[node] = allForceData.nodes[node];
-                                        }
-
+                                    if (!allForceData.nodes[node].propHash.timeHash || (allForceData.nodes[node].propHash.timeHash && allForceData.nodes[node].propHash.timeHash["Decommissioned"])) {
+                                        returnNodes[node] = allForceData.nodes[node];
                                     }
                                 }
 
@@ -776,7 +837,6 @@
 
                             function updateEdgeColor(sliderValue) {
                                 var dependICDs = [];
-                                var nodeICDs = [];
 
                                 //looping through all links to find the dependent ICDs based on where the slider is
                                 for (var i=0; i<links.length; i++) {
@@ -793,50 +853,8 @@
 
                                 d3.selectAll(".link")
                                         .attr("stroke", function(d) {
-
-                                            var color = "#666";
-                                            if (d.propHash.timeHash) {
-
-                                                if (d.propHash.timeHash["Decommissioned"]) {
-                                                    if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
-                                                        color = "#FF0000";
-                                                    }
-                                                } else {
-                                                    for (var phase in d.propHash.timeHash) {
-                                                        if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
-
-                                                            var label = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.propHash.VERTEX_LABEL_PROPERTY : d.target.propHash.VERTEX_LABEL_PROPERTY;
-                                                            label = label.replace(/"/g, "").replace(/'/g, "").replace(/\(|\)/g, "");
-
-                                                            if (phase == "Requirements") {
-                                                                color = "#ECF6BD";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            } else if (phase == "Design") {
-                                                                color = "#C5E5A0";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            } else if (phase == "Develop") {
-                                                                color = "#9FD483";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            } else if (phase == "Test") {
-                                                                color = "#79C366";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            } else if (phase == "Deploy") {
-                                                                color = "#52B149";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            } else if (phase == "Completed") {
-                                                                color = "#2CA02C";
-                                                                d3.select("g." + label + " circle").attr("fill", color);
-                                                            }
-
-                                                        } else if (phase == "Completed" && sliderValue >= d.propHash.timeHash[phase].totalLOE) {
-                                                            var label = d.source.id.indexOf("InterfaceControlDocument") >= 0 ? d.source.propHash.VERTEX_LABEL_PROPERTY : d.target.propHash.VERTEX_LABEL_PROPERTY;
-                                                            label = label.replace(/"/g, "").replace(/'/g, "").replace(/\(|\)/g, "");
-                                                            d3.select("g." + label + " circle").attr("fill", "#2CA02C");
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            return color;
+                                            var color = getPhaseColor(d, sliderValue, dependICDs);
+                                            return color ? color : '#666';
                                         })
                                         .attr("stroke-width", function(d) {
                                             var width = "1.5";
@@ -862,25 +880,63 @@
                                             return width;
                                         });
 
+                            }
 
-                                //node coloring
-                                //similar to the edge one, look for
-                                /*d3.selectAll(".node circle")
-                                        .attr("fill", function(d) {
+                            function updateNodeColor(sliderValue) {
+                                var dependICDs = [];
 
-                                            //initialize color
-                                            var color = ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
-
-                                            //loop through to see if node is in a different coloring phase
-                                            for (var i=0; i<nodeICDs.length; i++) {
-                                                if (d.uri == nodeICDs[i].uri && d.propHash.VERTEX_TYPE_PROPERTY == "InterfaceControlDocument") {
-                                                    color = nodeICDs[i].color;
-                                                    break;
+                                //looping through all links to find the dependent ICDs based on where the slider is
+                                for (var i=0; i<nodes.length; i++) {
+                                    if (nodes[i].propHash.timeHash) {
+                                        if (!nodes[i].propHash.timeHash["Decommissioned"]) {
+                                            for (var phase in nodes[i].propHash.timeHash) {
+                                                if (nodes[i].propHash.timeHash[phase].totalLOE > sliderValue && sliderValue > nodes[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
+                                                    dependICDs.push(nodes[i].propHash.timeHash[phase].dependICDS);
                                                 }
                                             }
-                                            return color;
-                                        });*/
+                                        }
+                                    }
+                                }
 
+                                d3.selectAll(".node circle")
+                                        .attr("fill", function(d) {
+                                            var color = getPhaseColor(d, sliderValue, dependICDs);
+                                            return color ? color : ("rgb(" + d.propHash.VERTEX_COLOR_PROPERTY + ")");
+                                        });
+                            }
+
+                            function getPhaseColor(item, sliderValue, dependentICDs) {
+                                var color;
+                                if (item.propHash.timeHash) {
+
+                                    if (item.propHash.timeHash["Decommissioned"]) {
+                                        if (_.contains(dependentICDs, item.uri) || sliderValue >= scope.maxLoe) {
+                                            color = "#FF0000";
+                                        }
+                                    } else {
+                                        for (var phase in item.propHash.timeHash) {
+                                            if (item.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > item.propHash.timeHash[phase].startLOE) {
+
+                                                if (phase == "Requirements") {
+                                                    color = "#ECF6BD";
+                                                } else if (phase == "Design") {
+                                                    color = "#C5E5A0";
+                                                } else if (phase == "Develop") {
+                                                    color = "#9FD483";
+                                                } else if (phase == "Test") {
+                                                    color = "#79C366";
+                                                } else if (phase == "Deploy") {
+                                                    color = "#52B149";
+                                                } else if (phase == "Completed") {
+                                                    color = ("rgb(" + item.propHash.VERTEX_COLOR_PROPERTY + ")");
+                                                }
+
+                                            }
+                                        }
+                                    }
+                                }
+
+                                return color;
                             }
 
                             function calculateMaxLOE() {
