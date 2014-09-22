@@ -61,8 +61,12 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, false);
 		}
 		
-		list = searchAlgo.searchDB();
-		names = searchAlgo.headers;
+		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.searchDB();
+		flattenHash(hashArray);
+	}
+	
+	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
+		//TODO write this method that stores headers and list
 	}
 	
 	private void createMetamodelSubgraphData() {
