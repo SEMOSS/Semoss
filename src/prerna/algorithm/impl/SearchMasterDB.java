@@ -49,9 +49,9 @@ public class SearchMasterDB {
 	double similarityThresh = 2.7;
 	
 	//list of keyword and edge types in the subgraph
-	ArrayList<String> keywordList;
-	ArrayList<String> edgeVertInList;
-	ArrayList<String> edgeVertOutList;
+	ArrayList<String> keywordList = new ArrayList<String>();
+	ArrayList<String> edgeVertInList = new ArrayList<String>();
+	ArrayList<String> edgeVertOutList = new ArrayList<String>();
 	
 	//list of master concepts associated with each of the keywords
 	ArrayList<String> masterConceptsList;
@@ -81,10 +81,20 @@ public class SearchMasterDB {
 	 * @param keywordForInstanceList
 	 * @param instanceList
 	 */
-	public void setInstanceList(ArrayList<String> keywordForInstanceList,ArrayList<String> instanceList) {
+	public void setInstanceList(ArrayList<SEMOSSVertex> instanceVertList) {
 		includeInstance = true;
-		this.instanceList = instanceList;
-		this.keywordForInstanceList = keywordForInstanceList;
+		this.instanceList = new ArrayList<String>();
+		this.keywordForInstanceList = new ArrayList<String>();
+		//process through instance list, add instance and type for each uri
+		for(SEMOSSVertex vert : instanceVertList) {
+			String type = (String)vert.getProperty(Constants.VERTEX_TYPE);
+			String instance = (String)vert.getProperty(Constants.VERTEX_NAME);
+			instanceList.add(instance);
+			keywordForInstanceList.add(type);
+			if(!keywordList.contains(type)) {
+				keywordList.add(type);
+			}
+		}
 		//find the master concept for each instance
 		mcForInstanceList = getMCsForKeywords(keywordForInstanceList);
 	}
@@ -107,7 +117,7 @@ public class SearchMasterDB {
 	 * @param metamodelSubgraph True if the subgraph is from a metamodel, false if includes instances
 	 */
 	public void setKeywordAndEdgeList(Hashtable<String,SEMOSSVertex> vertStore,Hashtable<String,SEMOSSEdge> edgeStore,boolean metamodelSubgraph) {
-		keywordList = new ArrayList<String>();
+
 		Iterator<SEMOSSVertex> vertItr = vertStore.values().iterator();
 		while(vertItr.hasNext()) {
 			SEMOSSVertex vert = vertItr.next();
@@ -120,8 +130,6 @@ public class SearchMasterDB {
 				keywordList.add(keyword);
 		}
 		
-		edgeVertInList = new ArrayList<String>();
-		edgeVertOutList = new ArrayList<String>();
 		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
 		while(edgeItr.hasNext()) {
 			SEMOSSEdge edge = edgeItr.next();
