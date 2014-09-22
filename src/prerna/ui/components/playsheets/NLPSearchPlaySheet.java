@@ -19,7 +19,9 @@
 package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -75,6 +77,28 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 	
 	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
 		//TODO write this method that stores headers and list
-		
+		//assuming every hash has the same keys
+		//get the first hash to know what keys we are working with (these are going to be our headers)
+		if(hashArray.size()>0)
+		{
+			Hashtable<String, Object> exampleHash = hashArray.get(0);
+			Collection<String> keySet = exampleHash.keySet();
+			this.names = new String[keySet.size()];
+			Iterator<String> keyIt = keySet.iterator();
+			for(int namesIdx = 0; keyIt.hasNext(); namesIdx++){
+				this.names[namesIdx] = keyIt.next();
+			}
+			
+			// now that names has been created, just need to fill out the list to match the headers
+			for(Hashtable<String,Object> hash : hashArray){
+				Object[] newRow = new Object[this.names.length];
+				for(int namesIdx = 0; namesIdx<this.names.length; namesIdx++)
+				{
+					newRow[namesIdx] = hash.get(this.names[namesIdx]);
+				}
+				list.add(newRow);
+			}
+				
+		}
 	}
 }

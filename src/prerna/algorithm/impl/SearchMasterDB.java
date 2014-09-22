@@ -221,17 +221,16 @@ public class SearchMasterDB {
 		if(debugging){
 			String simKeywords = addBindings(similarKeywordsQuery,"SubgraphKeyword",keywordBaseURI,keywordList);
 			simKeywords = addDatabaseFilter(simKeywords,databaseFilter);
-			ArrayList<Object []> similarKeywordsResults = processQuery(simKeywords);
-			similarKeywordsResults = addColumn(similarKeywordsResults,"Node");
-			ArrayList<Object []> objList = new ArrayList<Object[]>();
-			objList.addAll(similarKeywordsResults);
+			ArrayList<Hashtable<String, Object>> similarKeywordsResults = processHashQuery(simKeywords);
+			similarKeywordsResults = addColumn(similarKeywordsResults,"Node", "Type");
+			list.addAll(similarKeywordsResults);
 			
 			String simEdges = addBindings(similarEdgesQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
 			simEdges = addDatabaseFilter(simEdges,databaseFilter);
-			ArrayList<Object []> similarEdgesList = processQuery(simEdges);
-			ArrayList<Object []> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
-			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge");
-			objList.addAll(processedSimilarEdgesList);
+			ArrayList<Hashtable<String, Object>> similarEdgesList = processHashQuery(simEdges);
+//			ArrayList<Hashtable<String, Object>> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
+//			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge", "Type");
+//			list.addAll(processedSimilarEdgesList);
 			
 		} else {//to find the score of each database, only considering master concepts and getting unique relationships
 			String simMCQuery = addBindings(similarMasterConceptsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
@@ -500,6 +499,23 @@ public class SearchMasterDB {
 		return list;
 	}
 	
+	private ArrayList<Hashtable<String, Object>> processHashQuery(String query) {
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,query);
+		ArrayList<Hashtable<String, Object>> list = new ArrayList<Hashtable<String, Object>>();
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		while(wrapper.hasNext())
+		{
+			SesameJenaSelectStatement sjss = wrapper.next();				
+			Hashtable<String, Object> values = new Hashtable<String, Object>();
+			for(int colIndex = 0;colIndex < names.length;colIndex++)
+				values.put(names[colIndex], sjss.getVar(names[colIndex]));
+			list.add(values);
+		}
+		return list;
+	}
+	
 	/**
 	 * Method getVariable. Gets the variable names from the query results.
 	 * @param varName String - the variable name.
@@ -515,14 +531,10 @@ public class SearchMasterDB {
 	 * @param fillVal
 	 * @return
 	 */
-	private ArrayList<Object []> addColumn(ArrayList<Object []> list,String fillVal) {
+	private ArrayList<Hashtable<String, Object>> addColumn(ArrayList<Hashtable<String, Object>> list,String fillVal, String type) {
 		for(int i=0;i<list.size();i++) {
-			Object [] currRow = list.get(i);
-			Object [] newRow = new Object[currRow.length+1];
-			for(int col=0;col<currRow.length;col++)
-				newRow[col] = currRow[col];
-			newRow[newRow.length-1] = fillVal;
-			list.set(i,newRow);
+			Hashtable<String, Object> currRow = list.get(i);
+			currRow.put(type, fillVal);
 		}
 		return list;
 	}
@@ -553,7 +565,7 @@ public class SearchMasterDB {
 			insightHash.put(this.instanceKey, instances);
 			
 			// add all selected instances that apply to this question
-			if(this.keywordForInstanceList.contains(keyword)){
+			if(this.keywordForInstanceList != null && this.keywordForInstanceList.contains(keyword)){
 				for(int keywordIdx = 0; keywordIdx < this.keywordForInstanceList.size(); keywordIdx ++ ){
 					if(keyword.equals(this.keywordForInstanceList.get(keywordIdx))){
 						instances.add(this.instanceList.get(keywordIdx));
