@@ -23,8 +23,15 @@ import prerna.util.Utility;
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
 	
+	private final String dbKey = "database";
+	private final String scoreKey = "similarityScore";
+	private final String questionKey = "question";
+	private final String keywordKey = "keyword";
+	private final String perspectiveKey = "perspective";
+	private final String instanceKey = "instances";
+	
 	//engine variables
-	String masterDBName = "MasterDatabase";
+	String masterDBName = "MasterDatabase_8DBs";
 	IEngine masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 
 	protected final static String semossURI = "http://semoss.org/ontologies";
@@ -44,7 +51,7 @@ public class SearchMasterDB {
 	protected final static String similarEdgesQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo ?MasterKeywordFrom ?MasterKeywordTo WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 	protected final static String similarMasterConceptConnectionsQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection ?MasterConceptFrom ?MasterConceptTo WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo} @FILTER@}";
 	protected final static String similarMasterConceptConnectionsOutsideQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection (IF(BOUND(?MasterConceptFrom),?MasterConceptFrom,?BoundMasterConcept) AS ?MCFrom) (IF(BOUND(?MasterConceptTo),?MasterConceptTo,?BoundMasterConcept) AS ?MCTo) WHERE {{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?BoundMasterConcept} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}UNION{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?BoundMasterConcept} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}@FILTER@}";
-	protected final static String relatedQuestionsQuery = "SELECT DISTINCT ?Engine ?InsightLabel ?MasterKeyword WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} {?MasterKeyword <http://semoss.org/ontologies/Relation/Keyword:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Insight> ?Insight}{?Insight <http://semoss.org/ontologies/Relation/Contains/Label> ?InsightLabel} @FILTER@}";
+	protected final static String relatedQuestionsQuery = "SELECT DISTINCT ?Engine ?InsightLabel ?MasterKeyword ?PerspectiveLabel WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?Perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} {?MasterKeyword <http://semoss.org/ontologies/Relation/Keyword:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?Perspective} {?Perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Insight> ?Insight}{?Insight <http://semoss.org/ontologies/Relation/Contains/Label> ?InsightLabel} {?Perspective <http://semoss.org/ontologies/Relation/Contains/Label> ?PerspectiveLabel} @FILTER@}";
 
 	double similarityThresh = 2.7;
 	
@@ -169,11 +176,11 @@ public class SearchMasterDB {
 	 * Each database, that has any overlap with the subgraph.
 	 * Deletes the old master database if necessary.
 	 */
-	public ArrayList<Object[]> searchDB() {
+	public ArrayList<Hashtable<String,Object>> searchDB() {
 
 		if(keywordList == null || keywordList.isEmpty()) {
 			logger.info("No keywords were given to search for.");
-			return new ArrayList<Object []>();
+			return new ArrayList<Hashtable<String, Object>>();
 		}
 		
 		//if including instances, then only include databases that have those instances
@@ -181,11 +188,12 @@ public class SearchMasterDB {
 		//empty filter if no instances to be included
 		String databaseFilter="";
 		if(includeInstance) {
+			//TODO can a database still be relevant even if it only contains 1/2 of the instances of interest?
 			ArrayList<String> databaseList = filterDatabaseList();
 			if(databaseList.isEmpty()) {
 				logger.error("No databases include the instances given.");
 				Utility.showError("No databases include the instances given.");
-				return new ArrayList<Object []>();
+				return new ArrayList<Hashtable<String, Object>>();
 			}
 			databaseFilter = createDatabaseFilter(databaseList);
 		}
@@ -204,10 +212,10 @@ public class SearchMasterDB {
 		if(numVals==0) {
 			logger.error("No master concepts found for any keywords entered.");
 			Utility.showError("No master concepts found for any keywords entered.");
-			return new ArrayList<Object []>();
+			return new ArrayList<Hashtable<String, Object>>();
 		}
 
-		ArrayList<Object[]> list = new ArrayList<Object[]>();
+		ArrayList<Hashtable<String, Object>> list = new ArrayList<Hashtable<String, Object>>();
 
 		//to look at keyword level and get all possible combinations of keywords for master concepts
 		//this is really only used for testing and debugging purposes. Otherwise, count should always be true.
@@ -216,14 +224,15 @@ public class SearchMasterDB {
 			simKeywords = addDatabaseFilter(simKeywords,databaseFilter);
 			ArrayList<Object []> similarKeywordsResults = processQuery(simKeywords);
 			similarKeywordsResults = addColumn(similarKeywordsResults,"Node");
-			list.addAll(similarKeywordsResults);
+			ArrayList<Object []> objList = new ArrayList<Object[]>();
+			objList.addAll(similarKeywordsResults);
 			
 			String simEdges = addBindings(similarEdgesQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
 			simEdges = addDatabaseFilter(simEdges,databaseFilter);
 			ArrayList<Object []> similarEdgesList = processQuery(simEdges);
 			ArrayList<Object []> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
 			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge");
-			list.addAll(processedSimilarEdgesList);
+			objList.addAll(processedSimilarEdgesList);
 			
 			headers = new String[4];
 			headers[0] = "Engine";
@@ -248,8 +257,9 @@ public class SearchMasterDB {
 			similarEdgesResults = countDatabaseRows(similarEdgesResults);
 			allEdgesList = countDatabaseRows(allEdgesList);
 			
-			list = aggregateScores(similarMasterConceptsResults,similarEdgesResults,allEdgesList,keywordList.size()+edgeVertInList.size());
-			list = normalize(list,2);
+			Hashtable<String, Double> engineScores = new Hashtable<String, Double>();
+			engineScores = aggregateScores(similarMasterConceptsResults,similarEdgesResults,allEdgesList,keywordList.size()+edgeVertInList.size());
+			engineScores = normalize(engineScores);
 			
 			String questions;
 			if(includeInstance) {
@@ -260,7 +270,7 @@ public class SearchMasterDB {
 			questions = addDatabaseFilter(questions,databaseFilter);
 			ArrayList<Object []> relatedQuestionsResults = processQuery(questions);
 			
-			list = addQuestions(list,relatedQuestionsResults);
+			list = addQuestions(engineScores,relatedQuestionsResults);
 			
 			headers = new String[5];
 			headers[0] = "Engine";
@@ -273,7 +283,7 @@ public class SearchMasterDB {
 	}
 	
 
-	
+	//TODO see if we can limit the number of engines initially so that we don't have to run so many queries
 	private ArrayList<String> filterDatabaseList() {
 		String databaseQuery = "SELECT DISTINCT ?Engine WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}}";
 		ArrayList<String> databaseList = processListQuery(databaseQuery);
@@ -535,46 +545,37 @@ public class SearchMasterDB {
 	 * @param fillVal
 	 * @return
 	 */
-	private ArrayList<Object []> addQuestions(ArrayList<Object []> list,ArrayList<Object []> engineQuestionList) {
-
-		for(int i=0;i<list.size();i++) {
-			Object [] currRow = list.get(i);
-			Object [] newRow = new Object[currRow.length+2];
-			for(int col=0;col<currRow.length;col++) {
-				newRow[col] = currRow[col];
-			}
-			newRow[currRow.length] = "";
-			newRow[currRow.length+1] = "";
-			list.set(i, newRow);
-		}
+	private ArrayList<Hashtable<String, Object>> addQuestions(Hashtable<String, Double> engineScoreList, ArrayList<Object []> engineQuestionList) {
+		ArrayList<Hashtable<String, Object>> returnArray = new ArrayList<Hashtable<String, Object>>();
 		for(int i=0;i<engineQuestionList.size();i++) {
 			Object [] eqRow = engineQuestionList.get(i);
 			String engine = (String)eqRow[0];
 			String question = (String)eqRow[1];
 			String keyword = (String)eqRow[2];
-			int j=0;
-			while(j<list.size()){
-				Object [] currRow = list.get(j);
-				String currEngine = (String) currRow[0];
-				if(currEngine.equals(engine)) {
-					if(((String)currRow[currRow.length-1]).equals("")) {
-						currRow[currRow.length-2] = question;
-						currRow[currRow.length-1] = keyword;
-						j=list.size();
-					}
-					else {
-						Object[] newRow = currRow.clone();
-						newRow[newRow.length-2] = question;
-						newRow[newRow.length-1] = keyword;
-						list.add(j,newRow);
-						j=list.size();
+			String perspective = (String)eqRow[3];
+			Double score = engineScoreList.get(engine);
+
+			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
+			insightHash.put(this.dbKey, engine);
+			insightHash.put(this.questionKey, question);
+			insightHash.put(this.keywordKey, keyword);
+			insightHash.put(this.perspectiveKey, perspective);
+			insightHash.put(this.scoreKey, score);
+			ArrayList<String> instances =  new ArrayList<String>();
+			insightHash.put(this.instanceKey, instances);
+			
+			// add all selected instances that apply to this question
+			if(this.keywordForInstanceList.contains(keyword)){
+				for(int keywordIdx = 0; keywordIdx < this.keywordForInstanceList.size(); keywordIdx ++ ){
+					if(keyword.equals(this.keywordForInstanceList.get(keywordIdx))){
+						instances.add(this.instanceList.get(keywordIdx));
 					}
 				}
-				else
-					j++;
 			}
+			
+			returnArray.add(insightHash);
 		}
-		return list;
+		return returnArray;
 	}
 	
 	/**
@@ -611,8 +612,8 @@ public class SearchMasterDB {
 	 * @param n								Integer representing the total number of nodes and edges in the subgraph
 	 * @return								ArrayList of Object[] where each Object[] is a database and its two possible score
 	 */
-	private ArrayList<Object []> aggregateScores(ArrayList<Object []> similarMasterConceptsResults,ArrayList<Object []> similarEdgesResults,ArrayList<Object []> allEdgeResults,int n) {
-		ArrayList<Object []> scoreList = new ArrayList<Object []>();
+	private Hashtable<String, Double> aggregateScores(ArrayList<Object []> similarMasterConceptsResults,ArrayList<Object []> similarEdgesResults,ArrayList<Object []> allEdgeResults,int n) {
+		Hashtable<String, Double> scoreList = new Hashtable<String, Double>();
 		for(int i=0;i<similarMasterConceptsResults.size();i++) {
 			Object[] databaseRow = similarMasterConceptsResults.get(i);
 			String database = (String)databaseRow[0];
@@ -636,12 +637,14 @@ public class SearchMasterDB {
 				logger.error("Engine "+database + " does not have any edges.");
 			}
 			
-			Object[] newDatabaseRow = new Object[3];
-			newDatabaseRow[0] = database;
-			newDatabaseRow[1] = Utility.round((p_e+p_n)/n,2);
-			newDatabaseRow[2] = Utility.round((p_n-p_e+2*q)/n * (p_n+p_e)/n,2);
+			scoreList.put(database ,  Utility.round((p_n-p_e+2*q)/n * (p_n+p_e)/n,2));
 			
-			scoreList.add(i,newDatabaseRow);
+//			Object[] newDatabaseRow = new Object[3];
+//			newDatabaseRow[0] = database;
+//			newDatabaseRow[1] = Utility.round((p_e+p_n)/n,2);
+//			newDatabaseRow[2] = Utility.round((p_n-p_e+2*q)/n * (p_n+p_e)/n,2);
+//			
+//			scoreList.add(i,newDatabaseRow);
 		}
 		return scoreList;
 	}
@@ -652,17 +655,14 @@ public class SearchMasterDB {
 	 * @param col		Integer representing the column to normalize
 	 * @return			Normalized List
 	 */
-	private ArrayList<Object []> normalize(ArrayList<Object []> scoreList,int col) {
+	private Hashtable<String, Double> normalize(Hashtable<String, Double> scoreList) {
 		double maxScore = 0.0;
-		for(int i=0;i<scoreList.size();i++) {
-			Object[] databaseRow = scoreList.get(i);
-			Double currScore = (Double)databaseRow[col];
-			if(currScore>maxScore)
-				maxScore=currScore;
+		for(Double val : scoreList.values()) {
+			if(val>maxScore)
+				maxScore=val;
 		}
-		for(int i=0;i<scoreList.size();i++) {
-			Object[] databaseRow = scoreList.get(i);
-			databaseRow[col] = Utility.round((Double)databaseRow[col] / maxScore,2);
+		for(String key: scoreList.keySet()) {
+			scoreList.put(key, Utility.round((Double)scoreList.get(key) / maxScore,2));
 		}
 		return scoreList;
 	}
