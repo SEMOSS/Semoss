@@ -65,9 +65,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/HardwareVersion">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/NCRMDSystemUser">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CCD">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -353,9 +350,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Activity">
 	<Needs rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 	<MapsTo rdf:resource="http://semoss.org/ontologies/Concept/JMA"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemTasker">
-	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/NCRMDSystemUser"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<OwnedBy rdf:resource="http://semoss.org/ontologies/Concept/SystemOwner"/>
