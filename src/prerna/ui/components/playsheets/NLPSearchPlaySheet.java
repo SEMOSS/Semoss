@@ -19,6 +19,7 @@
 package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -68,7 +69,12 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 		}
 		searchAlgo.setKeywordAndEdgeList(vertList, edgeOutList, edgeInList);
 		
-		list = searchAlgo.searchDB();
-		names = searchAlgo.headers;
+		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.searchDB();
+		flattenHash(hashArray);
+	}
+	
+	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
+		//TODO write this method that stores headers and list
+		
 	}
 }
