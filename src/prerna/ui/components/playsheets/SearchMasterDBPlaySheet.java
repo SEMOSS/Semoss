@@ -33,8 +33,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 	
 	Hashtable<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
 	Hashtable<String, SEMOSSEdge> edgeStore = new Hashtable<String, SEMOSSEdge>();
-	ArrayList<String> keywordList = new ArrayList<String>();
-	ArrayList<String> instanceList = new ArrayList<String>();
+	ArrayList<SEMOSSVertex> instanceList = new ArrayList<SEMOSSVertex>();
 
 	
 	/**
@@ -58,7 +57,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, false);
 		} else if(query.contains("3")) {
 			createInstanceSubgraphData2();
-			searchAlgo.setInstanceList(keywordList, instanceList);
+			searchAlgo.setInstanceList(instanceList);
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, false);
 		}
 		
@@ -130,31 +129,43 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		edgeStore.put(icd2System2.getURI(), icd2System2);
 	}
 	private void createInstanceSubgraphData2() {
+		
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore = new Hashtable<String, SEMOSSEdge>();
 		
-		SEMOSSVertex icd1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/CDR-AHLTA-Referral_Information");
+		SEMOSSVertex system = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
+		vertStore.put(system.uri,system);
 		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");
-		SEMOSSVertex system1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/CDR");
-		SEMOSSVertex system2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
-		
-		vertStore.put(icd1.uri,icd1);
 		vertStore.put(data.uri,data);
-		vertStore.put(system1.uri,system1);
-		vertStore.put(system2.uri,system2);
 		
-		SEMOSSEdge icd1Data = new SEMOSSEdge(icd1,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
-		SEMOSSEdge system1ICD1 = new SEMOSSEdge(system1,icd1,"http://health.mil/ontologies/Relation/Provide/CDR:CDR-AHLTA-Referral_Information");
-		SEMOSSEdge icdSystem2 = new SEMOSSEdge(icd1,system2,"http://health.mil/ontologies/Relation/Consume/CDR-AHLTA-Referral_Information:AHLTA");
+		instanceList.add(system);
+		instanceList.add(data);
 
-		edgeStore.put(icd1Data.getURI(), icd1Data);
-		edgeStore.put(system1ICD1.getURI(), system1ICD1);
-		edgeStore.put(icdSystem2.getURI(), icdSystem2);
-		
-		keywordList.add("System");
-		instanceList.add("AHLTA");		
-		
-		keywordList.add("DataObject");
-		instanceList.add("Referral_Information");		
+//		vertStore = new Hashtable<String, SEMOSSVertex>();
+//		edgeStore = new Hashtable<String, SEMOSSEdge>();
+//		
+//		SEMOSSVertex icd1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/CDR-AHLTA-Referral_Information");
+//		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");
+//		SEMOSSVertex system1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/CDR");
+//		SEMOSSVertex system2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
+//		
+//		vertStore.put(icd1.uri,icd1);
+//		vertStore.put(data.uri,data);
+//		vertStore.put(system1.uri,system1);
+//		vertStore.put(system2.uri,system2);
+//		
+//		SEMOSSEdge icd1Data = new SEMOSSEdge(icd1,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
+//		SEMOSSEdge system1ICD1 = new SEMOSSEdge(system1,icd1,"http://health.mil/ontologies/Relation/Provide/CDR:CDR-AHLTA-Referral_Information");
+//		SEMOSSEdge icdSystem2 = new SEMOSSEdge(icd1,system2,"http://health.mil/ontologies/Relation/Consume/CDR-AHLTA-Referral_Information:AHLTA");
+//
+//		edgeStore.put(icd1Data.getURI(), icd1Data);
+//		edgeStore.put(system1ICD1.getURI(), system1ICD1);
+//		edgeStore.put(icdSystem2.getURI(), icdSystem2);
+//		
+//		keywordList.add("System");
+//		instanceList.add("AHLTA");		
+//		
+//		keywordList.add("DataObject");
+//		instanceList.add("Referral_Information");		
 	}
 }
