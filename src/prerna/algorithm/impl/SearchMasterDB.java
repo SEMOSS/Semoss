@@ -69,7 +69,6 @@ public class SearchMasterDB {
 	ArrayList<String> keywordForInstanceList;
 	ArrayList<String> mcForInstanceList;
 	
-	public String[] headers;
 	private boolean debugging=false;
 	
 	public void isDebugging(boolean debugging) {
@@ -234,11 +233,6 @@ public class SearchMasterDB {
 			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge");
 			objList.addAll(processedSimilarEdgesList);
 			
-			headers = new String[4];
-			headers[0] = "Engine";
-			headers[1] = "Node or Edge In Subgraph";
-			headers[2] = "Mapped Node or Edge In Master";
-			headers[3] = "Node or Edge";
 		} else {//to find the score of each database, only considering master concepts and getting unique relationships
 			String simMCQuery = addBindings(similarMasterConceptsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
 			simMCQuery = addDatabaseFilter(simMCQuery,databaseFilter);
@@ -272,12 +266,6 @@ public class SearchMasterDB {
 			
 			list = addQuestions(engineScores,relatedQuestionsResults);
 			
-			headers = new String[5];
-			headers[0] = "Engine";
-			headers[1] = "SubgraphScore";
-			headers[2] = "SubgraphAndOutsideEdgeScore";
-			headers[3] = "Related Questions";
-			headers[4] = "Question Parameters";
 		}
 		return list;
 	}
