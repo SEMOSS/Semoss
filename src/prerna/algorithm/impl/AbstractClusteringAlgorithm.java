@@ -3,10 +3,11 @@ package prerna.algorithm.impl;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Random;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import prerna.util.ArrayUtilityMethods;
 
 public abstract class AbstractClusteringAlgorithm {
 
