@@ -20,6 +20,7 @@ public class ClusterOptFunction implements UnivariateFunction{
 	
 	@Override
 	public double value(double arg0) {
+		//TODO: delete writing to file
 		if(writer == null) {
 			try {
 				writer = new PrintWriter("Clustering_Algorithm_Optimization.txt");
