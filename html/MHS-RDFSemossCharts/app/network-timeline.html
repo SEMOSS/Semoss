@@ -51,7 +51,7 @@
 
                 <div id="sidebarContentRight">
                     <div class="sidebar-title header-title text-center">Network Transition Visualization</div>
-                    <forcegraph data="forceData" max-loe="maxLOE"></forcegraph>
+                    <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation"></forcegraph>
                 </div>
 
             </div>
@@ -69,7 +69,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data2.js"></script>-->
+    <!--<script src="data/timeline-data5.js"></script>-->
 
     <script>
 
@@ -87,13 +87,16 @@
                     $scope.tableData = [];
                     var tableDB;
                     $scope.maxLOE = 0;
+                    $scope.timeHashLocation = '';
 
 //                    $timeout(function () {
 //                        $scope.forceData = timeline_data;
 //
 //                        if (hasTimeHash($scope.forceData.nodes)) {
+//                            $scope.timeHashLocation = "Nodes";
 //                            createNodeTableModel($scope.forceData.nodes);
 //                        } else {
+//                            $scope.timeHashLocation = "Edges";
 //                            createEdgeTableModel($scope.forceData.edges);
 //                        }
 //
@@ -105,8 +108,10 @@
                             $scope.forceData = jQuery.parseJSON(data);
 
                             if (hasTimeHash($scope.forceData.nodes)) {
+                                $scope.timeHashLocation = "Nodes";
                                 createNodeTableModel($scope.forceData.nodes);
                             } else {
+                                $scope.timeHashLocation = "Edges";
                                 createEdgeTableModel($scope.forceData.edges);
                             }
 
@@ -193,7 +198,7 @@
                                     tableData.push(newItem);
 	                            }
                             } else {
-                                //new item data model
+                                //new item data modelcreateedge
                                 var newItem = {
                                     name: edgeArray[prop].propHash.EDGE_NAME,
                                     phase: "N/A",
@@ -328,8 +333,7 @@
                         $scope.tableParams.reload();
                     }
 
-                    $rootScope.$on('slider-change', function(event, sliderVal) {
-                        console.log(sliderVal)
+                    $rootScope.$on('update-table', function(event, sliderVal) {
                         setTableData(sliderVal);
                     });
 
@@ -365,11 +369,11 @@
 
 
                     $scope.setInitialStateSlider = function() {
-                        $scope.$broadcast("set-slider", 0);
+                        $scope.$broadcast("set-slider-initial", 0);
                     };
 
                     $scope.setFinalStateSlider = function() {
-                        $scope.$broadcast("set-slider", $scope.maxLOE + 1);
+                        $scope.$broadcast("set-slider-final", $scope.maxLOE + 1);
                     };
 
             }).
@@ -380,7 +384,8 @@
                             data: '=',
                             containerClass: "=",
                             labels: "=",
-                            maxLoe: "="
+                            maxLoe: "=",
+                            timeHash: "="
                         },
                         link: function (scope, ele, attrs) {
                             var links = [],
@@ -396,7 +401,7 @@
                                     allForceData,
                                     previousSliderValue,
                                     isSliderMade = false,
-                                    initialRemovedNodes = [];
+                                    previousState = "Initial";
 
                             //TODO: this needs to be refactored to use container and margin objects
                             var width = 0;
@@ -415,7 +420,7 @@
                             function setForceData(newData, sliderValue) {
 //                                newNodes = newData.nodes;
 
-                                if (sliderValue == 0) {
+                                if (sliderValue == 0 && previousState == "Initial") {
                                     //initial Edges is dependent on initial nodes, must go after
                                     newNodes = getInitialNodes();
                                     newLinks = removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes())));
@@ -445,14 +450,10 @@
                                     createSlider();
                                     isSliderMade = true;
                                 }
-                                update();
 
+                                update();
                             }
 
-                            scope.$on("set-slider", function(e, v) {
-                                createSlider(v);
-                                scope.$emit('slider-change', v);
-                            });
 
                             function createSlider(val) {
                                 //remove old slider
@@ -482,27 +483,94 @@
                                         }));
                             }
 
-                            $rootScope.$on('slider-change', function(event, sliderVal) {
+                            scope.$on("set-slider-initial", function(e, v) {
 
-                                if (previousSliderValue > 0  && sliderVal !== 0) {
-                                    updateEdgeColor(sliderVal);
-                                    updateNodeColor(sliderVal);
-                                } else if (sliderVal == 0) {
+                                createSlider(v);
+                                if (previousState == "Final") {
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                    setForceData({nodes: diffNodes, edges: diffLinks}, v);
+
+
+                                    diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                    diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+
+                                    removeNodes(diffNodes);
+                                    removeEdges(diffLinks);
+                                    update();
+
+                                } else if (previousState == "Transition") {
                                     var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
                                     var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
 
                                     removeNodes(diffNodes);
                                     removeEdges(diffLinks);
                                     update();
-                                } else {
+                                }
+
+                                previousState = "Initial";
+
+                                scope.$emit("update-table", v);
+
+                            });
+
+                            scope.$on("set-slider-final", function(e, v) {
+
+                                createSlider(v);
+                                if (previousState == "Initial") {
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+                                    setForceData({nodes: diffNodes, edges: diffLinks}, v);
+
+
+                                    diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                    diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                    removeNodes(diffNodes);
+                                    removeEdges(diffLinks);
+                                    update();
+
+                                } else if (previousState == "Transition") {
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                    removeNodes(diffNodes);
+                                    removeEdges(diffLinks);
+                                    update();
+                                }
+
+                                previousState = "Final";
+                                scope.$emit("update-table", v);
+
+                            });
+
+                            $rootScope.$on('slider-change', function(event, sliderVal) {
+
+                                if (previousState == "Initial") {
                                     var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
                                     var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
 
                                     setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
                                     updateEdgeColor(sliderVal);
                                     updateNodeColor(sliderVal);
+
+                                } else if (previousState == "Final") {
+                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                    setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
+                                    updateEdgeColor(sliderVal);
+                                    updateNodeColor(sliderVal);
+
+                                } else {
+                                    updateEdgeColor(sliderVal);
+                                    updateNodeColor(sliderVal);
                                 }
 
+
+                                scope.$emit('update-table', sliderVal);
+                                previousState = "Transition";
                                 previousSliderValue = sliderVal;
 
                             });
@@ -757,19 +825,21 @@
                                 force.start();
                             }
 
+                            //removes the edges that are connected to nodes that have been removed
                             function removeEdgesFromRemovedNodes(edges, removedNodes) {
                                 var returnEdges = [];
 
+                                //loops through edges, if the edge is linked to the removed node (boolean) then it does not get returned
                                 for (var i=0; i<edges.length; i++) {
                                     for (var j=0; j<removedNodes.length; j++) {
-                                        var linkToRemovedNode = false;
+                                        var linkedToRemovedNode = false;
                                         if ((edges[i].source == removedNodes[j] || edges[i].source.id == removedNodes[j]) || (edges[i].target == removedNodes[j] ||  edges[i].target.id == removedNodes[j])) {
-                                            linkToRemovedNode = true;
+                                            linkedToRemovedNode = true;
                                             break;
                                         }
                                     }
 
-                                    if (!linkToRemovedNode) {
+                                    if (!linkedToRemovedNode) {
                                         returnEdges.push(edges[i]);
                                     }
                                 }
@@ -788,6 +858,17 @@
                                 return edges;
                             }
 
+                            function getFinalEdges() {
+                                var edges = [];
+                                for (var i=0; i<allForceData.edges.length; i++) {
+                                    if (!allForceData.edges[i].propHash.timeHash || (allForceData.edges[i].propHash.timeHash && !allForceData.edges[i].propHash.timeHash["Decommissioned"])) {
+                                        edges.push(allForceData.edges[i]);
+                                    }
+                                }
+
+                                return edges;
+                            }
+
                             function getInitialNodes() {
                                 var returnNodes = {};
 
@@ -796,6 +877,143 @@
                                         returnNodes[node] = allForceData.nodes[node];
                                     }
                                 }
+
+
+//                                //check all nodes to make sure that the edges of those nodes don't all have timeHash properties
+                                for (var node in returnNodes) {
+
+                                    //set the boolean to true so we are making the assumption there is only nonTimeHash
+                                    var bool = false;
+                                    for (var j=0; j< returnNodes[node].inEdge.length; j++) {
+                                        if (scope.timeHash == "Nodes") {
+                                            //check the nodes for timeHash
+                                            var connectedNode = findNodeinAllNodes(returnNodes[node].inEdge[j].source);
+                                            bool = checkForNonTimeHash(connectedNode);
+                                            if (bool) {
+                                                break;
+                                            }
+                                        }
+
+                                        if (scope.timeHash == "Edges") {
+                                            //check edges themselves for timeHash
+                                            bool = checkForNonTimeHash(returnNodes[node].inEdge[j]);
+                                            if (bool) {
+                                                break;
+                                            }
+                                        }
+
+                                    }
+
+                                    if (!bool) {
+                                        for (var j=0; j< returnNodes[node].outEdge.length; j++) {
+
+                                            if (scope.timeHash == "Nodes") {
+                                                //check nodes
+                                                var connectedNode = findNodeinAllNodes(returnNodes[node].outEdge[j].target);
+                                                bool = checkForNonTimeHash(connectedNode);
+                                                if (bool) {
+                                                    break;
+                                                }
+                                            }
+
+                                            if (scope.timeHash == "Edges") {
+                                                //check edges themselves for timeHash
+                                                bool = checkForNonTimeHash(returnNodes[node].outEdge[j]);
+                                                if (bool) {
+                                                    break;
+                                                }
+                                            }
+
+                                        }
+                                    }
+
+                                    if (!bool) {
+                                        delete returnNodes[node];
+                                    }
+
+                                }
+
+
+
+                                return returnNodes;
+                            }
+
+                            function checkForNonTimeHash(item) {
+                                var bool = false;
+                                if (!item.propHash.timeHash || (item.propHash.timeHash && item.propHash.timeHash["Decommissioned"])) {
+                                    bool = true;
+                                }
+                                return bool;
+                            }
+
+                            function checkForNonDecomTimeHash(item) {
+                                var bool = false;
+                                if (!item.propHash.timeHash || (item.propHash.timeHash && !item.propHash.timeHash["Decommissioned"])) {
+                                    bool = true;
+                                }
+                                return bool;
+                            }
+
+                            function findNodeinAllNodes(id) {
+                                for (var i in allForceData.nodes) {
+                                    if (allForceData.nodes[i]["uri"] === id)
+                                        return allForceData.nodes[i];
+                                };
+                            }
+
+                            function getFinalNodes() {
+                                var returnNodes = {};
+
+                                if (scope.timeHash == "Nodes") {
+                                    for (var node in allForceData.nodes) {
+                                        if (!allForceData.nodes[node].propHash.timeHash || (allForceData.nodes[node].propHash.timeHash && !allForceData.nodes[node].propHash.timeHash["Decommissioned"])) {
+                                            returnNodes[node] = allForceData.nodes[node];
+                                        }
+                                    }
+                                } else if (scope.timeHash == "Edges") {
+
+                                    for (var node in allForceData.nodes) {
+                                        if (node == "http://health.mil/ontologies/Concept/System/BHIE") {
+                                            console.log()
+                                        }
+
+                                        var hasNormalEdge = false;
+                                        for (var i=0; i< allForceData.nodes[node].inEdge.length; i++) {
+
+                                            if (allForceData.nodes[node].inEdge[i].propHash.timeHash && allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                continue;
+//                                                allEdgesDecommissioned = checkForNonDecomTimeHash(allForceData.nodes[node].inEdge[i]);
+                                            }
+                                            //assume we run into an edge that's not decommissioned
+                                            else {
+                                                hasNormalEdge = true;
+                                                break;
+                                            }
+
+                                        }
+
+                                        if (!hasNormalEdge) {
+                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
+
+                                                if (allForceData.nodes[node].outEdge[i].propHash.timeHash && allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
+                                                    continue;
+                                                }
+                                                //assume we run into an edge that's not decommissioned
+                                                else {
+                                                    hasNormalEdge = true;
+                                                    break;
+                                                }
+
+                                            }
+                                        }
+
+                                        if (hasNormalEdge) {
+                                            returnNodes[node] = allForceData.nodes[node];
+                                        }
+
+                                    }
+                                }
+
 
                                 return returnNodes;
                             }
