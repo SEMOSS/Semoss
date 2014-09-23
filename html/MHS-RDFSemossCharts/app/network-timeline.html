@@ -986,19 +986,60 @@
                                             returnNodes[node] = allForceData.nodes[node];
                                         }
                                     }
+
+                                    for (var node in returnNodes) {
+                                        if (node == "http://health.mil/ontologies/Concept/System/CHCS") {
+                                            console.log();
+                                        }
+
+
+                                        var hasNormalConnection = false;
+                                        for (var i=0; i<returnNodes[node].inEdge.length; i++) {
+
+                                            var connectedNode = findNodeinAllNodes(returnNodes[node].inEdge[i].source);
+                                            if (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"]) {
+                                                continue;
+                                            }
+
+                                            else {
+                                                hasNormalConnection = true;
+                                                break;
+                                            }
+
+                                        }
+
+
+                                        if (!hasNormalConnection) {
+                                            for (var i=0; i<returnNodes[node].outEdge.length; i++) {
+
+                                                var connectedNode = findNodeinAllNodes(returnNodes[node].outEdge[i].target);
+                                                if (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"]) {
+                                                    continue;
+                                                }
+
+                                                else {
+                                                    hasNormalConnection = true;
+                                                    break;
+                                                }
+
+                                            }
+                                        }
+
+                                        if (!hasNormalConnection) {
+                                            delete returnNodes[node];
+                                        }
+
+                                    }
+
                                 } else if (scope.timeHash == "Edges") {
 
                                     for (var node in allForceData.nodes) {
-                                        if (node == "http://health.mil/ontologies/Concept/System/BHIE") {
-                                            console.log()
-                                        }
 
                                         var hasNormalEdge = false;
                                         for (var i=0; i< allForceData.nodes[node].inEdge.length; i++) {
 
                                             if (allForceData.nodes[node].inEdge[i].propHash.timeHash && allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
                                                 continue;
-//                                                allEdgesDecommissioned = checkForNonDecomTimeHash(allForceData.nodes[node].inEdge[i]);
                                             }
                                             //assume we run into an edge that's not decommissioned
                                             else {
