@@ -192,7 +192,16 @@ body {
     margin-left: 5%;
 }
 
+.btn-margin-left {
+    margin-left: 2px;
+}
+
+.sidebar-title .sm-btn {
+    margin-top: -3px;
+}
+
 .sidebar-title {
+    background-color: #eee;
     border-bottom: 1px solid #ccc;
     padding: 5px 10px;
 }
