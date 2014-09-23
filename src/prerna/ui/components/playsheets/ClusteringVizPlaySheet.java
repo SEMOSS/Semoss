@@ -107,8 +107,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		GridBagLayout gbl_panel = new GridBagLayout();
 		gbl_panel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_panel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_panel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_panel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		panel.setLayout(gbl_panel);
 		
 		JLabel lblParamSelect = new JLabel("Select Parameters:");
@@ -284,13 +284,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 			clusterAlg.setNumClusters(numClusters);
 			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-		} else if(type.equalsIgnoreCase("optimization")){
+		} else if(numClusters > 2){
+			clusterAlg = new ClusteringAlgorithm(list, names);
+			clusterAlg.setNumClusters(numClusters);
+		} else{
 			clusterAlg = new ClusteringOptimization(list, names);
 			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
-		} else{
-			clusterAlg = new ClusteringAlgorithm(list, names);
-			clusterAlg.setNumClusters(numClusters);
 		}
 		clusterAlg.execute();
 		list = clusterAlg.getMasterTable();
@@ -356,12 +356,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void setQuery(String query) {
 		logger.info("New Query " + query);
 		String[] querySplit = query.split(";");
-		this.query = querySplit[0];
-		this.numClusters = Integer.parseInt(querySplit[1]);
-		if(querySplit.length == 3) {
-			this.type = "optimization";
-		}
-		if(querySplit.length == 4) {
+		if(querySplit.length == 1) {
+			this.query = query;
+		} else if(querySplit.length == 2) {
+			this.query = querySplit[0];
+			this.numClusters = Integer.parseInt(querySplit[1]);
+		} else if(querySplit.length == 4) {
+			this.query = querySplit[0];
+			this.numClusters = Integer.parseInt(querySplit[1]);
 			this.n = Double.parseDouble(querySplit[2]);
 			this.type = querySplit[3];
 		}

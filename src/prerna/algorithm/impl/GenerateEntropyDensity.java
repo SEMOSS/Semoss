@@ -87,20 +87,12 @@ public class GenerateEntropyDensity {
 			
 			int j;
 			int numBins = binData.length;
-			System.out.println("Bin size: " + numBins);
 			int[] values = new int[numBins];
 			for(j = 0; j < numBins; j++) {
 				values[j] = (int) binData[j].get("y");
-				System.out.println("Bin " + j + ": " + values[j]);
 			}
 			
-			double num = StatisticsUtilityMethods.calculateEntropyDensity(values);
-			if(Double.isNaN(num)){
-				System.out.println("Error!");
-			}
 			entropyDensityArray[i-1] = StatisticsUtilityMethods.calculateEntropyDensity(values);
-			
-			System.out.println("Entropy:" + StatisticsUtilityMethods.calculateEntropyDensity(values));
 		}
 		
 		return entropyDensityArray;
