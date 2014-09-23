@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="css/tooltip.css">
     <link rel="stylesheet" href="css/d3.slider.css" />
+    <link rel="stylesheet" href="css/font-awesome.css" />
     <link rel="stylesheet" href="css/network-timeline.css" />
 </head>
 <body ng-app="main">
@@ -50,7 +51,19 @@
                 </div>
 
                 <div id="sidebarContentRight">
-                    <div class="sidebar-title header-title text-center">Network Transition Visualization</div>
+                    <div class="sidebar-title">
+                        <button class="sm-btn btn-light pull-right btn-margin-left" ng-click="unfreezeNodes()" title="Unlock Graph">
+                            <i class="fa fa-unlock-alt"></i>
+                        </button>
+
+                        <button class="sm-btn btn-light pull-right btn-margin-left" ng-click="freezeNodes()" title="Lock Graph">
+                            <i class="fa fa-lock"></i>
+                        </button>
+
+                         <div class="header-title text-center">
+                            Network Transition Visualization
+                        </div>
+                    </div>
                     <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation"></forcegraph>
                 </div>
 
@@ -69,7 +82,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data5.js"></script>-->
+    <!--<script src="data/timeline-data.js"></script>-->
 
     <script>
 
@@ -317,6 +330,7 @@
                         });
 
                         $scope.tableData = tableDB(function() {
+                            //checks first to see if the dependent ICD is able to be decommissioned
                             for (var i = 0; i < dependICDs.length; i++) {
                                 if (dependICDs[i] == this.uri) {
                                     return true;
@@ -324,8 +338,9 @@
                             }
 
 
+                            //show all the ICDs at t=0
                             if (sliderValue == 0 && this.type == "InterfaceControlDocument" && this.phase != "Decommissioned" && this.totalLOE == 0) {
-                                return true
+                                return true;
                             } else if (sliderValue !== 0) {
 
                                 //completed phase only has a start and no end, so only check the startLOE and phase name
@@ -392,6 +407,14 @@
 
                     $scope.setFinalStateSlider = function() {
                         $scope.$broadcast("set-slider-final", $scope.maxLOE + 1);
+                    };
+
+                    $scope.freezeNodes = function() {
+                        $scope.$broadcast("freeze-nodes");
+                    };
+
+                    $scope.unfreezeNodes = function() {
+                        $scope.$broadcast("unfreeze-nodes");
                     };
 
             }).
@@ -1128,29 +1151,6 @@
                                         .attr("stroke", function(d) {
                                             var color = getPhaseColor(d, sliderValue, dependICDs);
                                             return color ? color : '#666';
-                                        })
-                                        .attr("stroke-width", function(d) {
-                                            var width = "1.5";
-                                            if (d.propHash.timeHash) {
-
-                                                if (d.propHash.timeHash["Decommissioned"]) {
-                                                    if (_.contains(dependICDs, d.uri) || sliderValue >= scope.maxLoe) {
-                                                        color = "1.5";
-                                                    }
-                                                } else {
-                                                    for (var phase in d.propHash.timeHash) {
-                                                        if (d.propHash.timeHash[phase].totalLOE >= sliderValue && sliderValue > d.propHash.timeHash[phase].startLOE) {
-
-                                                           if (phase == "Completed") {
-                                                                width = "1.5";
-                                                            } else {
-                                                               width = "2.0"
-                                                           }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            return width;
                                         });
 
                             }
@@ -1304,6 +1304,30 @@
                                 container.attr("width", width)
                                         .attr("height", newHeight);
                                 force.size([newWidth, newHeight]).resume();
+                            }
+
+                            scope.$on('freeze-nodes', function() {
+                                freezeAllNodes(d3.values(nodes));
+                            });
+
+                            scope.$on('unfreeze-nodes', function() {
+                                unFreezeAllNodes(d3.values(nodes));
+                            });
+
+                            function freezeAllNodes(nodes) {
+                                var nodesLength = nodes.length;
+
+                                for (i=0; i < nodesLength; i++) {
+                                    nodes[i].fixed = true;
+                                }
+                            }
+
+                            function unFreezeAllNodes(nodes) {
+                                var nodesLength = nodes.length;
+                                for (i=0; i < nodesLength; i++) {
+                                    nodes[i].fixed = false;
+                                }
+                                force.start();
                             }
 
 
