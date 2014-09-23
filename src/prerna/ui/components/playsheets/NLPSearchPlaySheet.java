@@ -53,8 +53,8 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 		ArrayList<String> edgeOutList = new ArrayList<String>();
 		if(relationshipList.isEmpty()) {
 			LOGGER.info("NLP of input string returned no relationships.");
-			Utility.showError("NLP of input string returned no relationships. Please try a different question.");
-			return;
+//			Utility.showError("NLP of input string returned no relationships. Please try a different question.");
+//			return;
 		}
 		for(String [] relationship : relationshipList) {
 			String subj = relationship[0];
@@ -69,6 +69,16 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 			edgeInList.add(obj);
 			LOGGER.info("NLP found relationship between " + subj + " AND "+obj);
 		}
+		
+		ArrayList<String> nodeList = qp.Question_Analyzer2(query);
+		for(String node : nodeList) {
+			Utility.cleanString(node,true);
+			if(!vertList.contains(node))
+				vertList.add(node);
+			LOGGER.info("NLP found node "+node);
+		}
+		
+		
 		searchAlgo.setKeywordAndEdgeList(vertList, edgeOutList, edgeInList);
 		
 		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.searchDB();
@@ -81,6 +91,7 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 		//get the first hash to know what keys we are working with (these are going to be our headers)
 		if(hashArray.size()>0)
 		{
+			list = new ArrayList<Object []>();
 			Hashtable<String, Object> exampleHash = hashArray.get(0);
 			Collection<String> keySet = exampleHash.keySet();
 			this.names = new String[keySet.size()];
