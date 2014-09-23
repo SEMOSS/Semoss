@@ -136,6 +136,7 @@
                                     //new item data model
                                     var newItem = {
                                         name: edgeArray[prop].propHash.EDGE_NAME,
+                                        uri: edgeArray[prop].uri,
                                         phase: "Decommissioned",
                                         startLOE: 0,
                                         LOE: 0,
@@ -155,11 +156,10 @@
 		                            for(var i=0; i<phases.length; i++) {
                                         if (edgeArray[prop].propHash.timeHash[phases[i]]) {
 
-
-
                                             //new item data model
                                             var newItem = {};
                                             newItem.name = edgeArray[prop].propHash.EDGE_NAME;
+                                            newItem.uri = edgeArray[prop].uri;
                                             newItem.phase = edgeArray[prop].propHash.timeHash[phases[i]].phase;
                                             newItem.startLOE = totalLOE;
                                             newItem.LOE = edgeArray[prop].propHash.timeHash[phases[i]].LOE;
@@ -176,15 +176,13 @@
                                             newItem.gltag = edgeArray[prop].propHash.timeHash[phases[i]].gltag;
                                             newItem.type = edgeArray[prop].propHash.EDGE_TYPE;
 
-
-
-
                                             tableData.push(newItem);
                                         }
                                     }
 
                                     var newItem = {
                                         name: edgeArray[prop].propHash.EDGE_NAME,
+                                        uri: edgeArray[prop].uri,
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
@@ -201,6 +199,7 @@
                                 //new item data modelcreateedge
                                 var newItem = {
                                     name: edgeArray[prop].propHash.EDGE_NAME,
+                                    uri: edgeArray[prop].uri,
                                     phase: "N/A",
                                     startLOE: 0,
                                     LOE: 0,
@@ -227,6 +226,7 @@
                                     //new item data model
                                     var newItem = {
                                         name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                        uri: nodeObj[prop].uri,
                                         phase: "Decommissioned",
                                         startLOE: 0,
                                         LOE: 0,
@@ -249,6 +249,7 @@
                                             //new item data model
                                             var newItem = {};
                                             newItem.name = nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY;
+                                            newItem.uri = nodeObj[prop].uri;
                                             newItem.phase = nodeObj[prop].propHash.timeHash[phases[i]].phase;
                                             newItem.startLOE = totalLOE;
                                             newItem.LOE = nodeObj[prop].propHash.timeHash[phases[i]].LOE;
@@ -271,6 +272,7 @@
 
                                     var newItem = {
                                         name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                        uri: nodeObj[prop].uri,
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
@@ -287,6 +289,7 @@
                                 //new item data model
                                 var newItem = {
                                     name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
+                                    uri: nodeObj[prop].uri,
                                     phase: "N/A",
                                     startLOE: 0,
                                     LOE: 0,
@@ -305,7 +308,22 @@
                     }
 
                     function setTableData(sliderValue) {
+                        var dependICDs = [];
+
+                        tableDB().each(function(item) {
+                            if (item.totalLOE < sliderValue && item.phase == "Completed") {
+                                dependICDs.push(item.dependICDS);
+                            }
+                        });
+
                         $scope.tableData = tableDB(function() {
+                            for (var i = 0; i < dependICDs.length; i++) {
+                                if (dependICDs[i] == this.uri) {
+                                    return true;
+                                }
+                            }
+
+
                             if (sliderValue == 0 && this.type == "InterfaceControlDocument" && this.phase != "Decommissioned" && this.totalLOE == 0) {
                                 return true
                             } else if (sliderValue !== 0) {
@@ -932,8 +950,6 @@
                                     }
 
                                 }
-
-
 
                                 return returnNodes;
                             }
