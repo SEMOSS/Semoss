@@ -11,6 +11,9 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.math.StatisticsUtilityMethods;
+import prerna.util.ArrayUtilityMethods;
+
 public class ClusteringDataProcessor {
 
 	static final Logger LOGGER = LogManager.getLogger(ClusteringDataProcessor.class.getName());
@@ -75,6 +78,7 @@ public class ClusteringDataProcessor {
 			return null;
 		}
 	}
+	@SuppressWarnings("unchecked")
 	public Hashtable<String, Integer> getInstanceHash() {
 		return (Hashtable<String, Integer>) instanceHash.clone();
 	}
@@ -280,7 +284,7 @@ public class ClusteringDataProcessor {
 			for(int j = 0; j < columnPropInstanceSize; j++) {
 				Integer propCount = columnPropInstanceCountArr.get(j);
 				Double probability = (double) ( 1.0 * propCount / totalCountOfPropInstances);
-				sumProb += probability * logBase2(probability);
+				sumProb += probability * StatisticsUtilityMethods.logBase2(probability);
 			}
 			
 			Double entropy = sumProb / unqiueCountOfPropInstances;
@@ -539,16 +543,7 @@ public class ClusteringDataProcessor {
 		return ("STRING");
 	}
 
-	/**
-	 * Generate the log base 2 of a given input
-	 * @param x		The value to take the log base 2 off
-	 * @return		The log base 2 of the value inputed
-	 */
-	private double logBase2(double x) {
-		return Math.log(x) / Math.log(2);
-	}
-	
-	//TODO: generic
+	//TODO: make generic
 	private void formatDuplicateResults() {
 		int instanceCounter = 0;
 		String previousInstance = "";

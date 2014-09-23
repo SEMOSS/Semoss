@@ -1,4 +1,4 @@
-package prerna.algorithm.impl;
+package prerna.util;
 
 import java.util.Arrays;
 
