@@ -2,7 +2,6 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.openrdf.repository.RepositoryException;

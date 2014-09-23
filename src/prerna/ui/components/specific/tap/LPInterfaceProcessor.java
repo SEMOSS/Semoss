@@ -5,10 +5,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import prerna.algorithm.impl.ArrayUtilityMethods;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
 
