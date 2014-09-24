@@ -14,8 +14,8 @@ import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
 
-import prerna.algorithm.impl.ClusterOptFunction;
-import prerna.algorithm.impl.ClusteringAlgorithm;
+import prerna.algorithm.cluster.ClusterOptFunction;
+import prerna.algorithm.cluster.ClusteringAlgorithm;
 
 public class ClusteringOptimization extends ClusteringAlgorithm {
 
@@ -49,7 +49,7 @@ public class ClusteringOptimization extends ClusteringAlgorithm {
         } else {
         	numClusters = numClusterFloor;
         }
-        f.closerWriter();
+//        f.closerWriter();
 	}
 	
 	public int getNumClusters(){
