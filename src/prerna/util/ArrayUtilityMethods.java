@@ -52,6 +52,46 @@ public final class ArrayUtilityMethods {
 		}
 		return false;
 	}
+	
+public static boolean arrayContainsValue(final double[] arr, final double value) {
+		
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
+		
+		int size = arr.length;
+		if(size == 0) {
+			return false; //empty array
+		}
+		
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] == value) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static boolean arrayContainsValue(final int[] arr, final int value) {
+		
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
+		
+		int size = arr.length;
+		if(size == 0) {
+			return false; //empty array
+		}
+		
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] == value) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public static int determineLastNonNullValue(final Object[] arr) {
 		int lastNonNullValue = -1;
@@ -73,26 +113,6 @@ public final class ArrayUtilityMethods {
 			return null;
 		}
 		return Arrays.copyOfRange(arr, 0, lastNonNullValue+1);
-	}
-
-	public static boolean arrayContainsValue(final int[] arr, final int value) {
-		
-		if(arr == null) {
-			throw new NullPointerException(ERROR);
-		}
-		
-		int size = arr.length;
-		if(size == 0) {
-			return false; //empty array
-		}
-		
-		int index;
-		for(index = 0; index < size; index++) {
-			if(arr[index] == value) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public static Object[] removeAllNulls(final Object[] arr) {
@@ -167,6 +187,23 @@ public final class ArrayUtilityMethods {
             }
         }
         String[] uniqueArray = new String[counter];
+        System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+ 
+        return uniqueArray;
+    }
+	
+	public static double[] getUniqueArray(final double[] arr) {
+        int size = arr.length;
+        double[] temp = new double[size];
+
+		int counter = 0;
+        int index;
+        for (index = 0; index < size; index++) {
+            if(!arrayContainsValue(temp, arr[index])) {
+                temp[counter++] = arr[index];
+            }
+        }
+        double[] uniqueArray = new double[counter];
         System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
  
         return uniqueArray;
