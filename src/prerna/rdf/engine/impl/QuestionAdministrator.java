@@ -8,6 +8,9 @@ import java.util.Vector;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
+
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
@@ -20,7 +23,6 @@ import com.ibm.icu.util.StringTokenizer;
 public class QuestionAdministrator{
 	public static String selectedEngine = null;
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	String engineURI2 = "database:" + selectedEngine;
 	boolean reorder = true;
 	AbstractEngine insightBaseXML;
 	
@@ -45,7 +47,6 @@ public class QuestionAdministrator{
 	String qURI;
 	String qPred;
 	String ePred;
-	String descriptionPred;
 	Enumeration<String> paramKeys;
 	
 	//following variables will hold the current values before being modified by user
@@ -59,111 +60,161 @@ public class QuestionAdministrator{
 	public static Vector<String> currentParameterQueryListArray = null;
 	boolean lastQuestion;
 	
+	protected static final String semossURI = "http://semoss.org/ontologies/";
+	protected static final String engineBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Engine";
+	protected static final String perspectiveBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Perspective";
+	protected static final String insightBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Insight";
+	protected static final String paramBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Param";
+	
+	protected static final String enginePerspectiveBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Engine:Perspective";
+	protected static final String perspectiveInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Perspective:Insight";
+	protected static final String engineInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Engine:Insight";
+	protected static final String containsBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Contains";
+	protected static final String labelBaseURI = containsBaseURI + "/Label";
+	protected static final String idLabelBaseURI = containsBaseURI + "/IDLabel";
+	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
+	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
+//	protected static final String tagBaseURI = containsBaseURI + "/Tag";
+	protected static final String descriptionBaseURI = containsBaseURI + "/Description";
+	
+	String engineURI2 = engineBaseURI + "/" + selectedEngine;
+	
 	public QuestionAdministrator() {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 		insightBaseXML = ((AbstractEngine)engine).getInsightBaseXML();
 	}
 	
+	/**
+	 * Adds a perspective.
+	 * @param perspectivePred	String for relationship between engine and perspective full URI
+	 * @param perspectiveURI	String for the perspective instance full URI
+	 * @param perspective		String for the perspective instance
+	 */
 	private void addPerspective(String perspectivePred, String perspectiveURI, String perspective){
-		//database:VA_MainDB
-		insightBaseXML.addStatement(engineURI2, perspectivePred,
-				perspectiveURI, true);
-		//VA_MainDB:PERSPECTIVE:Generic-Perspective
-		insightBaseXML.addStatement(perspectiveURI, Constants.PERSPECTIVE + ":"
-				+ Constants.LABEL, perspective, false);
+		//TODO are engine relations added anywhere?
+//		insightBaseXML.addStatement(engineURI, RDF.TYPE, insightVF.createURI(engineBaseURI));
+//		insightBaseXML.addStatement(engineURI, RDFS.LABEL, insightVF.createLiteral(engineName));
+
+		//add the perspective type uris
+		insightBaseXML.addStatement(perspectiveURI, RDF.TYPE.stringValue(), perspectiveBaseURI,true);
+		insightBaseXML.addStatement(perspectiveURI, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective,false);
+
+		//creates the label on the perspective as literal
+		insightBaseXML.addStatement(perspectiveURI,labelBaseURI,perspective,false);
+		
+		//add relationship triples for engine to perspective
+		insightBaseXML.addStatement(perspectivePred, RDFS.SUBPROPERTYOF.stringValue(), enginePerspectiveBaseURI,true);
+		insightBaseXML.addStatement(perspectivePred, RDFS.LABEL.stringValue(), selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR +selectedEngine + ":" + perspective,false);
+		insightBaseXML.addStatement(engineURI2, perspectivePred, perspectiveURI,true);
 	}
 	
 	private void removePerspective(String perspectivePred, String perspectiveURI, String perspective){
-		//database:VA_MainDB
-		insightBaseXML.removeStatement(engineURI2, perspectivePred,
-				perspectiveURI, true);
-		//VA_MainDB:PERSPECTIVE:Generic-Perspective
-		insightBaseXML.removeStatement(perspectiveURI, Constants.PERSPECTIVE + ":"
-				+ Constants.LABEL, perspective, false);
+
+		//remove the perspective type uris
+		insightBaseXML.removeStatement(perspectiveURI, RDF.TYPE.stringValue(), perspectiveBaseURI,true);
+		insightBaseXML.removeStatement(perspectiveURI, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective,false);
+
+		//remove the label on the perspective as literal
+		insightBaseXML.removeStatement(perspectiveURI,labelBaseURI,perspective,false);
+		
+		//remove relationship triples for engine to perspective
+		insightBaseXML.removeStatement(perspectivePred, RDFS.SUBPROPERTYOF.stringValue(), enginePerspectiveBaseURI,true);
+		insightBaseXML.removeStatement(perspectivePred, RDFS.LABEL.stringValue(), selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR +selectedEngine + ":" + perspective,false);
+		insightBaseXML.removeStatement(engineURI2, perspectivePred, perspectiveURI,true);
 	}
 	
-	private void addQuestionID(String ePred, String qURI, String perspectiveURI, String qPred){
+	/**
+	 * Adds question to the engine and perspective
+	 * @param ePred
+	 * @param qURI
+	 * @param perspectiveURI
+	 * @param qPred
+	 */
+	private void addQuestionID(String ePred, String qURI, String perspectiveURI,String perspective, String qPred){
+
 		// add the question to the engine; if perspective change, the qURI will need to change as well
-		//<ID xmlns="ENGINE:" rdf:resource="VA_MainDB:Generic-Perspective:GQ1"/>
-		insightBaseXML.addStatement(engineURI2, ePred, qURI, true);
-		// // <ID rdf:resource="VA_MainDB:Activity-Perspective:ActP2"/>
-		insightBaseXML.addStatement(perspectiveURI, qPred, qURI, true);
+		insightBaseXML.addStatement(qURI, RDF.TYPE.stringValue(), insightBaseURI,true);
+		insightBaseXML.addStatement(qURI, RDFS.LABEL.stringValue(), selectedEngine + ":"
+				+ perspective + ":" + qsKey,false);
+
+		// add the engine to the question triples
+		insightBaseXML.addStatement(ePred, RDFS.SUBPROPERTYOF.stringValue(), engineInsightBaseURI,true);
+		insightBaseXML.addStatement(ePred, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);
+		insightBaseXML.addStatement(engineURI2, ePred, qURI,true);
+
+		// add question to perspective
+		// perspective INSIGHT:ID id_of_question(ID)
+		insightBaseXML.addStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),perspectiveInsightBaseURI,true);
+		insightBaseXML.addStatement(qPred, RDFS.LABEL.stringValue(), selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);	
+		insightBaseXML.addStatement(perspectiveURI, qURI, qURI,true);
 	}
 	
-	private void removeQuestionID(String ePred, String qURI, String perspectiveURI, String qPred){
-		//remove the question from the engine
-		//<ID xmlns="ENGINE:" rdf:resource="VA_MainDB:Generic-Perspective:GQ1"/>
-		insightBaseXML.removeStatement(engineURI2, ePred, qURI, true);
-		// <ID rdf:resource="VA_MainDB:Activity-Perspective:ActP2"/>
-		insightBaseXML.removeStatement(perspectiveURI, qPred, qURI, true);
+	private void removeQuestionID(String ePred, String qURI, String perspectiveURI,String perspective, String qPred){
+		// remove the question to the engine; if perspective change, the qURI will need to change as well
+		insightBaseXML.removeStatement(qURI, RDF.TYPE.stringValue(), insightBaseURI,true);
+		insightBaseXML.removeStatement(qURI, RDFS.LABEL.stringValue(), selectedEngine + ":"
+				+ perspective + ":" + qsKey,false);
+
+		// remove the engine to the question triples
+		insightBaseXML.removeStatement(ePred, RDFS.SUBPROPERTYOF.stringValue(), engineInsightBaseURI,true);
+		insightBaseXML.removeStatement(ePred, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);
+		insightBaseXML.removeStatement(engineURI2, ePred, qURI,true);
+
+		// remove question to perspective
+		insightBaseXML.removeStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),perspectiveInsightBaseURI,true);
+		insightBaseXML.removeStatement(qPred, RDFS.LABEL.stringValue(), selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);	
+		insightBaseXML.removeStatement(perspectiveURI, qURI, qURI,true);
 	}
 	
 	private void addQuestionLabel(String perspectiveURI, String qURI, String qsDescr, String qPred){
-		// perspective INSIGHT:INSIGHT label_of_question
-		// <INSIGHT xmlns="INSIGHT:">Explore an instance of a selected node type</INSIGHT>
-		insightBaseXML.addStatement(perspectiveURI, Constants.INSIGHT + ":"
-				+ Constants.INSIGHT, qsDescr, false);
-		
-		// perspective INSIGHT:ID id_of_question(ID)
-		//	<ID rdf:resource="VA_MainDB:Generic-Perspective:GQ1"/>
-		 insightBaseXML.addStatement(perspectiveURI, qPred, qURI, true);
-		 
-		// ID insight:label label
-		//	<LABEL xmlns="INSIGHT:">Explore an instance of a selected node type</LABEL>
-		insightBaseXML.addStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.LABEL, qsDescr, false);
+		//TODO might need to add a relationship between a perspective and the label associated with the insight that perspective is related too, but i think this should just be through queries.
+		insightBaseXML.addStatement(qURI, labelBaseURI, qsDescr,false);
 	}
 	
 	private void removeQuestionLabel(String perspectiveURI, String qURI, String qsDescr, String qPred){
-		// perspective INSIGHT:INSIGHT label_of_question
-		// <INSIGHT xmlns="INSIGHT:">Explore an instance of a selected node type</INSIGHT>
-		insightBaseXML.removeStatement(perspectiveURI, Constants.INSIGHT + ":"
-				+ Constants.INSIGHT, qsDescr, false);
-		
-		// perspective INSIGHT:ID id_of_question(ID)
-		//	<ID rdf:resource="VA_MainDB:Generic-Perspective:GQ1"/>
-		insightBaseXML.removeStatement(perspectiveURI, qPred, qURI, true);
-		 
-		// ID insight:label label
-		//	<LABEL xmlns="INSIGHT:">Explore an instance of a selected node type</LABEL>
-		insightBaseXML.removeStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.LABEL, qsDescr, false);
+		insightBaseXML.removeStatement(qURI, labelBaseURI, qsDescr,false);
+	}
+	
+	private void addQuestionIDLabel(String qURI, String qsKey){
+		insightBaseXML.addStatement(qURI, idLabelBaseURI, qsKey,false);
+	}
+	
+	private void removeQuestionIDLabel(String qURI, String qsKey){
+		insightBaseXML.removeStatement(qURI, idLabelBaseURI, qsKey,false);
 	}
 	
 	private void addQuestionSparql(String qURI, String sparql){
-		// ID insight:sparql sparql
-		insightBaseXML.addStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.SPARQL, sparql, false);
+		insightBaseXML.addStatement(qURI,sparqlBaseURI,sparql,false);
 	}
 	
 	private void removeQuestionSparql(String qURI, String sparql){
-		// ID insight:sparql sparql
-		insightBaseXML.removeStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.SPARQL, sparql, false);
+		insightBaseXML.removeStatement(qURI,sparqlBaseURI,sparql,false);
 	}
 	
 	private void addQuestionLayout(String qURI, String layoutName){
-		// ID insight:output output
-		insightBaseXML.addStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.OUTPUT, layoutName, false);
+		insightBaseXML.addStatement(qURI,layoutBaseURI,layoutName,false);
 	}
 	
 	private void removeQuestionLayout(String qURI, String layoutName){
-		// ID insight:output output
-		insightBaseXML.removeStatement(qURI, Constants.INSIGHT + ":"
-				+ Constants.OUTPUT, layoutName, false);
+		insightBaseXML.removeStatement(qURI,layoutBaseURI,layoutName,false);
 	}
 	
 	private void addDescription(String qURI, String descriptionPred, String description){
-		// insight INSIGHT:DESCRIPTION description
-		insightBaseXML.addStatement(qURI, descriptionPred, description,
-				false);
+		insightBaseXML.addStatement(qURI, descriptionPred, description,false);
 	}
 	
 	private void removeDescription(String qURI, String descriptionPred, String description){
-		// insight INSIGHT:DESCRIPTION description
-		insightBaseXML.removeStatement(qURI, descriptionPred, description,
-				false);
+		insightBaseXML.removeStatement(qURI, descriptionPred, description,false);
 	}
 	
 	private void addQuestionParam(Enumeration<String> paramKeys, String perspective, String qsKey, String qURI, HashMap<String, String> parameterProperties){
@@ -172,56 +223,60 @@ public class QuestionAdministrator{
 			String paramKey = param.substring(0, param.indexOf("-"));
 			String type = param.substring(param.indexOf("-") + 1);
 
-			String qsParamKey = selectedEngine + ":" + perspective + ":"
-					+ qsKey + ":" + paramKey;
-
-			// add this parameter to the query
-			insightBaseXML
-					.addStatement(qURI, "INSIGHT:PARAM", qsParamKey, true);
-			insightBaseXML.addStatement(qsParamKey, "PARAM:TYPE", type, false);
-			insightBaseXML.addStatement(qsParamKey, "INSIGHT:PARAM:LABEL",
-					paramKey, false);
-
-			// see if the param key has a query associated with it
-			// usually it is of the form qsKey + _ + paramKey + _ + Query
-			String result = DIHelper.getInstance().getProperty(
-					"TYPE" + "_" + Constants.QUERY);
-
-			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY) != null)
-				// record this
-				// qskey_paramKey - Entity:Query - result
-				result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY);
-				insightBaseXML.addStatement(qsParamKey, "PARAM:QUERY", result, false);
+			String qsParamKey = paramBaseURI + "/"+ selectedEngine + ":" + perspective + ":" + qsKey + ":" + paramKey;
 			
-			// see if there is dependency
-			// dependency is of the form qsKey + _ + paramKey + _ + Depend
-			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND) != null)
-			{
-				// record this
-				// qsKey_paramkey  - qsKey:Depends - result
-				result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
-				StringTokenizer depTokens = new StringTokenizer(result, ";");
-				insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
-				while(depTokens.hasMoreElements())
-				{
-					String depToken = depTokens.nextToken();
-					insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", depToken, false);
-				}
-			}						
-			else
-			{
+			//add parameter to the insight
+			insightBaseXML.addStatement(qURI, "INSIGHT:PARAM", qsParamKey,true);
+			//add a label to the param which is the label used in param panel
+			insightBaseXML.addStatement(qsParamKey, "PARAM:LABEL", paramKey,false);
+
+			// see if the param key has options (not a query) associated with it
+			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
+			//if so, add the list of options and set the type ot be a literal
+			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.OPTION) != null) {
+				String option = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.OPTION);
+				insightBaseXML.addStatement(qsParamKey, "PARAM:OPTION", option,false);
+				insightBaseXML.addStatement(qsParamKey, "PARAM:TYPE", type, false);	
 				insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 			}
-
-			// add it to insight base
-			// engineName has perspective
-			if (type.contains(":")) {
-				String typeURI = type;
-				// type INSIGHT:TYPE id_of_the_question
-				insightBaseXML.addStatement(typeURI, Constants.INSIGHT + ":"
-						+ Constants.TYPE, qURI, true);
+			else {	
+				// see if the param key has a query associated with it
+				// usually it is of the form qsKey + _ + paramKey + _ + Query
+				String result = DIHelper.getInstance().getProperty(
+						"TYPE" + "_" + Constants.QUERY);
+		
+				if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY) != null)
+					// record this
+					// qskey_paramKey - Entity:Query - result
+					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY);
+				insightBaseXML.addStatement(qsParamKey, "PARAM:QUERY", result, false);						
+				
+				// see if there is dependency
+				// dependency is of the form qsKey + _ + paramKey + _ + Depend
+				if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND) != null)
+				{
+					// record this
+					// qsKey_paramkey  - qsKey:Depends - result
+					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
+					StringTokenizer depTokens = new StringTokenizer(result, ";");
+					insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
+					while(depTokens.hasMoreElements())
+					{
+						String depToken = depTokens.nextToken();
+						insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", depToken, false);
+					}
+				}						
+				else
+				{
+					insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+					insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", "None", false);
+				}
+		
+				//set the type to be a uri
+				insightBaseXML.addStatement(qsParamKey, "PARAM:TYPE", type,true);	
 			}
+			//TODO originally there was a relation between INSIGHT:TYPE, I remvoed this because you can go through param but if something breaks, check this. 
 		}
 	}
 	
@@ -231,59 +286,73 @@ public class QuestionAdministrator{
 			String paramKey = param.substring(0, param.indexOf("-"));
 			String type = param.substring(param.indexOf("-") + 1);
 
-			String qsParamKey = selectedEngine + ":" + perspective + ":"
-					+ qsKey + ":" + paramKey;
-
-			// add this parameter to the query
-			insightBaseXML
-					.removeStatement(qURI, "INSIGHT:PARAM", qsParamKey, true);
-			insightBaseXML.removeStatement(qsParamKey, "PARAM:TYPE", type, false);
-			insightBaseXML.removeStatement(qsParamKey, "INSIGHT:PARAM:LABEL",
-					paramKey, false);
-
-			// see if the param key has a query associated with it
-			// usually it is of the form qsKey + _ + paramKey + _ + Query
-			String result = DIHelper.getInstance().getProperty(
-					"TYPE" + "_" + Constants.QUERY);
-
-			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY) != null)
-				// record this
-				// qskey_paramKey - Entity:Query - result
-				result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY);
-				insightBaseXML.removeStatement(qsParamKey, "PARAM:QUERY", result, false);
+			String qsParamKey = paramBaseURI + "/"+ selectedEngine + ":" + perspective + ":" + qsKey + ":" + paramKey;
 			
-			// see if there is dependency
-			// dependency is of the form qsKey + _ + paramKey + _ + Depend
-			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND) != null)
-			{
-				// record this
-				// qsKey_paramkey  - qsKey:Depends - result
-				result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
-				StringTokenizer depTokens = new StringTokenizer(result, ";");
-				insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
-				while(depTokens.hasMoreElements())
-				{
-					String depToken = depTokens.nextToken();
-					insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", depToken, false);
-				}
-			}						
-			else
-			{
+			//remove parameter to the insight relationship
+			insightBaseXML.removeStatement(qURI, "INSIGHT:PARAM", qsParamKey,true);
+			//add a label to the param which is the label used in param panel
+			insightBaseXML.removeStatement(qsParamKey, "PARAM:LABEL", paramKey,false);
+
+			// see if the param key has options (not a query) associated with it
+			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
+			//if so, remove the list of options and set the type ot be a literal
+			if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.OPTION) != null) {
+				String option = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.OPTION);
+				insightBaseXML.removeStatement(qsParamKey, "PARAM:OPTION", option,false);
+				insightBaseXML.removeStatement(qsParamKey, "PARAM:TYPE", type, false);	
 				insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
 				insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 			}
-
-			// add it to insight base
-			// engineName has perspective
-			if (type.contains(":")) {
-				String typeURI = type;
-				// type INSIGHT:TYPE id_of_the_question
-				insightBaseXML.removeStatement(typeURI, Constants.INSIGHT + ":"
-						+ Constants.TYPE, qURI, true);
+			else {	
+				// see if the param key has a query associated with it
+				// usually it is of the form qsKey + _ + paramKey + _ + Query
+				String result = DIHelper.getInstance().getProperty(
+						"TYPE" + "_" + Constants.QUERY);
+		
+				if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY) != null)
+					// record this
+					// qskey_paramKey - Entity:Query - result
+					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.QUERY);
+				insightBaseXML.removeStatement(qsParamKey, "PARAM:QUERY", result, false);						
+				
+				// see if there is dependency
+				// dependency is of the form qsKey + _ + paramKey + _ + Depend
+				if(parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND) != null)
+				{
+					// record this
+					// qsKey_paramkey  - qsKey:Depends - result
+					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
+					StringTokenizer depTokens = new StringTokenizer(result, ";");
+					insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
+					while(depTokens.hasMoreElements())
+					{
+						String depToken = depTokens.nextToken();
+						insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", depToken, false);
+					}
+				}						
+				else
+				{
+					insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+					insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", "None", false);
+				}
+		
+				//remove the type to be a uri
+				insightBaseXML.removeStatement(qsParamKey, "PARAM:TYPE", type,true);	
 			}
 		}
 	}
 	
+	/**
+	 * Fills parameterProperties with dependencies, queries, and options.
+	 * The keys and values will be of one of the 3 following options:
+	 * "SysP1_Data_QUERY" to "SELECT DISTINCT ...."
+	 * "SysP1_NumberOfClusters_OPTION" to "1;2;3;4;5"
+	 * "GQ6_Instance_DEPEND" to "Concept"
+	 * @param parameterProperties
+	 * @param parameterDependList
+	 * @param parameterQueryList
+	 * @param questionKey
+	 */
 	private void populateParamProps(HashMap<String, String> parameterProperties, Vector<String> parameterDependList, Vector<String> parameterQueryList, String questionKey){
 		//add dependencies to the hashmap
 		if(parameterDependList!=null && parameterDependList.size()>0){
@@ -327,11 +396,11 @@ public class QuestionAdministrator{
 				//get the value at [i] (store the old question) and replace first [i] with +1 (store the new question)
 				String oldQuestion = questionSelector.getItemAt(i-1);
 				//get the questionkey to create the appropriate triples to add and remove
-				in = ((AbstractEngine)engine).getInsight2(oldQuestion).get(0);
+				in = ((AbstractEngine)engine).getInsight2(oldQuestion).get(0);//TODO
 				String localID = in.getId();
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
-				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(oldQuestion);
+				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(oldQuestion);//TODO
 				
 				if(!paramInfoVector.isEmpty()){
 					for(int j = 0; j < paramInfoVector.size(); j++){
@@ -373,11 +442,11 @@ public class QuestionAdministrator{
 				String oldQuestion = questionSelector.getItemAt(i);
 
 				//get the questionkey to create the appropriate triples to add and remove
-				in = ((AbstractEngine)engine).getInsight2(oldQuestion).get(0);
+				in = ((AbstractEngine)engine).getInsight2(oldQuestion).get(0);//TODO
 				String localID = in.getId();
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
-				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(oldQuestion);
+				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(oldQuestion);//TODO
 				
 				if(!paramInfoVector.isEmpty()){
 					for(int j = 0; j < paramInfoVector.size(); j++){
@@ -422,11 +491,10 @@ public class QuestionAdministrator{
 		//take in the parameter properties and store in a hashmap; will be used when adding param properties (dependencies and param queries)
 		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, questionKey);
 		
-		// add the perspective
-		perspectiveURI = selectedEngine + ":" + Constants.PERSPECTIVE
-				+ ":" + perspective;
-		perspectivePred = Constants.PERSPECTIVE + ":"
-				+ Constants.PERSPECTIVE;
+		// create the perspective uris
+		perspectiveURI = perspectiveBaseURI+"/"+selectedEngine + ":" + perspective;
+		perspectivePred = enginePerspectiveBaseURI +"/" + selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR +selectedEngine + ":" + perspective;
 
 		qsKey = questionKey;
 
@@ -434,32 +502,39 @@ public class QuestionAdministrator{
 		layoutName = layout;
 		description = questionDescription;
 
-		paramHash = Utility.getParams(sparql);
-
-		qURI = selectedEngine + ":" + perspective + ":" + qsKey;
-		qPred = Constants.PERSPECTIVE + ":" + Constants.ID;
-		ePred = Constants.ENGINE + ":" + Constants.ID;
-		descriptionPred = Constants.INSIGHT + ":" + Constants.DESCR;
+		//insight uri
+		qURI = insightBaseURI + "/"+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//perspective to insight relationship
+		qPred = perspectiveInsightBaseURI + "/"
+				+ selectedEngine + ":" + perspective
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//engine to insight relationship
+		ePred = engineInsightBaseURI + "/"+ selectedEngine 
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
 		
+		paramHash = Utility.getParams(sparql);		
 		paramKeys = paramHash.keys();
 		
 		// add the question to the engine
 		addPerspective(perspectivePred, perspectiveURI, perspective);
-		addQuestionID(ePred, qURI, perspectiveURI,qPred);
+		addQuestionID(ePred, qURI, perspectiveURI,perspective,qPred);
 
-		// add description to insight
-		// insight INSIGHT:DESCRIPTION description
+		// add description as a property on the insight
 		if (description != null){
-			addDescription(qURI, descriptionPred, description);
+			addDescription(qURI, descriptionBaseURI, description);
 		}
-
+		
+		//add label, sparql, layout as properties
 		addQuestionLabel(perspectiveURI, qURI, qsDescr, qPred);
+		addQuestionIDLabel(perspectiveURI, qsKey);
 		addQuestionSparql(qURI, sparql);
 		addQuestionLayout(qURI, layoutName);
 		
-		// engine perspective:perspective perspectiveURI
-		insightBaseXML.addStatement(engineURI2, perspectivePred,
-				 perspectiveURI, true);
+		// TODO why? isnt this done in QuestionID
+//		insightBaseXML.addStatement(engineURI2, perspectivePred,
+//				 perspectiveURI, true);
 
 		addQuestionParam(paramKeys, perspective, qsKey, qURI, parameterProperties);
 		
@@ -485,12 +560,11 @@ public class QuestionAdministrator{
 		
 		currentParameterProperties.clear();
 		
-		// add the perspective
-		perspectiveURI = selectedEngine + ":" + Constants.PERSPECTIVE
-				+ ":" + perspective;
-		perspectivePred = Constants.PERSPECTIVE + ":"
-				+ Constants.PERSPECTIVE;
-
+		// create the perspective uris
+		perspectiveURI = perspectiveBaseURI+"/"+selectedEngine + ":" + perspective;
+		perspectivePred = enginePerspectiveBaseURI +"/" + selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR +selectedEngine + ":" + perspective;
+		
 		qsKey = questionKey;
 
 		qsDescr = question;
@@ -499,10 +573,17 @@ public class QuestionAdministrator{
 
 		paramHash = Utility.getParams(sparql);
 
-		qURI = selectedEngine + ":" + perspective + ":" + qsKey;
-		qPred = Constants.PERSPECTIVE + ":" + Constants.ID;
-		ePred = Constants.ENGINE + ":" + Constants.ID;
-		descriptionPred = Constants.INSIGHT + ":" + Constants.DESCR;
+		//insight uri
+		qURI = insightBaseURI + "/"+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//perspective to insight relationship
+		qPred = perspectiveInsightBaseURI + "/"
+				+ selectedEngine + ":" + perspective
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//engine to insight relationship
+		ePred = engineInsightBaseURI + "/"+ selectedEngine 
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
 		
 		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestion, currentSparql, currentLayout, currentQuestionDescription, currentParameterDependListArray, currentParameterQueryListArray);
 		addQuestion(perspective, questionKey, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList);
@@ -531,12 +612,10 @@ public class QuestionAdministrator{
 		//populates parameterProperties based on on paramProp values passed in
 		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, questionKey);
 		
-		// perspective
-		perspectiveURI = selectedEngine + ":" + Constants.PERSPECTIVE
-				+ ":" + perspective;
-
-		perspectivePred = Constants.PERSPECTIVE + ":"
-				+ Constants.PERSPECTIVE;
+		// create the perspective uris
+		perspectiveURI = perspectiveBaseURI+"/"+selectedEngine + ":" + perspective;
+		perspectivePred = enginePerspectiveBaseURI +"/" + selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR +selectedEngine + ":" + perspective;
 		
 		// add the question
 		qsKey = questionKey;
@@ -546,10 +625,17 @@ public class QuestionAdministrator{
 
 		paramHash = Utility.getParams(sparql);
 
-		qURI = selectedEngine + ":" + perspective + ":" + qsKey;
-		qPred = Constants.PERSPECTIVE + ":" + Constants.ID;
-		ePred = Constants.ENGINE + ":" + Constants.ID;
-		descriptionPred = Constants.INSIGHT + ":" + Constants.DESCR;
+		//insight uri
+		qURI = insightBaseURI + "/"+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//perspective to insight relationship
+		qPred = perspectiveInsightBaseURI + "/"
+				+ selectedEngine + ":" + perspective
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
+		//engine to insight relationship
+		ePred = engineInsightBaseURI + "/"+ selectedEngine 
+				+ Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
 		
 		//checks if there is only one question left in the perspective
 		if(questionSelector.getItemCount()==1){
@@ -561,13 +647,14 @@ public class QuestionAdministrator{
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
 		
-		removeQuestionID(ePred, qURI, perspectiveURI,qPred);
+		removeQuestionID(ePred, qURI, perspectiveURI,perspective,qPred);
 
 		if (description != null){
-			removeDescription(qURI, descriptionPred, description);
+			removeDescription(qURI, descriptionBaseURI, description);
 		}
 		
 		removeQuestionLabel(perspectiveURI, qURI, qsDescr, qPred);
+		removeQuestionIDLabel(perspectiveURI, qsKey);
 		removeQuestionSparql(qURI, sparql);
 		removeQuestionLayout(qURI, layoutName);
 
