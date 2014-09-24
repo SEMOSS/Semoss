@@ -67,14 +67,16 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			//loop through and remove any empty clusters
 			int i;
 			int nonEmptyClusterCount = clustersNumInstances.length;
+			int counter = 0;
 			for(i = 0; i < nonEmptyClusterCount; i++) {
 				if(clustersNumInstances[i] == 0) {
 					if(clusterNumberBinMatrix != null) {
-						clusterNumberBinMatrix.remove(i);
+						clusterNumberBinMatrix.remove(i - counter);
 					}
 					if(clusterCategoryMatrix != null) {
-						clusterCategoryMatrix.remove(i);
+						clusterCategoryMatrix.remove(i - counter);
 					}
+					counter++;
 				}
 			}
 			clustersNumInstances = ArrayUtilityMethods.removeAllZeroValues(clustersNumInstances);
