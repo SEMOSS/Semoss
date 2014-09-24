@@ -1,5 +1,7 @@
 package prerna.rdf.engine.impl;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -10,6 +12,9 @@ import javax.swing.JComboBox;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
@@ -20,11 +25,12 @@ import prerna.util.Utility;
 
 import com.ibm.icu.util.StringTokenizer;
 
-public class QuestionAdministrator{
-	public static String selectedEngine = null;
+public class QuestionAdministrator {
+	IEngine engine;//= //(IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
+	RDFFileSesameEngine insightBaseXML;// = ((AbstractEngine)engine).getInsightBaseXML();
+	
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 	boolean reorder = true;
-	AbstractEngine insightBaseXML;
 	
 	JButton questionModButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
 	JComboBox<String> questionSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
@@ -32,7 +38,7 @@ public class QuestionAdministrator{
 	JComboBox<String> perspectiveSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
 	String selectedDB = (String) questionDBSelector.getSelectedItem();
 	String xmlFile = "db/" +selectedDB + "/" + selectedDB + "_Questions.XML";
-
+	
 	String questionModButtonText = questionModButton.getText();
 	
 	//the following are variables used to in storing the triples for the questions
@@ -50,6 +56,7 @@ public class QuestionAdministrator{
 	Enumeration<String> paramKeys;
 	
 	//following variables will hold the current values before being modified by user
+	public static String selectedEngine = null;
 	public static String currentPerspective = null;
 	public static String currentQuestionKey = null;
 	public static String currentQuestion = null;
@@ -58,6 +65,7 @@ public class QuestionAdministrator{
 	public static String currentQuestionDescription = null;
 	public static Vector<String> currentParameterDependListArray = null;
 	public static Vector<String> currentParameterQueryListArray = null;
+	public static Vector<String> currentParameterOptionListArray = null;
 	boolean lastQuestion;
 	
 	protected static final String semossURI = "http://semoss.org/ontologies/";
@@ -79,9 +87,43 @@ public class QuestionAdministrator{
 	
 	String engineURI2 = engineBaseURI + "/" + selectedEngine;
 	
-	public QuestionAdministrator() {
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
+	public QuestionAdministrator(IEngine engine){
+		this.engine = engine;
 		insightBaseXML = ((AbstractEngine)engine).getInsightBaseXML();
+	}
+	
+	public void createQuestionXMLFile(String questionXMLFile, String baseFolder){
+		FileWriter fWrite = null;
+		RDFXMLPrettyWriter questionXMLWriter = null;
+		
+		try {
+			String xmlFileName = baseFolder + "/" +questionXMLFile;
+			
+			fWrite = new FileWriter(xmlFileName);
+			questionXMLWriter  = new RDFXMLPrettyWriter(fWrite);
+			//System.err.println(insightBaseXML.rc);
+			insightBaseXML.rc.export(questionXMLWriter);
+			
+			System.err.println("Created XML Question Sheet at: " + xmlFileName);
+		} catch (IOException | RDFHandlerException | RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally{
+			try{
+				if(fWrite!=null){
+					fWrite.close();
+				} 
+			} catch(IOException e){
+				e.printStackTrace();
+			}
+			try{
+				if(questionXMLWriter!=null){
+					questionXMLWriter.close();
+				}
+			}catch(IOException e){
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	/**
@@ -141,18 +183,19 @@ public class QuestionAdministrator{
 
 		// add the engine to the question triples
 		insightBaseXML.addStatement(ePred, RDFS.SUBPROPERTYOF.stringValue(), engineInsightBaseURI,true);
-		insightBaseXML.addStatement(ePred, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective
+		insightBaseXML.addStatement(ePred, RDFS.LABEL.stringValue(), selectedEngine
 				+ Constants.RELATION_URI_CONCATENATOR
-				+ selectedEngine + ":" + perspective + ":" + qsKey,false);
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);	
 		insightBaseXML.addStatement(engineURI2, ePred, qURI,true);
 
 		// add question to perspective
 		// perspective INSIGHT:ID id_of_question(ID)
 		insightBaseXML.addStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),perspectiveInsightBaseURI,true);
-		insightBaseXML.addStatement(qPred, RDFS.LABEL.stringValue(), selectedEngine
+
+		insightBaseXML.addStatement(qPred, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective
 				+ Constants.RELATION_URI_CONCATENATOR
-				+ selectedEngine + ":" + perspective + ":" + qsKey,false);	
-		insightBaseXML.addStatement(perspectiveURI, qURI, qURI,true);
+				+ selectedEngine + ":" + perspective + ":" + qsKey,false);
+		insightBaseXML.addStatement(perspectiveURI, qPred, qURI,true);
 	}
 	
 	private void removeQuestionID(String ePred, String qURI, String perspectiveURI,String perspective, String qPred){
@@ -240,7 +283,7 @@ public class QuestionAdministrator{
 				insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 			}
-			else {	
+			else {
 				// see if the param key has a query associated with it
 				// usually it is of the form qsKey + _ + paramKey + _ + Query
 				String result = DIHelper.getInstance().getProperty(
@@ -353,7 +396,7 @@ public class QuestionAdministrator{
 	 * @param parameterQueryList
 	 * @param questionKey
 	 */
-	private void populateParamProps(HashMap<String, String> parameterProperties, Vector<String> parameterDependList, Vector<String> parameterQueryList, String questionKey){
+	private void populateParamProps(HashMap<String, String> parameterProperties, Vector<String> parameterDependList, Vector<String> parameterQueryList, Vector<String> parameterOptionList, String questionKey){
 		//add dependencies to the hashmap
 		if(parameterDependList!=null && parameterDependList.size()>0){
 			for(int i=0; i < parameterDependList.size(); i++){
@@ -369,10 +412,17 @@ public class QuestionAdministrator{
 				parameterProperties.put(questionKey+"_"+tmpParamQuery[0], tmpParamQuery[1]);
 			}
 		}
+		
+		//add param options to the hashmap
+		if(parameterOptionList!=null && parameterOptionList.size()>0){
+			for(int i=0; i < parameterOptionList.size(); i++){
+				String[] tmpParamOption = parameterOptionList.get(i).split("_-_");
+				parameterProperties.put(questionKey+"_"+tmpParamOption[0], tmpParamOption[1]);
+			}
+		}
 	}
 	
 	private void reorderQuestions(String order, String currentOrder){
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 		Insight in = new Insight();
 		
 		String localCurrentPerspective = "";
@@ -383,6 +433,7 @@ public class QuestionAdministrator{
 		String localCurrentQsDesc = "";
 		Vector<String> localCurrentParameterDependList = new Vector<String>();
 		Vector<String> localCurrentParameterQueryList = new Vector<String>();
+		Vector<String> localCurrentParameterOptionList = new Vector<String>();
 		
 		localCurrentParameterProperties.clear();
 				
@@ -428,12 +479,12 @@ public class QuestionAdministrator{
 				localCurrentLayoutName = in.getOutput();
 				localCurrentQsDesc = in.getDescription();
 				
-				populateParamProps(localCurrentParameterProperties, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentQsKey);
+				populateParamProps(localCurrentParameterProperties, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList, localCurrentQsKey);
 				
 				String newQuestion = oldQuestion.replaceFirst(Integer.toString(i)+".", Integer.toString(i+1)+".");
 				
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList);
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList);
+				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList);
 			}
 		}
 		else {
@@ -458,11 +509,10 @@ public class QuestionAdministrator{
 						//populates the parameterDependList with any parameter dependencies userse have already created
 						Vector<String> dependVars = paramInfoVector.get(j).getDependVars();
 						if(!dependVars.isEmpty()){
-							String dependVarsConcat = "";
-							for(int k=0; k<dependVars.size(); k++){
-								dependVarsConcat += dependVars.get(k);
+							for(int k=0; k < dependVars.size(); k++){
+								localCurrentParameterDependList.add(paramInfoVector.get(j).getName() + "_DEPEND_-_" + dependVars);
+					
 							}
-							localCurrentParameterDependList.add(paramInfoVector.get(j).getName() + "_DEPEND_-_" + dependVarsConcat);
 						}
 					}
 				}
@@ -474,22 +524,22 @@ public class QuestionAdministrator{
 				localCurrentLayoutName = in.getOutput();
 				localCurrentQsDesc = in.getDescription();
 				
-				populateParamProps(localCurrentParameterProperties, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentQsKey);
+				populateParamProps(localCurrentParameterProperties, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList, localCurrentQsKey);
 				
 				String newQuestion = oldQuestion.replaceFirst(Integer.toString(i+1)+".", Integer.toString(i)+".");
 				
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList);
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList);
+				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestion, localCurrentSparql, localCurrentLayoutName, localCurrentQsDesc, localCurrentParameterDependList, localCurrentParameterQueryList, localCurrentParameterOptionList);
 			}
 		}
 	}
 	
 	public void addQuestion(String perspective, String questionKey,
-			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList) {
+			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList, Vector<String> parameterOptionList) {
 		parameterProperties.clear();
 		
 		//take in the parameter properties and store in a hashmap; will be used when adding param properties (dependencies and param queries)
-		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, questionKey);
+		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, parameterOptionList, questionKey);
 		
 		// create the perspective uris
 		perspectiveURI = perspectiveBaseURI+"/"+selectedEngine + ":" + perspective;
@@ -537,12 +587,12 @@ public class QuestionAdministrator{
 //				 perspectiveURI, true);
 
 		addQuestionParam(paramKeys, perspective, qsKey, qURI, parameterProperties);
-		
-		if(questionModButtonText.equals("Add Question")){
+				
+		createQuestionXMLFile("/db/VA_MainDB/VA_MainDB_Questions.XML", baseFolder);
+		/*if(questionModButtonText.equals("Add Question")){
 			String[] questionArray = question.split("\\. ", 2);
 			String questionOrder = questionArray[0].trim();
 			if(perspectiveSelector.getSelectedItem()!="*NEW Perspective"){
-				int questionCount = questionSelector.getItemCount();
 				//if it's not the last question in the perspective; no need to reorder if question is added as the last question
 				if(!(Integer.parseInt(questionOrder)==questionSelector.getItemCount()+1) && reorder){
 					// the addQuestion method will call the reOrder method once; prevents infite loops from addQuestion to reorderQuestion
@@ -550,11 +600,11 @@ public class QuestionAdministrator{
 					reorderQuestions(questionOrder, questionSelector.getItemCount()+1+"");
 				}
 			}
-		}
+		}*/
 	}
-
+	
 	public void modifyQuestion(String perspective, String questionKey,
-			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList) {
+			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList, Vector<String> parameterOptionList) {
 		
 		HashMap<String, String> currentParameterProperties = new HashMap<String, String>();
 		
@@ -585,8 +635,8 @@ public class QuestionAdministrator{
 				+ Constants.RELATION_URI_CONCATENATOR
 				+ selectedEngine + ":" + perspective + ":" + qsKey;
 		
-		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestion, currentSparql, currentLayout, currentQuestionDescription, currentParameterDependListArray, currentParameterQueryListArray);
-		addQuestion(perspective, questionKey, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList);
+		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestion, currentSparql, currentLayout, currentQuestionDescription, currentParameterDependListArray, currentParameterQueryListArray, currentParameterOptionListArray);
+		addQuestion(perspective, questionKey, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
 		
 		//check if user has modified the question label
 		if(!currentQuestion.equals(question)){
@@ -603,14 +653,14 @@ public class QuestionAdministrator{
 			}
 		}
 	}
-
+	
 	public void deleteQuestion(String perspective, String questionKey,
-			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList) {
+			String question, String sparql, String layout, String questionDescription, Vector<String> parameterDependList, Vector<String> parameterQueryList, Vector<String> parameterOptionList) {
 		
 		parameterProperties.clear();
 		
 		//populates parameterProperties based on on paramProp values passed in
-		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, questionKey);
+		populateParamProps(parameterProperties, parameterDependList, parameterQueryList, parameterOptionList, questionKey);
 		
 		// create the perspective uris
 		perspectiveURI = perspectiveBaseURI+"/"+selectedEngine + ":" + perspective;
