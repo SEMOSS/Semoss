@@ -127,6 +127,32 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		}
 		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
 	}
+	
+	public static double[] removeAllZeroValues(final double[] arr) {
+		int positionInOriginalArr;
+		int positionInNewArr;
+		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
+		while (positionInOriginalArr > 0) {
+			double value = arr[--positionInOriginalArr];
+			if (value != 0) {
+				arr[--positionInNewArr] = value;
+			}
+		}
+		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
+	}
+	
+	public static int[] removeAllZeroValues(final int[] arr) {
+		int positionInOriginalArr;
+		int positionInNewArr;
+		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
+		while (positionInOriginalArr > 0) {
+			int value = arr[--positionInOriginalArr];
+			if (value != 0) {
+				arr[--positionInNewArr] = value;
+			}
+		}
+		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
+	}
 
 	public static Object[] resizeArray(final Object[] arr, final int factor) {
 		return Arrays.copyOf(arr, arr.length*2); 
