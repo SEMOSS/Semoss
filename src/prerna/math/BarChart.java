@@ -20,6 +20,7 @@ public class BarChart {
 		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
 	}
 	
+	// requires values to be sorted
 	public BarChart(double[] values) {
 		this.numericalValues = values;
 		this.stringValues = null;
@@ -84,6 +85,11 @@ public class BarChart {
 	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues) {
 		NumberFormat formatter = new DecimalFormat("0.#E0");
 		int numOccurances = numValues.length;
+		if(numOccurances < 15) {
+			String[] stringVals = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
+			BarChart chart = new BarChart(stringVals);
+			return chart.getRetHashForJSON();
+		}
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		double range = max - min;
