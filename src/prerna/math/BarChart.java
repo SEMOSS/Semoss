@@ -85,7 +85,7 @@ public class BarChart {
 	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues) {
 		NumberFormat formatter = new DecimalFormat("0.#E0");
 		int numOccurances = numValues.length;
-		if(numOccurances < 15) {
+		if(numOccurances < 10 || ArrayUtilityMethods.getUniqueArray(numValues).length < 10) {
 			String[] stringVals = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
 			BarChart chart = new BarChart(stringVals);
 			return chart.getRetHashForJSON();
