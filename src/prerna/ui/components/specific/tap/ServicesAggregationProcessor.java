@@ -268,7 +268,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			}
 			else
 			{
-				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Retired (Not Supported)";
+				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Retired_(Not_Supported)";
 			}
 			addToAllConcepts(sys);
 			addToAllConcepts(lifeCycle);
