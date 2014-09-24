@@ -361,6 +361,7 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
+
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
 	//public static final String TYPE_URI = "TYPE_URI";
@@ -377,6 +378,42 @@ public class Constants {
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final Object URI_BASE = "URI_BASE";
-
-
+	
+	public static final String XML = "XML";
+	//question modification
+	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE= "lblQuestionSelectPerspective";
+	public static final String QUESTION_PERSPECTIVE_SELECTOR= "questionPerspectiveSelector";
+	public static final String LABEL_SELECT_QUESTION = "lblSelectQuestion";
+	public static final String QUESTION_MOD_SELECTOR = "questionModSelector";
+	public static final String QUESTION_PERSPECTIVE_FIELD = "questionPerspectiveField";
+	public static final String QUESTION_FIELD = "questionField";
+	public static final String QUESTION_LAYOUT_FIELD = "questionLayoutField";
+	public static final String QUESTION_SPARQL_TEXT_PANE = "questionSparqlTextPane";
+	public static final String QUESTION_MOD_BUTTON = "questionModButton";
+	public static final String ADD_QUESTION_BUTTON = "addQuestionButton";
+	public static final String EDIT_QUESTION_BUTTON = "editQuestionButton";
+	public static final String DELETE_QUESTION_BUTTON = "deleteQuestionButton";
+	public static final String QUESTION_DB_SELECTOR = "questionDatabaseSelector";
+	public static final String QUESTION_ADD_PARAMETER_BUTTON = "questionAddParameterButton";
+	public static final String QUESTION_ADD_PARAMETER_COMBO_BOX = "addParameterComboBox";
+	public static final String QUESTION_SHOW_MORE_OPTIONS_BUTTON = "questionMoreOptionsButton";
+	public static final String LABEL_PARAMETER_DEPEND = "lblParameterDepend";
+	public static final String PARAMETER_DEPEND_SCROLL = "parameterDependScroll";
+	public static final String ADD_PARAMETER_DEPENDENCY_BUTTON = "addParameterDependencyButton";
+	public static final String PARAMETER_QUERY_SCROLL = "parameterQueryScroll";
+	public static final String LABEL_PARAMETER_QUERY = "lblParameterQuery";
+	public static final String ADD_PARAMETER_QUERY_BUTTON = "addParameterQueryButton";
+	public static final String LABEL_PARAMETER_DEPEND_LIST = "lblParameterDependList";
+	public static final String PARAMETER_DEPEND_SCROLL_LIST = "parameterDependScrollList";
+	public static final String LABEL_PARAMETER_QUERY_LIST = "lblParameterQueryList";
+	public static final String PARAMETER_QUERY_SCROLL_LIST = "parameterQueryScrollList";
+	public static final String PARAMETER_QUERY_TEXT_PANE = "parameterQueryTextPane";
+	public static final String PARAMETER_DEPEND_TEXT_PANE = "parameterDependTextPane";
+	public static final String PARAMETER_DEPEND_DELETE_BUTTON = "dependenciesDeleteButton";
+	public static final String PARAMETER_DEPEND_EDIT_BUTTON = "dependenciesEditButton";
+	public static final String PARAMETER_QUERY_DELETE_BUTTON = "parameterQueriesDeleteButton";
+	public static final String PARAMETER_QUERY_EDIT_BUTTON = "parameterQueriesEditButton";
+	public static final String PARAMETER_DEPENDENCIES_JLIST = "parameterDependList";
+	public static final String PARAMETER_QUERIES_JLIST = "parameterQueryList";
+	public static final String QUESTION_ORDER_COMBO_BOX = "questionOrderComboBox";
 }
