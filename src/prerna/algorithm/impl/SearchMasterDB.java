@@ -68,6 +68,7 @@ public class SearchMasterDB {
 	ArrayList<String> instanceList;
 	ArrayList<String> keywordForInstanceList;
 	ArrayList<String> mcForInstanceList;
+	ArrayList<Hashtable<String,ArrayList<String>>> engineKeywordForInstanceList = new ArrayList<Hashtable<String,ArrayList<String>>>();
 	
 	private boolean debugging=false;
 	
@@ -280,13 +281,13 @@ public class SearchMasterDB {
 		for(int instanceInd = 0;instanceInd<mcForInstanceList.size();instanceInd++) {
 			String mc = mcForInstanceList.get(instanceInd);
 			String instance = instanceList.get(instanceInd);
-			
+			engineKeywordForInstanceList.add(new Hashtable<String,ArrayList<String>>());
 			int databaseInd = 0;
 			while(databaseInd<databaseList.size()) {
 				//for this database, check to see if it contains the instance. if not, remove it and continue
 				String databaseName = databaseList.get(databaseInd);
 				IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(databaseName);
-				if(engine == null || !databaseContainsInstance(engine,mc,instance) ) {
+				if(engine == null || !databaseContainsInstance(engine,mc,instance,instanceInd) ) {
 					databaseList.remove(databaseInd);
 				}else {
 					databaseInd++;
@@ -296,23 +297,33 @@ public class SearchMasterDB {
 		return databaseList;
 	}
 	
-	private Boolean databaseContainsInstance(IEngine engine, String mc, String instance) {
+	private Boolean databaseContainsInstance(IEngine engine, String mc, String instance, int instanceInd) {
 		String getPossibleKeywordsQueryFilled = getPossibleKeywordsQuery.replaceAll("@MASTERCONCEPT@",mc).replaceAll("@ENGINE@", engine.getEngineName());
 		ArrayList<String> possibleKeywordList = processListQuery(getPossibleKeywordsQueryFilled);
+		Boolean retval=false;
 		if(possibleKeywordList.isEmpty())
 			return false;
 		for(int i=0;i<possibleKeywordList.size();i++) {
 			String possibleKeyword = possibleKeywordList.get(i);
-			String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORD@", possibleKeyword).replaceAll("@KEYWORDINSTANCE@",possibleKeyword+"/"+instance);
+			String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORD@", possibleKeyword).replaceAll("@KEYWORDINSTANCE@","/"+instance);
 			
 			BooleanProcessor proc = new BooleanProcessor();
 			proc.setEngine(engine);
 			proc.setQuery(instanceExistsQueryFilled);
-			if(proc.processQuery())
-				return true;
+			if(proc.processQuery()) {
+				Hashtable<String,ArrayList<String>> engineKeywordHash = engineKeywordForInstanceList.get(instanceInd);
+				ArrayList<String> enginesKeywords = new ArrayList<String>();
+				if(engineKeywordHash.containsKey(engine.getEngineName()))
+					enginesKeywords = engineKeywordHash.get(engine.getEngineName());
+				if(!enginesKeywords.contains(possibleKeyword))
+					enginesKeywords.add(possibleKeyword);
+				engineKeywordHash.put(engine.getEngineName(),enginesKeywords);
+				engineKeywordForInstanceList.set(instanceInd, engineKeywordHash);
+				retval=true;
+			}
 		}
 		
-		return false;
+		return retval;
 	}
 	
 	private String createDatabaseFilter(ArrayList<String> databaseList) {
@@ -574,7 +585,24 @@ public class SearchMasterDB {
 				}
 			}
 			
-			returnArray.add(insightHash);
+			//should only return questions if their keyword is in the databases' keyword list for that masterconcept
+			if(includeInstance) {
+				int mcIndex=-1;
+				for(int mcIdx = 0; mcIdx < this.mcForInstanceList.size(); mcIdx ++ ){
+					if(masterConcept.equals(this.mcForInstanceList.get(mcIdx))){
+						mcIndex=mcIdx;
+					}
+				}
+				Hashtable<String,ArrayList<String>> engineKeywordHash = engineKeywordForInstanceList.get(mcIndex);
+				if(engineKeywordHash.containsKey(engine)) {
+					ArrayList<String> instanceKeywordList = engineKeywordHash.get(engine);
+					if(instanceKeywordList.contains(keyword))
+						returnArray.add(insightHash);
+				}
+				
+			}
+			else
+				returnArray.add(insightHash);
 		}
 		return returnArray;
 	}
