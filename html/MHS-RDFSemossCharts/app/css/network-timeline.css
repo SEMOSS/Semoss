@@ -62,21 +62,22 @@ body {
     position: absolute;
     height: 100%;
     width:50%;
-    top: 0;
+    top: 34px;
     bottom: 20px;
     left: 0;
     overflow: auto;
     background-color: #eee;
-    padding: 35px 0px 0px 0px;
+    padding: 1px 0px 0px 0px;
     border-right: 1px solid #ccc;
 }
 
 #sidebarContentRight {
     position: absolute;
     left: 50%;
-    top: 35px;
+    top: 34px;
     bottom: 0;
     right: 0;
+    padding: 1px 0px 0px 0px;
 }
 
 #sidebarFooter {
