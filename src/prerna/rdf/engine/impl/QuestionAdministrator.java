@@ -588,7 +588,7 @@ public class QuestionAdministrator {
 
 		addQuestionParam(paramKeys, perspective, qsKey, qURI, parameterProperties);
 				
-		createQuestionXMLFile("/db/VA_MainDB/VA_MainDB_Questions.XML", baseFolder);
+		//createQuestionXMLFile("/db/VA_MainDB/VA_MainDB_Questions.XML", baseFolder);
 		/*if(questionModButtonText.equals("Add Question")){
 			String[] questionArray = question.split("\\. ", 2);
 			String questionOrder = questionArray[0].trim();
