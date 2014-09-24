@@ -40,10 +40,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 				int instanceInd = instanceIndexHash.get(instance);
 				int newClusterForInstance = findNewClusterForInstance(instanceInd);
 				int oldClusterForInstance = clustersAssigned[instanceInd];
-				if(oldClusterForInstance == 1 && newClusterForInstance == 0) {
-					System.out.println("check");
-					findNewClusterForInstance(instanceInd);
-				}
 				if(newClusterForInstance != oldClusterForInstance) {
 					noChange = false;
 					//TODO: delete
@@ -68,7 +64,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			success = true;
 		}
 //		printOutClusters();
-//		createClusterRowsForGrid();
+		createClusterRowsForGrid();
 		
 		//need indices for visualization
 		categoryPropIndices = cdp.getCategoryPropIndices();
