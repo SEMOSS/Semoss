@@ -144,6 +144,17 @@ public final class ArrayUtilityMethods {
 		return retArr;
 	}
 	
+	public static String[] convertDoubleArrToStringArr(final double[] arr) {
+		int size = arr.length;
+		String[] retArr = new String[size];
+		int index;
+		for(index = 0; index < size; index++) {
+			double dObj = arr[index];
+			retArr[index] = dObj + "";
+		}
+		return retArr;
+	}
+	
 	public static String[] getUniqueArray(final String[] arr) {
         int size = arr.length;
         String[] temp = new String[size];

@@ -275,22 +275,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		ArrayList<Object[]> removedData = (ArrayList<Object[]>) decommissionedFutureICDs.get(DHMSMTransitionUtility.DATA_KEY);
 		
 		Iterator<Object[]> itOverArray = allData.iterator();
-		OUTER: while(itOverArray.hasNext()) {
+		while(itOverArray.hasNext()) {
 			Object[] icdRow = itOverArray.next();
 			for(Object[] removeICD : removedData) {
-				boolean keepRow = true;
-				int j;
-				for(j = 0; j < icdRow.length; j++) {
-					if(!icdRow[j].toString().equals(removeICD[j].toString())) {
-						keepRow = true;
-						break;
-					} else {
-						keepRow = false;
-					}
-				}
-				if(keepRow == false) {
+				if(icdRow[2].toString().equals(removeICD[2].toString())) {
 					itOverArray.remove();
-					continue OUTER;
 				}
 			}
 		}
