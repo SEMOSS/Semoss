@@ -17,11 +17,12 @@ import prerna.util.Utility;
 
 import com.ibm.icu.util.StringTokenizer;
 
-public class QuestionAdministrator extends AbstractEngine {
+public class QuestionAdministrator{
 	public static String selectedEngine = null;
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 	String engineURI2 = "database:" + selectedEngine;
 	boolean reorder = true;
+	AbstractEngine insightBaseXML;
 	
 	JButton questionModButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
 	JComboBox<String> questionSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
