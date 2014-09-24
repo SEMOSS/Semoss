@@ -394,6 +394,58 @@ public abstract class AbstractClusteringAlgorithm {
 //		return sumSimiliarities;
 //	}
 	
+	
+	
+	
+	
+	/**
+	 * Print each cluster with categorical and numerical properties and a list of all instances
+	 */
+	protected void createClusterRowsForGrid() {
+		clusterRows = new ArrayList<Object[]>();
+
+		String[] numericalPropNames = cdp.getNumericalPropNames();
+		String[] categoryPropNames = cdp.getCategoryPropNames();
+
+		for(int clusterInd = 0;clusterInd<clustersNumInstances.length;clusterInd++) {
+			Object[] clusterRow = new Object[varNames.length+1];
+			clusterRow[0] = "";
+
+			for(int propInd=1;propInd<varNames.length;propInd++) {
+				String prop = varNames[propInd];
+				if(categoryPropNames != null) {
+					int categoryInd = ArrayUtilityMethods.calculateIndexOfArray(categoryPropNames, prop);
+					if(categoryInd >-1) {
+						Hashtable<String, Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryInd);
+						String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+						if(!propWithHighFreq.equals("")) {
+							int freq = propValHash.get(propWithHighFreq);
+							double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+							DecimalFormat nf = new DecimalFormat("###.##");
+							clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+						}
+					}
+				}
+				
+				if(numericalPropNames != null) {
+					int numberInd = ArrayUtilityMethods.calculateIndexOfArray(numericalPropNames, prop);
+					if(numberInd >-1) {
+						Hashtable<String, Integer> propValHash = clusterNumberBinMatrix.get(clusterInd).get(numberInd);
+						String propWithHighFreq = printMostFrequentProperties(clusterInd, propValHash);
+						if(!propWithHighFreq.equals("")) {
+							int freq = propValHash.get(propWithHighFreq);
+							double percent = (1.0*freq)/(1.0*clustersNumInstances[clusterInd])*100;
+							DecimalFormat nf = new DecimalFormat("###.##");
+							clusterRow[propInd] = propWithHighFreq +": "+nf.format(percent)+"%";
+						}
+					}
+				}
+			}
+			clusterRow[varNames.length] = clusterInd;
+			clusterRows.add(clusterRow);
+		}		
+	}
+	
 //	/**
 //	 * Print each cluster with categorical and numerical properties and a list of all instances
 //	 */
@@ -438,20 +490,20 @@ public abstract class AbstractClusteringAlgorithm {
 //			clusterRows.add(clusterRow);
 //		}		
 //	}
-//
-//	private String printMostFrequentProperties(int clusterInd, Hashtable<String, Integer> propValHash) {
-//		String propWithHighFreq = "";
-//		int highestFreq = -1;
-//		for(String propVal : propValHash.keySet()) {
-//			int freq = propValHash.get(propVal);
-//			if(freq>highestFreq) {
-//				highestFreq = freq;
-//				propWithHighFreq = propVal;
-//			}
-//		}
-//		return propWithHighFreq;
-//	}
-//	
+
+	private String printMostFrequentProperties(int clusterInd, Hashtable<String, Integer> propValHash) {
+		String propWithHighFreq = "";
+		int highestFreq = -1;
+		for(String propVal : propValHash.keySet()) {
+			int freq = propValHash.get(propVal);
+			if(freq>highestFreq) {
+				highestFreq = freq;
+				propWithHighFreq = propVal;
+			}
+		}
+		return propWithHighFreq;
+	}
+	
 //	/**
 //	 * Print each cluster with categorical and numerical properties and a list of all instances
 //	 */
