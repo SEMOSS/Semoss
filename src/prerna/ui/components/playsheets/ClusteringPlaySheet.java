@@ -24,7 +24,7 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.ClusteringAlgorithm;
+import prerna.algorithm.cluster.ClusteringAlgorithm;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.

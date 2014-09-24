@@ -5,6 +5,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -19,10 +21,10 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.AbstractClusteringAlgorithm;
-import prerna.algorithm.impl.AgglomerativeClusteringAlgorithm;
-import prerna.algorithm.impl.ClusteringAlgorithm;
-import prerna.algorithm.impl.GenerateEntropyDensity;
+import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
+import prerna.algorithm.cluster.AgglomerativeClusteringAlgorithm;
+import prerna.algorithm.cluster.ClusteringAlgorithm;
+import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.algorithm.impl.specific.tap.ClusteringOptimization;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
@@ -43,7 +45,7 @@ import aurelienribon.ui.css.Style;
 @SuppressWarnings("serial")
 public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
-	private static final Logger logger = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
 	private double n;
 	private String type = "";
@@ -278,13 +280,34 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			masterList = list;
 			masterNames = names;
 		}
+		PrintWriter writer = null;
+		try {
+			writer = new PrintWriter("Clustering_Algorithm_Optimization.txt");
+			writer.println("Clusters\t\t\tInstanceToCluster\t\t\tClusterToCluster\t\t\tItems\t\t\tAverage");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for(int i = 2; i < 40; i++) {
+			AbstractClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list, names);
+			clusterAlg.setNumClusters(i);
+			clusterAlg.execute();
+			double instanceToClusterSim = clusterAlg.calculateFinalInstancesToClusterSimilarity();
+			double clusterToClusterSim = clusterAlg.calculateFinalTotalClusterToClusterSimilarity();
+			double sum = instanceToClusterSim + clusterToClusterSim;
+			double items = list.size() + (double) (i * (i-1) /2);
+			double average = sum/items;
+			writer.println(i + "\t\t\t" + instanceToClusterSim + "\t\t\t" + clusterToClusterSim + "\t\t\t" + items + "\t\t\t" + average);
+		}
+		writer.close();
+		
 		AbstractClusteringAlgorithm clusterAlg;
 		//TODO: need to split out the process to deal with duplicate values
-		if(type.equalsIgnoreCase("agglomerative")){
-			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
-			clusterAlg.setNumClusters(numClusters);
-			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-		} else if(numClusters > 2){
+//		if(type.equalsIgnoreCase("agglomerative")){
+//			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
+//			clusterAlg.setNumClusters(numClusters);
+//			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
+		if(numClusters > 2){
 			clusterAlg = new ClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
 		} else{
@@ -354,7 +377,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	 */
 	@Override
 	public void setQuery(String query) {
-		logger.info("New Query " + query);
+		LOGGER.info("New Query " + query);
 		String[] querySplit = query.split(";");
 		if(querySplit.length == 1) {
 			this.query = query;
