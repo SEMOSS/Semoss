@@ -65,10 +65,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void createView() {
 		super.createView();
 		if(jTab.getTabCount()==1) {
+			addGridTab();
 			addSelectorTab();
+		} else {
+			jTab.remove(2);
 			addGridTab();
 		}
-		
+
 		new CSSApplication(getContentPane());
 	}
 	
@@ -219,7 +222,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
 						Arrays.sort(values);
 						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
-						BarChart chart = new BarChart(numValues);
+						BarChart chart = null;
+						try {
+							chart = new BarChart(numValues);
+						} catch(OutOfMemoryError e) {
+							System.out.println("");
+							chart = new BarChart(numValues);
+						}
 						Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 						String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(numValues, true);
