@@ -65,8 +65,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void createView() {
 		super.createView();
 		if(jTab.getTabCount()==1) {
-			addGridTab();
 			addSelectorTab();
+			addGridTab();
 		} else {
 			jTab.remove(2);
 			addGridTab();

@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.util.ArrayUtilityMethods;
+
 /** Generic clustering algorithm to cluster instances based on their categorical and numerical properties.
  * 
  */
@@ -62,7 +64,23 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		}
 		else {
 			success = true;
+			//loop through and remove any empty clusters
+			int i;
+			int nonEmptyClusterCount = clustersNumInstances.length;
+			for(i = 0; i < nonEmptyClusterCount; i++) {
+				if(clustersNumInstances[i] == 0) {
+					if(clusterNumberBinMatrix != null) {
+						clusterNumberBinMatrix.remove(i);
+					}
+					if(clusterCategoryMatrix != null) {
+						clusterCategoryMatrix.remove(i);
+					}
+				}
+			}
+			clustersNumInstances = ArrayUtilityMethods.removeAllZeroValues(clustersNumInstances);
 		}
+		
+		
 //		printOutClusters();
 		createClusterRowsForGrid();
 		
