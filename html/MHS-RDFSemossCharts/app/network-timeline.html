@@ -107,12 +107,13 @@
 //
 //                        if (hasTimeHash($scope.forceData.nodes)) {
 //                            $scope.timeHashLocation = "Nodes";
-//                            createNodeTableModel($scope.forceData.nodes);
+//                            createTableModel($scope.forceData.nodes);
 //                        } else {
 //                            $scope.timeHashLocation = "Edges";
-//                            createEdgeTableModel($scope.forceData.edges);
+//                            createTableModel($scope.forceData.edges);
 //                        }
 //
+//                        setTableData(0);
 //
 //                    }, 500);
 
@@ -122,11 +123,13 @@
 
                             if (hasTimeHash($scope.forceData.nodes)) {
                                 $scope.timeHashLocation = "Nodes";
-                                createNodeTableModel($scope.forceData.nodes);
+                                createTableModel($scope.forceData.nodes);
                             } else {
                                 $scope.timeHashLocation = "Edges";
-                                createEdgeTableModel($scope.forceData.edges);
+                                createTableModel($scope.forceData.edges);
                             }
+
+                            setTableData(0);
 
                         });
                     };
@@ -140,23 +143,32 @@
                         return false;
                     }
 
-                    function createEdgeTableModel(edgeArray) {
+                    function createTableModel(itemArray) {
                         var tableData = [];
-                        for (var prop = 0; prop < edgeArray.length; prop++) {
 
-                            if (edgeArray[prop].propHash.timeHash) {
-	                            if(edgeArray[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
+                        if ($scope.timeHashLocation == "Nodes") {
+                            var name = "VERTEX_LABEL_PROPERTY";
+                            var type = "VERTEX_TYPE_PROPERTY";
+                        } else if ($scope.timeHashLocation == "Edges") {
+                            var name = "EDGE_NAME";
+                            var type = "EDGE_TYPE";
+                        }
+
+                        for (var item in itemArray) {
+
+                            if (itemArray[item].propHash.timeHash) {
+                                if (itemArray[item].propHash.timeHash["Decommissioned"]) { //decommissioned
                                     //new item data model
-                                    var newItem = {
-                                        name: edgeArray[prop].propHash.EDGE_NAME,
-                                        uri: edgeArray[prop].uri,
+                                    newItem = {
+                                        name: itemArray[item].propHash[name],
+                                        uri: itemArray[item].uri,
                                         phase: "Decommissioned",
                                         startLOE: 0,
                                         LOE: 0,
                                         totalLOE: 0,
                                         dependICDS: "",
                                         gltag: "",
-                                        type: edgeArray[prop].propHash.EDGE_TYPE
+                                        type: itemArray[item].propHash[type]
                                     };
 
                                     tableData.push(newItem);
@@ -166,163 +178,72 @@
                                     var totalLOE = 0;
                                     var phases = ["Requirements", "Design", "Develop", "Test", "Deploy"];
 
-		                            for(var i=0; i<phases.length; i++) {
-                                        if (edgeArray[prop].propHash.timeHash[phases[i]]) {
+                                    for (var i = 0; i < phases.length; i++) {
+                                        if (itemArray[item].propHash.timeHash[phases[i]]) {
 
                                             //new item data model
                                             var newItem = {};
-                                            newItem.name = edgeArray[prop].propHash.EDGE_NAME;
-                                            newItem.uri = edgeArray[prop].uri;
-                                            newItem.phase = edgeArray[prop].propHash.timeHash[phases[i]].phase;
+                                            newItem.name = itemArray[item].propHash[name];
+                                            newItem.uri = itemArray[item].uri;
+                                            newItem.phase = itemArray[item].propHash.timeHash[phases[i]].phase;
                                             newItem.startLOE = totalLOE;
-                                            newItem.LOE = edgeArray[prop].propHash.timeHash[phases[i]].LOE;
+                                            newItem.LOE = itemArray[item].propHash.timeHash[phases[i]].LOE;
                                             //set the edges properties
-                                            edgeArray[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
+                                            itemArray[item].propHash.timeHash[phases[i]].startLOE = totalLOE;
 
                                             //add to previous total
-                                            totalLOE += edgeArray[prop].propHash.timeHash[phases[i]].LOE;
+                                            totalLOE += itemArray[item].propHash.timeHash[phases[i]].LOE;
 
                                             //set the edges properties
-                                            edgeArray[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
+                                            itemArray[item].propHash.timeHash[phases[i]].totalLOE = totalLOE;
                                             newItem.totalLOE = totalLOE;
-                                            newItem.dependICDS = edgeArray[prop].propHash.timeHash[phases[i]].dependICDS;
-                                            newItem.gltag = edgeArray[prop].propHash.timeHash[phases[i]].gltag;
-                                            newItem.type = edgeArray[prop].propHash.EDGE_TYPE;
+                                            newItem.dependICDS = itemArray[item].propHash.timeHash[phases[i]].dependICDS;
+                                            newItem.gltag = itemArray[item].propHash.timeHash[phases[i]].gltag;
+                                            newItem.type = itemArray[item].propHash[type];
 
                                             tableData.push(newItem);
                                         }
                                     }
 
                                     var newItem = {
-                                        name: edgeArray[prop].propHash.EDGE_NAME,
-                                        uri: edgeArray[prop].uri,
+                                        name: itemArray[item].propHash[name],
+                                        uri: itemArray[item].uri,
                                         phase: "Completed",
                                         startLOE: totalLOE,
                                         LOE: 0,
                                         totalLOE: totalLOE,
-                                        dependICDS: edgeArray[prop].propHash.timeHash["Requirements"].dependICDS,
+                                        dependICDS: itemArray[item].propHash.timeHash["Requirements"].dependICDS,
                                         gltag: "",
-                                        type: edgeArray[prop].propHash.EDGE_TYPE
+                                        type: itemArray[item].propHash[type]
                                     };
-                                    edgeArray[prop].propHash.timeHash["Completed"] = newItem;
-
-                                    tableData.push(newItem);
-	                            }
-                            } else {
-                                //new item data modelcreateedge
-                                var newItem = {
-                                    name: edgeArray[prop].propHash.EDGE_NAME,
-                                    uri: edgeArray[prop].uri,
-                                    phase: "N/A",
-                                    startLOE: 0,
-                                    LOE: 0,
-                                    totalLOE: 0,
-                                    dependICDS: "",
-                                    gltag: "",
-                                    type: edgeArray[prop].propHash.EDGE_TYPE
-                                };
-                                tableData.push(newItem);
-                            }
-
-                        } //end of forloop
-
-                        tableDB = TAFFY(tableData);
-                        setTableData(0);
-                    }
-
-                    function createNodeTableModel(nodeObj) {
-                        var tableData = [];
-                        for (var prop in nodeObj) {
-
-                            if (nodeObj[prop].propHash.timeHash) {
-                                if(nodeObj[prop].propHash.timeHash["Decommissioned"]) { //decommissioned
-                                    //new item data model
-                                    var newItem = {
-                                        name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
-                                        uri: nodeObj[prop].uri,
-                                        phase: "Decommissioned",
-                                        startLOE: 0,
-                                        LOE: 0,
-                                        totalLOE: 0,
-                                        dependICDS: "",
-                                        gltag: "",
-                                        type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
-                                    };
-
-                                    tableData.push(newItem);
-                                } else { //requirements, design, test, develop, deploy phases
-
-                                    //create total for LOE hours
-                                    var totalLOE = 0;
-                                    var phases = ["Requirements", "Design", "Develop", "Test", "Deploy"];
-
-                                    for(var i=0; i<phases.length; i++) {
-                                        if (nodeObj[prop].propHash.timeHash[phases[i]]) {
-
-                                            //new item data model
-                                            var newItem = {};
-                                            newItem.name = nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY;
-                                            newItem.uri = nodeObj[prop].uri;
-                                            newItem.phase = nodeObj[prop].propHash.timeHash[phases[i]].phase;
-                                            newItem.startLOE = totalLOE;
-                                            newItem.LOE = nodeObj[prop].propHash.timeHash[phases[i]].LOE;
-                                            //set the edges properties
-                                            nodeObj[prop].propHash.timeHash[phases[i]].startLOE = totalLOE;
-
-                                            //add to previous total
-                                            totalLOE += nodeObj[prop].propHash.timeHash[phases[i]].LOE;
-
-                                            //set the edges properties
-                                            nodeObj[prop].propHash.timeHash[phases[i]].totalLOE = totalLOE;
-                                            newItem.totalLOE = totalLOE;
-                                            newItem.dependICDS = nodeObj[prop].propHash.timeHash[phases[i]].dependICDS;
-                                            newItem.gltag = nodeObj[prop].propHash.timeHash[phases[i]].gltag;
-                                            newItem.type = nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY;
-
-                                            tableData.push(newItem);
-                                        }
-                                    }
-
-                                    var newItem = {
-                                        name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
-                                        uri: nodeObj[prop].uri,
-                                        phase: "Completed",
-                                        startLOE: totalLOE,
-                                        LOE: 0,
-                                        totalLOE: totalLOE,
-                                        dependICDS: nodeObj[prop].propHash.timeHash["Requirements"].dependICDS,
-                                        gltag: "",
-                                        type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
-                                    };
-                                    nodeObj[prop].propHash.timeHash["Completed"] = newItem;
+                                    itemArray[item].propHash.timeHash["Completed"] = newItem;
 
                                     tableData.push(newItem);
                                 }
                             } else {
-                                //new item data model
+                                //new item data modelcreateedge
                                 var newItem = {
-                                    name: nodeObj[prop].propHash.VERTEX_LABEL_PROPERTY,
-                                    uri: nodeObj[prop].uri,
+                                    name: itemArray[item].propHash[name],
+                                    uri: itemArray[item].uri,
                                     phase: "N/A",
                                     startLOE: 0,
                                     LOE: 0,
                                     totalLOE: 0,
                                     dependICDS: "",
                                     gltag: "",
-                                    type: nodeObj[prop].propHash.VERTEX_TYPE_PROPERTY
+                                    type: itemArray[item].propHash[type]
                                 };
                                 tableData.push(newItem);
                             }
 
-                        } //end of forloop
-
+                        }
                         tableDB = TAFFY(tableData);
-                        setTableData(0);
-                    }
+                    };
 
                     function setTableData(sliderValue) {
                         var dependICDs = [];
 
+                        //get all dependent ICDs that can be decommissioned
                         tableDB().each(function(item) {
                             if (item.totalLOE < sliderValue && item.phase == "Completed") {
                                 dependICDs.push(item.dependICDS);
@@ -980,14 +901,6 @@
                             function checkForNonTimeHash(item) {
                                 var bool = false;
                                 if (!item.propHash.timeHash || (item.propHash.timeHash && item.propHash.timeHash["Decommissioned"])) {
-                                    bool = true;
-                                }
-                                return bool;
-                            }
-
-                            function checkForNonDecomTimeHash(item) {
-                                var bool = false;
-                                if (!item.propHash.timeHash || (item.propHash.timeHash && !item.propHash.timeHash["Decommissioned"])) {
                                     bool = true;
                                 }
                                 return bool;
