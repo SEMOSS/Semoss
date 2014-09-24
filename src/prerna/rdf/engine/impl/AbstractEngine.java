@@ -78,6 +78,8 @@ public abstract class AbstractEngine implements IEngine {
 	Properties ontoProp = null;
 	RDFFileSesameEngine baseDataEngine;
 	RepositoryConnection insightBase = null;
+	protected RDFFileSesameEngine insightBaseXML;
+
 	ValueFactory insightVF = null;
 	Resource engineURI2 = null;
 	Hashtable baseDataHash;
@@ -1467,5 +1469,7 @@ public abstract class AbstractEngine implements IEngine {
 		return output.toString();
 	}
 
-	
+	public RDFFileSesameEngine getInsightBaseXML() {
+		return insightBaseXML;
+	}
 }
