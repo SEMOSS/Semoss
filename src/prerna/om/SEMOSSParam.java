@@ -1,5 +1,6 @@
 package prerna.om;
 
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 public class SEMOSSParam {
@@ -7,6 +8,9 @@ public class SEMOSSParam {
 	String name = null;
 	String query = null;
 	String type = null;
+	Vector<String> options = new Vector<String>();
+	Boolean hasQuery = true;
+	
 	public String getType() {
 		return type;
 	}
@@ -28,6 +32,7 @@ public class SEMOSSParam {
 	}
 	public void setQuery(String query) {
 		this.query = query.replace("\"","").trim();
+		this.hasQuery = true;
 	}
 	public String isDepends() {
 		return depends;
@@ -43,6 +48,21 @@ public class SEMOSSParam {
 	public Vector<String> getDependVars()
 	{
 		return this.dependVars;
+	}
+	
+	public void setOptions(String optionString) {
+		optionString.replaceAll("\"", "");
+		StringTokenizer st = new StringTokenizer(optionString, ";");
+		while(st.hasMoreElements()) {
+			options.add((String)st.nextElement());
+		}
+		this.hasQuery=false;
+	}
+	public Vector<String> getOptions() {
+		return options;
+	}
+	public Boolean isQuery() {
+		return hasQuery;
 	}
 	
 }
