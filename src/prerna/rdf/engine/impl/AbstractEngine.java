@@ -366,8 +366,8 @@ public abstract class AbstractEngine implements IEngine {
 						String parameterQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY;
 						if(dreamerProp.containsKey(parameterQueryKey))
 						{
-							parameterQueryKey = paramKey + "_" + Constants.QUERY;
 							String parameterQueryValue = dreamerProp.getProperty(parameterQueryKey);
+							parameterQueryKey = paramKey + "_" + Constants.QUERY;
 							parameterQueryList.add(parameterQueryKey+"_-_"+parameterQueryValue);
 						}
 						// see if there is dependency
@@ -377,8 +377,8 @@ public abstract class AbstractEngine implements IEngine {
 						{
 							// record this
 							// qsKey_paramkey  - qsKey:Depends - result
-							parameterDependKey = paramKey + "_" + Constants.DEPEND;
 							String parameterDependValue = dreamerProp.getProperty(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
+							parameterDependKey = paramKey + "_" + Constants.DEPEND;
 							StringTokenizer depTokens = new StringTokenizer(parameterDependValue, ";");
 							
 							//one parameter may have multiple dependencies separated by ;
@@ -400,6 +400,7 @@ public abstract class AbstractEngine implements IEngine {
 						{
 //							System.out.println("TRUE");
 							String parameterOptionValue = dreamerProp.getProperty(parameterOptionKey);
+							parameterOptionKey = qsKey + "_" + paramKey + "_" + Constants.OPTION;
 							parameterOptionList.add(parameterOptionKey + "_-_" + parameterOptionValue);
 						}
 					}
