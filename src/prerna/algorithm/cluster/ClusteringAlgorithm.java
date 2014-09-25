@@ -127,6 +127,19 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 				clusterIndWithMaxSimilarity = clusterIdx;
 			}
 		}
+		
+		// if there is no similarity to any cluster, see if any cluster is empty and put there
+		if(maxSimilarity == 0) {
+			int i;
+			int size = clustersNumInstances.length;
+			for(i = 0; i < size; i++) {
+				if(clustersNumInstances[i] == 0) {
+					//return the first empty cluster
+					return clustersNumInstances[i];
+				}
+			}
+		}
+		
 		return clusterIndWithMaxSimilarity;
 	}
 	
