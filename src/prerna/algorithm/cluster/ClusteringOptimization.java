@@ -1,4 +1,4 @@
-package prerna.algorithm.impl.specific.tap;
+package prerna.algorithm.cluster;
 
 import java.util.ArrayList;
 
@@ -14,9 +14,6 @@ import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well1024a;
 
-import prerna.algorithm.cluster.ClusterOptFunction;
-import prerna.algorithm.cluster.ClusteringAlgorithm;
-
 public class ClusteringOptimization extends ClusteringAlgorithm {
 
 	public ClusteringOptimization(ArrayList<Object[]> masterTable, String[] varNames) {
@@ -31,7 +28,8 @@ public class ClusteringOptimization extends ClusteringAlgorithm {
         RandomGenerator rand = new Well1024a(500);
         MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, 5, rand);
         UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(f);
-        SearchInterval search = new SearchInterval(2, (int) Math.round(Math.sqrt(masterTable.size()))); //considering range from 2 to square root of number of instances
+//        SearchInterval search = new SearchInterval(2, (int) Math.round(Math.sqrt(masterTable.size()))); //considering range from 2 to square root of number of instances
+        SearchInterval search = new SearchInterval(2, 30);
         MaxEval eval = new MaxEval(200);
         
         OptimizationData[] data = new OptimizationData[]{search, objF, GoalType.MAXIMIZE, eval};

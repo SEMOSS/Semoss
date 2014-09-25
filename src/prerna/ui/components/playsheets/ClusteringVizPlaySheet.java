@@ -21,8 +21,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusteringAlgorithm;
+import prerna.algorithm.cluster.ClusteringOptimization;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
-import prerna.algorithm.impl.specific.tap.ClusteringOptimization;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
