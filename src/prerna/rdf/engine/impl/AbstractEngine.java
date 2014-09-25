@@ -49,6 +49,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
@@ -247,7 +248,7 @@ public abstract class AbstractEngine implements IEngine {
 		return retProp;
 	}
 
-	private void createInsightBase() {
+	protected void createInsightBase() {
 		try {
 			insightBaseXML = new RDFFileSesameEngine();
 			Repository myRepository = new SailRepository(
@@ -1333,7 +1334,7 @@ public abstract class AbstractEngine implements IEngine {
 	{
 		StringWriter output = new StringWriter();
 		try {
-			insightBaseXML.rc.export(new RDFXMLPrettyWriter(output));
+			insightBaseXML.rc.export(new RDFXMLWriter(output));
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1348,7 +1349,7 @@ public abstract class AbstractEngine implements IEngine {
 	{
 		StringWriter output = new StringWriter();
 		try {
-			baseDataEngine.rc.export(new RDFXMLPrettyWriter(output));
+			baseDataEngine.rc.export(new RDFXMLWriter(output));
 		} catch (RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

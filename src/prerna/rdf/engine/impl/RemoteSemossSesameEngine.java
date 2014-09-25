@@ -57,16 +57,17 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				engineName = database;
 				String insights = Utility.retrieveResult(api + "/s-" + database + "/getInsightDefinition", null);
 				
-				insightBase = getNewRepository();
-				insightVF = insightBase.getValueFactory();
-				engineURI2 = insightVF.createURI("database:" + engineName);
+				this.createInsightBase();
+				insightBaseXML.rc = getNewRepository();
+				insightVF = insightBaseXML.rc.getValueFactory();
+				engineURI2 = engineBaseURI + "/" + engineName;
 				System.out.println("Engine URI is " + engineURI2);
 				
 				System.out.println("Insights is " + insights);
 
 
 				// add it to the core connection
-				insightBase.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
+				insightBaseXML.rc.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
 				
 				// need to do the same with the owl
 				String owl = Utility.retrieveResult(api + "/s-" + database + "/getOWLDefinition", null);
