@@ -384,7 +384,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	@Override
 	public void setQuery(String query) {
 		LOGGER.info("New Query " + query);
-		String[] querySplit = query.split(";");
+		String[] querySplit = query.split("\\+\\+\\+");
 		if(querySplit.length == 1) {
 			this.query = query;
 		} else if(querySplit.length == 2) {
