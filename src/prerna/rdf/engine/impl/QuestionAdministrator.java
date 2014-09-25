@@ -93,8 +93,7 @@ public class QuestionAdministrator {
 	}
 	
 	public QuestionAdministrator (IEngine engine, ArrayList<String> questionList, String selectedPerspective, String questionModType){
-		this.engine = engine;
-		insightBaseXML = ((AbstractEngine)engine).getInsightBaseXML();
+		this(engine);
 		
 		this.questionList = questionList;
 		this.selectedPerspective = selectedPerspective;
