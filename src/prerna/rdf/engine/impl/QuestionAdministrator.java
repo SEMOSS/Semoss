@@ -290,7 +290,7 @@ public class QuestionAdministrator {
 				String option = parameterProperties.get(optionKey);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:OPTION", option,false);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:TYPE", type, false);	
-				insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+				insightBaseXML.addStatement(qsParamKey, "PARAM:HAS:DEPEND", "false", false);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 			}
 			else {
@@ -313,7 +313,7 @@ public class QuestionAdministrator {
 					// qsKey_paramkey  - qsKey:Depends - result
 					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
 					StringTokenizer depTokens = new StringTokenizer(result, ";");
-					insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
+					insightBaseXML.addStatement(qsParamKey, "PARAM:HAS:DEPEND", "true", false);
 					while(depTokens.hasMoreElements())
 					{
 						String depToken = depTokens.nextToken();
@@ -322,7 +322,7 @@ public class QuestionAdministrator {
 				}						
 				else
 				{
-					insightBaseXML.addStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+					insightBaseXML.addStatement(qsParamKey, "PARAM:HAS:DEPEND", "false", false);
 					insightBaseXML.addStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 				}
 				if(type.equals("DataObject")){
@@ -355,7 +355,7 @@ public class QuestionAdministrator {
 				String option = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.OPTION);
 				insightBaseXML.removeStatement(qsParamKey, "PARAM:OPTION", option,false);
 				insightBaseXML.removeStatement(qsParamKey, "PARAM:TYPE", type, false);	
-				insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+				insightBaseXML.removeStatement(qsParamKey, "PARAM:HAS:DEPEND", "false", false);
 				insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 			}
 			else {	
@@ -378,7 +378,7 @@ public class QuestionAdministrator {
 					// qsKey_paramkey  - qsKey:Depends - result
 					result = parameterProperties.get(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
 					StringTokenizer depTokens = new StringTokenizer(result, ";");
-					insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "true", false);
+					insightBaseXML.removeStatement(qsParamKey, "PARAM:HAS:DEPEND", "true", false);
 					while(depTokens.hasMoreElements())
 					{
 						String depToken = depTokens.nextToken();
@@ -387,7 +387,7 @@ public class QuestionAdministrator {
 				}						
 				else
 				{
-					insightBaseXML.removeStatement(qsParamKey, "HAS:PARAM:DEPEND", "false", false);
+					insightBaseXML.removeStatement(qsParamKey, "PARAM:HAS:DEPEND", "false", false);
 					insightBaseXML.removeStatement(qsParamKey, "PARAM:DEPEND", "None", false);
 				}
 		
