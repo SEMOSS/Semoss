@@ -384,7 +384,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					String cleanValue = value;//.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.removeStatements(newSub, newPred, vf.createLiteral(cleanValue));
 				} 
 			}
