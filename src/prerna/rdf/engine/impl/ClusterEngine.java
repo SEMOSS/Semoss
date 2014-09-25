@@ -70,7 +70,7 @@ public class ClusterEngine extends AbstractEngine {
 		if(con != null)
 		{
 			try {
-				insightBase.add(con.getStatements(null, null, null, true));				
+				insightBaseXML.rc.add(con.getStatements(null, null, null, true));				
 			}catch(RepositoryException ex)
 			{
 				logger.debug(ex);
@@ -81,13 +81,13 @@ public class ClusterEngine extends AbstractEngine {
 	
 	public void initializeInsightBase()
 	{
-		if(insightBase == null)
+		if(insightBaseXML.rc == null)
 		{
 			try {
 				Repository myRepository = new SailRepository(
 						new ForwardChainingRDFSInferencer(new MemoryStore()));
 				myRepository.initialize();
-				insightBase = myRepository.getConnection();
+				insightBaseXML.rc = myRepository.getConnection();
 			} catch (RepositoryException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
