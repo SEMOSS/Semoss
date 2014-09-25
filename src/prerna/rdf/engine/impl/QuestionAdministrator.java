@@ -285,7 +285,7 @@ public class QuestionAdministrator {
 			// see if the param key has options (not a query) associated with it
 			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
 			//if so, add the list of options and set the type ot be a literal
-			String optionKey = qsKey + "_" + type +"_" + Constants.OPTION;
+			String optionKey = qsKey + "_" + paramKey +"_" + Constants.OPTION;
 			if(parameterProperties.get(optionKey) != null) {
 				String option = parameterProperties.get(optionKey);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:OPTION", option,false);
