@@ -82,7 +82,7 @@
     <script src="lib/bootstrap-slider.js"></script>
     <script src="lib/d3.slider.js"></script>
     <script src="lib/taffy-min.js"></script>
-    <!--<script src="data/timeline-data.js"></script>-->
+    <!--<script src="data/timeline-data2.js"></script>-->
 
     <script>
 
@@ -105,30 +105,60 @@
 //                    $timeout(function () {
 //                        $scope.forceData = timeline_data;
 //
-//                        if (hasTimeHash($scope.forceData.nodes)) {
+//                        var tableData = [];
+//
+//                        //check if it nodes and/or edges have timeHash
+//                        var nodesTimeHash = hasTimeHash($scope.forceData.nodes);
+//                        var edgesTimeHash = hasTimeHash($scope.forceData.edges);
+//
+//                        if (nodesTimeHash && edgesTimeHash) {
+//                            $scope.timeHashLocation = "Both";
+//                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
+//                            var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
+//                            //combine tables
+//                            for (var i=0; i<edgeTableData.length; i++) {
+//                                tableData.push(edgeTableData[i]);
+//                            }
+//                        } else if (nodesTimeHash) {
 //                            $scope.timeHashLocation = "Nodes";
-//                            createTableModel($scope.forceData.nodes);
-//                        } else {
+//                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
+//                        } else if (edgesTimeHash) {
 //                            $scope.timeHashLocation = "Edges";
-//                            createTableModel($scope.forceData.edges);
+//                            tableData = createTableModel($scope.forceData.edges, "Edges");
 //                        }
 //
+//                        tableDB = TAFFY(tableData);
 //                        setTableData(0);
 //
 //                    }, 500);
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
-                            $scope.forceData = jQuery.parseJSON(data);
 
-                            if (hasTimeHash($scope.forceData.nodes)) {
+                            $scope.forceData = JSON.parse(data);
+                            var tableData = [];
+
+                            //check if it nodes and/or edges have timeHash
+                            var nodesTimeHash = hasTimeHash($scope.forceData.nodes);
+                            var edgesTimeHash = hasTimeHash($scope.forceData.edges);
+
+                            if (nodesTimeHash && edgesTimeHash) {
+                                $scope.timeHashLocation = "Both";
+                                tableData = createTableModel($scope.forceData.nodes, "Nodes");
+                                var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
+                                //combine tables
+                                for (var i=0; i<edgeTableData.length; i++) {
+                                    tableData.push(edgeTableData[i]);
+                                }
+                            } else if (nodesTimeHash) {
                                 $scope.timeHashLocation = "Nodes";
-                                createTableModel($scope.forceData.nodes);
-                            } else {
+                                tableData = createTableModel($scope.forceData.nodes, "Nodes");
+                            } else if (edgesTimeHash) {
                                 $scope.timeHashLocation = "Edges";
-                                createTableModel($scope.forceData.edges);
+                                tableData = createTableModel($scope.forceData.edges, "Edges");
                             }
 
+                            tableDB = TAFFY(tableData);
                             setTableData(0);
 
                         });
@@ -143,13 +173,13 @@
                         return false;
                     }
 
-                    function createTableModel(itemArray) {
+                    function createTableModel(itemArray, timeHashLocation) {
                         var tableData = [];
 
-                        if ($scope.timeHashLocation == "Nodes") {
+                        if (timeHashLocation == "Nodes") {
                             var name = "VERTEX_LABEL_PROPERTY";
                             var type = "VERTEX_TYPE_PROPERTY";
-                        } else if ($scope.timeHashLocation == "Edges") {
+                        } else if (timeHashLocation == "Edges") {
                             var name = "EDGE_NAME";
                             var type = "EDGE_TYPE";
                         }
@@ -166,7 +196,7 @@
                                         startLOE: 0,
                                         LOE: 0,
                                         totalLOE: 0,
-                                        dependICDS: "",
+                                        dependICDS: [],
                                         gltag: "",
                                         type: itemArray[item].propHash[type]
                                     };
@@ -180,6 +210,9 @@
 
                                     for (var i = 0; i < phases.length; i++) {
                                         if (itemArray[item].propHash.timeHash[phases[i]]) {
+
+                                            //parse the dependent icds list
+                                            itemArray[item].propHash.timeHash[phases[i]].dependICDS = jQuery.parseJSON(itemArray[item].propHash.timeHash[phases[i]].dependICDS);
 
                                             //new item data model
                                             var newItem = {};
@@ -205,6 +238,7 @@
                                         }
                                     }
 
+                                    //add the completed state
                                     var newItem = {
                                         name: itemArray[item].propHash[name],
                                         uri: itemArray[item].uri,
@@ -229,7 +263,7 @@
                                     startLOE: 0,
                                     LOE: 0,
                                     totalLOE: 0,
-                                    dependICDS: "",
+                                    dependICDS: [],
                                     gltag: "",
                                     type: itemArray[item].propHash[type]
                                 };
@@ -237,7 +271,9 @@
                             }
 
                         }
-                        tableDB = TAFFY(tableData);
+
+                        return tableData;
+
                     };
 
                     function setTableData(sliderValue) {
@@ -246,7 +282,10 @@
                         //get all dependent ICDs that can be decommissioned
                         tableDB().each(function(item) {
                             if (item.totalLOE < sliderValue && item.phase == "Completed") {
-                                dependICDs.push(item.dependICDS);
+                                for (var i=0; i<item.dependICDS.length; i++) {
+                                    dependICDs.push(item.dependICDS[i]);
+                                }
+
                             }
                         });
 
@@ -260,7 +299,7 @@
 
 
                             //show all the ICDs at t=0
-                            if (sliderValue == 0 && this.type == "InterfaceControlDocument" && this.phase != "Decommissioned" && this.totalLOE == 0) {
+                            if (sliderValue == 0 && this.phase != "Decommissioned" && this.totalLOE == 0) {
                                 return true;
                             } else if (sliderValue !== 0) {
 
@@ -327,7 +366,11 @@
                     };
 
                     $scope.setFinalStateSlider = function() {
-                        $scope.$broadcast("set-slider-final", $scope.maxLOE + 1);
+                        if ($scope.maxLOE == 1) {
+                            $scope.$broadcast("set-slider-final", 1);
+                        } else {
+                            $scope.$broadcast("set-slider-final", $scope.maxLOE + 1);
+                        }
                     };
 
                     $scope.freezeNodes = function() {
@@ -428,7 +471,7 @@
                                 //set up new slider
                                 var sliderMax = 0;
                                 var axisState = true;
-                                if (scope.maxLoe == 0) {
+                                if (scope.maxLoe == 0 || scope.maxLoe == 1) {
                                     scope.maxLoe = 1;
                                     sliderMax = 1;
                                     axisState = d3.svg.axis().ticks(1);
@@ -834,6 +877,7 @@
                             function getInitialNodes() {
                                 var returnNodes = {};
 
+                                //goes through all nodes and only return ones that don't have a timeHash or have a timeHash with Decommissioned
                                 for (var node in allForceData.nodes) {
                                     if (!allForceData.nodes[node].propHash.timeHash || (allForceData.nodes[node].propHash.timeHash && allForceData.nodes[node].propHash.timeHash["Decommissioned"])) {
                                         returnNodes[node] = allForceData.nodes[node];
@@ -856,7 +900,7 @@
                                             }
                                         }
 
-                                        if (scope.timeHash == "Edges") {
+                                        if (scope.timeHash == "Edges" || scope.timeHash == "Both") {
                                             //check edges themselves for timeHash
                                             bool = checkForNonTimeHash(returnNodes[node].inEdge[j]);
                                             if (bool) {
@@ -878,7 +922,7 @@
                                                 }
                                             }
 
-                                            if (scope.timeHash == "Edges") {
+                                            if (scope.timeHash == "Edges" || scope.timeHash == "Both") {
                                                 //check edges themselves for timeHash
                                                 bool = checkForNonTimeHash(returnNodes[node].outEdge[j]);
                                                 if (bool) {
@@ -924,10 +968,6 @@
                                     }
 
                                     for (var node in returnNodes) {
-                                        if (node == "http://health.mil/ontologies/Concept/System/CHCS") {
-                                            console.log();
-                                        }
-
 
                                         var hasNormalConnection = false;
                                         for (var i=0; i<returnNodes[node].inEdge.length; i++) {
@@ -969,6 +1009,7 @@
 
                                 } else if (scope.timeHash == "Edges") {
 
+                                    //loop through all nodes, looking at all the edges that node has and then making sure not all edges have a timeHash with Decommissioned
                                     for (var node in allForceData.nodes) {
 
                                         var hasNormalEdge = false;
@@ -1005,6 +1046,60 @@
                                         }
 
                                     }
+                                } else if (scope.timeHash == "Both") {
+                                    var initialNodesSet = {};
+                                    //loop through all nodes and remove the nodes and only add ones that do not get decommissioned
+                                    for (var node in allForceData.nodes) {
+                                        if (!allForceData.nodes[node].propHash.timeHash || (allForceData.nodes[node].propHash.timeHash && !allForceData.nodes[node].propHash.timeHash["Decommissioned"])) {
+                                            initialNodesSet[node] = allForceData.nodes[node];
+                                        }
+                                    }
+
+                                    //loop through the nodes and return nodes that have edges that aren't decommissioned and have connections with nodes that aren't decommissioned
+                                    for (var node in initialNodesSet) {
+
+                                        var hasNormalEdge = false;
+
+                                        for (var i = 0; i < initialNodesSet[node].inEdge.length; i++) {
+
+                                            var connectedNode = findNodeinAllNodes(initialNodesSet[node].inEdge[i].source);
+
+                                            if ((initialNodesSet[node].inEdge[i].propHash.timeHash && initialNodesSet[node].inEdge[i].propHash.timeHash["Decommissioned"])
+                                                    || (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"])) {
+                                                continue;
+                                            }
+                                            //assume we run into an edge that's not decommissioned
+                                            else {
+                                                hasNormalEdge = true;
+                                                break;
+                                            }
+
+                                        }
+
+                                        //if the inEdge array didn't have any normal edges check the outEdge
+                                        if (!hasNormalEdge) {
+                                            for (var i = 0; i < initialNodesSet[node].outEdge.length; i++) {
+
+                                                var connectedNode = findNodeinAllNodes(initialNodesSet[node].outEdge[i].source);
+
+                                                if ((initialNodesSet[node].outEdge[i].propHash.timeHash && initialNodesSet[node].outEdge[i].propHash.timeHash["Decommissioned"])
+                                                        || (connectedNode.propHash.timeHash &&  connectedNode.propHash.timeHash["Decommissioned"])) {
+                                                    continue;
+                                                }
+                                                //assume we run into an edge that's not decommissioned
+                                                else {
+                                                    hasNormalEdge = true;
+                                                    break;
+                                                }
+
+                                            }
+                                        }
+
+                                        if (hasNormalEdge) {
+                                            returnNodes[node] = initialNodesSet[node];
+                                        }
+                                    }
+
                                 }
 
 
@@ -1050,11 +1145,26 @@
                                 var dependICDs = [];
 
                                 //looping through all links to find the dependent ICDs based on where the slider is
+                                for (var i=0; i<nodes.length; i++) {
+                                    if (nodes[i].propHash.timeHash && !nodes[i].propHash.timeHash["Decommissioned"]) {
+                                        for (var phase in nodes[i].propHash.timeHash) {
+                                            if (nodes[i].propHash.timeHash[phase].totalLOE < sliderValue && sliderValue > nodes[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
+                                                for (var icd in nodes[i].propHash.timeHash[phase].dependICDS) {
+                                                    dependICDs.push(nodes[i].propHash.timeHash[phase].dependICDS[icd]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                //looping through all links to find the dependent ICDs based on where the slider is
                                 for (var i=0; i<links.length; i++) {
                                     if (links[i].propHash.timeHash && !links[i].propHash.timeHash["Decommissioned"]) {
                                         for (var phase in links[i].propHash.timeHash) {
                                             if (links[i].propHash.timeHash[phase].totalLOE < sliderValue && sliderValue > links[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
-                                                dependICDs.push(links[i].propHash.timeHash[phase].dependICDS);
+                                                for (var icd in links[i].propHash.timeHash[phase].dependICDS) {
+                                                    dependICDs.push(links[i].propHash.timeHash[phase].dependICDS[icd]);
+                                                }
                                             }
                                         }
                                     }
@@ -1076,11 +1186,28 @@
                                     if (nodes[i].propHash.timeHash && !nodes[i].propHash.timeHash["Decommissioned"]) {
                                         for (var phase in nodes[i].propHash.timeHash) {
                                             if (nodes[i].propHash.timeHash[phase].totalLOE < sliderValue && sliderValue > nodes[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
-                                                dependICDs.push(nodes[i].propHash.timeHash[phase].dependICDS);
+                                                for (var icd in nodes[i].propHash.timeHash[phase].dependICDS) {
+                                                    dependICDs.push(nodes[i].propHash.timeHash[phase].dependICDS[icd]);
+                                                }
                                             }
                                         }
                                     }
                                 }
+
+                                //looping through all links to find the dependent ICDs based on where the slider is
+                                for (var i=0; i<links.length; i++) {
+                                    if (links[i].propHash.timeHash && !links[i].propHash.timeHash["Decommissioned"]) {
+                                        for (var phase in links[i].propHash.timeHash) {
+                                            if (links[i].propHash.timeHash[phase].totalLOE < sliderValue && sliderValue > links[i].propHash.timeHash[phase].startLOE && phase == "Completed") {
+                                                for (var icd in links[i].propHash.timeHash[phase].dependICDS) {
+                                                    dependICDs.push(links[i].propHash.timeHash[phase].dependICDS[icd]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+
 
                                 d3.selectAll(".node circle")
                                         .attr("fill", function(d) {
