@@ -476,7 +476,7 @@ public class LPInterfaceProcessor {
 				// else if (upstreamSysType.equals(lpniKey)) { // upstream system is LPNI
 				// 		comment += "Recommend review of developing interface DHMSM->" + upstreamSysName + ". ";
 				// } 
-				else if (downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
+				else if(downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
 					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(" Recommend review of removing interface ")
 							.concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
 					// direct cost if system is downstream
@@ -509,7 +509,7 @@ public class LPInterfaceProcessor {
 						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} 
-				if (upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
+				if(upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
 					comment = comment.concat("Provide temporary integration between DHMSM->").concat(upstreamSysName).concat(" until all deployment sites for ").concat(upstreamSysName)
 							.concat(" field DHMSM (and any additional legal requirements). ");
 					
@@ -756,12 +756,12 @@ public class LPInterfaceProcessor {
 			if(getComments && !generateCost) {
 				values[10] = comment;
 			}
-			if(noCost && !generateNewTriples) {
-				values[11] = comment;
-				values[12] = "";
-				values[13] = "";
-			} else {
-				if(generateCost) {
+			if(generateCost) {
+				if(noCost && !generateNewTriples) {
+					values[11] = comment;
+					values[12] = "";
+					values[13] = "";
+				} else {
 					if(finalCost == null) {
 						if(usePhase) {
 							sysCostInfo.remove(rowIdx);

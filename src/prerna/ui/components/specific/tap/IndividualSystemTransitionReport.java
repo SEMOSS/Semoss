@@ -287,27 +287,48 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			}
 		}
 		//TODO: need to add labels in aggregation procedure and add that to allPresentICDQuery to remove duplicate rows
-		//requires data to be ordered
-		Integer[] removeIdx = new Integer[allData.size()];
-		int counter = 0;
+		ArrayList<Integer> removeSet = new ArrayList<Integer>();
 		for(int i = 0; i < allData.size() - 1; i++) {
-			Object[] icdRow = allData.get(i);
-			Object[] nextRow = allData.get(i+1);
-			if(icdRow[2].toString().equals(nextRow[2].toString())) {
-				if(icdRow[4].toString().isEmpty() && icdRow[5].toString().isEmpty() && icdRow[6].toString().isEmpty()) {
-					removeIdx[counter] = i;
-				} else if(nextRow[4].toString().isEmpty() && nextRow[5].toString().isEmpty() && nextRow[6].toString().isEmpty()) {
-					removeIdx[counter] = i+1;
+			if(!removeSet.contains(i)) {
+				Object[] allRow = allData.get(i);
+				String allRowICD = allRow[2].toString();
+				String allProp1 = allRow[4].toString();
+				String allProp2 = allRow[5].toString();
+				String allProp3 = allRow[6].toString();
+				// loop through entire data set
+				for(int j = i+1; j < allData.size(); j++) {
+					if(!removeSet.contains(j)) {
+						Object[] removeRow = allData.get(j);
+						String removeRowICD = removeRow[2].toString();
+						String removeProp1 = removeRow[4].toString();
+						String removeProp2 = removeRow[5].toString();
+						String removeProp3 = removeRow[6].toString();
+						// same ICD in each row
+						if(allRowICD.equals(removeRowICD)) {
+							// entire row props blank
+							if(allProp1.isEmpty() && allProp2.isEmpty() && allProp3.isEmpty()) {
+								// but at least one prop not blank
+								if(!removeProp1.isEmpty() || !removeProp2.isEmpty() || !removeProp3.isEmpty()) {
+									// need to remove i;
+									removeSet.add(i);
+								}
+							// other row is all blank
+							} else if(removeProp1.isEmpty() && removeProp2.isEmpty() && removeProp3.isEmpty()) {
+								// but at least one prop not blank
+								if(!allProp1.isEmpty() || !allProp2.isEmpty() || !allProp3.isEmpty()) {
+									// need to remove j;
+									removeSet.add(j);
+								}
+							}
+						}
+					}
 				}
-				counter++;
 			}
 		}
 		int sumVal = 0;
-		for(int i = 0; i < allData.size(); i++) {
-			if(removeIdx[i] != null) {
-				allData.remove(removeIdx[i] - sumVal);
-				sumVal += 1;
-			}
+		for(int i = 0; i < removeSet.size(); i++) {
+			allData.remove(removeSet.get(i) - sumVal);
+			sumVal++;
 		}
 		
 		retHash.put(DHMSMTransitionUtility.HEADER_KEY, allICDs.get(DHMSMTransitionUtility.HEADER_KEY));
