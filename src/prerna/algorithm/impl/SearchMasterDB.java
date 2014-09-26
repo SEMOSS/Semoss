@@ -48,7 +48,8 @@ public class SearchMasterDB {
 	//for the instance's master concepts, find all the possible related keywords for each engine.
 	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?MasterConcept ?Engine ?Keyword WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}}";
 	//for a given instance, check to see if a given engine contains under the keyword type.
-	protected final static String instanceExistsQuery = "SELECT DISTINCT ?instanceURI WHERE { {?instanceURI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?instanceURI),'@INSTANCE@$'))}";
+	protected final static String instanceExistsQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?s),'@INSTANCE@$'))}";
+	protected final static String instanceURIQuery = "SELECT DISTINCT ?instanceURI WHERE { {?instanceURI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?instanceURI),'@INSTANCE@$'))} LIMIT 1";
 	//for a given list of keywords, find their master concepts.
 	protected final static String masterConceptsForSubgraphKeywordsQuery = "SELECT DISTINCT ?Keyword ?MasterConcept WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword}}";
 	protected final static String allMasterConceptsQuery = "SELECT DISTINCT ?MasterConcept WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}}";
@@ -195,7 +196,6 @@ public class SearchMasterDB {
 		//empty filter if no instances to be included
 		String databaseFilter="";
 		if(includeInstance) {
-			//TODO can a database still be relevant even if it only contains 1/2 of the instances of interest?
 			ArrayList<String> databaseList = filterDatabaseList();
 			if(databaseList.isEmpty()) {
 				logger.error("No databases include the instances given.");
@@ -316,7 +316,7 @@ public class SearchMasterDB {
 		for(int eInd=0;eInd<engines.size();eInd++) {
 			String engineName = engines.get(eInd);
 			IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(engineName);
-			if(engineContainsAllInstances(engine,keywordsForEngines))
+			if(engine!=null&&engineContainsAllInstances(engine,keywordsForEngines))
 				filteredEngines.add(engineName);
 		}
 		
@@ -341,15 +341,23 @@ public class SearchMasterDB {
 
 			Boolean foundResults = false;
 			for(int i=0;i<possibleKeywordURIs.size();i++) {
+				//this is to optimize. do an ask to see if it contains and if so then select the full uri
+				//i could do this in just the second query, but it is much slower to run selects on all possible keyword/instance pairs
+				
 				String possibleKeywordURI = possibleKeywordURIs.get(i);
 				String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
-				ArrayList<String> instanceURIs = processListQuery(engine,instanceExistsQueryFilled,true);
-				String engineMCKeywordKey = engine.getEngineName()+"_"+mc+"_"+possibleKeywordURI;
-				if(!instanceURIs.isEmpty()) {
+				BooleanProcessor proc = new BooleanProcessor();
+				proc.setEngine(engine);
+				proc.setQuery(instanceExistsQueryFilled);
+				if(proc.processQuery()) {
+					String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
+					ArrayList<String> instanceURIs = processListQuery(engine,instanceURIQueryFilled,true);
+					String engineMCKeywordKey = engine.getEngineName()+"_"+mc+"_"+possibleKeywordURI;
 					if(thisEngineURIs.containsKey(engineMCKeywordKey))
 						instanceURIs.addAll(thisEngineURIs.get(engineMCKeywordKey));
 					thisEngineURIs.put(engineMCKeywordKey,instanceURIs);
 					foundResults = true;
+					
 				}
 			}
 			
@@ -360,35 +368,6 @@ public class SearchMasterDB {
 		urisForMCEng.putAll(thisEngineURIs);
 		return true;
 	}
-//	
-//	private Boolean databaseContainsInstance(IEngine engine, String mc, String instance, int instanceInd) {
-//		String getPossibleKeywordsQueryFilled = getPossibleKeywordsQuery.replaceAll("@MASTERCONCEPT@",mc).replaceAll("@ENGINE@", engine.getEngineName());
-//		ArrayList<String> possibleKeywordList = processListQuery(masterEngine,getPossibleKeywordsQueryFilled);
-//		Boolean retval=false;
-//		if(possibleKeywordList.isEmpty())
-//			return false;
-//		for(int i=0;i<possibleKeywordList.size();i++) {
-//			String possibleKeyword = possibleKeywordList.get(i);
-//			String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORD@", possibleKeyword).replaceAll("@KEYWORDINSTANCE@","/"+instance);
-//			
-//			BooleanProcessor proc = new BooleanProcessor();
-//			proc.setEngine(engine);
-//			proc.setQuery(instanceExistsQueryFilled);
-//			if(proc.processQuery()) {
-//				Hashtable<String,ArrayList<String>> engineKeywordHash = engineKeywordForInstanceList.get(instanceInd);
-//				ArrayList<String> enginesKeywords = new ArrayList<String>();
-//				if(engineKeywordHash.containsKey(engine.getEngineName()))
-//					enginesKeywords = engineKeywordHash.get(engine.getEngineName());
-//				if(!enginesKeywords.contains(possibleKeyword))
-//					enginesKeywords.add(possibleKeyword);
-//				engineKeywordHash.put(engine.getEngineName(),enginesKeywords);
-//				engineKeywordForInstanceList.set(instanceInd, engineKeywordHash);
-//				retval=true;
-//			}
-//		}
-//		
-//		return retval;
-//	}
 	
 	private String createDatabaseFilter(ArrayList<String> databaseList) {
 		String databaseFilter ="";
