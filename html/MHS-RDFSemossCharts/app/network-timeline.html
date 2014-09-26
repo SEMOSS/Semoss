@@ -610,9 +610,11 @@
                                     .on("tick", tick);
 
                             var drag = force.drag()
-                                    .origin(function (d) {
-                                        return d;
-                                    }); //center of circle
+                                    .origin(function(d) { return d; }) //center of circle
+                                    .on("dragstart", dragstarted)
+                                    .on('drag.force', dragged)
+                                    .on("drag", dragged)
+                                    .on("dragend", dragended);
 
                             var svg = d3.select(ele[0]).append("svg")
                                     .attr("width", width)
@@ -1345,6 +1347,30 @@
                                         .attr("height", newHeight);
                                 force.size([newWidth, newHeight]).resume();
                             }
+
+                            //Please comment
+                            function dragstarted(d){
+                                d3.event.sourceEvent.stopPropagation();
+                                d3.select(this).classed("dragging", true);
+                            }
+
+                            //Please comment
+                            function dragged(d){
+                                var mouse = d3.mouse(vis.node());
+                                d.x = xScale.invert(mouse[0]);
+                                d.y = yScale.invert(mouse[1]);
+                                d.px = xScale.invert(mouse[0]);
+                                d.py = yScale.invert(mouse[1]);
+                                force.resume();
+
+                                tick(); //re-position this node and any links
+                            }
+
+                            //Please comment
+                            function dragended(d){
+                                d3.select(this).classed("dragging", false);
+                            }
+
 
                             scope.$on('freeze-nodes', function() {
                                 freezeAllNodes(d3.values(nodes));
