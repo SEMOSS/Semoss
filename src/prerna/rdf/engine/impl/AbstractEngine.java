@@ -50,7 +50,6 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -99,17 +98,18 @@ public abstract class AbstractEngine implements IEngine {
 	protected static final String labelBaseURI = containsBaseURI + "/Label";
 	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
-//	protected static final String typeBaseURI = containsBaseURI + "/Type";
 	protected static final String tagBaseURI = containsBaseURI + "/Tag";
 	protected static final String descriptionBaseURI = containsBaseURI + "/Description";
 	
-	protected static final String perspectives = "SELECT ?perspective WHERE {"
-			+ "{<@engine@> <" + enginePerspectiveBaseURI + "> ?perspectiveURI.}" 
+	protected static final String perspectives = "SELECT DISTINCT ?perspective WHERE {"
+			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
+			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" 
 			+ "{?perspectiveURI <" + labelBaseURI + ">  ?perspective.}" + "}";
 
-	protected static final String insights = "SELECT ?insight WHERE {{?perspectiveURI <"
-			+ labelBaseURI + "> ?perspective .}"
-			+ "{?perspectiveURI <" + perspectiveInsightBaseURI + "> ?insightURI.}"
+	protected static final String insights = "SELECT DISTINCT ?insight WHERE {"
+			+ "{?perspectiveURI <"+ labelBaseURI + "> ?perspective .}"
+			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
+			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
 
@@ -878,7 +878,8 @@ public abstract class AbstractEngine implements IEngine {
 					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
-					+ "{?engine <" + engineInsightBaseURI + "> ?insightURI.}"
+					+ "{?engineInsight <"+Constants.SUBPROPERTY_URI+"> <"+engineInsightBaseURI+">}"
+					+ "{?engine ?engineInsight ?insightURI.}"
 					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
 					+ "}"
 					+ "BINDINGS ?insight {"+ bindingsSet + "}";
@@ -1191,15 +1192,14 @@ public abstract class AbstractEngine implements IEngine {
 	private Vector<String> getSelect(String sparql, RepositoryConnection rc,
 			String variable) {
 		Vector<String> retString = new Vector<String>();
-
 		try {
 			TupleQuery query = rc.prepareTupleQuery(QueryLanguage.SPARQL,
 					sparql);
 			TupleQueryResult res = query.evaluate();
 
-			if (!res.hasNext())
+			if (!res.hasNext()) {
 				retString = null;
-
+			}
 			while (res.hasNext()) {
 				String tag = res.next().getBinding(variable).getValue() + "";
 				tag = tag.replace("\"", "");
