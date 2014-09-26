@@ -891,7 +891,7 @@ public abstract class AbstractEngine implements IEngine {
 			while (res.hasNext()) {
 				Insight in = new Insight();
 				BindingSet bs = res.next();
-				in.setId(bs.getBinding("insightURI").getValue() + "");
+				in.setId( Utility.getInstanceName(bs.getBinding("insightURI").getValue() + ""));
 				
 				Literal lit = (Literal)bs.getValue("sparql");                         
 				String sparql = lit.getLabel();   
