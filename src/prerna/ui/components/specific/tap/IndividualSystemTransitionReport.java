@@ -124,7 +124,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			if(FutureDB==null)
 				throw new EngineException("Database not found");
 		} catch(EngineException e) {
-			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
+			Utility.showError("Could not find necessary database: FutureDB. Cannot generate report.");
 			return;
 		}
 
