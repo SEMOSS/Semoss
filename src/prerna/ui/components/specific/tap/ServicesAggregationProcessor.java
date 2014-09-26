@@ -266,6 +266,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			{
 				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Supported";
 			}
+			else if(lifeCycleList.toString().contains("LifeCycle/TBD"))
+			{
+				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/TBD";
+			}
 			else
 			{
 				lifeCycle = getBaseURI(sys) + "/Concept/LifeCycle/Retired_(Not_Supported)";
