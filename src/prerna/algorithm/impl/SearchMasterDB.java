@@ -1,17 +1,11 @@
 package prerna.algorithm.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-
-import com.bigdata.rdf.model.BigdataURIImpl;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -23,6 +17,8 @@ import prerna.ui.components.BooleanProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.bigdata.rdf.model.BigdataURIImpl;
 
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
@@ -37,7 +33,7 @@ public class SearchMasterDB {
 	
 	
 	//engine variables
-	String masterDBName = "MasterDatabase_8DBs";
+	String masterDBName = "MasterDatabase";
 	IEngine masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 
 	protected final static String semossURI = "http://semoss.org/ontologies";
@@ -60,7 +56,7 @@ public class SearchMasterDB {
 	protected final static String similarMasterConceptConnectionsOutsideQuery = "SELECT DISTINCT ?Engine ?MasterConceptConnection (IF(BOUND(?MasterConceptFrom),?MasterConceptFrom,?BoundMasterConcept) AS ?MCFrom) (IF(BOUND(?MasterConceptTo),?MasterConceptTo,?BoundMasterConcept) AS ?MCTo) WHERE {{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterConceptTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?BoundMasterConcept} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?MasterConceptTo} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?MasterConceptTo <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}UNION{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection} {?MasterConceptFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?BoundMasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?KeywordFrom <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterKeywordTo <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}  {?MasterConceptConnection <http://semoss.org/ontologies/Relation/From> ?MasterConceptFrom} {?MasterConceptConnection <http://semoss.org/ontologies/Relation/To> ?BoundMasterConcept} {?MasterConceptFrom <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordFrom} {?BoundMasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeywordTo} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordFrom} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeywordTo}}@FILTER@}";
 	protected final static String relatedQuestionsQuery = "SELECT DISTINCT ?Engine ?InsightLabel ?MasterKeyword ?PerspectiveLabel ?MasterConcept ?Viz WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MasterKeyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?Perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterKeyword} {?Insight <INSIGHT:PARAM> ?Param}{?Param <PARAM:TYPE> ?MasterKeyword} {?Engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?Perspective} {?Perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?Insight} {?Engine <http://semoss.org/ontologies/Relation/Engine:Insight> ?Insight}{?Insight <http://semoss.org/ontologies/Relation/Contains/Label> ?InsightLabel} {?Perspective <http://semoss.org/ontologies/Relation/Contains/Label> ?PerspectiveLabel} {?Insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?Viz} @FILTER@}";
 
-	double similarityThresh = 2.7;
+	double similarityThresh = .7022;
 	
 	//list of keyword and edge types in the subgraph
 	ArrayList<String> keywordList = new ArrayList<String>();
@@ -71,33 +67,28 @@ public class SearchMasterDB {
 	ArrayList<String> masterConceptsList;
 	
 	//list for instances, their keywords, and their master concepts
-	private boolean includeInstance = false;
+//	private boolean requireInstance = false;
 	ArrayList<String> instanceList;
 	ArrayList<String> keywordForInstanceList;
 	ArrayList<String> mcForInstanceList;
 	//stores the list of possible URIs for each MC_Engine combination.
 	Hashtable<String,ArrayList<String>> urisForMCEng = new Hashtable<String,ArrayList<String>>();
-	
-	private boolean debugging=false;
-	
-	public void isDebugging(boolean debugging) {
-		this.debugging=debugging;
-	}
+	String databaseFilter = "";
+	Hashtable<String, Double> engineScores;
 		
 	public void setMasterDBName(String masterDBName) {
 		this.masterDBName = masterDBName;
 		this.masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 	}
-	
+
 	/**
-	 * Specify a list of instances and their keywords
-	 * Also finds the master concepts for each of the keywords and sets them.
-	 * Assumes all keywords provided are in the master database, if not, then the master concept is just the keyword
+	 * Specify a list of instances and their keywords. Finds the master concepts for each instance.
+	 * Assumes all keywords provided are in the master database.
 	 * @param keywordForInstanceList
 	 * @param instanceList
 	 */
 	public void setInstanceList(ArrayList<SEMOSSVertex> instanceVertList) {
-		includeInstance = true;
+//		requireInstance = true;
 		this.instanceList = new ArrayList<String>();
 		this.keywordForInstanceList = new ArrayList<String>();
 		//process through instance list, add instance and type for each uri
@@ -112,6 +103,21 @@ public class SearchMasterDB {
 		}
 		//find the master concept for each instance
 		mcForInstanceList = getMCsForKeywords(keywordForInstanceList);
+	}
+	
+	/**
+	 * Specify a list of instances, their keywords, and the master concepts for each.
+	 * This is to handle cases where keywords may not be in the master database but may still be related to master concepts.
+	 * This is called by NLPSearchMasterDB.
+	 * @param instanceList
+	 * @param keywordForInstanceList
+	 * @param mcForInstanceList
+	 */
+	public void setInstanceList(ArrayList<String> instanceList,ArrayList<String> keywordForInstanceList,ArrayList<String> mcForInstanceList) {
+//		requireInstance = true;
+		this.instanceList = instanceList;
+		this.keywordForInstanceList = keywordForInstanceList;
+		this.mcForInstanceList = mcForInstanceList;
 	}
 	
 	/**
@@ -164,6 +170,10 @@ public class SearchMasterDB {
 		}
 	}
 	
+	public void setMCsForKeywords(ArrayList<String> masterConceptsList) {
+		this.masterConceptsList = masterConceptsList;
+	}
+	
 	/**
 	 * Checks to see if an edge exists in the edgeList.
 	 * True if does, false if does not.
@@ -184,7 +194,7 @@ public class SearchMasterDB {
 	 * Each database, that has any overlap with the subgraph.
 	 * Deletes the old master database if necessary.
 	 */
-	public ArrayList<Hashtable<String,Object>> searchDB() {
+	public ArrayList<Hashtable<String,Object>> findRelatedEngines() {
 
 		if(keywordList == null || keywordList.isEmpty()) {
 			logger.info("No keywords were given to search for.");
@@ -194,8 +204,7 @@ public class SearchMasterDB {
 		//if including instances, then only include databases that have those instances
 		//by creating a filter string of allowed databases to use in the queries
 		//empty filter if no instances to be included
-		String databaseFilter="";
-		if(includeInstance) {
+		if(instanceList!=null && !instanceList.isEmpty()) {
 			ArrayList<String> databaseList = filterDatabaseList();
 			if(databaseList.isEmpty()) {
 				logger.error("No databases include the instances given.");
@@ -210,7 +219,9 @@ public class SearchMasterDB {
 		//if the keywords are not in the subgraph (i.e. come from NLP),
 		//use word net to find a suitable MC
 		//if MCs still not found, then the entry will be the "keyword"
-		masterConceptsList = getMCsForKeywords(keywordList);
+		if(masterConceptsList==null || masterConceptsList.isEmpty())
+			masterConceptsList = getMCsForKeywords(keywordList);
+		
 		int numVals = 0;
 		for(int i=0;i<masterConceptsList.size();i++) {
 			if(!masterConceptsList.get(i).equals(""))
@@ -224,58 +235,56 @@ public class SearchMasterDB {
 
 		ArrayList<Hashtable<String, Object>> list = new ArrayList<Hashtable<String, Object>>();
 
-		//to look at keyword level and get all possible combinations of keywords for master concepts
-		//this is really only used for testing and debugging purposes. Otherwise, count should always be true.
-		if(debugging){
-			String simKeywords = addBindings(similarKeywordsQuery,"SubgraphKeyword",conceptBaseURI,keywordList);
-			simKeywords = addDatabaseFilter(simKeywords,databaseFilter);
-			ArrayList<Hashtable<String, Object>> similarKeywordsResults = processHashQuery(simKeywords);
-			similarKeywordsResults = addColumn(similarKeywordsResults,"Node", "Type");
-			list.addAll(similarKeywordsResults);
-			
-//			String simEdges = addBindings(similarEdgesQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
-//			simEdges = addDatabaseFilter(simEdges,databaseFilter);
-//			ArrayList<Hashtable<String, Object>> similarEdgesList = processHashQuery(simEdges);
-//			ArrayList<Hashtable<String, Object>> processedSimilarEdgesList = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesList);
-//			processedSimilarEdgesList = addColumn(processedSimilarEdgesList,"Edge", "Type");
-//			list.addAll(processedSimilarEdgesList);
-			
-		} else {//to find the score of each database, only considering master concepts and getting unique relationships
-			String simMCQuery = addBindings(similarMasterConceptsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
-			simMCQuery = addDatabaseFilter(simMCQuery,databaseFilter);
-			ArrayList<Object []> similarMasterConceptsResults = processQuery(simMCQuery);
-			
-			String simMCC = addBindings(similarMasterConceptConnectionsQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
-			simMCC = addDatabaseFilter(simMCC,databaseFilter);
-			ArrayList<Object []> similarEdgesResults = processQuery(simMCC);
-			similarEdgesResults = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesResults);
-			
-			String allMCC = addBindings(similarMasterConceptConnectionsOutsideQuery,"BoundMasterConcept",masterConceptBaseURI,masterConceptsList);
-			allMCC = addDatabaseFilter(allMCC,databaseFilter);			
-			ArrayList<Object []> allEdgesList = processQuery(allMCC);
-			
-			similarMasterConceptsResults = countDatabaseRows(similarMasterConceptsResults);
-			similarEdgesResults = countDatabaseRows(similarEdgesResults);
-			allEdgesList = countDatabaseRows(allEdgesList);
-			
-			Hashtable<String, Double> engineScores = new Hashtable<String, Double>();
-			engineScores = aggregateScores(similarMasterConceptsResults,similarEdgesResults,allEdgesList,keywordList.size()+edgeVertInList.size());
-			engineScores = normalize(engineScores);
-			
-			String questions;
-			if(includeInstance) {
-				questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,mcForInstanceList);				
-			} else {
-				questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
-			}
-			questions = addDatabaseFilter(questions,databaseFilter);
-			//ArrayList<Object []> relatedQuestionsResults = processQuery(questions);
-			
-			list = addQuestions(questions,engineScores);
-			
-		}
+		String simMCQuery = addBindings(similarMasterConceptsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
+		simMCQuery = addDatabaseFilter(simMCQuery,databaseFilter);
+		ArrayList<Object []> similarMasterConceptsResults = processQuery(simMCQuery);
+		
+		String simMCC = addBindings(similarMasterConceptConnectionsQuery,"MasterConceptFrom",masterConceptBaseURI,masterConceptsList);
+		simMCC = addDatabaseFilter(simMCC,databaseFilter);
+		ArrayList<Object []> similarEdgesResults = processQuery(simMCC);
+		similarEdgesResults = processSimilarEdgesList(edgeVertOutList,edgeVertInList,similarEdgesResults);
+		
+		String allMCC = addBindings(similarMasterConceptConnectionsOutsideQuery,"BoundMasterConcept",masterConceptBaseURI,masterConceptsList);
+		allMCC = addDatabaseFilter(allMCC,databaseFilter);			
+		ArrayList<Object []> allEdgesList = processQuery(allMCC);
+		
+		similarMasterConceptsResults = countDatabaseRows(similarMasterConceptsResults);
+		similarEdgesResults = countDatabaseRows(similarEdgesResults);
+		allEdgesList = countDatabaseRows(allEdgesList);
+		
+		engineScores = new Hashtable<String, Double>();
+		engineScores = aggregateScores(similarMasterConceptsResults,similarEdgesResults,allEdgesList,keywordList.size()+edgeVertInList.size());
+		engineScores = normalize(engineScores);
+		
+		list = createScoreHash(engineScores);
+
 		return list;
 	}
+	
+	/**
+	 * Determines the similarity of a given subgraph to other databases in the Master database.
+	 * Each database, that has any overlap with the subgraph.
+	 * Deletes the old master database if necessary.
+	 */
+	public ArrayList<Hashtable<String,Object>> findRelatedQuestions() {
+
+		ArrayList<Hashtable<String, Object>> retList = findRelatedEngines();
+		if(retList.isEmpty())
+			return retList;
+		
+		String questions;
+		if(instanceList!=null && !instanceList.isEmpty()){
+			questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,mcForInstanceList);				
+		} else {
+			questions = addBindings(relatedQuestionsQuery,"MasterConcept",masterConceptBaseURI,masterConceptsList);
+		}
+		questions = addDatabaseFilter(questions,databaseFilter);
+
+		ArrayList<Hashtable<String, Object>> list = new ArrayList<Hashtable<String, Object>>();
+		list = addQuestions(questions,engineScores);
+		return list;
+	}
+	
 
 	//TODO currently only including engines that have all the instances. should this be including engines even if there is only one instance?
 	private ArrayList<String> filterDatabaseList() {
@@ -383,9 +392,7 @@ public class SearchMasterDB {
 			masterConceptsList.add("");
 		String mcQuery = addBindings(masterConceptsForSubgraphKeywordsQuery,"Keyword",conceptBaseURI,keywordList);
 		ArrayList<Object []> keywordMasterConceptsList = processQuery(mcQuery);
-		//if all the keywords have a master concept, then link them	
-		//if there are keywords without masterconcepts, use word net to see if there are related.
-		//this primarily will happen when input comes from NLP processing.
+		//assuming that all master concepts come from the keywords
 		if(keywordList.size()<=keywordMasterConceptsList.size()) {
 			for(int i=0;i<keywordMasterConceptsList.size();i++) {
 				Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
@@ -395,46 +402,7 @@ public class SearchMasterDB {
 				masterConceptsList.set(index,concept);
 			}
 		}
-		else{
-			ArrayList<String> allMCs = processListQuery(masterEngine,allMasterConceptsQuery,false);
-			double[][] simScores;
-			try {
-				simScores = IntakePortal.WordNetMappingFunction(deepCopy(keywordList),deepCopy(allMCs));
-				for(int keyInd=0;keyInd<keywordList.size();keyInd++) {
-					String keyword = keywordList.get(keyInd);
-					keywordList.set(keyInd, Utility.cleanString(keyword,true));
-				}
-				for(int keyInd=0;keyInd<keywordList.size();keyInd++) {
-					int mcInd = 0;
-					while(mcInd<allMCs.size()) {
-						if(simScores[keyInd][mcInd]>similarityThresh) {
-							masterConceptsList.set(keyInd,allMCs.get(mcInd));
-							logger.info("Master Concept for the NLP search term "+keywordList.get(keyInd) + " is " + allMCs.get(mcInd));
-							mcInd=allMCs.size();
-						}
-						mcInd++;
-					}
-					if(masterConceptsList.get(keyInd).equals("")) {
-						logger.error("No Master Concept was found for the NLP search term "+keywordList.get(keyInd));
-					}
-				}
-			} catch (InvalidFormatException e) {
-				logger.error("Invalid Format Exception: could not do word net mapping for keywords and MCs");
-				return new ArrayList<String>();
-			} catch (IOException e) {
-				logger.error("IO Exception: could not do word net mapping for keywords and MCs");
-				return new ArrayList<String>();
-			}
-		}
 		return masterConceptsList;
-	}
-	
-	private ArrayList<String> deepCopy(ArrayList<String> list) {
-		ArrayList<String> copy = new ArrayList<String>();
-		for(String entry : list) {
-			copy.add(entry);
-		}
-		return copy;
 	}
 	
 	private ArrayList<Object []> processSimilarEdgesList(ArrayList<String> edgeVertOutList,ArrayList<String> edgeVertInList,ArrayList<Object []> similarEdgesList) {
@@ -461,13 +429,10 @@ public class SearchMasterDB {
 						String mcc = (String) possibleEdge[1];
 						edge[0] = (String) possibleEdge[0];
 						edge[1] = keywordFrom + Constants.RELATION_URI_CONCATENATOR + keywordTo;
-						if(debugging)
-							edge[2] = (String) possibleEdge[4] + Constants.RELATION_URI_CONCATENATOR + (String) possibleEdge[5];
-						else
-							edge[2] = queryMCFrom + Constants.RELATION_URI_CONCATENATOR + queryMCTo;
+						edge[2] = queryMCFrom + Constants.RELATION_URI_CONCATENATOR + queryMCTo;
 						//could put this second edge as the specific verticies going to/from
 						String databaseMCC = database + "-" + mcc;
-						if(debugging || !databaseMccList.contains(databaseMCC)){
+						if(!databaseMccList.contains(databaseMCC)){
 							processedSimilarEdgesList.add(edge);
 							databaseMccList.add(databaseMCC);
 						}
@@ -558,36 +523,29 @@ public class SearchMasterDB {
 		return list;
 	}
 	
-	private ArrayList<Hashtable<String, Object>> processHashQuery(String query) {
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,query);
-		ArrayList<Hashtable<String, Object>> list = new ArrayList<Hashtable<String, Object>>();
-		// get the bindings from it
-		String[] names = wrapper.getVariables();
-		// now get the bindings and generate the data
-		while(wrapper.hasNext())
-		{
-			SesameJenaSelectStatement sjss = wrapper.next();				
-			Hashtable<String, Object> values = new Hashtable<String, Object>();
-			for(int colIndex = 0;colIndex < names.length;colIndex++)
-				values.put(names[colIndex], sjss.getVar(names[colIndex]));
-			list.add(values);
-		}
-		return list;
-	}
-
 	/**
 	 * Adds a column in the list with the value specified.
 	 * @param list	ArrayList of Object[] where each Object[]
 	 * @param fillVal
 	 * @return
 	 */
-	private ArrayList<Hashtable<String, Object>> addColumn(ArrayList<Hashtable<String, Object>> list,String fillVal, String type) {
-		for(int i=0;i<list.size();i++) {
-			Hashtable<String, Object> currRow = list.get(i);
-			currRow.put(type, fillVal);
+	private ArrayList<Hashtable<String, Object>> createScoreHash(Hashtable<String, Double> engineScoreList) {
+		ArrayList<Hashtable<String, Object>> returnArray = new ArrayList<Hashtable<String, Object>>();
+		
+		Iterator<String> engineItr = engineScoreList.keySet().iterator();
+		while(engineItr.hasNext())
+		{			
+			String engine = engineItr.next();
+			Double score = engineScoreList.get(engine);
+
+			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
+			insightHash.put(this.dbKey, engine);
+			insightHash.put(this.scoreKey, score);
+			returnArray.add(insightHash);
 		}
-		return list;
+		return returnArray;
 	}
+	
 	
 	/**
 	 * Adds a column in the list with the value specified.
@@ -623,7 +581,7 @@ public class SearchMasterDB {
 			insightHash.put(this.instanceKey, instances);
 			
 			//if we are not including instances, add the hashtable automatically
-			if(!includeInstance)
+			if(instanceList==null || instanceList.isEmpty())
 				returnArray.add(insightHash);
 			else {
 				//for this mc/engine
