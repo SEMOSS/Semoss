@@ -34,7 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
-import prerna.algorithm.impl.IntakePortal;
+import prerna.algorithm.nlp.IntakePortal;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
