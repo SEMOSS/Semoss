@@ -46,25 +46,25 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		SearchMasterDB searchAlgo = new SearchMasterDB();
 		searchAlgo.setMasterDBName(this.engine.getEngineName());
 		
-		if(query.contains("true"))
-			searchAlgo.isDebugging(true);
-		else
-			searchAlgo.isDebugging(false);
-		
+		ArrayList<Hashtable<String, Object>> hashArray = new ArrayList<Hashtable<String, Object>>();
 		if(query.contains("1")){
 			createMetamodelSubgraphData();
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, true);
-		} else if(query.contains("2")) {
+			hashArray = searchAlgo.findRelatedEngines();
+			flattenHash(hashArray);
+		} else if(query.contains("2")) {//engines must have instances but doesn't return questions
 			createInstanceSubgraphData();
+			searchAlgo.setInstanceList(instanceList);
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, false);
-		} else if(query.contains("3")) {
+			hashArray = searchAlgo.findRelatedEngines();
+			flattenHash(hashArray);
+		} else if(query.contains("3")) {//engines must have instances and returns questions
 			createInstanceSubgraphData2();
 			searchAlgo.setInstanceList(instanceList);
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, false);
+			hashArray = searchAlgo.findRelatedQuestions();
+			flattenHash(hashArray);
 		}
-		
-		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.searchDB();
-		flattenHash(hashArray);
 	}
 
 	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
@@ -129,73 +129,37 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore = new Hashtable<String, SEMOSSEdge>();
 		
-		SEMOSSVertex icd1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/CDR-AHLTA-Referral_Information");
-		SEMOSSVertex icd2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/BHIE-AHLTA-Referral_Information");
-		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");
-		SEMOSSVertex system1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/CDR");
 		SEMOSSVertex system2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
-		SEMOSSVertex system3 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/BHIE");
-		
-		vertStore.put(icd1.uri,icd1);
-		vertStore.put(icd2.uri,icd2);
-		vertStore.put(data.uri,data);
-		vertStore.put(system1.uri,system1);
+
 		vertStore.put(system2.uri,system2);
-		vertStore.put(system3.uri,system3);
-		
-		SEMOSSEdge icd1Data = new SEMOSSEdge(icd1,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
-		SEMOSSEdge system1ICD1 = new SEMOSSEdge(system1,icd1,"http://health.mil/ontologies/Relation/Provide/CDR:CDR-AHLTA-Referral_Information");
-		SEMOSSEdge icdSystem2 = new SEMOSSEdge(icd1,system2,"http://health.mil/ontologies/Relation/Consume/CDR-AHLTA-Referral_Information:AHLTA");
-		
-		SEMOSSEdge icd2Data = new SEMOSSEdge(icd2,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
-		SEMOSSEdge system3ICD2 = new SEMOSSEdge(system3,icd2,"http://health.mil/ontologies/Relation/Provide/BHIE:BHIE-AHLTA-Referral_Information");
-		SEMOSSEdge icd2System2 = new SEMOSSEdge(icd2,system2,"http://health.mil/ontologies/Relation/Consume/BHIE-AHLTA-Referral_Information:AHLTA");
-		
-		edgeStore.put(icd1Data.getURI(), icd1Data);
-		edgeStore.put(system1ICD1.getURI(), system1ICD1);
-		edgeStore.put(icdSystem2.getURI(), icdSystem2);
-		edgeStore.put(icd2Data.getURI(), icd2Data);
-		edgeStore.put(system3ICD2.getURI(), system3ICD2);
-		edgeStore.put(icd2System2.getURI(), icd2System2);
+		instanceList.add(system2);
+
 	}
 	private void createInstanceSubgraphData2() {
 		
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore = new Hashtable<String, SEMOSSEdge>();
 		
-		SEMOSSVertex system = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
-		vertStore.put(system.uri,system);
-		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");
+		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");		
+		SEMOSSVertex icd1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/CDR-AHLTA-Referral_Information");
+		SEMOSSVertex system1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/CDR");
+		SEMOSSVertex system2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
+		
+		vertStore.put(icd1.uri,icd1);
+		vertStore.put(data.uri,data);
+		vertStore.put(system1.uri,system1);
+		vertStore.put(system2.uri,system2);
 		vertStore.put(data.uri,data);
 		
-		instanceList.add(system);
+		instanceList.add(system1);
 		instanceList.add(data);
 
-//		vertStore = new Hashtable<String, SEMOSSVertex>();
-//		edgeStore = new Hashtable<String, SEMOSSEdge>();
-//		
-//		SEMOSSVertex icd1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/InterfaceControlDocument/CDR-AHLTA-Referral_Information");
-//		SEMOSSVertex data = new SEMOSSVertex("http://semoss.org/ontologies/Concept/DataObject/Referral_Information");
-//		SEMOSSVertex system1 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/CDR");
-//		SEMOSSVertex system2 = new SEMOSSVertex("http://semoss.org/ontologies/Concept/System/AHLTA");
-//		
-//		vertStore.put(icd1.uri,icd1);
-//		vertStore.put(data.uri,data);
-//		vertStore.put(system1.uri,system1);
-//		vertStore.put(system2.uri,system2);
-//		
-//		SEMOSSEdge icd1Data = new SEMOSSEdge(icd1,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
-//		SEMOSSEdge system1ICD1 = new SEMOSSEdge(system1,icd1,"http://health.mil/ontologies/Relation/Provide/CDR:CDR-AHLTA-Referral_Information");
-//		SEMOSSEdge icdSystem2 = new SEMOSSEdge(icd1,system2,"http://health.mil/ontologies/Relation/Consume/CDR-AHLTA-Referral_Information:AHLTA");
-//
-//		edgeStore.put(icd1Data.getURI(), icd1Data);
-//		edgeStore.put(system1ICD1.getURI(), system1ICD1);
-//		edgeStore.put(icdSystem2.getURI(), icdSystem2);
-//		
-//		keywordList.add("System");
-//		instanceList.add("AHLTA");		
-//		
-//		keywordList.add("DataObject");
-//		instanceList.add("Referral_Information");		
+		SEMOSSEdge icd1Data = new SEMOSSEdge(icd1,data,"http://health.mil/ontologies/Relation/Payload/CDR-AHLTA-Referral_Information:Referral_Information");
+		SEMOSSEdge system1ICD1 = new SEMOSSEdge(system1,icd1,"http://health.mil/ontologies/Relation/Provide/CDR:CDR-AHLTA-Referral_Information");
+		SEMOSSEdge icdSystem2 = new SEMOSSEdge(icd1,system2,"http://health.mil/ontologies/Relation/Consume/CDR-AHLTA-Referral_Information:AHLTA");
+
+		edgeStore.put(icd1Data.getURI(), icd1Data);
+		edgeStore.put(system1ICD1.getURI(), system1ICD1);
+		edgeStore.put(icdSystem2.getURI(), icdSystem2);
 	}
 }

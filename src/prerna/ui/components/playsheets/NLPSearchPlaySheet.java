@@ -26,9 +26,7 @@ import java.util.Iterator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.QuestionNLP;
-import prerna.algorithm.impl.SearchMasterDB;
-import prerna.util.Utility;
+import prerna.algorithm.impl.NLPSearchMasterDB;
 
 /**
  * The SearchMasterDBPlaySheet class is used to test the Search feature for the MasterDB.
@@ -43,45 +41,9 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		
-		SearchMasterDB searchAlgo = new SearchMasterDB();
-		searchAlgo.setMasterDBName(this.engine.getEngineName());
-
-		QuestionNLP qp = new QuestionNLP();
-		ArrayList<String[]> relationshipList = qp.Question_Analyzer(query);
-		ArrayList<String> vertList = new ArrayList<String>();
-		ArrayList<String> edgeInList = new ArrayList<String>();
-		ArrayList<String> edgeOutList = new ArrayList<String>();
-		if(relationshipList.isEmpty()) {
-			LOGGER.info("NLP of input string returned no relationships.");
-//			Utility.showError("NLP of input string returned no relationships. Please try a different question.");
-//			return;
-		}
-		for(String [] relationship : relationshipList) {
-			String subj = relationship[0];
-			String obj = relationship[1];
-			subj = Utility.cleanString(subj, true);
-			obj = Utility.cleanString(obj, true);
-			if(!vertList.contains(subj))
-				vertList.add(subj);
-			if(!vertList.contains(obj))
-				vertList.add(obj);
-			edgeOutList.add(subj);
-			edgeInList.add(obj);
-			LOGGER.info("NLP found relationship between " + subj + " AND "+obj);
-		}
-		
-		ArrayList<String> nodeList = qp.Question_Analyzer2(query);
-		for(String node : nodeList) {
-			Utility.cleanString(node,true);
-			if(!vertList.contains(node))
-				vertList.add(node);
-			LOGGER.info("NLP found node "+node);
-		}
-		
-		
-		searchAlgo.setKeywordAndEdgeList(vertList, edgeOutList, edgeInList);
-		
-		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.searchDB();
+		NLPSearchMasterDB searchAlgo = new NLPSearchMasterDB();
+		searchAlgo.setMasterDBName(this.engine.getEngineName());	
+		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.findRelatedQuestions(query);
 		flattenHash(hashArray);
 	}
 	
