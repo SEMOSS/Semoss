@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
-package prerna.algorithm.impl;
+package prerna.algorithm.nlp;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -71,7 +71,6 @@ public class QuestionNLP {
 		final String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String fileSeparator = System.getProperty("file.separator");
 		String file =  baseDirectory + fileSeparator + "NLPartifacts" + fileSeparator + "englishPCFG.ser";
-//		String file = "C:\\Users\\ksmart\\workspace64bitNew\\SEMOSS_2014\\NLPartifacts\\englishPCFG.ser";
 		lp = LexicalizedParser.loadModel(file);
 		pipeline = new StanfordCoreNLP();
 		Noun_POS.add("NN");
@@ -99,7 +98,7 @@ public class QuestionNLP {
 		
 	}
 	
-	public static List<TypedDependency> CreateDepList(String TheSentence, List<TypedDependency> tdl, List<TaggedWord> TaggedWords)
+	private static List<TypedDependency> CreateDepList(String TheSentence, List<TypedDependency> tdl, List<TaggedWord> TaggedWords)
 	{
 		//picking the grammer sheet to use for parsing
 
@@ -185,7 +184,7 @@ public class QuestionNLP {
 		return phraselist;
 }
 	
-	public static Hashtable<GrammaticalRelation, Vector<TypedDependency>> setHash(List<TypedDependency> tdl,Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHashA)
+	private static Hashtable<GrammaticalRelation, Vector<TypedDependency>> setHash(List<TypedDependency> tdl,Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHashA)
 	{
 		for(int tdlIndex = 0;tdlIndex < tdl.size();tdlIndex++)
 		{
@@ -201,7 +200,7 @@ public class QuestionNLP {
 		return nodeHashA;
 	}
 	
-	public static ArrayList<String[]> findVerbTriples(GrammaticalRelation subjR, GrammaticalRelation objR)
+	private static ArrayList<String[]> findVerbTriples(GrammaticalRelation subjR, GrammaticalRelation objR)
 	{
 		ArrayList<String[]> NounPhrases = new ArrayList<String[]>();
 		//ArrayList<String> NounPhrases = new ArrayList<String>();
@@ -287,7 +286,7 @@ public class QuestionNLP {
 		return NounPhrases;
 	}
 	
-	public static TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, GrammaticalRelation relation) {
+	private static TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, GrammaticalRelation relation) {
 
 		TreeGraphNode retNode = subj;
 		// find all the complements
@@ -321,7 +320,7 @@ public class QuestionNLP {
 	
 	
 	// finds the expanded object
-	public static TreeGraphNode findCompObject(TreeGraphNode subj)
+	private static TreeGraphNode findCompObject(TreeGraphNode subj)
 	{
 		TreeGraphNode retNode = subj;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
@@ -357,7 +356,7 @@ public class QuestionNLP {
 		return retNode;
 	}
 	
-	public static String getFullNoun(TreeGraphNode node)
+	private static String getFullNoun(TreeGraphNode node)
 	{
 		String finalObject = "";
 		boolean npFound = false;
@@ -390,7 +389,7 @@ public class QuestionNLP {
 		return finalObject;
 	}
 	
-	public static TreeGraphNode findCompSubject(TreeGraphNode subj)
+	private static TreeGraphNode findCompSubject(TreeGraphNode subj)
 	{
 		TreeGraphNode retNode = subj;
 		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
@@ -440,7 +439,7 @@ public class QuestionNLP {
 	}
 	
 	
-	public static String findPrepNounForPredicate(TreeGraphNode noun)
+	private static String findPrepNounForPredicate(TreeGraphNode noun)
 	{
 		// given the preperator
 		// complete the string
@@ -466,7 +465,7 @@ public class QuestionNLP {
 		return retString;
 	}
 	
-	public static String findPrepNoun(TreeGraphNode noun)
+	private static String findPrepNoun(TreeGraphNode noun)
 	{
 		// given the preperator
 		// complete the string
