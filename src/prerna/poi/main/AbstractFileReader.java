@@ -501,7 +501,9 @@ public abstract class AbstractFileReader {
 	 * @throws EngineException 
 	 */
 	public void createRelationship(String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) throws EngineException {
-		// cellCounter used to determine which column currently processing
+		subjectNodeType = Utility.cleanString(subjectNodeType, true);
+		objectNodeType = Utility.cleanString(objectNodeType, true);
+		
 		instanceSubjectName = Utility.cleanString(instanceSubjectName, true);
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
