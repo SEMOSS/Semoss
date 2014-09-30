@@ -19,6 +19,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.bigdata.rdf.model.BigdataURIImpl;
+import com.google.gson.Gson;
 
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
@@ -31,6 +32,7 @@ public class SearchMasterDB {
 	private final String instanceKey = "instances";
 	private final String vizTypeKey = "viz";
 	
+	//TODO: clean up globals, make sure only databases with access/loaded are returned, test in adding a single engine, think about deleting an engine
 	
 	//engine variables
 	String masterDBName = "MasterDatabase";
@@ -42,7 +44,8 @@ public class SearchMasterDB {
 	protected final static String masterConceptBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/MasterConcept";
 	
 	//for the instance's master concepts, find all the possible related keywords for each engine.
-	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?MasterConcept ?Engine ?Keyword WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}}";
+	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?MasterConcept ?Engine ?Keyword ?EngineAPI WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}OPTIONAL{?Engine <http://semoss.org/ontologies/Relation/Contains> ?EngineAPI}}";
+	protected final static String getEngineAPIQuery = "SELECT DISTINCT ?Engine ?EngineAPI WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/EngineAPI> ?EngineAPI}}";	
 	//for a given instance, check to see if a given engine contains under the keyword type.
 	protected final static String instanceExistsQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?s),'@INSTANCE@$'))}";
 	protected final static String instanceURIQuery = "SELECT DISTINCT ?instanceURI WHERE { {?instanceURI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?instanceURI),'@INSTANCE@$'))} LIMIT 1";
@@ -75,6 +78,7 @@ public class SearchMasterDB {
 	Hashtable<String,ArrayList<String>> urisForMCEng = new Hashtable<String,ArrayList<String>>();
 	String databaseFilter = "";
 	Hashtable<String, Double> engineScores;
+	Hashtable<String,String> engineAPIHash;
 		
 	public void setMasterDBName(String masterDBName) {
 		this.masterDBName = masterDBName;
@@ -189,6 +193,11 @@ public class SearchMasterDB {
 		return false;
 	}
 	
+	public ArrayList<Hashtable<String,Object>> findRelatedEnginesWeb() {
+		fillAPIHash();
+		return findRelatedEngines();
+	}
+	
 	/**
 	 * Determines the similarity of a given subgraph to other databases in the Master database.
 	 * Each database, that has any overlap with the subgraph.
@@ -261,6 +270,26 @@ public class SearchMasterDB {
 		return list;
 	}
 	
+	public ArrayList<Hashtable<String,Object>> findRelatedQuestionsWeb() {
+		fillAPIHash();
+		return findRelatedQuestions();
+	}
+	
+	private void fillAPIHash(){
+		engineAPIHash = new Hashtable<String,String>();
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,getEngineAPIQuery);
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		while(wrapper.hasNext())
+		{
+			SesameJenaSelectStatement sjss = wrapper.next();
+			String engine = (String)sjss.getVar(names[0]);
+			String engineAPI = (String)sjss.getVar(names[1]);
+			engineAPIHash.put(engine,engineAPI);
+		}
+	}
+	
 	/**
 	 * Determines the similarity of a given subgraph to other databases in the Master database.
 	 * Each database, that has any overlap with the subgraph.
@@ -285,7 +314,6 @@ public class SearchMasterDB {
 		return list;
 	}
 	
-
 	//TODO currently only including engines that have all the instances. should this be including engines even if there is only one instance?
 	private ArrayList<String> filterDatabaseList() {
 		//for each instance's master concept, find all engines keywords associated to it
@@ -306,7 +334,7 @@ public class SearchMasterDB {
 			String mc = (String)sjss.getVar(names[0]);
 			String engine = (String)sjss.getVar(names[1]);
 			BigdataURIImpl keywordURI = (BigdataURIImpl)sjss.getRawVar(names[2]);
-			
+							
 			String mcEngineKey = mc+"_"+engine;
 			ArrayList<String> keywords = new ArrayList<String>();
 			if(keywordsForEngines.containsKey(mcEngineKey)) {
@@ -324,15 +352,15 @@ public class SearchMasterDB {
 		ArrayList<String> filteredEngines = new ArrayList<String>();
 		for(int eInd=0;eInd<engines.size();eInd++) {
 			String engineName = engines.get(eInd);
-			IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(engineName);
-			if(engine!=null&&engineContainsAllInstances(engine,keywordsForEngines))
+			//IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(engineName);
+			if(engineContainsAllInstances(engineName,keywordsForEngines))
 				filteredEngines.add(engineName);
 		}
 		
 		return filteredEngines;
 	}
 		
-	private Boolean engineContainsAllInstances(IEngine engine,Hashtable<String,ArrayList<String>> keywordURIsForEngines) {
+	private Boolean engineContainsAllInstances(String engineName,Hashtable<String,ArrayList<String>> keywordURIsForEngines) {
 		//if there is any instance that an engine does not have, then return false
 		//for each instance, get the possible keywords. If doesn't exist return false
 		//check all keywords, add all that have the instance to the list.
@@ -341,41 +369,90 @@ public class SearchMasterDB {
 		for(int iInd=0;iInd<mcForInstanceList.size();iInd++) {
 			String mc = mcForInstanceList.get(iInd);
 			String instance = instanceList.get(iInd);
-			String mcEngineKey = mc+"_"+engine.getEngineName();
+			String mcEngineKey = mc+"_"+engineName;
 			
 			if(!keywordURIsForEngines.containsKey(mcEngineKey))
 				return false;
 			
 			ArrayList<String> possibleKeywordURIs = keywordURIsForEngines.get(mcEngineKey);
 
-			Boolean foundResults = false;
+			Hashtable<String,ArrayList<String>> thisInstanceURIs = new Hashtable<String,ArrayList<String>>();
 			for(int i=0;i<possibleKeywordURIs.size();i++) {
 				//this is to optimize. do an ask to see if it contains and if so then select the full uri
-				//i could do this in just the second query, but it is much slower to run selects on all possible keyword/instance pairs
-				
+				//i could do this in just the second query, but it is much slower to run selects on all possible keyword/instance pairs				
 				String possibleKeywordURI = possibleKeywordURIs.get(i);
-				String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
-				BooleanProcessor proc = new BooleanProcessor();
-				proc.setEngine(engine);
-				proc.setQuery(instanceExistsQueryFilled);
-				if(proc.processQuery()) {
-					String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
-					ArrayList<String> instanceURIs = processListQuery(engine,instanceURIQueryFilled,true);
-					String engineMCKeywordKey = engine.getEngineName()+"_"+mc+"_"+possibleKeywordURI;
-					if(thisEngineURIs.containsKey(engineMCKeywordKey))
-						instanceURIs.addAll(thisEngineURIs.get(engineMCKeywordKey));
-					thisEngineURIs.put(engineMCKeywordKey,instanceURIs);
-					foundResults = true;
-					
-				}
+				if(engineAPIHash == null || engineAPIHash.isEmpty())
+					thisInstanceURIs.putAll(instanceKeywordURIs(engineName,possibleKeywordURI,instance,mc));
+				else
+					thisInstanceURIs.putAll(instanceKeywordURIsWeb(engineName,possibleKeywordURI,instance,mc));
+
 			}
 			
-			if(!foundResults)
+			if(thisInstanceURIs.isEmpty())
 				return false;
+			
+			thisEngineURIs.putAll(thisInstanceURIs);
 		}
 		//if we made it to this point, we have all of the isntances and should all all to the master uris
 		urisForMCEng.putAll(thisEngineURIs);
 		return true;
+	}
+	
+	private Hashtable<String,ArrayList<String>> instanceKeywordURIs(String engineName, String possibleKeywordURI, String instance, String mc) {
+		Hashtable<String,ArrayList<String>> thisInstanceURIs = new Hashtable<String,ArrayList<String>>();
+		IEngine engine = (BigDataEngine)DIHelper.getInstance().getLocalProp(engineName);
+		if(engine==null)
+			return thisInstanceURIs;
+		String instanceExistsQueryFilled = instanceExistsQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
+		BooleanProcessor proc = new BooleanProcessor();
+		proc.setEngine(engine);
+		proc.setQuery(instanceExistsQueryFilled);
+		if(proc.processQuery()) {
+			String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
+			ArrayList<String> instanceURIs = processListQuery(engine,instanceURIQueryFilled,true);
+			String engineMCKeywordKey = engineName+"_"+mc+"_"+possibleKeywordURI;
+			if(thisInstanceURIs.containsKey(engineMCKeywordKey))
+				instanceURIs.addAll(thisInstanceURIs.get(engineMCKeywordKey));
+			thisInstanceURIs.put(engineMCKeywordKey,instanceURIs);
+		}
+		return thisInstanceURIs;
+	}
+	
+	private Hashtable<String,ArrayList<String>> instanceKeywordURIsWeb(String engineName, String possibleKeywordURI, String instance, String mc) {
+		Hashtable<String,ArrayList<String>> thisInstanceURIs = new Hashtable<String,ArrayList<String>>();
+		String engineAPI = engineAPIHash.get(engineName);
+		if(engineAPI==null) {
+			logger.error("Engine API not found for engine: "+engineName);
+		}
+		String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
+		
+		// this will call the engine and gets then flushes it into sesame jena construct wrapper
+		Hashtable <String,String> params = new Hashtable<String, String>();
+		params.put("query", instanceURIQueryFilled);
+		String output = Utility.retrieveResult(engineAPI + "/execSelectQuery", params);
+
+		Gson gson = new Gson();
+		SesameJenaSelectWrapper sjcw = gson.fromJson(output, SesameJenaSelectWrapper.class);
+		
+		ArrayList<String> instanceURIs = new ArrayList<String>();
+		// get the bindings from it
+		String[] names = sjcw.getVariables();
+		// now get the bindings and generate the data
+		while(sjcw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjcw.next();
+			String value = ((BigdataURIImpl)sjss.getRawVar(names[0])).stringValue();
+			instanceURIs.add(value);
+		}
+			
+		if(!instanceURIs.isEmpty()) {
+			String engineMCKeywordKey = engineName+"_"+mc+"_"+possibleKeywordURI;
+			if(thisInstanceURIs.containsKey(engineMCKeywordKey))
+				instanceURIs.addAll(thisInstanceURIs.get(engineMCKeywordKey));
+			thisInstanceURIs.put(engineMCKeywordKey,instanceURIs);
+		}
+		
+		return thisInstanceURIs;
 	}
 	
 	private String createDatabaseFilter(ArrayList<String> databaseList) {
