@@ -247,7 +247,7 @@ public class LPInterfaceProcessor {
 			String sysName = "";
 			String interfaceType = "";
 			String interfacingSysName = "";
-			String probability = "";
+			String interfaceingSysProbability = "";
 			String icd = "";
 			String data = "";
 			String format = "";
@@ -255,6 +255,11 @@ public class LPInterfaceProcessor {
 			String prot = "";
 			String dhmsmSOR = "";
 
+			String sysProbability = sysTypeHash.get(sysName);
+			if(sysProbability == null) {
+				sysProbability = "No Probability";
+			}
+			
 			if(sjss.getVar(SYS_KEY) != null) {
 				sysName = sjss.getVar(SYS_KEY).toString();
 			}
@@ -265,7 +270,7 @@ public class LPInterfaceProcessor {
 				interfacingSysName = sjss.getVar(INTERFACING_SYS_KEY).toString();
 			}
 			if(sjss.getVar(PROBABILITY_KEY) != null) {
-				probability = sjss.getVar(PROBABILITY_KEY).toString();
+				interfaceingSysProbability = sjss.getVar(PROBABILITY_KEY).toString();
 			}
 			if(sjss.getVar(ICD_KEY) != null) {
 				icd = sjss.getVar(ICD_KEY).toString();
@@ -341,7 +346,7 @@ public class LPInterfaceProcessor {
 				values[0] = sysName;
 				values[1] = interfaceType;
 				values[2] = interfacingSysName;
-				values[3] = probability;
+				values[3] = interfaceingSysProbability;
 				values[4] = icd;
 				values[5] = data;
 				values[6] = format;
@@ -364,7 +369,7 @@ public class LPInterfaceProcessor {
 				values[0] = sysName;
 				values[1] = interfaceType;
 				values[2] = interfacingSysName;
-				values[3] = probability;
+				values[3] = interfaceingSysProbability;
 				values[4] = icd;
 				values[5] = data;
 				values[6] = format;
@@ -638,7 +643,7 @@ public class LPInterfaceProcessor {
 						// future cost triple
 						addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 					}
-				} else if(sorV.contains(upstreamSystemURI + dataURI) && !probability.equals("null") && !probability.equals("") && !probability.equals(HPI_KEY) && !probability.equals(HPNI_KEY) ) { // upstream system is SOR and has a probability
+				} else if(sorV.contains(upstreamSystemURI + dataURI) && !upstreamSysType.equals(HPI_KEY) && !upstreamSysType.equals(HPNI_KEY) && !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("") ) { // upstream system is SOR and has a probability
 					otherwise = false;
 					comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
 					
@@ -695,7 +700,7 @@ public class LPInterfaceProcessor {
 						// future cost triple
 						addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 					}
-				} else if(sorV.contains(downstreamSystemURI + dataURI) && !probability.equals("null") && !probability.equals("") && !probability.equals(HPI_KEY) && !probability.equals(HPNI_KEY) ) { // downstream system is SOR and has a probability
+				} else if(sorV.contains(downstreamSystemURI + dataURI) && !downstreamSysType.equals(HPNI_KEY) && !downstreamSysType.equals(HPI_KEY) && !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("") ) { // downstream system is SOR and has a probability
 					otherwise = false;
 					comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
 					
@@ -916,90 +921,104 @@ public class LPInterfaceProcessor {
 		String previousGLItemURI = "";
 		String previousGLItemName = "";
 		
-		//info equals null when cost not calculated (ex. when only calculating cost for system when it is the upstream (or equivalently downstream) system for the current icd
-		if(info != null) {
-			String[] orderedResults = orderResults(info.keySet());
-			Object[] values = new Object[3];
-			
-			String sys = Utility.getInstanceName(sysURI);
-			for(String tagAndPhase : orderedResults) {
-				String[] split = tagAndPhase.split("\\+");
-				String glTag = split[0];
-				String sdlcPhase = split[1];
-				String glTagURI = GLTAG_URI.concat(glTag);
-				String sdlcPhaseURI = SDLC_PHASE_URI.concat(sdlcPhase);
-				
-				String input = "None";
-				if(!decommissionedICD.equals("")) {
-					input = Utility.getInstanceName(decommissionedICD);
-				}
-				String output = Utility.getInstanceName(proposedICD);
-				String glItemName = data.concat("%").concat(output).concat("%").concat(sys).concat("%").concat(glTag).concat("%").concat(sdlcPhase);
-				String glItemURI = "http://health.mil/ontologies/Concept/".concat(sdlcPhase).concat("GLItem/").concat(glItemName);
-				// this relationship may not always exist
-				if(!decommissionedICD.equals("")) {
-					// removedICD -> input -> glItem
-					values = new Object[3];
-					values[0] = decommissionedICD;
-					values[1] = inputInstanceRel.concat(input).concat(":").concat(glItemName);
-					values[2] = glItemURI;
-					costRelList.add(values);
-				}
-				// glItem -> output -> proposedICD
-				values = new Object[3];
-				values[0] = glItemURI;
-				values[1] = outputInstanceRel.concat(glItemName).concat(":").concat(output);
-				values[2] = proposedICD;
-				costRelList.add(values);
-				// glItem -> taggedBy -> gltag
-				values = new Object[3];
-				values[0] = glItemURI;
-				values[1] = taggedByInstanceRel.concat(glItemName).concat(":").concat(glTag);
-				values[2] = glTagURI;
-				costRelList.add(values);
-				// glItem -> belongsTo -> sdlc
-				values = new Object[3];
-				values[0] = glItemURI;
-				values[1] = belongsToInstanceRel.concat(glItemName).concat(":").concat(sdlcPhase);
-				values[2] = sdlcPhaseURI;
-				costRelList.add(values);
-				// system -> influences -> glitem
-				values = new Object[3];
-				values[0] = sysURI;
-				values[1] = influencesInstanceRel.concat(sys).concat(":").concat(glItemName);
-				values[2] = glItemURI;
-				costRelList.add(values);
-				// data input gl items
-				values = new Object[3];
-				values[0] = dataURI;
-				values[1] = inputInstanceRel.concat(data).concat(":").concat(glItemName);
-				values[2] = glItemURI;
-				costRelList.add(values);
-				// ordering of gl items
-				if(previousGLItemURI.equals("")) {
-					previousGLItemURI = glItemURI;
-					previousGLItemName = glItemName;
-				} else {
-					// glItem -> precedes -> glitem
-					values = new Object[3];
-					values[0] = previousGLItemURI;
-					values[1] = precedesInstanceRel.concat(previousGLItemName).concat(":").concat(glItemName);
-					values[2] = glItemURI;
-					costRelList.add(values);
-					previousGLItemURI = glItemURI;
-				}
-				// glItem -> contains -> loe
-				values = new Object[3];
-				values[0] = glItemURI;
-				values[1] = semossPropURI.concat("LOEcalc");
-				values[2] = info.get(tagAndPhase);
-				loeList.add(values);
-				
-				//keep track of all glitems
-				glItemList.add(glItemURI);
-				//keep track of all systems
-				sysCostList.add(sysURI);
+		// if no cost information, I make an educated guess
+		if(info == null) {
+			info = new HashMap<String, Double>();
+			if(sysURI.equals(DHMSM)){
+				info.put("Provider+Requirements", 100.0);
+				info.put("Provider+Design", 100.0);
+				info.put("Provider+Develop", 100.0);
+				info.put("Provider+Test", 100.0);
+				info.put("Provider+Deploy", 100.0);
+			} else {
+				info.put("Consumer+Requirements", 70.0);
+				info.put("Consumer+Design", 70.0);
+				info.put("Consumer+Develop", 70.0);
+				info.put("Consumer+Test", 70.0);
 			}
+		}
+		
+		String[] orderedResults = orderResults(info.keySet());
+		Object[] values = new Object[3];
+		
+		String sys = Utility.getInstanceName(sysURI);
+		for(String tagAndPhase : orderedResults) {
+			String[] split = tagAndPhase.split("\\+");
+			String glTag = split[0];
+			String sdlcPhase = split[1];
+			String glTagURI = GLTAG_URI.concat(glTag);
+			String sdlcPhaseURI = SDLC_PHASE_URI.concat(sdlcPhase);
+			
+			String input = "None";
+			if(!decommissionedICD.equals("")) {
+				input = Utility.getInstanceName(decommissionedICD);
+			}
+			String output = Utility.getInstanceName(proposedICD);
+			String glItemName = data.concat("%").concat(output).concat("%").concat(sys).concat("%").concat(glTag).concat("%").concat(sdlcPhase);
+			String glItemURI = "http://health.mil/ontologies/Concept/".concat(sdlcPhase).concat("GLItem/").concat(glItemName);
+			// this relationship may not always exist
+			if(!decommissionedICD.equals("")) {
+				// removedICD -> input -> glItem
+				values = new Object[3];
+				values[0] = decommissionedICD;
+				values[1] = inputInstanceRel.concat(input).concat(":").concat(glItemName);
+				values[2] = glItemURI;
+				costRelList.add(values);
+			}
+			// glItem -> output -> proposedICD
+			values = new Object[3];
+			values[0] = glItemURI;
+			values[1] = outputInstanceRel.concat(glItemName).concat(":").concat(output);
+			values[2] = proposedICD;
+			costRelList.add(values);
+			// glItem -> taggedBy -> gltag
+			values = new Object[3];
+			values[0] = glItemURI;
+			values[1] = taggedByInstanceRel.concat(glItemName).concat(":").concat(glTag);
+			values[2] = glTagURI;
+			costRelList.add(values);
+			// glItem -> belongsTo -> sdlc
+			values = new Object[3];
+			values[0] = glItemURI;
+			values[1] = belongsToInstanceRel.concat(glItemName).concat(":").concat(sdlcPhase);
+			values[2] = sdlcPhaseURI;
+			costRelList.add(values);
+			// system -> influences -> glitem
+			values = new Object[3];
+			values[0] = sysURI;
+			values[1] = influencesInstanceRel.concat(sys).concat(":").concat(glItemName);
+			values[2] = glItemURI;
+			costRelList.add(values);
+			// data input gl items
+			values = new Object[3];
+			values[0] = dataURI;
+			values[1] = inputInstanceRel.concat(data).concat(":").concat(glItemName);
+			values[2] = glItemURI;
+			costRelList.add(values);
+			// ordering of gl items
+			if(previousGLItemURI.equals("")) {
+				previousGLItemURI = glItemURI;
+				previousGLItemName = glItemName;
+			} else {
+				// glItem -> precedes -> glitem
+				values = new Object[3];
+				values[0] = previousGLItemURI;
+				values[1] = precedesInstanceRel.concat(previousGLItemName).concat(":").concat(glItemName);
+				values[2] = glItemURI;
+				costRelList.add(values);
+				previousGLItemURI = glItemURI;
+			}
+			// glItem -> contains -> loe
+			values = new Object[3];
+			values[0] = glItemURI;
+			values[1] = semossPropURI.concat("LOEcalc");
+			values[2] = info.get(tagAndPhase);
+			loeList.add(values);
+			
+			//keep track of all glitems
+			glItemList.add(glItemURI);
+			//keep track of all systems
+			sysCostList.add(sysURI);
 		}
 	}
 
