@@ -51,7 +51,7 @@ public class SEMOSSParam {
 	}
 	
 	public void setOptions(String optionString) {
-		optionString.replaceAll("\"", "");
+		optionString = optionString.replaceAll("\"", "");
 		StringTokenizer st = new StringTokenizer(optionString, ";");
 		while(st.hasMoreElements()) {
 			options.add((String)st.nextElement());
