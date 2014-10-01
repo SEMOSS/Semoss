@@ -1,5 +1,7 @@
 package prerna.algorithm.nlp;
 
+
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -7,8 +9,17 @@ import java.util.StringTokenizer;
 import edu.cmu.lti.lexical_db.ILexicalDatabase;
 import edu.cmu.lti.lexical_db.NictWordNet;
 import edu.cmu.lti.ws4j.RelatednessCalculator;
+import edu.cmu.lti.ws4j.impl.HirstStOnge;
+import edu.cmu.lti.ws4j.impl.JiangConrath;
 import edu.cmu.lti.ws4j.impl.LeacockChodorow;
+import edu.cmu.lti.ws4j.impl.Lesk;
+import edu.cmu.lti.ws4j.impl.Lin;
+import edu.cmu.lti.ws4j.impl.Path;
+import edu.cmu.lti.ws4j.impl.Resnik;
+import edu.cmu.lti.ws4j.impl.WuPalmer;
 import edu.cmu.lti.ws4j.util.WS4JConfiguration;
+
+import java.lang.Math;
 
 public class  WS4Jwrapper {
         
@@ -175,8 +186,10 @@ public class  WS4Jwrapper {
         		System.out.println("LEV " + test.LevenshteinAnalysis("CCDdsd", "CCDdsd"));
         }
 
-        public double WN_NLP_Scorer(String a, String b, ArrayList<String> lPhraseA, ArrayList<String> lPhraseB, ArrayList<Double> apriority, ArrayList<Double> bpriority, ArrayList<Boolean> aIsWord, ArrayList<Boolean> bIsWord) 
+		public double WN_NLP_Scorer(String a, String b, ArrayList<String> lPhraseA, ArrayList<String> lPhraseB, ArrayList<Double> apriority, ArrayList<Double> bpriority, ArrayList<Boolean> aIsWord, ArrayList<Boolean> bIsWord) 
 		{
+			double div_term_synthetic = 0;
+			double finalscore = 0;
 			//test too see if the two words are identical
 			if(a.equals(b) && b.equals(a) && (a.length() == b.length())){
 				return 1;
@@ -210,11 +223,41 @@ public class  WS4Jwrapper {
 				}
 			}
 			
-		 	double finalscore =  MatrixSum(SimMatrix, div_term);
+			div_term_synthetic = find_matrix_min_score(apriority, bpriority);
+			if(div_term > div_term_synthetic)
+				finalscore =  MatrixSum(SimMatrix, div_term);
+			if(div_term <= div_term_synthetic)
+			 	finalscore =  MatrixSum(SimMatrix, div_term_synthetic); //div_term_synthetic
 			return finalscore;
 		}
 		
 		
+
+		private double find_matrix_min_score(ArrayList<Double> apriority, ArrayList<Double> bpriority) {
+			double max_cell = 0;
+			int x = 0;
+			int y = 0;
+			double prev_sum = 0;
+			double matrix_sum = 0;
+			for(int i = 0; i < apriority.size(); i++){
+				for(int j = 0; j < bpriority.size(); j++){
+					if(max_cell <= apriority.get(i)*bpriority.get(j)){
+						max_cell = apriority.get(i)*bpriority.get(j);
+						x = i;
+						y = j;
+					}
+				}
+			}
+			if(x>y){
+				prev_sum = x;
+			}
+			else{
+				prev_sum = y;
+			}
+			matrix_sum = max_cell + prev_sum;
+			return matrix_sum;
+			
+		}
 
 		private double MatrixSum(double[][] simMatrix, double div_term) {
 			double sum = 0; 
@@ -237,7 +280,7 @@ public class  WS4Jwrapper {
 			return SimilarityScore;
 		}
 
-		private double WNNLPScorer(ArrayList<String> lPhraseA,
+		public double WNNLPScorer(ArrayList<String> lPhraseA,
 				ArrayList<String> lPhraseB, ArrayList<Integer> apriority,
 				ArrayList<Integer> bpriority, ArrayList<Boolean> aIsWord,
 				ArrayList<Boolean> bIsWord) {
@@ -245,7 +288,7 @@ public class  WS4Jwrapper {
 			return 0;
 		}
 
-		private double test() {
+		public double test() {
 			// TODO Auto-generated method stub
 			return 0;
 		}
