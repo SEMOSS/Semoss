@@ -11,6 +11,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.RemoteSemossSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.BooleanProcessor;
@@ -19,7 +20,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.bigdata.rdf.model.BigdataURIImpl;
-import com.google.gson.Gson;
 
 public class SearchMasterDB {
 	private static final Logger logger = LogManager.getLogger(SearchMasterDB.class.getName());
@@ -31,8 +31,9 @@ public class SearchMasterDB {
 	private final String perspectiveKey = "perspective";
 	private final String instanceKey = "instances";
 	private final String vizTypeKey = "viz";
-	
-	//TODO: clean up globals, make sure only databases with access/loaded are returned, test in adding a single engine, think about deleting an engine
+	private final String engineURIKey = "engineURI";
+
+	//TODO: clean up globals, make sure only databases with access/loaded are returned, think about deleting an engine
 	
 	//engine variables
 	String masterDBName = "MasterDatabase";
@@ -44,8 +45,8 @@ public class SearchMasterDB {
 	protected final static String masterConceptBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS+"/MasterConcept";
 	
 	//for the instance's master concepts, find all the possible related keywords for each engine.
-	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?MasterConcept ?Engine ?Keyword ?EngineAPI WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}OPTIONAL{?Engine <http://semoss.org/ontologies/Relation/Contains> ?EngineAPI}}";
-	protected final static String getEngineAPIQuery = "SELECT DISTINCT ?Engine ?EngineAPI WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/EngineAPI> ?EngineAPI}}";	
+	protected final static String getPossibleKeywordsQuery = "SELECT DISTINCT ?MasterConcept ?Engine ?Keyword ?BaseURI WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}OPTIONAL{{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}{?Engine <http://semoss.org/ontologies/Relation/HostedOn> ?Server}{?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}}}";
+	protected final static String getEngineURLQuery = "SELECT DISTINCT ?Engine ?BaseURI WHERE {{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>}{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}{?Engine <http://semoss.org/ontologies/Relation/HostedOn> ?Server}{?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}}";	
 	//for a given instance, check to see if a given engine contains under the keyword type.
 	protected final static String instanceExistsQuery = "ASK WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?s),'@INSTANCE@$'))}";
 	protected final static String instanceURIQuery = "SELECT DISTINCT ?instanceURI WHERE { {?instanceURI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@KEYWORDURI@> ;}FILTER( regex (str(?instanceURI),'@INSTANCE@$'))} LIMIT 1";
@@ -78,7 +79,7 @@ public class SearchMasterDB {
 	Hashtable<String,ArrayList<String>> urisForMCEng = new Hashtable<String,ArrayList<String>>();
 	String databaseFilter = "";
 	Hashtable<String, Double> engineScores;
-	Hashtable<String,String> engineAPIHash;
+	Hashtable<String,String> engineURLHash;
 		
 	public void setMasterDBName(String masterDBName) {
 		this.masterDBName = masterDBName;
@@ -276,8 +277,8 @@ public class SearchMasterDB {
 	}
 	
 	private void fillAPIHash(){
-		engineAPIHash = new Hashtable<String,String>();
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,getEngineAPIQuery);
+		engineURLHash = new Hashtable<String,String>();
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,getEngineURLQuery);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -285,8 +286,8 @@ public class SearchMasterDB {
 		{
 			SesameJenaSelectStatement sjss = wrapper.next();
 			String engine = (String)sjss.getVar(names[0]);
-			String engineAPI = (String)sjss.getVar(names[1]);
-			engineAPIHash.put(engine,engineAPI);
+			String baseURI = (String)sjss.getVar(names[1]);
+			engineURLHash.put(engine,baseURI);
 		}
 	}
 	
@@ -381,7 +382,7 @@ public class SearchMasterDB {
 				//this is to optimize. do an ask to see if it contains and if so then select the full uri
 				//i could do this in just the second query, but it is much slower to run selects on all possible keyword/instance pairs				
 				String possibleKeywordURI = possibleKeywordURIs.get(i);
-				if(engineAPIHash == null || engineAPIHash.isEmpty())
+				if(engineURLHash == null || engineURLHash.isEmpty())
 					thisInstanceURIs.putAll(instanceKeywordURIs(engineName,possibleKeywordURI,instance,mc));
 				else
 					thisInstanceURIs.putAll(instanceKeywordURIsWeb(engineName,possibleKeywordURI,instance,mc));
@@ -420,19 +421,30 @@ public class SearchMasterDB {
 	
 	private Hashtable<String,ArrayList<String>> instanceKeywordURIsWeb(String engineName, String possibleKeywordURI, String instance, String mc) {
 		Hashtable<String,ArrayList<String>> thisInstanceURIs = new Hashtable<String,ArrayList<String>>();
-		String engineAPI = engineAPIHash.get(engineName);
+		String engineAPI = engineURLHash.get(engineName);
 		if(engineAPI==null) {
 			logger.error("Engine API not found for engine: "+engineName);
 		}
 		String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
 		
 		// this will call the engine and gets then flushes it into sesame jena construct wrapper
-		Hashtable <String,String> params = new Hashtable<String, String>();
-		params.put("query", instanceURIQueryFilled);
-		String output = Utility.retrieveResult(engineAPI + "/execSelectQuery", params);
+//		Hashtable <String,String> params = new Hashtable<String, String>();
+//		params.put("query", instanceURIQueryFilled);
+//		String output = Utility.retrieveResult(engineAPI + "/execSelectQuery", params);
+		RemoteSemossSesameEngine eng = new RemoteSemossSesameEngine();
+		eng.setAPI("https://localhost/Monolith/api/engine");
+		eng.setDatabase("Movie_DB");
+		
+		SesameJenaSelectWrapper sjcw = new SesameJenaSelectWrapper();
+		sjcw.setEngine(eng);
+		sjcw.setQuery(instanceURIQueryFilled);
+		sjcw.executeQuery();
 
-		Gson gson = new Gson();
-		SesameJenaSelectWrapper sjcw = gson.fromJson(output, SesameJenaSelectWrapper.class);
+//		Gson gson = new Gson();
+//		SesameJenaSelectWrapper sjcw = gson.fromJson(output, SesameJenaSelectWrapper.class);
+		
+//		SesameJenaSelectWrapper sjcw = (SesameJenaSelectWrapper)eng.execSelectQuery(instanceURIQueryFilled);
+		
 		
 		ArrayList<String> instanceURIs = new ArrayList<String>();
 		// get the bindings from it
@@ -614,10 +626,12 @@ public class SearchMasterDB {
 		{			
 			String engine = engineItr.next();
 			Double score = engineScoreList.get(engine);
+			String engineURI = engineURLHash.get(engine);
 
 			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 			insightHash.put(this.dbKey, engine);
 			insightHash.put(this.scoreKey, score);
+			insightHash.put(this.engineURIKey,engineURI);
 			returnArray.add(insightHash);
 		}
 		return returnArray;
@@ -646,6 +660,7 @@ public class SearchMasterDB {
 			String masterConcept = (String)sjss.getVar(names[4]);
 			String viz = (String)sjss.getVar(names[5]);
 			Double score = engineScoreList.get(engine);
+			String engineURI = engineURLHash.get(engine);
 
 			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 			insightHash.put(this.dbKey, engine);
@@ -656,7 +671,8 @@ public class SearchMasterDB {
 			insightHash.put(this.vizTypeKey,viz);
 			ArrayList<String> instances =  new ArrayList<String>();
 			insightHash.put(this.instanceKey, instances);
-			
+			insightHash.put(this.engineURIKey, engineURI);
+
 			//if we are not including instances, add the hashtable automatically
 			if(instanceList==null || instanceList.isEmpty())
 				returnArray.add(insightHash);
