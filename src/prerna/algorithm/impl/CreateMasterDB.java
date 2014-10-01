@@ -37,8 +37,9 @@ import prerna.poi.main.PropFileWriter;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -75,6 +76,8 @@ public class CreateMasterDB {
 	protected final static String masterConceptConnectionBaseURI = semossConceptURI+"/MasterConceptConnection";
 	protected final static String keywordBaseURI = semossConceptURI+"/Keyword";
 	protected final static String engineBaseURI = semossConceptURI+"/Engine";
+	protected final static String serverBaseURI = semossConceptURI+"/Server";
+	protected final static String hostedOnBaseURI = semossRelationURI + "/HostedOn";
 	protected final static String consistsOfRelationURI = semossRelationURI+"/ConsistsOf";
 	protected final static String hasRelationURI = semossRelationURI+"/Has";
 	protected final static String fromRelationURI = semossRelationURI+"/From";
@@ -83,8 +86,12 @@ public class CreateMasterDB {
 	//for testing, including similarity as a property
 	protected final static String propURI = semossRelationURI + "/" + "Contains";
 	protected final static String similarityPropURI = propURI + "/" + "SimilarityScore";
+	protected final static String baseURIPropURI = propURI + "/" + "BaseURI";
 	//protected final static String typeBaseURI = propURI + "/" + "Type";
-			
+	
+	protected final static String serverExistsQuery = "SELECT DISTINCT ?Server WHERE {BIND('@BASEURI@' AS ?BaseURI){?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>} {?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}} LIMIT 1";
+	protected final static String numServersQuery = "SELECT DISTINCT (COUNT(?Server) AS ?NumServers) WHERE {{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}}";
+	
 	//ArrayList of master concepts in master database
 	ArrayList<String> masterConceptList = new ArrayList<String>();
 	//ArrayList of keywordsLists (one for each master concept)
@@ -183,16 +190,67 @@ public class CreateMasterDB {
 		logger.info("Finished adding new engine "+engineName);
 	}
 	
-	public String registerEngineAPI(String engineAPI) {
+	/**
+	 * TODO change how we make the server name?
+	 * @return
+	 */
+	private String createServerName() {
+		String countQuery = numServersQuery;
+		SesameJenaSelectWrapper wrapper2 = Utility.processQuery(masterEngine,countQuery);
+
+		String[] names2 = wrapper2.getVariables();
+		while(wrapper2.hasNext()) {
+			SesameJenaSelectStatement sjss = wrapper2.next();
+			Double count = (Double)sjss.getVar(names2[0]);
+			return (count + 1) + "";
+		}
+		return 1+"";
+	}
+	
+	private void addEngineToServer(String baseURI,String engineName) throws EngineException{
+		//check to see if the base URI already exists in the master db.
+		//if it does, get the corresponding server name
+		//if not, make up a server name (incremement 1)
+		//add the engine to the corresponding server		
+		String existsQuery = serverExistsQuery.replaceAll("@BASEURI@", baseURI);
+		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,existsQuery);
+
+		String server = "";
+		String serverNodeURI = "";
+		try {
+			String[] names = wrapper.getVariables();
+			while(wrapper.hasNext()) {
+				SesameJenaSelectStatement sjss = wrapper.next();
+				server = (String)sjss.getVar(names[0]);
+				serverNodeURI = serverBaseURI + "/" + server;
+			}
+			if(server=="") {
+
+				server = createServerName();
+				//add server type triple. add server label
+				serverNodeURI = serverBaseURI + "/" + server;
+				createStatement(masterEngine.vf.createURI(serverNodeURI), RDF.TYPE, masterEngine.vf.createURI(serverBaseURI));
+				createStatement(masterEngine.vf.createURI(serverNodeURI), RDFS.LABEL, masterEngine.vf.createLiteral(server));
+				//add base uri as property to server
+				createStatement(masterEngine.vf.createURI(serverNodeURI), masterEngine.vf.createURI(baseURIPropURI), masterEngine.vf.createLiteral(baseURI));
+			}
+			//add server to engine triple
+			addRelationship(engineBaseURI,engineName,serverBaseURI,server,hostedOnBaseURI);
+		} catch (EngineException e) {
+			logger.error("Could not add engine to server relations for engine" + engineName);
+			throw new EngineException();
+		}
+	}
+	
+	public String registerEngineAPI(String baseURI, String engineName) {
 		//make sure the masterEngine has been set.
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
-		//need to get owl from from engineAPI
 		try {
-			Hashtable<String,String> engineHash = new Hashtable<String,String>();
-			engineHash.put("key","ENGINE");
-			String engineName = Utility.retrieveResult(engineAPI + "/getProperty", engineHash);
-			
+			//TODO different servers cannot have the same engine name correct? If they can, this will be an issue...
+			// assuming that the engine name does not already exist for this server TODO do we check for this previously?
+			addEngineToServer(baseURI,engineName);
+			String engineAPI = baseURI + "/s-"+engineName;
 			String owl = Utility.retrieveResult(engineAPI + "/getOWLDefinition", null);
 			RepositoryConnection owlRC = getNewRepository();
 			owlRC.add(new StringBufferInputStream(owl), "http://semoss.org", RDFFormat.RDFXML);
@@ -208,7 +266,7 @@ public class CreateMasterDB {
 			RepositoryConnection insightsRC = getNewRepository();
 			insightsRC.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
 			
-			addWebInsights(engineName, engineAPI, insightsRC);
+			addInsights(insightsRC);
 
 			masterEngine.commit();
 			masterEngine.infer();
@@ -224,9 +282,10 @@ public class CreateMasterDB {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (EngineException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
-
 		
 		return "success";
 
@@ -241,8 +300,7 @@ public class CreateMasterDB {
 			rc = myRepository.getConnection();
 			return rc;
 		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("Could not get a new repository");
 		}
 		return null;
 	}
@@ -405,16 +463,9 @@ public class CreateMasterDB {
 		}
 	}
 	
-	private void addWebInsights(String engineName, String engineAPI, RepositoryConnection rc) {
-		addInsights(rc);
-		String engineURI = engineBaseURI + "/" + engineName;
-		try {
-			this.masterEngine.sc.addStatement( masterEngine.vf.createURI(engineURI), masterEngine.vf.createURI(propURI+"/EngineAPI"), masterEngine.vf.createLiteral(engineAPI));
-		} catch (SailException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+//	private void addWebInsights(String engineName, String engineAPI, RepositoryConnection rc) {
+//		addInsights(rc);
+//	}
 	private void addInsights(RepositoryConnection rc) {
 		try {
 			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
@@ -555,14 +606,19 @@ public class CreateMasterDB {
 		createStatement(masterEngine.vf.createURI(masterConceptConnectionBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 		createStatement(masterEngine.vf.createURI(keywordBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 		createStatement(masterEngine.vf.createURI(engineBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
-		
+		createStatement(masterEngine.vf.createURI(serverBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
+
 		//add relation subproperty triples
 		String subpropertypredicate = Constants.SUBPROPERTY_URI;
 		createStatement(masterEngine.vf.createURI(consistsOfRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
 		createStatement(masterEngine.vf.createURI(hasRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
 		createStatement(masterEngine.vf.createURI(fromRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
 		createStatement(masterEngine.vf.createURI(toRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(hostedOnBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
 		createStatement(masterEngine.vf.createURI(keywordInsightBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+
+		//add property triples
+		createStatement(masterEngine.vf.createURI(baseURIPropURI), RDF.TYPE, masterEngine.vf.createURI(propURI));
 		
 	}
 	
