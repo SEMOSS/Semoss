@@ -54,11 +54,11 @@ public class StanfordNLPfuncts{
         // StanfordCoreNLP loads a lot of models, so you probably
         // only want to do this once per execution
         this.pipeline = new StanfordCoreNLP(props);
-		final String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+       // lp = LexicalizedParser.loadModel("C:\\Users\\sabidi\\workspace\\TermNormalization\\englishPCFG.ser"); //<--TODO path to grammar goes here
+        final String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String fileSeparator = System.getProperty("file.separator");
 		String file =  baseDirectory + fileSeparator + "NLPartifacts" + fileSeparator + "englishPCFG.ser";
         lp = LexicalizedParser.loadModel(file);
-		
     }
 
     public String lemmatize(String documentText)
