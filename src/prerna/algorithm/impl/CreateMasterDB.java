@@ -284,6 +284,7 @@ public class CreateMasterDB {
 		String playSheetName = "prerna.ui.components.playsheets.GraphPlaySheet";
 		RDFFileSesameEngine sesameEngine = new RDFFileSesameEngine();
 		sesameEngine.setRC(rc);
+		sesameEngine.setEngineName("Metamodel Engine");
 		
 		sesameEngine.setBaseData(sesameEngine);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();
