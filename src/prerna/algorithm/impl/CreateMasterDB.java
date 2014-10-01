@@ -183,7 +183,7 @@ public class CreateMasterDB {
 		logger.info("Finished adding new engine "+engineName);
 	}
 	
-	public void registerEngineAPI(String engineAPI) {
+	public String registerEngineAPI(String engineAPI) {
 		//make sure the masterEngine has been set.
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
@@ -228,7 +228,7 @@ public class CreateMasterDB {
 
 
 		
-		
+		return "success";
 
 	}
 	
@@ -282,10 +282,10 @@ public class CreateMasterDB {
 		//hard code playsheet attributes since no insight exists for this
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		String playSheetName = "prerna.ui.components.playsheets.GraphPlaySheet";
-		AbstractEngine sesameEngine = new InMemorySesameEngine();
-		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(rc);
+		RDFFileSesameEngine sesameEngine = new RDFFileSesameEngine();
+		sesameEngine.setRC(rc);
 		
-		sesameEngine.setBaseData((RDFFileSesameEngine) sesameEngine);
+		sesameEngine.setBaseData(sesameEngine);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();
 		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");
 		sesameEngine.setBaseHash(filterHash);
