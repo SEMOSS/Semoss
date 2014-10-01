@@ -460,5 +460,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		return rc;
 	}
 
+	public void setRC(RepositoryConnection rc2) {
+		this.rc = rc2;
+		
+	}
+
 	
 }
