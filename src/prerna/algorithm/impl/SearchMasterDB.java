@@ -152,8 +152,7 @@ public class SearchMasterDB {
 				keyword = (String)vert.getProperty(Constants.VERTEX_NAME);
 			else
 				keyword = (String)vert.getProperty(Constants.VERTEX_TYPE);
-			if(!keywordList.contains(keyword))
-				keywordList.add(keyword);
+			addToKeywordList(keyword);
 		}
 		
 		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
@@ -168,10 +167,19 @@ public class SearchMasterDB {
 				edgeIn = (String)edge.inVertex.getProperty(Constants.VERTEX_TYPE);
 				edgeOut = (String)edge.outVertex.getProperty(Constants.VERTEX_TYPE);
 			}
-			if(!edgeListContains(edgeIn,edgeOut)) {
-				edgeVertInList.add(edgeIn);
-				edgeVertOutList.add(edgeOut);
-			}
+			addToEdgeList(edgeIn,edgeOut);
+		}
+	}
+	
+	public void addToKeywordList(String keyword) {
+		if(!keywordList.contains(keyword))
+			keywordList.add(keyword);
+	}
+	
+	public void addToEdgeList(String outVert, String inVert){
+		if(!edgeListContains(inVert,outVert)) {
+			edgeVertInList.add(inVert);
+			edgeVertOutList.add(outVert);
 		}
 	}
 	
