@@ -78,7 +78,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 			for (int j = 0; j < var.length; j++) 
 			{	
 				colName = var[j];
-				if(listElement[j] instanceof BigdataURIImpl && j==0)
+				if(listElement[j] instanceof BigdataURIImpl && j==0)//use this
 				{
 					BigdataURIImpl val = (BigdataURIImpl) listElement[j];
 					String text = val.toString();
@@ -99,7 +99,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 					text = text.substring(text.lastIndexOf("/")+1);
 					elementHash.put(colName, text.replaceAll("\"",""));
 				}
-				else if(listElement[j] instanceof BigdataLiteral && j==1)
+				else if(listElement[j] instanceof BigdataLiteral && j==1)//use this
 				{
 					BigdataLiteral val = (BigdataLiteral) listElement[j];
 					if(val.stringValue().contains("NaN"))
@@ -110,6 +110,8 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 							numVal = val.floatValue();
 						if(numVal==null)
 							numVal = val.integerValue();
+						if((Double)numVal<1)
+							numVal = (Double)numVal*1000000;
 						elementHash.put(colName, numVal);
 					}
 				}

@@ -23,9 +23,8 @@ import java.util.ArrayList;
 
 import javax.swing.JDesktopPane;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
+import org.apache.log4j.LogManager;import org.apache.log4j.Logger;
+import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -64,8 +63,9 @@ public class RegCalculationPerformer implements IAlgorithm{
 		
 		runQuery();
 
-		OLSMultipleLinearRegressionEstimator regEst = new OLSMultipleLinearRegressionEstimator();
-		regEst.addData(yValues,xValues,null);
+		//OLSMultipleLinearRegressionEstimator regEst = new OLSMultipleLinearRegressionEstimator();
+		OLSMultipleLinearRegression regEst = new OLSMultipleLinearRegression();
+		regEst.newSampleData(yValues,xValues);
 		double[] indepVarSlopes = regEst.estimateRegressionParameters();
 		ArrayList<Double> indepVarMedianValues = new ArrayList<Double>();
 		ArrayList<Double> indepVarSlopeValues = new ArrayList<Double>();
