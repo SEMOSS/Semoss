@@ -87,9 +87,6 @@ public class QuestionAdministrator {
 	
 	String engineURI2 = engineBaseURI + "/" + selectedEngine;
 	
-	public QuestionAdministrator() {
-		
-	}
 	public QuestionAdministrator (IEngine engine){
 		this.engine = engine;
 		insightBaseXML = ((AbstractEngine)engine).getInsightBaseXML();
@@ -102,11 +99,6 @@ public class QuestionAdministrator {
 		this.selectedPerspective = selectedPerspective;
 		this.questionModType = questionModType;
 	}
-	
-	public void setInsightBase(IEngine insightBaseXML) {
-		this.insightBaseXML = insightBaseXML;
-	}
-
 	
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder){
 		FileWriter fWrite = null;
