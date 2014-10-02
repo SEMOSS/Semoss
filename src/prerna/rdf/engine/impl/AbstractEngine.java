@@ -1271,27 +1271,28 @@ public abstract class AbstractEngine implements IEngine {
 		
 		// try to see if this type is available with direct values
 		Vector<String> uris = new Vector<String>();
-		String options = dreamerProp.getProperty(type + "_" + Constants.OPTION);
-		String customQuery = query ;//dreamerProp.getProperty(insightId.substring(insightId.lastIndexOf(":")+1) + "_" + name + "_" + Constants.QUERY);
-		if (options != null) {
-			StringTokenizer tokens = new StringTokenizer(options, ";");
-			// sorry for the cryptic crap below
-			int tknIndex = 0;
-			for (; tokens.hasMoreTokens(); tknIndex++) {
-//				Node node = new Node();
-				String token = tokens.nextToken();
-//				node.setLabel(token);
-//				node.setURI(token);
-//				node.setType(type);
-				uris.addElement(token);
+		if(dreamerProp!=null){
+			String options = dreamerProp.getProperty(type + "_" + Constants.OPTION);
+			if (options != null) {
+				StringTokenizer tokens = new StringTokenizer(options, ";");
+				// sorry for the cryptic crap below
+				int tknIndex = 0;
+				for (; tokens.hasMoreTokens(); tknIndex++) {
+	//				Node node = new Node();
+					String token = tokens.nextToken();
+	//				node.setLabel(token);
+	//				node.setURI(token);
+	//				node.setType(type);
+					uris.addElement(token);
+				}
 			}
 		} else {
 			// this needs to be retrieved through SPARQL
 			// need to use custom query if it has been specified on the dreamer
 			// otherwise use generic fill query
 			String sparqlQuery = "";
-			if(customQuery != null){
-				sparqlQuery = customQuery;
+			if(query != null){
+				sparqlQuery = query;
 			}else { 
 				sparqlQuery = DIHelper.getInstance().getProperty(
 					"TYPE" + "_" + Constants.QUERY);
