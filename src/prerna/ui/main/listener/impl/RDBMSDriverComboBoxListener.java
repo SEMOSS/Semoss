@@ -25,7 +25,7 @@ public class RDBMSDriverComboBoxListener extends AbstractListener {
 		}
 		else if(driverType.equals("Oracle"))
 		{
-			rdbmsUrlField.setText("jdbc:oracle:thin:@<hostname>[:port]/<service or sid>");
+			rdbmsUrlField.setText("jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema name]");
 		}
 		else if(driverType.equals("MS SQL Server"))
 		{
