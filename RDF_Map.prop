@@ -4,6 +4,8 @@ BROWSER_TYPE	Mozilla15
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
+URI_BASE	https://localhost:443/Monolith/api/engine/s-
+
 SMSSWatcher	prerna.util.SMSSFileWatcher
 SMSSWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
 SMSSWatcher_EXT	.smss
