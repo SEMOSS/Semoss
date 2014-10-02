@@ -356,7 +356,7 @@ public class QuestionAdministrator {
 			// if so, add the list of options and set the type ot be a literal
 			// String optionKey = qsKey + "_" + paramKey + "_" +
 			// Constants.OPTION;
-			String optionKey = qsKey + "_" + "Override" + paramKey + "_"
+			String optionKey = qsKey + "_" + type + "_"
 					+ Constants.OPTION;
 			if (parameterProperties.get(optionKey) != null) {
 				String option = parameterProperties.get(optionKey);
@@ -443,7 +443,7 @@ public class QuestionAdministrator {
 			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
 			// if so, remove the list of options and set the type ot be a
 			// literal
-			String optionKey = qsKey + "_" + "Override" + paramKey + "_"
+			String optionKey = qsKey + "_" + type + "_"
 					+ Constants.OPTION;
 			if (parameterProperties.get(optionKey) != null) {
 				String option = parameterProperties.get(optionKey);
@@ -629,8 +629,7 @@ public class QuestionAdministrator {
 									optionsConcat += ";";
 								}
 							}
-							localCurrentParameterOptionList.add("Override"
-									+ paramInfoVector.get(j).getName()
+							localCurrentParameterOptionList.add(paramInfoVector.get(j).getType()
 									+ "_OPTION_-_" + optionsConcat);
 						}
 					}
@@ -741,8 +740,7 @@ public class QuestionAdministrator {
 									optionsConcat += ";";
 								}
 							}
-							localCurrentParameterOptionList.add("Override"
-									+ paramInfoVector.get(j).getName()
+							localCurrentParameterOptionList.add(paramInfoVector.get(j).getType()
 									+ "_OPTION_-_" + optionsConcat);
 						}
 					}
@@ -1102,8 +1100,7 @@ public class QuestionAdministrator {
 								optionsConcat += ";";
 							}
 						}
-						optionVector.add("Override"
-								+ paramInfoVector.get(i).getName()
+						optionVector.add(paramInfoVector.get(i).getType()
 								+ "_OPTION_-_" + optionsConcat);
 					}
 				}
@@ -1113,8 +1110,6 @@ public class QuestionAdministrator {
 			deleteQuestion(perspective, questionKey, question, sparql,
 					layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
-			
-			
 		}
 	}
 }
