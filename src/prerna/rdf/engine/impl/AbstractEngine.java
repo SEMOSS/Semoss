@@ -1286,7 +1286,8 @@ public abstract class AbstractEngine implements IEngine {
 					uris.addElement(token);
 				}
 			}
-		} else {
+		}
+		if(uris.isEmpty()){
 			// this needs to be retrieved through SPARQL
 			// need to use custom query if it has been specified on the dreamer
 			// otherwise use generic fill query
