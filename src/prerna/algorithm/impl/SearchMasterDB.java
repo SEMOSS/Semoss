@@ -218,7 +218,7 @@ public class SearchMasterDB {
 			ArrayList<String> databaseList = filterDatabaseList();
 			if(databaseList.isEmpty()) {
 				logger.error("No databases include the instances given.");
-				//Utility.showError("No databases include the instances given.");
+				Utility.showError("No databases include the instances given.");
 				return new ArrayList<Hashtable<String, Object>>();
 			}
 			databaseFilter = createDatabaseFilter(databaseList);
@@ -239,7 +239,7 @@ public class SearchMasterDB {
 		}
 		if(numVals==0) {
 			logger.error("No master concepts found for any keywords entered.");
-			//Utility.showError("No master concepts found for any keywords entered.");
+			Utility.showError("No master concepts found for any keywords entered.");
 			return new ArrayList<Hashtable<String, Object>>();
 		}
 
