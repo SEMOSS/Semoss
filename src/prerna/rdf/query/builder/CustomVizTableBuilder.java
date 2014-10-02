@@ -37,7 +37,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	static final int predIdx = 1;
 	static final int objIdx = 2;
 	static final int propIdx = 0;
-	static final String uriKey = "uriKey";
+	public static final String uriKey = "uriKey";
 	static final String queryKey = "queryKey";
 	static final String varKey = "varKey";
 	static final Logger logger = LogManager.getLogger(CustomVizTableBuilder.class.getName());
@@ -106,7 +106,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		addFilter();
 	}
 
-	private void parsePath()
+	public void parsePath()
 	{
 		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
@@ -355,5 +355,13 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			headerHash.put(this.queryKey, filterQuery);
 		}
 		return retArray;
+	}
+	
+	public ArrayList<Hashtable<String, String>> getNodeV(){
+		return this.nodeV;
+	}
+	
+	public ArrayList<Hashtable<String, String>> getPredV(){
+		return this.predV;
 	}
 }
