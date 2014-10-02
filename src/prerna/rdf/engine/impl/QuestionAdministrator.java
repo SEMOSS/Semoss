@@ -8,15 +8,12 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
-import prerna.algorithm.impl.SearchMasterDB;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
@@ -27,10 +24,8 @@ import prerna.util.Utility;
 import com.ibm.icu.util.StringTokenizer;
 
 public class QuestionAdministrator {
-	private static final Logger logger = LogManager.getLogger(QuestionAdministrator.class.getName());
-	
 	IEngine engine;//= //(IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
-	IEngine insightBaseXML;// = ((AbstractEngine)engine).getInsightBaseXML();
+	RDFFileSesameEngine insightBaseXML;// = ((AbstractEngine)engine).getInsightBaseXML();
 	
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 	boolean reorder = true;
@@ -92,6 +87,9 @@ public class QuestionAdministrator {
 	
 	String engineURI2 = engineBaseURI + "/" + selectedEngine;
 	
+	public QuestionAdministrator() {
+		
+	}
 	public QuestionAdministrator (IEngine engine){
 		this.engine = engine;
 		insightBaseXML = ((AbstractEngine)engine).getInsightBaseXML();
@@ -105,6 +103,11 @@ public class QuestionAdministrator {
 		this.questionModType = questionModType;
 	}
 	
+	public void setInsightBase(IEngine insightBaseXML) {
+		this.insightBaseXML = insightBaseXML;
+	}
+
+	
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder){
 		FileWriter fWrite = null;
 		RDFXMLPrettyWriter questionXMLWriter = null;
@@ -115,10 +118,8 @@ public class QuestionAdministrator {
 			fWrite = new FileWriter(xmlFileName);
 			questionXMLWriter  = new RDFXMLPrettyWriter(fWrite);
 			//System.err.println(insightBaseXML.rc);
-			if (insightBaseXML instanceof RDFFileSesameEngine)
-				((RDFFileSesameEngine)insightBaseXML).rc.export(questionXMLWriter);
-			else
-				logger.error("Could not create QuestionXML File because it is not an RDFFileSesameEngine");
+			insightBaseXML.rc.export(questionXMLWriter);
+			
 			System.err.println("Created XML Question Sheet at: " + xmlFileName);
 		} catch (IOException | RDFHandlerException | RepositoryException e) {
 			// TODO Auto-generated catch block

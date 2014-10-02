@@ -28,7 +28,6 @@ Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
-DataObject_Connected_VISTA http://health.mil/ontologies/Relation/Connected
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
 Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
@@ -65,8 +64,6 @@ VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
 Capability_CLASS http://semoss.org/ontologies/Concept/Capability
 CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
 LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
-CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
-LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
 Requirement_CLASS http://semoss.org/ontologies/Concept/Requirement
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
@@ -93,7 +90,6 @@ Activity_Assigned_FError_CLASS http://semoss.org/ontologies/Relation/Assigned
 FError_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
 Requirement_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 Service_Exposes_DataObject_CLASS http://semoss.org/ontologies/Relation/Exposes
-DataObject_Connected_VISTA_CLASS http://semoss.org/ontologies/Relation/Connected
 VISTAElement_BelongsTo_VISTA_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 DataElement_BelongsTo_DataObject_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 Activity_ActivitySplit_Element_CLASS http://semoss.org/ontologies/Relation/ActivitySplit

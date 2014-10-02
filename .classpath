@@ -9,6 +9,7 @@
 	<classpathentry kind="lib" path="RDFGraphLib/commons-httpclient-3.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/d2rqUpdate.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/dom4j-1.6.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/engine-gecko.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/engine-gecko15.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/engine-ie.jar"/>
@@ -47,7 +48,8 @@
 	<classpathentry kind="lib" path="RDFGraphLib/wstx-asl-3.2.6.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/xercesImpl-2.7.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/xmlbeans-2.3.0.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk64bit"/>
+	
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="RDFGraphLib/commons-io-2.4.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/commons-math3-3.2.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/lpsolve55j.jar"/>
@@ -85,11 +87,6 @@
 	<classpathentry kind="lib" path="RDFGraphLib/jxbrowser-win-4.3.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/runtime.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/noarch-aster-jdbc-driver.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/httpclient-4.3.2.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/httpclient-cache-4.3.2.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/httpcore-4.3.1.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/httpmime-4.3.2.jar"/>
-	<classpathentry kind="lib" path="RDFGraphLib/jedis-2.4.2.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sspace-2.0-jar-with-dependencies.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sspace-2.0-sources.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sspace-lib-1.7.1.jar"/>

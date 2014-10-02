@@ -536,7 +536,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			// add the model to search panel
 			if (search)
 			{
-				searchPanel.searchCon.indexStatements(gdm.getJenaModel());
+				//searchPanel.searchCon.indexStatements(gdm.getJenaModel());
 			}
 			//graphSplitPane.removeAll();
 			//graphPanel.setLayout(new BorderLayout());
