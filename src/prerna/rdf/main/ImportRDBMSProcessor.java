@@ -540,6 +540,9 @@ public class ImportRDBMSProcessor {
 				Class.forName(this.ORACLE_DRIVER);
 				
 				//Connection URL format: jdbc:oracle:thin:@<hostname>[:port]/<service or sid>
+				if(url.contains("-")) {
+					url = url.substring(0, url.indexOf("-"));
+				}
 				con = DriverManager
 						.getConnection(url, username, new String(password));
 				if(con.isValid(10)) {
@@ -620,10 +623,23 @@ public class ImportRDBMSProcessor {
 		{
 			try {
 				Class.forName(this.ORACLE_DRIVER);
+				if(url.contains("-")) {
+					url = url.substring(0, url.indexOf("-"));
+				}
 				con = DriverManager
 						.getConnection(url, username, new String(password));
 				//Get DBname from URL
-				dbName = url.substring(url.lastIndexOf("/")+1);
+				dbName = url.substring(url.lastIndexOf("-")+1);
+				
+				sql = "ALTER SESSION SET CURRENT_SCHEMA=" + dbName;
+				Statement s = con.createStatement();
+				boolean schemaUpdated = s.execute(sql);
+				
+				if(!schemaUpdated) {
+					logger.info("Could not update schema to " + dbName + " - please check schema name and try again.");
+					return (success = false);
+				}
+				
 				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS";
 				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
 				Statement statement = con.createStatement();
