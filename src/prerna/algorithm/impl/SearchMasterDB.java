@@ -617,12 +617,15 @@ public class SearchMasterDB {
 		{			
 			String engine = engineItr.next();
 			Double score = engineScoreList.get(engine);
-			String engineURI = engineURLHash.get(engine);
+			String engineURI = "";
+			if(engineURLHash != null && !engineURLHash.isEmpty())
+				engineURI = engineURLHash.get(engine);
 
 			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 			insightHash.put(this.dbKey, engine);
 			insightHash.put(this.scoreKey, score);
-			insightHash.put(this.engineURIKey,engineURI);
+			if(engineURLHash != null && !engineURLHash.isEmpty())
+				insightHash.put(this.engineURIKey,engineURI);
 			returnArray.add(insightHash);
 		}
 		return returnArray;
