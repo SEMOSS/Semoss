@@ -243,6 +243,10 @@ body {
     margin-left: 3%;
 }
 
+.hide-slider {
+    visibility: hidden;
+}
+
 @media (max-width: 1340px) {
     .header-left {
         float: none;
@@ -251,10 +255,6 @@ body {
 
     #sidebarContentArea {
         top: 140px;
-    }
-
-    #slider {
-
     }
 }
 
