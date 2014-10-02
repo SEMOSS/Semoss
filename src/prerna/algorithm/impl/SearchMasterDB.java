@@ -428,23 +428,15 @@ public class SearchMasterDB {
 		String instanceURIQueryFilled = instanceURIQuery.replaceAll("@KEYWORDURI@", possibleKeywordURI).replaceAll("@INSTANCE@","/"+instance);
 		
 		// this will call the engine and gets then flushes it into sesame jena construct wrapper
-//		Hashtable <String,String> params = new Hashtable<String, String>();
-//		params.put("query", instanceURIQueryFilled);
-//		String output = Utility.retrieveResult(engineAPI + "/execSelectQuery", params);
 		RemoteSemossSesameEngine eng = new RemoteSemossSesameEngine();
-		eng.setAPI("https://localhost/Monolith/api/engine");
-		eng.setDatabase("Movie_DB");
+		String engineURI = engineURLHash.get(engineName);
+		eng.setAPI(engineURI+"/s-"+engineName);
+		eng.setDatabase(engineName);
 		
 		SesameJenaSelectWrapper sjcw = new SesameJenaSelectWrapper();
 		sjcw.setEngine(eng);
 		sjcw.setQuery(instanceURIQueryFilled);
 		sjcw.executeQuery();
-
-//		Gson gson = new Gson();
-//		SesameJenaSelectWrapper sjcw = gson.fromJson(output, SesameJenaSelectWrapper.class);
-		
-//		SesameJenaSelectWrapper sjcw = (SesameJenaSelectWrapper)eng.execSelectQuery(instanceURIQueryFilled);
-		
 		
 		ArrayList<String> instanceURIs = new ArrayList<String>();
 		// get the bindings from it
