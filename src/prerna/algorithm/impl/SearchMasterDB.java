@@ -429,8 +429,7 @@ public class SearchMasterDB {
 		
 		// this will call the engine and gets then flushes it into sesame jena construct wrapper
 		RemoteSemossSesameEngine eng = new RemoteSemossSesameEngine();
-		String engineURI = engineURLHash.get(engineName);
-		eng.setAPI(engineURI+"/s-"+engineName);
+		eng.setAPI(engineAPI);
 		eng.setDatabase(engineName);
 		
 		SesameJenaSelectWrapper sjcw = new SesameJenaSelectWrapper();
