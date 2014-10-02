@@ -256,7 +256,7 @@ public class PlayPane extends JFrame {
 			nodeRelationshipComboBox7, nodeRelationshipComboBox8,
 			nodeRelationshipComboBox9;
 	public JButton btnAddExport;
-//	public JButton btnCreateMasterDatabase;
+	public JButton btnCreateMasterDatabase;
 	public JTextField databaseSearchTextField;
 	public JButton btnSearchDatabase;
 	private Component rigidArea;
@@ -1553,15 +1553,15 @@ public class PlayPane extends JFrame {
 		gbc_btnExportRelationshipsLoad.gridy = 18;
 		loadSheetExportPanel.add(btnExportRelationshipsLoadSheets, gbc_btnExportRelationshipsLoad);
 
-//		btnCreateMasterDatabase = new CustomButton("Create Master Database");
-//		btnCreateMasterDatabase.setFont(new Font("Tahoma", Font.BOLD,	11));
-//		GridBagConstraints gbc_btnCreateMasterDatabase = new GridBagConstraints();
-//		gbc_btnCreateMasterDatabase.anchor = GridBagConstraints.WEST;
-//		gbc_btnCreateMasterDatabase.insets = new Insets(0, 0, 5, 5);
-//		gbc_btnCreateMasterDatabase.gridx = 0;
-//		gbc_btnCreateMasterDatabase.gridy = 19;
-//		loadSheetExportPanel.add(btnCreateMasterDatabase, gbc_btnCreateMasterDatabase);
-//		Style.registerTargetClassName(btnCreateMasterDatabase, ".standardButton");
+		btnCreateMasterDatabase = new CustomButton("Create Master Database");
+		btnCreateMasterDatabase.setFont(new Font("Tahoma", Font.BOLD,	11));
+		GridBagConstraints gbc_btnCreateMasterDatabase = new GridBagConstraints();
+		gbc_btnCreateMasterDatabase.anchor = GridBagConstraints.WEST;
+		gbc_btnCreateMasterDatabase.insets = new Insets(0, 0, 5, 5);
+		gbc_btnCreateMasterDatabase.gridx = 0;
+		gbc_btnCreateMasterDatabase.gridy = 19;
+		loadSheetExportPanel.add(btnCreateMasterDatabase, gbc_btnCreateMasterDatabase);
+		Style.registerTargetClassName(btnCreateMasterDatabase, ".standardButton");
 		
 		databaseSearchTextField = new JTextField();
 		databaseSearchTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
