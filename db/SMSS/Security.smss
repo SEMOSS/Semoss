@@ -2,7 +2,6 @@ Base Properties
 ENGINE	Security
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/Security/Security_Custom_Map.prop
-OWL	db/Security/Security_OWL.OWL
 DREAMER	db/Security/Security_Questions.properties
 
 
