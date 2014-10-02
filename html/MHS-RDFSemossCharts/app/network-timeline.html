@@ -16,12 +16,13 @@
             <div class="header-left">
                 <div class="header-title text-center">Update State</div>
                 <div class="btn-group text-center">
-                    <button type="button" class="btn" ng-click="setInitialStateSlider()">Initial State</button>
-                    <button type="button" class="btn" ng-click="setFinalStateSlider()">Final State</button>
+                    <button type="button" class="btn" ng-class="{active: sliderState == 'Initial'}" ng-click="setInitialStateSlider()">Initial State</button>
+                    <button type="button" class="btn" ng-class="{active: sliderState == 'Transition'}" ng-click="setTransitionStateSlider()">Transition State</button>
+                    <button type="button" class="btn" ng-class="{active: sliderState == 'Final'}" ng-click="setFinalStateSlider()">Final State</button>
                 </div>
             </div>
 
-            <div class="slider-container">
+            <div class="slider-container" ng-class="{'hide-slider' : sliderState !== 'Transition'}">
                 <div class="header-title text-center">Transition Modernization LOE Slider</div>
                 <div id="slider"></div>
             </div>
@@ -37,8 +38,8 @@
                             <td data-title="'ICD'" class="icd" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
                                 {{item.name}}
                             </td>
-                            <td title="{{item.phase}}" data-title="'Phase'" class="label" ng-class="((item.phase))" sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
-                                {{item.phase}}
+                            <td title="{{item.phase}}" data-title="'Phase'" class="label {{sliderState !== 'Initial' && item.phase || ''}}"  sortable="'phase'" filter="{ 'phase': 'text' }" header-class = "text-center phase">
+                                {{sliderState !== 'Initial' && item.phase || 'N/A'}}
                             </td>
                             <td title="{{item.LOE}}" data-title="'LOE'" sortable="'loe'" filter="{ 'LOE': 'text' }" header-class = "text-center loe" class="text-right" >
                                 {{item.LOE}}
@@ -64,7 +65,8 @@
                             Network Transition Visualization
                         </div>
                     </div>
-                    <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation"></forcegraph>
+                    <!--<textarea ng-bind="dataString"></textarea>-->
+                    <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation" slider-state="sliderState"></forcegraph>
                 </div>
 
             </div>
@@ -101,6 +103,7 @@
                     var tableDB;
                     $scope.maxLOE = 0;
                     $scope.timeHashLocation = '';
+                    $scope.sliderState = "Initial";
 
 //                    $timeout(function () {
 //                        $scope.forceData = timeline_data;
@@ -113,17 +116,25 @@
 //
 //                        if (nodesTimeHash && edgesTimeHash) {
 //                            $scope.timeHashLocation = "Both";
+//                        } else if (nodesTimeHash) {
+//                            $scope.timeHashLocation = "Nodes";
+//                        } else if (edgesTimeHash) {
+//                            $scope.timeHashLocation = "Edges";
+//                        }
+//
+//                        var nodesICD = hasICD($scope.forceData.nodes, "VERTEX_TYPE_PROPERTY");
+//                        var edgesICD = hasICD($scope.forceData.edges, "EDGE_TYPE");
+//
+//                        if (nodesICD && edgesICD) {
 //                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
 //                            var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
 //                            //combine tables
 //                            for (var i=0; i<edgeTableData.length; i++) {
 //                                tableData.push(edgeTableData[i]);
 //                            }
-//                        } else if (nodesTimeHash) {
-//                            $scope.timeHashLocation = "Nodes";
+//                        } else if (nodesICD) {
 //                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
-//                        } else if (edgesTimeHash) {
-//                            $scope.timeHashLocation = "Edges";
+//                        } else if (edgesICD) {
 //                            tableData = createTableModel($scope.forceData.edges, "Edges");
 //                        }
 //
@@ -134,7 +145,7 @@
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
-
+                            $scope.dataString = data;
                             $scope.forceData = JSON.parse(data);
                             var tableData = [];
 
@@ -144,17 +155,25 @@
 
                             if (nodesTimeHash && edgesTimeHash) {
                                 $scope.timeHashLocation = "Both";
+                            } else if (nodesTimeHash) {
+                                $scope.timeHashLocation = "Nodes";
+                            } else if (edgesTimeHash) {
+                                $scope.timeHashLocation = "Edges";
+                            }
+
+                            var nodesICD = hasICD($scope.forceData.nodes, "VERTEX_TYPE_PROPERTY");
+                            var edgesICD = hasICD($scope.forceData.edges, "EDGE_TYPE");
+
+                            if (nodesICD && edgesICD) {
                                 tableData = createTableModel($scope.forceData.nodes, "Nodes");
                                 var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
                                 //combine tables
                                 for (var i=0; i<edgeTableData.length; i++) {
                                     tableData.push(edgeTableData[i]);
                                 }
-                            } else if (nodesTimeHash) {
-                                $scope.timeHashLocation = "Nodes";
+                            } else if (nodesICD) {
                                 tableData = createTableModel($scope.forceData.nodes, "Nodes");
-                            } else if (edgesTimeHash) {
-                                $scope.timeHashLocation = "Edges";
+                            } else if (edgesICD) {
                                 tableData = createTableModel($scope.forceData.edges, "Edges");
                             }
 
@@ -163,6 +182,15 @@
 
                         });
                     };
+
+                    function hasICD(collection, type) {
+                        for (var item in collection) {
+                            if (collection[item].propHash[type] == "InterfaceControlDocument") {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
 
                     function hasTimeHash(collection) {
                         for (var item in collection) {
@@ -186,7 +214,7 @@
 
                         for (var item in itemArray) {
 
-                            if (itemArray[item].propHash.timeHash) {
+                            if (itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "InterfaceControlDocument") {
                                 if (itemArray[item].propHash.timeHash["Decommissioned"]) { //decommissioned
                                     //new item data model
                                     newItem = {
@@ -254,7 +282,7 @@
 
                                     tableData.push(newItem);
                                 }
-                            } else {
+                            } else if (!itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "InterfaceControlDocument") {
                                 //new item data modelcreateedge
                                 var newItem = {
                                     name: itemArray[item].propHash[name],
@@ -277,31 +305,35 @@
                     };
 
                     function setTableData(sliderValue) {
-                        var dependICDs = [];
 
-                        //get all dependent ICDs that can be decommissioned
-                        tableDB().each(function(item) {
-                            if (item.totalLOE < sliderValue && item.phase == "Completed") {
-                                for (var i=0; i<item.dependICDS.length; i++) {
-                                    dependICDs.push(item.dependICDS[i]);
-                                }
+                        //slider state at time initial, get all ICDs that are currently implemented and the ones that will be Decommissioned
+                        if ($scope.sliderState == "Initial") {
 
-                            }
-                        });
-
-                        $scope.tableData = tableDB(function() {
-                            //checks first to see if the dependent ICD is able to be decommissioned
-                            for (var i = 0; i < dependICDs.length; i++) {
-                                if (dependICDs[i] == this.uri) {
+                            $scope.tableData = tableDB(function () {
+                                if (this.phase == "N/A" || this.phase == "Decommissioned") {
                                     return true;
                                 }
-                            }
+                            }).get();
 
+                        } else if ($scope.sliderState == "Transition") {
 
-                            //show all the ICDs at t=0
-                            if (sliderValue == 0 && this.phase != "Decommissioned" && this.totalLOE == 0) {
-                                return true;
-                            } else if (sliderValue !== 0) {
+                            var dependICDs = [];
+                            //get all dependent ICDs that can be decommissioned
+                            tableDB().each(function (item) {
+                                if (item.totalLOE < sliderValue && item.phase == "Completed") {
+                                    for (var i = 0; i < item.dependICDS.length; i++) {
+                                        dependICDs.push(item.dependICDS[i]);
+                                    }
+                                }
+                            });
+
+                            $scope.tableData = tableDB(function () {
+                                //checks first to see if the dependent ICD is able to be decommissioned
+                                for (var i = 0; i < dependICDs.length; i++) {
+                                    if (dependICDs[i] == this.uri) {
+                                        return true;
+                                    }
+                                }
 
                                 //completed phase only has a start and no end, so only check the startLOE and phase name
                                 if (sliderValue > this.startLOE && this.phase == "Completed") {
@@ -315,12 +347,21 @@
                                 else if (sliderValue >= $scope.maxLOE && this.phase == "Decommissioned") {
                                     return true;
                                 }
+                                else if (sliderValue == 0 && this.phase == "Requirements") {
+                                    return true;
+                                }
                                 //all else don't include
                                 else {
                                     return false;
                                 }
-                            }
-                        }).get();
+                            }).get();
+                        } else if ($scope.sliderState == "Final") {
+                            $scope.tableData = tableDB(function () {
+                                if (this.phase == "Completed" || this.phase == "N/A") {
+                                    return true;
+                                }
+                            }).get()
+                        }
 
                         $scope.tableParams.count($scope.tableData.length);
                         $scope.tableParams.reload();
@@ -362,15 +403,22 @@
 
 
                     $scope.setInitialStateSlider = function() {
+                        $scope.sliderState = "Initial";
                         $scope.$broadcast("set-slider-initial", 0);
                     };
 
                     $scope.setFinalStateSlider = function() {
+                        $scope.sliderState = "Final";
                         if ($scope.maxLOE == 1) {
                             $scope.$broadcast("set-slider-final", 1);
                         } else {
                             $scope.$broadcast("set-slider-final", $scope.maxLOE + 1);
                         }
+                    };
+
+                    $scope.setTransitionStateSlider = function() {
+                        $scope.sliderState = "Transition";
+                        $scope.$emit("slider-change");
                     };
 
                     $scope.freezeNodes = function() {
@@ -390,7 +438,8 @@
                             containerClass: "=",
                             labels: "=",
                             maxLoe: "=",
-                            timeHash: "="
+                            timeHash: "=",
+                            sliderState: "="
                         },
                         link: function (scope, ele, attrs) {
                             var links = [],
@@ -404,7 +453,6 @@
                                     container = {width: 0, height: 0},
                                     minLOE = 0,
                                     allForceData,
-                                    previousSliderValue,
                                     isSliderMade = false,
                                     previousState = "Initial";
 
@@ -418,14 +466,15 @@
                                 if (!_.isEmpty(scope.data)) {
                                     //save all the data for later
                                     allForceData = scope.data;
+                                    scope.maxLoe = calculateMaxLOE();
                                     setForceData(scope.data, 0);
                                 }
                             });
 
-                            function setForceData(newData, sliderValue) {
+                            function setForceData(newData, sliderValue, currentState) {
 //                                newNodes = newData.nodes;
 
-                                if (sliderValue == 0 && previousState == "Initial") {
+                                if (sliderValue == 0 && previousState == "Initial" && (currentState !== "Transition" && currentState !== "Final")) {
                                     //initial Edges is dependent on initial nodes, must go after
                                     newNodes = getInitialNodes();
                                     newLinks = removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes())));
@@ -450,12 +499,6 @@
                                     links.push(link);
                                 });
 
-                                if (!isSliderMade) {
-                                    scope.maxLoe = calculateMaxLOE();
-                                    createSlider();
-                                    isSliderMade = true;
-                                }
-
                                 update();
                             }
 
@@ -476,7 +519,7 @@
                                     sliderMax = 1;
                                     axisState = d3.svg.axis().ticks(1);
                                 } else {
-                                    sliderMax = scope.maxLoe + 5;
+                                    sliderMax = scope.maxLoe + 1;
                                 }
 
                                 //set the slider
@@ -491,94 +534,128 @@
                             scope.$on("set-slider-initial", function(e, v) {
 
                                 createSlider(v);
+
                                 if (previousState == "Final") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
-
-                                    setForceData({nodes: diffNodes, edges: diffLinks}, v);
-
-
-                                    diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
-                                    diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
-
-                                    removeNodes(diffNodes);
-                                    removeEdges(diffLinks);
-                                    update();
-
+                                    setInitialFromFinal(v);
                                 } else if (previousState == "Transition") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
-
-                                    removeNodes(diffNodes);
-                                    removeEdges(diffLinks);
-                                    update();
+                                    setInitialFromTransition();
                                 }
 
-                                previousState = "Initial";
-
+//                                scope.sliderState = "Initial";
                                 scope.$emit("update-table", v);
+                                previousState = "Initial";
 
                             });
 
                             scope.$on("set-slider-final", function(e, v) {
-
+//                                scope.sliderState = "Final";
                                 createSlider(v);
                                 if (previousState == "Initial") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
-                                    setForceData({nodes: diffNodes, edges: diffLinks}, v);
-
-
-                                    diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
-                                    diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
-
-                                    removeNodes(diffNodes);
-                                    removeEdges(diffLinks);
-                                    update();
-
+                                    setFinalFromInitial(v);
                                 } else if (previousState == "Transition") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
-
-                                    removeNodes(diffNodes);
-                                    removeEdges(diffLinks);
-                                    update();
+                                    setFinalFromTransition();
                                 }
 
-                                previousState = "Final";
+
                                 scope.$emit("update-table", v);
+                                previousState = "Final";
 
                             });
 
-                            $rootScope.$on('slider-change', function(event, sliderVal) {
+                            $rootScope.$on('slider-change', function(event, v) {
+                                console.log(v);
+
+
 
                                 if (previousState == "Initial") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
-
-                                    setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
-                                    updateEdgeColor(sliderVal);
-                                    updateNodeColor(sliderVal);
-
+                                    v = v ? v : 0;
+                                    setTransitionFromInitial(v);
+//                                    createSlider(v);
                                 } else if (previousState == "Final") {
-                                    var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
-                                    var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
-
-                                    setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal);
-                                    updateEdgeColor(sliderVal);
-                                    updateNodeColor(sliderVal);
-
+                                    var max = scope.maxLoe == 1 ? 1 : scope.maxLoe + 1;
+                                    v = v ? v : max;
+                                    setTransitionFromFinal(v);
+//                                    createSlider(v);
                                 } else {
-                                    updateEdgeColor(sliderVal);
-                                    updateNodeColor(sliderVal);
+                                    updateEdgeColor(v);
+                                    updateNodeColor(v);
                                 }
 
-
-                                scope.$emit('update-table', sliderVal);
                                 previousState = "Transition";
-                                previousSliderValue = sliderVal;
-
+                                scope.$emit('update-table', v);
+                                //create first instance of slider
+                                if (!isSliderMade) {
+                                    createSlider();
+                                    isSliderMade = true;
+                                }
                             });
+
+
+
+                            function setInitialFromFinal(sliderVal) {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal, "Initial");
+
+
+                                diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+
+                                removeNodes(diffNodes);
+                                removeEdges(diffLinks);
+                                update();
+                            }
+
+                            function setInitialFromTransition() {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+
+                                removeNodes(diffNodes);
+                                removeEdges(diffLinks);
+                                update();
+                            }
+
+                            function setFinalFromInitial(sliderVal) {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+                                setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal, "Final");
+
+
+                                diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                removeNodes(diffNodes);
+                                removeEdges(diffLinks);
+                                update();
+                            }
+
+                            function setFinalFromTransition() {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                removeNodes(diffNodes);
+                                removeEdges(diffLinks);
+                                update();
+                            }
+
+                            function setTransitionFromInitial(sliderVal) {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getInitialEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getInitialNodes()))));
+
+                                setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal, "Transition");
+                                updateEdgeColor(sliderVal);
+                                updateNodeColor(sliderVal);
+                            }
+
+                            function setTransitionFromFinal(sliderVal) {
+                                var diffNodes = _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()));
+                                var diffLinks = _.difference(allForceData.edges, removeEdgesFromRemovedNodes(getFinalEdges(), _.difference(_.keys(allForceData.nodes), _.keys(getFinalNodes()))));
+
+                                setForceData({nodes: diffNodes, edges: diffLinks}, sliderVal, "Transition");
+                                updateEdgeColor(sliderVal);
+                                updateNodeColor(sliderVal);
+                            }
 
                             var xScale = d3.scale.linear()
                                     .domain([0, width])
@@ -1183,7 +1260,7 @@
                             function updateNodeColor(sliderValue) {
                                 var dependICDs = [];
 
-                                //looping through all links to find the dependent ICDs based on where the slider is
+                                //looping through all nodes to find the dependent ICDs based on where the slider is
                                 for (var i=0; i<nodes.length; i++) {
                                     if (nodes[i].propHash.timeHash && !nodes[i].propHash.timeHash["Decommissioned"]) {
                                         for (var phase in nodes[i].propHash.timeHash) {
@@ -1244,6 +1321,9 @@
                                                     color = ("rgb(" + item.propHash.VERTEX_COLOR_PROPERTY + ")");
                                                 }
 
+                                                //will color the node the initial color at beginning of requirements
+                                            } else if (sliderValue == 0 && sliderValue == item.propHash.timeHash[phase].startLOE && phase == "Requirements") {
+                                                color = "#ECF6BD";
                                             }
                                         }
                                     }
