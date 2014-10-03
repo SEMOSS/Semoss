@@ -23,7 +23,7 @@ public final class WekaUtilityMethods {
 	}
 	
 	// currently only works for clean data - cannot mix strings with doubles for attributes
-	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names) {
+	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
 		int numInstances = dataList.size();	
 		
 		int i;
@@ -62,7 +62,7 @@ public final class WekaUtilityMethods {
 		FastVector attributeList = new FastVector();
 		for(i = 0; i < numAttr; i++ ) {
 			//special case for predictor since it must be nominal
-			if(i == numAttr - 1 && !isCategorical[i]) {
+			if(i == attributeIndex && !isCategorical[i]) {
 				//create bins for numeric value
 				Arrays.sort(numericValues[i]);
 				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleArr(numericValues[i]));
@@ -95,7 +95,7 @@ public final class WekaUtilityMethods {
 			dataEntry.setDataset(data);
 			Object[] dataRow = dataList.get(i);
 			for(j = 0; j < numAttr; j++) {
-				if(j == numAttr - 1 && !isCategorical[j]) {
+				if(j == attributeIndex && !isCategorical[j]) {
 					dataEntry.setValue(j, binForInstance[i]);
 				} else {
 					Object valAttr = dataRow[j];
