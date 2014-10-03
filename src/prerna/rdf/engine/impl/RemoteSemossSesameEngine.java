@@ -5,6 +5,8 @@ import java.io.StringBufferInputStream;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -15,6 +17,7 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -78,6 +81,16 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				baseDataEngine = new RDFFileSesameEngine();
 				
 				baseDataEngine.rc = rc;
+				
+				try {
+					this.setBaseHash(RDFEngineHelper.createBaseFilterHash(rc));
+				} catch (MalformedQueryException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (QueryEvaluationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				
 				// yup.. we are open for business
 				connected = true;
