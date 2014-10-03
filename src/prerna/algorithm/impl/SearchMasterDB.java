@@ -481,14 +481,12 @@ public class SearchMasterDB {
 		String mcQuery = addBindings(masterConceptsForSubgraphKeywordsQuery,"Keyword",conceptBaseURI,keywordList);
 		ArrayList<Object []> keywordMasterConceptsList = processQuery(mcQuery);
 		//assuming that all master concepts come from the keywords
-		if(keywordList.size()<=keywordMasterConceptsList.size()) {
-			for(int i=0;i<keywordMasterConceptsList.size();i++) {
-				Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
-				String keyword = (String)keywordMCRelation[0];
-				String concept = (String)keywordMCRelation[1];
-				int index = keywordList.indexOf(keyword);
-				masterConceptsList.set(index,concept);
-			}
+		for(int i=0;i<keywordMasterConceptsList.size();i++) {
+			Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
+			String keyword = (String)keywordMCRelation[0];
+			String concept = (String)keywordMCRelation[1];
+			int index = keywordList.indexOf(keyword);
+			masterConceptsList.set(index,concept);
 		}
 		return masterConceptsList;
 	}
