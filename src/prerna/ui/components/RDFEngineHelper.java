@@ -426,7 +426,6 @@ public class RDFEngineHelper {
 	 * @throws MalformedQueryException 
 	 * @throws QueryEvaluationException */
 	public static Hashtable loadBaseRelationsFromOWL(String owlFilePath) throws RepositoryException, RDFParseException, IOException, MalformedQueryException, QueryEvaluationException {
-		Hashtable<String,String> baseFilterHash = new Hashtable<String,String>();
 		Repository myRepository = new SailRepository(new MemoryStore());
 		myRepository.initialize();
 		RepositoryConnection rcOWL = myRepository.getConnection();
@@ -434,7 +433,12 @@ public class RDFEngineHelper {
 		File owlFile = new File(owlFilePath);
 		rcOWL.add(owlFile, owlFilePath, RDFFormat.RDFXML);
 		rcOWL.commit();
-		
+		Hashtable retHash = createBaseFilterHash(rcOWL);
+		return retHash;
+	}	
+	
+	public static Hashtable createBaseFilterHash(RepositoryConnection rcOWL) throws RepositoryException, MalformedQueryException, QueryEvaluationException{
+		Hashtable<String,String> baseFilterHash = new Hashtable<String,String>();
 		String queryString = "SELECT ?x ?p ?y WHERE { ?x ?p ?y } ";
 		TupleQuery tupleQuery = rcOWL.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
 		TupleQueryResult result = tupleQuery.evaluate();
@@ -447,5 +451,5 @@ public class RDFEngineHelper {
 			baseFilterHash.put(bindingSet.getValue(bindingNames.get(2)).toString(), bindingSet.getValue(bindingNames.get(2)).toString());
 		}		
 		return baseFilterHash;
-	}	
+	}
 }
