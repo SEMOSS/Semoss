@@ -92,5 +92,6 @@
 	<classpathentry kind="lib" path="RDFGraphLib/sspace-lib-1.7.1.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/sspace-2.0.jar"/>
 	<classpathentry kind="lib" path="RDFGraphLib/ws4j-1.0.1.jar"/>
+	<classpathentry kind="lib" path="RDFGraphLib/weka.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
