@@ -662,7 +662,6 @@ public class SearchMasterDB {
 			String masterConcept = (String)sjss.getVar(names[4]);
 			String viz = (String)sjss.getVar(names[5]);
 			Double score = engineScoreList.get(engine);
-			String engineURI = engineURLHash.get(engine);
 
 			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 			insightHash.put(this.dbKey, engine);
@@ -673,7 +672,10 @@ public class SearchMasterDB {
 			insightHash.put(this.vizTypeKey,viz);
 			ArrayList<String> instances =  new ArrayList<String>();
 			insightHash.put(this.instanceKey, instances);
-			insightHash.put(this.engineURIKey, engineURI);
+			if(engineURLHash!=null){
+				String engineURI = engineURLHash.get(engine);
+				insightHash.put(this.engineURIKey, engineURI);
+			}
 
 			//if we are not including instances, add the hashtable automatically
 			if(instanceList==null || instanceList.isEmpty())
