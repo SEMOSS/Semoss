@@ -6,13 +6,6 @@ import java.util.ArrayList;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.functions.SimpleLogistic;
-import weka.classifiers.rules.DecisionTable;
-import weka.classifiers.rules.PART;
-import weka.classifiers.trees.DecisionStump;
-import weka.classifiers.trees.J48;
-import weka.classifiers.trees.LMT;
-import weka.classifiers.trees.REPTree;
 import weka.core.FastVector;
 import weka.core.Instances;
 
@@ -21,16 +14,23 @@ public class WekaClassification {
 	private Instances data;
 	private double[] accuracy;
 	private double[] percision;
-	private String[] classNames;
-
+	
+	private String[] names;
+	private ArrayList<Object[]> list;
+	private Classifier model;
+	
 	PrintWriter writer = null;
 
-	public WekaClassification(String name, ArrayList<Object[]> list, String[] names) {
-		data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names);
+	public WekaClassification(String name, ArrayList<Object[]> list, String[] names, String modelName) {
+		this.list = list;
+		this.names = names;
+		this.model = ClassificationFactory.create(modelName);
 		
+		//writer only used for debugging
+		//TODO: delete once stable
 		if(writer == null) {
 			try {
-				writer = new PrintWriter("Classifier_Results" + names[names.length - 1] + ".txt");
+				writer = new PrintWriter("Classifier_Results_" + modelName + ".txt");
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
@@ -45,77 +45,57 @@ public class WekaClassification {
 		return percision.clone();
 	}
 	
-	public String[] getClassNames() {
-		return classNames.clone();
-	}
-
 	public void execute() throws Exception{
-		data.setClassIndex(data.numAttributes() - 1);
-
-		// Do 10-split cross validation
-		Instances[][] split = crossValidationSplit(data, 10);
-
-		// Separate split into training and testing arrays
-		Instances[] trainingSplits = split[0];
-		Instances[] testingSplits = split[1];
-
-		// Use a set of classifiers
-		Classifier[] models = { 
-				new J48(), // a decision tree
-				new PART(), 
-				new DecisionTable(),//decision table majority classifier
-				new DecisionStump(), //one-level decision tree
-				new REPTree(),
-//				new LMT(),
-				new SimpleLogistic()
-		};
-
-		// Run for each model
-		accuracy = new double[6];
-		percision = new double[6];
-		classNames = new String[6];
-		for (int j = 0; j < models.length; j++) {
-			//			for(int z = 1; z <= 10; z++) {
-			//				float confVal = z * 0.1f;
-			//				
-			//				if(j == 0){
-			//					((J48) models[j]).setConfidenceFactor(confVal);
-			//				} else if(j == 1) {
-			//					((PART) models[j]).setConfidenceFactor(confVal);
-			//				}
-
+		int numAttributes = names.length;
+		
+		// Run for each attribute
+		accuracy = new double[numAttributes - 1];
+		percision = new double[numAttributes - 1];
+		
+		int i;
+		for(i = 1; i < numAttributes; i++) {
+			this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, i);
+			data.setClassIndex(i);
+			// Do 10-split cross validation
+			Instances[][] split = crossValidationSplit(data, 10);
+	
+			// Separate split into training and testing arrays
+			Instances[] trainingSplits = split[0];
+			Instances[] testingSplits = split[1];
+	
 			//Collect every group of predictions for current model in FastVector
 			FastVector predCorrect = new FastVector();
 			FastVector kappaValues = new FastVector();
+			
 			// For each training-testing split pair, train and test the classifier
-			writer.println(models[j].getClass().getSimpleName());
-			for (int i = 0; i < trainingSplits.length; i++) {
-				Evaluation validation = classify(models[j], trainingSplits[i], testingSplits[i]);
+			writer.println(names[i]);
+			int j;
+			for(j = 0; j < trainingSplits.length; j++) {
+				Evaluation validation = classify(model, trainingSplits[j], testingSplits[j]);
 				predCorrect.addElement(validation.pctCorrect());
 				kappaValues.addElement(validation.kappa());
-
+	
 				writer.println(validation.toSummaryString(true));
 				writer.println("Kappa Value                             " + validation.kappa());
 				writer.println(validation.toMatrixString());
 			}
-
-			accuracy[j] = calculateAccuracy(predCorrect);
-			percision[j] = calculatePercision(kappaValues);
-			classNames[j] = models[j].getClass().getSimpleName();
+	
+			accuracy[i-1] = calculateAccuracy(predCorrect);
+			percision[i-1] = calculatePercision(kappaValues);
 			// Print current classifier's name and accuracy in a complicated,
 			// but nice-looking way.
-			writer.println("Accuracy of " + classNames[j] + ": "
-					+ String.format("%.2f%%", accuracy[j])
+			writer.println("Accuracy for " + names[i] + ": "
+					+ String.format("%.2f%%", accuracy[i-1])
 					+ "\n---------------------------------");
-			writer.println("Percision of " + classNames[j] + ": "
-					+ String.format("%.2f%%", percision[j])
+			writer.println("Percision for " + names[i] + ": "
+					+ String.format("%.2f%%", percision[i-1])
 					+ "\n---------------------------------");
-
-			System.out.println("Accuracy of " + classNames[j] + ": "
-					+ String.format("%.2f%%", accuracy[j])
+	
+			System.out.println("Accuracy for " + names[i] + ": "
+					+ String.format("%.2f%%", accuracy[i-1])
 					+ "\n---------------------------------");
-			System.out.println("Percision of " + classNames[j] + ": "
-					+ String.format("%.2f", percision[j])
+			System.out.println("Percision for " + names[i] + ": "
+					+ String.format("%.2f", percision[i-1])
 					+ "\n---------------------------------");
 		}
 
