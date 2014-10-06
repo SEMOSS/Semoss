@@ -88,7 +88,7 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 		this.paramCheckboxes = paramCheckboxes;
 	}
 
-	public void setMasterData(String[] masterNames,ArrayList<Object []> masterList) {
+	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
 		this.masterNames = masterNames;
 		this.masterList = masterList;
 	}
