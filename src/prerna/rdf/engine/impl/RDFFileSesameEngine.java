@@ -464,6 +464,26 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		this.rc = rc2;
 		
 	}
-
+	/**
+	 * Method getRc.  Gets the repository connection.
+	
+	 * @return RepositoryConnection - The repository connection. */
+	public SailConnection getSC() {
+		return sc;
+	}
+	/**
+	 * Method getRc.  Gets the repository connection.
+	
+	 * @return RepositoryConnection - The repository connection. */
+	public void setSC(SailConnection sc) {
+		this.sc = sc;
+	}
+	/**
+	 * Method getRc.  Gets the repository connection.
+	
+	 * @return RepositoryConnection - The repository connection. */
+	public void setVF(ValueFactory vf) {
+		this.vf = vf;
+	}
 	
 }
