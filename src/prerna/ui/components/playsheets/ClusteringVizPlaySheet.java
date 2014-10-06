@@ -126,6 +126,16 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		panel.add(lblParamSelect, gbc_lblParamSelect);
 		paramCheckboxes = new ArrayList<JCheckBox>();
 		
+		JLabel entropyDensityLabel = new JLabel("Entropy Density For Parameter:");
+		entropyDensityLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_entropyDensityLabel = new GridBagConstraints();
+		gbc_entropyDensityLabel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_entropyDensityLabel.fill = GridBagConstraints.NONE;
+		gbc_entropyDensityLabel.insets = new Insets(10, 5, 0, 0);
+		gbc_entropyDensityLabel.gridx = 1;
+		gbc_entropyDensityLabel.gridy = 0;
+		panel.add(entropyDensityLabel, gbc_entropyDensityLabel);
+		
 		for(int i=1;i<masterNames.length;i++) {
 			String checkboxLabel = masterNames[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
@@ -140,16 +150,15 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			panel.add(checkbox, gbc_checkbox);
 			paramCheckboxes.add(checkbox);
 			
-			JLabel entropyDensityLabel = new JLabel("Entropy Density");
-			entropyDensityLabel.setText(formatter.format(testVals[i-1]));
-			GridBagConstraints gbc_entropyDensityLabel = new GridBagConstraints();
-			gbc_entropyDensityLabel.anchor = GridBagConstraints.NORTHWEST;
-			gbc_entropyDensityLabel.fill = GridBagConstraints.NONE;
-			gbc_entropyDensityLabel.insets = new Insets(5, 10, 0, 0);
-			gbc_entropyDensityLabel.gridx = 1;
-			gbc_entropyDensityLabel.gridy = i;
-			panel.add(entropyDensityLabel, gbc_entropyDensityLabel);
-			
+			JLabel entropyDensityVal = new JLabel();
+			entropyDensityVal.setText(formatter.format(testVals[i-1]));
+			GridBagConstraints gbc_entropyDensityVal = new GridBagConstraints();
+			gbc_entropyDensityVal.anchor = GridBagConstraints.NORTHWEST;
+			gbc_entropyDensityVal.fill = GridBagConstraints.NONE;
+			gbc_entropyDensityVal.insets = new Insets(5, 10, 0, 0);
+			gbc_entropyDensityVal.gridx = 1;
+			gbc_entropyDensityVal.gridy = i;
+			panel.add(entropyDensityVal, gbc_entropyDensityVal);
 		}
 		
 		JButton btnRefreshParam = new CustomButton("Refresh Parameters");
@@ -159,7 +168,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_btnRefreshParam.anchor = GridBagConstraints.NORTH;
 		gbc_btnRefreshParam.fill = GridBagConstraints.VERTICAL;
 		gbc_btnRefreshParam.gridx = 0;
-		gbc_btnRefreshParam.gridy = names.length;
+		gbc_btnRefreshParam.gridy = names.length + 1;
 		panel.add(btnRefreshParam, gbc_btnRefreshParam);
 		Style.registerTargetClassName(btnRefreshParam,  ".createBtn");
 
