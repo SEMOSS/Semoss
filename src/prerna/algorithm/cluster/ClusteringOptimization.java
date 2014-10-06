@@ -29,7 +29,7 @@ public class ClusteringOptimization extends ClusteringAlgorithm {
         MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, 5, rand);
         UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(f);
 //        SearchInterval search = new SearchInterval(2, (int) Math.round(Math.sqrt(masterTable.size()))); //considering range from 2 to square root of number of instances
-        SearchInterval search = new SearchInterval(2, 30);
+        SearchInterval search = new SearchInterval(2, (int) Math.sqrt(masterTable.size()));
         MaxEval eval = new MaxEval(200);
         
         OptimizationData[] data = new OptimizationData[]{search, objF, GoalType.MAXIMIZE, eval};
@@ -47,7 +47,7 @@ public class ClusteringOptimization extends ClusteringAlgorithm {
         } else {
         	numClusters = numClusterFloor;
         }
-//        f.closerWriter();
+        f.closeWriter();
 	}
 	
 	public int getNumClusters(){

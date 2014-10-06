@@ -5,12 +5,14 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -20,6 +22,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
+import prerna.algorithm.cluster.ClusterRemoveDuplicates;
 import prerna.algorithm.cluster.ClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusteringOptimization;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
@@ -44,8 +47,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 	private int numClusters;
-	private double n;
-	private String type = "";
+//	private double n;
+//	private String type = "";
 	private ArrayList<Object[]> clusterInfo;
 	private ArrayList<JCheckBox> paramCheckboxes;
 	private ArrayList<Object []> masterList;
@@ -86,7 +89,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		panel.setLayout(gbl_mainPanel);
-		addScrollPanel(panel);
+		addScrollPanel(panel, table);
 		GridFilterData gfd = new GridFilterData();
 		if(clusterInfo != null) {
 			list.addAll(0, clusterInfo);
@@ -103,9 +106,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void addSelectorTab() {
 		GenerateEntropyDensity test = new GenerateEntropyDensity(list);
 		double[] testVals = test.generateEntropy();
-
+		DecimalFormat formatter = new DecimalFormat("0.####E0");
 		JPanel panel = new JPanel();
-		
+
 		GridBagLayout gbl_panel = new GridBagLayout();
 		gbl_panel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_panel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -121,7 +124,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_lblParamSelect.gridx = 0;
 		gbc_lblParamSelect.gridy = 0;
 		panel.add(lblParamSelect, gbc_lblParamSelect);
-		
 		paramCheckboxes = new ArrayList<JCheckBox>();
 		
 		for(int i=1;i<masterNames.length;i++) {
@@ -138,8 +140,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			panel.add(checkbox, gbc_checkbox);
 			paramCheckboxes.add(checkbox);
 			
-			JLabel entropyDensityLabel = new JLabel();
-			entropyDensityLabel.setText(testVals[i-1] + "");
+			JLabel entropyDensityLabel = new JLabel("Entropy Density");
+			entropyDensityLabel.setText(formatter.format(testVals[i-1]));
 			GridBagConstraints gbc_entropyDensityLabel = new GridBagConstraints();
 			gbc_entropyDensityLabel.anchor = GridBagConstraints.NORTHWEST;
 			gbc_entropyDensityLabel.fill = GridBagConstraints.NONE;
@@ -167,7 +169,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		refListener.setMasterData(masterNames, masterList);
 		btnRefreshParam.addActionListener(refListener);
 		
-		jTab.insertTab("Param Selector",null,panel,null,0);
+		JScrollPane scroll = new JScrollPane(panel);
+		jTab.insertTab("Param Selector", null, scroll, null, 0);
 		jTab.setSelectedIndex(0);
 	}
 
@@ -283,8 +286,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		if(masterList==null) {
 			processQuery();
-			masterList = list;
-			masterNames = names;
+			ClusterRemoveDuplicates formatter = new ClusterRemoveDuplicates(list, names);
+			masterList = formatter.getRetMasterTable();
+			masterNames = formatter.getRetVarNames();
 		}
 		//For testing purposes
 //		PrintWriter writer = null;
@@ -308,31 +312,30 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //		writer.close();
 		
 		AbstractClusteringAlgorithm clusterAlg;
-		//TODO: need to split out the process to deal with duplicate values
 //		if(type.equalsIgnoreCase("agglomerative")){
 //			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 //			clusterAlg.setNumClusters(numClusters);
 //			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
 		if(numClusters > 2){
-			clusterAlg = new ClusteringAlgorithm(list, names);
+			clusterAlg = new ClusteringAlgorithm(masterList, masterNames);
 			clusterAlg.setNumClusters(numClusters);
 		} else{
-			clusterAlg = new ClusteringOptimization(list, names);
+			clusterAlg = new ClusteringOptimization(masterList, masterNames);
 			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
 		}
 		clusterAlg.execute();
-		list = clusterAlg.getMasterTable();
-		names = clusterAlg.getVarNames();
-		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		int[] clusterAssigned = clusterAlg.getClustersAssigned();
-		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		//store cluster final state information
 		clusterInfo = new ArrayList<Object[]>(numClusters);
 		clusterInfo = clusterAlg.getClusterRows();
+		
+		numericalPropIndices = clusterAlg.getNumericalPropIndices();
+		
+		int[] clusterAssigned = clusterAlg.getClustersAssigned();
+		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		//iterate through query return
-		for(Object[] dataRow : list) {
+		for(Object[] dataRow : masterList) {
 			Object[] newDataRow = new Object[dataRow.length + 1];
 			String instance = "";
 			for(int i = 0; i < dataRow.length; i++) {
@@ -347,9 +350,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			//add to matrix
 		}
 		list = newList;
-		String[] newNames = new String[names.length + 1];
-		for(int i = 0; i < names.length; i++) {
-			newNames[i] = names[i];
+		String[] newNames = new String[masterNames.length + 1];
+		for(int i = 0; i < masterNames.length; i++) {
+			newNames[i] = masterNames[i];
 		}
 		newNames[newNames.length - 1] = "CluserID";
 		names = newNames;
@@ -390,16 +393,17 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		} else if(querySplit.length == 2) {
 			this.query = querySplit[0];
 			this.numClusters = Integer.parseInt(querySplit[1]);
-		} else if(querySplit.length == 4) {
-			this.query = querySplit[0];
-			this.numClusters = Integer.parseInt(querySplit[1]);
-			this.n = Double.parseDouble(querySplit[2]);
-			this.type = querySplit[3];
-		}
+		} 
+//		else if(querySplit.length == 4) {
+//			this.query = querySplit[0];
+//			this.numClusters = Integer.parseInt(querySplit[1]);
+//			this.n = Double.parseDouble(querySplit[2]);
+//			this.type = querySplit[3];
+//		}
 	}
 
-	public void addScrollPanel(JPanel rawDataPanel) {
-		JScrollPane scrollPane = new JScrollPane(table);
+	public void addScrollPanel(JPanel panel, JComponent obj) {
+		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		scrollPane.setAutoscrolls(true);
 
@@ -407,6 +411,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
-		rawDataPanel.add(scrollPane, gbc_scrollPane);
+		panel.add(scrollPane, gbc_scrollPane);
 	}
 }
