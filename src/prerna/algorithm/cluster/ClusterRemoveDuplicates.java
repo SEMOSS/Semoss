@@ -24,54 +24,23 @@ public class ClusterRemoveDuplicates {
 
 	//	//TODO: make generic
 	public void formatDuplicateResults(ArrayList<Object[]> masterTable, String[] names) {
-		int instanceCounter = 0;
-		String previousInstance = "";
-
 		int i;
 		int numRows = masterTable.size();
 		int numCols = masterTable.get(0).length;
 		Set<String> instancesSet = new HashSet<String>();
 		Set<String> uniquePropNamesSet = new HashSet<String>();
-		int counter = 0;
 		for(i = 0; i < numCols; i++ ) {
-			String previousProp = "";
 			int j;
 			for(j = 0; j < numRows; j++) {
 				Object[] row = masterTable.get(j);
 				if(i == 0) {
 					instancesSet.add(row[i].toString());
-//					if(previousInstance.equals(row[i])){
-//						continue;
-//					} else {
-//						previousInstance = row[i].toString();
-//						try{
-//							instances[instanceCounter] = previousInstance;
-//						} catch(IndexOutOfBoundsException ex) {
-//							instances = (String[]) ArrayUtilityMethods.resizeArray(instances, 2);
-//							instances[instanceCounter] = previousInstance;
-//						}
-//						instanceCounter++;
-//					}
 				} else {
 					uniquePropNamesSet.add(row[i].toString());
-//					if(previousProp.equals(row[i])) {
-//						continue;
-//					} else {
-//						previousProp = row[i].toString();
-//						try{
-//							uniquePropNames[counter] = row[i].toString();
-//						} catch(IndexOutOfBoundsException ex) {
-//							uniquePropNames = (String[]) ArrayUtilityMethods.resizeArray(uniquePropNames, 2);
-//							uniquePropNames[counter] = row[i].toString();
-//						}
-//						counter++;
-//					}
 				}
 			}
 		}
 
-//		instances = (String[]) ArrayUtilityMethods.removeAllNulls(instances);
-//		int numInstances = instances.length;
 		int numInstances = instancesSet.size();
 		if(numInstances == numRows) {
 			retMasterTable = masterTable;
@@ -83,8 +52,6 @@ public class ClusterRemoveDuplicates {
 		Object[] uniquePropNames = uniquePropNamesSet.toArray();
 		Object[] instances = instancesSet.toArray();
 		
-//		uniquePropNames = (String[]) ArrayUtilityMethods.removeAllNulls(uniquePropNames);
-//		uniquePropNames = ArrayUtilityMethods.getUniqueArray(uniquePropNames);
 		retVarNames = Arrays.copyOf(new String[]{names[0]}, 1 + uniquePropNames.length);
 		System.arraycopy(uniquePropNames, 0, retVarNames, 1, uniquePropNames.length);
 		

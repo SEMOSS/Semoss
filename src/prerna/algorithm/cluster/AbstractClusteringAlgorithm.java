@@ -47,6 +47,9 @@ public abstract class AbstractClusteringAlgorithm {
 	protected int[] numericalPropIndices;
 	protected Integer[] categoryPropIndices; 
 
+	//success of algorithm
+	protected boolean success;
+	
 	public int[] getNumericalPropIndices() {
 		return numericalPropIndices;
 	}
@@ -312,21 +315,25 @@ public abstract class AbstractClusteringAlgorithm {
 	
 	
 	public double calculateFinalInstancesToClusterSimilarity() {
-		double sumSimiliarities = 0;
-		for(String s : instanceIndexHash.keySet()) {
-			int dataIdx = instanceIndexHash.get(s);
-			int clusterIdx = clustersAssigned[dataIdx];
-			if(clusterCategoryMatrix != null) {
-				if(clusterNumberBinMatrix != null) {
-					sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
+		if(success) {
+			double sumSimiliarities = 0;
+			for(String s : instanceIndexHash.keySet()) {
+				int dataIdx = instanceIndexHash.get(s);
+				int clusterIdx = clustersAssigned[dataIdx];
+				if(clusterCategoryMatrix != null) {
+					if(clusterNumberBinMatrix != null) {
+						sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
+					} else {
+						sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, null, clusterCategoryMatrix.get(clusterIdx));
+					}
 				} else {
-					sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, null, clusterCategoryMatrix.get(clusterIdx));
+					sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), null);
 				}
-			} else {
-				sumSimiliarities += cdp.getSimilarityScore(dataIdx, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), null);
 			}
+			return sumSimiliarities;
+		} else {
+			return Double.NaN;
 		}
-		return sumSimiliarities;
 	}
 	
 //	protected double calculateFinalInstancesToClusterSimilarity() {
@@ -340,25 +347,27 @@ public abstract class AbstractClusteringAlgorithm {
 //	}
 	
 	public double calculateFinalTotalClusterToClusterSimilarity() {
-		double sumSimiliarities = 0;
-		
-		int i;
-		for(i = 0; i < numClusters - 1; i++) {
-			int j;
-			for(j = i+1; j < numClusters; j++) {
-				if(clusterCategoryMatrix != null) {
-					if(clusterNumberBinMatrix != null) {
-						sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberBinMatrix, clusterCategoryMatrix);
+		if(success) {
+			double sumSimiliarities = 0;
+			int i;
+			for(i = 0; i < numClusters - 1; i++) {
+				int j;
+				for(j = i+1; j < numClusters; j++) {
+					if(clusterCategoryMatrix != null) {
+						if(clusterNumberBinMatrix != null) {
+							sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberBinMatrix, clusterCategoryMatrix);
+						} else {
+							sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, null, clusterCategoryMatrix);
+						}
 					} else {
-						sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, null, clusterCategoryMatrix);
+						sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberBinMatrix, null);
 					}
-				} else {
-					sumSimiliarities += cdp.calculateClusterToClusterSimilarity(i, j, clusterNumberBinMatrix, null);
 				}
 			}
+			return sumSimiliarities;
+		} else {
+			return Double.NaN;
 		}
-		
-		return sumSimiliarities;
 	}
 	
 //	protected double calculateFinalTotalClusterToClusterSimilarity() {
