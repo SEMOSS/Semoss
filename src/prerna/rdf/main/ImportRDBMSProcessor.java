@@ -634,18 +634,12 @@ public class ImportRDBMSProcessor {
 				con = DriverManager
 						.getConnection(url, username, new String(password));
 				
+				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS ";
+				
 				if(!dbName.isEmpty()) {
-					sql = "ALTER SESSION SET CURRENT_SCHEMA = " + dbName;
-					Statement s = con.createStatement();
-					boolean schemaUpdated = s.execute(sql);
-
-					if(!schemaUpdated) {
-						logger.info("Could not update schema to " + dbName + " - please check schema name and try again.");
-						return (success = false);
-					}
+					sql += "WHERE OWNER=" + dbName;
 				}
 				
-				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS";
 				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
 				Statement statement = con.createStatement();
 				resultSet = statement.executeQuery(sql);
