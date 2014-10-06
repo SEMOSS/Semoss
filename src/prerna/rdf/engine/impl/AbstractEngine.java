@@ -899,7 +899,7 @@ public abstract class AbstractEngine implements IEngine {
 		retParam = addSEMOSSParams(retParam,queryParamSparql);
 		
 		// check if its empty... if it is, it might be options... otherwise it really has no param
-		if(retParam.isEmpty()){
+//		if(retParam.isEmpty()){
 			URI optionPred = insightVF.createURI("PARAM:OPTION");
 			String optionParamSparql = "SELECT ?paramLabel ?option ?paramType WHERE {"
 					+"BIND(\"" + label + "\" AS ?insight)"
@@ -910,7 +910,7 @@ public abstract class AbstractEngine implements IEngine {
 					+ "{?param <" + optionPred + "> ?option } "
 					+ "}";	
 			retParam = addSEMOSSParams(retParam,optionParamSparql);
-		}
+//		}
 
 		return retParam;
 	}
@@ -940,7 +940,7 @@ public abstract class AbstractEngine implements IEngine {
 		retParam = addSEMOSSParams(retParam,queryParamSparql);
 		
 		// check if its empty... if it is, it might be options... otherwise it really has no param
-		if(retParam.isEmpty()){
+//		if(retParam.isEmpty()){
 			URI optionPred = insightVF.createURI("PARAM:OPTION");
 			String optionParamSparql = "SELECT ?paramLabel ?option ?paramType WHERE {"
 					+"BIND(<" + label + "> AS ?insightURI)"
@@ -950,7 +950,7 @@ public abstract class AbstractEngine implements IEngine {
 					+ "{?param <" + optionPred + "> ?option } "
 					+ "}";	
 			retParam = addSEMOSSParams(retParam,optionParamSparql);
-		}
+//		}
 
 		return retParam;
 	}
