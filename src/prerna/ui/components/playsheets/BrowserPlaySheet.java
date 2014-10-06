@@ -58,7 +58,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	JSplitPane splitPane;
 	protected JTabbedPane jTab;
 	public Hashtable output = null;
-	ChartControlPanel controlPanel;
+	protected ChartControlPanel controlPanel;
 	protected Hashtable dataHash = new Hashtable();
 	
 	/**
