@@ -28,9 +28,12 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	@Override
 	public boolean execute() throws IllegalArgumentException {
 		
+		if(numClusters > numInstances) {
+			return success = false;
+		}
+		
 		setAlgorithmVariables();
 		
-		boolean success;
 		boolean noChange = false;
 		int iterationCount = 0;
 		int maxIterations = 1000000;
