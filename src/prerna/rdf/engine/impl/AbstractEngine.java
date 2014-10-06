@@ -50,6 +50,7 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
+import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -105,6 +106,10 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
 			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" 
 			+ "{?perspectiveURI <" + labelBaseURI + ">  ?perspective.}" + "}";
+	
+	protected static final String perspectivesURI = "SELECT DISTINCT ?perspectiveURI WHERE {"
+			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
+			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" + "}";
 
 	protected static final String insights = "SELECT DISTINCT ?insight WHERE {"
 			+ "{?perspectiveURI <"+ labelBaseURI + "> ?perspective .}"
@@ -112,6 +117,11 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
+	
+	protected static final String insightsURI = "SELECT DISTINCT ?insightURI WHERE {"
+			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
+			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
+			+ "BIND(<@perspective@> AS ?perspectiveURI)" + "}";
 
 	protected static final String insightsOutputs = "SELECT ?insight ?output WHERE {"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
@@ -248,7 +258,7 @@ public abstract class AbstractEngine implements IEngine {
 		return retProp;
 	}
 
-	protected void createInsightBase() {
+	public void createInsightBase() {
 		try {
 			insightBaseXML = new RDFFileSesameEngine();
 			Repository myRepository = new SailRepository(
@@ -563,6 +573,18 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	/**
+	 * Sets the name of the engine. This may be a lot of times the same as the
+	 * Repository Name
+	 * 
+	 * @param engineName
+	 *            - Name of the engine that this is being set to
+	 */
+
+	public void setEngineURI2Name(String engineURI2) {
+		this.engineURI2 = engineURI2;
+	}
+	
+	/**
 	 * Gets the engine name for this engine
 	 * 
 	 * @return Name of the engine it is being set to
@@ -700,7 +722,19 @@ public abstract class AbstractEngine implements IEngine {
 		System.err.println("Query is " + query);
 		return getSelect(query, insightBaseXML.rc, "perspective");
 	}
+	public Vector<String> getPerspectivesURI() {
+		return getPerspectivesURI(engineURI2 + "");
+	}
 
+	public Vector<String> getPerspectivesURI(String engine) {
+		Vector<String> retString = new Vector<String>();
+		// using SPARQL to do the same thing
+		Hashtable paramHash = new Hashtable();
+		paramHash.put("engine", engine + "");
+		String query = Utility.fillParam(perspectivesURI, paramHash);
+		System.err.println("Query is " + query);
+		return getSelect(query, insightBaseXML.rc, "perspectiveURI");
+	}
 	public Vector<Object> getInsights(String perspective) {
 
 		return getInsights(perspective, engineURI2 + "");
@@ -718,6 +752,23 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 
+	public Vector<Object> getInsightsURI(String perspective) {
+
+		return getInsightsURI(perspective, engineURI2 + "");
+	}
+
+	public Vector getInsightsURI(String perspective, String engine) {
+
+		if (perspective != null) {
+			Hashtable paramHash = new Hashtable();
+			paramHash.put("perspective", perspective);
+			String query = Utility.fillParam(insightsURI, paramHash);
+			System.err.println("Query " + query);
+			return getSelect(query, insightBaseXML.rc, "insightURI");
+		}
+		return null;
+	}
+	
 	public Vector<Hashtable<String, String>> getOutputs4Insights(Vector<String> insights) {
 
 		Vector<Hashtable<String, String>> retV = new Vector<Hashtable<String, String>>();
@@ -864,16 +915,65 @@ public abstract class AbstractEngine implements IEngine {
 		return retParam;
 	}
 	
+	public Vector getParamsURI(String label)
+	{
+		Vector <SEMOSSParam> retParam = new Vector<SEMOSSParam>();
+
+		URI paramPred = insightVF.createURI("INSIGHT:PARAM");
+		URI paramPredLabel = insightVF.createURI("PARAM:LABEL");
+		URI queryPred = insightVF.createURI("PARAM:QUERY");
+		URI hasDependPred = insightVF.createURI("PARAM:HAS:DEPEND");
+		URI dependPred = insightVF.createURI("PARAM:DEPEND");
+		URI typePred = insightVF.createURI("PARAM:TYPE");
+
+		String queryParamSparql = "SELECT ?paramLabel ?query ?depend ?dependVar ?paramType WHERE {"
+			+"BIND(<" + label + "> AS ?insightURI)"
+			+ "{?insightURI <" + paramPred + "> ?param } "
+			+ "{?param <" + paramPredLabel + "> ?paramLabel } "
+			+ "{?param <" + typePred + "> ?paramType } "
+			+ "{?param <" + queryPred + "> ?query } "
+			+ "{?param <" + hasDependPred + "> ?depend } " 
+			+ "{?param <" + dependPred + "> ?dependVar } "
+			+ "}";
+			
+		
+		retParam = addSEMOSSParams(retParam,queryParamSparql);
+		
+		// check if its empty... if it is, it might be options... otherwise it really has no param
+		if(retParam.isEmpty()){
+			URI optionPred = insightVF.createURI("PARAM:OPTION");
+			String optionParamSparql = "SELECT ?paramLabel ?option ?paramType WHERE {"
+					+"BIND(<" + label + "> AS ?insightURI)"
+					+ "{?insightURI <" + paramPred + "> ?param } "
+					+ "{?param <" + paramPredLabel + "> ?paramLabel } "
+					+ "{?param <" + typePred + "> ?paramType } "
+					+ "{?param <" + optionPred + "> ?option } "
+					+ "}";	
+			retParam = addSEMOSSParams(retParam,optionParamSparql);
+		}
+
+		return retParam;
+	}
+	public Vector<Insight> getInsight2URI(String... labels) {
+		String bindingsSet = "";
+		for (String insight : labels){
+			bindingsSet = bindingsSet + "(<" + insight + ">)";
+		}
+		String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
+					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
+					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
+					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}" + "}"
+					+ "BINDINGS ?insightURI {"+ bindingsSet + "}";
+		return processInsight2(insightSparql,labels);
+	}
 	public Vector<Insight> getInsight2(String... labels) {
 		// replace this with the query
 		String bindingsSet = "";
 		for (String insight : labels){
 			bindingsSet = bindingsSet + "(\"" + insight + "\")";
 		}
-		
-		Vector<Insight> insightV = new Vector<Insight>();
-		try {
-			String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+		String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
 					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
@@ -882,12 +982,19 @@ public abstract class AbstractEngine implements IEngine {
 					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
 					+ "}"
 					+ "BINDINGS ?insight {"+ bindingsSet + "}";
+		return processInsight2(insightSparql,labels);
+	}
+	
+	public Vector<Insight> processInsight2(String insightSparql,String... labels)
+	{
+		Vector<Insight> insightV = new Vector<Insight>();
+		try{
 			System.err.println("Insighter... " + insightSparql + labels);
 			System.err.println("Lable is " + labels);
 			TupleQuery query = insightBaseXML.rc.prepareTupleQuery(
 					QueryLanguage.SPARQL, insightSparql);
 			TupleQueryResult res = query.evaluate();
-
+	
 			while (res.hasNext()) {
 				Insight in = new Insight();
 				BindingSet bs = res.next();
@@ -899,11 +1006,11 @@ public abstract class AbstractEngine implements IEngine {
 				
 				String label = bs.getBinding("insight").getValue().stringValue();
 				in.setLabel(label);
-
+	
 				Literal outputlit = (Literal)bs.getValue("output");                         
 				String output = outputlit.getLabel();   
 				in.setOutput(output);
-
+	
 				String engine = bs.getValue("engine") + "";   
 				in.setEngine(engine);
 				
@@ -937,7 +1044,6 @@ public abstract class AbstractEngine implements IEngine {
 			System.err.println("Using Label ID Hash ");
 		}
 		return insightV;
-		// return labelIdHash.get(label);
 	}
 	
 	public Insight getInsight(String label) {
@@ -1365,4 +1471,6 @@ public abstract class AbstractEngine implements IEngine {
 	public RDFFileSesameEngine getInsightBaseXML() {
 		return insightBaseXML;
 	}
+	
+	
 }
