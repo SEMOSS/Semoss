@@ -28,7 +28,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	@Override
 	public boolean execute() throws IllegalArgumentException {
 		
-		setUpAlgorithmVariables();
+		setAlgorithmVariables();
 		
 		boolean success;
 		boolean noChange = false;

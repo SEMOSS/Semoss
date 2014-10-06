@@ -74,6 +74,7 @@ public abstract class AbstractClusteringAlgorithm {
 	public AbstractClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
+		setDataVariables();
 	}
 	
 	public ArrayList<Object[]> getMasterTable() {
@@ -87,15 +88,16 @@ public abstract class AbstractClusteringAlgorithm {
 	// method to be defined in specific clustering algorithms
 	public abstract boolean execute();
 
-	protected void setUpAlgorithmVariables(){
+	protected void setDataVariables(){
 		cdp = new ClusteringDataProcessor(masterTable,varNames);
-		masterTable = cdp.getMasterTable();
-		varNames = cdp.getVarNames();
 		instanceCategoryMatrix = cdp.getCategoricalMatrix();
 //		instanceNumberMatrix = cdp.getNumericalMatrix();
 		instanceNumberBinMatrix = cdp.getNumericalBinMatrix();
 		instanceIndexHash = cdp.getInstanceHash();
 		numInstances = instanceIndexHash.size();
+	}
+	
+	protected void setAlgorithmVariables(){
 		//create cluster assignment matrix for each instance
 		clustersNumInstances = initalizeClusterMatrix(numClusters);
 		//randomly assign one instance to each cluster
@@ -286,7 +288,7 @@ public abstract class AbstractClusteringAlgorithm {
 							clusterCategoryMatrix.get(oldClusterForInstance).set(categoryInd, propValHash);
 						}
 					}
-					else{
+					else {
 						LOGGER.info("ERROR: Property Value of "+categoryValForInstance+"is not included in category "+categoryInd+" for cluster "+oldClusterForInstance);
 					}
 				}

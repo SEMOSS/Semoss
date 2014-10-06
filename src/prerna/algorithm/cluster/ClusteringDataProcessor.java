@@ -11,6 +11,7 @@ import java.util.Locale;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.AlgorithmDataFormatting;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -41,19 +42,6 @@ public class ClusteringDataProcessor {
 	private ArrayList<Object[]> masterTable;
 	// array list containing the variable names for the entire query 
 	private String[] varNames;
-
-	public ArrayList<Object[]> getMasterTable() {
-		return masterTable;
-	}
-	public void setMasterTable(ArrayList<Object[]> masterTable) {
-		this.masterTable = masterTable;
-	}
-	public String[] getVarNames() {
-		return varNames;
-	}
-	public void setVarNames(String[] varNames) {
-		this.varNames = varNames;
-	}
 
 	//indexing used for visualization
 	private int[] totalNumericalPropIndices;
@@ -122,7 +110,6 @@ public class ClusteringDataProcessor {
 		this.varNames = varNames;
 
 		totalProps = varNames.length; //TODO: where to define this
-
 		// these methods must be called for the similarity score to be computed 
 		processMasterTable();
 		calculateCategoricalWeights();
@@ -373,8 +360,8 @@ public class ClusteringDataProcessor {
 		
 		if(numericalMatrix != null)
 		{
-			ClusterPreFormatting formatter = new ClusterPreFormatting();
-			Object[][] data = formatter.manipulateValues(numericalMatrix);
+			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
+			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
 			for(int i = 0; i < data.length; i++) {
 				Object[] propColumn = data[i];
 				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
@@ -384,7 +371,8 @@ public class ClusteringDataProcessor {
 				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
 				
 				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
-				for(int j = 0; j < bins.length; j++) {
+				int j;
+				for(j = 0; j < bins.length; j++) {
 					String range = (String) bins[j].get("x");
 					Integer count = (int) bins[j].get("y");
 					colInformationHash.put(range, count);
@@ -474,7 +462,9 @@ public class ClusteringDataProcessor {
 					double val = numericalMatrix[i][j];
 					Hashtable<String, Integer> colInstances = trackPropOccurance.get(j);
 					// due to loss of significant digits, the val can be larger than the max
-					double maxBinVal = 0;
+					double minBinVal = Double.MAX_VALUE;
+					double maxBinVal = Double.MIN_VALUE;
+					String minBin = "";
 					String maxBin = "";
 					for(String binRange : colInstances.keySet()) {
 						String[] split = binRange.split(" - ");
@@ -488,10 +478,18 @@ public class ClusteringDataProcessor {
 							maxBinVal = max;
 							maxBin = binRange;
 						}
+						if(minBinVal > min) {
+							minBinVal = min;
+							minBin = binRange;
+						}
 					}
-					// this check is technically unnecessary since if its not null, we have the continue
+					// this check is technically unnecessary since if its not null
 					if(numericalBinMatrix[i][j] == null) {
-						numericalBinMatrix[i][j] = maxBin;
+						if(Math.abs(minBinVal - val) > Math.abs(maxBinVal - val)) {
+							numericalBinMatrix[i][j] = maxBin;
+						} else {
+							numericalBinMatrix[i][j] = minBin;
+						}
 					}
 				}
 			}
@@ -563,7 +561,7 @@ public class ClusteringDataProcessor {
 	
 	
 	
-	
+	//TODO: THIS METHOD IS USED IN MULTIPLE PLACES
 	/**
 	 * Determines the type of a given value
 	 * @param s		The value to determine the type off
