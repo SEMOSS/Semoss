@@ -13,7 +13,6 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
@@ -22,6 +21,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import com.bigdata.rdf.model.BigdataURIImpl;
 import com.ibm.icu.util.StringTokenizer;
 
 public class QuestionAdministrator {
@@ -82,6 +82,8 @@ public class QuestionAdministrator {
 	String newPerspective;
 
 	protected static final String semossURI = "http://semoss.org/ontologies/";
+	protected static final String conceptBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS;
+	protected static final String relationBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS;
 	protected static final String engineBaseURI = semossURI
 			+ Constants.DEFAULT_NODE_CLASS + "/Engine";
 	protected static final String perspectiveBaseURI = semossURI
@@ -90,6 +92,7 @@ public class QuestionAdministrator {
 			+ Constants.DEFAULT_NODE_CLASS + "/Insight";
 	protected static final String paramBaseURI = semossURI
 			+ Constants.DEFAULT_NODE_CLASS + "/Param";
+	protected final static String resourceURI = "http://www.w3.org/2000/01/rdf-schema#Resource";
 
 	protected static final String enginePerspectiveBaseURI = semossURI
 			+ Constants.DEFAULT_RELATION_CLASS + "/Engine:Perspective";
@@ -123,6 +126,14 @@ public class QuestionAdministrator {
 		this.selectedPerspective = selectedPerspective;
 		this.questionModType = questionModType;
 	}
+	
+	public RDFFileSesameEngine getInsightBaseXML() {
+		return insightBaseXML;
+	}
+	
+	public void setEngineURI2(String engineURI2) {
+		this.engineURI2 = engineURI2;
+	}
 
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder) {
 		FileWriter fWrite = null;
@@ -134,7 +145,8 @@ public class QuestionAdministrator {
 			fWrite = new FileWriter(xmlFileName);
 			questionXMLWriter = new RDFXMLWriter(fWrite);
 			// System.err.println(insightBaseXML.rc);
-			insightBaseXML.rc.export(questionXMLWriter);
+			if(insightBaseXML instanceof RDFFileSesameEngine)
+				((RDFFileSesameEngine)insightBaseXML).rc.export(questionXMLWriter);
 
 			System.err.println("Created XML Question Sheet at: " + xmlFileName);
 		} catch (IOException | RDFHandlerException | RepositoryException e) {
@@ -215,6 +227,13 @@ public class QuestionAdministrator {
 						+ ":" + perspective, false);
 		insightBaseXML.removeStatement(engineURI2, perspectivePred,
 				perspectiveURI, true);
+		
+		// remove the resource and concept uris
+		insightBaseXML.removeStatement(perspectiveURI, RDF.TYPE.stringValue(),
+				conceptBaseURI, true);
+		insightBaseXML.removeStatement(perspectiveURI,
+				RDF.TYPE.stringValue(), resourceURI,
+				true);
 	}
 
 	/**
@@ -276,12 +295,30 @@ public class QuestionAdministrator {
 
 		// remove question to perspective
 		insightBaseXML.removeStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),
+				relationBaseURI, true);
+		insightBaseXML.removeStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),
 				perspectiveInsightBaseURI, true);
+		insightBaseXML.removeStatement(qPred, RDFS.SUBPROPERTYOF.stringValue(),
+				qPred, true);
+		insightBaseXML.removeStatement(qPred, RDF.TYPE.stringValue(),
+				resourceURI, true);
+		insightBaseXML.removeStatement(qPred, RDF.TYPE.stringValue(),
+				Constants.DEFAULT_PROPERTY_URI, true);
 		insightBaseXML.removeStatement(qPred, RDFS.LABEL.stringValue(),
 				selectedEngine + ":" + perspective
 						+ Constants.RELATION_URI_CONCATENATOR + selectedEngine
 						+ ":" + perspective + ":" + qsKey, false);
+		
+		
+		insightBaseXML.removeStatement(perspectiveURI, relationBaseURI, qURI, true);
+		insightBaseXML.removeStatement(perspectiveURI, perspectiveInsightBaseURI, qURI, true);
 		insightBaseXML.removeStatement(perspectiveURI, qPred, qURI, true);
+		
+		insightBaseXML.removeStatement(qURI, RDF.TYPE.stringValue(),
+				conceptBaseURI, true);
+		insightBaseXML.removeStatement(qURI,
+				RDF.TYPE.stringValue(), resourceURI,
+				true);
 	}
 
 	private void addQuestionLabel(String perspectiveURI, String qURI,
@@ -438,6 +475,9 @@ public class QuestionAdministrator {
 			// add a label to the param which is the label used in param panel
 			insightBaseXML.removeStatement(qsParamKey, "PARAM:LABEL", paramKey,
 					false);
+			insightBaseXML.removeStatement(qsParamKey,
+					RDF.TYPE.stringValue(), resourceURI,
+					true);
 
 			// see if the param key has options (not a query) associated with it
 			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
@@ -1014,7 +1054,6 @@ public class QuestionAdministrator {
 		if (description != null) {
 			removeDescription(qURI, descriptionBaseURI, description);
 		}
-
 		removeQuestionLabel(perspectiveURI, qURI, qsDescr, qPred);
 		removeQuestionIDLabel(perspectiveURI, qsKey);
 		removeQuestionSparql(qURI, sparql);
@@ -1039,21 +1078,26 @@ public class QuestionAdministrator {
 			}
 		}
 	}
+	
 
-	public void deleteAllFromPerspective(String perspective) {
+	public void deleteAllFromPerspective(String perspectiveURI) {
 		Vector questionsVector = ((AbstractEngine) engine)
-				.getInsights(perspective);
+				.getInsightsURI(perspectiveURI);
 		
+		questionList2.clear();
 		for (Object question : questionsVector){
 			questionList2.add((String) question);
 		}
 		
-		for (String question : questionList2) {
-			Insight in = ((AbstractEngine) engine).getInsight2(
-					question).get(0);
+		for (String question2 : questionList2) {
+			Insight in = ((AbstractEngine) engine).getInsight2URI(
+					question2).get(0);
 			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
-					.getParams(question);
-
+					.getParamsURI(question2);
+			
+			System.out.println("Removing question "+question2);
+			String perspective = perspectiveURI.substring(perspectiveURI.lastIndexOf(":")+1);
+			String question = in.getLabel();
 			String questionID = in.getId();
 			String[] questionIDArray = questionID.split(":");
 			String questionKey = questionIDArray[2];
@@ -1111,5 +1155,6 @@ public class QuestionAdministrator {
 					layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
 		}
+		
 	}
 }
