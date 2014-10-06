@@ -57,6 +57,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	//indexing used for bar graph visualizations
 	private int[] numericalPropIndices;
 
+	private ArrayList<Object[]> rawDataList;
+	private String[] rawDataNames;
+	
 	public ClusteringVizPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
@@ -91,22 +94,38 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		panel.setLayout(gbl_mainPanel);
 		addScrollPanel(panel, table);
 		GridFilterData gfd = new GridFilterData();
-		if(clusterInfo != null) {
+		if(names.length != rawDataNames.length) {
+			if(names.length > 15) {
+				gfd.setColumnNames(rawDataNames);
+				//append cluster information to list data
+				gfd.setDataList(rawDataList);
+				GridTableModel model = new GridTableModel(gfd);
+				table.setModel(model);
+				table.setRowSorter(new GridTableRowSorter(model));
+			} else {
+				gfd.setColumnNames(names);
+				//append cluster information to list data
+				gfd.setDataList(list);
+				GridTableModel model = new GridTableModel(gfd);
+				table.setModel(model);
+				table.setRowSorter(new GridTableRowSorter(model));
+			}
+		} else {
 			list.addAll(0, clusterInfo);
-		}
-		gfd.setColumnNames(names);
-		//append cluster information to list data
-		gfd.setDataList(list);
-		GridTableModel model = new GridTableModel(gfd);
-		table.setModel(model);
-		table.setRowSorter(new GridTableRowSorter(model));
+			gfd.setColumnNames(names);
+			//append cluster information to list data
+			gfd.setDataList(list);
+			GridTableModel model = new GridTableModel(gfd);
+			table.setModel(model);
+			table.setRowSorter(new GridTableRowSorter(model));
 
+		}
 		jTab.addTab("Raw Data", panel);
 	}
 	public void addSelectorTab() {
 		GenerateEntropyDensity test = new GenerateEntropyDensity(list);
 		double[] testVals = test.generateEntropy();
-		DecimalFormat formatter = new DecimalFormat("0.####E0");
+		DecimalFormat formatter = new DecimalFormat("0.000E0");
 		JPanel panel = new JPanel();
 
 		GridBagLayout gbl_panel = new GridBagLayout();
@@ -137,6 +156,17 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		panel.add(entropyDensityLabel, gbc_entropyDensityLabel);
 		
 		for(int i=1;i<masterNames.length;i++) {
+			
+			JLabel entropyDensityVal = new JLabel();
+			entropyDensityVal.setText(formatter.format(testVals[i-1]));
+			GridBagConstraints gbc_entropyDensityVal = new GridBagConstraints();
+			gbc_entropyDensityVal.anchor = GridBagConstraints.NORTHWEST;
+			gbc_entropyDensityVal.fill = GridBagConstraints.NONE;
+			gbc_entropyDensityVal.insets = new Insets(5, 10, 0, 0);
+			gbc_entropyDensityVal.gridx = 0;
+			gbc_entropyDensityVal.gridy = i;
+			panel.add(entropyDensityVal, gbc_entropyDensityVal);
+			
 			String checkboxLabel = masterNames[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
 			checkbox.setName(checkboxLabel+"checkBox");
@@ -145,20 +175,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			gbc_checkbox.anchor = GridBagConstraints.NORTHWEST;
 			gbc_checkbox.fill = GridBagConstraints.NONE;
 			gbc_checkbox.insets = new Insets(5, 10, 0, 0);
-			gbc_checkbox.gridx = 0;
+			gbc_checkbox.gridx = 1;
 			gbc_checkbox.gridy = i;
 			panel.add(checkbox, gbc_checkbox);
 			paramCheckboxes.add(checkbox);
-			
-			JLabel entropyDensityVal = new JLabel();
-			entropyDensityVal.setText(formatter.format(testVals[i-1]));
-			GridBagConstraints gbc_entropyDensityVal = new GridBagConstraints();
-			gbc_entropyDensityVal.anchor = GridBagConstraints.NORTHWEST;
-			gbc_entropyDensityVal.fill = GridBagConstraints.NONE;
-			gbc_entropyDensityVal.insets = new Insets(5, 10, 0, 0);
-			gbc_entropyDensityVal.gridx = 1;
-			gbc_entropyDensityVal.gridy = i;
-			panel.add(entropyDensityVal, gbc_entropyDensityVal);
 		}
 		
 		JButton btnRefreshParam = new CustomButton("Refresh Parameters");
@@ -339,10 +359,36 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		clusterInfo = clusterAlg.getClusterRows();
 		
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		
 		int[] clusterAssigned = clusterAlg.getClustersAssigned();
 		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
+
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		String[] newNames = new String[names.length + 1];
+		//create raw data for results
+		for(Object[] dataRow : list) {
+			Object[] newDataRow = new Object[dataRow.length + 1];
+			String instance = "";
+			for(int i = 0; i < dataRow.length; i++) {
+				if(i == 0) {
+					instance = dataRow[i].toString();
+				}
+				newDataRow[i] = dataRow[i];
+			}
+			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
+			newDataRow[newDataRow.length - 1] = clusterNumber;
+			newList.add(newDataRow);
+			//add to matrix
+		}
+		rawDataList = newList;
+		for(int i = 0; i < names.length; i++) {
+			newNames[i] = names[i];
+		}
+		newNames[newNames.length - 1] = "CluserID";
+		rawDataNames = newNames;
+		
+		newList = new ArrayList<Object[]>();
+		newNames = new String[masterNames.length + 1];
+		
 		//iterate through query return
 		for(Object[] dataRow : masterList) {
 			Object[] newDataRow = new Object[dataRow.length + 1];
@@ -359,7 +405,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			//add to matrix
 		}
 		list = newList;
-		String[] newNames = new String[masterNames.length + 1];
 		for(int i = 0; i < masterNames.length; i++) {
 			newNames[i] = masterNames[i];
 		}
