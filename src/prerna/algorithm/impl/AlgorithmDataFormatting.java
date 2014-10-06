@@ -14,7 +14,7 @@ public class AlgorithmDataFormatting {
 		
 	}
 	
-	public boolean[] getIsCategorical(){
+	public boolean[] getIsCategorical() {
 		return isCategorical;
 	}
 	
@@ -150,97 +150,4 @@ public class AlgorithmDataFormatting {
 
 		return ("STRING");
 	}
-	
-	
-//	//TODO: make generic
-//	private void formatDuplicateResults() {
-//		int instanceCounter = 0;
-//		String previousInstance = "";
-//
-//		int i;
-//		int numRows = masterTable.size();
-//		int numCols = masterTable.get(0).length;
-//		String[] uniquePropNames = new String[50];
-//		String[] instances = new String[50];
-//		int counter = 0;
-//		for(i = 0; i < numCols; i++ ) {
-//			String previousProp = "";
-//			int j;
-//			for(j = 0; j < numRows; j++) {
-//				Object[] row = masterTable.get(j);
-//
-//				if(i == 0) {
-//					if(previousInstance.equals(row[i])){
-//						continue;
-//					} else {
-//						previousInstance = row[i].toString();
-//						try{
-//							instances[instanceCounter] = previousInstance;
-//						} catch(IndexOutOfBoundsException ex) {
-//							instances = (String[]) ArrayUtilityMethods.resizeArray(instances, 2);
-//							instances[instanceCounter] = previousInstance;
-//						}
-//						instanceCounter++;
-//					}
-//				} else {
-//					if(previousProp.equals(row[i])) {
-//						continue;
-//					} else {
-//						previousProp = row[i].toString();
-//						try{
-//							uniquePropNames[counter] = row[i].toString();
-//						} catch(IndexOutOfBoundsException ex) {
-//							uniquePropNames = (String[]) ArrayUtilityMethods.resizeArray(uniquePropNames, 2);
-//							uniquePropNames[counter] = row[i].toString();
-//						}
-//						counter++;
-//					}
-//				}
-//			}
-//		}
-//
-//		instances = (String[]) ArrayUtilityMethods.removeAllNulls(instances);
-//		int numInstances = instances.length;
-//		if(numInstances == numRows) {
-//			return;
-//		}
-//		ArrayList<Object[]> retMasterTable = new ArrayList<Object[]>();
-//
-//		uniquePropNames = (String[]) ArrayUtilityMethods.removeAllNulls(uniquePropNames);
-//		uniquePropNames = ArrayUtilityMethods.getUniqueArray(uniquePropNames);
-//		varNames = uniquePropNames;
-//
-//		int newNumCols = uniquePropNames.length;
-//		for(i = 0; i < numInstances; i++) {
-//			Object[] newRow = new Object[newNumCols + 1];
-//			newRow[0] = instances[i];
-//			retMasterTable.add(newRow);
-//		}
-//
-//		OUTER: for(i = 0; i < numRows; i++) {
-//			Object[] row = masterTable.get(i);
-//			int j;
-//			for(j = 0; j < numInstances; j++) {
-//				Object[] newRow = retMasterTable.get(j);
-//				if(row[0].equals(newRow[0])){
-//					int k;
-//					INNER: for(k = 0; k < newNumCols; k++) {
-//						int l;
-//						for(l = 1; l < row.length; l++) {
-//							if(uniquePropNames[k].toString().equals(row[l].toString())){
-//								newRow[k+1] = "Yes";
-//								continue INNER;
-//							} else {
-//								newRow[k+1] = "No";
-//							}
-//						}
-//					}
-//					continue OUTER;
-//				}
-//			}
-//		}
-//
-//		masterTable = retMasterTable;
-//	}
-	
 }

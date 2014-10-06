@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 
+import prerna.algorithm.impl.AlgorithmDataFormatting;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -21,7 +22,7 @@ public class GenerateEntropyDensity {
 	
 	public GenerateEntropyDensity(ArrayList<Object[]> queryData) {
 		this.queryData = queryData;
-		ClusterPreFormatting formatter = new ClusterPreFormatting();
+		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
 		data = formatter.manipulateValues(queryData);
 		isCategorical = formatter.getIsCategorical();
 	}
