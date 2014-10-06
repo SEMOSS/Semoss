@@ -42,7 +42,7 @@ import prerna.ui.main.listener.impl.EditPlaySheetTitleListener;
  */
 public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPlaySheet {
 
-	boolean overlay = false;
+	protected boolean overlay = false;
 	protected String query = null;
 	protected String title = null;
 	public IEngine engine = null;
