@@ -637,7 +637,7 @@ public class ImportRDBMSProcessor {
 				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS ";
 				
 				if(!dbName.isEmpty()) {
-					sql += "WHERE OWNER=\'" + dbName + "\';";
+					sql += "WHERE OWNER=\'" + dbName + "\'";
 				}
 				
 				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
