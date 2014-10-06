@@ -184,8 +184,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	}
 
 	public void filterData(String[] filteredNames,ArrayList<Object []> filteredList) {
-		this.names = filteredNames;
-		this.list = filteredList;
+		this.masterNames = filteredNames;
+		this.masterList = filteredList;
 		createData();
 		createView();
 	}
