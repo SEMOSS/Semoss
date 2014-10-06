@@ -187,7 +187,7 @@ public class DeleteMasterDB {
 
 	}
 	
-	public void deleteEngineWeb(String engineName) {
+	public String deleteEngineWeb(String engineName) {
 		deleteEngine(engineName);
 		
 		//deleting the servers, base URIs and their relationships
@@ -197,7 +197,7 @@ public class DeleteMasterDB {
 		
 		//if there are any "lone" servers, delete the server proeprties and node
 		deleteAllTriples(loneServerQuery);
-
+		return "success";
 	}
 	
 	/**
