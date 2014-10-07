@@ -536,7 +536,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			// add the model to search panel
 			if (search)
 			{
-				//searchPanel.searchCon.indexStatements(gdm.getJenaModel());
+				searchPanel.searchCon.indexStatements(gdm.getJenaModel());
 			}
 			//graphSplitPane.removeAll();
 			//graphPanel.setLayout(new BorderLayout());
@@ -796,7 +796,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			SEMOSSVertex inVert = edge.inVertex;
 			
 			
-			System.out.println("{ u: \""  + outVert.getProperty(Constants.VERTEX_NAME) + "\", v: \"" + inVert.getProperty(Constants.VERTEX_NAME)+ "\", value: { label: \"\" } }," );
+			//System.out.println("{ u: \""  + outVert.getProperty(Constants.VERTEX_NAME) + "\", v: \"" + inVert.getProperty(Constants.VERTEX_NAME)+ "\", value: { label: \"\" } }," );
 			
 			
 				if ((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(inVert.getURI())
