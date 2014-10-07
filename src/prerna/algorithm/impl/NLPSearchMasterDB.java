@@ -78,7 +78,6 @@ public class NLPSearchMasterDB {
 		ArrayList<String> mcsForKeywords = getMCsForKeywords(vertList);
 		
 		SearchMasterDB searchAlgo = new SearchMasterDB();
-		searchAlgo.setMasterDBName(masterDBName);
 		searchAlgo.setKeywordAndEdgeList(vertList, edgeOutList, edgeInList);
 		searchAlgo.setMCsForKeywords(mcsForKeywords);
 		return searchAlgo.findRelatedQuestions();

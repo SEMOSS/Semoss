@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import javax.swing.JFrame;
+
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
@@ -28,6 +28,8 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 import org.openrdf.sail.memory.model.MemURI;
 
+import com.bigdata.rdf.model.BigdataURIImpl;
+
 import prerna.algorithm.nlp.IntakePortal;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
@@ -41,15 +43,14 @@ import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class CreateMasterDB {
-	private static final Logger logger = LogManager.getLogger(CreateMasterDB.class.getName());
-
+public class CreateMasterDB extends ModifyMasterDB{
 	//ArrayList of database names
 	ArrayList<String> engineList;
 	//ArrayList of vertstores (one for each database)
@@ -61,36 +62,10 @@ public class CreateMasterDB {
 	double similarityThresh = 0.7022;
 	double maxSimilarity = 1;
 	
-	//variables for creating the db
-	static final String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	static final String fileSeparator = System.getProperty("file.separator");
-	String masterDBName = "MasterDatabase";
-	String masterDBFileName="db" + fileSeparator + masterDBName;
-	BigDataEngine masterEngine;
-
-	//uri variables
-	protected final static String semossURI = "http://semoss.org/ontologies";
-	protected final static String semossConceptURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-	protected final static String semossRelationURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-	protected final static String masterConceptBaseURI = semossConceptURI+"/MasterConcept";
-	protected final static String masterConceptConnectionBaseURI = semossConceptURI+"/MasterConceptConnection";
-	protected final static String keywordBaseURI = semossConceptURI+"/Keyword";
-	protected final static String engineBaseURI = semossConceptURI+"/Engine";
-	protected final static String serverBaseURI = semossConceptURI+"/Server";
-	protected final static String hostedOnBaseURI = semossRelationURI + "/HostedOn";
-	protected final static String consistsOfRelationURI = semossRelationURI+"/ConsistsOf";
-	protected final static String hasRelationURI = semossRelationURI+"/Has";
-	protected final static String fromRelationURI = semossRelationURI+"/From";
-	protected final static String toRelationURI = semossRelationURI+"/To";
-	protected static final String keywordInsightBaseURI = semossRelationURI+"/Keyword:Insight";
-	//for testing, including similarity as a property
-	protected final static String propURI = semossRelationURI + "/" + "Contains";
-	protected final static String similarityPropURI = propURI + "/" + "SimilarityScore";
-	protected final static String baseURIPropURI = propURI + "/" + "BaseURI";
-	//protected final static String typeBaseURI = propURI + "/" + "Type";
-	
-	protected final static String serverExistsQuery = "SELECT DISTINCT ?Server WHERE {BIND('@BASEURI@' AS ?BaseURI){?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>} {?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}} LIMIT 1";
-	protected final static String numServersQuery = "SELECT DISTINCT (COUNT(?Server) AS ?NumServers) WHERE {{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}}";
+	private final static String userInsightQuery = "ASK WHERE {BIND(<http://semoss.org/ontologies/Concept/User/@USER@> AS ?User) BIND(<http://semoss.org/ontologies/Concept/Insight/@INSIGHT@> AS ?Insight) {?UserInsight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInsight> ;} {?User <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight} {?Insight <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight}}";
+	private final static String userInsightCountQuery = "SELECT ?UserInsight ?TimesClicked WHERE {BIND(<http://semoss.org/ontologies/Concept/User/@USER@> AS ?User) BIND(<http://semoss.org/ontologies/Concept/Insight/@INSIGHT@> AS ?Insight) {?UserInsight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInsight> ;} {?User <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight} {?Insight <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight} {?UserInsight <http://semoss.org/ontologies/Relation/Contains/TimesClicked> ?TimesClicked}}";
+	private final static String serverExistsQuery = "SELECT DISTINCT ?Server WHERE {BIND('@BASEURI@' AS ?BaseURI){?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>} {?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}} LIMIT 1";
+	private final static String numServersQuery = "SELECT DISTINCT (COUNT(?Server) AS ?NumServers) WHERE {{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}}";
 	
 	//ArrayList of master concepts in master database
 	ArrayList<String> masterConceptList = new ArrayList<String>();
@@ -167,7 +142,80 @@ public class CreateMasterDB {
 			propFile.delete();
 		}		
 
-		logger.info("Finished");
+		logger.info("Finished creating database");
+	}
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * @param userName	String representing the name of the user to add
+	 */
+	public void addUser(String userName) {
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		try {
+			addNode(userBaseURI,userName);
+		} catch (EngineException e) {
+			logger.error("Could not add user to master database ::: " + userName);
+		}
+		masterEngine.commit();
+		masterEngine.infer();
+		logger.info("Finished adding new user "+userName);
+	}
+	
+	/**
+	 * Increase the count of the number of times a user has selected on an insight.
+	 * Assuming that the insight is the instance of the uri, so is in the following format:
+	 * Database:Perspective:QuestionKey
+	 * e.g. TAP_Core_Data:System-Perspective:SysP1
+	 * @param userName	String representing the user
+	 * @param insight	String representing the insight clicked on
+	 */
+	public void increaseInsightCount(String userName, String insight) {
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+
+		//if the UserInsight concat node is not in the database, add it and the relationships.
+		//set the count on the UserInsight concat node to be one.
+		//if the node exists, get the count. delete the old count. replace it with count+1.
+		String userInsightExistsFilled = userInsightQuery.replaceAll("@USER@",userName).replaceAll("@INSIGHT@", insight);
+		BooleanProcessor proc = new BooleanProcessor();
+		proc.setQuery(userInsightExistsFilled);
+		boolean concatExists = proc.processQuery();
+		if(concatExists){ 
+			String userInsightCountFilled = userInsightCountQuery.replaceAll("@USER@",userName).replaceAll("@INSIGHT@", insight);
+			SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,userInsightCountFilled);
+			String[] names = wrapper.getVariables();
+			while(wrapper.hasNext())
+			{
+				//get count
+				SesameJenaSelectStatement sjss = wrapper.next();
+				Object userIn = sjss.getRawVar(names[0]);
+				Double count = (Double)sjss.getVar(names[1]);
+				//delete old count and add new count + 1.
+				if(userIn instanceof BigdataURIImpl) {
+					BigdataURIImpl userInsight = ((BigdataURIImpl)userIn);
+					try {
+						masterEngine.sc.removeStatements(userInsight, masterEngine.vf.createURI(timesClickedPropURI), masterEngine.vf.createLiteral(count));
+						count++;
+						masterEngine.sc.addStatement(userInsight, masterEngine.vf.createURI(timesClickedPropURI), masterEngine.vf.createLiteral(count));
+						logger.debug("Count increased for user insight ::: " + userIn.toString() + " ::: " + count);
+					} catch (SailException e) {
+						logger.error("Could not increase count for user insight ::: " + userIn.toString());
+					} 
+				}
+			}
+		}else {
+			String userInsightInstance = userName + Constants.RELATION_URI_CONCATENATOR + insight;
+			try {
+				String userInsightURI = userInsightBaseURI + "/" + userInsightInstance;
+				addNode(userInsightBaseURI,userInsightInstance);
+				addRelationship(userBaseURI+"/"+userName,userName,userInsightBaseURI+"/"+userInsightInstance,userInsightInstance,userUserInsightBaseURI);
+				addRelationship(insightBaseURI+"/"+insight,insight,userInsightBaseURI+"/"+userInsightInstance,userInsightInstance,insightUserInsightBaseURI);
+				addProperty(userInsightURI,timesClickedPropURI,1.0);
+			} catch (EngineException e) {
+				logger.error("Could not create UserInsight node with count of 1 for user insight ::: " + userInsightInstance);
+			}
+		}
+		masterEngine.commit();
+		masterEngine.infer();
 	}
 	
 	public void addEngine(String engineName) {
@@ -235,7 +283,7 @@ public class CreateMasterDB {
 				createStatement(masterEngine.vf.createURI(serverNodeURI), masterEngine.vf.createURI(baseURIPropURI), masterEngine.vf.createLiteral(baseURI));
 			}
 			//add server to engine triple
-			addRelationship(engineBaseURI,engineName,serverBaseURI,server,hostedOnBaseURI);
+			addNodeAndRelationship(engineBaseURI,engineName,serverBaseURI,server,engineServerBaseURI);
 		} catch (EngineException e) {
 			logger.error("Could not add engine to server relations for engine" + engineName);
 			throw new EngineException();
@@ -267,6 +315,8 @@ public class CreateMasterDB {
 			insightsRC.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
 			
 			addInsights(insightsRC);
+			
+			addUser("Anonymous");
 
 			masterEngine.commit();
 			masterEngine.infer();
@@ -405,9 +455,9 @@ public class CreateMasterDB {
 			}
 			
 			try {
-				addRelationship(masterConceptBaseURI,masterConcept,keywordBaseURI,vertName,vertURI,consistsOfRelationURI);
-				addRelationship(engineBaseURI,engineName,keywordBaseURI,vertName,vertURI,hasRelationURI);
-				addProperty(consistsOfRelationURI +"/" + masterConcept + Constants.RELATION_URI_CONCATENATOR + vertName, similarityScore);
+				addNodeAndRelationship(mcBaseURI,masterConcept,keywordBaseURI,vertName,vertURI,mcKeywordBaseURI);
+				addNodeAndRelationship(engineBaseURI,engineName,keywordBaseURI,vertName,vertURI,engineKeywordBaseURI);
+				addProperty(mcKeywordBaseURI +"/" + masterConcept + Constants.RELATION_URI_CONCATENATOR + vertName, similarityPropURI, similarityScore);
 			} catch(EngineException e) {
 				logger.error("Triple was not added");
 			}
@@ -444,9 +494,9 @@ public class CreateMasterDB {
 			}else {
 				try {
 					String connectionInstanceURI = masterConceptOut + Constants.RELATION_URI_CONCATENATOR + masterConceptIn;
-					addRelationship(masterConceptConnectionBaseURI,connectionInstanceURI,masterConceptBaseURI,masterConceptOut,fromRelationURI);
-					addRelationship(masterConceptConnectionBaseURI,connectionInstanceURI,masterConceptBaseURI,masterConceptIn,toRelationURI);
-					addRelationship(engineBaseURI,engineName,masterConceptConnectionBaseURI,connectionInstanceURI,hasRelationURI);
+					addNodeAndRelationship(mccBaseURI,connectionInstanceURI,mcBaseURI,masterConceptOut,mccFromMCBaseURI);
+					addNodeAndRelationship(mccBaseURI,connectionInstanceURI,mcBaseURI,masterConceptIn,mccToMCBaseURI);
+					addNodeAndRelationship(engineBaseURI,engineName,mccBaseURI,connectionInstanceURI,engineMCCBaseURI);
 				} catch (EngineException e) {
 					logger.error("Triple was not added");
 				}
@@ -463,9 +513,6 @@ public class CreateMasterDB {
 		}
 	}
 	
-//	private void addWebInsights(String engineName, String engineAPI, RepositoryConnection rc) {
-//		addInsights(rc);
-//	}
 	private void addInsights(RepositoryConnection rc) {
 		try {
 			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
@@ -490,47 +537,95 @@ public class CreateMasterDB {
 		}
 	}
 	
-	private void addRelationship(String subjectBaseURI, String subjectInstanceName,String objectBaseURI,String objectInstanceName, String relationURI) throws EngineException {
-		String objectNodeURI = objectBaseURI + "/" + objectInstanceName;
-		addRelationship(subjectBaseURI,subjectInstanceName,objectBaseURI,objectInstanceName,objectNodeURI,relationURI);
+	private void addNodeAndRelationship(String subjectBaseURI, String subjectInstance,String objectBaseURI,String objectInstance, String relationBaseURI) throws EngineException {
+		String objectNodeURI = objectBaseURI + "/" + objectInstance;
+		addNodeAndRelationship(subjectBaseURI,subjectInstance,objectBaseURI,objectInstance,objectNodeURI,relationBaseURI);
 	}
 	
 	/**
-	 * Method to add a relationship to the MasterDatabase.
+	 * Method to add both nodes and the relationship to the MasterDatabase.
 	 * @param subjectBaseURI	String representing the base URI for the subject
-	 * @param subjectInstanceName	String representing the subject's instance name
+	 * @param subjectInstance	String representing the subject's instance name
 	 * @param objectBaseURI	String representing the base URI for the object
-	 * @param objectInstanceName	String representing the object's instance name
-	 * @param relationURI	String representing the base URI for the relationship between the subject and object
+	 * @param objectInstance	String representing the object's instance name
+	 * @param relationBaseURI	String representing the base URI for the relationship between the subject and object
 	 * @throws EngineException	Thrown if statement cannot be added to the engine
 	 */
-	private void addRelationship(String subjectBaseURI, String subjectInstanceName,String objectBaseURI,String objectInstanceName, String objectNodeURI, String relationURI) throws EngineException {
-		String subjectNodeURI = subjectBaseURI + "/" + subjectInstanceName;
-		createStatement(masterEngine.vf.createURI(subjectNodeURI), RDF.TYPE, masterEngine.vf.createURI(subjectBaseURI));
-		createStatement(masterEngine.vf.createURI(subjectNodeURI), RDFS.LABEL, masterEngine.vf.createLiteral(subjectInstanceName));
-	
-		createStatement(masterEngine.vf.createURI(objectNodeURI), RDF.TYPE, masterEngine.vf.createURI(objectBaseURI));
-		createStatement(masterEngine.vf.createURI(objectNodeURI), RDFS.LABEL, masterEngine.vf.createLiteral(objectInstanceName));
+	private void addNodeAndRelationship(String subjectBaseURI, String subjectInstance,String objectBaseURI,String objectInstance, String objectURI, String relationBaseURI) throws EngineException {
+		addNode(subjectBaseURI, subjectInstance);
+		addNode(objectBaseURI,objectInstance,objectURI);
+
+		String subjectURI = subjectBaseURI + "/" + subjectInstance;
+		String relationURI = relationBaseURI +"/" + subjectInstance + Constants.RELATION_URI_CONCATENATOR + objectInstance;
 		
-		String relationInstanceURI = relationURI +"/" + subjectInstanceName + Constants.RELATION_URI_CONCATENATOR + objectInstanceName;
-		createStatement(masterEngine.vf.createURI(relationInstanceURI), RDFS.SUBPROPERTYOF, masterEngine.vf.createURI(relationURI));
-		createStatement(masterEngine.vf.createURI(relationInstanceURI), RDFS.LABEL, masterEngine.vf.createLiteral(subjectInstanceName + Constants.RELATION_URI_CONCATENATOR + objectInstanceName));
-		createStatement(masterEngine.vf.createURI(subjectNodeURI), masterEngine.vf.createURI(relationInstanceURI), masterEngine.vf.createURI(objectNodeURI));
-		logger.info("Added relationship: "+subjectInstanceName+" >>> " + relationURI + " >>>" + objectInstanceName);
+		addRelationship(subjectURI,subjectInstance,objectURI,objectInstance,relationBaseURI,relationURI);
 	}
 	
 	/**
-	 * Method to add similarity score property on the MasterConcept to Keyword relationship.
-	 * For testing purposes, will likely be removed in final version.
-	 * @param instanceURI	String containing the relationship to add the property to
-	 * @param similarityScore	Similarity between the MasterConcept and Keyword
+	 * Adds just the relationship given a full subject URI and the instance name, full object URI and instance name, and relation base uri
+	 * @param subjectURI	String representing the full subject URI e.g. http://semoss.org/ontologies/Concept/User/ksmart
+	 * @param subjectInstance	String representing the subject instance e.g. ksmart
+	 * @param objectURI	String representing the full object URI i.e. http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data
+	 * @param objectInstance	String representing the object instance e.g. TAP_Core_Data
+	 * @param relationBaseURI	String representing the base URI of the relationship http://semoss.org/ontologies/Relation/Creates
+	 * @throws EngineException
+	 */
+	private void addRelationship(String subjectURI,String subjectInstance, String objectURI, String objectInstance, String relationBaseURI) throws EngineException{
+		String relationURI = relationBaseURI +"/" + subjectInstance + Constants.RELATION_URI_CONCATENATOR + objectInstance;
+		addRelationship(subjectURI,subjectInstance,objectURI,objectInstance,relationBaseURI,relationURI);
+	}
+	
+	/**
+	 * Adds just the relationship given a full subject URI and the instance name, full object URI and instance name, and relation base uri
+	 * @param subjectURI	String representing the full subject URI e.g. http://semoss.org/ontologies/Concept/User/ksmart
+	 * @param subjectInstance	String representing the subject instance e.g. ksmart
+	 * @param objectURI	String representing the full object URI i.e. http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data
+	 * @param objectInstance	String representing the object instance e.g. TAP_Core_Data
+	 * @param relationBaseURI	String representing the base URI of the relationship http://semoss.org/ontologies/Relation/Creates
+	 * @param relationURI	String representing the full URI of the relationship http://semoss.org/ontologies/Relation/Creates/ksmart:TAP_Core_Data
+	 * @throws EngineException
+	 */
+	private void addRelationship(String subjectURI,String subjectInstance, String objectURI, String objectInstance, String relationBaseURI,String relationURI) throws EngineException{
+		createStatement(masterEngine.vf.createURI(relationURI), RDFS.SUBPROPERTYOF, masterEngine.vf.createURI(relationBaseURI));
+		createStatement(masterEngine.vf.createURI(relationURI), RDFS.LABEL, masterEngine.vf.createLiteral(subjectInstance + Constants.RELATION_URI_CONCATENATOR + objectInstance));
+		createStatement(masterEngine.vf.createURI(subjectURI), masterEngine.vf.createURI(relationURI), masterEngine.vf.createURI(objectURI));
+		logger.info("Added relationship: "+subjectURI+" >>> " + relationURI + " >>>" + objectURI);
+	}
+	
+	/**
+	 * Adds a node given a baseURI and the instance name.
+	 * Defaults the URI to be the concatenation of baseURI / instanceName
+	 * @param baseURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/Engine
+	 * @param instance	String representing the name of the instance to add e.g. TAP_Core_Data
+	 * @throws EngineException
+	 */
+	private void addNode(String baseURI, String instance) throws EngineException{
+		String nodeURI = baseURI + "/" + instance;
+		addNode(baseURI,instance,nodeURI);
+	}
+	
+	/**
+	 * Adds a node given a baseURI, instance name, and the URI.
+	 * @param baseURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/Engine
+	 * @param instance	String representing the name of the instance to add e.g. TAP_Core_Data
+	 * @param nodeURI	String representing the URI for the node e.g. http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data
+	 * @throws EngineException
+	 */
+	private void addNode(String baseURI, String instance, String nodeURI) throws EngineException{
+		createStatement(masterEngine.vf.createURI(nodeURI), RDF.TYPE, masterEngine.vf.createURI(baseURI));
+		createStatement(masterEngine.vf.createURI(nodeURI), RDFS.LABEL, masterEngine.vf.createLiteral(instance));
+	}
+	
+	/**
+	 * Method to add property on an instance.
+	 * @param instanceURI	String containing the node or relationship URI to add the property to
+	 * @param propBaseURI	String representing the URI of the property relation
+	 * @param value	Value to add as the property
 	 * @throws EngineException	Thrown if statement cannot be added to the engine
 	 */
-	public void addProperty(String instanceURI, Double similarityScore) throws EngineException {
-		logger.info("Processing Similarity Score of " + similarityScore + " for " + instanceURI);
-		createStatement(masterEngine.vf.createURI(similarityPropURI), RDF.TYPE, masterEngine.vf.createURI(propURI));	
-		createStatement(masterEngine.vf.createURI(instanceURI), masterEngine.vf.createURI(similarityPropURI), masterEngine.vf.createLiteral(similarityScore));
-		logger.info("Added relationship: "+instanceURI+" >>> " + similarityPropURI + " >>>" + similarityScore);
+	public void addProperty(String instanceURI, String propBaseURI, Double value) throws EngineException {
+		createStatement(masterEngine.vf.createURI(instanceURI), masterEngine.vf.createURI(propBaseURI), masterEngine.vf.createLiteral(value));
+		logger.info("Added property: "+instanceURI+" >>> " + propBaseURI + " >>>" + value);
 	}
 	
 	/**
@@ -602,23 +697,29 @@ public class CreateMasterDB {
 		
 		//add node subclass triples
 		String subclassPredicate = Constants.SUBCLASS_URI;
-		createStatement(masterEngine.vf.createURI(masterConceptBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
-		createStatement(masterEngine.vf.createURI(masterConceptConnectionBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
+		createStatement(masterEngine.vf.createURI(mcBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
+		createStatement(masterEngine.vf.createURI(mccBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 		createStatement(masterEngine.vf.createURI(keywordBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 		createStatement(masterEngine.vf.createURI(engineBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 		createStatement(masterEngine.vf.createURI(serverBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
+		createStatement(masterEngine.vf.createURI(userBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
+		createStatement(masterEngine.vf.createURI(userInsightBaseURI), masterEngine.vf.createURI(subclassPredicate), masterEngine.vf.createURI(semossConceptURI));
 
 		//add relation subproperty triples
 		String subpropertypredicate = Constants.SUBPROPERTY_URI;
-		createStatement(masterEngine.vf.createURI(consistsOfRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
-		createStatement(masterEngine.vf.createURI(hasRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
-		createStatement(masterEngine.vf.createURI(fromRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
-		createStatement(masterEngine.vf.createURI(toRelationURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
-		createStatement(masterEngine.vf.createURI(hostedOnBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
-		createStatement(masterEngine.vf.createURI(keywordInsightBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(mcKeywordBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(engineKeywordBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(engineMCCBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(mccFromMCBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(mccToMCBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(engineServerBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(userUserInsightBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
+		createStatement(masterEngine.vf.createURI(insightUserInsightBaseURI), masterEngine.vf.createURI(subpropertypredicate), masterEngine.vf.createURI(semossRelationURI));
 
 		//add property triples
+		createStatement(masterEngine.vf.createURI(similarityPropURI), RDF.TYPE, masterEngine.vf.createURI(propURI));	
 		createStatement(masterEngine.vf.createURI(baseURIPropURI), RDF.TYPE, masterEngine.vf.createURI(propURI));
+		createStatement(masterEngine.vf.createURI(timesClickedPropURI), RDF.TYPE, masterEngine.vf.createURI(propURI));
 		
 	}
 	
