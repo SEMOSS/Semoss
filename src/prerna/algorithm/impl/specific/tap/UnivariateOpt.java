@@ -106,10 +106,16 @@ public class UnivariateOpt implements IAlgorithm{
 	{
         
 	}
-
+	
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel) {
-		GridScrollPane pane = new GridScrollPane(colNames, list);
+		displayListOnTab(colNames, list, panel, false);
+	}
 		
+
+	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel, Boolean addScroll) {
+		GridScrollPane pane = new GridScrollPane(colNames, list);
+		if(addScroll)
+			pane.addHorizontalScroll();
 		panel.removeAll();
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};

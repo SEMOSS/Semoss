@@ -435,7 +435,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			}
 			list.add(newRow);
 		}
-		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificFuncAlysPanel);
+		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificFuncAlysPanel,true);
 	}
 
 	/**
