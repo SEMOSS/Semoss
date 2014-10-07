@@ -75,6 +75,40 @@ public final class StatisticsUtilityMethods {
 		return sum;
 	}
 	
+	public static int getMinimumValue(final int[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		int minValue = values[0];
+		for(index = 1; index < size; index++) {
+			if(minValue > values[index]) {
+				minValue = values[index];
+			}
+		}
+		
+		return minValue;
+	}
+	
+	public static int getMaximumValue(final int[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		int maxValue = values[0];
+		for(index = 1; index < size; index++) {
+			if(maxValue < values[index]) {
+				maxValue = values[index];
+			}
+		}
+		
+		return maxValue;
+	}
+	
 	public static int getSum(final int[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);

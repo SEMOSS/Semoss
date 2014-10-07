@@ -11,6 +11,10 @@ import weka.classifiers.trees.REPTree;
 
 public final class ClassificationFactory {
 
+	private ClassificationFactory() {
+		
+	}
+	
 	public static Classifier create(String type) {
 		switch(type) {
 		case "J48" : return new J48();

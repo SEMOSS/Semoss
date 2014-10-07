@@ -18,13 +18,41 @@ import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringDataProcessor {
 
-	static final Logger LOGGER = LogManager.getLogger(ClusteringDataProcessor.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ClusteringDataProcessor.class.getName());
 
+	// table containing all the information - assumes the first column contains the instance name
+	private ArrayList<Object[]> masterTable;
+	// array list containing the variable names for the entire query 
+	private String[] varNames;
+	
 	// matrix to hold the instance numerical property values
 	private Double[][] numericalMatrix;
+//	public Double[][] getNumericalMatrix() {
+	//	if(numericalMatrix != null) {
+	//		return numericalMatrix.clone();
+	//	} else {
+	//		return null;
+	//	}
+	//}
+	
+	// matrix to hold the numerical bin property values
 	private String[][] numericalBinMatrix;
 	// matrix to hold the instance categorical property values
 	private String[][] categoricalMatrix;
+	public String[][] getNumericalBinMatrix() {
+		if(numericalBinMatrix != null) {
+			return numericalBinMatrix.clone();
+		} else {
+			return null;
+		}
+	}
+	public String[][] getCategoricalMatrix() {
+		if(categoricalMatrix != null) {
+			return categoricalMatrix.clone();
+		} else {
+			return null;
+		}
+	}
 
 	// Hashtable containing the instance name as the key and the value being the row it's information is contained in the numerical and categorical Matrices
 	private Hashtable<String, Integer> instanceHash = new Hashtable<String, Integer>();
@@ -32,16 +60,46 @@ public class ClusteringDataProcessor {
 	private String[] categoryPropNames;
 	// list of all the numerical property names
 	private String[] numericalPropNames;
+	
+	@SuppressWarnings("unchecked")
+	public Hashtable<String, Integer> getInstanceHash() {
+		return (Hashtable<String, Integer>) instanceHash.clone();
+	}
+
+	public String[] getCategoryPropNames() {
+		if(categoryPropNames != null) {
+			return categoryPropNames.clone();
+		} else {
+			return null;
+		}
+	}
+	public String[] getNumericalPropNames() {
+		if(numericalPropNames != null) {
+			return numericalPropNames.clone();
+		} else {
+			return null;
+		}
+	}
+	
 	// list the weights associated with each categorical property used to calculate the categorical similarity score
 	private double[] categoricalWeights; // has length the same as category prop names
 	// list the weights associated with each numerical property used to calculate the numerical similarity score
 	private double[] numericalWeights; // has length the same as numerical prop names
-
-	// instance variables that must be defined for clustering to work
-	// table containing all the information - assumes the first column contains the instance name
-	private ArrayList<Object[]> masterTable;
-	// array list containing the variable names for the entire query 
-	private String[] varNames;
+	
+	public double[] getCategoricalWeights() {
+		if(categoricalWeights != null) {
+			return categoricalWeights.clone();
+		} else {
+			return null;
+		}
+	}
+	public double[] getNumericalWeights() {
+		if(numericalWeights != null) {
+			return numericalWeights.clone();
+		} else {
+			return null;
+		}
+	}
 
 	//indexing used for visualization
 	private int[] totalNumericalPropIndices;
@@ -59,48 +117,6 @@ public class ClusteringDataProcessor {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public Hashtable<String, Integer> getInstanceHash() {
-		return (Hashtable<String, Integer>) instanceHash.clone();
-	}
-
-	public Double[][] getNumericalMatrix() {
-		if(numericalMatrix != null) {
-			return numericalMatrix.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[][] getNumericalBinMatrix() {
-		if(numericalBinMatrix != null) {
-			return numericalBinMatrix.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[][] getCategoricalMatrix() {
-		if(categoricalMatrix != null) {
-			return categoricalMatrix.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[] getCategoryPropNames() {
-		if(categoryPropNames != null) {
-			return categoryPropNames.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[] getNumericalPropNames() {
-		if(numericalPropNames != null) {
-			return numericalPropNames.clone();
-		} else {
-			return null;
-		}
-	}
-
-	//TODO: where to define this
 	int totalProps;
 	int numericProps;
 	int categoricalProps;
@@ -109,7 +125,7 @@ public class ClusteringDataProcessor {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
 
-		totalProps = varNames.length; //TODO: where to define this
+		totalProps = varNames.length;
 		// these methods must be called for the similarity score to be computed 
 		processMasterTable();
 		calculateCategoricalWeights();
@@ -270,9 +286,6 @@ public class ClusteringDataProcessor {
 						}
 					}
 					// default values are null in new Double[][]
-					// else {
-					// 		numericalMatrix[row][counter] = null;
-					// } 
 					counter++;
 				}
 			}
@@ -448,7 +461,6 @@ public class ClusteringDataProcessor {
 		return entropyArr;
 	}
 	
-	////////////////////////////////////////////////////////////////TODO:
 	private void generateNumericalBinMatrix(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
 		if(numericalPropNames != null) {
 			int numRows = masterTable.size();
@@ -495,71 +507,6 @@ public class ClusteringDataProcessor {
 			}
 		}
 	}
-	
-	
-	
-	
-	
-	/**
-	 * Calculates the similarity score between an instance and a cluster
-	 * @param dataIdx						The index corresponding to the instance row location in the numerical and categorical matrices
-	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
-	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
-	 * @param categoryClusterInfo			The categorical cluster information for the cluster we are looking to add the instance into
-	 * @return								The similarity score between the instance and the cluster
-	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length
-	 */
-	public Double getSimilarityScore(int dataIdx, int clusterIdx, ArrayList<Hashtable<String, Integer>> numericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
-		double numericalSimilarity = (double) 0;
-		double categorySimilarity = (double) 0;
-
-		if(numericalBinMatrix != null) {
-			String[] instanceNumericalInfo = numericalBinMatrix[dataIdx];
-			numericalSimilarity = ClusterUtilityMethods.calculateCategorySimilarity(numericProps, totalProps, numericalWeights, instanceNumericalInfo, numericalClusterInfo);
-		}
-
-		if(categoricalMatrix != null) {
-			String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
-			categorySimilarity = ClusterUtilityMethods.calculateCategorySimilarity(categoricalProps, totalProps, categoricalWeights, instaceCategoricalInfo, categoryClusterInfo);
-		}
-
-		return numericalSimilarity + categorySimilarity;
-	}
-	
-	
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	//TODO delete
-//	/**
-//	 * Calculates the similarity score between an instance and a cluster
-//	 * @param dataIdx						The index corresponding to the instance row location in the numerical and categorical matrices
-//	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
-//	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
-//	 * @param categoryClusterInfo			The categorical cluster information for the cluster we are looking to add the instance into
-//	 * @return								The similarity score between the instance and the cluster
-//	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length
-//	 */
-//	public Double getSimilarityScore(int dataIdx, int clusterIdx, Double[][] allNumericalClusterInfo, ArrayList<Hashtable<String, Integer>> categoryClusterInfo) throws IllegalArgumentException {
-//		double numericalSimilarity = (double) 0;
-//		double categorySimilarity = (double) 0;
-//
-//		if(numericalMatrix != null) {
-//			Double[] instanceNumericalInfo = numericalMatrix[dataIdx];
-//			numericalSimilarity = ClusterUtilityMethods.calcuateNumericalSimilarityUsingDistance(numericProps, totalProps, clusterIdx, instanceNumericalInfo, allNumericalClusterInfo);
-//		}
-//
-//		if(categoricalMatrix != null) {
-//			String[] instaceCategoricalInfo = categoricalMatrix[dataIdx];
-//			categorySimilarity = ClusterUtilityMethods.calculateCategorySimilarity(categoricalProps, totalProps, categoricalWeights, instaceCategoricalInfo, categoryClusterInfo);
-//		}
-//
-//		return numericalSimilarity + categorySimilarity;
-//	}
-
-
-
-	
-	
 	
 	//TODO: THIS METHOD IS USED IN MULTIPLE PLACES
 	/**
@@ -608,134 +555,5 @@ public class ClusteringDataProcessor {
 		}
 
 		return ("STRING");
-	}
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	/**
-	 * 
-	 * @param clusterIdx1				The index for the cluster we are observing
-	 * @param clusterIdx2				The index for the cluster we are comparing the observed cluster to
-	 * @param clusterNumberMatrix		All the numerical properties
-	 * @param clusterCategoryMatrix		All the categorical properties
-	 * @return
-	 */
-	public double calculateClusterToClusterSimilarity(int clusterIdx1, int clusterIdx2, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterNumericalMatrix, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix){
-		double numericSimilarity = 0;
-		double categoricalSimilarity = 0;
-
-		if(clusterNumericalMatrix != null) {
-			ArrayList<Hashtable<String, Integer>> numericalClusterInfo1 = clusterNumericalMatrix.get(clusterIdx1);
-			ArrayList<Hashtable<String, Integer>> numericalClusterInfo2 = clusterNumericalMatrix.get(clusterIdx2);
-
-			numericSimilarity = calculateClusterCategoricalSimilarity(numericalWeights, numericalClusterInfo1, numericalClusterInfo2);
-		}
-
-		if(clusterCategoryMatrix != null) {
-			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1 = clusterCategoryMatrix.get(clusterIdx1);
-			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2 = clusterCategoryMatrix.get(clusterIdx2);
-
-			categoricalSimilarity = calculateClusterCategoricalSimilarity(categoricalWeights, categoricalClusterInfo1, categoricalClusterInfo2);
-		}
-
-		return numericSimilarity + categoricalSimilarity;
-	}
-	
-//	/**
-//	 * 
-//	 * @param clusterIdx1				The index for the cluster we are observing
-//	 * @param clusterIdx2				The index for the cluster we are comparing the observed cluster to
-//	 * @param clusterNumberMatrix		All the numerical properties
-//	 * @param clusterCategoryMatrix		All the categorical properties
-//	 * @return
-//	 */
-//	public double calculateClusterToClusterSimilarity(int clusterIdx1, int clusterIdx2, Double[][] clusterNumberMatrix, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix){
-//		double numericSimilarity = 0;
-//		double categoricalSimilarity = 0;
-//
-//		if(clusterNumberMatrix != null) {
-//			Double[] numericClusterInfo1 = clusterNumberMatrix[clusterIdx1];
-//			numericSimilarity = ClusterUtilityMethods.calcuateNumericalSimilarityUsingDistance(numericProps, totalProps, clusterIdx2, numericClusterInfo1, clusterNumberMatrix);
-//		}
-//
-//		if(clusterCategoryMatrix != null) {
-//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1 = clusterCategoryMatrix.get(clusterIdx1);
-//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2 = clusterCategoryMatrix.get(clusterIdx2);
-//
-//			categoricalSimilarity = calculateClusterCategoricalSimilarity(categoricalClusterInfo1, categoricalClusterInfo2);
-//		}
-//
-//		return numericSimilarity + categoricalSimilarity;
-//	}
-	
-	
-
-	private double calculateClusterCategoricalSimilarity(double[] weights, ArrayList<Hashtable<String, Integer>> clusterInfo1, ArrayList<Hashtable<String, Integer>> clusterInfo2) {
-		double coeff = 1.0 * categoricalProps / totalProps;
-		double similarityScore = 0;
-
-		int i;
-		int size = clusterInfo1.size();
-		// loop through all properties
-		for(i = 0; i < size; i++) {
-			// for specific property
-			Hashtable<String, Integer> propInfoForCluster1 = clusterInfo1.get(i);
-			Hashtable<String, Integer> propInfoForCluster2 = clusterInfo2.get(i);
-
-			int normalizationCount1 = 0;
-			for(String propInstance : propInfoForCluster1.keySet()) {
-				normalizationCount1 += propInfoForCluster1.get(propInstance);
-			}
-			int normalizationCount2 = 0;
-			for(String propInstance : propInfoForCluster2.keySet()) {
-				normalizationCount2 += propInfoForCluster2.get(propInstance);
-			}
-
-			if(normalizationCount2 == 0){
-				System.out.println("ERROR - count0");
-			}
-			if(normalizationCount1 == 0){
-				System.out.println("ERROR - count0");
-			}
-
-			int possibleValues = 0;
-			double sumClusterDiff = 0;
-			for(String propInstance : propInfoForCluster1.keySet()) {
-				if(propInfoForCluster2.containsKey(propInstance)) {
-					possibleValues++;
-					// calculate difference between counts
-					int count1 = propInfoForCluster1.get(propInstance);
-					int count2 = propInfoForCluster2.get(propInstance);
-					sumClusterDiff += Math.abs((double) count1/normalizationCount1 - (double) count2/normalizationCount2);
-				} else {
-					possibleValues++;
-					//include values that 1st cluster has and 2nd cluster doesn't have
-					int count1 = propInfoForCluster1.get(propInstance);
-					sumClusterDiff += (double) count1/normalizationCount1;
-				}
-			}
-			//now include values that 2nd cluster has that 1st cluster doesn't have
-			for(String propInstance: propInfoForCluster2.keySet()) {
-				if(!propInfoForCluster1.containsKey(propInstance)) {
-					possibleValues++;
-					int count2 = propInfoForCluster2.get(propInstance);
-					sumClusterDiff += (double) count2/normalizationCount2;
-				}
-			}
-
-			similarityScore += weights[i] * (1 - sumClusterDiff/possibleValues);
-		}
-
-		return coeff * similarityScore;
 	}
 }
