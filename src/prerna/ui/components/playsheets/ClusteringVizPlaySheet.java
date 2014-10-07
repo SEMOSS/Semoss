@@ -46,7 +46,10 @@ import aurelienribon.ui.css.Style;
 public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
+	
+	private int inputNumClusters;
 	private int numClusters;
+	
 //	private double n;
 //	private String type = "";
 	private ArrayList<Object[]> clusterInfo;
@@ -205,7 +208,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	public void filterData(String[] filteredNames,ArrayList<Object []> filteredList) {
 		this.masterNames = filteredNames;
+		this.names = filteredNames;
 		this.masterList = filteredList;
+		this.list = filteredList;
+		numClusters = inputNumClusters;
 		createData();
 		createView();
 	}
@@ -345,7 +351,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 //			clusterAlg.setNumClusters(numClusters);
 //			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-		if(numClusters > 2){
+		if(numClusters >= 2){
 			clusterAlg = new ClusteringAlgorithm(masterList, masterNames);
 			clusterAlg.setNumClusters(numClusters);
 		} else{
@@ -356,7 +362,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		clusterAlg.execute();
 		//store cluster final state information
 		clusterInfo = new ArrayList<Object[]>(numClusters);
-		clusterInfo = clusterAlg.getClusterRows();
+		clusterInfo = clusterAlg.getSummaryClusterRows();
 		
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
 		int[] clusterAssigned = clusterAlg.getClustersAssigned();
@@ -446,7 +452,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			this.query = query;
 		} else if(querySplit.length == 2) {
 			this.query = querySplit[0];
-			this.numClusters = Integer.parseInt(querySplit[1]);
+			this.inputNumClusters = Integer.parseInt(querySplit[1]);
+			this.numClusters = inputNumClusters;
 		} 
 //		else if(querySplit.length == 4) {
 //			this.query = querySplit[0];
