@@ -85,6 +85,8 @@
         var jsonData = jQuery.parseJSON(dataString);
         var ctrlScope = angular.element(jQuery('#thecontroller')).scope();
         ctrlScope.setJSONData(jsonData);
+		
+		return "finished";
     }
 </script>
 </body>
