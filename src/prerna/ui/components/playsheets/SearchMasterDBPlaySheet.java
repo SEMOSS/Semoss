@@ -44,7 +44,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		SearchMasterDB searchAlgo = new SearchMasterDB();
-		searchAlgo.setMasterDBName(this.engine.getEngineName());
+//		searchAlgo.setMasterDBName(this.engine.getEngineName());
 		
 		ArrayList<Hashtable<String, Object>> hashArray = new ArrayList<Hashtable<String, Object>>();
 		if(query.contains("1")){
