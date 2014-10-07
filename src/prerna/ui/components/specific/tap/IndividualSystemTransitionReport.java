@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.Vector;
 
 import prerna.error.EngineException;
@@ -14,7 +13,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;

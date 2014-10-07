@@ -306,7 +306,7 @@ public class LPInterfaceProcessor {
 			if(sjss.getRawVar(SYS_KEY) != null) {
 				system = sjss.getRawVar(SYS_KEY).toString();
 			}
-			if(sjss.getVar(INTERFACE_TYPE_KEY) != null) {
+			if(sjss.getRawVar(INTERFACE_TYPE_KEY) != null) {
 				interfaceTypeURI = sjss.getVar(INTERFACE_TYPE_KEY).toString();
 			}
 			if(sjss.getRawVar(INTERFACING_SYS_KEY) != null) {
@@ -597,7 +597,7 @@ public class LPInterfaceProcessor {
 //						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 //					}
 //				} 
-				if(!upstreamSysType.equals(LPI_KEY) && !upstreamSysType.equals(HPI_KEY) && !downstreamSysType.equals(LPI_KEY) && !downstreamSysType.equals(HPI_KEY))
+				else
 				{
 					noCost = true;
 					if(upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) || downstreamSysType.equals(HPNI_KEY)) { //if either system is HP
