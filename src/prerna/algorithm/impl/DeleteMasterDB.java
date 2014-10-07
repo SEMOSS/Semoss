@@ -2,8 +2,6 @@ package prerna.algorithm.impl;
 
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
@@ -29,33 +27,8 @@ import com.bigdata.rdf.model.BigdataValueImpl;
  * Deletes an engine from the master database.
  * @author ksmart
  */
-public class DeleteMasterDB {
-	private static final Logger logger = LogManager.getLogger(CreateMasterDB.class.getName());
+public class DeleteMasterDB extends ModifyMasterDB{
 
-	//variables for the master database
-	private String masterDBName = "MasterDatabase";
-	private BigDataEngine masterEngine;
-	
-	//uri variables
-	private static final String semossURI = "http://semoss.org/ontologies";
-	private static final String semossConceptURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-	private static final String semossRelationURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-	private static final String resourceURI = "http://www.w3.org/2000/01/rdf-schema#Resource";
-	private static final String mcBaseURI = semossConceptURI+"/MasterConcept";
-	private static final String mccBaseURI = semossConceptURI+"/MasterConceptConnection";
-	private static final String keywordBaseURI = semossConceptURI+"/Keyword";
-	private static final String engineBaseURI = semossConceptURI+"/Engine";
-	private static final String engineInsightBaseURI = semossRelationURI + "/Engine:Insight";
-	private static final String enginePerspectiveBaseURI = semossRelationURI + "/Engine:Perspective";
-	private static final String engineKeywordBaseURI = semossRelationURI + "/Has";
-	private static final String mcKeywordBaseURI = semossRelationURI + "/ConsistsOf";
-	private static final String engineMCCBaseURI = semossRelationURI + "/Has";
-	private static final String mccToMCBaseURI = semossRelationURI + "/To";
-	private static final String mccFromMCBaseURI = semossRelationURI + "/From";
-	private final static String engineServerBaseURI = semossRelationURI + "/HostedOn";
-	private final static String propURI = semossRelationURI + "/" + "Contains";
-	private final static String similarityPropURI = propURI + "/" + "SimilarityScore";
-	
 	//queries for relations to delete
 	private static final String enginePerspectiveQuery = "SELECT DISTINCT ?Engine ?p ?Perspective ?Label WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>}{?p <http://www.w3.org/2000/01/rdf-schema#label> ?Label} {?Engine ?p ?Perspective}}";
 	private static final String engineInsightQuery = "SELECT DISTINCT ?Engine ?p ?Insight ?Label WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>}{?p <http://www.w3.org/2000/01/rdf-schema#label> ?Label} {?Engine ?p ?Insight}}";
