@@ -43,18 +43,17 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			noChange = true;
 			for(String instance : instanceIndexHash.keySet()) {
 				int instanceInd = instanceIndexHash.get(instance);
-				int newClusterForInstance = findNewClusterForInstance(instanceInd);
+				int newClusterForInstance = ClusterUtilityMethods.findNewClusterForInstance(cnm, clusterCategoryMatrix, clusterNumberBinMatrix, numInstancesInCluster, instanceInd);
 				int oldClusterForInstance = clustersAssigned[instanceInd];
 				if(newClusterForInstance != oldClusterForInstance) {
 					noChange = false;
-					//TODO: delete
 //					clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance, newClusterForInstance, clusterNumberMatrix, clustersNumInstances);
-					clusterNumberBinMatrix = updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceNumberBinMatrix, clusterNumberBinMatrix);
-					clusterCategoryMatrix = updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceCategoryMatrix, clusterCategoryMatrix);
+					clusterNumberBinMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceNumberBinMatrix, clusterNumberBinMatrix);
+					clusterCategoryMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceCategoryMatrix, clusterCategoryMatrix);
 					if(oldClusterForInstance > -1) {
-						clustersNumInstances[oldClusterForInstance]--;
+						numInstancesInCluster[oldClusterForInstance]--;
 					}
-					clustersNumInstances[newClusterForInstance]++;
+					numInstancesInCluster[newClusterForInstance]++;
 					clustersAssigned[instanceInd] = newClusterForInstance;
 				}
 			}
@@ -69,10 +68,10 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			success = true;
 			//loop through and remove any empty clusters
 			int i;
-			int nonEmptyClusterCount = clustersNumInstances.length;
+			int nonEmptyClusterCount = numInstancesInCluster.length;
 			int counter = 0;
 			for(i = 0; i < nonEmptyClusterCount; i++) {
-				if(clustersNumInstances[i] == 0) {
+				if(numInstancesInCluster[i] == 0) {
 					if(clusterNumberBinMatrix != null) {
 						clusterNumberBinMatrix.remove(i - counter);
 					}
@@ -82,12 +81,12 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 					counter++;
 				}
 			}
-			clustersNumInstances = ArrayUtilityMethods.removeAllZeroValues(clustersNumInstances);
+			numInstancesInCluster = ArrayUtilityMethods.removeAllZeroValues(numInstancesInCluster);
+			numClusters = numInstancesInCluster.length;
 		}
 		
-		
 //		printOutClusters();
-		createClusterRowsForGrid();
+		createClusterSummaryRowsForGrid();
 		
 		//need indices for visualization
 		categoryPropIndices = cdp.getCategoryPropIndices();
@@ -95,84 +94,4 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		
 		return success;
 	}
-	
-	/**
-	 * Given a specific instance, find the cluster it is most similar to.
-	 * For every cluster, call the similarity function between the system and that cluster.
-	 * Compare the similarity score of all the clusters and return the one with max similarity.
-	 */
-	private int findNewClusterForInstance(int instanceInd) throws IllegalArgumentException {
-		int clusterIndWithMaxSimilarity = 0;
-		double maxSimilarity;
-		if(clusterCategoryMatrix != null) {
-			if(clusterNumberBinMatrix != null) {
-				maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberBinMatrix.get(0), clusterCategoryMatrix.get(0));
-			} else {
-				maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, null, clusterCategoryMatrix.get(0));
-			}
-		} else {
-			maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberBinMatrix.get(0), null);
-		}
-		int clusterIdx;
-		for(clusterIdx = 1; clusterIdx < numClusters; clusterIdx++) {
-			double similarityForCluster;
-			if(clusterCategoryMatrix != null) {
-				if(clusterNumberBinMatrix != null) {
-				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
-				} else {
-					similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, null, clusterCategoryMatrix.get(clusterIdx));
-				}
-			} else {
-				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberBinMatrix.get(clusterIdx), null);
-			}
-			if(similarityForCluster > maxSimilarity) {
-				maxSimilarity = similarityForCluster;
-				clusterIndWithMaxSimilarity = clusterIdx;
-			}
-		}
-		
-		// if there is no similarity to any cluster, see if any cluster is empty and put there
-		if(maxSimilarity == 0) {
-			int i;
-			int size = clustersNumInstances.length;
-			for(i = 0; i < size; i++) {
-				if(clustersNumInstances[i] == 0) {
-					//return the first empty cluster
-					return clustersNumInstances[i];
-				}
-			}
-		}
-		
-		return clusterIndWithMaxSimilarity;
-	}
-	
-//	/**
-//	 * Given a specific instance, find the cluster it is most similar to.
-//	 * For every cluster, call the similarity function between the system and that cluster.
-//	 * Compare the similarity score of all the clusters and return the one with max similarity.
-//	 */
-//	private int findNewClusterForInstance(int instanceInd) throws IllegalArgumentException {
-//		int clusterIndWithMaxSimilarity = 0;
-//		double maxSimilarity;
-//		if(clusterCategoryMatrix != null) {
-//			maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberMatrix, clusterCategoryMatrix.get(0));
-//		} else {
-//			maxSimilarity = cdp.getSimilarityScore(instanceInd, 0, clusterNumberMatrix, null);
-//		}
-//		int clusterIdx;
-//		for(clusterIdx = 1; clusterIdx < numClusters; clusterIdx++) {
-//			double similarityForCluster;
-//			if(clusterCategoryMatrix != null) {
-//				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberMatrix, clusterCategoryMatrix.get(clusterIdx));
-//			} else {
-//				similarityForCluster = cdp.getSimilarityScore(instanceInd, clusterIdx, clusterNumberMatrix, null);
-//			}
-//			if(similarityForCluster > maxSimilarity) {
-//				maxSimilarity = similarityForCluster;
-//				clusterIndWithMaxSimilarity = clusterIdx;
-//			}
-//		}
-//		return clusterIndWithMaxSimilarity;
-//	}
-
 }

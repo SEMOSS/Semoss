@@ -19,17 +19,16 @@ public class WekaClassificationPlaySheet extends GridPlaySheet{
 		}
 		
 		double[] accuracy = alg.getAccuracy();
-		double[] percision = alg.getPercision();
+		double[] precision = alg.getPrecision();
 		list = new ArrayList<Object[]>();
-		Object[] row = null;
 		int size = accuracy.length;
 		int i;
 		for(i = 0; i < size; i++) {
-			row = new Object[]{names[i+1], String.format("%.2f%%", accuracy[i]), String.format("%.2f", percision[i])};
+			Object[] row = new Object[]{names[i+1], String.format("%.2f%%", accuracy[i]), String.format("%.2f", precision[i])};
 			list.add(row);
 		}
 		
-		names = new String[]{"Attribute","Accuracy","Percision"};
+		names = new String[]{"Attribute","Accuracy","Precision"};
 	}
 	
 	@Override
