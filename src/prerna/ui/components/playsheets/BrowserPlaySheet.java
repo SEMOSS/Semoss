@@ -44,6 +44,7 @@ import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.JSValue;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 /**
@@ -81,7 +82,9 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
 
-		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
+//		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
+		// create variable val to ensure JXBrowser has the data before trying to paint
+		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
 	}
 
 	/**

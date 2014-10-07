@@ -13,7 +13,7 @@ public class WekaClassification {
 
 	private Instances data;
 	private double[] accuracy;
-	private double[] percision;
+	private double[] precision;
 	
 	private String[] names;
 	private ArrayList<Object[]> list;
@@ -41,8 +41,8 @@ public class WekaClassification {
 		return accuracy.clone();
 	}
 
-	public double[] getPercision() {
-		return percision.clone();
+	public double[] getPrecision() {
+		return precision.clone();
 	}
 	
 	public void execute() throws Exception{
@@ -50,7 +50,7 @@ public class WekaClassification {
 		
 		// Run for each attribute
 		accuracy = new double[numAttributes - 1];
-		percision = new double[numAttributes - 1];
+		precision = new double[numAttributes - 1];
 		
 		int i;
 		for(i = 1; i < numAttributes; i++) {
@@ -81,21 +81,21 @@ public class WekaClassification {
 			}
 	
 			accuracy[i-1] = calculateAccuracy(predCorrect);
-			percision[i-1] = calculatePercision(kappaValues);
+			precision[i-1] = calculatePercision(kappaValues);
 			// Print current classifier's name and accuracy in a complicated,
 			// but nice-looking way.
 			writer.println("Accuracy for " + names[i] + ": "
 					+ String.format("%.2f%%", accuracy[i-1])
 					+ "\n---------------------------------");
 			writer.println("Percision for " + names[i] + ": "
-					+ String.format("%.2f%%", percision[i-1])
+					+ String.format("%.2f%%", precision[i-1])
 					+ "\n---------------------------------");
 	
 			System.out.println("Accuracy for " + names[i] + ": "
 					+ String.format("%.2f%%", accuracy[i-1])
 					+ "\n---------------------------------");
 			System.out.println("Percision for " + names[i] + ": "
-					+ String.format("%.2f", percision[i-1])
+					+ String.format("%.2f", precision[i-1])
 					+ "\n---------------------------------");
 		}
 
