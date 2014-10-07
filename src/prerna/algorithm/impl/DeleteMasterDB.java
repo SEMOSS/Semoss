@@ -165,6 +165,9 @@ public class DeleteMasterDB {
 	 * @return
 	 */
 	public String deleteEngineWeb(String engineName) {
+		//instantiate the master database based on default, or what name is given for it
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		
 		//delete all relationships between this engine and its server
 		String engineServerRelationQueryFilled = engineServerRelationQuery.replaceAll("@ENGINE@", engineName);
 		deleteRelationship(engineServerRelationQueryFilled,engineServerBaseURI);
