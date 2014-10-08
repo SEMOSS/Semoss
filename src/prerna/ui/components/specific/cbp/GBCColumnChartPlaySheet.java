@@ -43,6 +43,7 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 	private static final Logger logger = LogManager.getLogger(GBCColumnChartPlaySheet.class.getName());
 	GraphDataModel gdm = new GraphDataModel();
 	Hashtable<String, String> taxonomyHash = new Hashtable<String, String>();
+	Hashtable<String, String> topTaxonomyHash;
 	String taxonomyQuery = "";
 	Hashtable<String, ArrayList<Hashtable<String,Object>>> seriesHash = new Hashtable<String, ArrayList<Hashtable<String,Object>>>();
 	
@@ -82,12 +83,11 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 		{
 			Object[] elemValues = list.get(i);
 			
-			ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
 			Double clientY = ((BigdataLiteralImpl)elemValues[1]).doubleValue();
 			Double groupY = ((BigdataLiteralImpl)elemValues[3]).doubleValue();
 			String seriesName = taxonomyHash.get(elemValues[4]+"");
 			if(seriesHash.containsKey(seriesName)){
-				seriesArray = seriesHash.get(seriesName);
+				ArrayList<Hashtable<String,Object>> seriesArray = seriesHash.get(seriesName);
 				
 				Hashtable<String, Object> clientElementHash = seriesArray.get(0);
 				clientY = clientY + (Double) clientElementHash.get("y");
@@ -98,18 +98,9 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 				groupElementHash.put("y", groupY);
 			}
 			else{
-				seriesHash.put(seriesName, seriesArray);
-				Hashtable<String, Object> clientElementHash = new Hashtable();
-				Hashtable<String, Object> groupElementHash = new Hashtable();
-				clientElementHash.put("x", elemValues[0].toString());
-				clientElementHash.put("y", clientY);
-				clientElementHash.put("seriesName", seriesName);
-				seriesArray.add(0, clientElementHash);
-				
-				groupElementHash.put("x", elemValues[2].toString());
-				groupElementHash.put("y", groupY);
-				groupElementHash.put("seriesName", seriesName);
-				seriesArray.add(1, groupElementHash);
+				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+				storeNewValue(elemValues[0].toString(), clientY, seriesName, seriesArray, 0); //store the new client value
+				storeNewValue(elemValues[2].toString(), groupY, seriesName, seriesArray, 1); //store the new group value
 			}
 			
 		}
@@ -121,6 +112,18 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
+	}
+	
+	private void storeNewValue(String x, Double y, String seriesName, ArrayList<Hashtable<String,Object>> seriesArray, int position){
+		seriesHash.put(seriesName, seriesArray);
+		Hashtable<String, Object> elementHash = new Hashtable();
+		elementHash.put("x", x);
+		elementHash.put("y", y);
+		elementHash.put("seriesName", seriesName);
+		if(this.topTaxonomyHash!=null){
+			elementHash.put("topLevel", this.topTaxonomyHash.get(seriesName));
+		}
+		seriesArray.add(position, elementHash);
 	}
 	
 	private void fillTaxonomyHash(){
@@ -141,6 +144,9 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 
 		// get the bindings from it
 		String[] taxNames = taxWrapper.getVariables();
+		if(taxNames.length==3){
+			topTaxonomyHash = new Hashtable<String, String>();
+		}
 		
 		// as we process the rows, add to hash
 		try {
@@ -148,6 +154,9 @@ public class GBCColumnChartPlaySheet extends BrowserPlaySheet{
 			{
 				SesameJenaSelectStatement sjss = taxWrapper.next();
 				this.taxonomyHash.put(sjss.getRawVar(taxNames[0]) + "", sjss.getRawVar(taxNames[1]) + "");
+				if(taxNames.length == 3){//need to store top taxonomy info for grid
+					this.topTaxonomyHash.put(sjss.getRawVar(taxNames[1]) + "", sjss.getRawVar(taxNames[2]) + "");
+				}
 			}
 		} catch (RuntimeException e) {
 			logger.fatal(e);
