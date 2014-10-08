@@ -432,6 +432,7 @@ public class CSVReader extends AbstractFileReader {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
 		}
+		System.out.println("FINAL COUNT " + count);
 	}
 
 	/**
