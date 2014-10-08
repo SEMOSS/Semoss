@@ -230,9 +230,9 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 						
 						logger.debug("Raw data JENA For Column " +  var[colIndex]+" >>  " + value);
 						String instanceName = Utility.getInstanceName(value);
-						retSt.setVar(var[colIndex], instanceName);
+						thisSt.setVar(var[colIndex], instanceName);
 					}
-					retSt.setRawVar(var[colIndex], value);
+					thisSt.setRawVar(var[colIndex], value);
 					logger.debug("Binding Name " + var[colIndex]);
 					logger.debug("Binding Value " + value);
 				}
