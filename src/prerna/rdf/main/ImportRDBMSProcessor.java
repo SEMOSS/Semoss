@@ -89,7 +89,12 @@ public class ImportRDBMSProcessor {
 		this.filePath = fileNames;
 		this.dbName = repoName;
 		this.type = type;
-		this.url = url;
+		// Base DB URL on whether or not a schema/owner is specified in Oracle connection string
+		if(type.equals(ORACLE) && url.contains("-")) {
+			this.url = url.substring(0, url.indexOf("-"));
+		} else {
+			this.url = url;
+		}
 		this.username = username;
 		this.password = password;
 	}
