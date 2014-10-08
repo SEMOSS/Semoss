@@ -222,6 +222,7 @@ public abstract class AbstractFileReader {
 	}	
 
 	protected void commitDB() throws EngineException {
+		logger.warn("Committing....");
 		try {
 			sc.commit();
 		} catch (SailException e) {
@@ -383,7 +384,7 @@ public abstract class AbstractFileReader {
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(subject, predicate, object);
-			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
 		try {
@@ -565,7 +566,7 @@ public abstract class AbstractFileReader {
 
 		// create instance value of relationship and add instance relationship, subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
-		logger.info("Adding Relationship " +subjectNodeType +" " + instanceSubjectName + " ... " + relName + " ... " + objectNodeType +" " + instanceObjectName); 
+//		logger.info("Adding Relationship " +subjectNodeType +" " + instanceSubjectName + " ... " + relName + " ... " + objectNodeType +" " + instanceObjectName); 
 		createStatement(vf.createURI(instanceRelURI), RDFS.SUBPROPERTYOF, vf.createURI(relSemossBaseURI));
 		createStatement(vf.createURI(instanceRelURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName));
 		createStatement(vf.createURI(subjectNodeURI), vf.createURI(instanceRelURI), vf.createURI(objectNodeURI));
@@ -598,12 +599,12 @@ public abstract class AbstractFileReader {
 		{
 			String key = propKeys.nextElement().toString();
 			String propURI = basePropURI + "/" + key;
-			logger.info("Processing Property " + key + " for " + instanceURI);
+//			logger.info("Processing Property " + key + " for " + instanceURI);
 			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));	
 			if(propHash.get(key).getClass() == new Double(1).getClass())
 			{
 				Double value = (Double) propHash.get(key);
-				logger.info("Processing Double value " + value); 
+//				logger.info("Processing Double value " + value); 
 				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
 			}
 			else if(propHash.get(key).getClass() == new Date(1).getClass())
@@ -612,29 +613,29 @@ public abstract class AbstractFileReader {
 				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String date = df.format(value);
 				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-				logger.info("Processing Date value " + date); 
+//				logger.info("Processing Date value " + date); 
 				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
 			}
 			else if(propHash.get(key).getClass() == new Boolean(true).getClass())
 			{
 				Boolean value = (Boolean) propHash.get(key);
-				logger.info("Processing Boolean value " + value); 
+//				logger.info("Processing Boolean value " + value); 
 				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.booleanValue()));
 			}
 			else
 			{
 				String value = propHash.get(key).toString();
 				if(value.equals(Constants.PROCESS_CURRENT_DATE)){
-					logger.info("Processing Current Date Property"); 
+//					logger.info("Processing Current Date Property"); 
 					insertCurrentDate(propURI, basePropURI, instanceURI);
 				}
 				else if(value.equals(Constants.PROCESS_CURRENT_USER)){
-					logger.info("Processing Current User Property"); 
+//					logger.info("Processing Current User Property"); 
 					insertCurrentUser(propURI, basePropURI, instanceURI);
 				}
 				else{
 					String cleanValue = Utility.cleanString(value, true);
-					logger.info("Processing String value " + cleanValue); 
+//					logger.info("Processing String value " + cleanValue); 
 					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
 				}
 			}
