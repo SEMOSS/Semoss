@@ -23,7 +23,6 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	private final String dbKey = "database";
 	private final String scoreKey = "similarityScore";
-	private final String insightScoreKey = "insightScore";
 	private final String questionKey = "question";
 	private final String keywordKey = "keyword";
 	private final String perspectiveKey = "perspective";
@@ -639,18 +638,17 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String masterConcept = (String)sjss.getVar(names[4]);
 			String viz = (String)sjss.getVar(names[5]);
 			Double insightScore = (Double)sjss.getVar(names[6]);
-			Double score = engineScoreList.get(engine);
+			Double databaseScore = engineScoreList.get(engine);
 
 			Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 			insightHash.put(this.dbKey, engine);
 			insightHash.put(this.questionKey, question);
 			insightHash.put(this.keywordKey, keyword);
 			insightHash.put(this.perspectiveKey, perspective);
-			insightHash.put(this.scoreKey, score);
+			insightHash.put(this.scoreKey, databaseScore*insightScore);
 			insightHash.put(this.vizTypeKey,viz);
 			ArrayList<String> instances =  new ArrayList<String>();
 			insightHash.put(this.instanceKey, instances);
-			insightHash.put(this.insightScoreKey, insightScore);
 			if(engineURLHash!=null){
 				String engineURI = engineURLHash.get(engine);
 				insightHash.put(this.engineURIKey, engineURI);
