@@ -41,7 +41,8 @@ public enum PlaySheetEnum {
 	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }"),
 	Circle_Pack("Circle Pack","prerna.ui.components.playsheets.CirclePackPlaySheet", "CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }"),
 	Parallel_Sets("Parallel Sets","prerna.ui.components.playsheets.ParallelSetsPlaySheet", "ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }"),
-	Dendrogram("Dendrogram","prerna.ui.components.playsheets.DendrogramPlaySheet", "DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }");
+	Dendrogram("Dendrogram","prerna.ui.components.playsheets.DendrogramPlaySheet", "DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }"),
+	ComparisonColChart("ComparisonColChart","prerna.ui.components.playsheets.ComparisonColumnChartPlaySheet", "ComparisonColumnChartPlaySheet Hint: SELECT ?x1 ?y1 ?x2 ?y2 ?seriesName WHERE{ ... }");
 
 	private final String sheetName;
 	private final String sheetClass;
