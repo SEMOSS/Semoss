@@ -123,7 +123,7 @@ public class LocalOutlierFactorAlgorithm {
 			for(int j : kClosestNeighbors) {
 				sumReachSim += reachSimMatrix[i][j];
 			}
-			lrd[i] = kClosestNeighbors.length/sumReachSim;
+			lrd[i] = sumReachSim/kClosestNeighbors.length;
 		}
 	}
 
