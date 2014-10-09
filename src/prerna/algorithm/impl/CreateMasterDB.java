@@ -61,6 +61,7 @@ public class CreateMasterDB extends ModifyMasterDB{
 	private final static String userInsightCountQuery = "SELECT ?UserInsight ?TimesClicked WHERE {BIND(<http://semoss.org/ontologies/Concept/User/@USER@> AS ?User) BIND(<http://semoss.org/ontologies/Concept/Insight/@INSIGHT@> AS ?Insight) {?UserInsight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInsight> ;} {?User <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight} {?Insight <http://semoss.org/ontologies/Relation/PartOf> ?UserInsight} {?UserInsight <http://semoss.org/ontologies/Relation/Contains/TimesClicked> ?TimesClicked}}";
 	private final static String serverExistsQuery = "SELECT DISTINCT ?Server WHERE {BIND('@BASEURI@' AS ?BaseURI){?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>} {?Server <http://semoss.org/ontologies/Relation/Contains/BaseURI> ?BaseURI}} LIMIT 1";
 	private final static String numServersQuery = "SELECT DISTINCT (COUNT(?Server) AS ?NumServers) WHERE {{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>}}";
+	private final static String mcQuery = "SELECT DISTINCT ?mc ?keyword WHERE {{?mc <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?mc <http://semoss.org/ontologies/Relation/ConsistsOf> ?keyword}}";
 	
 	//ArrayList of master concepts in master database
 	ArrayList<String> masterConceptList = new ArrayList<String>();
@@ -220,7 +221,28 @@ public class CreateMasterDB extends ModifyMasterDB{
 		GraphPlaySheet playSheet0 = createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC());
 		Hashtable<String, SEMOSSVertex> vertStore  = playSheet0.getGraphData().getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = playSheet0.getGraphData().getEdgeStore();
-		
+		//fill masterConceptList with everything that is already in the database
+		if(masterConceptList.isEmpty()) {
+			SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,mcQuery);
+			String[] names = wrapper.getVariables();
+			while(wrapper.hasNext())
+			{
+				SesameJenaSelectStatement sjss = wrapper.next();
+				String mc = (String)sjss.getVar(names[0]);
+				String keyword = (String)sjss.getVar(names[1]);
+				int mcInd = masterConceptList.indexOf(mc);
+				if(mcInd>-1) {
+					ArrayList<String> keywords = masterConceptKeyWordsList.get(mcInd);
+					keywords.add(keyword);
+					masterConceptKeyWordsList.set(mcInd, keywords);
+				} else {
+					ArrayList<String> keywords = new ArrayList<String>();
+					keywords.add(keyword);
+					masterConceptList.add(mc);
+					masterConceptKeyWordsList.add(keywords);
+				}
+			}
+		}
 		processConceptAndKeywords(engineName,vertStore);
 		processRelations(engineName,edgeStore);
 		
@@ -434,9 +456,9 @@ public class CreateMasterDB extends ModifyMasterDB{
 			String masterConcept = "";
 			while(mcInd<masterConceptList.size()&&found==false) {
 				masterConcept = masterConceptList.get(mcInd);
-					similarityScore = IntakePortal.DBRecSimScore(vertName,masterConcept);
-					if(similarityScore>similarityThresh)
-						found=true;
+				similarityScore = IntakePortal.DBRecSimScore(vertName,masterConcept);
+				if(similarityScore>similarityThresh)
+					found=true;
 				mcInd++;
 			}
 			ArrayList<String> keywordsList;
