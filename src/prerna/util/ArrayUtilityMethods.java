@@ -158,6 +158,26 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return Arrays.copyOf(arr, arr.length*2); 
 	}
 	
+	public static int[] resizeArray(final int[] arr, int factor) {
+		int i;
+		int size = arr.length;
+		int[] retArr = new int[size*2];
+		for(i = 0; i < size; i++) {
+			retArr[i] = arr[i];
+		}
+		return retArr; 
+	}
+	
+	public static double[] resizeArray(final double[] arr, int factor) {
+		int i;
+		int size = arr.length;
+		double[] retArr = new double[size*2];
+		for(i = 0; i < size; i++) {
+			retArr[i] = arr[i];
+		}
+		return retArr; 
+	}
+	
 	public static double[] convertObjArrToDoubleArr(final Object[] arr) {
 		int size = arr.length;
 		double[] retArr = new double[size];
@@ -234,5 +254,4 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
  
         return uniqueArray;
     }
-
 }

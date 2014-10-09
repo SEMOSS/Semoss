@@ -60,21 +60,6 @@ public final class StatisticsUtilityMethods {
 		return maxValue;
 	}
 	
-	public static double getSum(final double[] values) {
-		if( values == null || values.length == 0) {
-			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
-		}
-		
-		int index;
-		int size = values.length;
-		double sum = values[0];
-		for(index = 1; index < size; index++) {
-			sum += values[index];
-		}
-		
-		return sum;
-	}
-	
 	public static int getMinimumValue(final int[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -124,6 +109,21 @@ public final class StatisticsUtilityMethods {
 		return sum;
 	}
 	
+	public static double getSum(final double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double sum = values[0];
+		for(index = 1; index < size; index++) {
+			sum += values[index];
+		}
+		
+		return sum;
+	}
+	
 	public static double getAverage(final double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -131,6 +131,35 @@ public final class StatisticsUtilityMethods {
 		
 		int size = values.length;
 		double sum = getSum(values);
+		
+		return sum/size;
+	}
+	
+	public static double getSumIgnoringInfinity(final double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double sum = values[0];
+		for(index = 1; index < size; index++) {
+			double val = values[index];
+			if(!Double.isInfinite(val)) {
+				sum += values[index];
+			}
+		}
+		
+		return sum;
+	}
+	
+	public static double getAverageIgnoringInfinity(final double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int size = values.length;
+		double sum = getSumIgnoringInfinity(values);
 		
 		return sum/size;
 	}
@@ -151,6 +180,73 @@ public final class StatisticsUtilityMethods {
 		return Math.pow(stdev/(size - 1), 0.5);
 	}
 	
+	public static double getSampleStandardDeviationIgnoringInfinity(final double[] values) {
+		if( values == null || values.length < 1) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		double avg = getAverageIgnoringInfinity(values);
+		int index;
+		int size = values.length;
+		double stdev = Math.pow(values[0] - avg,2);
+		for(index = 1; index < size; index++) {
+			double val = values[index];
+			if(!Double.isInfinite(val)) {
+				stdev += Math.pow(values[index] - avg,2);
+			}
+		}
+		
+		return Math.pow(stdev/(size - 1), 0.5);
+	}
+	
+	public static double[] calculateZScores(final double[] values, final boolean isOrdered) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		double[] newValues = values.clone();
+		
+		if(!isOrdered){
+			Arrays.sort(newValues);
+		}
+		
+		int numValues = values.length;
+		double avg = getAverage(newValues);
+		double stdev = getSampleStandardDeviation(newValues);
+
+		double[] zScore = new double[numValues];
+		int i;
+		for(i = 0; i < numValues; i++) {
+			zScore[i] = (values[i] - avg)/stdev;
+		}
+		
+		return zScore;
+	}
+	
+	public static double[] calculateZScoresIgnoringInfinity(final double[] values, final boolean isOrdered) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		double[] newValues = values.clone();
+		
+		if(!isOrdered){
+			Arrays.sort(newValues);
+		}
+		
+		int numValues = values.length;
+		double avg = getAverageIgnoringInfinity(newValues);
+		double stdev = getSampleStandardDeviationIgnoringInfinity(newValues);
+
+		double[] zScore = new double[numValues];
+		int i;
+		for(i = 0; i < numValues; i++) {
+			zScore[i] = (values[i] - avg)/stdev;
+		}
+		
+		return zScore;
+	}
+	
 	public static double[] calculateZScoreRange(final double[] values, final boolean isOrdered) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -163,8 +259,8 @@ public final class StatisticsUtilityMethods {
 		double minVal = values[0];
 		double maxVal = values[values.length - 1];
 
-		double avg = StatisticsUtilityMethods.getAverage(values);
-		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(values);
+		double avg = getAverage(values);
+		double stdev = getSampleStandardDeviation(values);
 
 		double minZScore = (minVal - avg)/stdev;
 		double maxZScore = (maxVal - avg)/stdev;
