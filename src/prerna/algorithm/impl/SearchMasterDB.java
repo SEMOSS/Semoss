@@ -152,7 +152,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			keywordList.add(keyword);
 	}
 	
-	public void addToEdgeList(String outVert, String inVert){
+	public void addToEdgeList(String inVert, String outVert){
 		if(!edgeListContains(inVert,outVert)) {
 			edgeVertInList.add(inVert);
 			edgeVertOutList.add(outVert);
@@ -457,12 +457,14 @@ public class SearchMasterDB extends ModifyMasterDB {
 		String mcQuery = addBindings(masterConceptsForSubgraphKeywordsQuery,"Keyword",semossConceptURI,keywordList);
 		ArrayList<Object []> keywordMasterConceptsList = processQuery(mcQuery);
 		//assuming that all master concepts come from the keywords
-		for(int i=0;i<keywordMasterConceptsList.size();i++) {
-			Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
-			String keyword = (String)keywordMCRelation[0];
-			String concept = (String)keywordMCRelation[1];
-			int index = keywordList.indexOf(keyword);
-			masterConceptsList.set(index,concept);
+		if(keywordList.size()<=keywordMasterConceptsList.size()) {
+			for(int i=0;i<keywordMasterConceptsList.size();i++) {
+				Object[] keywordMCRelation = keywordMasterConceptsList.get(i);
+				String keyword = (String)keywordMCRelation[0];
+				String concept = (String)keywordMCRelation[1];
+				int index = keywordList.indexOf(keyword);
+				masterConceptsList.set(index,concept);
+			}
 		}
 		return masterConceptsList;
 	}
