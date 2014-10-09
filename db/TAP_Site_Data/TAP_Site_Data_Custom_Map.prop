@@ -11,6 +11,7 @@ DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
 FacComCode http://health.mil/ontologies/Concept/FacComCode
 City http://health.mil/ontologies/Concept/City
 Quarter http://health.mil/ontologies/Concept/Quarter
+MAAGSite http://health.mil/ontologies/Concept/MAAGSite
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 System http://health.mil/ontologies/Concept/System
 Region http://health.mil/ontologies/Concept/Region
@@ -87,8 +88,9 @@ SystemDCSite_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 DCSite_Has_DCSiteCmdCode http://health.mil/ontologies/Relation/Has
 DCSiteIncident_Affects_DCSite http://health.mil/ontologies/Relation/Affects
-Region_BeginsOn_Year-Quarter http://health.mil/ontologies/Relation/BeginsOn
 SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
+Region_BeginsOn_Year-Quarter http://health.mil/ontologies/Relation/BeginsOn
+MAAGSite_Contains_DCSite http://health.mil/ontologies/Relation/Contains
 
 ##Base Objects Class##
 
@@ -110,6 +112,7 @@ HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 City_CLASS http://semoss.org/ontologies/Concept/City
 System_CLASS http://semoss.org/ontologies/Concept/System
+MAAGSite_CLASS http://semoss.org/ontologies/Concept/MAAGSite
 SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 DCSiteCmdCode_CLASS http://semoss.org/ontologies/Concept/DCSiteCmdCode
@@ -159,6 +162,7 @@ SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
+MAAGSite_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
 Wave_Preceeds_Wave_CLASS http://semoss.org/ontologies/Relation/Preceeds
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
