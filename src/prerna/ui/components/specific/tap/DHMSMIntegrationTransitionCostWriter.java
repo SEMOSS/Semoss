@@ -261,5 +261,34 @@ public class DHMSMIntegrationTransitionCostWriter {
 		
 		String fileName = "DHMSM_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
+		
+	}
+
+	public  HashMap<String, Double> getData(){
+		return consolidatedSysCostInfo;
+	}
+	
+	public double getCostPerHr(){
+		return costPerHr;
+	}
+	
+	public double getSumHWSWCost(){
+		return sumHWSWCost;
+	}
+	
+	public double getAtoCost(){
+		return atoCost;
+	}
+	
+	public int[] getAtoDateList(){
+		return atoDateList;
+	}
+	
+	public String getSysKey(){
+		return sysKey;
+	}
+	
+	public String getSystemName(){
+		return systemName;
 	}
 }
