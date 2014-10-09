@@ -6,41 +6,15 @@ import java.util.Set;
 
 import prerna.math.StatisticsUtilityMethods;
 
-public class ClusteringNumericalMethods {
+public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 //	private static final Logger LOGGER = LogManager.getLogger(ClusterUtilityMethods.class.getName());
 	
 	// static class used to calculate different distance measures for numerical similarity score
 //	private static DistanceCalculator disCalculator = new DistanceCalculator();
 	
-	private String[][] numericalBinMatrix;
-	private String[][] categoricalMatrix;
-	private int numericPropNum;
-	private int categoricalPropNum;
-	private int totalPropNum;
-	
-	double[] numericalWeights;
-	double[] categoricalWeights;
-	
-	public void setCategoricalWeights(double[] categoricalWeights) {
-		this.categoricalWeights = categoricalWeights;
-	}
-
-	public void setNumericalWeights(double[] numericalWeights) {
-		this.numericalWeights = numericalWeights;
-	}
-	
 	public ClusteringNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix) {
-		this.numericalBinMatrix = numericalBinMatrix;
-		this.categoricalMatrix = categoricalMatrix;
-		
-		if(numericalBinMatrix != null) {
-			numericPropNum = numericalBinMatrix[0].length;
-		}
-		if(categoricalMatrix != null) {
-			categoricalPropNum = categoricalMatrix[0].length;
-		}
-		totalPropNum = numericPropNum + categoricalPropNum;
+		super(numericalBinMatrix, categoricalMatrix);
 	}
 	
 	/**
@@ -108,7 +82,7 @@ public class ClusteringNumericalMethods {
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;
 
-//		LOGGER.info("Calculated similarity score for categories: " + coeff * categorySimilarity);
+//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
 		return coeff * similarity;
 	}
 
@@ -333,7 +307,4 @@ public class ClusteringNumericalMethods {
 		
 		return null;
 	}
-	
-	
-	
 }
