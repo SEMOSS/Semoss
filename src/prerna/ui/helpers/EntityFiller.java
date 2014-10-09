@@ -57,8 +57,8 @@ public class EntityFiller implements Runnable {
 	 */
 	@Override
 	public void run() {
-		logger.setLevel(Level.WARN);
-		logger.info(" Engine Name is  " + engineName);
+//		logger.setLevel(Level.WARN);
+		logger.debug(" Engine Name is  " + engineName);
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
 		
@@ -111,12 +111,13 @@ public class EntityFiller implements Runnable {
 					// get back all of the URIs that are of that type
 					names = engine.getEntityOfType(sparqlQuery);				
 					// try to query for the label
-					logger.info("Names " + names);
+					logger.debug("Names " + names);
 					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 					if (paramHash.isEmpty()) {
 						names.addElement("Concept Doesn't Exist in DB");
 						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
 						box.setModel(model);
+						box.notify();
 						return;
 					}
 					//keys are the labels, objects are the URIs
