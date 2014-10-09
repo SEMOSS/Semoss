@@ -41,7 +41,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private TAPLegacySystemDispositionReportWriter diacapReport;
 	
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
-	private final String[] tags = new String[]{"Consume", "Provider"};
+	private final String[] tags = new String[]{"Consume", "Provide"};
 	private final double sustainmentFactor = 0.18;
 	private final double trainingFactor = 0.15;
 	private final double inflation = 0.018;
