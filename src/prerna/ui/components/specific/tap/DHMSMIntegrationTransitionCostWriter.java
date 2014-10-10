@@ -80,8 +80,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 			processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
 		}
 		this.systemName = Utility.getInstanceName(sysURI);
-		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
+		String regexSysName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
+		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", regexSysName);
 		processor.setQuery(lpSystemInterfacesQuery);
 		processor.setEngine(hrCore);
 		processor.setUsePhase(true);

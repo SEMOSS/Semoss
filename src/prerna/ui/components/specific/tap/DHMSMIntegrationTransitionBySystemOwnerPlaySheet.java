@@ -36,11 +36,14 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 	
 	private static final Logger logger = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerPlaySheet.class.getName());
 
+	private String lpiSysQuery = "SELECT DISTINCT ?sys WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?sys <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?sys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} BIND(<@SYS_OWNER@> AS ?owner) {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } ORDER BY ?sys LIMIT 3 BINDINGS ?Probability {('Medium')('Low')('Medium-High')}";
+	
 	@Override
 	public void createData() {
 		
-		int counter = 1;
-		String sysOwnerQuery = query;
+		int counter = 0;
+		String sysOwner = this.query;
+		lpiSysQuery = lpiSysQuery.replace("@SYS_OWNER@", sysOwner);
 		IEngine HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		if(HR_Core == null) {
 			Utility.showError("Could not find HR_Core database.\nPlease load the appropriate database to produce report");
@@ -54,19 +57,15 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		} 
 		DHMSMIntegrationTransitionBySystemOwnerWriter writer = new DHMSMIntegrationTransitionBySystemOwnerWriter();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, sysOwnerQuery);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, lpiSysQuery);
 		String[] names = sjsw.getVariables();
-		
-		
 		while(sjsw.hasNext()){
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sysURI = sjss.getRawVar(names[0]).toString();
-			
 			try {
 				generateData.setSysURI(sysURI);
 				generateData.calculateValuesForReport();
 				writer.setDataSource(generateData);
-				writer.setSysURI(sysURI);
 				writer.write(counter);
 			} catch (EngineException e) {
 				e.printStackTrace();
@@ -78,7 +77,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 			counter++;
 		}
 		
-		writer.writeFile("HERE");
+		writer.writeFile(Utility.getInstanceName(sysOwner));
 	}
 	
 	@Override
