@@ -284,10 +284,6 @@ public class DHMSMIntegrationTransitionCostWriter {
 		return atoDateList;
 	}
 	
-	public String getSysKey(){
-		return sysKey;
-	}
-	
 	public String getSystemName(){
 		return systemName;
 	}

@@ -36,7 +36,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 	
 	private static final Logger logger = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerPlaySheet.class.getName());
 
-	private String lpiSysQuery = "SELECT DISTINCT ?sys WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?sys <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?sys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} BIND(<@SYS_OWNER@> AS ?owner) {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } ORDER BY ?sys LIMIT 3 BINDINGS ?Probability {('Medium')('Low')('Medium-High')}";
+	private String lpiSysQuery = "SELECT DISTINCT ?sys WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?sys <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?sys <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' } {?sys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} BIND(<@SYS_OWNER@> AS ?owner) {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } ORDER BY ?sys BINDINGS ?Probability {('Medium')('Low')('Medium-High')}";
 	
 	@Override
 	public void createData() {
