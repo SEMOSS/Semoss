@@ -8,7 +8,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -22,7 +21,6 @@ import prerna.error.FileReaderException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import thredds.wcs.v1_1_0.Request.Format;
 
 public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
@@ -38,7 +36,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
 	//constants
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy", "Sustainment", "Training"};
-	private final String[] tags = new String[]{"Consumer", "Provider"};
+	private final String[] tags = new String[]{"Consume", "Provide"};
 	private final double sustainmentFactor = 0.18;
 	private final double trainingFactor = 0.15;
 	private final double inflation = 0.018;
@@ -47,18 +45,16 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	private double costPerHr;
 	private double atoCost;
 	private double sumHWSWCost;
-	private String sysKey;
 	private String systemName;
 	private HashMap<String, Double> consolidatedSysCostInfo;
 	
 	private final int OFFSET = 19;
-	//TODO need to finalize template to decide start row
 	private final int START_ROW = 1;
 	
 	public DHMSMIntegrationTransitionBySystemOwnerWriter(){
 		workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
-		templateName = "Transition_Estimates_Template.xlsx";
+		templateName = "Transition_Estimates_SystemOwner_Template.xlsx";
 	}
 	
 	public void setDataSource(DHMSMIntegrationTransitionCostWriter data){
@@ -67,14 +63,13 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		this.sumHWSWCost = data.getSumHWSWCost();
 		this.costPerHr = data.getCostPerHr();
 		this.atoDateList = data.getAtoDateList();
-		this.sysKey = data.getSysKey();
 		this.systemName = data.getSystemName();
 	}
 	
 	public void write(int count) throws FileReaderException{
 		if(wb == null) {
 			try {
-				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + "Test.xlsx"));
+				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
 			catch (InvalidFormatException e) {
 				e.printStackTrace();
@@ -156,7 +151,6 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 			}
 		}
 		
-		
 		// merge cells for formatting
 		// merge systemName column
 //		XSSFCell mergedCell = null;
@@ -196,13 +190,11 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		int j;
 		int numTags = tags.length;
 		int numPhases = phases.length-2;//Sustainment and Training need to be calculated differently
-		int rowToOutput = START_ROW + count*OFFSET;
-
-		
+		int rowToOutput = startRow;
 		double[] totalCost = new double[2];
 		for(i = 0; i < numTags; i++) {
-			if(tags[i].contains("Provider")){
-				rowToOutput = 9 + count * OFFSET;
+			if(tags[i].contains("Provide")){
+				rowToOutput = providerStart;
 			}
 			for(j = 0; j < numPhases; j++) {
 				String key = tags[i].concat("+").concat(phases[j]);
@@ -216,50 +208,50 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 				rowToOutput++;
 			}
 		}
-
-		double consumerTraining = totalCost[0]*trainingFactor;
-		reportSheet.getRow(7 + count * OFFSET).getCell(3).setCellValue(Math.round(consumerTraining));
-		double providerTraining = totalCost[1]*trainingFactor;
-		reportSheet.getRow(15 + count * OFFSET).getCell(3).setCellValue(Math.round(providerTraining));
 		
+		double consumerTraining = totalCost[0]*trainingFactor;
+		reportSheet.getRow(startRow + 6).getCell(3).setCellValue(Math.round(consumerTraining));
+		double providerTraining = totalCost[1]*trainingFactor;
+		reportSheet.getRow(providerStart + 6).getCell(3).setCellValue(Math.round(providerTraining));
+		
+		rowToOutput = 0;
 		for(i = 0; i < 2; i++) {
 			if(i == 0) {
-				startRow = 6 + count * OFFSET;
+				rowToOutput = startRow + 5;
 			} else {
-				startRow = 14 + count * OFFSET;
+				rowToOutput = providerStart + 5;
 			}
 			double sustainmentCost = totalCost[i]*sustainmentFactor;
-			reportSheet.getRow(startRow).getCell(3).setCellValue(Math.round(sustainmentCost));
+			reportSheet.getRow(rowToOutput).getCell(4).setCellValue(Math.round(sustainmentCost));
 			for(j = 0; j < 3; j++) {
 				sustainmentCost *= (1+inflation);
-				XSSFCell cellToWriteOn = reportSheet.getRow(startRow).getCell(4+j);
+				XSSFCell cellToWriteOn = reportSheet.getRow(rowToOutput).getCell(5+j);
 				cellToWriteOn.setCellValue(Math.round(sustainmentCost));
 			}
 		}
 		
 		//sum across columns
+		rowToOutput = 0;
 		int k;
 		for(k = 3; k < 8; k++) {
 			for(i = 0; i < 2; i++) {
 				if(i == 0) {
-					startRow = 1 + count * OFFSET;
+					rowToOutput = startRow;
 				} else {
-					startRow = 9 + count * OFFSET;
+					rowToOutput = providerStart;
 				}
 				double sumColumn = 0;
 				for(j = 0; j < 7; j++) {
-					double val = reportSheet.getRow(startRow+j).getCell(k).getNumericCellValue();
+					double val = reportSheet.getRow(rowToOutput+j).getCell(k).getNumericCellValue();
 					sumColumn += val;
 				}
-				reportSheet.getRow(startRow+7).getCell(k).setCellValue(sumColumn);
+				reportSheet.getRow(rowToOutput+7).getCell(k).setCellValue(sumColumn);
 			}
 		}
-
 		
-		reportSheet.getRow(16 + count * OFFSET).getCell(3).setCellValue(Math.round(sumHWSWCost));
 		//since hwsw cost assumed at FY15, total is equal to value at FY15
-		//reportSheet.getRow(17).getCell(8).setCellValue(Math.round(sumHWSWCost));
-		
+		reportSheet.getRow(hwswRow).getCell(3).setCellValue(Math.round(sumHWSWCost));
+
 		int numATO = 0;
 		if(atoDateList[0] < 2015) {
 			atoDateList[0] = atoDateList[1];
@@ -267,78 +259,42 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		}
 		for(Integer date : atoDateList) {
 			if(date == 2015){
-				reportSheet.getRow(17 + count * OFFSET).getCell(3).setCellValue(atoCost);
+				reportSheet.getRow(diacapRow).getCell(3).setCellValue(atoCost);
 				numATO++;
 			} else if(date == 2016) {
-				reportSheet.getRow(17 + count * OFFSET).getCell(4).setCellValue(atoCost);
+				reportSheet.getRow(diacapRow).getCell(4).setCellValue(atoCost);
 				numATO++;
 			} else if(date == 2017) {
-				reportSheet.getRow(17 + count * OFFSET).getCell(5).setCellValue(atoCost);
+				reportSheet.getRow(diacapRow).getCell(5).setCellValue(atoCost);
 				numATO++;
 			} else if(date == 2018) {
-				reportSheet.getRow(17 + count * OFFSET).getCell(6).setCellValue(atoCost);
+				reportSheet.getRow(diacapRow).getCell(6).setCellValue(atoCost);
 				numATO++;
 			} else if(date == 2019) {
-				reportSheet.getRow(17+ count * OFFSET).getCell(7).setCellValue(atoCost);
+				reportSheet.getRow(diacapRow).getCell(7).setCellValue(atoCost);
 				numATO++;
 			}
 		}
-		reportSheet.getRow(16 + count * OFFSET).getCell(7).setCellValue(atoCost * numATO);
+		reportSheet.getRow(diacapRow).getCell(8).setCellValue(atoCost * numATO);
 		
 		for(i = 3; i < 8; i++){
-			double consumerCost = reportSheet.getRow(8 + count * OFFSET).getCell(i).getNumericCellValue();
-			double providerCost = reportSheet.getRow(16 + count * OFFSET).getCell(i).getNumericCellValue();
-			double hwswCost = reportSheet.getRow(17 + count * OFFSET).getCell(i).getNumericCellValue();
-			double diacapCost = reportSheet.getRow(18 + count * OFFSET).getCell(i).getNumericCellValue();
+			double consumerCost = reportSheet.getRow(startRow + phases.length).getCell(i).getNumericCellValue();
+			double providerCost = reportSheet.getRow(providerStart + phases.length).getCell(i).getNumericCellValue();
+			double hwswCost = reportSheet.getRow(hwswRow).getCell(i).getNumericCellValue();
+			double diacapCost = reportSheet.getRow(diacapRow).getCell(i).getNumericCellValue();
 			
-			reportSheet.getRow(19 + count * OFFSET).getCell(i).setCellValue(consumerCost + providerCost + hwswCost + diacapCost);
+			reportSheet.getRow(totalSysRow).getCell(i).setCellValue(consumerCost + providerCost + hwswCost + diacapCost);
 		}
 		
-//		//sum across rows
-//		for(k = 0; k < 8; k++) {
-//			for(i = 0; i < 2; i++) {
-//				if(i == 0) {
-//					startRow = 1 + count * OFFSET;
-//				} else {
-//					startRow = 9 + count * OFFSET;
-//				}
-//				double sumRow = 0;
-//				for(j = 3; j < 7; j++) {
-//					double val = reportSheet.getRow(startRow+k).getCell(j).getNumericCellValue();
-//					sumRow += val;
-//				}
-//				reportSheet.getRow(startRow+k).getCell(8).setCellValue(sumRow);
-//			}
-//		}
-		
 		//sum across rows
-		startRow = 1 + count * OFFSET;
 		for(k = 0; k < 19; k++) {
 			double sumRow = 0;
-			for(j = 3; j < 7; j++) {
+			for(j = 3; j < 8; j++) {
 				double val = reportSheet.getRow(startRow+k).getCell(j).getNumericCellValue();
 				sumRow += val;
 			}
 			reportSheet.getRow(startRow+k).getCell(8).setCellValue(sumRow);
-			
 		}
-		
-//		
-//		String header = reportSheet.createRow(0).createCell(0).getStringCellValue();
-//		header = header.replaceAll(sysKey, systemName);
-//		reportSheet.createRow(0).createCell(0).setCellValue(header);
-//		
-//		String description = reportSheet.createRow(3).createCell(0).getStringCellValue();
-//		description = description.replaceAll(sysKey, systemName);
-//		reportSheet.createRow(3).createCell(0).setCellValue(description);
-//		
-//		String tableLabel = reportSheet.createRow(5 + count * OFFSET).createCell(0).getStringCellValue();
-//		tableLabel = tableLabel.replaceAll(sysKey, systemName);
-//		reportSheet.createRow(5*count).createCell(0).setCellValue(tableLabel);
-//
-//		String tabelEnd = reportSheet.createRow(27 + count * OFFSET).createCell(0).getStringCellValue();
-//		tabelEnd = tableLabel.replaceAll(sysKey, systemName);
-//		reportSheet.createRow(27*count).createCell(0).setCellValue(tabelEnd);
 	}
 	
 	private CellStyle accountingStyle(XSSFCell cell) {
