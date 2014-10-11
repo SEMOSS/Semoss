@@ -32,8 +32,6 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	private String folder;
 	private String templateName;
 	
-	//workbook management for iterating over multiple systems
-	
 	//constants
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy", "Sustainment", "Training"};
 	private final String[] tags = new String[]{"Consume", "Provide"};
@@ -315,7 +313,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		cell.setCellStyle(style);
 	}
 
-	public CellStyle setBoldFont(XSSFCell cell){
+	public CellStyle setBoldFont(XSSFCell cell) {
 		CellStyle style = cell.getCellStyle();
 		XSSFFont font = wb.createFont();
 		font.setBold(true);
@@ -324,7 +322,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		return style;
 	}
 	
-	public CellStyle outlineCell(XSSFCell cell){
+	public CellStyle outlineCell(XSSFCell cell) {
 		CellStyle style = cell.getCellStyle();
 		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
 		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
@@ -334,7 +332,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	}
 	
 	
-	public void writeFile(String owner){
+	public void writeFile(String owner) {
 		String fileName = "DHMSM_Transition_Estimate_by_" + owner + ".xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + fileName);
 	}
