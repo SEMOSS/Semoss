@@ -258,7 +258,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			
 			if(minObjectiveVal>1.0*Math.pow(10, 15))
 			{
-				errorMessage = "No solution can be found for given data and BLU. Please modify the data and BLU selected.";
+				errorMessage = "No solution can be found for given systems, data, and blu. Please modify the data and blu selected or the manually set systems for modernization and decommission.";
 				return false;
 			}
 			
