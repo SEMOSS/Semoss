@@ -35,6 +35,7 @@ public class ResidualSystemTheatGarrOptimizer extends ResidualSystemOptimizer{
 		solver.setAddRowmode(true);	
 		//adding constraints for data objects
 		addRequiredSystemsConstraint(systemModernize);
+		addDecommissionSystemsConstraint(systemDecommission);
 		if(systemTheater!=null) {
 			addConstraints(systemDataMatrix,systemRegionMatrix,systemTheater,dataRegionSORSystemTheaterExists);
 			addConstraints(systemBLUMatrix,systemRegionMatrix,systemTheater,bluRegionProviderTheaterExists);
