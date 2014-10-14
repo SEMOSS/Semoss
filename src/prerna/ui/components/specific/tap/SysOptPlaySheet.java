@@ -54,15 +54,18 @@ import prerna.ui.swing.custom.ToggleButton;
 public class SysOptPlaySheet extends SerOptPlaySheet{
 
 	public JCheckBox includeRegionalizationCheckbox;
+	public JCheckBox garrTheaterCheckbox;
 	
 	//toggles to show the system Functionality and Capability Functionality panels
-	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn;
+	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn, showSystemModDecomBtn;
 	//panel that holds the system,data,blu and capability selectors if needed
 	public JPanel systemDataBLUSelectPanel;
+	public JPanel systemModDecomSelectPanel;
 	//individual components of the panel
 	public DHMSMSystemSelectPanel systemSelectPanel;
 	public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
+	public DHMSMSystemSelectPanel systemModernizePanel, systemDecomissionPanel;
 		
 	//toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
@@ -107,6 +110,14 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_includeRegionalizationCheckbox.gridx = 2;
 		gbc_includeRegionalizationCheckbox.gridy = 4;
 		advParamPanel.add(includeRegionalizationCheckbox, gbc_includeRegionalizationCheckbox);
+		
+		garrTheaterCheckbox = new JCheckBox("Ignore Theater/Garrison Tag");
+		GridBagConstraints gbc_garrTheaterCheckbox = new GridBagConstraints();
+		gbc_garrTheaterCheckbox.gridwidth = 3;
+		gbc_garrTheaterCheckbox.insets = new Insets(0, 5, 5, 20);
+		gbc_garrTheaterCheckbox.gridx = 2;
+		gbc_garrTheaterCheckbox.gridy = 5;
+		advParamPanel.add(garrTheaterCheckbox, gbc_garrTheaterCheckbox);
 				
 		systemDataBLUSelectPanel = new JPanel();
 		systemDataBLUSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -165,6 +176,44 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		systemDataBLUSelectPanel.add(dataBLUSelectPanel, gbc_dataBLUSelectPanel);
 		dataBLUSelectPanel.addElements(systemSelectPanel);
 
+		//instantiate systemModDecomSelectPanel, systemModernizePanel, systemDecomissionPanel
+		systemModDecomSelectPanel = new JPanel();
+		systemModDecomSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		systemModDecomSelectPanel.setVisible(false);
+		
+		GridBagConstraints gbc_systemModDecomSelectPanel = new GridBagConstraints();
+		gbc_systemModDecomSelectPanel.gridheight = 6;
+		gbc_systemModDecomSelectPanel.fill = GridBagConstraints.BOTH;
+		gbc_systemModDecomSelectPanel.gridx = 8;
+		gbc_systemModDecomSelectPanel.gridy = 0;
+		ctlPanel.add(systemModDecomSelectPanel, gbc_systemModDecomSelectPanel);
+		
+		GridBagLayout gbl_systemModDecomSelectPanel = new GridBagLayout();
+		gbl_systemModDecomSelectPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_systemModDecomSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
+		gbl_systemModDecomSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_systemModDecomSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		systemModDecomSelectPanel.setLayout(gbl_systemModDecomSelectPanel);
+		
+		systemModernizePanel = new DHMSMSystemSelectPanel();
+		GridBagConstraints gbc_systemModernizePanel = new GridBagConstraints();
+		gbc_systemModernizePanel.gridheight = 6;
+		gbc_systemModernizePanel.fill = GridBagConstraints.BOTH;
+		gbc_systemModernizePanel.gridx = 0;
+		gbc_systemModernizePanel.gridy = 0;
+		systemModDecomSelectPanel.add(systemModernizePanel, gbc_systemModernizePanel);
+		systemModernizePanel.setHeader("Select Systems that MUST be modernized:");
+		systemModernizePanel.addElements();
+		
+		systemDecomissionPanel = new DHMSMSystemSelectPanel();
+		GridBagConstraints gbc_systemDecomissionPanel = new GridBagConstraints();
+		gbc_systemDecomissionPanel.gridheight = 6;
+		gbc_systemDecomissionPanel.fill = GridBagConstraints.BOTH;
+		gbc_systemDecomissionPanel.gridx = 1;
+		gbc_systemDecomissionPanel.gridy = 0;
+		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);
+		systemDecomissionPanel.setHeader("Select Systems that MUST be decommissioned:");
+		systemDecomissionPanel.addElements();		
 		
 		final JComponent contentPane = (JComponent) this.getContentPane();
 		contentPane.addMouseListener(new MouseAdapter() {  
@@ -201,7 +250,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_showParamBtn.gridwidth = 2;
 		gbc_showParamBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_showParamBtn.gridx = 6;
-		gbc_showParamBtn.gridy = 5;
+		gbc_showParamBtn.gridy = 6;
 		ctlPanel.add(showParamBtn, gbc_showParamBtn);
 		
 		showSystemSelectBtn = new ToggleButton("Select System Functionality");
@@ -229,33 +278,45 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_showSystemCapSelectBtn.gridx = 6;
 		gbc_showSystemCapSelectBtn.gridy = 4;
 		ctlPanel.add(showSystemCapSelectBtn, gbc_showSystemCapSelectBtn);
+		
+		showSystemModDecomBtn = new ToggleButton("Manually Set Systems");
+		showSystemModDecomBtn.setName("showSystemModDecomBtn");
+		showSystemModDecomBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(showSystemModDecomBtn,  ".toggleButton");
+		
+		GridBagConstraints gbc_showSystemModDecomBtn = new GridBagConstraints();
+		gbc_showSystemModDecomBtn.anchor = GridBagConstraints.WEST;
+		gbc_showSystemModDecomBtn.gridwidth = 2;
+		gbc_showSystemModDecomBtn.insets = new Insets(0, 0, 5, 5);
+		gbc_showSystemModDecomBtn.gridx = 6;
+		gbc_showSystemModDecomBtn.gridy = 5;
+		ctlPanel.add(showSystemModDecomBtn, gbc_showSystemModDecomBtn);
 	}
 	@Override
 	public void createAdvParamPanelsToggleListeners()
 	{
 		AdvParamListener saLis = new AdvParamListener();
 		saLis.setPlaySheet(this);
-		saLis.setParamButtons(showParamBtn,showSystemSelectBtn,showSystemCapSelectBtn);
+		saLis.setParamButtons(showParamBtn,showSystemSelectBtn,showSystemCapSelectBtn,showSystemModDecomBtn);
 		showParamBtn.addActionListener(saLis);
 		showSystemSelectBtn.addActionListener(saLis);
 		showSystemCapSelectBtn.addActionListener(saLis);
+		showSystemModDecomBtn.addActionListener(saLis);
 		
 		ActionListener viewDataBLUPanelListener = new ActionListener() {
 		      public void actionPerformed(ActionEvent e) {
-		    	  
 		  		//if the updateDataBLUPanelButton is unselected by user, hide the panel
-		  		if(!updateDataBLUPanelButton.isSelected())
+		  		if(!updateDataBLUPanelButton.isSelected()) {
 		  			dataBLUSelectPanel.setVisible(false);
+		  			dataBLUSelectPanel.clearList();
+		  		}
 		  		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
-		  		else
-		  		{
+		  		else {
 		  			dataBLUSelectPanel.setVisible(true);
 		  			if(showSystemSelectBtn.isSelected())
 		  				dataBLUSelectPanel.setFromSystem(true);
 		  			else
 		  				dataBLUSelectPanel.setFromSystem(false);
-		  			dataBLUSelectPanel.dataSelectDropDown.clearList();
-		  			dataBLUSelectPanel.bluSelectDropDown.clearList();
 		  		}
 		      }
 		    };
@@ -474,16 +535,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		rdbtnProfit.addActionListener(opl);
 		rdbtnIRR.addActionListener(opl);
 		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI,rdbtnIRR);
-	}
-	
-	
-	public void hideAndClearSystemSelectPanel()
-	{
-		systemDataBLUSelectPanel.setVisible(false);
-		systemSelectPanel.setVisible(false);
-		capabilitySelectPanel.setVisible(false);
-		dataBLUSelectPanel.setVisible(false);
-		updateDataBLUPanelButton.setSelected(false);
 	}
 	
 	@Override

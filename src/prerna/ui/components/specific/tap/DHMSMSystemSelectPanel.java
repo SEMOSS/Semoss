@@ -21,16 +21,17 @@ import prerna.util.DIHelper;
 @SuppressWarnings("serial")
 public class DHMSMSystemSelectPanel extends JPanel {
 	public IEngine engine;
-	
+	String header = "Select Systems:";
 	public JCheckBox allSysButton, recdSysButton, intDHMSMSysButton, notIntDHMSMSysButton;
 	public JCheckBox lowProbButton, highProbButton, theaterSysButton, garrisonSysButton;
 	public SelectScrollList sysSelectDropDown;
 	
 	public DHMSMSystemSelectPanel()
 	{
-		//addElements();
 	}
-	
+	public void setHeader(String header) {
+		this.header = header;
+	}
 	public void addElements()
 	{
 		this.removeAll();
@@ -41,7 +42,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		gbl_systemSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		this.setLayout(gbl_systemSelectPanel);
 
-		JLabel lblSystemSelectHeader = new JLabel("Select Systems:");
+		JLabel lblSystemSelectHeader = new JLabel(header);
 		lblSystemSelectHeader.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblSystemSelectHeader = new GridBagConstraints();
 		gbc_lblSystemSelectHeader.gridwidth = 4;
@@ -160,23 +161,18 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		return listArray;
 	}
 	
-	public void setVisible(boolean visible)
-	{
-		super.setVisible(visible);
-		if(!visible)
-		{
-			recdSysButton.setSelected(false);
-			intDHMSMSysButton.setSelected(false);
-			notIntDHMSMSysButton.setSelected(false);
-			allSysButton.setSelected(false);
-			recdSysButton.setSelected(false);
-			intDHMSMSysButton.setSelected(false);
-			lowProbButton.setSelected(false);
-			highProbButton.setSelected(false);
-			theaterSysButton.setSelected(false);
-			garrisonSysButton.setSelected(false);
-			sysSelectDropDown.clearList();
-		}
+	public void clearList() {
+		recdSysButton.setSelected(false);
+		intDHMSMSysButton.setSelected(false);
+		notIntDHMSMSysButton.setSelected(false);
+		allSysButton.setSelected(false);
+		recdSysButton.setSelected(false);
+		intDHMSMSysButton.setSelected(false);
+		lowProbButton.setSelected(false);
+		highProbButton.setSelected(false);
+		theaterSysButton.setSelected(false);
+		garrisonSysButton.setSelected(false);
+		sysSelectDropDown.clearList();
 	}
 	
 	public ArrayList<String> getSelectedSystems()

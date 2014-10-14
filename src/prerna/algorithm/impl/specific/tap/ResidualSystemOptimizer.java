@@ -32,7 +32,8 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	double[] systemCostOfMaintenance;
 	double[] systemCostOfDB;
 	double[] systemNumOfSites;
-	double[] systemRequired;
+	double[] systemModernize;
+	double[] systemDecommission;
 	
 	//Ap, Bq
 	int[][] dataRegionSORSystemExists;
@@ -48,11 +49,6 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	double percentOfPilot = 0.20;
 	
 	public String errorMessage="";
-//	boolean includeRegionalization = false;
-	
-	public ResidualSystemOptimizer(){
-		
-	}
 	
 	public void setPlaySheet(IPlaySheet playSheet)
 	{
@@ -62,15 +58,12 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 	/**
 	 * Gathers data set.
 	 */
-	
-	public void setDataSet(ArrayList<String> sysList, ArrayList<String> dataList, ArrayList<String> bluList,ArrayList<String> regionList,int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemCostOfDataMatrix, int[][] systemRegionMatrix, double[] systemCostOfMaintenance, double[] systemCostOfDB, double[] systemNumOfSites, double[] systemRequired,int[][] dataRegionSORSystemExists, int[][] bluRegionProviderExists) {
+	public void setDataSet(ArrayList<String> sysList, ArrayList<String> dataList, ArrayList<String> bluList,ArrayList<String> regionList,int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemCostOfDataMatrix, int[][] systemRegionMatrix, double[] systemCostOfMaintenance, double[] systemCostOfDB, double[] systemNumOfSites, double[] systemModernize, double[] systemDecommission,int[][] dataRegionSORSystemExists, int[][] bluRegionProviderExists) {
 		
 		this.sysList = sysList;
 		this.dataList = dataList;
 		this.bluList = bluList;
 		this.regionList = regionList;
-//		if(regionList!=null)
-//			includeRegionalization = true;
 		
 		this.systemDataMatrix=systemDataMatrix;
 		this.systemBLUMatrix=systemBLUMatrix;
@@ -81,12 +74,12 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		this.systemCostOfMaintenance=systemCostOfMaintenance;
 		this.systemCostOfDB=systemCostOfDB;
 		this.systemNumOfSites=systemNumOfSites;
-		this.systemRequired = systemRequired;
+		this.systemModernize = systemModernize;
+		this.systemDecommission = systemDecommission;
 		
 		//Ap, Bq
 		this.dataRegionSORSystemExists=dataRegionSORSystemExists;
 		this.bluRegionProviderExists=bluRegionProviderExists;
-		
 	}
 
 	/**
@@ -122,11 +115,10 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		//makes building the model faster if it is done rows by row
 		solver.setAddRowmode(true);	
 		//adding constraints for data objects
-		addRequiredSystemsConstraint(systemRequired);
+		addRequiredSystemsConstraint(systemModernize);
+		addDecommissionSystemsConstraint(systemDecommission);
 		addConstraints(systemDataMatrix,systemRegionMatrix,dataRegionSORSystemExists);
 		addConstraints(systemBLUMatrix,systemRegionMatrix,bluRegionProviderExists);
-		//if(includeRegionalization)
-			//addRegionalizationConstraints(systemRegionMatrix);
 		//rowmode turned off
 		solver.setAddRowmode(false);
 	}
@@ -156,8 +148,33 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			e.printStackTrace();
 		}
 	}
+	public void addDecommissionSystemsConstraint(double[] systemRequired)
+	{
+		try{
+			for(int i=0;i<systemRequired.length;i++)
+			{
+				//add a constraint for each system if it is required (val=1)
+				if(systemRequired[i]>=1.0)
+				{
+					int[] colno = new int[systemRequired.length];
+			        double[] row = new double[systemRequired.length];
+			        
+			        for(int j=0;j<systemRequired.length;j++)
+			        {
+			        	colno[j] = j+1;
+			        	row[j] = 0;
+			        	if(i==j)
+			        		row[j] = 1;
+			        }
+			        solver.addConstraintex(systemRequired.length, row,colno,LpSolve.LE,0);
+				}
+			}
+		}catch (LpSolveException e){
+			e.printStackTrace();
+		}
+	}
 	
-	public void addConstraints(int[][] systemProviderMatrix, int[][] systemRegionMatrix, int[][] constraintMatrix)
+	private void addConstraints(int[][] systemProviderMatrix, int[][] systemRegionMatrix, int[][] constraintMatrix)
 	{
 		try{
 			for(int dataInd=0;dataInd<systemProviderMatrix[0].length;dataInd++)
@@ -182,28 +199,6 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			e.printStackTrace();
 		}
 	}
-	
-//	public void addConstraints(int[][] systemRegionMatrix)
-//	{
-//		try{
-//			for(int colInd=0;colInd<systemRegionMatrix[0].length;colInd++)
-//			{
-//				int[] colno = new int[systemRegionMatrix.length];
-//		        double[] row = new double[systemRegionMatrix.length];
-//	
-//		        for(int sysInd=0;sysInd<systemRegionMatrix.length;sysInd++)
-//		        {
-//		        	colno[sysInd] = sysInd+1;
-//		        	row[sysInd] = systemRegionMatrix[sysInd][colInd] - 1;
-//		        }
-//	        	solver.addConstraintex(systemRegionMatrix.length, row, colno, LpSolve.EQ, 0);
-//			}
-//		}catch (LpSolveException e){
-//			e.printStackTrace();
-//		}
-//
-//	}
-
 	/**
 	 * Sets the function for calculations.
 	 */

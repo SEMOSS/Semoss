@@ -58,6 +58,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	public ResidualSystemOptimizer sysOpt;
 	String sysQuery, dataQuery, bluQuery, regionQuery;
 	public ArrayList<String> sysList, dataList, bluList, regionList;
+	public ArrayList<String> systemMustModernize, systemMustDecommission;
 	double dataExposeCost;
 	double numMaintenanceSavings;
 	double preTransitionMaintenanceCost;
@@ -65,13 +66,22 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	public double budget=0.0, optNumYears = 0.0, netSavings = 0.0, roi=0.0,irr=0.0;
 	boolean noErrors=true;
 	boolean includeRegionalization = false;
+	boolean ignoreTheatGarr = false;
+	boolean includeTheater = false;
+	boolean includeGarrison = false;
 	String errorMessage = "";
 	boolean reducedFunctionality = false;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
 
-	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,DHMSMCapabilitySelectPanel capabilitySelectPanel,DHMSMDataBLUSelectPanel dataBLUSelectPanel,boolean useSysList,boolean useDataBLU,boolean includeRegionalization)
+	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,DHMSMCapabilitySelectPanel capabilitySelectPanel,DHMSMDataBLUSelectPanel dataBLUSelectPanel,DHMSMSystemSelectPanel systemModernizePanel, DHMSMSystemSelectPanel systemDecommissionPanel,boolean includeRegionalization,boolean ignoreTheatGarr)
 	{
 		this.includeRegionalization = includeRegionalization;
+		this.ignoreTheatGarr = ignoreTheatGarr;
+		this.includeTheater = sysSelectPanel.theaterSysButton.isSelected();
+		this.includeGarrison = sysSelectPanel.garrisonSysButton.isSelected();
+		this.systemMustModernize = systemModernizePanel.getSelectedSystems();
+		this.systemMustDecommission= systemDecommissionPanel.getSelectedSystems();
+		
 		this.sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 		this.sysQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),sysQuery);
 		if(includeRegionalization)
@@ -79,14 +89,23 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			this.regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } ORDER BY ASC(?Region) ";
 			this.regionQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),regionQuery);
 		}
-		if(useDataBLU)
+		//if there are data and blu provided, then use them
+		if(!dataBLUSelectPanel.noneSelected())
 		{
 			this.dataQuery = "SELECT DISTINCT ?DataObject WHERE { {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}";
 			this.bluQuery = "SELECT DISTINCT ?BusinessLogicUnit WHERE { {?BusinessLogicUnit <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}";
 			this.dataQuery = addBindings("DataObject",dataBLUSelectPanel.getSelectedData(),dataQuery);
 			this.bluQuery = addBindings("BusinessLogicUnit",dataBLUSelectPanel.getSelectedBLU(),bluQuery);
-		}
-		else if(useSysList)
+		}//if there are capabilities provided use them
+		else if(!capabilitySelectPanel.noneSelected())
+		{
+			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
+			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
+			this.dataQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),dataQuery);
+			this.bluQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),bluQuery);
+
+		}//otherwise use the systems list to generate
+		else
 		{
 			this.dataQuery = "NULL";
 			DHMSMHelper dhelp = new DHMSMHelper();
@@ -103,13 +122,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			this.bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}}";
 			this.bluQuery = addBindings("System",sysSelectPanel.getSelectedSystems(),bluQuery);
 		}
-		else if(!useSysList)
-		{
-			this.dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} }";
-			this.bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}}";
-			this.dataQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),dataQuery);
-			this.bluQuery = addBindings("Capability",capabilitySelectPanel.getSelectedCapabilities(),bluQuery);
-		}
 	}
 	public ArrayList<String> removeDuplicates(ArrayList<String> list)
 	{
@@ -121,13 +133,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		}
 		return retList;
 	}
-//	public void setQueries(String sysQuery, String dataQuery, String bluQuery, String regionQuery)
-//	{
-//		this.sysQuery = sysQuery;
-//		this.dataQuery = dataQuery;
-//		this.bluQuery = bluQuery;
-//		this.regionQuery = regionQuery;
-//	}
 	public String addBindings(String type, List<String> bindingsList,String query)
 	{
 		if(bindingsList.size()==0)
@@ -142,7 +147,10 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	{
 		String engine = playSheet.engine.getEngineName();
 		
-		resFunc = new ResidualSystemOptFillData();
+		if(ignoreTheatGarr)
+			resFunc = new ResidualSystemOptFillData();
+		else
+			resFunc = new ResidualSystemTheatGarrOptFillData();
 		resFunc.setMaxYears(maxYears);
 		this.sysList = resFunc.runListQuery(engine,sysQuery);
 		if(this.sysList.size()<2)
@@ -167,10 +175,13 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		}
 		resFunc.setPlaySheet((SysOptPlaySheet)playSheet);
 		if(includeRegionalization)
-			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),deepCopy(regionList));
+			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),deepCopy(regionList),deepCopy(systemMustModernize),deepCopy(systemMustDecommission));
 		else
-			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),null);
-		reducedFunctionality = resFunc.fillDataStores(!dataQuery.equals("NULL"));
+			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),null,deepCopy(systemMustModernize),deepCopy(systemMustDecommission));
+		if(ignoreTheatGarr)
+			reducedFunctionality = resFunc.fillDataStores(!dataQuery.equals("NULL"));
+		else
+			reducedFunctionality = ((ResidualSystemTheatGarrOptFillData)resFunc).fillDataStores(!dataQuery.equals("NULL"),includeTheater,includeGarrison);
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
 	{
@@ -184,13 +195,20 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	public void getModernizedSysList()
 	{
 		playSheet.progressBar.setString("Determining Modernized List");
-		sysOpt = new ResidualSystemOptimizer();
+		if(ignoreTheatGarr)
+			sysOpt = new ResidualSystemOptimizer();
+		else
+			sysOpt = new ResidualSystemTheatGarrOptimizer();
 		sysOpt.setPlaySheet(playSheet);
-//		if(includeRegionalization)
-			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
-//		else
-//			sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,null,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrixresFunc.systemRegionMatrix,,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemRequired,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
-		noErrors = sysOpt.runOpt();
+		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemModernize,resFunc.systemDecommission,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
+
+		if(ignoreTheatGarr)
+			noErrors = sysOpt.runOpt();
+		else {
+			((ResidualSystemTheatGarrOptimizer)sysOpt).setTheatGarrDataSet(((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater,((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemTheaterExists,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemGarrisonExists,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderTheaterExists,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderGarrisonExists);
+			noErrors = ((ResidualSystemTheatGarrOptimizer)sysOpt).runOpt();
+		}
+
 		errorMessage = sysOpt.errorMessage;
 
 		this.dataExposeCost = sysOpt.numTransformationTotal; //total cost to expose all data for all systems at all sites
@@ -347,29 +365,72 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	public void displaySystemSpecifics()
 	{
 		ArrayList <Object []> list = new ArrayList<Object []>();
-		int size = 4;
-		if(includeRegionalization)
-			size=5;
-		String[] colNames = new String[size];
-		colNames[0]="System";
-		colNames[1]="Action";
-		colNames[2]="Number Of Data Provided";
-		colNames[3]="Number of BLU Provided";
-		if(includeRegionalization)
-			colNames[4]="Number of Regions";
-		for (int i = 0;i<sysList.size();i++)
-		{
-			Object[] newRow = new Object[size];
-			newRow[0] = resFunc.sysList.get(i);
-			if(sysOpt.systemIsModernized[i]>0)
-				newRow[1] = "Modernize";
-			else
-				newRow[1] = "Decommission";
-			newRow[2] = sumRow(resFunc.systemDataMatrix[i]);
-			newRow[3] = sumRow(resFunc.systemBLUMatrix[i]);
+		String[] colNames;
+		if(resFunc instanceof ResidualSystemTheatGarrOptFillData) {
+			int size = 8;
 			if(includeRegionalization)
-				newRow[4] = sumRow(resFunc.systemRegionMatrix[i]);
-			list.add(newRow);
+				size=9;
+			colNames = new String[size];
+			colNames[0]="System";
+			colNames[1]="Probability";
+			colNames[2]="MHS Specific";
+			colNames[3]="Theater";
+			colNames[4]="Garrison";
+			colNames[5]="Action";
+			colNames[6]="Number Of Data Provided";
+			colNames[7]="Number of BLU Provided";
+			if(includeRegionalization)
+				colNames[8]="Number of Regions";
+			for (int i = 0;i<sysList.size();i++)
+			{
+				Object[] newRow = new Object[size];
+				newRow[0] = resFunc.sysList.get(i);
+				newRow[1] = resFunc.systemLPI[i];
+				newRow[2] = resFunc.systemMHSSpecific[i];
+				if(((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater!=null&&((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater[i]>0)
+					newRow[3] = "X";
+				if(((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison!=null&&((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison[i]>0)
+					newRow[4] = "X";
+			
+				if(sysOpt.systemIsModernized[i]>0)
+					newRow[5] = "Modernize";
+				else
+					newRow[5] = "Decommission";
+				newRow[6] = sumRow(resFunc.systemDataMatrix[i]);
+				newRow[7] = sumRow(resFunc.systemBLUMatrix[i]);
+				if(includeRegionalization)
+					newRow[8] = sumRow(resFunc.systemRegionMatrix[i]);
+				list.add(newRow);
+			}
+		} else {
+			int size = 6;
+			if(includeRegionalization)
+				size=7;
+			colNames = new String[size];
+			colNames[0]="System";
+			colNames[1]="Probability";
+			colNames[2]="MHS Specific";
+			colNames[3]="Action";
+			colNames[4]="Number Of Data Provided";
+			colNames[5]="Number of BLU Provided";
+			if(includeRegionalization)
+				colNames[6]="Number of Regions";
+			for (int i = 0;i<sysList.size();i++)
+			{
+				Object[] newRow = new Object[size];
+				newRow[0] = resFunc.sysList.get(i);
+				newRow[1] = resFunc.systemLPI[i];
+				newRow[2] = resFunc.systemMHSSpecific[i];
+				if(sysOpt.systemIsModernized[i]>0)
+					newRow[3] = "Modernize";
+				else
+					newRow[3] = "Decommission";
+				newRow[4] = sumRow(resFunc.systemDataMatrix[i]);
+				newRow[5] = sumRow(resFunc.systemBLUMatrix[i]);
+				if(includeRegionalization)
+					newRow[6] = sumRow(resFunc.systemRegionMatrix[i]);
+				list.add(newRow);
+			}
 		}
 		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificSysAlysPanel);
 	}
