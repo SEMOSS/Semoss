@@ -131,21 +131,20 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		}
 		return listArray;
 	}
-	
-	public void setVisible(boolean visible)
-	{
-		super.setVisible(visible);
-		if(!visible)
-		{
-			allCapButton.setSelected(false);
-			dhmsmCapButton.setSelected(false);
-			hsdCapButton.setSelected(false);
-			hssCapButton.setSelected(false);
-			fhpCapButton.setSelected(false);
-			capSelectDropDown.clearList();
-		}
+
+	public void clearList() {
+		allCapButton.setSelected(false);
+		dhmsmCapButton.setSelected(false);
+		hsdCapButton.setSelected(false);
+		hssCapButton.setSelected(false);
+		fhpCapButton.setSelected(false);
+		capSelectDropDown.clearList();
 	}
-	
+	public boolean noneSelected() {
+		if(getSelectedCapabilities().isEmpty())
+			return true;
+		return false;
+	}
 	public ArrayList<String> getSelectedCapabilities()
 	{
 		return capSelectDropDown.getSelectedValues();

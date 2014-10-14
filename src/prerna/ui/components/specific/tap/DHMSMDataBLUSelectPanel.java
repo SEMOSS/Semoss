@@ -155,15 +155,10 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		}
 		return listArray;
 	}
-	
-	public void setVisible(boolean visible)
-	{
-		super.setVisible(visible);
-		if(!visible)
-		{
-			dataSelectDropDown.clearList();
-			bluSelectDropDown.clearList();
-		}
+
+	public void clearList() {
+		dataSelectDropDown.clearList();
+		bluSelectDropDown.clearList();
 	}
 	
 	public void setFromSystem(boolean isPullFromSystem)
@@ -178,6 +173,11 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 			}
 	}
 	
+	public boolean noneSelected() {
+		if(getSelectedDataAndBLU().isEmpty())
+			return true;
+		return false;
+	}
 	
 	public ArrayList<String> getSelectedData()
 	{

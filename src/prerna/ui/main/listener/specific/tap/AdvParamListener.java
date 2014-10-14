@@ -34,7 +34,7 @@ import prerna.ui.components.specific.tap.SysOptPlaySheet;
 public class AdvParamListener implements ActionListener {
 	
 	SerOptPlaySheet ps;
-	JToggleButton showParamBtn, showSystemSelectBtn, showSystemCapSelectBtn;
+	JToggleButton showParamBtn, showSystemSelectBtn, showSystemCapSelectBtn, showSystemModDecomBtn;
 	boolean isSysOpt;
 	
 	/**
@@ -46,13 +46,13 @@ public class AdvParamListener implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		if(((JToggleButton)e.getSource()).getName().equals(showParamBtn.getName()))
 		{
-			if(showParamBtn.isSelected())
-			{
-				if(isSysOpt)
-				{
-					((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
+			if(showParamBtn.isSelected()) {
+				if(isSysOpt) {
 					showSystemSelectBtn.setSelected(false);
 					showSystemCapSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).systemModDecomSelectPanel.setVisible(false);
 				}
 				ps.advParamPanel.setVisible(true);
 			}
@@ -61,36 +61,69 @@ public class AdvParamListener implements ActionListener {
 		}
 		else if(isSysOpt)
 		{
-			ps.advParamPanel.setVisible(false);
-			showParamBtn.setSelected(false);
-			
 			if(((JToggleButton)e.getSource()).getName().equals(showSystemSelectBtn.getName()))
 			{
-				showSystemCapSelectBtn.setSelected(false);
-				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
-				if(showSystemSelectBtn.isSelected())
-				{
+				if(showSystemSelectBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					ps.advParamPanel.setVisible(false);
+					((SysOptPlaySheet)ps).systemModDecomSelectPanel.setVisible(false);
 					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
-					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capabilitySelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).capabilitySelectPanel.clearList();
+					//if data or BLU was selected, show it. otherwise hide panel
+					if(((SysOptPlaySheet)ps).dataBLUSelectPanel.noneSelected()) {
+						((SysOptPlaySheet)ps).updateDataBLUPanelButton.setSelected(false);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setVisible(false);
+					} else {
+						((SysOptPlaySheet)ps).updateDataBLUPanelButton.setSelected(true);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setVisible(true);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setFromSystem(true);
+					}
+						
+				} else {
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(false);
 				}
-
 			}
 			else if(((JToggleButton)e.getSource()).getName().equals(showSystemCapSelectBtn.getName()))
 			{
-				showSystemSelectBtn.setSelected(false);
-				((SysOptPlaySheet)ps).hideAndClearSystemSelectPanel();
-				if(showSystemCapSelectBtn.isSelected())
-				{
+				if(showSystemCapSelectBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					ps.advParamPanel.setVisible(false);
+					((SysOptPlaySheet)ps).systemModDecomSelectPanel.setVisible(false);
 					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(true);
-					((SysOptPlaySheet)ps).systemSelectPanel.setVisible(true);
 					((SysOptPlaySheet)ps).capabilitySelectPanel.setVisible(true);
+					//if data or BLU was selected, show it. otherwise hide panel
+					if(((SysOptPlaySheet)ps).dataBLUSelectPanel.noneSelected()) {
+						((SysOptPlaySheet)ps).updateDataBLUPanelButton.setSelected(false);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setVisible(false);
+					} else {
+						((SysOptPlaySheet)ps).updateDataBLUPanelButton.setSelected(true);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setVisible(true);
+						((SysOptPlaySheet)ps).dataBLUSelectPanel.setFromSystem(false);					}
+				} else {
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(false);
 				}
-			}	
+			}
+			else if(((JToggleButton)e.getSource()).getName().equals(showSystemModDecomBtn.getName()))
+			{
+				if(showSystemModDecomBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemSelectBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
+					ps.advParamPanel.setVisible(false);
+					((SysOptPlaySheet)ps).systemDataBLUSelectPanel.setVisible(false);
+					((SysOptPlaySheet)ps).systemModDecomSelectPanel.setVisible(true);
+				} else {
+					((SysOptPlaySheet)ps).systemModDecomSelectPanel.setVisible(false);
+				}
+			}
 		}
-
 	}
-	
+
 	/**
 	 * Determines the playsheet used for TAP service or TAP system optimization
 	 * @param ps 	SerOptPlaySheet the playsheet used for TAP service or TAP system optimization
@@ -116,11 +149,12 @@ public class AdvParamListener implements ActionListener {
 	 * @param showSystemCapSelectBtn 	JToggleButton the toggle button to show system and capability select panel
 	 * 
 	 */
-	public void setParamButtons (JToggleButton showParamBtn, JToggleButton showSystemSelectBtn, JToggleButton showSystemCapSelectBtn)
+	public void setParamButtons (JToggleButton showParamBtn, JToggleButton showSystemSelectBtn, JToggleButton showSystemCapSelectBtn, JToggleButton showSystemModDecomBtn)
 	{
 		this.showParamBtn = showParamBtn;
 		this.showSystemSelectBtn = showSystemSelectBtn;
 		this.showSystemCapSelectBtn = showSystemCapSelectBtn;
+		this.showSystemModDecomBtn = showSystemModDecomBtn;
 		isSysOpt = true;
 	}
 }

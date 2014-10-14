@@ -22,6 +22,9 @@ public class ResidualSystemOptFillData{
 	ArrayList<String> dataList;
 	ArrayList<String> bluList;
 	ArrayList<String> regionList;
+
+	ArrayList<String> systemMustModernize;
+	ArrayList<String> systemMustDecommission;
 	
 	public boolean includeRegionalization = false;
 	
@@ -35,8 +38,10 @@ public class ResidualSystemOptFillData{
 	public double[] systemCostOfMaintenance;
 	public double[] systemCostOfDB;
 	public double[] systemNumOfSites;
-	public String[] systemProb;
-	public double[] systemRequired;
+	public String[] systemLPI;
+	public String[] systemMHSSpecific;
+	public double[] systemModernize;
+	public double[] systemDecommission;
 	
 	//Ap, Bq
 	public int[][] dataRegionSORSystemExists;
@@ -54,12 +59,14 @@ public class ResidualSystemOptFillData{
 	
 	public boolean dataOrBLUWithNoProviderExists = false;
 	
-	public void setSysDataBLULists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> regionList)
+	public void setSysDataBLULists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> regionList,ArrayList<String> systemMustModernize,ArrayList<String> systemMustDecommission)
 	{
 		this.sysList = sysList;
 		this.dataList = dataList;
 		this.bluList = bluList;
 		this.regionList = regionList;
+		this.systemMustModernize = systemMustModernize;
+		this.systemMustDecommission = systemMustDecommission;	
 	}
 	
 	public void setPlaySheet(SysOptPlaySheet playSheet)
@@ -71,7 +78,6 @@ public class ResidualSystemOptFillData{
 	{
 		this.maxYears = maxYears;
 	}
-	
 	/**
 	 * Runs a query on a specific engine to make a list of systems to report on
 	 * @param engineName 	String containing the name of the database engine to be queried
@@ -100,7 +106,7 @@ public class ResidualSystemOptFillData{
 		return list;
 	}
 
-	public ArrayList<String> deepCopy(ArrayList<String> list)
+	protected ArrayList<String> deepCopy(ArrayList<String> list)
 	{
 		ArrayList<String> retList = new ArrayList<String>();
 		for(String element : list)
@@ -110,9 +116,7 @@ public class ResidualSystemOptFillData{
 		return retList;
 	}
 	
-	public boolean fillDataStores(boolean dataRequired)
-	{
-		boolean reducedFunctionality = false;
+	protected void instantiate() {
 		
 		systemDataMatrix = createEmptyMatrix(systemDataMatrix,sysList.size(),dataList.size());
 		systemBLUMatrix = createEmptyMatrix(systemBLUMatrix,sysList.size(),bluList.size());
@@ -128,9 +132,13 @@ public class ResidualSystemOptFillData{
 		systemCostOfMaintenance = createEmptyVector(systemCostOfMaintenance, sysList.size());
 		systemCostOfDB = createEmptyVector(systemCostOfDB, sysList.size());
 		systemNumOfSites = createEmptyVector(systemNumOfSites, sysList.size());
-		systemProb = createEmptyVector(systemProb, sysList.size());
-		systemRequired = createEmptyVector(systemRequired,sysList.size());
-		
+		systemLPI = createEmptyVector(systemLPI, sysList.size());
+		systemMHSSpecific = createEmptyVector(systemMHSSpecific, sysList.size());
+		systemModernize = createEmptyVector(systemModernize,sysList.size());
+		systemDecommission = createEmptyVector(systemDecommission,sysList.size());
+	}
+	
+	protected void runQueries() {
 		fillSystemData();
 		fillSystemBLU();
 		fillSystemCostOfData();
@@ -138,12 +146,23 @@ public class ResidualSystemOptFillData{
 		
 		fillSystemCost();
 		fillSystemNumOfSites();
-		fillSystemProb();
-		fillSystemRequired();
-		
+		fillSystemLPI();
+		fillSystemMHSSpecific();
+		if(systemMustModernize.isEmpty())
+			fillSystemRequired();
+		else
+			systemModernize = fillSystemModDecomm(systemMustModernize,systemModernize);
+		systemDecommission = fillSystemModDecomm(systemMustDecommission,systemDecommission);
+	}
+	
+	public boolean fillDataStores(boolean dataRequired)
+	{
+		instantiate();
+		runQueries();
+	
 		dataRegionSORSystemCount = calculateIfProviderExistsWithRegion(systemDataMatrix,false);
 		bluRegionProviderCount = calculateIfProviderExistsWithRegion(systemBLUMatrix,false);
-		
+		boolean reducedFunctionality = false;
 		if(dataRequired && dataOrBLUWithNoProviderExists)
 		{
 			reducedFunctionality = true;
@@ -161,7 +180,7 @@ public class ResidualSystemOptFillData{
 		return reducedFunctionality;
 	}
 	
-	public void printToConsole()
+	protected void printToConsole()
 	{
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nSystems to be Considered...");
 		printToConsoleList(sysList);
@@ -188,21 +207,22 @@ public class ResidualSystemOptFillData{
 			printNumberForRegionToConsoleList(deepCopy(bluList),deepCopy(regionList),bluRegionProviderCount);
 		}
 	}
-	public void printMissingInfoToConsoleList(ArrayList<String> sysList,double[] listToCheck)
+
+	private void printMissingInfoToConsoleList(ArrayList<String> sysList,double[] listToCheck)
 	{
 		for(int i=0;i<listToCheck.length;i++)
 			if(listToCheck[i]==0)
 				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+sysList.get(i)+", ");
 	}
 	
-	public void printToConsoleList(ArrayList<String> list)
+	private void printToConsoleList(ArrayList<String> list)
 	{
 		for(String entry : list)
 		{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+entry+", ");
 		}
 	}
-	public void printNumberToConsoleList(ArrayList<String> dataBLUlist,int[][] numbers)
+	protected void printNumberToConsoleList(ArrayList<String> dataBLUlist,int[][] numbers)
 	{
 			ArrayList<Integer> numList = new ArrayList<Integer>();
 			for(int i=0;i<numbers.length;i++)
@@ -222,7 +242,7 @@ public class ResidualSystemOptFillData{
 			}
 	}
 	
-	public void printNumberForRegionToConsoleList(ArrayList<String> dataOrBLUList,ArrayList<String> regionList,int[][] numbers)
+	private void printNumberForRegionToConsoleList(ArrayList<String> dataOrBLUList,ArrayList<String> regionList,int[][] numbers)
 	{
 		for(int regionInd=0;regionInd<numbers[0].length;regionInd++)
 		{
@@ -247,7 +267,7 @@ public class ResidualSystemOptFillData{
 		}
 	}	
 	
-	public void printAll()
+	private void printAll()
 	{
 		System.out.println("System Provides Data:");
 		printMatrix(systemDataMatrix,sysList,dataList);
@@ -272,7 +292,7 @@ public class ResidualSystemOptFillData{
 		printMatrix(bluRegionProviderExists,bluList,regionList);
 	}
 	
-	private void printMatrix(int[][] matrix, ArrayList<String> rowList,ArrayList<String> colList)
+	protected void printMatrix(int[][] matrix, ArrayList<String> rowList,ArrayList<String> colList)
 	{
 		for(int i=0;i<matrix.length;i++)
 		{
@@ -285,7 +305,7 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	private void printMatrix(double[][] matrix, ArrayList<String> rowList,ArrayList<String> colList)
+	protected void printMatrix(double[][] matrix, ArrayList<String> rowList,ArrayList<String> colList)
 	{
 		for(int i=0;i<matrix.length;i++)
 		{
@@ -298,7 +318,7 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	private void printVector(double[] matrix, ArrayList<String> rowList)
+	protected void printVector(double[] matrix, ArrayList<String> rowList)
 	{
 		for(int i=0;i<matrix.length;i++)
 		{
@@ -341,7 +361,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	public void fillSystemData()
+	private void fillSystemData()
 	{
 		DHMSMHelper dhelp = new DHMSMHelper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(systemEngine);
@@ -356,7 +376,7 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	public void fillSystemBLU()
+	private void fillSystemBLU()
 	{
 		String query = "SELECT DISTINCT ?System ?blu WHERE{{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?provideBLU <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?System ?provideBLU ?blu}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		
@@ -367,7 +387,7 @@ public class ResidualSystemOptFillData{
 		
 	}
 	
-	public void fillSystemCostOfData()
+	private void fillSystemCostOfData()
 	{
 		String query = "SELECT DISTINCT ?sys ?data (SUM(?loe)*150 AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data BINDINGS ?sys @SYSTEM-BINDINGS@";
 		
@@ -375,7 +395,7 @@ public class ResidualSystemOptFillData{
 		
 		systemCostOfDataMatrix = fillMatrixFromQuery(costEngine,query,systemCostOfDataMatrix,sysList,dataList);
 	}
-	public void fillSystemRegion()
+	private void fillSystemRegion()
 	{
 		if(includeRegionalization)
 		{
@@ -391,7 +411,7 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	public void fillSystemCost()
+	private void fillSystemCost()
 	{
 		String query = "SELECT DISTINCT ?sys (COALESCE(?cost,0) AS ?Cost) WHERE {{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?sys <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}}BINDINGS ?sys @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
@@ -402,26 +422,43 @@ public class ResidualSystemOptFillData{
 		systemCostOfDB = fillVectorFromQuery(systemEngine,query,systemCostOfDB,sysList,false);
 	}
 	
-	public void fillSystemNumOfSites()
+	private void fillSystemNumOfSites()
 	{
 		String query = "SELECT DISTINCT ?System (COUNT(DISTINCT(?DCSite)) as ?Num_Of_Deployment_Sites) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>;} {?DeployedAt <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite ?DeployedAt ?DCSite;} {?System ?DeployedAt1 ?SystemDCSite;} } GROUP BY ?System BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		systemNumOfSites = fillVectorFromQuery(siteEngine,query,systemNumOfSites,sysList,false);
 	}
-	public void fillSystemProb()
+	private void fillSystemLPI()
 	{
-		String query = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
+		String query = "SELECT DISTINCT ?System (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?Interface='Y','LPI','LPNI'), 'High') AS ?ReportType) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?Interface}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemProb = fillVectorFromQuery(systemEngine,query,systemProb,sysList,false);
+		systemLPI = fillVectorFromQuery(systemEngine,query,systemLPI,sysList,false);
 	}
-	public void fillSystemRequired()
+	private void fillSystemMHSSpecific()
 	{
-		String query = "SELECT DISTINCT ?System ('Y' AS ?Required) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}FILTER(?Probability in('Low','Medium','Medium-High')){?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} UNION {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		String query = "SELECT DISTINCT ?System (IF(?MHS_Specific='Y','Yes','No') AS ?Specific) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> ?MHS_Specific}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemRequired = fillVectorFromQuery(systemEngine,query,systemRequired,sysList,true);
+		systemMHSSpecific = fillVectorFromQuery(systemEngine,query,systemMHSSpecific,sysList,false);
 	}
 	
-	public int[][] fillSysRow(int[][] matrixToFill,int rowInd, ArrayList<String> colList, ArrayList<String> colToPopulate)
+	private void fillSystemRequired()
+	{
+		String query = "SELECT DISTINCT ?System ('Y' AS ?Required) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}FILTER(?Probability in('Low','Medium','Medium-High')){?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} UNION {?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}} BINDINGS ?System @SYSTEM-BINDINGS@";
+//		String query = "SELECT DISTINCT ?System ('Y' AS ?Required) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}FILTER(?Probability in('Low','Medium','Medium-High')){?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} BINDINGS ?System @SYSTEM-BINDINGS@";
+		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemModernize = fillVectorFromQuery(systemEngine,query,systemModernize,sysList,true);
+	}
+	
+	private double[] fillSystemModDecomm(ArrayList<String> modOrDecomList,double[] listToFill) {
+		for(String sys:modOrDecomList) {
+			int sysIndex = sysList.indexOf(sys);
+			if(sysIndex>-1)
+				listToFill[sysIndex] = 1;
+		}
+		return listToFill;
+	}
+	
+	private int[][] fillSysRow(int[][] matrixToFill,int rowInd, ArrayList<String> colList, ArrayList<String> colToPopulate)
 	{
 		for(int ind = 0;ind<colToPopulate.size();ind++)
 		{
@@ -433,7 +470,7 @@ public class ResidualSystemOptFillData{
 		return matrixToFill;
 	}
 	
-	public SesameJenaSelectWrapper runQuery(String engineName, String query)
+	private SesameJenaSelectWrapper runQuery(String engineName, String query)
 	{
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -450,7 +487,7 @@ public class ResidualSystemOptFillData{
 		return wrapper;
 	}
 	
-	public int[][] fillMatrixFromQuery(String engineName, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+	private int[][] fillMatrixFromQuery(String engineName, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
 
 		// get the bindings from it
@@ -480,7 +517,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	public double[][] fillMatrixFromQuery(String engineName, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+	private double[][] fillMatrixFromQuery(String engineName, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -498,11 +535,6 @@ public class ResidualSystemOptFillData{
 					int colIndex = colNames.indexOf(colName);
 					if(colIndex>-1)
 					{
-//						if(valIsOne)
-//							matrix[rowIndex][colIndex] = 1.0;
-//						else
-//						{
-						
 						Object val = getVariable(names[2], sjss);
 						if(val instanceof Double)
 							matrix[rowIndex][colIndex] = (Double)val;
@@ -527,7 +559,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	public double[] fillVectorFromQuery(String engineName, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
+	private double[] fillVectorFromQuery(String engineName, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -570,7 +602,7 @@ public class ResidualSystemOptFillData{
 		}
 		return matrix;
 	}
-	public String[] fillVectorFromQuery(String engineName, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
+	private String[] fillVectorFromQuery(String engineName, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
 		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
 
 		// get the bindings from it
@@ -597,7 +629,7 @@ public class ResidualSystemOptFillData{
 		return sjss.getVar(varName);
 	}
 	
-	public String makeBindingString(String type,ArrayList<String> vals)
+	private String makeBindingString(String type,ArrayList<String> vals)
 	{
 		String bindings = "{";
 		for(String val : vals)
@@ -636,26 +668,4 @@ public class ResidualSystemOptFillData{
 		}
 		return retVector;
 	}	
-
-	public int[] calculateIfProviderExists(int[][] sysMatrix,boolean elementRequired)
-	{
-		int[] retVector = new int[sysMatrix[0].length];
-		for(int col=0;col<sysMatrix[0].length;col++)
-		{
-			int numProviders = 0;
-			if(elementRequired)
-				numProviders =1;
-			else
-			{
-				for(int row=0;row<sysMatrix.length;row++)
-				{
-					numProviders+=sysMatrix[row][col];
-				}
-			}
-			if(numProviders==0)
-				dataOrBLUWithNoProviderExists = true;
-			retVector[col] =numProviders;
-		}
-		return retVector;
-	}
 }
