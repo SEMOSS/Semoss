@@ -31,12 +31,17 @@ import prerna.util.Utility;
 
 public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 
+	private final String query5 = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Region ?Wave ?DCSite ?System WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} }&SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
 
 	private final String query1 = "SELECT DISTINCT ?System (SUM(?Cost) AS ?Sustainment) ?FY WHERE { { BIND(<http://health.mil/ontologies/Concept/GLTag/O&M_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} {?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} {?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } UNION { BIND(<http://health.mil/ontologies/Concept/GLTag/O&M_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} {?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?OMTag <http://semoss.org/ontologies/Relation/Includes> ?GLTag} {?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } UNION { BIND(<http://health.mil/ontologies/Concept/GLTag/O&M_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?SystemServiceBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?SystemService <http://semoss.org/ontologies/Relation/Has> ?SystemServiceBudget} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } UNION { BIND(<http://health.mil/ontologies/Concept/GLTag/O&M_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?SystemServiceBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/ConsistsOf> ?SystemService} {?SystemService <http://semoss.org/ontologies/Relation/Has> ?SystemServiceBudget} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?OMTag <http://semoss.org/ontologies/Relation/Includes> ?GLTag} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemServiceBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } } GROUP BY ?System ?FY ORDER BY ?System";
 	private final String query2 = "SELECT ?System (COUNT(?DCSite) AS ?Sites) WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} } GROUP BY ?System";
 	private final String query3 = "SELECT DISTINCT ?Region ?Date WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Date <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Region <http://semoss.org/ontologies/Relation/BeginsOn> ?Date} }";
-	private final String query4 = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Preceeds> ?Wave2}} ";
-	private final String query5 = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Region ?Wave ?DCSite ?System WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} }&SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private final String waveProcedesQuery = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Preceeds> ?Wave2}} ";
+	private final String regionProcedesQuery = "SELECT DISTINCT ?Region1 ?Region2 WHERE {{?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region1 <http://semoss.org/ontologies/Relation/Preceeds> ?Region2}}";
+	
+	private final String firstRegionQuery = "SELECT DISTINCT ?Region1 WHERE { {?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} MINUS{ {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://semoss.org/ontologies/Relation/Preceeds> ?Region1}}  }";
+	private final String firstWaveQuery = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Preceeds> ?Wave1}}  }";
+	
 	private final String engineName1 = "TAP_Portfolio";
 	private final String engineName2 = "TAP_Site_Data";
 	private IEngine engine1;
@@ -47,7 +52,12 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 	private HashMap<String, String> query3Data = new HashMap<String, String>();
 	private HashMap<String, String> query4Data = new HashMap<String, String>();
 	private HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> query5Data = new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>();
-	private ArrayList<Object[]> list;//holds the results of the dual query
+	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
+	
+	private String firstRegion;
+	private String firstWave;
+	private ArrayList<String> regionOrder;
+	private ArrayList<String> waveOrder;
 	
 	@Override
 	public void createData(){
@@ -56,8 +66,120 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 	}
 	
 	private void processData() {
+		HashMap<String, Double[]> siteCostSavings = new HashMap<String, Double[]>();
 		
+		int minYear = 3000;//arbitrarily large year
+		int maxYear = 0;
+		for(String region : query3Data.keySet()) {
+			String startDate = query3Data.get(region);
+			String time[] = startDate.split("FY");
+			String year = time[1];
+			int yearAsNum = Integer.parseInt(year);
+			if(yearAsNum > maxYear) {
+				maxYear = yearAsNum;
+			} else if(yearAsNum < minYear) {
+				minYear = yearAsNum;
+			}
+		}
+		int numColumns = maxYear - minYear + 1;
 		
+		int i;
+		for(i = 0; i < regionOrder.size(); i++) 
+		{
+			String region = regionOrder.get(i);
+			String startDate = query3Data.get(region);
+			String time[] = startDate.split("FY");
+			String quarter = time[0];
+			String year = time[1];
+			if(query5Data.get(region) != null){
+				int numWaves = query5Data.get(region).keySet().size();
+				double perOfYear = 1.0/numWaves;
+				double startPercent = 0;
+				int sustainmentIndex = 0;
+				switch(quarter) {
+					case "Q1" : startPercent = 0; break;
+					case "Q2" : startPercent = 0.25; break;
+					case "Q3" : startPercent = 0.50; break;
+					case "Q4" : startPercent = 0.75; break;
+				}
+				switch(year) {
+					case "2015" : sustainmentIndex = 0; break;
+					case "2016" : sustainmentIndex = 1; break;
+					case "2017" : sustainmentIndex = 2; break;
+					case "2018" : sustainmentIndex = 3; break;
+					default: sustainmentIndex = 4;
+				}
+				int outputYear = sustainmentIndex;
+				HashMap<String, HashMap<String, ArrayList<String>>> waves = query5Data.get(region);
+				
+				int j;
+				for(j = 0; j < waveOrder.size(); j++) {
+					String wave = waveOrder.get(j);
+					if(waves.keySet().contains(wave)){
+						HashMap<String, ArrayList<String>> sites = waves.get(wave);
+						startPercent += perOfYear;
+						if(startPercent >= 1.0){
+							startPercent -= 1.0;
+							outputYear++;//we assume all of the saving comes at the end
+						}
+						for(String site : sites.keySet()){
+							ArrayList<String> systems = sites.get(site);
+							double savings = 0.0;
+							double [] yearlySavings = new double[numColumns];
+							for(String system : systems){
+								Double [] costs = query1Data.get(system);
+								// assume cost for a specific site is total cost / num sites
+								double numSites = query2Data.get(system);
+								if(costs != null){
+									if(costs[sustainmentIndex].equals(null)){
+										savings += 0;
+									} else {
+										savings += costs[sustainmentIndex] / numSites;
+									}
+								}
+							}
+							yearlySavings[outputYear] = savings;
+							if(savingsData.containsKey(site)) {
+								double[] currSavings = savingsData.get(site);
+								for(int index = 0; index < currSavings.length; index++) {
+									currSavings[index] += yearlySavings[index];
+								}
+								savingsData.put(site, currSavings);
+							} else {
+								savingsData.put(site, yearlySavings);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		list = new ArrayList<Object[]>();
+		
+		for(String site : savingsData.keySet()) {
+			double[] values = savingsData.get(site);
+			if(list.isEmpty()) {
+				names = new String[values.length + 1];
+				names[0] = "";
+				//TODO: pass start FY
+				int FY = 2017;
+				for(int index = 0; index < values.length; index++) {
+					if(index == 0) {
+						names[0] = "Site";
+					}
+					String FYString = "FY" + FY;
+					names[index+1] = FYString;
+					FY++;				}
+			}
+			
+			Object[] row = new Object[values.length + 1];
+			row[0] = site;
+			for(int index = 0; index < values.length; index++) {
+				row[index + 1] = values[index];
+			}
+			list.add(row);
+		}
+
 	}
 
 	public void runAllQueries() {
@@ -121,7 +243,7 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 		}
 		
 		if(query4Data.isEmpty()) {
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, query4);
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, waveProcedesQuery);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
 				SesameJenaSelectStatement sjss = sjsw.next();
@@ -170,6 +292,7 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 						regionInfo.put(wave, newWaveInfo);
 					}
 				} else {
+					System.out.println(region);
 					// put from region info
 					ArrayList<String> systemList = new ArrayList<String>();
 					systemList.add(system);
@@ -181,12 +304,62 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 				}
 			}
 		}
-	}
-	
-	
-	@Override
-	public void createView() {
-		Utility.showMessage("Success!");
+		
+		//get first region and wave
+		if(firstRegion == null) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, firstRegionQuery);
+			String[] names = sjsw.getVariables();
+			firstRegion = sjsw.next().getVar(names[0]).toString();
+			
+		}
+		if(firstWave == null) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, firstWaveQuery);
+			String[] names = sjsw.getVariables();
+			firstWave = sjsw.next().getVar(names[0]).toString();
+		}
+		
+		if(regionOrder == null) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, regionProcedesQuery);
+			String[] names = sjsw.getVariables();
+			HashMap<String, String> regionHash = new HashMap<String, String>();
+			int counter = 0;
+			while(sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();
+				String region1 = sjss.getVar(names[0]).toString();
+				String region2 = sjss.getVar(names[1]).toString();
+				regionHash.put(region1, region2);
+				counter++;
+			}
+			String nextRegion = firstRegion;
+			regionOrder = new ArrayList<String>();
+			regionOrder.add(nextRegion);
+			for(int i = 0; i < counter; i++) {
+				nextRegion = regionHash.get(nextRegion);
+				regionOrder.add(nextRegion);
+			}
+		}
+		
+		if(waveOrder == null) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine2, waveProcedesQuery);
+			String[] names = sjsw.getVariables();
+			HashMap<String, String> regionHash = new HashMap<String, String>();
+			int counter = 0;
+			while(sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();
+				String region1 = sjss.getVar(names[0]).toString();
+				String region2 = sjss.getVar(names[1]).toString();
+				regionHash.put(region1, region2);
+				counter++;
+			}
+			String nextWave = firstWave;
+			waveOrder = new ArrayList<String>();
+			waveOrder.add(nextWave);
+			for(int i = 0; i < counter; i++) {
+				nextWave = regionHash.get(nextWave);
+				waveOrder.add(nextWave);
+			}
+		}
+		
 	}
 }
 
