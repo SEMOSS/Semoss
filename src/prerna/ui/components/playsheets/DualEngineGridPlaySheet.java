@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -50,8 +51,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	String engineName2;
 	IEngine engine1;
 	IEngine engine2;
-	HashMap<Object, ArrayList<Object[]>> dataHash1 = new HashMap<Object, ArrayList<Object[]>>();
-	HashMap<Object, ArrayList<Object[]>> dataHash2 = new HashMap<Object, ArrayList<Object[]>>();
+	LinkedHashMap<Object, ArrayList<Object[]>> dataHash1 = new LinkedHashMap<Object, ArrayList<Object[]>>();
+	LinkedHashMap<Object, ArrayList<Object[]>> dataHash2 = new LinkedHashMap<Object, ArrayList<Object[]>>();
 	private int names1size;
 	private int names2size;
 	private Set<String> uniqueNames = new LinkedHashSet<String>();
