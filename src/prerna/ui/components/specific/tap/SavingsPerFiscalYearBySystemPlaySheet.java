@@ -18,25 +18,14 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
-import prerna.ui.components.playsheets.GridPlaySheet;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.StringTokenizer;
-
-import javax.swing.JDesktopPane;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
+import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -53,10 +42,10 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 	private IEngine engine1;
 	private IEngine engine2;
 	private DualEngineGridPlaySheet dualQueries = new DualEngineGridPlaySheet();	
-	private HashMap<Object, ArrayList<Object>> query1Data = new HashMap<Object, ArrayList<Object>>();
-	private HashMap<Object, ArrayList<String>> query2Data = new HashMap<Object, ArrayList<String>>();
-	private HashMap<Object, ArrayList<String>> query3Data = new HashMap<Object, ArrayList<String>>();
-	private HashMap<Object, ArrayList<String>> query4Data = new HashMap<Object, ArrayList<String>>();
+	private HashMap<String, Double[]> query1Data = new HashMap<String, Double[]>();
+	private HashMap<String, Double> query2Data = new HashMap<String, Double>();
+	private HashMap<String, String> query3Data = new HashMap<String, String>();
+	private HashMap<String, String> query4Data = new HashMap<String, String>();
 	private ArrayList<Object[]> list;//holds the results of the dual query
 	
 	@Override
@@ -88,15 +77,22 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 					sustCost = Double.parseDouble(sjss.getVar(names1[1]).toString());
 				}
 				String fiscalYear = sjss.getVar(names1[2]).toString();;
-				ArrayList<Object> sysSustCost;
+				// order fiscal year information
+				int position = 0;
+				switch(fiscalYear) {
+					case "FY15" : position = 0; break;
+					case "FY16" : position = 1; break;
+					case "FY17" : position = 2; break;
+					case "FY18" : position = 3; break;
+					case "FY19" : position = 4; break;
+				}
+				Double [] sysSustCost;
 				if(query1Data.containsKey(sysName)) {
 					sysSustCost = query1Data.get(sysName);
-					sysSustCost.add(sustCost);
-					sysSustCost.add(fiscalYear);
+					sysSustCost[position] = sustCost;
 				} else {
-					sysSustCost = new ArrayList<Object>();
-					sysSustCost.add(sustCost);
-					sysSustCost.add(fiscalYear);
+					sysSustCost = new Double[5];
+					sysSustCost[position] = sustCost;
 					query1Data.put(sysName, sysSustCost);
 				}
 			}
@@ -108,16 +104,8 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 			while(sjsw.hasNext()) {
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(names[0]).toString();
-				String siteCount = sjss.getVar(names[1]).toString();
-				ArrayList<String> siteList;
-				if(query2Data.containsKey(sysName)) {
-					siteList = query2Data.get(sysName);
-					siteList.add(siteCount);
-				} else {
-					siteList = new ArrayList<String>();
-					siteList.add(siteCount);
-					query2Data.put(sysName, siteList);
-				}
+				Double siteCount = (Double) sjss.getVar(names[1]);
+				query2Data.put(sysName, siteCount);
 			}
 		}
 		
@@ -128,15 +116,7 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String regionName = sjss.getVar(names[0]).toString();
 				String regionStartDate = sjss.getVar(names[1]).toString();
-				ArrayList<String> regionList;
-				if(query3Data.containsKey(regionName)) {
-					regionList = query3Data.get(regionName);
-					regionList.add(regionStartDate);
-				} else {
-					regionList = new ArrayList<String>();
-					regionList.add(regionStartDate);
-					query3Data.put(regionName, regionList);
-				}
+				query3Data.put(regionName, regionStartDate);
 			}
 		}
 		
@@ -147,15 +127,7 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String wave1 = sjss.getVar(names[0]).toString();
 				String wave2 = sjss.getVar(names[1]).toString();
-				ArrayList<String> waveList;
-				if(query4Data.containsKey(wave1)) {
-					waveList = query4Data.get(wave1);
-					waveList.add(wave2);
-				} else {
-					waveList = new ArrayList<String>();
-					waveList.add(wave2);
-					query4Data.put(wave1, waveList);
-				}
+				query4Data.put(wave1, wave2);
 			}
 		}
 		
@@ -163,8 +135,9 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 		dualQueries.setQuery(query5);
 		dualQueries.createData();
 		list = dualQueries.getList();
-		
 	}
+	
+	
 	@Override
 	public void createView() {
 		Utility.showMessage("Success!");
