@@ -46,6 +46,7 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 	private HashMap<String, Double> query2Data = new HashMap<String, Double>();
 	private HashMap<String, String> query3Data = new HashMap<String, String>();
 	private HashMap<String, String> query4Data = new HashMap<String, String>();
+	private HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> query5Data = new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>();
 	private ArrayList<Object[]> list;//holds the results of the dual query
 	
 	@Override
@@ -63,14 +64,13 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 		this.engine1 = (IEngine) DIHelper.getInstance().getLocalProp(engineName1);
 		this.engine2 = (IEngine) DIHelper.getInstance().getLocalProp(engineName2);
 		
-		Double sustCost;
-		
 		if(query1Data.isEmpty()){
 			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine1, query1);
 			String[] names1 = sjsw.getVariables();
 			while(sjsw.hasNext()) {
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(names1[0]).toString();
+				Double sustCost;
 				if(sjss.getVar(names1[1]).toString().equals("")){
 					sustCost = 0.0;
 				} else {
@@ -131,10 +131,56 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 			}
 		}
 		
-		//Use Dual Engine Grid to process the dual query that gets cost info
-		dualQueries.setQuery(query5);
-		dualQueries.createData();
-		list = dualQueries.getList();
+		if(query5Data.isEmpty()) {
+			//Use Dual Engine Grid to process the dual query that gets cost info
+			dualQueries.setQuery(query5);
+			dualQueries.createData();
+			ArrayList<Object[]> deploymentInfo = dualQueries.getList();
+			int i;
+			int size = deploymentInfo.size();
+			for(i = 0; i < size; i++) {
+				Object[] info = deploymentInfo.get(i);
+				// region is first index in Object[]
+				// wave is second index in Object[]
+				// site is third index in Object[]
+				// system is fourth index in Object[]
+				String region = info[0].toString();
+				String wave = info[1].toString();
+				String site = info[2].toString();
+				String system = info[3].toString();
+				if(query5Data.containsKey(region)) {
+					HashMap<String, HashMap<String, ArrayList<String>>> regionInfo = query5Data.get(region);
+					if(regionInfo.containsKey(wave)) {
+						HashMap<String, ArrayList<String>> waveInfo = regionInfo.get(wave);
+						if(waveInfo.containsKey(site)) {
+							ArrayList<String> systemList = waveInfo.get(site);
+							systemList.add(system);
+						} else {
+							// put site info
+							ArrayList<String> systemList = new ArrayList<String>();
+							systemList.add(system);
+							waveInfo.put(site, systemList);
+						}
+					} else {
+						// put from wave info
+						ArrayList<String> systemList = new ArrayList<String>();
+						systemList.add(system);
+						HashMap<String, ArrayList<String>> newWaveInfo = new HashMap<String, ArrayList<String>>();
+						newWaveInfo.put(site, systemList);
+						regionInfo.put(wave, newWaveInfo);
+					}
+				} else {
+					// put from region info
+					ArrayList<String> systemList = new ArrayList<String>();
+					systemList.add(system);
+					HashMap<String, ArrayList<String>> newWaveInfo = new HashMap<String, ArrayList<String>>();
+					newWaveInfo.put(site, systemList);
+					HashMap<String, HashMap<String, ArrayList<String>>> newRegionInfo = new HashMap<String, HashMap<String, ArrayList<String>>>();
+					newRegionInfo.put(wave, newWaveInfo);
+					query5Data.put(region, newRegionInfo);
+				}
+			}
+		}
 	}
 	
 	
