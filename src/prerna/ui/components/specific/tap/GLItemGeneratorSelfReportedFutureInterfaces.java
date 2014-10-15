@@ -24,12 +24,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
 
 /**
@@ -40,24 +43,23 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 	private IEngine hrCore;
 	private IEngine futureDB;
 	private IEngine futureCostDB;
-	private IEngine tapCost;
-
 	private String genSpecificDProtQuery = "SELECT DISTINCT ?icd ?data ?sys (COALESCE(?dprot, (URI(\"http://health.mil/ontologies/Concept/DProt/HTTPS-SOAP\"))) AS ?Prot) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;} OPTIONAL{ ?payload <http://semoss.org/ontologies/Relation/Contains/Protocol> ?dprot} FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/DHMSM\")}";
 	private String genSpecificDFormQuery = "SELECT DISTINCT ?icd ?data ?sys (COALESCE(?dform, (URI(\"http://health.mil/ontologies/Concept/DForm/XML\"))) AS ?Form) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;} OPTIONAL{ ?payload <http://semoss.org/ontologies/Relation/Contains/Format> ?dform} FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/DHMSM\")}";
 	private String providerDataQuery1 = "SELECT DISTINCT ?icd ?data ?sys WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Provide> AS ?upstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?sys ?upstream ?icd ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;}  FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/DHMSM\")}";
 	private String providerDataQuery2 = "";
 	private String consumerDataQuery = "SELECT DISTINCT ?icd ?data ?sys WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}  {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}BIND(<http://semoss.org/ontologies/Relation/Consume> AS ?downstream) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?icd ?downstream ?sys ;} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload> } {?icd ?payload ?data ;} FILTER(STR(?sys)!=\"http://health.mil/ontologies/Concept/System/DHMSM\")}";
 	
+	private final String insertLOEQuery = "SELECT DISTINCT ?GLitem ?pred ?combinedTOTAL WHERE { BIND(<http://semoss.org/ontologies/Relation/Contains/LOEcalc> AS ?pred) { SELECT DISTINCT ?GLitem (ROUND(SUM((?multipliedTotal*(1+?Rate)))) AS ?combinedTOTAL) WHERE { {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> .} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass ;} BIND(<http://semoss.org/ontologies/Relation/Includes> AS ?contains) {?glItemCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItemCoreTask> ;} {?GLitem ?contains ?glItemCoreTask .} {SELECT DISTINCT ?glItemCoreTask (SUM(?factor*?LOE) AS ?multipliedTotal) WHERE { BIND(<http://semoss.org/ontologies/Relation/Includes> AS ?contains2) {?GLItemSubTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItemSubTask> ;} {?glItemCoreTask ?contains2 ?GLItemSubTask ;} BIND(<http://semoss.org/ontologies/Relation/Estimated> AS ?type) {?TargetPhaseBasisSubTaskComplexityComplexity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity> ;} {?GLItemSubTask ?type ?TargetPhaseBasisSubTaskComplexityComplexity ;} {?GLItemSubTask <http://semoss.org/ontologies/Relation/Contains/Factor> ?factor ;}{?TargetPhaseBasisSubTaskComplexityComplexity <http://semoss.org/ontologies/Relation/Contains/LOE> ?LOE ;}} GROUP BY ?glItemCoreTask } {SELECT DISTINCT ?glItemCoreTask (SUM(?rate) AS ?Rate) WHERE { BIND(<http://semoss.org/ontologies/Relation/TypeOf> AS ?TypeOf) {?TargetPhaseBasisCoreTask <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask> ;} {?glItemCoreTask ?TypeOf ?TargetPhaseBasisCoreTask ;} BIND(<http://semoss.org/ontologies/Relation/Incurs> AS ?incurs) {?TargetOverheadItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TargetOverheadItem> ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem <http://semoss.org/ontologies/Relation/Contains/Rate> ?rate ;} } GROUP BY ?glItemCoreTask} }GROUP BY ?GLitem } }";
+	
 	private HashMap<String, HashMap<String, Set<String>>> baseFutureCostRelations = new HashMap<String, HashMap<String, Set<String>>>();
 	
 	/**
 	 * Constructor for GLItemGeneratorSelfReportedFutureInterfaces.
 	 */
-	public GLItemGeneratorSelfReportedFutureInterfaces(IEngine hrCore, IEngine futureState, IEngine futureCostDB, IEngine costDB) {
+	public GLItemGeneratorSelfReportedFutureInterfaces(IEngine hrCore, IEngine futureState, IEngine futureCostDB) {
 		this.hrCore = hrCore;
 		this.futureDB = futureState;
 		this.futureCostDB = futureCostDB;
-		this.tapCost = costDB;
 	}
 
 	public void genData() throws RepositoryException, RDFHandlerException{
@@ -66,6 +68,10 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		runGenerator(generator);
 		Hashtable<String, Vector<String[]>> allData = generator.getAllDataHash();
 		getData(allData);
+		
+		addGLItemSubclassing();
+		
+		addLOEcalc();
 		
 		((BigDataEngine) futureCostDB).commit();
 		((BigDataEngine) futureCostDB).infer();
@@ -305,6 +311,37 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		processAllRelationshipSubpropTriples(futureCostDB);
 	}
 	
+	private void addLOEcalc() {
+		// must commit queries to be able to query and add the loe's
+		((BigDataEngine) futureCostDB).commit();
+		((BigDataEngine) futureCostDB).infer();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(futureCostDB, insertLOEQuery);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String sub = sjss.getRawVar(names[0]).toString();
+			String pred = sjss.getRawVar(names[1]).toString();
+			Double obj = (Double) sjss.getVar(names[2]);
+			( (BigDataEngine) futureCostDB).addStatement(sub, pred, obj, false);
+		}
+		
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Relation/Contains/LOECalc", RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains", false);
+	}
+	
+	private void addGLItemSubclassing() {
+		String concept = "http://semoss.org/ontologies/Concept";
+		String subclassOf = RDFS.SUBCLASSOF.toString();
+		
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/GLItem", subclassOf, concept, true);
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/TransitionGLItem", subclassOf, concept, true);
+
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/RequirementsGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DesignGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DevelopGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/TestGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DeployGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+	}
 	
 	public void insertRelData(Vector<String[]> data, String subBaseURI, String predBaseURI, String objBaseURI) {
 		dataHash.clear();
