@@ -154,6 +154,35 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
 	}
 
+	public static double[] removeAllTrailingZeroValues(final double[] arr) {
+		int newSize = arr.length;
+		while(newSize-- > 0 && arr[newSize] != 0) {};
+		double[] retArr = new double[newSize+1];
+		System.arraycopy(arr, 0, retArr, 0, newSize+1);
+		
+		return retArr;
+	}
+	
+	public static int[] removeAllTrailingZeroValues(final int[] arr) {
+		int newSize = arr.length;
+		// check to make sure there are trailing zeros to remove
+		if(arr[newSize - 1] != 0) {
+			return arr;
+		}
+		// check if all values are zero, return empty array
+		if(removeAllZeroValues(arr.clone()).length == 0) {
+			return new int[]{};
+		}
+		
+		while(newSize - 1 > 0 && arr[newSize - 1] == 0) {
+			newSize--;
+		};
+		int[] retArr = new int[newSize];
+		System.arraycopy(arr, 0, retArr, 0, newSize);
+		
+		return retArr;
+	}
+	
 	public static Object[] resizeArray(final Object[] arr, final int factor) {
 		return Arrays.copyOf(arr, arr.length*2); 
 	}
