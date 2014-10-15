@@ -18,8 +18,13 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -67,6 +72,8 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 	
 	private void processData() {
 		HashMap<String, Double[]> siteCostSavings = new HashMap<String, Double[]>();
+		// store sites since we assume we decommission sites after we visit them once
+		Set<String> siteList = new HashSet<String>();
 		
 		int minYear = 3000;//arbitrarily large year
 		int maxYear = 0;
@@ -103,15 +110,21 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 					case "Q4" : startPercent = 0.75; break;
 				}
 				switch(year) {
-					case "2015" : sustainmentIndex = 0; break;
-					case "2016" : sustainmentIndex = 1; break;
 					case "2017" : sustainmentIndex = 2; break;
 					case "2018" : sustainmentIndex = 3; break;
 					default: sustainmentIndex = 4;
 				}
-				int outputYear = sustainmentIndex;
+				int outputYear = 0;
+				switch(year) {
+					case "2017" : outputYear = 0; break;
+					case "2018" : outputYear = 1; break;
+					case "2019" : outputYear = 2; break;
+					case "2020" : outputYear = 3; break;
+					case "2021" : outputYear = 4; break;
+					case "2022" : outputYear = 5; break;
+					case "2023" : outputYear = 6; break;
+				}
 				HashMap<String, HashMap<String, ArrayList<String>>> waves = query5Data.get(region);
-				
 				int j;
 				for(j = 0; j < waveOrder.size(); j++) {
 					String wave = waveOrder.get(j);
@@ -123,30 +136,38 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 							outputYear++;//we assume all of the saving comes at the end
 						}
 						for(String site : sites.keySet()){
-							ArrayList<String> systems = sites.get(site);
-							double savings = 0.0;
-							double [] yearlySavings = new double[numColumns];
-							for(String system : systems){
-								Double [] costs = query1Data.get(system);
-								// assume cost for a specific site is total cost / num sites
-								double numSites = query2Data.get(system);
-								if(costs != null){
-									if(costs[sustainmentIndex].equals(null)){
-										savings += 0;
-									} else {
-										savings += costs[sustainmentIndex] / numSites;
+							if(!siteList.contains(site)) {
+								siteList.add(site);
+								ArrayList<String> systems = sites.get(site);
+								double savings = 0.0;
+								double [] yearlySavings = new double[numColumns];
+								for(String system : systems){
+									Double [] costs = query1Data.get(system);
+									// assume cost for a specific site is total cost / num sites
+									double numSites = query2Data.get(system);
+									if(costs != null){
+										if(costs[sustainmentIndex].equals(null)){
+											savings += 0;
+										} else {
+											// for debugging
+//											System.out.println(system);
+//											System.out.println("\t" + costs[sustainmentIndex] );
+//											System.out.println("\t" + numSites);
+//											System.out.println("\t" + costs[sustainmentIndex] / numSites);
+											savings += costs[sustainmentIndex] / numSites;
+										}
 									}
 								}
-							}
-							yearlySavings[outputYear] = savings;
-							if(savingsData.containsKey(site)) {
-								double[] currSavings = savingsData.get(site);
-								for(int index = 0; index < currSavings.length; index++) {
-									currSavings[index] += yearlySavings[index];
+								yearlySavings[outputYear] = savings;
+								if(savingsData.containsKey(site)) {
+									double[] currSavings = savingsData.get(site);
+									for(int index = 0; index < currSavings.length; index++) {
+										currSavings[index] += yearlySavings[index];
+									}
+									savingsData.put(site, currSavings);
+								} else {
+									savingsData.put(site, yearlySavings);
 								}
-								savingsData.put(site, currSavings);
-							} else {
-								savingsData.put(site, yearlySavings);
 							}
 						}
 					}
@@ -155,27 +176,30 @@ public class SavingsPerFiscalYearBySystemPlaySheet extends GridPlaySheet {
 		}
 		
 		list = new ArrayList<Object[]>();
-		
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 		for(String site : savingsData.keySet()) {
 			double[] values = savingsData.get(site);
 			if(list.isEmpty()) {
 				names = new String[values.length + 1];
 				names[0] = "";
 				//TODO: pass start FY
-				int FY = 2017;
+				int fy = 2017;
 				for(int index = 0; index < values.length; index++) {
 					if(index == 0) {
 						names[0] = "Site";
 					}
-					String FYString = "FY" + FY;
-					names[index+1] = FYString;
-					FY++;				}
+					String fyString = "FY" + fy;
+					names[index+1] = fyString;
+					fy++;				
+				}
 			}
 			
 			Object[] row = new Object[values.length + 1];
 			row[0] = site;
 			for(int index = 0; index < values.length; index++) {
-				row[index + 1] = values[index];
+				row[index + 1] = formatter.format(values[index]);
 			}
 			list.add(row);
 		}
