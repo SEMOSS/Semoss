@@ -280,4 +280,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				this.match2 = Boolean.parseBoolean(token);
 		}
 	}
+	
+	public ArrayList<Object[]> getList(){
+		return list;
+	}
 }
