@@ -40,7 +40,7 @@ public class QuestionAdministrator {
 	// JComboBox<String> questionSelector = (JComboBox<String>)
 	// DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
 	ArrayList<String> questionList2 = new ArrayList<String>();
-	ArrayList<String> questionList = new ArrayList<String>();
+	public ArrayList<String> questionList = new ArrayList<String>();
 	// JComboBox<String> perspectiveSelector = (JComboBox<String>)
 	// DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
 	String selectedPerspective = "";
@@ -112,6 +112,9 @@ public class QuestionAdministrator {
 
 	String engineURI2 = engineBaseURI + "/" + selectedEngine;
 
+	public boolean existingPerspective;
+	public boolean existingAutoGenQuestionKey;
+	
 	public QuestionAdministrator(IEngine engine) {
 		this.engine = engine;
 		insightBaseXML = ((AbstractEngine) engine).getInsightBaseXML();
@@ -821,7 +824,6 @@ public class QuestionAdministrator {
 				localCurrentPerspective = "";
 				localCurrentSparql = "";
 				localCurrentParameterProperties.clear();
-				;
 				localCurrentQsKey = "";
 				localCurrentLayoutName = "";
 				localCurrentQsDesc = "";
@@ -832,6 +834,51 @@ public class QuestionAdministrator {
 		}
 	}
 
+	public String createQuestionKey(String perspective) {
+		String questionKey = null;
+
+		// auto generate a questionKey based on existing similar
+		// question key
+		if (existingPerspective) {
+			if (existingAutoGenQuestionKey) {
+				// run through all of the questions with auto-generated
+				// questionKey and determine what the current largest
+				// questionKey is
+				// assigns the next value for the new questionKey
+				int largestQuestionKeyValue = 0;
+				for (int i = 0; i < questionList.size(); i++) {
+					String question = questionList.get(i);
+
+					Insight in = ((AbstractEngine) engine)
+							.getInsight2(question).get(0);
+
+					String questionID = in.getId();
+					String[] questionIDArray = questionID.split(":");
+					String currentQuestionKey = questionIDArray[2];
+					int currentQuestionKeyValue = 0;
+					if (questionIDArray[2].contains(perspective)) {
+						currentQuestionKeyValue = Integer
+								.parseInt(currentQuestionKey.replace(
+										perspective + "_", ""));
+					}
+					
+					// the following will make largestQuestionKeyValue
+					// equal to the last auto-generated questionkeyvalue
+					if (currentQuestionKeyValue > largestQuestionKeyValue) {
+						largestQuestionKeyValue = currentQuestionKeyValue;
+					}
+				}
+				largestQuestionKeyValue += 1;
+				questionKey = perspective + "_" + largestQuestionKeyValue;
+			} else {
+				questionKey = perspective + "_" + "1";
+			}
+		} else {
+			questionKey = perspective + "_" + "1";
+		}
+		return questionKey;
+	}
+	
 	public void addQuestion(String perspective, String questionKey,
 			String question, String sparql, String layout,
 			String questionDescription, Vector<String> parameterDependList,
@@ -853,6 +900,10 @@ public class QuestionAdministrator {
 
 		qsKey = questionKey;
 
+		if(qsKey==null){
+			createQuestionKey(perspective);
+		}
+		
 		qsDescr = question;
 		layoutName = layout;
 		description = questionDescription;
@@ -896,7 +947,6 @@ public class QuestionAdministrator {
 				parameterProperties);
 
 		// createQuestionXMLFile(xmlFile, baseFolder);
-
 		if (questionModType.equals("Add Question")) {
 			String[] questionArray = question.split("\\. ", 2);
 			String questionOrder = questionArray[0].trim();
