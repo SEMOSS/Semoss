@@ -73,6 +73,7 @@ public class GLItemGeneratorICDValidated {
 	 * Constructor for GLItemGeneratorICDValidated.
 	 */
 	public GLItemGeneratorICDValidated() {
+	
 	}
 
 	/**

@@ -51,7 +51,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 				throw new EngineException("Cost Info Not Found");
 			}
 			
-			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB, tapCost);
+			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB);
 			glGen.genData();
 			
 			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
