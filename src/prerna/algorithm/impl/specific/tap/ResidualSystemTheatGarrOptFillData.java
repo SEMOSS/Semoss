@@ -16,28 +16,42 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 	public int[] systemTheater;
 	public int[] systemGarrison;
 	
-	public int[][] dataRegionSORSystemTheaterExists;
-	public int[][] dataRegionSORSystemGarrisonExists;
-	public int[][] bluRegionProviderTheaterExists;
-	public int[][] bluRegionProviderGarrisonExists;
+	private int[][] dataRegionSORSystemTheaterCount;
+	private int[][] dataRegionSORSystemGarrisonCount;
+	private int[][] bluRegionProviderTheaterCount;
+	private int[][] bluRegionProviderGarrisonCount;
 	
-	public boolean fillDataStores(boolean dataRequired,boolean includeTheater,boolean includeGarrison)
+	public int[][] dataRegionSORSystemTheaterCountReduced;
+	public int[][] dataRegionSORSystemGarrisonCountReduced;
+	public int[][] bluRegionProviderTheaterCountReduced;
+	public int[][] bluRegionProviderGarrisonCountReduced;
+	
+	private ArrayList<Integer> dataReducedTheaterIndex;
+	private ArrayList<Integer> dataReducedGarrisonIndex;
+	private ArrayList<Integer> bluReducedTheaterIndex;
+	private ArrayList<Integer> bluReducedGarrisonIndex;
+	
+	public boolean fillDataStores(boolean includeTheater,boolean includeGarrison)
 	{
 		instantiate();
 		runQueries();
 		fillSystemTheaterGarrison(includeTheater,includeGarrison);
 	
-		dataRegionSORSystemCount = calculateIfProviderExistsWithRegion(systemDataMatrix,false);
+		dataRegionSORSystemCount = calculateIfProviderExistsWithRegion(systemDataMatrix,true);
 		bluRegionProviderCount = calculateIfProviderExistsWithRegion(systemBLUMatrix,false);
-		boolean reducedFunctionality = false;
-		if(dataRequired && dataOrBLUWithNoProviderExists)
-		{
-			reducedFunctionality = true;
-			dataRequired = false;
-		}
+	
+		dataReducedTheaterIndex = new ArrayList<Integer>();
+		dataReducedGarrisonIndex = new ArrayList<Integer>();
+		bluReducedTheaterIndex = new ArrayList<Integer>();
+		bluReducedGarrisonIndex = new ArrayList<Integer>();
 		
-		calculateIfProviderExistsWithRegion(systemDataMatrix,true,dataRequired);
-		calculateIfProviderExistsWithRegion(systemBLUMatrix,false,dataRequired);
+		calculateIfProviderExistsWithRegionGT(systemDataMatrix,true);
+		calculateIfProviderExistsWithRegionGT(systemBLUMatrix,false);
+		
+		dataRegionSORSystemTheaterCountReduced = removeReducedData(dataRegionSORSystemTheaterCount,dataReducedTheaterIndex);
+		dataRegionSORSystemGarrisonCountReduced = removeReducedData(dataRegionSORSystemGarrisonCount,dataReducedGarrisonIndex);
+		bluRegionProviderTheaterCountReduced = removeReducedData(bluRegionProviderTheaterCount,bluReducedTheaterIndex);
+		bluRegionProviderGarrisonCountReduced = removeReducedData(bluRegionProviderGarrisonCount,bluReducedGarrisonIndex);
 		
 		if(playSheet!=null)
 			printToConsole();
@@ -89,15 +103,15 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 			}
 		}
 	}
-	protected void calculateIfProviderExistsWithRegion(int[][] sysMatrix,boolean isData, boolean elementRequired)
+	protected void calculateIfProviderExistsWithRegionGT(int[][] sysMatrix,boolean isData)
 	{
-		int[][] theaterProviderExists = new int[sysMatrix[0].length][1];
-		int[][] garrisonProviderExists = new int[sysMatrix[0].length][1];
+		int[][] theaterProviderCount = new int[sysMatrix[0].length][1];
+		int[][] garrisonProviderCount = new int[sysMatrix[0].length][1];
 		int regions = 1;
 		if(includeRegionalization) {
 			regions = regionList.size();
-			theaterProviderExists = new int[sysMatrix[0].length][regionList.size()];
-			garrisonProviderExists = new int[sysMatrix[0].length][regionList.size()];
+			theaterProviderCount = new int[sysMatrix[0].length][regionList.size()];
+			garrisonProviderCount = new int[sysMatrix[0].length][regionList.size()];
 		}
 		//for every system in the system matrix
 		for(int col=0;col<sysMatrix[0].length;col++)
@@ -106,66 +120,84 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 			{
 				int numTheaterProviders = 0;
 				int numGarrisonProviders = 0;
-				if(elementRequired) {
-					numTheaterProviders =1;
-					numGarrisonProviders =1;
-				}
-				else {
-					for(int row=0;row<sysMatrix.length;row++) {
-						//check to see if that system is in the region we're currently looking at
-						if(systemTheater!=null&&systemRegionMatrix[row][regionInd]>=1.0&&systemTheater[row]>=1)
+				boolean decommTheaterOnly=true;
+				boolean decommGarrisonOnly=true;
+				for(int row=0;row<sysMatrix.length;row++) {
+					//check to see if that system is in the region we're currently looking at
+					if(systemRegionMatrix[row][regionInd]>=1.0) {
+						if(systemTheater!=null&&systemRegionMatrix[row][regionInd]>=1.0&&systemTheater[row]>=1) {
 							numTheaterProviders+=sysMatrix[row][col];
-						if(systemGarrison!=null&&systemRegionMatrix[row][regionInd]>=1.0&&systemGarrison[row]>=1)
+							if(sysMatrix[row][col]>=1.0&&systemDecommission[row]==0.0)
+								decommTheaterOnly = false;
+						}
+						if(systemGarrison!=null&&systemRegionMatrix[row][regionInd]>=1.0&&systemGarrison[row]>=1) {
 							numGarrisonProviders+=sysMatrix[row][col];
+							if(sysMatrix[row][col]>=1.0&&systemDecommission[row]==0.0)
+								decommGarrisonOnly = false;
+						}
 					}
 				}
 				if(numTheaterProviders==0&&numGarrisonProviders==0)
-					dataOrBLUWithNoProviderExists = true;
+					reducedFunctionality = true;
+				if(numTheaterProviders!=0&&decommTheaterOnly) {
+					reducedFunctionality=true;
+					if(isData)
+						dataReducedTheaterIndex.add(col);
+					else
+						bluReducedTheaterIndex.add(col);
+				}
+				if(numGarrisonProviders!=0&&decommGarrisonOnly) {
+					reducedFunctionality=true;
+					if(isData)
+						dataReducedGarrisonIndex.add(col);
+					else
+						bluReducedGarrisonIndex.add(col);
+				}	
 				if(systemTheater!=null)
-					theaterProviderExists[col][regionInd] =numTheaterProviders;
+					theaterProviderCount[col][regionInd] =numTheaterProviders;
 				if(systemGarrison!=null)
-					garrisonProviderExists[col][regionInd] =numGarrisonProviders;
+					garrisonProviderCount[col][regionInd] =numGarrisonProviders;
 			}
 		}
 		if(isData) {
 			if(systemTheater!=null)
-				dataRegionSORSystemTheaterExists = theaterProviderExists;
+				dataRegionSORSystemTheaterCount = theaterProviderCount;
 			if(systemGarrison!=null)
-				dataRegionSORSystemGarrisonExists = garrisonProviderExists;
+				dataRegionSORSystemGarrisonCount = garrisonProviderCount;
 		} else {
 			if(systemTheater!=null)
-				bluRegionProviderTheaterExists = theaterProviderExists;
+				bluRegionProviderTheaterCount = theaterProviderCount;
 			if(systemGarrison!=null)
-				bluRegionProviderGarrisonExists = garrisonProviderExists;
+				bluRegionProviderGarrisonCount = garrisonProviderCount;
 		}
 	}
 	private void printAll()
 	{
-		System.out.println("System Provides Data:");
+		logger.info("System Provides Data:");
 		printMatrix(systemDataMatrix,sysList,dataList);
 
-		System.out.println("System Cost to Provide Data:");
+		logger.info("System Cost to Provide Data:");
 		printMatrix(systemCostOfDataMatrix,sysList,dataList);
 		
-		System.out.println("System Provides BLU:");
+		logger.info("System Provides BLU:");
 		printMatrix(systemBLUMatrix,sysList,bluList);
 		
-		System.out.println("System Cost to Maintain:");
+		logger.info("System Cost to Maintain:");
 		printVector(systemCostOfMaintenance,sysList);
-		System.out.println("System Cost to Maintain DB:");
+		logger.info("System Cost to Maintain DB:");
 		printVector(systemCostOfDB,sysList);
-		System.out.println("System Site List:");
+		logger.info("System Site List:");
 		printVector(systemNumOfSites,sysList);
 		
-		System.out.println("New site list must provide data in theater:");
-		printMatrix(dataRegionSORSystemTheaterExists,dataList,regionList);
-		System.out.println("New site list must provide data in garrison:");
-		printMatrix(dataRegionSORSystemGarrisonExists,dataList,regionList);
+		logger.info("New site list must provide data in theater:");
+		printMatrix(dataRegionSORSystemTheaterCount,dataList,regionList);
+		logger.info("New site list must provide data in garrison:");
+		printMatrix(dataRegionSORSystemGarrisonCount,dataList,regionList);
 		
-		System.out.println("New site list must provide blu in theater:");
-		printMatrix(bluRegionProviderTheaterExists,bluList,regionList);		
-		System.out.println("New site list must provide blu in garrison:");
-		printMatrix(bluRegionProviderGarrisonExists,bluList,regionList);
+		logger.info("New site list must provide blu in theater:");
+		printMatrix(bluRegionProviderTheaterCount,bluList,regionList);		
+		logger.info("New site list must provide blu in garrison:");
+		printMatrix(bluRegionProviderGarrisonCount,bluList,regionList);
 	}
 	protected void printToConsole()
 	{
@@ -174,18 +206,18 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nTheater Systems: ");
 			printNonZerosToConsoleList(deepCopy(sysList),systemTheater);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Theater Systems that are SOR of Data Object...");
-			printNumberToConsoleList(deepCopy(dataList),dataRegionSORSystemTheaterExists);
+			printNumberToConsoleList(deepCopy(dataList),dataRegionSORSystemTheaterCount);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Theater Systems that provide BLU by region...");
-			printNumberToConsoleList(deepCopy(bluList),bluRegionProviderTheaterExists);
+			printNumberToConsoleList(deepCopy(bluList),bluRegionProviderTheaterCount);
 		}
 		
 		if(systemGarrison!=null) {
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGarrison Systems: ");
 			printNonZerosToConsoleList(deepCopy(sysList),systemGarrison);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Garrison Systems that are SOR of Data Object...");
-			printNumberToConsoleList(deepCopy(dataList),dataRegionSORSystemGarrisonExists);
+			printNumberToConsoleList(deepCopy(dataList),dataRegionSORSystemGarrisonCount);
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n*Number of Garrison Systems that provide BLU by region...");
-			printNumberToConsoleList(deepCopy(bluList),bluRegionProviderGarrisonExists);
+			printNumberToConsoleList(deepCopy(bluList),bluRegionProviderGarrisonCount);
 		}
 	}
 	private void printNonZerosToConsoleList(ArrayList<String> sysList,int[] listToCheck)
