@@ -22,15 +22,15 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	private final String TAP_SITE = "TAP_Site_Data";
 	private IEngine tapPortfolio;
 	private IEngine tapSite;
+	
 	private DualEngineGridPlaySheet dualQueries = new DualEngineGridPlaySheet();	
+	
 	private HashMap<String, Double[]> sysSustainmentInfoHash= new HashMap<String, Double[]>();
 	private HashMap<String, Double> numSitesForSysHash = new HashMap<String, Double>();
 	private HashMap<String, String> regionStartDateHash = new HashMap<String, String>();
 	private HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> query5Data = new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>();
 	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
 	
-	private String firstRegion;
-	private String firstWave;
 	private ArrayList<String> regionOrder;
 	private ArrayList<String> waveOrder;
 	
@@ -105,9 +105,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					if(waves.keySet().contains(wave)){
 						HashMap<String, ArrayList<String>> sites = waves.get(wave);
 						startPercent += perOfYear;
-						if(startPercent >= 1.0){
+						if(startPercent >= 1.0) {
 							startPercent -= 1.0;
 							outputYear++;//we assume all of the saving comes at the end
+							if(sustainmentIndex < 4) {
+								sustainmentIndex++;
+							}
 						}
 						for(String site : sites.keySet()){
 							if(!siteList.contains(site)) {
