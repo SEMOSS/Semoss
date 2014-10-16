@@ -59,7 +59,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, lpiSysQuery);
 		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()){
+		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sysURI = sjss.getRawVar(names[0]).toString();
 			try {

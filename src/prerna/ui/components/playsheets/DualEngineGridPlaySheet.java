@@ -60,6 +60,14 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	private boolean match1 = true;
 	private boolean match2 = true;
 
+	public ArrayList<Object[]> getList(){
+		return list;
+	}
+	
+	public String[] getNames() {
+		return names;
+	}
+	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -280,9 +288,5 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			else if (queryIdx == 5)
 				this.match2 = Boolean.parseBoolean(token);
 		}
-	}
-	
-	public ArrayList<Object[]> getList(){
-		return list;
 	}
 }
