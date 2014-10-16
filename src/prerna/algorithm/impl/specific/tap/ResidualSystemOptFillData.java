@@ -674,4 +674,28 @@ public class ResidualSystemOptFillData{
 		}
 		return false;
 	}
+	
+	public double percentDataBLUReplaced(int modIndex,int decommIndex) {
+		double overlapCount = 0.0;
+		double totalCount = 0.0;
+		for(int dataInd=0;dataInd<systemDataMatrix[modIndex].length;dataInd++) {
+			if(systemDataMatrix[decommIndex][dataInd]>0) {
+				totalCount++;
+			}
+			if(systemDataMatrix[decommIndex][dataInd]>0&&systemDataMatrix[modIndex][dataInd]>0) {
+				overlapCount++;
+			}
+		}
+		for(int bluInd=0;bluInd<systemBLUMatrix[modIndex].length;bluInd++) {
+			if(systemBLUMatrix[decommIndex][bluInd]>0) {
+				totalCount++;
+			}
+			if(systemBLUMatrix[decommIndex][bluInd]>0&&systemBLUMatrix[modIndex][bluInd]>0) {
+				overlapCount++;
+			}
+		}
+		if(totalCount==0.0)
+			return 0.0;
+		return overlapCount/totalCount;
+	}
 }

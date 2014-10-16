@@ -486,7 +486,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		currentFuncPanel.setLayout(gbl_futureFuncPanel);
 
 		replacementHeatMapPanel = new JPanel();
-//		tabbedPane.addTab("Replacement Heat Map", null, replacementHeatMapPanel, null);
+		tabbedPane.addTab("Replacement Heat Map", null, replacementHeatMapPanel, null);
 		GridBagLayout gbl_replacementHeatMapPanel = new GridBagLayout();
 		gbl_replacementHeatMapPanel.columnWidths = new int[]{0, 0};
 		gbl_replacementHeatMapPanel.rowHeights = new int[]{0, 0};
