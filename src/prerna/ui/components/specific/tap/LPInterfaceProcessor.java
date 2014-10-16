@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -13,6 +16,8 @@ import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
 
 public class LPInterfaceProcessor {
+	
+	private static final Logger LOGGER = LogManager.getLogger(LPInterfaceProcessor.class.getName());
 	
 	// direct cost and indirect costs requires 
 	private HashMap<String, HashMap<String, Double>> loeForSysGlItemHash = new HashMap<String, HashMap<String, Double>>();
@@ -39,7 +44,7 @@ public class LPInterfaceProcessor {
 	private double totalIndirectCost = 0;
 	private boolean generateCost = false;
 	
-	private String query = "SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem) (COALESCE(IF(BOUND(?y),IF((?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question'),'Low','High'),IF(BOUND(?x),IF((?DownstreamSysProb1!='High' && ?DownstreamSysProb1!='Question'),'Low','High'),'')), '') AS ?Probability) ?Interface ?Data ?Format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) ?Recommendation WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?ReceivedInformation) LET(?d := 'd') { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;}OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{ {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} } ORDER BY ?System ?InterfacingSystem ?Data";	
+	private String query = "SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem) (COALESCE(IF(BOUND(?y),IF((?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question'),'Low','High'),IF(BOUND(?x),IF((?DownstreamSysProb1!='High' && ?DownstreamSysProb1!='Question'),'Low','High'),'')), '') AS ?Probability) ?Interface ?Data ?Format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provider','Consume')) AS ?DHMSM) ?Recommendation WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?ReceivedInformation) LET(?d := 'd') { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;}OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{ {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;}{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} } ORDER BY ?System ?InterfacingSystem ?Data";	
 	
 	private final String SYS_KEY = "System";
 	private final String INTERFACE_TYPE_KEY = "InterfaceType";
@@ -51,11 +56,10 @@ public class LPInterfaceProcessor {
 	private final String FREQ_KEY = "Freq";
 	private final String PROT_KEY = "Prot";
 	private final String DHMSM = "DHMSM";
-	private final String COMMENT_KEY = "Recommendation";
 
 	private final String DOWNSTREAM_KEY = "Downstream";
-	private final String DHMSM_PROVIDE_KEY = "Provide";
-	private final String DHMSM_CONSUME_KEY = "Consumes";
+	private final String DHMSM_PROVIDE_KEY = "Provider";
+	private final String DHMSM_CONSUME_KEY = "Consume";
 	private final String LPI_KEY = "LPI";
 	//	private final String lpniKey = "LPNI"; 
 	private final String HPI_KEY = "HPI";
@@ -201,6 +205,7 @@ public class LPInterfaceProcessor {
 		
 		//Process main query
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		LOGGER.info("Main Query: " + query);
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
@@ -293,45 +298,21 @@ public class LPInterfaceProcessor {
 			
 			// get uri's
 			String system = "";
-			String interfaceTypeURI = "";
 			String interfacingSystem = "";
-			String probabilityURI = "";
 			String icdURI = "";
 			String dataURI = "";
-			String formatURI = "";
-			String freqURI = "";
-			String protURI = "";
-			String dhmsmSORURI = "";
 
 			if(sjss.getRawVar(SYS_KEY) != null) {
 				system = sjss.getRawVar(SYS_KEY).toString();
 			}
-			if(sjss.getRawVar(INTERFACE_TYPE_KEY) != null) {
-				interfaceTypeURI = sjss.getVar(INTERFACE_TYPE_KEY).toString();
-			}
 			if(sjss.getRawVar(INTERFACING_SYS_KEY) != null) {
 				interfacingSystem = sjss.getRawVar(INTERFACING_SYS_KEY).toString();
-			}
-			if(sjss.getRawVar(PROBABILITY_KEY) != null) {
-				probabilityURI = sjss.getRawVar(PROBABILITY_KEY).toString();
 			}
 			if(sjss.getRawVar(ICD_KEY) != null) {
 				icdURI = sjss.getRawVar(ICD_KEY).toString();
 			}
 			if(sjss.getRawVar(DATA_KEY) != null) {
 				dataURI = sjss.getRawVar(DATA_KEY).toString();
-			}
-			if(sjss.getRawVar(FORMAT_KEY) != null) {
-				formatURI = sjss.getRawVar(FORMAT_KEY).toString();
-			}
-			if(sjss.getRawVar(FREQ_KEY) != null) {
-				freqURI = sjss.getRawVar(FREQ_KEY).toString();
-			}
-			if(sjss.getRawVar(PROT_KEY) != null) {
-				protURI = sjss.getRawVar(PROT_KEY).toString();
-			}
-			if(sjss.getRawVar(DHMSM) != null) {
-				dhmsmSORURI = sjss.getRawVar(DHMSM).toString();
 			}
 
 			String comment = "";
@@ -476,6 +457,17 @@ public class LPInterfaceProcessor {
 						// future cost triple
 						addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
+					
+					// if downstream system is HP, remove interface
+					if(downstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).") ;
+						// future db triples - removed interface
+						removedInterfaces.add(icdURI);
+						String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
+						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
+						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
+					}
+					
 				} 
 				// new business rule might be added - will either un-comment or remove after discussion today
 				// else if (upstreamSysType.equals(lpniKey)) { // upstream system is LPNI
@@ -498,7 +490,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
-						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
+						finalCost = calculateCost(data, downstreamSysName, "Consume", false, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -514,89 +506,6 @@ public class LPInterfaceProcessor {
 						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 					}
 				} 
-				// REMOVED HPI LOGIC
-//				if(upstreamSysType.equals(HPI_KEY)) { // upstream is HPI
-//					comment = comment.concat("Provide temporary integration between DHMSM->").concat(upstreamSysName).concat(" until all deployment sites for ").concat(upstreamSysName)
-//							.concat(" field DHMSM (and any additional legal requirements). ");
-//					
-//					// direct cost if system is upstream and indirect is downstream
-//					if(generateCost && !costCalculated) {
-//						costCalculated = true;
-//						if(sysName.equals(upstreamSysName)) {
-//							directCost = true;
-//							if(usePhase) {
-//								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList, rowIdx);
-//							} else {
-//								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList);
-//							}
-//							
-//							deleteOtherInterfaces = true;
-//							skipFistIteration = true;
-//							for(Integer index : indexArr)
-//							{
-//								if(index < retList.size() && retList.get(index) != null) // case when first row is the LPI system and hasn't been added to newData yet
-//								{
-//									Object[] modifyCost = retList.get(index);
-//									modifyCost[11] = "Interface already taken into consideration.";
-//									modifyCost[12] = "";
-//									modifyCost[13] = "";
-//								}
-//							}
-//						} else {
-//							directCost = false;
-//							if(usePhase) {
-//								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList, rowIdx);
-//							} else {
-//								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList);
-//							}
-//						}
-//					}
-//					
-//					if(generateNewTriples) {
-//						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
-//						// future db triples - new interface
-//						newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
-//						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
-//						addedInterfaces.add(newICD);
-//						addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-//						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
-//						// future cost triple
-//						addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
-//					}
-//				} else if(downstreamSysType.equals(HPI_KEY)) { // upstream sys is not HPI and downstream is HPI
-//					comment = comment.concat("Provide temporary integration between DHMSM->").concat(downstreamSysName).concat(" until all deployment sites for ").concat(downstreamSysName).concat(" field DHMSM (and any additional legal requirements).")
-//							.concat(" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
-//					
-//					// direct cost if system is downstream
-//					if(generateCost && !costCalculated) {
-//						if(sysName.equals(downstreamSysName)) {
-//							costCalculated = true;
-//							directCost = true;
-//							if(usePhase) {
-//								finalCost = calculateCost(data, downstreamSysName, "Consume", false, servicesProvideList, rowIdx);
-//							} else {
-//								finalCost = calculateCost(data, downstreamSysName, "Consume", false, servicesProvideList);
-//							}
-//						}
-//					}
-//					
-//					if(generateNewTriples) {
-//						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
-//						// future db triples - new interface
-//						newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
-//						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
-//						addedInterfaces.add(newICD);
-//						addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-//						addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
-//						// future db triples - removed interface
-//						removedInterfaces.add(icdURI);
-//						String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
-//						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
-//						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
-//						// future cost triple
-//						addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
-//					}
-//				} 
 				else
 				{
 					noCost = true;
@@ -633,7 +542,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
-						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
+						finalCost = calculateCost(data, upstreamSysName, "Provide", true, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -661,7 +570,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
-						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
+						finalCost = calculateCost(data, upstreamSysName, "Provide", true, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -690,7 +599,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
-						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
+						finalCost = calculateCost(data, downstreamSysName, "Provide", true, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -718,7 +627,7 @@ public class LPInterfaceProcessor {
 					}
 					
 					if(generateNewTriples) {
-						finalCost = calculateCost(data, upstreamSysName, "Consume", false, new HashSet(), rowIdx);
+						finalCost = calculateCost(data, downstreamSysName, "Provide", true, new HashSet(), rowIdx);
 						// future db triples - new interface
 						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
 						payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
@@ -1233,7 +1142,6 @@ public class LPInterfaceProcessor {
 			if(innerHash.containsKey(key)){
 				double newLoe = innerHash.get(key) + loe;
 				innerHash.put(key, newLoe);
-
 			} else {
 				innerHash.put(key, loe);
 			}
