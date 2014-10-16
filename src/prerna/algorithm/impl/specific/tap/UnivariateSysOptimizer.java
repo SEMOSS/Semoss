@@ -600,38 +600,36 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	}
 	
 	public void displayHeatMap() {
-//		ArrayList<Object[]> percentList = new ArrayList<Object[]>();//need to change
-//		Hashtable dataHash = new Hashtable();
-//		Hashtable dataSeries = new Hashtable();
-//		String[] var = new String[]{"Modernized Systems","Decommissioned Systems","Value"};
-//		String xName = var[0]; //Modernized Systems
-//		String yName = var[1]; //Decommissioned Systems
-//		for (int i=0;i<percentList.size();i++)
-//		{
-//			Hashtable elementHash = new Hashtable();
-//			Object[] listElement = percentList.get(i);			
-//			String modSysName = (String) listElement[0]; //system
-//			String decSysName = (String) listElement[1]; //data
-//			modSysName = modSysName.replaceAll("\"", "");
-//			decSysName = decSysName.replaceAll("\"", "");
-//			String key = modSysName +"-"+decSysName;
-//			double count = (Double) listElement[2];
-//			elementHash.put(xName, modSysName);
-//			elementHash.put(yName, decSysName);
-//			elementHash.put(var[2], count);
-//			dataHash.put(key, elementHash);
-//
-//		}
-//
-//		Hashtable allHash = new Hashtable();
-//		allHash.put("dataSeries", dataHash);
-//		allHash.put("title",  var[0] + " vs " + var[1]);
-//		allHash.put("xAxisTitle", var[0]);
-//		allHash.put("yAxisTitle", var[1]);
-//		allHash.put("value", var[2]);
-//		// display output for heatmap tab
-//		((SysOptPlaySheet) playSheet).replacementHeatMap.callIt(allHash);
-//		((SysOptPlaySheet) playSheet).replacementHeatMap.setVisible(true);
+		Hashtable dataHash = new Hashtable();
+		String[] var = new String[]{"Modernized Systems","Decommissioned Systems","Value"};
+		String xName = var[0]; //Modernized Systems
+		String yName = var[1]; //Decommissioned Systems
+		ArrayList<Integer> modIndicies = sysOpt.getModernizedIndicies();
+		ArrayList<Integer> decommIndicies = sysOpt.getDecommissionedIndicies();
+		for(Integer modIndex : modIndicies) {
+			String modSysName = sysList.get(modIndex); //modernized system
+			for(Integer decommIndex : decommIndicies) {
+				String decommSysName = sysList.get(decommIndex); //modernized system
+				Hashtable elementHash = new Hashtable();
+				modSysName = modSysName.replaceAll("\"", "");
+				decommSysName = decommSysName.replaceAll("\"", "");
+				String key = modSysName +"-"+decommSysName;
+				double count = resFunc.percentDataBLUReplaced(modIndex,decommIndex);
+				elementHash.put(xName, modSysName);
+				elementHash.put(yName, decommSysName);
+				elementHash.put(var[2], count);
+				dataHash.put(key, elementHash);
+			}
+		}
+		Hashtable allHash = new Hashtable();
+		allHash.put("dataSeries", dataHash);
+		allHash.put("title",  var[0] + " vs " + var[1]);
+		allHash.put("xAxisTitle", var[0]);
+		allHash.put("yAxisTitle", var[1]);
+		allHash.put("value", var[2]);
+		// display output for heatmap tab
+		((SysOptPlaySheet) playSheet).replacementHeatMap.callIt(allHash);
+		((SysOptPlaySheet) playSheet).replacementHeatMap.setVisible(true);
 	}
 
 	/**
