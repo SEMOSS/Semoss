@@ -73,8 +73,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	 //overall analysis tab
 	public JRadioButton rdbtnIRR;
 	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
-	public BrowserGraphPanel tabModernizedHeatMap;
-	public JPanel specificFuncAlysPanel;
+	public BrowserGraphPanel replacementHeatMap;
+	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel;
 	
 	/**
 	 * Constructor for SysOptPlaySheet.
@@ -377,19 +377,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	@Override
 	public void createSpecificDisplayComponents()
 	{
-		tabModernizedHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-		tabModernizedHeatMap.setPreferredSize(new Dimension(500, 400));
-		tabModernizedHeatMap.setMinimumSize(new Dimension(500, 400));
-		tabModernizedHeatMap.setVisible(false);
-		
-		GridBagConstraints gbc_tabModernizedHeatMap = new GridBagConstraints();
-		gbc_tabModernizedHeatMap.insets = new Insets(0, 0, 0, 5);
-		gbc_tabModernizedHeatMap.fill = GridBagConstraints.BOTH;
-		gbc_tabModernizedHeatMap.gridwidth = 2;
-		gbc_tabModernizedHeatMap.gridx = 0;
-		gbc_tabModernizedHeatMap.gridy = 1;
-		chartPanel.add(tabModernizedHeatMap,  gbc_tabModernizedHeatMap);
-		
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
@@ -480,14 +467,44 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
 		
-		specificFuncAlysPanel = new JPanel();
-		tabbedPane.addTab("Functionality Analysis", null, specificFuncAlysPanel, null);
+		currentFuncPanel = new JPanel();
+		tabbedPane.addTab("As-Is Functionality", null, currentFuncPanel, null);
 		GridBagLayout gbl_specificFuncAlysPanel = new GridBagLayout();
 		gbl_specificFuncAlysPanel.columnWidths = new int[]{0, 0};
 		gbl_specificFuncAlysPanel.rowHeights = new int[]{0, 0};
 		gbl_specificFuncAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_specificFuncAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		specificFuncAlysPanel.setLayout(gbl_specificFuncAlysPanel);
+		currentFuncPanel.setLayout(gbl_specificFuncAlysPanel);
+		
+		futureFuncPanel = new JPanel();
+		tabbedPane.addTab("Future Functionality", null, futureFuncPanel, null);
+		GridBagLayout gbl_futureFuncPanel = new GridBagLayout();
+		gbl_futureFuncPanel.columnWidths = new int[]{0, 0};
+		gbl_futureFuncPanel.rowHeights = new int[]{0, 0};
+		gbl_futureFuncPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_futureFuncPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		currentFuncPanel.setLayout(gbl_futureFuncPanel);
+
+		replacementHeatMapPanel = new JPanel();
+//		tabbedPane.addTab("Replacement Heat Map", null, replacementHeatMapPanel, null);
+		GridBagLayout gbl_replacementHeatMapPanel = new GridBagLayout();
+		gbl_replacementHeatMapPanel.columnWidths = new int[]{0, 0};
+		gbl_replacementHeatMapPanel.rowHeights = new int[]{0, 0};
+		gbl_replacementHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_replacementHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		replacementHeatMapPanel.setLayout(gbl_replacementHeatMapPanel);
+
+		replacementHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
+		replacementHeatMap.setMinimumSize(new Dimension(500, 400));
+//		tabModernizedHeatMap.setVisible(false);
+		
+		GridBagConstraints gbc_replacementHeatMap = new GridBagConstraints();
+		gbc_replacementHeatMap.insets = new Insets(0, 0, 0, 5);
+		gbc_replacementHeatMap.fill = GridBagConstraints.BOTH;
+		gbc_replacementHeatMap.gridx = 0;
+		gbc_replacementHeatMap.gridy = 0;
+		replacementHeatMapPanel.add(replacementHeatMap, gbc_replacementHeatMap);
+//		replacementHeatMapPanel.setVisible(false);
 	}
 	
 	/**
@@ -550,7 +567,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	 */
 	@Override
 	public void clearPanels() {
-		specificFuncAlysPanel.removeAll();
+		currentFuncPanel.removeAll();
 		specificSysAlysPanel.removeAll();
 	}
 	

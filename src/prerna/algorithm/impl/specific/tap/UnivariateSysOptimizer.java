@@ -184,9 +184,14 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		else
 			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),null,deepCopy(systemMustModernize),deepCopy(systemMustDecommission));
 		if(ignoreTheatGarr)
-			reducedFunctionality = resFunc.fillDataStores(!dataQuery.equals("NULL"));
+			reducedFunctionality = resFunc.fillDataStores();
 		else
-			reducedFunctionality = ((ResidualSystemTheatGarrOptFillData)resFunc).fillDataStores(!dataQuery.equals("NULL"),includeTheater,includeGarrison);
+			reducedFunctionality = ((ResidualSystemTheatGarrOptFillData)resFunc).fillDataStores(includeTheater,includeGarrison);
+		if(resFunc.doManualModDecommOverlap()) {
+			errorMessage = "There is at least one system on the manually modernize and manually decommission. Please resolve the lists.";
+			noErrors = false;
+			return;
+		}
 	}
 	public ArrayList<String> deepCopy(ArrayList<String> list)
 	{
@@ -205,12 +210,12 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		else
 			sysOpt = new ResidualSystemTheatGarrOptimizer();
 		sysOpt.setPlaySheet(playSheet);
-		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemModernize,resFunc.systemDecommission,resFunc.dataRegionSORSystemExists,resFunc.bluRegionProviderExists);
+		sysOpt.setDataSet(this.sysList,this.dataList,this.bluList,this.regionList,resFunc.systemDataMatrix,resFunc.systemBLUMatrix,resFunc.systemCostOfDataMatrix,resFunc.systemRegionMatrix,resFunc.systemCostOfMaintenance,resFunc.systemCostOfDB,resFunc.systemNumOfSites,resFunc.systemModernize,resFunc.systemDecommission,resFunc.dataRegionSORSystemCountReduced,resFunc.bluRegionProviderCountReduced);
 
 		if(ignoreTheatGarr)
 			noErrors = sysOpt.runOpt();
 		else {
-			((ResidualSystemTheatGarrOptimizer)sysOpt).setTheatGarrDataSet(((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater,((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemTheaterExists,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemGarrisonExists,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderTheaterExists,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderGarrisonExists);
+			((ResidualSystemTheatGarrOptimizer)sysOpt).setTheatGarrDataSet(((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater,((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemTheaterCountReduced,((ResidualSystemTheatGarrOptFillData)resFunc).dataRegionSORSystemGarrisonCountReduced,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderTheaterCountReduced,((ResidualSystemTheatGarrOptFillData)resFunc).bluRegionProviderGarrisonCountReduced);
 			noErrors = ((ResidualSystemTheatGarrOptimizer)sysOpt).runOpt();
 		}
 
@@ -320,7 +325,9 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nIRR: "+irr);
 	        displayResults();
 	        displaySystemSpecifics();
-	        displayFunctionalitySpecifics();
+	        displayCurrFunctionality();
+	        displayFutureFunctionality();
+	        displayHeatMap();
         }
         else
 		{
@@ -439,8 +446,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		}
 		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificSysAlysPanel);
 	}
-	public void displayFunctionalitySpecifics()
-	{
+	private void displayCurrFunctionality() {
 		ArrayList <Object []> list = new ArrayList<Object []>();
 		int size = resFunc.sysList.size()+3;
 		if(includeRegionalization)
@@ -501,7 +507,131 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			}
 			list.add(newRow);
 		}
-		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificFuncAlysPanel,true);
+		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).currentFuncPanel,true);
+	}
+	
+	private void displayFutureFunctionality() {
+		
+		ArrayList <Object []> list = new ArrayList<Object []>();
+		int numModernizedSys = sysOpt.countModernized();
+		int size = numModernizedSys+3;
+		if(includeRegionalization)
+			size += resFunc.regionList.size()+1;
+		String[] colNames = new String[size];//number of systems+2
+		colNames[0]="Data/BLU";
+		colNames[1]="Type";
+		colNames[2]="Number of Systems Providing";
+		int colIndex=0;
+		for(int i=0;i<resFunc.sysList.size();i++) {
+			if(sysOpt.systemIsModernized[i]>0) {
+				colNames[colIndex+3] = resFunc.sysList.get(i);
+				colIndex++;
+			}
+		}
+		if(includeRegionalization)
+		{
+			colNames[numModernizedSys+3] = "Number of Regions Provided At";
+			for(int i=0;i<resFunc.regionList.size();i++)
+				colNames[numModernizedSys+4+i] = "Region "+resFunc.regionList.get(i);
+		}
+		for (int dataInd = 0;dataInd<resFunc.dataList.size();dataInd++)
+		{
+			Object[] newRow = new Object[size];
+			newRow[0] = resFunc.dataList.get(dataInd);
+			newRow[1] = "Data";
+			colIndex=0;
+			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
+				if(sysOpt.systemIsModernized[sysInd]>0) {
+					if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
+						newRow[colIndex+3] = "X";
+					colIndex++;
+				}
+			int sysCount = 0;
+			for(int sysInd=3;sysInd<numModernizedSys+3;sysInd++) {
+				if(newRow[sysInd]!=null&&newRow[sysInd].equals("X"))
+					sysCount++;
+			}
+			newRow[2] = sysCount;
+			if(includeRegionalization)
+			{
+				int numRegions = 0;
+				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
+					if(resFunc.dataRegionSORSystemCount[dataInd][regionInd]>=1)
+					{
+						numRegions++;
+						newRow[numModernizedSys+4+regionInd] = "X";
+					}
+				newRow[numModernizedSys+3] = numRegions;
+			}
+			list.add(newRow);
+		}
+		for (int bluInd = 0;bluInd<resFunc.bluList.size();bluInd++)
+		{
+			Object[] newRow = new Object[size];
+			newRow[0] = resFunc.bluList.get(bluInd);
+			newRow[1] = "BLU";
+			colIndex=0;
+			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
+				if(sysOpt.systemIsModernized[sysInd]>0) {
+					if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
+					newRow[colIndex+3] = "X";
+					colIndex++;
+				}
+			int sysCount = 0;
+			for(int sysInd=3;sysInd<numModernizedSys+3;sysInd++) {
+				if(newRow[sysInd]!=null&&newRow[sysInd].equals("X"))
+					sysCount++;
+			}
+			newRow[2] = sysCount;
+			if(includeRegionalization)
+			{
+				int numRegions = 0;
+				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
+					if(resFunc.bluRegionProviderCount[bluInd][regionInd]>=1)
+					{
+						numRegions++;
+						newRow[numModernizedSys+4+regionInd] = "X";
+					}
+				newRow[numModernizedSys+3] = numRegions;
+			}
+			list.add(newRow);
+		}
+		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).futureFuncPanel,true);
+	}
+	
+	public void displayHeatMap() {
+//		// let's make a heatmap
+//		Hashtable dataHash = new Hashtable();
+//		Hashtable dataSeries = new Hashtable();
+//		String[] var = new String[]{"Systems","Data Objects","Value"};
+//		String xName = var[0]; //system
+//		String yName = var[1]; //data objects
+//		for (int i=0;i<percentList.size();i++)
+//		{
+//			Hashtable elementHash = new Hashtable();
+//			Object[] listElement = percentList.get(i);			
+//			String methodName = (String) listElement[0]; //system
+//			String groupName = (String) listElement[1]; //data
+//			methodName = methodName.replaceAll("\"", "");
+//			groupName = groupName.replaceAll("\"", "");
+//			String key = methodName +"-"+groupName;
+//			double count = (Double) listElement[2];
+//			elementHash.put(xName, methodName);
+//			elementHash.put(yName, groupName);
+//			elementHash.put(var[2], count);
+//			dataHash.put(key, elementHash);
+//
+//		}
+//
+//		Hashtable allHash = new Hashtable();
+//		allHash.put("dataSeries", dataHash);
+//		allHash.put("title",  var[0] + " vs " + var[1]);
+//		allHash.put("xAxisTitle", var[0]);
+//		allHash.put("yAxisTitle", var[1]);
+//		allHash.put("value", var[2]);
+//		// display output for heatmap tab
+//		((SysOptPlaySheet) playSheet).replacementHeatMap.callIt(allHash);
+//		((SysOptPlaySheet) playSheet).replacementHeatMap.setVisible(true);
 	}
 
 	/**
