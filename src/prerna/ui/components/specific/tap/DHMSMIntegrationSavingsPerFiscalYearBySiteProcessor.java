@@ -120,28 +120,34 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 							if(!siteList.contains(site)) {
 								siteList.add(site);
 								ArrayList<String> systems = sites.get(site);
-								double savings = 0.0;
 								double [] yearlySavings = new double[numColumns];
-								for(String system : systems){
-									Double [] costs = sysSustainmentInfoHash.get(system);
-									// assume cost for a specific site is total cost / num sites
-									double numSites = numSitesForSysHash.get(system);
-									if(costs != null){
-										if(costs[sustainmentIndex].equals(null)){
-											savings += 0;
-										} else {
-											// for debugging
-//											System.out.println(system);
-//											System.out.println("\t" + costs[sustainmentIndex] );
-//											System.out.println("\t" + numSites);
-//											System.out.println("\t" + costs[sustainmentIndex] / numSites);
-											savings += costs[sustainmentIndex] / numSites;
+								
+								int counter = 0;
+								for(int index = outputYear; index < yearlySavings.length; index++) {
+									double savings = 0.0;
+									for(String system : systems){
+										Double [] costs = sysSustainmentInfoHash.get(system);
+										// assume cost for a specific site is total cost / num sites
+										double numSites = numSitesForSysHash.get(system);
+										if(costs != null){
+											if(costs[sustainmentIndex + counter].equals(null)){
+												savings += 0;
+											} else {
+												// for debugging
+//												System.out.println(system);
+//												System.out.println("\t" + costs[sustainmentIndex] );
+//												System.out.println("\t" + numSites);
+//												System.out.println("\t" + costs[sustainmentIndex] / numSites);
+												savings += costs[sustainmentIndex + counter] / numSites;
+											}
 										}
 									}
-								}
-								for(int index = outputYear; index < yearlySavings.length; index++) {
+									if(sustainmentIndex+counter < 4) {
+										counter++;
+									}
 									yearlySavings[index] = savings;
 								}
+
 								if(savingsData.containsKey(site)) {
 									double[] currSavings = savingsData.get(site);
 									for(int index = 0; index < currSavings.length; index++) {
