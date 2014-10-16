@@ -35,6 +35,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			Object[] values = resultIterator.next();
 			String site = values[0].toString();
 			ArrayList<String> sysList = siteData.get(site);
+			sysList.add("DHMSM");
 			String sys1 = values[1].toString();
 			String sys2 = values[2].toString();
 			String icd = values[3].toString();
