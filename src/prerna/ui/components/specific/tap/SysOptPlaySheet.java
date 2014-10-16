@@ -65,7 +65,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	public DHMSMSystemSelectPanel systemSelectPanel;
 	public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
-	public DHMSMSystemSelectPanel systemModernizePanel, systemDecomissionPanel;
+	public DHMSMManualSystemSelectPanel systemModernizePanel, systemDecomissionPanel;
 		
 	//toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
@@ -195,7 +195,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbl_systemModDecomSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		systemModDecomSelectPanel.setLayout(gbl_systemModDecomSelectPanel);
 		
-		systemModernizePanel = new DHMSMSystemSelectPanel();
+		systemModernizePanel = new DHMSMManualSystemSelectPanel();
 		GridBagConstraints gbc_systemModernizePanel = new GridBagConstraints();
 		gbc_systemModernizePanel.gridheight = 6;
 		gbc_systemModernizePanel.fill = GridBagConstraints.BOTH;
@@ -205,7 +205,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		systemModernizePanel.setHeader("Select Systems that MUST be modernized:");
 		systemModernizePanel.addElements();
 		
-		systemDecomissionPanel = new DHMSMSystemSelectPanel();
+		systemDecomissionPanel = new DHMSMManualSystemSelectPanel();
 		GridBagConstraints gbc_systemDecomissionPanel = new GridBagConstraints();
 		gbc_systemDecomissionPanel.gridheight = 6;
 		gbc_systemDecomissionPanel.fill = GridBagConstraints.BOTH;

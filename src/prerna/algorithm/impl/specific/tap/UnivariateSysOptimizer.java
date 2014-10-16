@@ -77,12 +77,12 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	{
 		this.includeRegionalization = includeRegionalization;
 		this.ignoreTheatGarr = ignoreTheatGarr;
-		if(!sysSelectPanel.theaterSysButton.isSelected()&&!sysSelectPanel.garrisonSysButton.isSelected()) {
+		if(!sysSelectPanel.theaterSysCheckBox.isSelected()&&!sysSelectPanel.garrisonSysCheckBox.isSelected()) {
 			this.includeTheater = true;
 			this.includeGarrison = true;
 		} else {
-			this.includeTheater = sysSelectPanel.theaterSysButton.isSelected();
-			this.includeGarrison = sysSelectPanel.garrisonSysButton.isSelected();
+			this.includeTheater = sysSelectPanel.theaterSysCheckBox.isSelected();
+			this.includeGarrison = sysSelectPanel.garrisonSysCheckBox.isSelected();
 		}
 		this.systemMustModernize = systemModernizePanel.getSelectedSystems();
 		this.systemMustDecommission= systemDecommissionPanel.getSelectedSystems();
