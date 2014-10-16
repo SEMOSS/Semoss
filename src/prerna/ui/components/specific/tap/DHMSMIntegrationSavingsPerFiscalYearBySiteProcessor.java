@@ -41,6 +41,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	private ArrayList<Object[]> list;
 	private String[] names;
 	
+	private double[] inflationArr = new double[]{1, 1, 1.03, Math.pow(1.03,2), Math.pow(1.03,3), Math.pow(1.03,4)};
+	
 	public ArrayList<Object[]> getList() {
 		return list;
 	}
@@ -90,8 +92,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				switch(year) {
 					case "2017" : sustainmentIndex = 2; break;
 					case "2018" : sustainmentIndex = 3; break;
-					default: sustainmentIndex = 4;
+					case "2019" : sustainmentIndex = 4; break;
+					case "2020" : sustainmentIndex = 4; break;
+					case "2021" : sustainmentIndex = 4; break;
+					case "2022" : sustainmentIndex = 4; break;
 				}
+				
 				int outputYear = 0;
 				switch(year) {
 					case "2017" : outputYear = 0; break;
@@ -145,7 +151,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									if(sustainmentIndex+counter < 4) {
 										counter++;
 									}
-									yearlySavings[index] = savings;
+									yearlySavings[index] = savings * inflationArr[index];
 								}
 
 								if(savingsData.containsKey(site)) {
