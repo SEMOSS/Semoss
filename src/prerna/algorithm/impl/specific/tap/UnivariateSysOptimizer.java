@@ -600,24 +600,24 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	}
 	
 	public void displayHeatMap() {
-//		// let's make a heatmap
+//		ArrayList<Object[]> percentList = new ArrayList<Object[]>();//need to change
 //		Hashtable dataHash = new Hashtable();
 //		Hashtable dataSeries = new Hashtable();
-//		String[] var = new String[]{"Systems","Data Objects","Value"};
-//		String xName = var[0]; //system
-//		String yName = var[1]; //data objects
+//		String[] var = new String[]{"Modernized Systems","Decommissioned Systems","Value"};
+//		String xName = var[0]; //Modernized Systems
+//		String yName = var[1]; //Decommissioned Systems
 //		for (int i=0;i<percentList.size();i++)
 //		{
 //			Hashtable elementHash = new Hashtable();
 //			Object[] listElement = percentList.get(i);			
-//			String methodName = (String) listElement[0]; //system
-//			String groupName = (String) listElement[1]; //data
-//			methodName = methodName.replaceAll("\"", "");
-//			groupName = groupName.replaceAll("\"", "");
-//			String key = methodName +"-"+groupName;
+//			String modSysName = (String) listElement[0]; //system
+//			String decSysName = (String) listElement[1]; //data
+//			modSysName = modSysName.replaceAll("\"", "");
+//			decSysName = decSysName.replaceAll("\"", "");
+//			String key = modSysName +"-"+decSysName;
 //			double count = (Double) listElement[2];
-//			elementHash.put(xName, methodName);
-//			elementHash.put(yName, groupName);
+//			elementHash.put(xName, modSysName);
+//			elementHash.put(yName, decSysName);
 //			elementHash.put(var[2], count);
 //			dataHash.put(key, elementHash);
 //

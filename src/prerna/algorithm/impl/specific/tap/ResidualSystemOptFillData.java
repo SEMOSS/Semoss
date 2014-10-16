@@ -155,8 +155,8 @@ public class ResidualSystemOptFillData{
 		fillSystemMHSSpecific();
 		fillSystemRequired(); //requires the MHS Specific
 		
-		systemModernize = fillSystemModDecomm(systemMustModernize,systemModernize);
-		systemDecommission = fillSystemModDecomm(systemMustDecommission,systemDecommission);
+		fillSystemMod();
+		fillSystemDecomm();
 	}
 	
 	public boolean fillDataStores()
@@ -428,15 +428,21 @@ public class ResidualSystemOptFillData{
 		systemModernize = fillVectorFromQuery(systemEngine,query,systemModernize,sysList,true);
 	}
 	
-	private double[] fillSystemModDecomm(ArrayList<String> modOrDecomList,double[] listToFill) {
-		for(String sys:modOrDecomList) {
+	private void fillSystemMod() {
+		for(String sys:systemMustModernize) {
 			int sysIndex = sysList.indexOf(sys);
 			if(sysIndex>-1)
-				listToFill[sysIndex] = 1;
+				systemModernize[sysIndex] = 1;
 		}
-		return listToFill;
 	}
-	
+
+	private void fillSystemDecomm() {
+		for(String sys:systemMustDecommission) {
+			int sysIndex = sysList.indexOf(sys);
+			if(sysIndex>-1&&systemModernize[sysIndex]<1.0)
+				systemDecommission[sysIndex] = 1;
+		}
+	}
 	private int[][] fillSysRow(int[][] matrixToFill,int rowInd, ArrayList<String> colList, ArrayList<String> colToPopulate) {
 		for(int ind = 0;ind<colToPopulate.size();ind++)
 		{
