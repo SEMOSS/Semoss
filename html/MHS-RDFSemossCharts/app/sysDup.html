@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="css/select2.css">
     <link rel="stylesheet" type="text/css" href="css/slider.css">
-    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+    <link rel="stylesheet" type="text/css" href="css/sysDup.css">
       
 
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
@@ -91,7 +91,7 @@
 	var sliderArray = [0,100];
 	var yAxisMatches = [];
 	var margin = { top: 185, right: 150, bottom: 100, left: 150 };
-	var gridSize = 15;
+	var gridSize = 20;
 	var legendElementWidth = 60;
 	var buckets = 9;
 	var heatMap; // we need at this level so dropdown can have access.
@@ -630,7 +630,7 @@
 	    barLabel
 	      .text(function(d){return d.key})
 	      .attr("text-anchor", "end")
-	      .style("font-size", "9px")
+	      .style("font-size", "12px")
 	      .attr("class","labels")
 	      .attr("y", function(d,i){return (i * barSpacing) + 52})
 	      .attr("x", 170);
