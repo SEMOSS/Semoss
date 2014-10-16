@@ -19,14 +19,11 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.ui.helpers.EntityFiller;
 import prerna.ui.swing.custom.SelectScrollList;
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
@@ -34,11 +31,8 @@ import prerna.ui.swing.custom.SelectScrollList;
  * Will populate sourceSelectPanel with all capabilities included in functional areas
  */
 public class CapCheckBoxSelectorListener extends CheckBoxSelectorListener {
-	String type;
-	IEngine engine;
-	SelectScrollList scrollList;
 	JCheckBox dhmsmCapCheckBox, hsdCapCheckBox, hssCapCheckBox, fhpCapCheckBox;
-	ArrayList<String> dhmsmCapList, hsdCapList, hssCapList, fhpCapList;
+	Vector<String> dhmsmCapList, hsdCapList, hssCapList, fhpCapList;
 
 	/**
 	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report
@@ -80,33 +74,6 @@ public class CapCheckBoxSelectorListener extends CheckBoxSelectorListener {
 
 		scrollList.setSelectedValues(capabilities);
 
-	}
-		
-	/**
-	 * Gets the list of all capabilities for a selected functional area
-	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
-	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
-	 */
-	public ArrayList<String> getList(String sparqlQuery)
-	{
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = type;
-		filler.setExternalQuery(sparqlQuery);
-		filler.run();
-		Vector names = filler.nameVector;
-		ArrayList<String> retList=new ArrayList<String>();
-		for (int i = 0;i<names.size();i++)
-		{
-			retList.add((String) names.get(i));
-		}
-		return retList;
-	}
-
-	public void setEngine(IEngine engine)
-	{
-		this.engine = engine;
-		
 	}
 	public void setScrollList(SelectScrollList scrollList)
 	{
