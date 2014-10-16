@@ -157,17 +157,22 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		}
 		
 		list = new ArrayList<Object[]>();
+		int numCols = 0;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+		double[] totalCol = null; 
 		for(String site : savingsData.keySet()) {
 			double[] values = savingsData.get(site);
+			
 			if(list.isEmpty()) {
-				names = new String[values.length + 1];
-				names[0] = "";
+				numCols = values.length+2;
+				totalCol = new double[numCols-2];
+				names = new String[numCols];
 				//TODO: pass start FY
 				int fy = 2017;
-				for(int index = 0; index < values.length; index++) {
+				int index;
+				for(index = 0; index < numCols - 1; index++) {
 					if(index == 0) {
 						names[0] = "Site";
 					}
@@ -176,15 +181,35 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					names[index+1] = fyString;
 					fy++;				
 				}
+				names[index] = "Total";
 			}
 			
-			Object[] row = new Object[values.length + 1];
+			Object[] row = new Object[numCols];
+			double totalRow = 0;
 			row[0] = site;
-			for(int index = 0; index < values.length; index++) {
+			int index;
+			for(index = 0; index < numCols - 2; index++) {
+				double value = values[index];
+				totalRow+=value;
 				row[index + 1] = formatter.format(values[index]);
+				totalCol[index] += value;
 			}
+			row[index+1] = formatter.format(totalRow);
 			list.add(row);
 		}
+		
+		//add column totals
+		Object[] row = new Object[numCols];
+		row[0] = "Total";
+		double combinedTotal = 0;
+		int index;
+		for(index = 0; index < numCols - 2; index++) {
+			double value = totalCol[index];
+			row[index + 1] = formatter.format(value);
+			combinedTotal += value;
+		}
+		row[index+1] = formatter.format(combinedTotal);
+		list.add(row);
 	}
 
 	public void runSupportQueries() {
