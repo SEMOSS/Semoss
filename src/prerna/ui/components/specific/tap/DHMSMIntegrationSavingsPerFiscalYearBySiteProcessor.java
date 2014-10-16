@@ -164,7 +164,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					if(index == 0) {
 						names[0] = "Site";
 					}
-					String fyString = "FY" + fy;
+					String fyString = "" + fy;
+					fyString = "FY" + fyString.substring(2,4);
 					names[index+1] = fyString;
 					fy++;				
 				}
