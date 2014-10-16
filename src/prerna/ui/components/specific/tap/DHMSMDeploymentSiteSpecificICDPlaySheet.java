@@ -11,7 +11,6 @@ import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.ArrayListUtilityMethods;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 	
@@ -27,6 +26,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 		degp.setQuery(query);
 		degp.createData();
 		ArrayList<Object[]> combinedResults = degp.getList();
+		names = degp.getNames();
 		
 		getSysData();
 		Set<String> icdList = new HashSet<String>();
@@ -35,10 +35,9 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			Object[] values = resultIterator.next();
 			String site = values[0].toString();
 			ArrayList<String> sysList = siteData.get(site);
-			String icd = values[2].toString();
-			String[] icdSplit = icd.split("-");
-			String sys1 = icdSplit[0];
-			String sys2 = icdSplit[2];
+			String sys1 = values[1].toString();
+			String sys2 = values[2].toString();
+			String icd = values[3].toString();
 			if( (sysList.contains(sys1) && sysList.contains(sys2)) || 
 					(centrallyDeployedSystems.contains(sys1) || centrallyDeployedSystems.contains(sys2)) ) {
 				if(!icdList.contains(icd)) {
@@ -50,30 +49,25 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 		}
 		
 		list = ArrayListUtilityMethods.removeColumnFromList(retList, 1);
+		list = ArrayListUtilityMethods.removeColumnFromList(list, 1);
+		names = ArrayListUtilityMethods.removeNameFromList(names, 1);
 		names = ArrayListUtilityMethods.removeNameFromList(names, 1);
 		
 		if(list == null) {
 			list = new ArrayList<Object[]>();
 		}
+		if(names == null) {
+			names = new String[]{};
+		}
 	}
 	
 	public void getSysData() {
 		if(siteData == null) {
-			siteData = DHMSMDeploymentHelper.getSysAtSites(engine);
+			siteData = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(engine);
 		}
 		if(centrallyDeployedSystems == null) {
 			IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 			centrallyDeployedSystems = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
 		}
 	}
-	
-	@Override
-	public void createView() {
-		if(list == null) {
-			Utility.showError("No Modernization Activity");
-		} else {
-			super.createView();
-		}
-	}
-	
 }
