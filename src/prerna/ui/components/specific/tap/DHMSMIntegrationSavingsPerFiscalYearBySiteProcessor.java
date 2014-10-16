@@ -139,7 +139,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 										}
 									}
 								}
-								yearlySavings[outputYear] = savings;
+								for(int index = outputYear; index < yearlySavings.length; index++) {
+									yearlySavings[index] = savings;
+								}
 								if(savingsData.containsKey(site)) {
 									double[] currSavings = savingsData.get(site);
 									for(int index = 0; index < currSavings.length; index++) {
