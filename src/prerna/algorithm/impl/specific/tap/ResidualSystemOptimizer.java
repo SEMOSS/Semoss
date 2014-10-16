@@ -254,7 +254,7 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			solver.writeLp("model.lp");
 			execute();	
 			double minObjectiveVal = solver.getObjective();
-			System.out.println("Objective Val is : " + minObjectiveVal);
+			logger.info("Objective Val is : " + minObjectiveVal);
 			
 			if(minObjectiveVal>1.0*Math.pow(10, 15))
 			{
@@ -295,20 +295,24 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			}
 			else
 			{
-				System.out.println("Systems to be Modernized");
+				logger.info("Systems to be Modernized");
+				String logOut = "";
 				for(int i=0;i<systemIsModernized.length;i++)
 					if(systemIsModernized[i]>0)
-						System.out.print(solver.getColName(i + 1)+", ");
-				System.out.println("Systems that will not be Modernized");
+						logOut+=solver.getColName(i + 1)+", ";
+				logger.info(logOut);
+				logger.info("Systems that will not be Modernized");
+				logOut = "";
 				for(int i=0;i<systemIsModernized.length;i++)
 					if(systemIsModernized[i]<1)
-						System.out.print(solver.getColName(i + 1)+", ");
-				System.out.println("Yearly maintenance if continued as-is: "+denomCurrentMaintenance);
-				System.out.println("Yearly maintenance of modernized systems only: "+(denomCurrentMaintenance-numMaintenanceTotal));
-				System.out.println("One Time Cost to transform data for all systems: "+numTransformationTotal);
-				System.out.println("Break Even point in years: "+numTransformationTotal/numMaintenanceTotal);
+						logOut+=solver.getColName(i + 1)+", ";
+				logger.info(logOut);
+				logger.info("Yearly maintenance if continued as-is: "+denomCurrentMaintenance);
+				logger.info("Yearly maintenance of modernized systems only: "+(denomCurrentMaintenance-numMaintenanceTotal));
+				logger.info("One Time Cost to transform data for all systems: "+numTransformationTotal);
+				logger.info("Break Even point in years: "+numTransformationTotal/numMaintenanceTotal);
 				for(int i=1;i<=10;i++)
-					System.out.println("Year "+i+" ROI is "+(numMaintenanceTotal-(numTransformationTotal/i))/denomCurrentMaintenance);
+					logger.info("Year "+i+" ROI is "+(numMaintenanceTotal-(numTransformationTotal/i))/denomCurrentMaintenance);
 			}
 			deleteModel();
 			solver=null;
@@ -320,10 +324,12 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 			
 		return true;
 	}
-	
-	public double[] getModernizedSystems()
-	{
-		return systemIsModernized;
+	public int countModernized() {
+		int numModernized=0;
+		for(int i=0;i<systemIsModernized.length;i++) {
+			if(systemIsModernized[i]>0)
+				numModernized++;
+		}
+		return numModernized;
 	}
-
 }
