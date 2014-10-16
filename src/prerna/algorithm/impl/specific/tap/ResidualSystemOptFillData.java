@@ -698,4 +698,20 @@ public class ResidualSystemOptFillData{
 			return 0.0;
 		return overlapCount/totalCount;
 	}
+	
+	public boolean didSystemProvideReducedDataBLU(int decommIndex) {
+		if(didSysProvideReduced(systemDataMatrix,decommIndex,dataReducedIndex))
+			return true;
+		if(didSysProvideReduced(systemBLUMatrix,decommIndex,bluReducedIndex))
+			return true;
+		return false;
+	}
+	protected boolean didSysProvideReduced(int[][] systemMatrix, int decommIndex, ArrayList<Integer> reducedIndex) {
+		for(Integer dataInd : reducedIndex) {
+			if(systemMatrix[decommIndex][dataInd]>0.0) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

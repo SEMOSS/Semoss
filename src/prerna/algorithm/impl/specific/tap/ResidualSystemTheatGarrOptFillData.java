@@ -226,4 +226,40 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 			if(listToCheck[i]>0)
 				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+sysList.get(i)+", ");
 	}
+	@Override
+	public double percentDataBLUReplaced(int modIndex,int decommIndex) {
+		//if the modernized system cannot act in the environments the deommisioned system can, then 0%
+		//if decomm system in theater (systemTheater=1), then mod must be in theater return false if mod is not in theater(systemTheater=0)
+		if(systemTheater[decommIndex]>systemTheater[modIndex])
+			return 0.0;
+		if(systemGarrison[decommIndex]>systemGarrison[modIndex])
+			return 0.0;
+		return super.percentDataBLUReplaced(modIndex,decommIndex);
+	}
+	
+	@Override
+	public boolean didSystemProvideReducedDataBLU(int decommIndex) {
+		if(systemTheater[decommIndex]>0.0) {
+			if(didSysProvideReduced(systemDataMatrix,decommIndex,dataReducedTheaterIndex))
+				return true;
+			if(didSysProvideReduced(systemBLUMatrix,decommIndex,bluReducedTheaterIndex))
+				return true;
+		}
+		if(systemGarrison[decommIndex]>0.0) {
+			if(didSysProvideReduced(systemDataMatrix,decommIndex,dataReducedGarrisonIndex))
+				return true;
+			if(didSysProvideReduced(systemBLUMatrix,decommIndex,bluReducedGarrisonIndex))
+				return true;
+		}
+		return false;
+	}
+	@Override
+	protected boolean didSysProvideReduced(int[][] systemMatrix, int decommIndex, ArrayList<Integer> reducedIndex) {
+		for(Integer dataInd : reducedIndex) {
+			if(systemMatrix[decommIndex][dataInd]>0.0) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

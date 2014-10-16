@@ -183,10 +183,13 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),deepCopy(regionList),deepCopy(systemMustModernize),deepCopy(systemMustDecommission));
 		else
 			resFunc.setSysDataBLULists(deepCopy(sysList),deepCopy(dataList),deepCopy(bluList),null,deepCopy(systemMustModernize),deepCopy(systemMustDecommission));
-		if(ignoreTheatGarr)
-			reducedFunctionality = resFunc.fillDataStores();
-		else
+
+		if(resFunc instanceof ResidualSystemTheatGarrOptFillData) {
 			reducedFunctionality = ((ResidualSystemTheatGarrOptFillData)resFunc).fillDataStores(includeTheater,includeGarrison);
+		} else {
+			reducedFunctionality = resFunc.fillDataStores();
+		}
+
 		if(resFunc.doManualModDecommOverlap()) {
 			errorMessage = "There is at least one system on the manually modernize and manually decommission. Please resolve the lists.";
 			noErrors = false;
@@ -300,19 +303,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
             progressBar.setVisible(false);
             clearPlaysheet();
         }
-        
-        //getting the deployment strategy
-//		SysDecommissionOptimizationFunctions optFunctions = new SysDecommissionOptimizationFunctions();
-//		optFunctions.setSysList(sysList);
-//		optFunctions.setDataList(dataList);
-//		optFunctions.setHourlyCost(hourlyCost);
-//		optFunctions.optimize(budget, optNumYears);		
-//		optFunctions.timeConstraint = optNumYears;
-//		optFunctions.resourcesConstraint = budget;
-//		optFunctions.optimizeResource();
-//		list = optFunctions.outputList;
-//		column names: "System","Time to Transform","Number of Sites Deployed At","Resource Allocation","Number of Systems Transformed Simultaneously","Total Cost for System";
-
         //should this go in the try catch? prob shouldnt do it if we get an error....
         //runOptIteration();
         if(noErrors)
@@ -468,10 +458,14 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.dataList.get(dataInd);
 			newRow[1] = "Data";
-			newRow[2] = sumRow(resFunc.dataRegionSORSystemCount[dataInd]);
+			//newRow[2] = sumRow(resFunc.systemDataMatrix[dataInd]);
+			int numSystems = 0;
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
-				if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
+				if(resFunc.systemDataMatrix[sysInd][dataInd]==1) {
 					newRow[sysInd+3] = "X";
+					numSystems++;
+				}
+			newRow[2] = numSystems;
 			if(includeRegionalization)
 			{
 				int numRegions = 0;
@@ -490,10 +484,14 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.bluList.get(bluInd);
 			newRow[1] = "BLU";
-			newRow[2] = sumRow(resFunc.bluRegionProviderCount[bluInd]);
+			//newRow[2] = sumRow(resFunc.systemBLUMatrix[bluInd]);
+			int numSystems = 0;
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
-				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
+				if(resFunc.systemBLUMatrix[sysInd][bluInd]==1) {
 					newRow[sysInd+3] = "X";
+					numSystems++;
+				}
+			newRow[2] = numSystems;
 			if(includeRegionalization)
 			{
 				int numRegions = 0;
@@ -528,32 +526,27 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 				colIndex++;
 			}
 		}
-		if(includeRegionalization)
-		{
+		if(includeRegionalization) {
 			colNames[numModernizedSys+3] = "Number of Regions Provided At";
 			for(int i=0;i<resFunc.regionList.size();i++)
 				colNames[numModernizedSys+4+i] = "Region "+resFunc.regionList.get(i);
 		}
-		for (int dataInd = 0;dataInd<resFunc.dataList.size();dataInd++)
-		{
+		for (int dataInd = 0;dataInd<resFunc.dataList.size();dataInd++) {
 			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.dataList.get(dataInd);
 			newRow[1] = "Data";
 			colIndex=0;
+			int numSystems = 0;
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(sysOpt.systemIsModernized[sysInd]>0) {
-					if(resFunc.systemDataMatrix[sysInd][dataInd]==1)
+					if(resFunc.systemDataMatrix[sysInd][dataInd]==1) {
 						newRow[colIndex+3] = "X";
+						numSystems++;
+					}
 					colIndex++;
 				}
-			int sysCount = 0;
-			for(int sysInd=3;sysInd<numModernizedSys+3;sysInd++) {
-				if(newRow[sysInd]!=null&&newRow[sysInd].equals("X"))
-					sysCount++;
-			}
-			newRow[2] = sysCount;
-			if(includeRegionalization)
-			{
+			newRow[2] = numSystems;
+			if(includeRegionalization) {
 				int numRegions = 0;
 				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
 					if(resFunc.dataRegionSORSystemCount[dataInd][regionInd]>=1)
@@ -565,26 +558,22 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			}
 			list.add(newRow);
 		}
-		for (int bluInd = 0;bluInd<resFunc.bluList.size();bluInd++)
-		{
+		for (int bluInd = 0;bluInd<resFunc.bluList.size();bluInd++) {
 			Object[] newRow = new Object[size];
 			newRow[0] = resFunc.bluList.get(bluInd);
 			newRow[1] = "BLU";
 			colIndex=0;
+			int numSystems = 0;
 			for(int sysInd=0;sysInd<resFunc.sysList.size();sysInd++)
 				if(sysOpt.systemIsModernized[sysInd]>0) {
-					if(resFunc.systemBLUMatrix[sysInd][bluInd]==1)
-					newRow[colIndex+3] = "X";
+					if(resFunc.systemBLUMatrix[sysInd][bluInd]==1) {
+						newRow[colIndex+3] = "X";
+						numSystems++;
+					}
 					colIndex++;
 				}
-			int sysCount = 0;
-			for(int sysInd=3;sysInd<numModernizedSys+3;sysInd++) {
-				if(newRow[sysInd]!=null&&newRow[sysInd].equals("X"))
-					sysCount++;
-			}
-			newRow[2] = sysCount;
-			if(includeRegionalization)
-			{
+			newRow[2] = numSystems;
+			if(includeRegionalization) {
 				int numRegions = 0;
 				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
 					if(resFunc.bluRegionProviderCount[bluInd][regionInd]>=1)
@@ -606,10 +595,14 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		String yName = var[1]; //Decommissioned Systems
 		ArrayList<Integer> modIndicies = sysOpt.getModernizedIndicies();
 		ArrayList<Integer> decommIndicies = sysOpt.getDecommissionedIndicies();
-		for(Integer modIndex : modIndicies) {
-			String modSysName = sysList.get(modIndex); //modernized system
-			for(Integer decommIndex : decommIndicies) {
-				String decommSysName = sysList.get(decommIndex); //modernized system
+
+		for(Integer decommIndex : decommIndicies) {
+			String decommSysName = sysList.get(decommIndex); //modernized system
+			//check if this system has data objects in no longer supported list
+			if(resFunc.didSystemProvideReducedDataBLU(decommIndex))
+				decommSysName +="*";
+			for(Integer modIndex : modIndicies) {
+				String modSysName = sysList.get(modIndex); //modernized system
 				Hashtable elementHash = new Hashtable();
 				modSysName = modSysName.replaceAll("\"", "");
 				decommSysName = decommSysName.replaceAll("\"", "");
@@ -633,8 +626,9 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	}
 
 	/**
-	 * Displays the results from various optimization calculations. 
+	 * Displays the results from various optimization calculations.
 	 * These include net savings, ROI, and IRR functions.
+	 * This populates the overview tab
 	 * Optimizer used for TAP-specific calculations. 
 	 */
 	public void displayResults()
@@ -653,15 +647,13 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		((SysOptPlaySheet)playSheet).roiLbl.setText(Double.toString(roiVal)+"%");
 		if((netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
 			((SysOptPlaySheet)playSheet).irrLbl.setText("N/A");
-		else
-		{
+		else {
 			double irrVal = Utility.round(irr*100,2);
 			((SysOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrVal)+"%");
 		}
 		if(optNumYears>maxYears)
 			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText("Beyond Max Time");
-		else
-		{
+		else {
 			double timeTransition = Utility.round(optNumYears,2);
 			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
 		}
@@ -669,19 +661,15 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); 
 		
 		int breakEvenYear = 0;
-		for(int i=0;i<breakEvenList.size();i++)
-		{
+		for(int i=0;i<breakEvenList.size();i++) {
 			if(breakEvenList.get(i)<0)
 				breakEvenYear = i+1;
 		}
 		if(breakEvenList.get(breakEvenList.size()-1)<0)
 			((SysOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
-		else if(breakEvenYear == 0)
-		{
+		else if(breakEvenYear == 0) {
 			((SysOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
-		}
-		else
-		{
+		} else {
 			double amountInLastYear = breakEvenList.get(breakEvenYear)-breakEvenList.get(breakEvenYear-1);
 			double fraction = ( - breakEvenList.get(breakEvenYear))/amountInLastYear;
 			double breakEven = Utility.round(breakEvenYear+1+fraction,2);
@@ -730,7 +718,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		if(savingsROIOrIRR < 0.0)
 			positiveOrNegativeString = "negative";
 		if(optNumYears>maxYears)
-			((SysOptPlaySheet)playSheet).solutionLbl.setText("Construction takes longer than allotted "+maxYears+" "+" Years");
+			((SysOptPlaySheet)playSheet).solutionLbl.setText("Construction takes longer than allotted " + maxYears + " Years");
 		else
 			((SysOptPlaySheet)playSheet).solutionLbl.setText("Solution available with "+positiveOrNegativeString+" "+savingsROIOrIRRString);
 	}
