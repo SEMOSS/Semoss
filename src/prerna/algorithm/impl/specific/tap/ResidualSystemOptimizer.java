@@ -332,4 +332,22 @@ public class ResidualSystemOptimizer extends LPOptimizer{
 		}
 		return numModernized;
 	}
+	
+	public ArrayList<Integer> getModernizedIndicies() {
+		ArrayList<Integer> indicies = new ArrayList<Integer>();
+		for(int i=0;i<systemIsModernized.length;i++) {
+			if(systemIsModernized[i]>0)
+				indicies.add(i);
+		}
+		return indicies;
+	}
+	
+	public ArrayList<Integer> getDecommissionedIndicies() {
+		ArrayList<Integer> indicies = new ArrayList<Integer>();
+		for(int i=0;i<systemIsModernized.length;i++) {
+			if(systemIsModernized[i]<1)
+				indicies.add(i);
+		}
+		return indicies;
+	}
 }
