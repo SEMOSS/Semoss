@@ -52,34 +52,42 @@ public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 		Hashtable<String, ArrayList<Hashtable<String, Object>>> lineObj = new Hashtable<String, ArrayList<Hashtable<String, Object>>>();
 		// format of the return will be ?barSeriesName ?yBarVal ?line1SeriesName ?yLine1Val ?line2SeriesName ?yLine2Val ?xValue etc.
 		int lastCol = names.length - 1 ;
+		ArrayList<String> usedList = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
 		{
 			Object[] elemValues = list.get(i);
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
 			{
-				// get the right hashtable to fill
-				Hashtable<String, ArrayList<Hashtable<String, Object>>> fillHash = lineObj;
-				if(seriesVal==1) 
-					fillHash = barObj;
 				
-				
-				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-				
+
 				int firstCol = (seriesVal - 1) * 2;
-				
 				String xVal = elemValues[lastCol].toString();
 				String seriesName = elemValues[firstCol].toString();
 				
-				if(fillHash.containsKey(seriesName))
-					seriesArray = fillHash.get(seriesName);
-				else
-					fillHash.put(seriesName, seriesArray);
+				String usedKey = xVal + seriesName;
 				
-				Hashtable<String, Object> elementHash = new Hashtable();
-				elementHash.put("x",xVal);
-				elementHash.put("y", elemValues[firstCol+1]);
-				elementHash.put("seriesName",  seriesName);
-				seriesArray.add(elementHash);
+				if(!usedList.contains(usedKey)){
+					usedList.add(usedKey);
+					
+					// get the right hashtable to fill
+					Hashtable<String, ArrayList<Hashtable<String, Object>>> fillHash = lineObj;
+					if(seriesVal==1) 
+						fillHash = barObj;
+					
+					
+					ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+					
+					if(fillHash.containsKey(seriesName))
+						seriesArray = fillHash.get(seriesName);
+					else
+						fillHash.put(seriesName, seriesArray);
+					
+					Hashtable<String, Object> elementHash = new Hashtable();
+					elementHash.put("x",xVal);
+					elementHash.put("y", elemValues[firstCol+1]);
+					elementHash.put("seriesName",  seriesName);
+					seriesArray.add(elementHash);
+				}
 			}
 		}
 		Hashtable<String, Collection<ArrayList<Hashtable<String, Object>>>> dataObj = new Hashtable<String, Collection<ArrayList<Hashtable<String, Object>>>>();
