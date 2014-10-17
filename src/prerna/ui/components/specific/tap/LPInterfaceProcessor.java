@@ -722,6 +722,7 @@ public class LPInterfaceProcessor {
 		// change DHMSM to type System
 		String upstreamSysURI = DHMSM_URI;
 		String upstreamSysName = DHMSM;
+		sysList.add(downstreamSysURI);
 		
 		// dhmsm -> provide -> icd
 		String provideURI = provideInstanceRel.concat(upstreamSysName).concat(":").concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data);
@@ -758,6 +759,7 @@ public class LPInterfaceProcessor {
 		// change DHMSM to type System
 		String downstreamSysURI = DHMSM_URI;
 		String downstreamSysName = DHMSM;
+		sysList.add(upstreamSysURI);
 		
 		// upstream -> provide -> icd
 		String provideURI = provideInstanceRel.concat(upstreamSysName).concat(":").concat(upstreamSysName).concat("-").concat(downstreamSysName).concat("-").concat(data);
