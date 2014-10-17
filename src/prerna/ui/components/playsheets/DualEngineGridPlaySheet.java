@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.ArrayListUtilityMethods;
 import prerna.util.DIHelper;
 
 /**
@@ -142,6 +143,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		updateProgressBar("60%...Preparing List", 80);
 
 		prepareList(dataHash1, dataHash2);		
+		
+		list = ArrayListUtilityMethods.orderQuery(list);
 
 	}
 
