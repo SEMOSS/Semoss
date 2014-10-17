@@ -246,7 +246,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		super.createAdvParamPanelsToggles();
 
 		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
-		gbc_showParamBtn.anchor = GridBagConstraints.WEST;
+		gbc_showParamBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_showParamBtn.gridwidth = 2;
 		gbc_showParamBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_showParamBtn.gridx = 6;
@@ -259,7 +259,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		Style.registerTargetClassName(showSystemSelectBtn,  ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemSelectBtn = new GridBagConstraints();
-		gbc_showSystemSelectBtn.anchor = GridBagConstraints.WEST;
+		gbc_showSystemSelectBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_showSystemSelectBtn.gridwidth = 2;
 		gbc_showSystemSelectBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_showSystemSelectBtn.gridx = 6;
@@ -272,7 +272,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		Style.registerTargetClassName(showSystemCapSelectBtn,  ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemCapSelectBtn = new GridBagConstraints();
-		gbc_showSystemCapSelectBtn.anchor = GridBagConstraints.WEST;
+		gbc_showSystemCapSelectBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_showSystemCapSelectBtn.gridwidth = 2;
 		gbc_showSystemCapSelectBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_showSystemCapSelectBtn.gridx = 6;
@@ -285,7 +285,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		Style.registerTargetClassName(showSystemModDecomBtn,  ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemModDecomBtn = new GridBagConstraints();
-		gbc_showSystemModDecomBtn.anchor = GridBagConstraints.WEST;
+		gbc_showSystemModDecomBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_showSystemModDecomBtn.gridwidth = 2;
 		gbc_showSystemModDecomBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_showSystemModDecomBtn.gridx = 6;
@@ -495,16 +495,13 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		replacementHeatMapPanel.setLayout(gbl_replacementHeatMapPanel);
 
 		replacementHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-		replacementHeatMap.setMinimumSize(new Dimension(500, 400));
-//		tabModernizedHeatMap.setVisible(false);
-		
+			
 		GridBagConstraints gbc_replacementHeatMap = new GridBagConstraints();
 		gbc_replacementHeatMap.insets = new Insets(0, 0, 0, 5);
 		gbc_replacementHeatMap.fill = GridBagConstraints.BOTH;
 		gbc_replacementHeatMap.gridx = 0;
 		gbc_replacementHeatMap.gridy = 0;
 		replacementHeatMapPanel.add(replacementHeatMap, gbc_replacementHeatMap);
-//		replacementHeatMapPanel.setVisible(false);
 	}
 	
 	/**
