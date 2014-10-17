@@ -29,10 +29,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	
 	private DualEngineGridPlaySheet dualQueries = new DualEngineGridPlaySheet();	
 	
-	private HashMap<String, Double[]> sysSustainmentInfoHash= new HashMap<String, Double[]>();
-	private HashMap<String, Double> numSitesForSysHash = new HashMap<String, Double>();
-	private HashMap<String, String> regionStartDateHash = new HashMap<String, String>();
-	private HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> query5Data = new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>();
+	private HashMap<String, Double[]> sysSustainmentInfoHash;
+	private HashMap<String, Double> numSitesForSysHash;
+	private HashMap<String, String> regionStartDateHash;
+	private HashMap<String, Double> sitesInMultipleWavesHash;
+	private HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> masterHash;
 	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
 	
 	private ArrayList<String> regionOrder;
@@ -40,8 +41,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	
 	private ArrayList<Object[]> list;
 	private String[] names;
-	
-	private double[] inflationArr = new double[]{1, 1, 1.03, Math.pow(1.03,2), Math.pow(1.03,3), Math.pow(1.03,4)};
 	
 	public ArrayList<Object[]> getList() {
 		return list;
@@ -52,10 +51,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	}
 	
 	public void processData() {
-		// store sites since we assume we decommission sites after we visit them once
-		Set<String> siteList = new HashSet<String>();
-		
-		int minYear = 3000;//arbitrarily large year
+		int minYear = 3000; // arbitrarily large year
 		int maxYear = 0;
 		for(String region : regionStartDateHash.keySet()) {
 			String startDate = regionStartDateHash.get(region);
@@ -68,9 +64,18 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				minYear = yearAsNum;
 			}
 		}
-		int numColumns = maxYear - minYear + 1;
-		
+		int numColumns = maxYear - minYear + 2; // costs gains are realized a year after
+		double[] inflationArr = new double[numColumns];
 		int i;
+		for(i = 0; i < numColumns; i++) {
+			if(i <= 1) {
+				inflationArr[i] = 1;
+			} else {
+				// only add inflation for years we don't have O&M budget info for
+				inflationArr[i] = Math.pow(1.03, i-1);
+			}
+		}
+		
 		for(i = 0; i < regionOrder.size(); i++) 
 		{
 			String region = regionOrder.get(i);
@@ -78,8 +83,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			String time[] = startDate.split("FY");
 			String quarter = time[0];
 			String year = time[1];
-			if(query5Data.get(region) != null){
-				int numWaves = query5Data.get(region).keySet().size();
+			if(masterHash.get(region) != null){
+				int numWaves = masterHash.get(region).keySet().size();
 				double perOfYear = 1.0/numWaves;
 				double startPercent = 0;
 				int sustainmentIndex = 0;
@@ -92,23 +97,21 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				switch(year) {
 					case "2017" : sustainmentIndex = 2; break;
 					case "2018" : sustainmentIndex = 3; break;
-					case "2019" : sustainmentIndex = 4; break;
-					case "2020" : sustainmentIndex = 4; break;
-					case "2021" : sustainmentIndex = 4; break;
-					case "2022" : sustainmentIndex = 4; break;
+					default : sustainmentIndex = 4;
 				}
 				
 				int outputYear = 0;
-				switch(year) {
-					case "2017" : outputYear = 0; break;
-					case "2018" : outputYear = 1; break;
-					case "2019" : outputYear = 2; break;
-					case "2020" : outputYear = 3; break;
-					case "2021" : outputYear = 4; break;
-					case "2022" : outputYear = 5; break;
-					case "2023" : outputYear = 6; break;
+				switch(year) { // outputYear starts at 1 since cost savings are realized the following year
+					case "2017" : outputYear = 1; break;
+					case "2018" : outputYear = 2; break;
+					case "2019" : outputYear = 3; break;
+					case "2020" : outputYear = 4; break;
+					case "2021" : outputYear = 5; break;
+					case "2022" : outputYear = 6; break;
+					case "2023" : outputYear = 7; break;
+					case "2024" : outputYear = 8; break;
 				}
-				HashMap<String, HashMap<String, ArrayList<String>>> waves = query5Data.get(region);
+				HashMap<String, HashMap<String, ArrayList<String>>> waves = masterHash.get(region);
 				int j;
 				for(j = 0; j < waveOrder.size(); j++) {
 					String wave = waveOrder.get(j);
@@ -122,9 +125,23 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 								sustainmentIndex++;
 							}
 						}
-						for(String site : sites.keySet()){
-							if(!siteList.contains(site)) {
-								siteList.add(site);
+						for(String site : sites.keySet()) {
+							// since going through waves in order, i can remove waves and only add the site when:
+							// it's not contained, or the array list has only one thing left in it
+							boolean addSite = false;
+							if(!sitesInMultipleWavesHash.containsKey(site)) {
+								addSite = true;
+							} else {
+								Double count = sitesInMultipleWavesHash.get(site);
+								if(count == 1) {
+									addSite = true;
+									sitesInMultipleWavesHash.remove(site);
+								} else {
+									Double newCount = count--;
+									sitesInMultipleWavesHash.put(site, newCount);
+								}
+							}
+							if(addSite) {
 								ArrayList<String> systems = sites.get(site);
 								double [] yearlySavings = new double[numColumns];
 								
@@ -136,14 +153,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 										// assume cost for a specific site is total cost / num sites
 										double numSites = numSitesForSysHash.get(system);
 										if(costs != null){
-											if(costs[sustainmentIndex + counter].equals(null)){
+											if(costs[sustainmentIndex + counter].equals(null)) {
 												savings += 0;
 											} else {
-												// for debugging
-//												System.out.println(system);
-//												System.out.println("\t" + costs[sustainmentIndex] );
-//												System.out.println("\t" + numSites);
-//												System.out.println("\t" + costs[sustainmentIndex] / numSites);
 												savings += costs[sustainmentIndex + counter] / numSites;
 											}
 										}
@@ -230,17 +242,19 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(TAP_PORTFOLIO);
 		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(TAP_SITE);
 		
-		if(sysSustainmentInfoHash.isEmpty()){
+		if(sysSustainmentInfoHash == null){
 			sysSustainmentInfoHash = DHMSMDeploymentHelper.getSysSustainmentBudget(tapPortfolio);
 		}
-		if(numSitesForSysHash.isEmpty()) {
+		if(numSitesForSysHash == null) {
 			numSitesForSysHash = DHMSMDeploymentHelper.getNumSitesSysDeployedAt(tapSite);
 		}
 		
-		if(regionStartDateHash.isEmpty()) {
+		if(regionStartDateHash == null) {
 			regionStartDateHash = DHMSMDeploymentHelper.getRegionStartDate(tapSite);
 		}
-		
+		if(sitesInMultipleWavesHash == null) {
+			sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSiteAndMultipleWaveCount(tapSite);
+		}
 		if(regionOrder == null) {
 			regionOrder = DHMSMDeploymentHelper.getRegionOrder(tapSite);
 		}
@@ -258,7 +272,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		
 		LOGGER.info(query);
 		
-		if(query5Data.isEmpty()) {
+		if(masterHash == null) {
+			masterHash = new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>();
 			//Use Dual Engine Grid to process the dual query that gets cost info
 			dualQueries.setQuery(query);
 			dualQueries.createData();
@@ -275,8 +290,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				String wave = info[1].toString();
 				String site = info[2].toString();
 				String system = info[3].toString();
-				if(query5Data.containsKey(region)) {
-					HashMap<String, HashMap<String, ArrayList<String>>> regionInfo = query5Data.get(region);
+				if(masterHash.containsKey(region)) {
+					HashMap<String, HashMap<String, ArrayList<String>>> regionInfo = masterHash.get(region);
 					if(regionInfo.containsKey(wave)) {
 						HashMap<String, ArrayList<String>> waveInfo = regionInfo.get(wave);
 						if(waveInfo.containsKey(site)) {
@@ -304,7 +319,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					newWaveInfo.put(site, systemList);
 					HashMap<String, HashMap<String, ArrayList<String>>> newRegionInfo = new HashMap<String, HashMap<String, ArrayList<String>>>();
 					newRegionInfo.put(wave, newWaveInfo);
-					query5Data.put(region, newRegionInfo);
+					masterHash.put(region, newRegionInfo);
 				}
 			}
 		}
