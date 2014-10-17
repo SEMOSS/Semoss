@@ -442,7 +442,100 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/System"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationRound-Trip Response Latency">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationData Latency">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationNon-Repudiation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationPersistence">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationArchival">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationAudit">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationAggregation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationDerived">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationStandard">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationDomain Qualification">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MigrateData">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Integration Strategy"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/IntegrateData">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Integration Strategy"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CoexistData">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Integration Strategy"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionRound-Trip Response Latency">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionData Latency">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionNon-Repudiation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionPersistence">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionArchival">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionAudit">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionAggregation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionStandard">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionDomain Qualification">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionDerived">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Data Attribute"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CDS">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Enterprise Configuration"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Workflows">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Enterprise Configuration"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Documentation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Enterprise Configuration"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Connected">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Availability"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Disconnected">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Availability"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Mobile">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Availability"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Continuity">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Availability"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Patient Access">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Availability"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionDomain_Qualification">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationData Latency">
@@ -460,10 +553,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationArchival">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CoexistData">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Continuity_of_Operations">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationNon-Repudiation">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CoexistData">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Connected Care">
@@ -472,19 +565,19 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MissionOutcome">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Mobile Devices">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Mobile_Devices">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Disconnected Care">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Mobile Devices">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechSubCategory">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CapabilityTag">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionNon-Repudiation">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Participant">
@@ -511,7 +604,7 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationAudit">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Continuity of Operations">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationNonRepudiation">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MigrateData">
@@ -526,9 +619,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationStandard">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Patient Access">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DHMSM">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
@@ -538,7 +628,7 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionPersistence">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionRRT">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Connected_Care">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionArchival">
@@ -548,6 +638,15 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/IntegrateData">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Patient_Access">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Disconnected_Care">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Clinical_Decision_Support">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Reference">
@@ -565,7 +664,7 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationPersistence">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Data Latency">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationRoundTrip_Response_Latency">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SLA">
@@ -574,7 +673,13 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationDerived">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionNonRepudiation">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Attribute">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionRoundTrip_Response_Latency">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechRequirement">
@@ -583,19 +688,22 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechCategory">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionData_Latency">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessStandard">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionData Latency">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationDomain Qualification">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationDomain_Qualification">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Workflows">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationRound-Trip Response Latency">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ModernizationData_Latency">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Implements">
@@ -611,10 +719,7 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Disconnected Care"/>
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionAggregation"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionDomain Qualification"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationRound-Trip Response Latency"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Task">
 	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BusinessLogicUnit"/>
@@ -626,8 +731,13 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Task">
 	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CapabilityTag"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Mobile Devices"/>
+	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Continuity_of_Operations"/>
+	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Connected_Care"/>
+	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationRoundTrip_Response_Latency"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<BelongsTo xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Portfolio"/>
@@ -641,7 +751,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionDerived"/>
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionPersistence"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionNon-Repudiation"/>
 	<References xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Reference"/>
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionStandard"/>
 </rdf:Description>
@@ -659,18 +768,22 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Task">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SLA"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationArchival"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationNon-Repudiation"/>
-	<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Workflows"/>
-	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Task"/>
-	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Connected Care"/>
-	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Patient Access"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationDomain Qualification"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Supports xmlns="http://semoss.org/ontologies/Relation/">
+		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
+			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationArchival"/>
+			<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Workflows"/>
+			<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Task"/>
+			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationNonRepudiation"/>
+			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionNonRepudiation"/>
+			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationDomain_Qualification"/>
+		</rdf:Description>
+	</Supports>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CapabilityTag">
 	<TaggedBy xmlns="http://semoss.org/ontologies/Relation/">
 		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
+			<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Clinical_Decision_Support"/>
 			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationPersistence"/>
 		</rdf:Description>
 	</TaggedBy>
@@ -678,21 +791,24 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MissionOutcome">
 	<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CapabilityGroup"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
+	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationData_Latency"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessRule">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SLA"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
+	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Patient_Access"/>
 	<Implements xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/IntegrateData"/>
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationData Latency"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Attribute">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Gap"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechSubCategory">
-	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TechRequirement"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CapabilityGroup"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechSubCategory">
+	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TechRequirement"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionArchival"/>
@@ -701,19 +817,15 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TechRequirement">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TechStandardIdentifier"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Continuity of Operations"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Task">
 	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BusinessStandard"/>
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Participant"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CapabilityFunctionalArea"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DHMSM">
-	<TaggedBy xmlns="http://semoss.org/ontologies/Relation/">
-		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-			<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionRRT"/>
-		</rdf:Description>
-	</TaggedBy>
+	<TaggedBy xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Capability"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/CapabilityGroup">
 	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Capability"/>
@@ -722,24 +834,27 @@
 	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Attribute"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Clinical Decision Support"/>
+	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Disconnected_Care"/>
+	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionData_Latency"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/MissionElement">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MissionOutcome"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
-	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionData Latency"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Task">
 	<Supports xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/BusinessRule"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
 	<Utilizes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Documentation"/>
+	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionRoundTrip_Response_Latency"/>
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/ModernizationStandard"/>
 	<Implements xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/CoexistData"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessStandard">
 	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SLA"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Capability">
+	<Needs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Mobile_Devices"/>
+	<Requires xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TransitionDomain_Qualification"/>
 </rdf:Description>
 
 </rdf:RDF>
