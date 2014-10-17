@@ -47,23 +47,48 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		Hashtable<String, ArrayList<Hashtable<String, Object>>> dataObj = new Hashtable<String, ArrayList<Hashtable<String, Object>>>();
 		//series name - all objects in that series (x : ... , y : ...)
 		int lastCol = names.length - 1 ;
+		ArrayList<String> usedList = new ArrayList<String>();
+		ArrayList<String> clientIndex = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
 		{
 			Object[] elemValues = list.get(i);
+			String seriesName = elemValues[lastCol].toString();
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
 			{
-				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-				String seriesName = elemValues[lastCol].toString();
-				if(dataObj.containsKey(seriesName))
-					seriesArray = dataObj.get(seriesName);
-				else
-					dataObj.put(seriesName, seriesArray);
-				Hashtable<String, Object> elementHash = new Hashtable();
 				int firstCol = (seriesVal - 1) * 2;
-				elementHash.put("x", elemValues[firstCol].toString());
-				elementHash.put("y", elemValues[firstCol+1]);
-				elementHash.put("seriesName", elemValues[lastCol].toString());
-				seriesArray.add(elementHash);
+				
+				String xVal = elemValues[firstCol].toString();
+				Double yVal = (Double) elemValues[firstCol+1];
+				
+				String usedKey = xVal + seriesName;
+				
+				if(!usedList.contains(usedKey)){
+					usedList.add(usedKey);
+					ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+					if(dataObj.containsKey(seriesName))
+						seriesArray = dataObj.get(seriesName);
+					else
+						dataObj.put(seriesName, seriesArray);
+					Hashtable<String, Object> elementHash = new Hashtable();
+					elementHash.put("x", xVal);
+					elementHash.put("y", yVal);
+					elementHash.put("seriesName", seriesName);
+					
+					//figure out where to store it. Want all client values first and then peer group values
+					int index = seriesArray.size();
+					if(seriesVal == 1)
+					{
+						if(clientIndex.contains(xVal))
+							index = clientIndex.indexOf(xVal);
+						else{
+							index = clientIndex.size();
+							clientIndex.add(index, xVal);
+						}
+					}
+					if(index>seriesArray.size())
+						index = seriesArray.size();
+					seriesArray.add(index, elementHash);
+				}
 			}
 		}
 		
