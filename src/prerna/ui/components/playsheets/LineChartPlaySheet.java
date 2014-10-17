@@ -21,36 +21,27 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 	public Hashtable<String, Object> processQueryData()
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
-
-		for( int i = 0; i < list.size(); i++)
-		{
-			Object[] elemValues = list.get(i);
-			for( int j = 1; j < elemValues.length; j++)
-			{
-				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-				if(dataObj.size() >= j)
-					seriesArray = dataObj.get(j-1);
-				else
-					dataObj.add(j-1, seriesArray);
-				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-				String xvalue = elemValues[0].toString();
-				Double xVal = null;
-				try {
-					xVal = Double.parseDouble(xvalue);
-					elementHash.put("x", xVal);
-				}
-				catch (NumberFormatException e) {
-					elementHash.put("x", xvalue);
-				}				
-				elementHash.put("y", elemValues[1]);
-				if (elemValues.length > 2) {
-					elementHash.put("x1", elemValues[2]);
-					elementHash.put("y1", elemValues[3]);
-				}
-				seriesArray.add(elementHash);
-			}
-		}
 		
+		for(int i = 0; i < names.length; i = i + 2) {
+			ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+			Hashtable<String, Object> seriesHash = new Hashtable<String, Object>();
+			ArrayList<Hashtable<String,Object>> dataArray = new ArrayList<Hashtable<String,Object>>();
+			
+			for(int j = 0; j < list.size(); j++) {
+				Object[] elemValues = list.get(j);			
+				
+				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+				elementHash.put("x", elemValues[i]);
+				elementHash.put("y", elemValues[i+1]);
+				dataArray.add(elementHash);
+			}
+			seriesHash.put("xName", names[i]);
+			seriesHash.put("yName", names[i+1]);
+			seriesHash.put("dataPoints", dataArray);
+			seriesArray.add(seriesHash);
+			dataObj.add(seriesArray);
+		}
+				
 		Hashtable<String, Object> lineChartHash = new Hashtable<String, Object>();
 		lineChartHash.put("names", names);
 		lineChartHash.put("type", "line");
