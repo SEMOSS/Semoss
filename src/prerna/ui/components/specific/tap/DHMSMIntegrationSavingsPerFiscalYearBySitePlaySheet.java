@@ -23,7 +23,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPlaySheet {
 
 	@Override
-	public void createData(){
+	public void createData() {
 		DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor();
 		processor.runSupportQueries();
 		if(query.equalsIgnoreCase("None")) {
