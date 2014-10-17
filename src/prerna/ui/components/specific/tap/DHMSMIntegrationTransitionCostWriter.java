@@ -2,6 +2,7 @@ package prerna.ui.components.specific.tap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.LogManager;
@@ -17,6 +18,9 @@ import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -25,12 +29,19 @@ import prerna.util.Utility;
 public class DHMSMIntegrationTransitionCostWriter {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionCostWriter.class.getName());
-
+	private final String sysProposedICDQuery = "SELECT DISTINCT ?System ?ICD WHERE { {SELECT DISTINCT ?System ?ICD WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} {?Payload <http://semoss.org/ontologies/Relation/Contains/Self-Reported> 'Y'} } } UNION { SELECT DISTINCT ?System ?ICD WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} {?Payload <http://semoss.org/ontologies/Relation/Contains/Self-Reported> 'Y'} } } }";
+	private final String proposedICDCostQuery = "SELECT DISTINCT ?ICD (SUM(?loe) AS ?Cost) ?Phase ?GLTag WHERE { { SELECT DISTINCT ?ICD ?GLItem ?Phase ?GLTag ?loe WHERE { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?GLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItem>} {?ICD <http://semoss.org/ontologies/Relation/Input> ?GLItem} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } } UNION { SELECT DISTINCT ?ICD ?GLItem ?Phase ?GLTag ?loe WHERE{ {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?GLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItem>} {?GLItem <http://semoss.org/ontologies/Relation/Output> ?ICD} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } } } GROUP BY ?ICD ?GLItem ?Phase ?GLTag";
+	
+	HashMap<String, ArrayList<String>> sysICDList = new HashMap<String, ArrayList<String>>();
+	HashMap<String, HashMap<String, Double[]>> icdCost = new HashMap<String, HashMap<String, Double[]>>();
+	
 	LPInterfaceProcessor processor;
-	public HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
+	public HashMap<String, Double> consolidatedSysCostInfo;
 
 	private IEngine hrCore;
 	private IEngine TAP_Cost_Data;
+	private IEngine FutureDB;
+	private IEngine FutureCostDB;
 	
 	private String sysURI;
 	private String systemName;
@@ -56,6 +67,14 @@ public class DHMSMIntegrationTransitionCostWriter {
 		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		if(hrCore==null) {
 				throw new EngineException("HR_Core database not found");
+		}
+		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		if(FutureDB==null) {
+			throw new EngineException("FutureDB database not found");
+		}
+		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
+		if(FutureCostDB==null) {
+				throw new EngineException("FutureCostDB database not found");
 		}
 	}
 	
@@ -91,6 +110,10 @@ public class DHMSMIntegrationTransitionCostWriter {
 		processor.consolodateCostHash();
 		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
 		
+		// add costs for self-reported values
+		generateAllCost();
+		getCostForSys(systemName);
+		
 		if(diacapReport == null) {
 			diacapReport = new TAPLegacySystemDispositionReportWriter(sysURI);
 		} else {
@@ -107,6 +130,81 @@ public class DHMSMIntegrationTransitionCostWriter {
 		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
+	private void generateAllCost() {
+		if(sysICDList.isEmpty()) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(FutureDB, sysProposedICDQuery);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();
+				String sysName = sjss.getVar(names[0]).toString();
+				String icdName = sjss.getVar(names[1]).toString();
+				ArrayList<String> icdList;
+				if(sysICDList.containsKey(sysName)) {
+					icdList = sysICDList.get(sysName);
+					icdList.add(icdName);
+				} else {
+					icdList = new ArrayList<String>();
+					icdList.add(icdName);
+					sysICDList.put(sysName, icdList);
+				}
+			}
+		}
+		if(icdCost.isEmpty()) {
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(FutureCostDB, proposedICDCostQuery);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();
+				String icdName = sjss.getVar(names[0]).toString();
+				double loe = (double) sjss.getVar(names[1]);
+				String phase = sjss.getVar(names[2]).toString();
+				String tag = sjss.getVar(names[3]).toString();
+				HashMap<String, Double[]> costInfo;
+				if(icdCost.containsKey(icdName)) {
+					costInfo = icdCost.get(icdName);
+					Double[] cost;
+					if(costInfo.containsKey(tag)) {
+						cost = costInfo.get(tag);
+					} else {
+						cost = new Double[5];
+					}
+					int position = ArrayUtilityMethods.calculateIndexOfArray(phases, phase);
+					cost[position] = loe;
+				} else {
+					costInfo = new HashMap<String, Double[]>();
+					Double[] cost = new Double[5];
+					int position = ArrayUtilityMethods.calculateIndexOfArray(phases, phase);
+					cost[position] = loe;
+					costInfo.put(tag, cost);
+					icdCost.put(icdName, costInfo);
+				}
+			}
+		}
+	}
+	
+	private void getCostForSys(String systemName) {
+		ArrayList<String> icdList = sysICDList.get(systemName);
+		if(icdList != null) {
+			for(String icd: icdList) {
+				HashMap<String, Double[]> costInfo = icdCost.get(icd);
+				for(String tag : costInfo.keySet()) {
+					Double[] cost = costInfo.get(tag);
+					for(int i = 0; i < cost.length; i++) {
+						String key = tag + "+" + phases[i];
+						if(consolidatedSysCostInfo.containsKey(key)) {
+							Double loe = consolidatedSysCostInfo.get(key);
+							if(loe != null ) {
+								consolidatedSysCostInfo.put(key, loe+cost[i]);
+							}
+						} else {
+							consolidatedSysCostInfo.put(key, cost[i]);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
 	public void writeToExcel() throws FileReaderException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
@@ -138,7 +236,12 @@ public class DHMSMIntegrationTransitionCostWriter {
 				String key = tags[i].concat("+").concat(phases[j]);
 				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
 				if(consolidatedSysCostInfo.containsKey(key)) {
-					double cost = consolidatedSysCostInfo.get(key)*costPerHr;
+					Double cost = consolidatedSysCostInfo.get(key);
+					if(cost == null) {
+						cost = (double) 0;
+					} else {
+						cost *= costPerHr;
+					}
 					totalCost[i] += cost;
 					XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
 					cellToWriteOn.setCellValue(Math.round(cost));
