@@ -1,6 +1,8 @@
 package prerna.util;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public final class ArrayListUtilityMethods {
 	
@@ -53,6 +55,31 @@ public final class ArrayListUtilityMethods {
 		}
 		
 		return retNames;
+	}
+	
+	public static ArrayList<Object[]> orderQuery(ArrayList<Object[]> queryResults){
+		ArrayList<Object[]> sortedQuery = new ArrayList<Object[]>();
+		ArrayList<String> sortingList = new ArrayList<String>();
+		for(Object[] o : queryResults){
+			String objectContents = "";
+			for(int i = 0; i < o.length; i++){
+				objectContents += o[i].toString() + "+++";
+			}
+			sortingList.add(objectContents);
+		}
+		
+		Collections.sort(sortingList, new Comparator<String>(){
+			public int compare(String s1, String s2){
+				return s1.compareTo(s2);
+			}
+		});
+		
+		for(String s : sortingList){
+			String[] data = s.split("\\+\\+\\+");
+			sortedQuery.add((Object[]) data);
+		}
+		
+		return sortedQuery;
 	}
 	
 }
