@@ -25,10 +25,51 @@ public final class DHMSMDeploymentHelper {
 	public static final String FIRST_WAVE_QUERY = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Preceeds> ?Wave1}}  }";
 
 	public static final String SYS_DEPLOYED_AT_SITE_QUERY = "SELECT DISTINCT ?HostSite ?System WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?HostSite ?System";
+	public static final String SITE_IN_MULTIPLE_WAVES_QUERY = "SELECT DISTINCT ?HostSite ?Wave WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } ORDER BY ?HostSite";
+	public static final String SITE_IN_MULTIPLE_WAVES_COUNT_QUERY = "SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveCount) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } GROUP BY ?HostSite ORDER BY ?HostSite";
 	
 	private DHMSMDeploymentHelper() {
 		
 	}
+	
+	public static HashMap<String, Double> getSiteAndMultipleWaveCount(IEngine engine) {
+		HashMap<String,Double> retHash = new HashMap<String, Double>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_COUNT_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String site = sjss.getVar(names[0]).toString();
+			Double count = (Double) sjss.getVar(names[1]);
+			retHash.put(site, count);
+		}
+		
+		return retHash;
+	}
+	
+	public static HashMap<String, ArrayList<String>> getSitesAndMultipleWaves(IEngine engine) {
+		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String site = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+			ArrayList<String> waveList;
+			if(retHash.containsKey(site)) {
+				waveList = retHash.get(site);
+				waveList.add(wave);
+			} else {
+				waveList = new ArrayList<String>();
+				waveList.add(wave);
+				retHash.put(site, waveList);
+			}
+		}
+		
+		return retHash;
+	}
+	
 	
 	public static ArrayList<String> getRegionOrder(IEngine engine) {
 		//get first region and wave
