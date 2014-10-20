@@ -52,6 +52,7 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 	final String valueKey = "valueKey";
 	final String rowKey = "rowKey";
 	final String colKey = "colKey";
+	String title = "";
 	
 	ArrayList<String> passedQueries = new ArrayList<String>();
 	
@@ -77,7 +78,7 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 		dataObj.addAll(processingHash.values());
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("names", names);
+		columnChartHash.put("title", this.title);
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
@@ -96,7 +97,7 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 				//add to row 1 sum
 				Double val1 = (Double) colHash.get(row1Name).get(valueKey);
 				val1Total = val1Total + val1;
-				if(!colKey.equals(this.salesColName)){
+				if(!colKey.equals(this.salesColName)){ // sales is excluded from first total
 					val1Adj = val1Adj + val1;
 				}
 			}
@@ -128,6 +129,9 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 		while(sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
+			
+			if(title.isEmpty())
+				title = sjss.getVar(passedNames[3]) + " vs. " + sjss.getVar(passedNames[7]);
 			
 			String colHeader = getVariable(passedNames[1], sjss) + "";
 			Double row1Val = ((BigdataLiteralImpl)getVariable(passedNames[4], sjss)).doubleValue();
