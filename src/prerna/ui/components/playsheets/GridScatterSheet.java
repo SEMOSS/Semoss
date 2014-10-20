@@ -49,18 +49,35 @@ public class GridScatterSheet extends BrowserPlaySheet{
 	{
 		ArrayList allData = new ArrayList();
 		String[] var = wrapper.getVariables();
+		String name = var[0];
+		boolean hasType = true;
+		int offset = 0;
+		try {
+			Double.parseDouble(list.get(0)[1].toString());
+			hasType = false;
+		} catch (NumberFormatException ex) {
+			// do nothing, hasType is alreayd true
+		}
+		if(hasType) {
+			offset = 1;
+		}
+		
 		for (int i=0;i<list.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
 			Object[] listElement = list.get(i);
 			
-			elementHash.put("series", var[0]);
-			elementHash.put("label", listElement[0]);
-			elementHash.put("x", listElement[1]);
-			if(listElement.length>2)
-				elementHash.put("y", listElement[2]);
-			if(listElement.length>3)
-				elementHash.put("z", listElement[3]);
+			if(hasType) {
+				name = listElement[0].toString();
+			}
+			
+			elementHash.put("series", name);
+			elementHash.put("label", listElement[0+offset]);
+			elementHash.put("x", listElement[1+offset]);
+			if(listElement.length > 2 + offset)
+				elementHash.put("y", listElement[2+offset]);
+			if(listElement.length > 3 + offset)
+				elementHash.put("z", listElement[3+offset]);
 //			
 //			Object[] dataSet = new Object[4];
 //			dataSet[0]=(Double) listElement[1];
