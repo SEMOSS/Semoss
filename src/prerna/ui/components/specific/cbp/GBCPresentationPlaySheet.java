@@ -12,40 +12,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
 
-import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
-import org.openrdf.query.parser.ParsedQuery;
-import org.openrdf.query.parser.sparql.SPARQLParser;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-
-import prerna.om.GraphDataModel;
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.rdf.util.StatementCollector;
-import prerna.ui.components.ChartControlPanel;
-import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
-import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -56,26 +30,39 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 	Properties presProps = new Properties();
 	String propsKey;
 	IPlaySheet realPlaySheet;
+	boolean update = false;
 	
 	public GBCPresentationPlaySheet() 
 	{
 		this.setPreferredSize(new Dimension(800,600));
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String fileName = workingDir + "/GBCPresentation.properties";
-		try {
-			presProps.load(new FileInputStream(fileName));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+		Properties props = (Properties) DIHelper.getInstance().getLocalProp("GBC_PROPERTIES");
+		
+		if(props == null)
+		{
+			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String fileName = workingDir + "/GBCPresentation.properties";
+			try {
+				presProps.load(new FileInputStream(fileName));
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		else
+			presProps = props;
 	}
 	
 	@Override
 	public void createData()
 	{		
+		if(update){
+			updateProperties(query);
+			return;
+		}
 		// this will do everything for the real play sheet
 
 		// now that the query is set lets create the playsheet and set those things
@@ -101,32 +88,45 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 	@Override
 	public void setQuery(String query1) {
 		this.propsKey = query1;
-		//query must be specified on the prop sheet or it can be a pointer to a generic query key
-		this.query = presProps.getProperty(propsKey+"_QUERY");
-		if(presProps.getProperty(query) != null)
-			query = presProps.getProperty(query);
 		
-		//for each param see if defined specifically otherwise get the value for the whole presentation
-		Hashtable<String, String> filledParams = new Hashtable<String, String>();
-		Hashtable<String, String> params = Utility.getParams(this.query);
-		for (String param : params.keySet()){
-			String paramKey = param.substring(0, param.indexOf("-"));
-			String paramValue = presProps.getProperty(propsKey+"_"+paramKey);
-			if(paramValue == null)
-				paramValue = presProps.getProperty(paramKey);
-			filledParams.put(param, paramValue);
-			logger.info("filling param " + paramKey + " with " + paramValue);
+		if(!this.propsKey.startsWith("UPDATE"))
+		{
+			//query must be specified on the prop sheet or it can be a pointer to a generic query key
+			this.query = presProps.getProperty(propsKey+"_QUERY");
+			if(presProps.getProperty(query) != null)
+				query = presProps.getProperty(query);
+			
+			//for each param see if defined specifically otherwise get the value for the whole presentation
+			Hashtable<String, String> filledParams = new Hashtable<String, String>();
+			Hashtable<String, String> params = Utility.getParams(this.query);
+			for (String param : params.keySet()){
+				String paramKey = param.substring(0, param.indexOf("-"));
+				String paramValue = presProps.getProperty(propsKey+"_"+paramKey);
+				if(paramValue == null)
+					paramValue = presProps.getProperty(paramKey);
+				filledParams.put(param, paramValue);
+				logger.info("filling param " + paramKey + " with " + paramValue);
+			}
+			
+			this.query = Utility.fillParam(this.query, filledParams);
+			logger.info("filled final query : " + this.query);
+		
 		}
-		
-		this.query = Utility.fillParam(this.query, filledParams);
-		logger.info("filled final query : " + this.query);
-		
-		
+		else
+		{
+			this.query = query1.substring(6); // cut out UPDATE
+			this.update = true;
+		}
 	}
 	
 	@Override
 	public void createView(){
-		this.realPlaySheet.createView();
+		if(!update){
+			this.realPlaySheet.createView();
+		}
+		else{
+			Utility.showMessage("Update Sucessful");
+		}
 	}
 
 	@Override
@@ -148,7 +148,32 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 	}
 	
 	public Object getData(){
-		return this.realPlaySheet.getData();
+		if(!update){
+			return this.realPlaySheet.getData();
+			
+		}
+		else return "Update Successful";
+	}
+	
+
+	private void updateProperties(String propString)
+	{
+		logger.info("Time to update properties with " + propString);
+
+
+		String [] tokens = propString.split(";");
+		// format is prop1+++prop1Value;prop2+++prop2Value etc.
+		for (int propIdx = 0; propIdx < tokens.length; propIdx++){
+			String token = tokens[propIdx];
+			int splitIdx = token.indexOf("+++");
+			String paramName = token.substring(0,splitIdx);
+			String paramValue = token.substring(splitIdx+3);
+			if(!paramValue.isEmpty()){
+				logger.info("Setting param " + paramName + " to " + paramValue);
+				this.presProps.setProperty(paramName, paramValue);
+			}
+		}
+		DIHelper.getInstance().setLocalProperty("GBC_PROPERTIES", presProps);
 	}
 	
 }
