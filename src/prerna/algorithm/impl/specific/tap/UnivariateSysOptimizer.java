@@ -72,6 +72,8 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	String errorMessage = "";
 	boolean reducedFunctionality = false;
 	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
+	private int[] provideDataBLUNow;
+	private int[] provideDataBLUFuture;
 
 	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel,DHMSMCapabilitySelectPanel capabilitySelectPanel,DHMSMDataBLUSelectPanel dataBLUSelectPanel,DHMSMSystemSelectPanel systemModernizePanel, DHMSMSystemSelectPanel systemDecommissionPanel,boolean includeRegionalization,boolean ignoreTheatGarr)
 	{
@@ -318,6 +320,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	        displayCurrFunctionality();
 	        displayFutureFunctionality();
 	        displayHeatMap();
+	        displayClusterHeatMap();
         }
         else
 		{
@@ -437,6 +440,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificSysAlysPanel);
 	}
 	private void displayCurrFunctionality() {
+		provideDataBLUNow = new int[dataList.size()+bluList.size()];
 		ArrayList <Object []> list = new ArrayList<Object []>();
 		int size = resFunc.sysList.size()+3;
 		if(includeRegionalization)
@@ -466,6 +470,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 					numSystems++;
 				}
 			newRow[2] = numSystems;
+			provideDataBLUNow[dataInd] = numSystems;
 			if(includeRegionalization)
 			{
 				int numRegions = 0;
@@ -492,6 +497,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 					numSystems++;
 				}
 			newRow[2] = numSystems;
+			provideDataBLUNow[dataList.size()+bluInd] = numSystems;
 			if(includeRegionalization)
 			{
 				int numRegions = 0;
@@ -509,6 +515,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	}
 	
 	private void displayFutureFunctionality() {
+		provideDataBLUFuture = new int[dataList.size()+bluList.size()];
 		
 		ArrayList <Object []> list = new ArrayList<Object []>();
 		int numModernizedSys = sysOpt.countModernized();
@@ -546,6 +553,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 					colIndex++;
 				}
 			newRow[2] = numSystems;
+			provideDataBLUFuture[dataInd] = numSystems;
 			if(includeRegionalization) {
 				int numRegions = 0;
 				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
@@ -573,6 +581,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 					colIndex++;
 				}
 			newRow[2] = numSystems;
+			provideDataBLUFuture[dataList.size()+bluInd] = numSystems;
 			if(includeRegionalization) {
 				int numRegions = 0;
 				for(int regionInd=0;regionInd<resFunc.regionList.size();regionInd++)
@@ -623,6 +632,18 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		// display output for heatmap tab
 		((SysOptPlaySheet) playSheet).replacementHeatMap.callIt(allHash);
 		((SysOptPlaySheet) playSheet).replacementHeatMap.setVisible(true);
+	}
+	
+	public void displayClusterHeatMap() {
+		ClusterHeatMapData dataCreater = new ClusterHeatMapData();
+		if(resFunc instanceof ResidualSystemTheatGarrOptFillData)
+			dataCreater.setData(sysList, dataList, bluList, sysOpt.systemIsModernized, resFunc.systemLPI, resFunc.systemMHSSpecific, ((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater, ((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison, provideDataBLUNow, provideDataBLUFuture, resFunc.systemDataMatrix, resFunc.systemBLUMatrix);
+		else
+			dataCreater.setData(sysList, dataList, bluList, sysOpt.systemIsModernized, resFunc.systemLPI, resFunc.systemMHSSpecific, null, null, provideDataBLUNow, provideDataBLUFuture, resFunc.systemDataMatrix, resFunc.systemBLUMatrix);
+		dataCreater.createFile();
+		// display output for heatmap tab
+//		((SysOptPlaySheet) playSheet).clusterHeatMap.callIt(allHash);
+//		((SysOptPlaySheet) playSheet).clusterHeatMap.setVisible(true);
 	}
 
 	/**

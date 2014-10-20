@@ -18,7 +18,6 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -38,7 +37,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
-import aurelienribon.ui.css.Style;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.AdvParamListener;
@@ -46,6 +44,7 @@ import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
 import prerna.ui.swing.custom.ToggleButton;
+import aurelienribon.ui.css.Style;
 
 /**
  * This is the playsheet used exclusively for TAP service optimization.
@@ -73,8 +72,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	 //overall analysis tab
 	public JRadioButton rdbtnIRR;
 	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
-	public BrowserGraphPanel replacementHeatMap;
-	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel;
+	public BrowserGraphPanel replacementHeatMap, clusterHeatMap;
+	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, clusterHeatMapPanel;
 	
 	/**
 	 * Constructor for SysOptPlaySheet.
@@ -502,6 +501,24 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_replacementHeatMap.gridx = 0;
 		gbc_replacementHeatMap.gridy = 0;
 		replacementHeatMapPanel.add(replacementHeatMap, gbc_replacementHeatMap);
+		
+		clusterHeatMapPanel = new JPanel();
+		tabbedPane.addTab("Cluster Heat Map", null, clusterHeatMapPanel, null);
+		GridBagLayout gbl_clusterHeatMapPanel = new GridBagLayout();
+		gbl_clusterHeatMapPanel.columnWidths = new int[]{0, 0};
+		gbl_clusterHeatMapPanel.rowHeights = new int[]{0, 0};
+		gbl_clusterHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_clusterHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		clusterHeatMapPanel.setLayout(gbl_clusterHeatMapPanel);
+
+		clusterHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");//TODO change to new ehat map
+			
+		GridBagConstraints gbc_clusterHeatMap = new GridBagConstraints();
+		gbc_clusterHeatMap.insets = new Insets(0, 0, 0, 5);
+		gbc_clusterHeatMap.fill = GridBagConstraints.BOTH;
+		gbc_clusterHeatMap.gridx = 0;
+		gbc_clusterHeatMap.gridy = 0;
+		clusterHeatMapPanel.add(clusterHeatMap, gbc_clusterHeatMap);
 	}
 	
 	/**
