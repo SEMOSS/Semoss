@@ -126,6 +126,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 						for(String site : sites.keySet()) {
 							// since going through waves in order, i can remove waves and only add the site when:
 							// it's not contained, or the array list has only one thing left in it
+							if(site.contains("LEWIS")){
+								System.out.println("");
+							}
 							boolean addSite = false;
 							if(!sitesInMultipleWavesHash.containsKey(site)) {
 								addSite = true;
@@ -135,7 +138,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									addSite = true;
 									sitesInMultipleWavesHash.remove(site);
 								} else {
-									Double newCount = count--;
+									Double newCount = count - 1;
 									sitesInMultipleWavesHash.put(site, newCount);
 								}
 							}
