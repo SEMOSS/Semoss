@@ -93,6 +93,53 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return false;
 	}
 
+	public static int[] findAllClosestNonNullIndex(Integer[] arr, int index) {
+		if(removeAllNulls(arr).length == 0) {
+			throw new NullPointerException(ERROR);
+		}
+		int[] minDiff = new int[]{Integer.MAX_VALUE};
+		
+		int i;
+		int size = arr.length;
+		for(i = 0; i < size; i++) {
+			if(arr[i] != null) {
+				int localDiff = Math.abs(index - i);
+				if(localDiff < minDiff[0]) {
+					minDiff[0] = i;
+				} else if(localDiff == minDiff[0]) {
+					int firstIdx = minDiff[0];
+					minDiff = new int[]{firstIdx, i};
+				}
+			}
+		}
+		
+		return minDiff;
+	}
+	
+	public static int[] findAllClosestNonNullIndex(Double[] arr, int index) {
+		if(removeAllNulls(arr).length == 0) {
+			throw new NullPointerException(ERROR);
+		}
+		int[] minIndex = new int[1];
+		int minDiff = Integer.MAX_VALUE;
+		int i;
+		int size = arr.length;
+		for(i = 0; i < size; i++) {
+			if(arr[i] != null) {
+				int localDiff = Math.abs(index - i);
+				if(localDiff < minDiff) {
+					minDiff = localDiff;
+					minIndex[0] = i;
+				} else if(localDiff == minDiff) {
+					int firstIdx = minIndex[0];
+					minIndex = new int[]{firstIdx, i};
+				}
+			}
+		}
+		
+		return minIndex;
+	}
+
 	public static int determineLastNonNullValue(final Object[] arr) {
 		int lastNonNullValue = -1;
 		int size = arr.length;

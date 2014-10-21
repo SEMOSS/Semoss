@@ -18,6 +18,11 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		super(numericalBinMatrix, categoricalMatrix, instanceNumberBinOrderingMatrix);
 	}
 	
+	public double calculateAdjustmentFactor(int index1, int index2, int numBins) {
+		return 1 - (double) Math.pow((double) Math.abs(index1 - index2) / numBins, 2.0); 
+	}
+	
+	
 	/**
 	 * 
 	 * @param numericalBinMatrix			All the numeric bin data for every instance
@@ -121,16 +126,8 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 				double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
 				int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
 				int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
-				adjustmentFactor += normalizedNumInBin * (1 - (double) Math.abs(indexOfInstance - indexOfPropInCluster) / numBins); 
+				adjustmentFactor += normalizedNumInBin * calculateAdjustmentFactor(indexOfInstance, indexOfPropInCluster, numBins); 
 			}
-			
-			// sumProperties contains the total number of instances for the property
-			
-			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
-//			int numOccuranceInCluster = 0;
-//			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
-//				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
-//			}
 			similarity += weights[i] * adjustmentFactor;
 		}
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
@@ -227,7 +224,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			ArrayList<Hashtable<String, Integer>> numericalClusterInfo1 = clusterNumericalMatrix.get(clusterIdx1);
 			ArrayList<Hashtable<String, Integer>> numericalClusterInfo2 = clusterNumericalMatrix.get(clusterIdx2);
 
-			numericSimilarity = calculateClusterSimilarity(numericPropNum, totalPropNum, numericalWeights, numericalClusterInfo1, numericalClusterInfo2);
+			numericSimilarity = calculateClusterNumericalSimilarity(numericPropNum, totalPropNum, numericalWeights, numericalClusterInfo1, numericalClusterInfo2);
 		}
 
 		if(clusterCategoryMatrix != null) {
@@ -305,6 +302,86 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		}
 
 		return coeff * similarityScore;
+	}
+	
+	
+	/**
+	 * 
+	 * @param propNum
+	 * @param totalPropNum
+	 * @param weights
+	 * @param clusterInfo1
+	 * @param clusterInfo2
+	 * @return 
+	 */
+	private double calculateClusterNumericalSimilarity(
+			int propNum, 
+			int totalPropNum, 
+			double[] weights, 
+			ArrayList<Hashtable<String, Integer>> clusterInfo1, 
+			ArrayList<Hashtable<String, Integer>> clusterInfo2) 
+	{
+		double coeff = 1.0 * propNum / totalPropNum;
+		double similarityScore = 0;
+
+		int i;
+		int size = clusterInfo1.size();
+		// loop through all properties
+		for(i = 0; i < size; i++) {
+			// for specific property
+			Hashtable<String, Integer> propInfoForCluster1 = clusterInfo1.get(i);
+			Hashtable<String, Integer> propInfoForCluster2 = clusterInfo2.get(i);
+			
+			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
+			// numBins contains the number of bins
+			int numBins = sortedBinArr.length;
+			Double[] numInstances1 = calculateComparisonArr(propInfoForCluster1, sortedBinArr);
+			Double[] numInstances2 = calculateComparisonArr(propInfoForCluster2, sortedBinArr);
+			
+			if(numInstances1[0] == null) {
+				System.out.println("ERROR");
+			}
+			double normalizationCount1 = StatisticsUtilityMethods.getSum(numInstances1);
+			double normalizationCount2 = StatisticsUtilityMethods.getSum(numInstances2);
+			
+			double sumClusterDiff = 0;
+			for(int index = 0; index < numBins; index++) {
+				double count1 = numInstances1[index];
+				double count2 = numInstances2[index];
+				sumClusterDiff += Math.abs(count1/normalizationCount1 - count2/normalizationCount2);
+			}
+			
+			similarityScore += weights[i] * (1 - sumClusterDiff/numBins);
+		}
+
+		return coeff * similarityScore;
+	}
+	
+	private Double[] calculateComparisonArr(Hashtable<String, Integer> propInfoForCluster, String[] sortedBinArr){
+		int numBins = sortedBinArr.length;
+		Double[] numInstances = new Double[numBins]; 
+		Double[] retArr = new Double[numBins];
+		int j;
+		for(String propInstance : propInfoForCluster.keySet()) {
+			int index = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propInstance);
+			int count = propInfoForCluster.get(propInstance);
+			numInstances[index] = (double) count;
+		}
+		for(j = 0; j < numBins; j++) {
+			if(numInstances[j] == null) {
+				int[] indicies = ArrayUtilityMethods.findAllClosestNonNullIndex(numInstances, j);
+				double innerCount = 0;
+				for(int k = 0; k < indicies.length; k++) {
+					innerCount += numInstances[indicies[k]];
+				}
+				innerCount /= indicies.length;
+				retArr[j] = innerCount * calculateAdjustmentFactor(indicies[0], j, numBins); 
+			} else {
+				retArr[j] = numInstances[j];
+			}
+		}
+
+		return retArr;
 	}
 	
 //	/**
