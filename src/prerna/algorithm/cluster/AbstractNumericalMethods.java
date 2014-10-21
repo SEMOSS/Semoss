@@ -1,9 +1,10 @@
 package prerna.algorithm.cluster;
 
-public class AbstractNumericalMethods {
+public abstract class AbstractNumericalMethods {
 	
 	protected String[][] numericalBinMatrix;
 	protected String[][] categoricalMatrix;
+	protected String[][] instanceNumberBinOrderingMatrix;
 	protected int numericPropNum;
 	protected int categoricalPropNum;
 	protected int totalPropNum;
@@ -11,9 +12,10 @@ public class AbstractNumericalMethods {
 	protected double[] numericalWeights;
 	protected double[] categoricalWeights;
 	
-	public AbstractNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix) {
+	public AbstractNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix, String[][] instanceNumberBinOrderingMatrix) {
 		this.numericalBinMatrix = numericalBinMatrix;
 		this.categoricalMatrix = categoricalMatrix;
+		this.instanceNumberBinOrderingMatrix = instanceNumberBinOrderingMatrix;
 		
 		if(numericalBinMatrix != null) {
 			numericPropNum = numericalBinMatrix[0].length;

@@ -32,6 +32,7 @@ public abstract class AbstractClusteringAlgorithm {
 	//the category and number values for each instance
 	protected String[][] instanceCategoryMatrix;
 	protected String[][] instanceNumberBinMatrix;
+	protected String[][] instanceNumberBinOrderingMatrix;
 //	protected Double[][] instanceNumberMatrix;
 
 	//the category and number values for each cluster
@@ -91,12 +92,13 @@ public abstract class AbstractClusteringAlgorithm {
 		instanceCategoryMatrix = cdp.getCategoricalMatrix();
 //		instanceNumberMatrix = cdp.getNumericalMatrix();
 		instanceNumberBinMatrix = cdp.getNumericalBinMatrix();
+		instanceNumberBinOrderingMatrix = cdp.getNumericalBinOrderingMatrix();
 		instanceIndexHash = cdp.getInstanceHash();
 		numInstances = instanceIndexHash.size();
 	}
 	
 	protected void setAlgorithmVariables(){
-		cnm = new ClusteringNumericalMethods(instanceNumberBinMatrix, instanceCategoryMatrix);
+		cnm = new ClusteringNumericalMethods(instanceNumberBinMatrix, instanceCategoryMatrix, instanceNumberBinOrderingMatrix);
 		cnm.setCategoricalWeights(cdp.getCategoricalWeights());
 		cnm.setNumericalWeights(cdp.getNumericalWeights());
 		

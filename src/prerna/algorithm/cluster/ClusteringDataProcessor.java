@@ -37,11 +37,23 @@ public class ClusteringDataProcessor {
 	
 	// matrix to hold the numerical bin property values
 	private String[][] numericalBinMatrix;
+	// matrix to hold the numerical bin ordering
+	private String[][] numericalBinOrderingMatrix;
+	
 	// matrix to hold the instance categorical property values
 	private String[][] categoricalMatrix;
+	
+	
 	public String[][] getNumericalBinMatrix() {
 		if(numericalBinMatrix != null) {
 			return numericalBinMatrix.clone();
+		} else {
+			return null;
+		}
+	}
+	public String[][] getNumericalBinOrderingMatrix(){
+		if(numericalBinOrderingMatrix != null) {
+			return numericalBinOrderingMatrix.clone();
 		} else {
 			return null;
 		}
@@ -375,14 +387,16 @@ public class ClusteringDataProcessor {
 		{
 			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
 			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
-			for(int i = 0; i < data.length; i++) {
+			int size = data.length;
+			numericalBinOrderingMatrix = new String[size][];
+			for(int i = 0; i < size; i++) {
 				Object[] propColumn = data[i];
 				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
 				Arrays.sort(dataRow);
 				BarChart chart = new BarChart(dataRow);
 				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
 				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
-				
+				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
 				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
 				int j;
 				for(j = 0; j < bins.length; j++) {
@@ -480,22 +494,30 @@ public class ClusteringDataProcessor {
 					String maxBin = "";
 					for(String binRange : colInstances.keySet()) {
 						String[] split = binRange.split(" - ");
-						double min = Double.parseDouble(split[0].trim());
-						double max = Double.parseDouble(split[1].trim());
-						if(val >= min && val <= max) {
-							numericalBinMatrix[i][j] = binRange;
-							continue COL_LOOP;
-						}
-						if(maxBinVal < max) {
-							maxBinVal = max;
-							maxBin = binRange;
-						}
-						if(minBinVal > min) {
-							minBinVal = min;
-							minBin = binRange;
+						if(split.length == 2) {
+							double min = Double.parseDouble(split[0].trim());
+							double max = Double.parseDouble(split[1].trim());
+							if(val >= min && val <= max) {
+								numericalBinMatrix[i][j] = binRange;
+								continue COL_LOOP;
+							}
+							if(maxBinVal < max) {
+								maxBinVal = max;
+								maxBin = binRange;
+							}
+							if(minBinVal > min) {
+								minBinVal = min;
+								minBin = binRange;
+							}
+						} else {
+							// not enough unique values to create bins - columns become unique values
+							if(val == Double.parseDouble(binRange)) {
+								numericalBinMatrix[i][j] = binRange;
+								continue COL_LOOP;
+							}
 						}
 					}
-					// this check is technically unnecessary since if its not null
+					// this check is technically unnecessary since we only get here when it is null -> otherwise it goes to the continue
 					if(numericalBinMatrix[i][j] == null) {
 						if(Math.abs(minBinVal - val) > Math.abs(maxBinVal - val)) {
 							numericalBinMatrix[i][j] = maxBin;
@@ -530,10 +552,9 @@ public class ClusteringDataProcessor {
 		// will analyze date types as numerical data
 		Boolean isLongDate = true;
 		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		Date longdate = null;
 		try {
 			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
+			formatLongDate.parse(s);
 		} catch (ParseException e) {
 			isLongDate = false;
 		}
@@ -543,10 +564,9 @@ public class ClusteringDataProcessor {
 
 		Boolean isSimpleDate = true;
 		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-		Date simpleDate = null;
 		try {
 			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
+			formatSimpleDate.parse(s);
 		} catch (ParseException e) {
 			isSimpleDate = false;
 		}

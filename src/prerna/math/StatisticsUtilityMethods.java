@@ -142,8 +142,8 @@ public final class StatisticsUtilityMethods {
 		
 		int index;
 		int size = values.length;
-		double sum = values[0];
-		for(index = 1; index < size; index++) {
+		double sum = 0.0;
+		for(index = 0; index < size; index++) {
 			double val = values[index];
 			if(!Double.isInfinite(val)) {
 				sum += values[index];
@@ -158,10 +158,21 @@ public final class StatisticsUtilityMethods {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
+		int index;
+		int counter = 0;
 		int size = values.length;
-		double sum = getSumIgnoringInfinity(values);
+		double sum = 0.0;
+		for(index = 0; index < size; index++) {
+			double val = values[index];
+			if(!Double.isInfinite(val)) {
+				sum += values[index];
+				counter++;
+			}
+		}
 		
-		return sum/size;
+		
+		
+		return sum/counter;
 	}
 	
 	public static double getSampleStandardDeviation(final double[] values) {
@@ -187,16 +198,18 @@ public final class StatisticsUtilityMethods {
 		
 		double avg = getAverageIgnoringInfinity(values);
 		int index;
+		int counter = 0;
 		int size = values.length;
-		double stdev = Math.pow(values[0] - avg,2);
-		for(index = 1; index < size; index++) {
+		double stdev = 0;
+		for(index = 0; index < size; index++) {
 			double val = values[index];
 			if(!Double.isInfinite(val)) {
 				stdev += Math.pow(values[index] - avg,2);
+				counter++;
 			}
 		}
 		
-		return Math.pow(stdev/(size - 1), 0.5);
+		return Math.pow(stdev/(counter - 1), 0.5);
 	}
 	
 	public static double[] calculateZScores(final double[] values, final boolean isOrdered) {
@@ -241,7 +254,15 @@ public final class StatisticsUtilityMethods {
 		double[] zScore = new double[numValues];
 		int i;
 		for(i = 0; i < numValues; i++) {
-			zScore[i] = (values[i] - avg)/stdev;
+			if(Double.isInfinite(values[i])) {
+				zScore[i] = Double.NaN;
+			} else {
+				if(stdev == 0) {
+					zScore[i] = 0;
+				} else {
+					zScore[i] = (values[i] - avg)/stdev;
+				}
+			}
 		}
 		
 		return zScore;

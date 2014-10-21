@@ -44,6 +44,9 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			for(String instance : instanceIndexHash.keySet()) {
 				int instanceInd = instanceIndexHash.get(instance);
 				int newClusterForInstance = ClusterUtilityMethods.findNewClusterForInstance(cnm, clusterCategoryMatrix, clusterNumberBinMatrix, numInstancesInCluster, instanceInd);
+				if(newClusterForInstance > numClusters) {
+					System.out.println("error");
+				}
 				int oldClusterForInstance = clustersAssigned[instanceInd];
 				if(newClusterForInstance != oldClusterForInstance) {
 					noChange = false;
@@ -77,6 +80,13 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 					}
 					if(clusterCategoryMatrix != null) {
 						clusterCategoryMatrix.remove(i - counter);
+					}
+					int j;
+					int size = clustersAssigned.length;
+					for(j = 0; j < size; j++) {
+						if(clustersAssigned[j] > i - counter) {
+							clustersAssigned[j]--;
+						}
 					}
 					counter++;
 				}
