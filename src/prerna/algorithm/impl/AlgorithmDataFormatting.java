@@ -3,7 +3,6 @@ package prerna.algorithm.impl;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Locale;
 
 public class AlgorithmDataFormatting {
@@ -124,10 +123,9 @@ public class AlgorithmDataFormatting {
 		// will analyze date types as numerical data
 		Boolean isLongDate = true;
 		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		Date longdate = null;
 		try {
 			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
+			formatLongDate.parse(s);
 		} catch (ParseException e) {
 			isLongDate = false;
 		}
@@ -137,10 +135,9 @@ public class AlgorithmDataFormatting {
 
 		Boolean isSimpleDate = true;
 		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-		Date simpleDate = null;
 		try {
 			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
+			formatSimpleDate.parse(s);
 		} catch (ParseException e) {
 			isSimpleDate = false;
 		}
