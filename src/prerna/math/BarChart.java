@@ -13,7 +13,8 @@ public class BarChart {
 	private double[] numericalValues;
 	private Hashtable<String, Object>[] retHashForJSON;
 	private String[] assignmentForEachObject;
-			
+	private String[] numericalBinOrder;
+	
 	public BarChart(String[] values) {
 		this.stringValues = values;
 		this.numericalValues = null;
@@ -28,6 +29,7 @@ public class BarChart {
 		this.stringValues = null;
 		this.uniqueValues = null;
 		assignmentForEachObject = new String[values.length];
+		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
 		retHashForJSON = calculateNumericBins(numericalValues);
 	}
 	
@@ -89,16 +91,21 @@ public class BarChart {
 		NumberFormat formatter = null;
 		int numOccurances = numValues.length;
 		if(numOccurances < 10 || ArrayUtilityMethods.getUniqueArray(numValues).length < 10) {
-			String[] stringVals = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
-			BarChart chart = new BarChart(stringVals);
-			return chart.getRetHashForJSON();
+			String[] numValuesAsString = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
+			// values in order since the methods in ArrayUtilityMethods both conserve order
+			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(numValuesAsString);
+			
+			this.stringValues = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
+			this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			this.numericalValues = null;
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
 		}
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		if(Math.abs(min) >= 0 && Math.abs(max) <= 1) {
 			formatter = new DecimalFormat("#.00");
 		} else if(Math.abs(min) >= 0 && Math.abs(max) <= 100) {
-			formatter = new DecimalFormat("0.#0");
+			formatter = new DecimalFormat("0.00");
 		} else if(Math.abs(min) * 10 < Math.abs(max)) {
 			formatter = new DecimalFormat("0.00E0");
 		} else {
@@ -111,6 +118,8 @@ public class BarChart {
 		int numBins = (int) Math.ceil(range/binSize);
 		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
 
+		numericalBinOrder = new String[numBins];
+		
 		int i;
 		int currBin = 0;
 		int counter = 0;
@@ -120,6 +129,7 @@ public class BarChart {
 		for(i = 0; i < numOccurances; i++) {
 			if(numValues[i] >= start && numValues[i] < end){
 				assignmentForEachObject[i] = bin;
+				numericalBinOrder[currBin] = bin;
 				counter++;
 			} else {
 				do {
@@ -130,11 +140,13 @@ public class BarChart {
 					innerHash.put("x", bin);
 					innerHash.put("y", counter);
 					retBins[currBin] = innerHash;
+					counter = 0;
 					currBin++;
 					start += binSize;
 					end += binSize;
-					counter = 0;
+					bin = formatter.format(start) + "  -  " + formatter.format(end);
 					assignmentForEachObject[i] = bin;
+					numericalBinOrder[currBin] = bin;
 				} while(numValues[i] > end); // continue until adding empty bins until value lies within current bin
 				counter++; // take into consideration the occurrence that didn't fit in the bin;
 			}
@@ -148,8 +160,9 @@ public class BarChart {
 					innerHash.put("y", counter);
 					retBins[currBin] = innerHash;
 					assignmentForEachObject[i] = bin;
+					numericalBinOrder[currBin] = bin;
 				} else {
-					//  case when only one the end point is not included
+					//  case when the end point is not included
 					Hashtable<String, Object> innerHash = retBins[numBins - 1];
 					int currCount = (int) innerHash.get("y");
 					innerHash.put("y", currCount+1);
@@ -165,5 +178,9 @@ public class BarChart {
 	
 	public String[] getAssignmentForEachObject() {
 		return assignmentForEachObject;
+	}
+	
+	public String[] getNumericalBinOrder() {
+		return numericalBinOrder;
 	}
 }

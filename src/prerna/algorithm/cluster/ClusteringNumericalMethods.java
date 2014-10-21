@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import prerna.math.StatisticsUtilityMethods;
+import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
@@ -13,8 +14,8 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 	// static class used to calculate different distance measures for numerical similarity score
 //	private static DistanceCalculator disCalculator = new DistanceCalculator();
 	
-	public ClusteringNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix) {
-		super(numericalBinMatrix, categoricalMatrix);
+	public ClusteringNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix, String[][] instanceNumberBinOrderingMatrix) {
+		super(numericalBinMatrix, categoricalMatrix, instanceNumberBinOrderingMatrix);
 	}
 	
 	/**
@@ -36,7 +37,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 		if(numericalBinMatrix != null) {
 			String[] instanceNumericalInfo = numericalBinMatrix[dataIdx];
-			numericalSimilarity = calculateSimilarityUsingEntropy(numericPropNum, totalPropNum, numericalWeights, instanceNumericalInfo, numericalClusterInfo);
+			numericalSimilarity = calculateNumericalSimilarityUsingEntropy(numericPropNum, totalPropNum, numericalWeights, instanceNumericalInfo, numericalClusterInfo);
 		}
 
 		if(categoricalMatrix != null) {
@@ -66,7 +67,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
 			// sumProperties contains the total number of instances for the property
-			double sumProperties = 0;
+			int sumProperties = 0;
 			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
 			Set<String> propKeySet = propertyHash.keySet();
 			for(String propName : propKeySet) {
@@ -77,7 +78,60 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
 				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
 			}
-			similarity += weights[i] * numOccuranceInCluster / sumProperties;
+			similarity += weights[i] * (double) numOccuranceInCluster / sumProperties;
+		}
+		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
+		double coeff = 1.0 * propNum / totalPropNum;
+
+//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
+		return coeff * similarity;
+	}
+	
+	/**
+	 * Calculates the similarity score for the categorical/numerical-bin entries
+	 * @param propNum					The number of categorical/numerical props
+	 * @param totalProps				The total number of props used in clustering algorithm
+	 * @param instaceCategoricalInfo	The categorical information for the specific instance
+	 * @param categoryClusterInfo		The categorical cluster information for the cluster we are looking to add the instance into
+	 * @return 							The similarity score associated with the categorical properties
+	 */
+	public double calculateNumericalSimilarityUsingEntropy(
+			int propNum, 
+			int totalPropNum, 
+			double[] weights, 
+			String[] instaceCategoricalInfo, 
+			ArrayList<Hashtable<String, Integer>> categoryClusterInfo) 
+	{
+		double similarity = 0;
+		// loop through all the categorical properties (each weight corresponds to one categorical property)
+		for(int i = 0; i < weights.length; i++) {
+			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
+			// numBins contains the number of bins
+			int numBins = sortedBinArr.length;
+			
+			double adjustmentFactor = 0;
+			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
+			Set<String> propKeySet = propertyHash.keySet();
+			// sumProperties contains the total number of instances for the property
+			int sumProperties = 0;
+			for(String propName : propKeySet) {
+				sumProperties += propertyHash.get(propName);
+			}
+			for(String propName : propKeySet) {
+				double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
+				int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
+				int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
+				adjustmentFactor += normalizedNumInBin * (1 - (double) Math.abs(indexOfInstance - indexOfPropInCluster) / numBins); 
+			}
+			
+			// sumProperties contains the total number of instances for the property
+			
+			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
+//			int numOccuranceInCluster = 0;
+//			if(propertyHash.get(instaceCategoricalInfo[i]) != null) {
+//				numOccuranceInCluster = propertyHash.get(instaceCategoricalInfo[i]);
+//			}
+			similarity += weights[i] * adjustmentFactor;
 		}
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;

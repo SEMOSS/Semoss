@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.math.StatisticsUtilityMethods;
+import prerna.util.ArrayListUtilityMethods;
 
 /**
  * Algorithm logic:
@@ -59,12 +60,12 @@ public class ClusteringClassification {
 			Hashtable<String, Integer> instanceIndexHash = alg.getInstanceIndexHash();
 			int[] numInstancesInCluster = alg.getNumInstancesInCluster();
 			
-			ArrayList<Object[]> data = removeColumnFromList(masterTable, i);
-			String[] names = removeNameFromList(masterNames, i);
+			ArrayList<Object[]> data = ArrayListUtilityMethods.removeColumnFromList(masterTable, i);
+			String[] names = ArrayListUtilityMethods.removeNameFromList(masterNames, i);
 			// process through data
 			ClusteringDataProcessor cdp = new ClusteringDataProcessor(data, names);
 			// take results of data processing to generate cluster centers
-			ClusteringNumericalMethods cnm = new ClusteringNumericalMethods(cdp.getNumericalBinMatrix(), cdp.getCategoricalMatrix());
+			ClusteringNumericalMethods cnm = new ClusteringNumericalMethods(cdp.getNumericalBinMatrix(), cdp.getCategoricalMatrix(), cdp.getNumericalBinOrderingMatrix());
 			cnm.setCategoricalWeights(cdp.getCategoricalWeights());
 			cnm.setNumericalWeights(cdp.getNumericalWeights());
 			
@@ -115,7 +116,6 @@ public class ClusteringClassification {
 	}
 	
 	public double[] calculatePercision() {
-		int numRows = newClusterAssignedIndices[0].length;
 		precision = new double[countMatrix.length];
 		
 		double[] pObs;
@@ -199,44 +199,4 @@ public class ClusteringClassification {
 		
 		return retNames;
 	}
-	
-	private ArrayList<Object[]> removeColumnFromList(ArrayList<Object[]> list, int colToRemove) {
-		int numRows = list.size();
-		int numCols = list.get(0).length;
-		ArrayList<Object[]> retList = new ArrayList<Object[]>(numRows);
-		
-		int i;
-		int j;
-		for(i = 0; i < numRows; i++) {
-			Object[] newRow = new Object[numCols - 1];
-			Object[] oldRow = list.get(i);
-			int counter = 0;
-			for(j = 0; j < numCols; j++) {
-				if(j != colToRemove) {
-					newRow[counter] = oldRow[j];
-					counter++;
-				}
-			}
-			retList.add(newRow);
-		}
-		
-		return retList;
-	}
-	
-	private String[] removeNameFromList(String[] name, int colToRemove) {
-		int numCols = name.length;
-
-		String[] retNames = new String[numCols - 1];
-		int i;
-		int counter = 0;
-		for(i = 0; i < numCols; i++) {
-			if(i != colToRemove) {
-				retNames[counter] = name[i];
-				counter++;
-			}
-		}
-		
-		return retNames;
-	}
-	
 }
