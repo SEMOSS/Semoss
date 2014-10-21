@@ -23,7 +23,7 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 			String[] numericalBinValuesForInstance1 = numericalBinMatrix[instanceIdx1];
 			String[] numericalBinValuesForInstance2 = numericalBinMatrix[instanceIdx2];
 			
-			numericalSimilarityScore = calculateInstanceSimilarity(numericalBinValuesForInstance1, numericalBinValuesForInstance2, numericalWeights, numericPropNum, totalPropNum);
+			numericalSimilarityScore = calculateNumericalInstanceSimilarity(numericalBinValuesForInstance1, numericalBinValuesForInstance2, numericalWeights, numericPropNum, totalPropNum);
 		}	
 		
 		return categoricalSimilarityScore + numericalSimilarityScore;
@@ -45,6 +45,27 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 		return coeff * similarity;
 	}
 
+	public double calculateNumericalInstanceSimilarity(String[] categoricalValues1, String[] categoricalValues2, double[] weights, int propNum, int totalPropNum){
+		double similarity = 0;
+		// loop through all the categorical properties (each weight corresponds to one categorical property)
+		for(int i = 0; i < weights.length; i++) {
+			// the values are either the same or different, which results in either adding the weight*1/1 = weight or weight*0/2 = 0
+			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
+			// numBins contains the number of bins
+			int numBins = sortedBinArr.length;
+			int indexOfInstance1 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues1[i]);
+			int indexOfInstance2 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues2[i]);
+			// adjustment factor simplifies since comparing only one instance to another instance
+			double adjustmentFactor = (1 - (double) Math.abs(indexOfInstance1 - indexOfInstance2) / numBins); 
+			similarity += weights[i] * adjustmentFactor;
+		}
+		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
+		double coeff = 1.0 * propNum / totalPropNum;
+
+//		LOGGER.info("Calculated instance similarity score for categories: " + coeff * similarity);
+		return coeff * similarity;
+	}
+	
 	public int[] kNearestNeighbors(double[] similarityBetweenInstanceToAllOtherInstances, int instanceIdx, int k) {
 		int[] kClosestNeighbors = new int[k];
 		int numInstances = similarityBetweenInstanceToAllOtherInstances.length;

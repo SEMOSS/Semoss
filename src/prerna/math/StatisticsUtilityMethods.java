@@ -124,6 +124,21 @@ public final class StatisticsUtilityMethods {
 		return sum;
 	}
 	
+	public static double getSum(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double sum = values[0];
+		for(index = 1; index < size; index++) {
+			sum += values[index];
+		}
+		
+		return sum;
+	}
+	
 	public static double getAverage(final double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
