@@ -14,7 +14,10 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
 		alg.setK(k);
 		alg.execute();
-
+		
+		list = alg.getMasterTable();
+		names = alg.getNames();
+		
 		double[] lrd = alg.getLRD();
 		double[] lof = alg.getLOF();
 		double[] zScore = alg.getZScore();
@@ -25,17 +28,25 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		int newNumCols = numCols + 3;
 		int i;
 		int j;
-		for(i = 1; i < numRows; i++) {
+		for(i = 0; i < numRows; i++) {
 			Object[] newRow = new Object[newNumCols];
 			Object[] row = list.get(i);
 			for(j = 0; j <= numCols; j++) {
 				if(j == numCols) {
-					newRow[j] = Math.round(lrd[i] * 100) / 100.0;
-					newRow[j+1] = Math.round(lof[i] * 100) / 100.0;
-					newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
 //					newRow[j] = lrd[i];
-//					newRow[j+1] = lof[i];
-//					newRow[j+2] = zScore[i];
+					newRow[j] = Math.round(lrd[i] * 100) / 100.0;
+					if(Double.isInfinite(lof[i])){
+						newRow[j+1] = "Inf";
+					} else {
+//						newRow[j+1] = lof[i];
+						newRow[j+1] = Math.round(lof[i] * 100) / 100.0;
+					}
+					if(Double.isNaN(zScore[i])) {
+						newRow[j+2] = "NaN";
+					} else {
+//						newRow[j+2] = zScore[i];
+						newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
+					}
 				} else {
 					newRow[j] = row[j];
 				}

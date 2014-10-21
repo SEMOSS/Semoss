@@ -4,8 +4,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class InstanceNumericalMethods extends AbstractNumericalMethods{
 
-	public InstanceNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix) {
-		super(numericalBinMatrix, categoricalMatrix);
+	public InstanceNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix, String[][] numericalBinOrderingMatrix) {
+		super(numericalBinMatrix, categoricalMatrix, numericalBinOrderingMatrix);
 	}
 
 	public double calculateSimilarityBetweenInstances(int instanceIdx1, int instanceIdx2) {
@@ -74,9 +74,15 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 		
 		int idxCounter = 0;
 		int kCounter = 0;
-		while(kCounter < k) {
+		boolean noKCluster = false;
+		while(kCounter < k || idxCounter == numInstances) {
 			int index = indexOrderArr[idxCounter];
-			// don't include the node 
+			// don't include nodes with zero similarity
+			if(similarityBetweenInstanceToAllOtherInstances[idxCounter] == 0) {
+				noKCluster = true;
+				break;
+			}
+			// don't include the node
 			if(index != instanceIdx) {
 				kClosestNeighbors[kCounter] = index;
 				kCounter++;
@@ -84,25 +90,40 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 			idxCounter++;
 		}
 		
-		double lastSimValueInNeighborhood = similarityBetweenInstanceToAllOtherInstances[kCounter - 1];
-		for(i = idxCounter; i < numInstances; i++) {
-			double nextSimValueClosestToInstance = similarityBetweenInstanceToAllOtherInstances[idxCounter];
-			if(lastSimValueInNeighborhood == nextSimValueClosestToInstance) {
-				int newInstanceInNeighborhood =  indexOrderArr[idxCounter];
-				try {
-					kClosestNeighbors[kCounter] = newInstanceInNeighborhood;
-				} catch (IndexOutOfBoundsException e) {
-					kClosestNeighbors = ArrayUtilityMethods.resizeArray(kClosestNeighbors, 2);
-					kClosestNeighbors[kCounter] = newInstanceInNeighborhood;
+		if(!noKCluster) {
+			double lastSimValueInNeighborhood = similarityBetweenInstanceToAllOtherInstances[kCounter - 1];
+			for(;idxCounter < numInstances; idxCounter++) {
+				int index = indexOrderArr[idxCounter];
+				if(index != instanceIdx) {
+					double nextSimValueClosestToInstance = similarityBetweenInstanceToAllOtherInstances[idxCounter];
+					if(lastSimValueInNeighborhood == nextSimValueClosestToInstance) {
+						int newInstanceInNeighborhood =  indexOrderArr[idxCounter];
+						try {
+							kClosestNeighbors[kCounter] = newInstanceInNeighborhood;
+						} catch (IndexOutOfBoundsException e) {
+							kClosestNeighbors = ArrayUtilityMethods.resizeArray(kClosestNeighbors, 2);
+							kClosestNeighbors[kCounter] = newInstanceInNeighborhood;
+						}
+						kCounter++;
+					} else {
+						break;
+					}
 				}
-				kCounter++;
-				idxCounter++;
-			} else {
-				break;
 			}
+			
+			// to account for case when last index is 0, don't want to remove it from the K-Neighborhood
+			if(kClosestNeighbors[kCounter - 1] == 0) {
+				kClosestNeighbors[kCounter - 1] = 1;
+				kClosestNeighbors = ArrayUtilityMethods.removeAllTrailingZeroValues(kClosestNeighbors);
+				kClosestNeighbors[kCounter - 1] = 0;
+			} else {
+				kClosestNeighbors = ArrayUtilityMethods.removeAllTrailingZeroValues(kClosestNeighbors);
+			}
+		} else {
+			kClosestNeighbors = ArrayUtilityMethods.removeAllTrailingZeroValues(kClosestNeighbors);
 		}
 		
-		return ArrayUtilityMethods.removeAllZeroValues(kClosestNeighbors);
+		return kClosestNeighbors;
 	}
 	
 	private int[] indexOrder(int length) {
