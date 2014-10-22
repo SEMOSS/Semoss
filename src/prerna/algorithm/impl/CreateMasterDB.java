@@ -327,7 +327,28 @@ public class CreateMasterDB extends ModifyMasterDB{
 			GraphPlaySheet playSheet0 = createMetamodel(owlRC);
 			Hashtable<String, SEMOSSVertex> vertStore  = playSheet0.getGraphData().getVertStore();
 			Hashtable<String, SEMOSSEdge> edgeStore = playSheet0.getGraphData().getEdgeStore();
-			
+			//fill masterConceptList with everything that is already in the database
+			if(masterConceptList.isEmpty()) {
+				SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,mcQuery);
+				String[] names = wrapper.getVariables();
+				while(wrapper.hasNext())
+				{
+					SesameJenaSelectStatement sjss = wrapper.next();
+					String mc = (String)sjss.getVar(names[0]);
+					String keyword = (String)sjss.getVar(names[1]);
+					int mcInd = masterConceptList.indexOf(mc);
+					if(mcInd>-1) {
+						ArrayList<String> keywords = masterConceptKeyWordsList.get(mcInd);
+						keywords.add(keyword);
+						masterConceptKeyWordsList.set(mcInd, keywords);
+					} else {
+						ArrayList<String> keywords = new ArrayList<String>();
+						keywords.add(keyword);
+						masterConceptList.add(mc);
+						masterConceptKeyWordsList.add(keywords);
+					}
+				}
+			}
 			processConceptAndKeywords(engineName,vertStore);
 			processRelations(engineName,edgeStore);
 			
