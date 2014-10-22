@@ -39,6 +39,9 @@ public class ResidualSystemOptFillData{
 	public double[] systemCostOfDB;
 	public double[] systemNumOfSites;
 	public String[] systemLPI;
+	public String[] systemCapability;
+	public String[] systemCapabilityGroup;
+	public String[] systemCONOPS;
 	public String[] systemMHSSpecific;
 	public double[] systemModernize;
 	public double[] systemDecommission;
@@ -136,6 +139,9 @@ public class ResidualSystemOptFillData{
 		systemCostOfDB = createEmptyVector(systemCostOfDB, sysList.size());
 		systemNumOfSites = createEmptyVector(systemNumOfSites, sysList.size());
 		systemLPI = createEmptyVector(systemLPI, sysList.size());
+		systemCapability = createEmptyVector(systemCapability, sysList.size());
+		systemCapabilityGroup = createEmptyVector(systemCapabilityGroup, sysList.size());
+		systemCONOPS = createEmptyVector(systemCONOPS, sysList.size());
 		systemMHSSpecific = createEmptyVector(systemMHSSpecific, sysList.size());
 		systemModernize = createEmptyVector(systemModernize,sysList.size());
 		systemDecommission = createEmptyVector(systemDecommission,sysList.size());
@@ -152,6 +158,7 @@ public class ResidualSystemOptFillData{
 		fillSystemCost();
 		fillSystemNumOfSites();
 		fillSystemLPI();
+		fillSystemCapability();
 		fillSystemMHSSpecific();
 		fillSystemRequired(); //requires the MHS Specific
 		
@@ -414,6 +421,19 @@ public class ResidualSystemOptFillData{
 		String query = "SELECT DISTINCT ?System (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?Interface='Y','LPI','LPNI'), 'High') AS ?ReportType) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?Interface}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		systemLPI = fillVectorFromQuery(systemEngine,query,systemLPI,sysList,false);
+	}
+	private void fillSystemCapability() {
+		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System ?Supports ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCapability = fillVectorFromQuery(systemEngine,capQuery,systemCapability,sysList,false);
+		
+		String capGroupQuery = "SELECT DISTINCT ?System ?CapabilityGroup WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?System ?Supports ?CapabilityGroup}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		capGroupQuery = capGroupQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCapabilityGroup = fillVectorFromQuery(systemEngine,capGroupQuery,systemCapabilityGroup,sysList,false);
+		
+		String conopsQuery = "SELECT DISTINCT ?System ?CONOPS WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?CONOPS <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?System ?Supports ?CONOPS}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		conopsQuery = conopsQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCONOPS = fillVectorFromQuery(systemEngine,conopsQuery,systemCONOPS,sysList,false);
 	}
 	private void fillSystemMHSSpecific() {
 		String query = "SELECT DISTINCT ?System (IF(?MHS_Specific='Y','Yes','No') AS ?Specific) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> ?MHS_Specific}} BINDINGS ?System @SYSTEM-BINDINGS@";

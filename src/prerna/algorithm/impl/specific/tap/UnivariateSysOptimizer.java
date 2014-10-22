@@ -372,20 +372,23 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		ArrayList <Object []> list = new ArrayList<Object []>();
 		String[] colNames;
 		if(resFunc instanceof ResidualSystemTheatGarrOptFillData) {
-			int size = 8;
+			int size = 11;
 			if(includeRegionalization)
-				size=9;
+				size=12;
 			colNames = new String[size];
 			colNames[0]="System";
 			colNames[1]="Probability";
 			colNames[2]="MHS Specific";
 			colNames[3]="Theater";
 			colNames[4]="Garrison";
-			colNames[5]="Action";
-			colNames[6]="Number Of Data Provided";
-			colNames[7]="Number of BLU Provided";
+			colNames[5]="Functional Area";
+			colNames[6]="Capability Group";
+			colNames[7]="Capability";
+			colNames[8]="Action";
+			colNames[9]="Number Of Data Provided";
+			colNames[10]="Number of BLU Provided";
 			if(includeRegionalization)
-				colNames[8]="Number of Regions";
+				colNames[11]="Number of Regions";
 			for (int i = 0;i<sysList.size();i++)
 			{
 				Object[] newRow = new Object[size];
@@ -396,44 +399,52 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 					newRow[3] = "X";
 				if(((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison!=null&&((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison[i]>0)
 					newRow[4] = "X";
-			
+				newRow[5] = resFunc.systemCONOPS[i];
+				newRow[6] = resFunc.systemCapabilityGroup[i];
+				newRow[7] = resFunc.systemCapability[i];
 				if(sysOpt.systemIsModernized[i]>0)
-					newRow[5] = "Modernize";
+					newRow[8] = "Modernize";
 				else
-					newRow[5] = "Decommission";
-				newRow[6] = sumRow(resFunc.systemDataMatrix[i]);
-				newRow[7] = sumRow(resFunc.systemBLUMatrix[i]);
+					newRow[8] = "Decommission";
+				newRow[9] = sumRow(resFunc.systemDataMatrix[i]);
+				newRow[10] = sumRow(resFunc.systemBLUMatrix[i]);
 				if(includeRegionalization)
-					newRow[8] = sumRow(resFunc.systemRegionMatrix[i]);
+					newRow[11] = sumRow(resFunc.systemRegionMatrix[i]);
 				list.add(newRow);
 			}
 		} else {
-			int size = 6;
+			int size = 9;
 			if(includeRegionalization)
-				size=7;
+				size=10;
 			colNames = new String[size];
 			colNames[0]="System";
 			colNames[1]="Probability";
 			colNames[2]="MHS Specific";
-			colNames[3]="Action";
-			colNames[4]="Number Of Data Provided";
-			colNames[5]="Number of BLU Provided";
+			colNames[3]="Functional Area";
+			colNames[4]="Capability Group";
+			colNames[5]="Capability";
+			colNames[6]="Action";
+			colNames[7]="Number Of Data Provided";
+			colNames[8]="Number of BLU Provided";
 			if(includeRegionalization)
-				colNames[6]="Number of Regions";
+				colNames[9]="Number of Regions";
 			for (int i = 0;i<sysList.size();i++)
 			{
 				Object[] newRow = new Object[size];
 				newRow[0] = resFunc.sysList.get(i);
 				newRow[1] = resFunc.systemLPI[i];
 				newRow[2] = resFunc.systemMHSSpecific[i];
+				newRow[3] = resFunc.systemCONOPS[i];
+				newRow[4] = resFunc.systemCapabilityGroup[i];
+				newRow[5] = resFunc.systemCapability[i];
 				if(sysOpt.systemIsModernized[i]>0)
-					newRow[3] = "Modernize";
+					newRow[6] = "Modernize";
 				else
-					newRow[3] = "Decommission";
-				newRow[4] = sumRow(resFunc.systemDataMatrix[i]);
-				newRow[5] = sumRow(resFunc.systemBLUMatrix[i]);
+					newRow[6] = "Decommission";
+				newRow[7] = sumRow(resFunc.systemDataMatrix[i]);
+				newRow[8] = sumRow(resFunc.systemBLUMatrix[i]);
 				if(includeRegionalization)
-					newRow[6] = sumRow(resFunc.systemRegionMatrix[i]);
+					newRow[9] = sumRow(resFunc.systemRegionMatrix[i]);
 				list.add(newRow);
 			}
 		}
