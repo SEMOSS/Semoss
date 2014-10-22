@@ -63,6 +63,7 @@ public class ImportRDBMSProcessor {
 	private String owlPath = "";
 	
 	private final static String spacer = " \n\t";
+	private final int EXCEL_WORKSHEET_NAME_CHARACTER_LIMIT = 30;
 
 	private Set<String> propertyList = new HashSet<String>();
 	private Set<String> relationshipList = new HashSet<String>();
@@ -775,7 +776,12 @@ public class ImportRDBMSProcessor {
 			}			
 		}
 		
-		XSSFSheet dataSheet = wb.createSheet(dbName + "_DataSheet_DO_NOT_DELETE");
+		String dataSheetSuffix = "_Data";
+		String dataSheetName = dbName;
+		if(dataSheetName.length() + dataSheetSuffix.length() > this.EXCEL_WORKSHEET_NAME_CHARACTER_LIMIT) {
+			dataSheetName = dbName.substring(0, 25);
+		}
+		XSSFSheet dataSheet = wb.createSheet(dataSheetName + dataSheetSuffix);
 		buildDataSheeet(dataSheet, schemaHash);
 		dataSheet.getWorkbook().setSheetHidden(4, true);
 		
