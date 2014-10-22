@@ -86,20 +86,9 @@ public class BarChart {
 		return retBins;
 	}
 
-	@SuppressWarnings("unchecked")
 	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues) {
 		NumberFormat formatter = null;
 		int numOccurances = numValues.length;
-		if(numOccurances < 10 || ArrayUtilityMethods.getUniqueArray(numValues).length < 10) {
-			String[] numValuesAsString = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
-			// values in order since the methods in ArrayUtilityMethods both conserve order
-			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(numValuesAsString);
-			
-			this.stringValues = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
-			this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
-			this.numericalValues = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
-		}
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		if(Math.abs(min) >= 0 && Math.abs(max) <= 1) {
@@ -112,14 +101,52 @@ public class BarChart {
 			formatter = new DecimalFormat("0.#E0");
 		}
 		
+		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
+		int numUniqueValues = ArrayUtilityMethods.getUniqueArray(numValues).length;
+		
+		if(numUniqueValues < 10 && skewness < 1) {
+			String[] numValuesAsString = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
+			// values in order since the methods in ArrayUtilityMethods both conserve order
+			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(numValuesAsString);
+			this.stringValues = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
+			this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			this.numericalValues = null;
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+		} else if(numUniqueValues < 10 && skewness > 1) {
+			return calculatePoorlyDistributedBins(numValues, formatter);
+		} else {
+			return calculateFreedmanDiaconisBins(numValues, formatter);
+		}
+	}
+	
+	public Hashtable<String, Object>[] calculatePoorlyDistributedBins(double[] numValues, NumberFormat formatter) {
+		int numOccurances = numValues.length;
+		double min = numValues[0];
+		double max = numValues[numOccurances -1];
+		double range = max - min;
+		double binSize = range / Math.pow(numOccurances, (double) 1/3);
+		int numBins = (int) Math.ceil(range/binSize);
+		return allocateValuesToBin(numBins, binSize, numValues, formatter);
+	}
+	
+	public Hashtable<String, Object>[] calculateFreedmanDiaconisBins(double[] numValues, NumberFormat formatter){
+		int numOccurances = numValues.length;
+		double min = numValues[0];
+		double max = numValues[numOccurances -1];
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
 		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 		int numBins = (int) Math.ceil(range/binSize);
-		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
-
-		numericalBinOrder = new String[numBins];
 		
+		return allocateValuesToBin(numBins, binSize, numValues, formatter);
+	}
+	
+	private Hashtable<String, Object>[] allocateValuesToBin(int numBins, double binSize, double[] numValues, NumberFormat formatter) {
+		int numOccurances = numValues.length;
+		double min = numValues[0];
+		
+		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
+		numericalBinOrder = new String[numBins];
 		int i;
 		int currBin = 0;
 		int counter = 0;
@@ -169,8 +196,10 @@ public class BarChart {
 				}
 			}
 		}
+		
 		return retBins;
 	}
+	
 	
 	public Hashtable<String, Object>[] getRetHashForJSON() {
 		return retHashForJSON;

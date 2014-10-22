@@ -227,6 +227,37 @@ public final class StatisticsUtilityMethods {
 		return Math.pow(stdev/(counter - 1), 0.5);
 	}
 	
+	public static double getMedian(final double[] values, boolean isSorted) {
+		if( values == null || values.length < 1) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		if(!isSorted) {
+			Arrays.sort(values);
+		}
+		
+		int middle = values.length/2;
+	    if (values.length % 2 == 1) {
+	        return values[middle];
+	    } else {
+	        return (values[middle-1] + values[middle]) / 2.0;
+	    }
+		
+	}
+	
+	public static double getSkewness(final double[] values, boolean isSorted) {
+		if( values == null || values.length < 1) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		double median = getMedian(values, isSorted);
+		double mean = getAverage(values);
+		double stdev = getSampleStandardDeviation(values);
+		
+		return 3 * (mean - median) / stdev; 
+		
+	}
+	
 	public static double[] calculateZScores(final double[] values, final boolean isOrdered) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
