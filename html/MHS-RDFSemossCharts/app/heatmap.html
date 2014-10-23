@@ -109,12 +109,12 @@
 
 		// Business as usual. This is where we create our dataArray
 		for (var key in data) {
-			xAxisArray.push(data[key][xAxisName]);
-			yAxisArray.push(data[key][yAxisName]);
+			xAxisArray.push(convertURItoString(data[key][xAxisName]));
+			yAxisArray.push(convertURItoString(data[key][yAxisName]));
 			var round = Math.round(data[key][value] * Math.pow(10,decimalToKeep)) / Math.pow(10,decimalToKeep);
 			//This array stores the values as numbers
 			valueArray.push(data[key][value]);
-			dataArray.push({yAxis: data[key][yAxisName], Value: data[key][value], xAxis: data[key][xAxisName], xAxisName: data[key][xAxisName], yAxisName: data[key][yAxisName]});
+			dataArray.push({yAxis: convertURItoString(data[key][yAxisName]), Value: data[key][value], xAxis: convertURItoString(data[key][xAxisName]), xAxisName: convertURItoString(data[key][xAxisName]), yAxisName: convertURItoString(data[key][yAxisName])});
 		};
 		
 		// This is where we get unique, sorted
@@ -665,6 +665,21 @@
 						
 				legendText.exit().remove();
 				legendText.style("fill", "black");
+			}
+
+			function convertURItoString(str) {
+				str = String(str);
+				if (str.indexOf('"') == 0) {
+					var shortStr = str.substring(1, str.length);
+					var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+					return returnStr;
+				}else if (str.indexOf('http://') !== -1){
+		            var myRe = new RegExp("([^/]*)$");
+		            var returnStr = myRe.exec(str);
+		            return returnStr[0];
+		        } else{
+		            return str;
+		        }
 			}
 			
 			

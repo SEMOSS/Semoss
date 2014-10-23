@@ -21,6 +21,9 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.Hashtable;
 
+import org.openrdf.model.Literal;
+
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -54,10 +57,8 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 		{
 			Hashtable elementHash = new Hashtable();
 			Object[] listElement = list.get(i);			
-			String methodName = (String) listElement[0];
-			String groupName = (String) listElement[1];
-			methodName = methodName.replaceAll("\"", "");
-			groupName = groupName.replaceAll("\"", "");
+			String methodName = listElement[0].toString();
+			String groupName = listElement[1].toString();
 			String key = methodName +"-"+groupName;
 			double count = (Double) listElement[2];
 			elementHash.put(xName, methodName);
@@ -78,5 +79,12 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 		return allHash;
 	}
 	
-
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
+	}
 }
