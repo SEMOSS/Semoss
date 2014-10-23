@@ -511,7 +511,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbl_clusterHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		clusterHeatMapPanel.setLayout(gbl_clusterHeatMapPanel);
 
-		clusterHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");//TODO change to new ehat map
+		clusterHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/clusterheatmap.html");
 			
 		GridBagConstraints gbc_clusterHeatMap = new GridBagConstraints();
 		gbc_clusterHeatMap.insets = new Insets(0, 0, 0, 5);

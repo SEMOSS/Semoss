@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+        <script src="lib/kinetic-v5.1.0.min.js"></script>
+        <script src="lib/inchlib-1.1.0.js"></script>
+    </head>
+ 
+    <body>
+       <script type="text/javascript">
+        function start(clusterData) {
+            var inchlib = new InCHlib({
+                 target: "inchlib",
+                 metadata: true, 
+                 column_metadata: true,
+                 max_height: 1200,
+                 width: 1000,
+                 heatmap_colors: "Greens",
+                 metadata_colors: "Reds"
+             })
+            var jsonData = jQuery.parseJSON(clusterData); 
+             inchlib.read_data(jsonData);
+             inchlib.draw();
+        }
+
+        </script>
+        <div id="inchlib"></div>
+    </body>
+ </html>

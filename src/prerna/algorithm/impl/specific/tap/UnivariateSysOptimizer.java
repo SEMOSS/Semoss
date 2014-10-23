@@ -37,6 +37,8 @@ import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.ui.components.specific.tap.DHMSMCapabilitySelectPanel;
 import prerna.ui.components.specific.tap.DHMSMDataBLUSelectPanel;
 import prerna.ui.components.specific.tap.DHMSMHelper;
@@ -651,10 +653,12 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			dataCreater.setData(sysList, dataList, bluList, sysOpt.systemIsModernized, resFunc.systemLPI, resFunc.systemMHSSpecific, ((ResidualSystemTheatGarrOptFillData)resFunc).systemTheater, ((ResidualSystemTheatGarrOptFillData)resFunc).systemGarrison, provideDataBLUNow, provideDataBLUFuture, resFunc.systemDataMatrix, resFunc.systemBLUMatrix);
 		else
 			dataCreater.setData(sysList, dataList, bluList, sysOpt.systemIsModernized, resFunc.systemLPI, resFunc.systemMHSSpecific, null, null, provideDataBLUNow, provideDataBLUFuture, resFunc.systemDataMatrix, resFunc.systemBLUMatrix);
-		dataCreater.createFile();
+		String data = dataCreater.createFile();
 		// display output for heatmap tab
 //		((SysOptPlaySheet) playSheet).clusterHeatMap.callIt(allHash);
-//		((SysOptPlaySheet) playSheet).clusterHeatMap.setVisible(true);
+		Gson gson = new Gson();
+		((SysOptPlaySheet) playSheet).clusterHeatMap.browser.executeJavaScript("start(" + gson.toJson(data) +");");
+		((SysOptPlaySheet) playSheet).clusterHeatMap.setVisible(true);
 	}
 
 	/**
