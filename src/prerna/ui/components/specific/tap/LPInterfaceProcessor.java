@@ -243,6 +243,7 @@ public class LPInterfaceProcessor {
 		totalDirectCost = 0;
 		totalIndirectCost = 0;
 		HashSet<String> servicesProvideList = new HashSet<String>();
+		HashSet<String> servicesConsumeList = new HashSet<String>();
 		int rowIdx = 0;
 		
 		while(sjw.hasNext())
@@ -367,6 +368,7 @@ public class LPInterfaceProcessor {
 				totalDirectCost = 0;
 				totalIndirectCost = 0;
 				servicesProvideList.clear();
+				servicesConsumeList.clear();
 				sysCostInfo.clear();
 			}
 			if(!previousDataObject.equals(data))
@@ -402,6 +404,10 @@ public class LPInterfaceProcessor {
 				downstreamSysType = "No Probability";
 			}
 			
+			if(icd.contains("CDR-VLER-Compliance")){
+				System.out.println("aweg");
+			}
+			
 			// necessary to define even if not generating cost or new triples
 			String newICD = "";
 			String payloadURI = "";
@@ -419,9 +425,9 @@ public class LPInterfaceProcessor {
 						if(sysName.equals(upstreamSysName)) {
 							directCost = true;
 							if(usePhase) {
-								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList, rowIdx);
+								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesConsumeList, rowIdx);
 							} else {
-								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList);
+								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesConsumeList);
 							}
 							
 							deleteOtherInterfaces = true;
@@ -439,9 +445,9 @@ public class LPInterfaceProcessor {
 						} else {
 							directCost = false;
 							if(usePhase) {
-								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList, rowIdx);
+								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesConsumeList, rowIdx);
 							} else {
-								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesProvideList);
+								finalCost = calculateCost(data, upstreamSysName, "Consume", false, servicesConsumeList);
 							}
 						}
 					}
@@ -1138,6 +1144,9 @@ public class LPInterfaceProcessor {
 	
 	private void addToSysCostHash(String tag, String phase, double loe, int rowIdx) {
 		String key = tag.concat("+").concat(phase);
+		if(key.contains("Provide")) {
+			System.out.println("alwue");
+		}
 		HashMap<String, Double> innerHash = new HashMap<String, Double>();
 		if(sysCostInfo.containsKey(rowIdx)) {
 			innerHash = sysCostInfo.get(rowIdx);
