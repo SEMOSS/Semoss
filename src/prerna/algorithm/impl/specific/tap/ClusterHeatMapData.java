@@ -1,9 +1,23 @@
 package prerna.algorithm.impl.specific.tap;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class ClusterHeatMapData {
 
+	private final String dataFile = "clusterData.csv";
+	private final String metaDataFile = "clusterMetaData.csv";
+	private final String columnMetaDataFile = "clusterColumnMetaData.csv";
+	private final String clusterScript = "inchlib_cluster.py";
+	private final String clusterMapData = "inchlibTest.json";
+	
 	private ArrayList<String> sysList;
 	private ArrayList<String> dataList;
 	private ArrayList<String> bluList;
@@ -16,6 +30,8 @@ public class ClusterHeatMapData {
 	private int[] provideDataBLUFuture;
 	private int[][] sysDataMatrix;
 	private int[][] sysBLUMatrix;
+	private String fileLoc;
+	private boolean success = true;
 
 	public void setData(ArrayList<String> sysList, ArrayList<String> dataList, ArrayList<String> bluList, double[] systemIsModernized, String[] sysLPI, String[] sysMHSSpecific, int[] sysTheater, int[] sysGarrison, int[] provideDataBLUNow, int[] provideDataBLUFuture, int[][] sysDataMatrix, int[][] sysBLUMatrix) {
 		this.sysList = sysList;
@@ -32,17 +48,72 @@ public class ClusterHeatMapData {
 		this.sysBLUMatrix = sysBLUMatrix;
 	}
 	
-	public void createFile() {
+	
+	
+	public String createFile() {
 		String dataHash = createData();
 		String columnMetadataHash = createColumnMetadata();
 		String metadataHash = createMetadata();
 		
-		System.out.println("dataHash");
-		System.out.println(dataHash);
-		System.out.println("columnMetadataHash");
-		System.out.println(columnMetadataHash);
-		System.out.println("metadataHash");
-		System.out.println(metadataHash);	
+		
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\html\\MHS-RDFSemossCharts\\app\\data\\";
+		String dataFilePath = fileLoc + dataFile;
+		String metaDataFilePath = fileLoc + metaDataFile;
+		String columnMetaDataFilePath = fileLoc + columnMetaDataFile;
+		
+		try{
+			FileWriter data = new FileWriter(dataFilePath);
+			data.write(dataHash);
+			data.flush();
+			data.close();
+			FileWriter metadata = new FileWriter(metaDataFilePath);
+			metadata.write(metadataHash);
+			metadata.flush();
+			metadata.close();
+			FileWriter columnMetadata = new FileWriter(columnMetaDataFilePath);
+			columnMetadata.write(columnMetadataHash);
+			columnMetadata.flush();
+			columnMetadata.close();
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+				
+		try {
+			Runtime.getRuntime().exec("python --version");			
+		} catch (Exception e){
+			e.printStackTrace();
+			Utility.showError(e.getMessage());
+			success = false;
+		}
+		
+
+		
+		if(success){
+			try {
+				ProcessBuilder pb = new ProcessBuilder("python", clusterScript);
+				pb.directory(new File(fileLoc));
+				Process p = pb.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		StringBuffer data = new StringBuffer("");
+		int ch = 0;
+		
+		
+		FileInputStream in = null;
+		try{
+			in = new FileInputStream(fileLoc + clusterMapData);
+			while((ch = in.read()) != -1){
+				data.append((char) ch);
+			}
+			in.close();
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+		
+		return data.toString();
 	}
 	
 	private String convertArrayToRow(Object[] list) {
