@@ -26,14 +26,14 @@ GLTag_Includes_GLTag http://health.mil/ontologies/Relation/Includes
 SystemBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
 Enterprise_Consists_System http://health.mil/ontologies/Relation/Consists
-SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
+SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 
 ##Base Objects Class##
 
 SystemService_CLASS http://semoss.org/ontologies/Concept/SystemService
-FYTag_CLASS http://semoss.org/ontologies/Concept/FYTag
 FundingSource_CLASS http://semoss.org/ontologies/Concept/FundingSource
+FYTag_CLASS http://semoss.org/ontologies/Concept/FYTag
 System_CLASS http://semoss.org/ontologies/Concept/System
 Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
 EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem
