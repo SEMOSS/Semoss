@@ -73,7 +73,15 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 					Hashtable<String, Object> elementHash = new Hashtable();
 					elementHash.put("x", xVal);
 					elementHash.put("y", yVal);
-					elementHash.put("seriesName", seriesName);
+					// need a way of passing metric ids on the series name.... for now splitting on "+++"
+					int splitIdx = seriesName.indexOf("+++");
+					if(splitIdx>=0){
+						elementHash.put("seriesName", seriesName.substring(splitIdx+3));
+						elementHash.put("seriesUri", seriesName.substring(0, splitIdx));
+					}
+					else {
+						elementHash.put("seriesName", seriesName);
+					}
 					
 					//figure out where to store it. Want all client values first and then peer group values
 					int index = seriesArray.size();
