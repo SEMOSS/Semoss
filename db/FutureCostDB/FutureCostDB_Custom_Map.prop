@@ -1,0 +1,24 @@
+
+##Base Objects##
+
+TargetPhaseBasisSubTaskComplexityComplexity http://health.mil/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity
+TargetPhaseBasisCoreTask http://health.mil/ontologies/Concept/TargetPhaseBasisCoreTask
+TargetOverheadItem http://health.mil/ontologies/Concept/TargetOverheadItem
+
+##Base Predicates##
+
+TargetPhaseBasisCoreTask_Incurs_TargetOverheadItem http://health.mil/ontologies/Relation/Incurs
+
+##Base Objects Class##
+
+TargetPhaseBasisSubTaskComplexityComplexity_CLASS http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity
+TargetOverheadItem_CLASS http://semoss.org/ontologies/Concept/TargetOverheadItem
+TargetPhaseBasisCoreTask_CLASS http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask
+
+##Base Predicates Class##
+
+TargetPhaseBasisCoreTask_Incurs_TargetOverheadItem_CLASS http://semoss.org/ontologies/Relation/Incurs
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;

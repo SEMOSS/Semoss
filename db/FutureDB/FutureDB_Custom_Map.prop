@@ -1,0 +1,30 @@
+
+##Base Objects##
+
+DataObject http://health.mil/ontologies/Concept/DataObject
+LoadSheet http://health.mil/ontologies/Concept/LoadSheet
+System http://health.mil/ontologies/Concept/System
+InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+
+##Base Predicates##
+
+InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
+System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
+InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
+
+##Base Objects Class##
+
+LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
+System_CLASS http://semoss.org/ontologies/Concept/System
+DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
+
+##Base Predicates Class##
+
+InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
+InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
+System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Provide
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;
