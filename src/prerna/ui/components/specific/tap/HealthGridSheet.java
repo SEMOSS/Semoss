@@ -22,8 +22,11 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.openrdf.model.Literal;
+
 import com.google.gson.Gson;
 
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -88,7 +91,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			Hashtable elementHash = new Hashtable();
 			Object[] listElement = list.get(i);
 			
-			elementHash.put("series", ((String)listElement[5]).replaceAll("\"", ""));//lifecycle
+			elementHash.put("series", (listElement[5]).toString().replaceAll("\"", ""));//lifecycle
 			elementHash.put("label", listElement[0]);//system
 			elementHash.put("x", listElement[1]);//xvalue business value
 			elementHash.put("y-external stability", listElement[2]);//yvalue1 external stability technical maturity
@@ -197,5 +200,14 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		allHash.clear();
 		dataHash.clear();
 		list.clear();
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 }
