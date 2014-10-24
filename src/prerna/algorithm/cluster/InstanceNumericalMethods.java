@@ -99,7 +99,7 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 		while(kCounter < k || idxCounter == numInstances) {
 			int index = indexOrderArr[idxCounter];
 			// don't include nodes with zero similarity
-			if(similarityBetweenInstanceToAllOtherInstances[idxCounter] == 0) {
+			if(similarityBetweenInstanceToAllOtherInstances[idxCounter] < 1E-2) {
 				noKCluster = true;
 				break;
 			}
