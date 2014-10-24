@@ -404,10 +404,6 @@ public class LPInterfaceProcessor {
 				downstreamSysType = "No Probability";
 			}
 			
-			if(icd.contains("CDR-VLER-Compliance")){
-				System.out.println("aweg");
-			}
-			
 			// necessary to define even if not generating cost or new triples
 			String newICD = "";
 			String payloadURI = "";
@@ -717,6 +713,11 @@ public class LPInterfaceProcessor {
 					}
 				}
 			}
+			// for debugging
+//			for(int z = 0; z < values.length; z++) {
+//				System.out.print(values[z] + ", ");
+//			}
+//			System.out.println("");
 			retList.add(values);
 			// update rowIdx
 			rowIdx++;
