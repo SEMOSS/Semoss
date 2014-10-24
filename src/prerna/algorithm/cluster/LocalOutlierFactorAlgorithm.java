@@ -26,7 +26,7 @@ public class LocalOutlierFactorAlgorithm {
 		this.k = k;
 	}
 	
-	public ArrayList<Object[]> getMasterTable(){
+	public ArrayList<Object[]> getMasterTable() {
 		return masterTable;
 	}
 	
@@ -138,7 +138,7 @@ public class LocalOutlierFactorAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			for(j = numInstances - 1; j >= 0 + counter; j--) {
 				// reach similarity is the minimum of the similarity between object i and j and the min similarity of the k closest clusters
-				if(kSimilarityArr[i] == 0 || kSimilarityArr[j] == 0) {
+				if(kSimilarityArr[i] < 1E-2 || kSimilarityArr[j] < 1E-2) {
 					reachSimMatrix[i][j] = 0;
 					reachSimMatrix[j][i] = 0;
 				} else {

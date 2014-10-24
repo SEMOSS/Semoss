@@ -250,11 +250,19 @@ public final class StatisticsUtilityMethods {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 		
-		double median = getMedian(values, isSorted);
+		int numValues = values.length;
+		
 		double mean = getAverage(values);
 		double stdev = getSampleStandardDeviation(values);
 		
-		return 3 * (mean - median) / stdev; 
+		int i;
+		double skewness = 0;
+		for(i = 0; i < numValues; i++) {
+			skewness += Math.pow( (values[i] - mean)/stdev, 3.0);
+		}
+		double coefficient = (double) numValues/ ( (numValues - 1) * (numValues - 2) );
+		
+		return coefficient * skewness; 
 		
 	}
 	

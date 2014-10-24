@@ -124,7 +124,7 @@ public class BarChart {
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		double range = max - min;
-		double binSize = range / Math.pow(numOccurances, (double) 1/3);
+		double binSize = range / Math.pow(range, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 		return allocateValuesToBin(numBins, binSize, numValues, formatter);
 	}
