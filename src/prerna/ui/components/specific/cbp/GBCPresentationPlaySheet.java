@@ -126,6 +126,35 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 			this.update = true;
 		}
 	}
+
+
+	public void setGenericQuery(String queryKey, Hashtable<String, String> passedParams) {
+		this.propsKey = "";
+		
+		//query must be specified on the prop sheet or it can be a pointer to a generic query key
+		this.query = presProps.getProperty(queryKey);
+		
+		//for each param see if defined specifically otherwise get the value for the whole presentation
+		Hashtable<String, String> filledParams = new Hashtable<String, String>();
+		Hashtable<String, String> params = Utility.getParams(this.query);
+		for (String param : params.keySet()){
+			logger.info("Setting param " + param);
+			String paramKey = param.substring(0, param.indexOf("-"));
+			String paramValue = null;
+			//first try to get from passed params
+			if(passedParams.containsKey(paramKey))
+				paramValue = passedParams.get(paramKey);
+			//if it wasn't passed, get it from the properties file
+			if(paramValue == null)
+				paramValue = presProps.getProperty(paramKey);
+			filledParams.put(param, paramValue);
+			logger.info("filling param " + paramKey + " with " + paramValue);
+		}
+		
+		this.query = Utility.fillParam(this.query, filledParams);
+		logger.info("filled final query : " + this.query);
+		
+	}
 	
 	@Override
 	public void createView(){
