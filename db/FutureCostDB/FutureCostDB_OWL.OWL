@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
+	xmlns="http://semoss.org/ontologies/Relation/"
 	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdfs:Class rdf:about="http://semoss.org/ontologies/Concept"/>
@@ -20,7 +21,149 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask">
-	<Incurs xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/TargetOverheadItem"/>
+	<Incurs rdf:resource="http://semoss.org/ontologies/Concept/TargetOverheadItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Input">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItemCoreTask">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TestGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Includes">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RequirementsGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Output">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SDLCPhase">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/BelongsTo">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLTag">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TaggedBy">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Influences">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItemSubTask">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TypeOf">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Estimated">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItemCoreTask">
+	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemSubTask"/>
+	<TypeOf rdf:resource="http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Influences rdf:resource="http://semoss.org/ontologies/Concept/DevelopGLItem"/>
+	<Influences rdf:resource="http://semoss.org/ontologies/Concept/DesignGLItem"/>
+	<Influences rdf:resource="http://semoss.org/ontologies/Concept/RequirementsGLItem"/>
+	<Influences rdf:resource="http://semoss.org/ontologies/Concept/TestGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
+	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
+	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemCoreTask"/>
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
+	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
+	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemCoreTask"/>
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/DevelopGLItem"/>
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/DesignGLItem"/>
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/RequirementsGLItem"/>
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/TestGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RequirementsGLItem">
+	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
+	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemCoreTask"/>
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItemSubTask">
+	<Estimated rdf:resource="http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TestGLItem">
+	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
+	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemCoreTask"/>
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DeployGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Precedes">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionGLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+	<Precedes rdf:resource="http://semoss.org/ontologies/Concept/TestGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+	<Influences rdf:resource="http://semoss.org/ontologies/Concept/DeployGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
+	<Precedes rdf:resource="http://semoss.org/ontologies/Concept/DevelopGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DeployGLItem">
+	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/DeployGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RequirementsGLItem">
+	<Precedes rdf:resource="http://semoss.org/ontologies/Concept/DesignGLItem"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/DevelopGLItem"/>
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/DesignGLItem"/>
+	<Input rdf:resource="http://semoss.org/ontologies/Concept/RequirementsGLItem"/>
+	<Input>
+		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TestGLItem">
+			<Precedes rdf:resource="http://semoss.org/ontologies/Concept/DeployGLItem"/>
+		</rdf:Description>
+	</Input>
 </rdf:Description>
 
 </rdf:RDF>

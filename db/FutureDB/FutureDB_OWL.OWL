@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
+	xmlns="http://semoss.org/ontologies/Relation/"
 	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdfs:Class rdf:about="http://semoss.org/ontologies/Concept"/>
@@ -29,10 +30,14 @@
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-	<Provide xmlns="http://semoss.org/ontologies/Relation/">
+	<Provide>
 		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
-			<Payload xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-			<Consume xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+			<Payload rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+			<Consume>
+				<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+					<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+				</rdf:Description>
+			</Consume>
 		</rdf:Description>
 	</Provide>
 </rdf:Description>
