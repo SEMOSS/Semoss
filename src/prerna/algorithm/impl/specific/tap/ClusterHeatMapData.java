@@ -101,18 +101,18 @@ public class ClusterHeatMapData {
 		StringBuffer data = new StringBuffer("");
 		int ch = 0;
 		
-		
-		FileInputStream in = null;
-		try{
-			in = new FileInputStream(fileLoc + clusterMapData);
-			while((ch = in.read()) != -1){
-				data.append((char) ch);
+		if(success){
+			FileInputStream in = null;
+			try{
+				in = new FileInputStream(fileLoc + clusterMapData);
+				while((ch = in.read()) != -1){
+					data.append((char) ch);
+				}
+				in.close();
+			} catch(IOException e){
+				e.printStackTrace();
 			}
-			in.close();
-		} catch(IOException e){
-			e.printStackTrace();
 		}
-		
 		return data.toString();
 	}
 	
