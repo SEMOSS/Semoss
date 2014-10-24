@@ -263,6 +263,20 @@ public class AggregationHelper implements IAggregationHelper {
 		}
 	}
 	
+	public void addToAllLabel(String uri) {
+		if(!allLabels.containsKey(uri)) {
+			String instanceName = Utility.getInstanceName(uri);
+			allLabels.put(uri, instanceName);
+		}
+	}
+	
+	public void processLabel(IEngine engine) {
+		String label = RDFS.LABEL.toString();
+		for(String instanceNodeURI : allLabels.keySet()) {
+			((BigDataEngine) engine).addStatement(instanceNodeURI, label, allLabels.get(instanceNodeURI), false);
+		}
+	}
+	
 	public void writeToOWL(IEngine engine)
 	{
 		// get the path to the owlFile
