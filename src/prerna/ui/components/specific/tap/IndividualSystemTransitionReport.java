@@ -38,7 +38,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	// future db queries
 	private String proposedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } }";
 	private String decommissionedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } }";
-	private String allPresentICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } } ORDER BY ?Interface";
+	private String allPresentICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } } ORDER BY ?Interface";
 	//store interface query results
 	HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 	
@@ -283,50 +283,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 					break INNER;
 				}
 			}
-		}
-		//TODO: need to add labels in aggregation procedure and add that to allPresentICDQuery to remove duplicate rows
-		ArrayList<Integer> removeSet = new ArrayList<Integer>();
-		for(int i = 0; i < allData.size() - 1; i++) {
-			if(!removeSet.contains(i)) {
-				Object[] allRow = allData.get(i);
-				String allRowICD = allRow[2].toString();
-				String allProp1 = allRow[4].toString();
-				String allProp2 = allRow[5].toString();
-				String allProp3 = allRow[6].toString();
-				// loop through entire data set
-				for(int j = i+1; j < allData.size(); j++) {
-					if(!removeSet.contains(j)) {
-						Object[] removeRow = allData.get(j);
-						String removeRowICD = removeRow[2].toString();
-						String removeProp1 = removeRow[4].toString();
-						String removeProp2 = removeRow[5].toString();
-						String removeProp3 = removeRow[6].toString();
-						// same ICD in each row
-						if(allRowICD.equals(removeRowICD)) {
-							// entire row props blank
-							if(allProp1.isEmpty() && allProp2.isEmpty() && allProp3.isEmpty()) {
-								// but at least one prop not blank
-								if(!removeProp1.isEmpty() || !removeProp2.isEmpty() || !removeProp3.isEmpty()) {
-									// need to remove i;
-									removeSet.add(i);
-								}
-							// other row is all blank
-							} else if(removeProp1.isEmpty() && removeProp2.isEmpty() && removeProp3.isEmpty()) {
-								// but at least one prop not blank
-								if(!allProp1.isEmpty() || !allProp2.isEmpty() || !allProp3.isEmpty()) {
-									// need to remove j;
-									removeSet.add(j);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		int sumVal = 0;
-		for(int i = 0; i < removeSet.size(); i++) {
-			allData.remove(removeSet.get(i) - sumVal);
-			sumVal++;
 		}
 		
 		retHash.put(DHMSMTransitionUtility.HEADER_KEY, allICDs.get(DHMSMTransitionUtility.HEADER_KEY));
