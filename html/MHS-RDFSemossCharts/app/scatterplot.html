@@ -221,20 +221,20 @@
           yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(10);
           
       //setup fill color
-      var colorValue = function(d) { return d["series"]; },
+      var colorValue = function(d) { return convertURItoString(d["series"]); },
               color = d3.scale.category10();
 
       /* Initialize tooltip */
       var tip = d3.tip().attr('class', 'd3-tip')
             .html(function(d) {
-                var title = d.label,
+                var title = convertURItoString(d.label.uriString),
                 businessValue = 0, xValue = 0, zValue = 0;
 
 	            if(d["y-external stability"]) {
 	                businessValue = d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
 	                xValue = d.x;
 	                zValue = d.z || 0;
-	            } else {
+	            } else if (d["y"]){
 	                businessValue = d.y;
 	                xValue = d.x;
 	                zValue = d.z || 0;
@@ -354,7 +354,7 @@
            //draw circles
            var nodes = svg.selectAll(".node")
                .data(dataSeriesArray, function(d) {
-                   return d["label"];
+                   return convertURItoString(d["label"]["uriString"]);
                });
 
            //update
@@ -407,7 +407,7 @@
                    }
                })
                .style("fill", function(d) {
-            	   legendArray.push({"color": d["series"], "zIndexFlag":null});
+            	   legendArray.push({"color": convertURItoString(d["series"]), "zIndexFlag":null});
                    return color(colorValue(d));
                });
 
@@ -580,6 +580,22 @@
          
            svg.call(tip);  
       }
+
+      function convertURItoString(str) {
+        str = String(str);
+        if (str.indexOf('"') == 0) {
+          var shortStr = str.substring(1, str.length);
+          var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+          return returnStr;
+        }else if (str.indexOf('http://') !== -1){
+                var myRe = new RegExp("([^/]*)$");
+                var returnStr = myRe.exec(str);
+                return returnStr[0];
+            } else{
+                return str;
+            }
+      }
+
   	}	
   </script>
   </body>
