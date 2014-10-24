@@ -1,19 +1,22 @@
 
 ##Base Objects##
 
+ModernizationRoundTripResponseLatency http://health.mil/ontologies/Concept/ModernizationRoundTripResponseLatency
 SystemTasker http://health.mil/ontologies/Concept/SystemTasker
 RDF http://health.mil/ontologies/Concept/RDF
 BusinessRule http://health.mil/ontologies/Concept/BusinessRule
+TransitionDomainQualification http://health.mil/ontologies/Concept/TransitionDomainQualification
 Software http://health.mil/ontologies/Concept/Software
 ModernizationAudit http://health.mil/ontologies/Concept/ModernizationAudit
 DataObject http://health.mil/ontologies/Concept/DataObject
 NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
-Disconnected_Care http://health.mil/ontologies/Concept/Disconnected_Care
 ActivityLevel http://health.mil/ontologies/Concept/ActivityLevel
 CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
 Connected_Care http://health.mil/ontologies/Concept/Connected_Care
 DProt http://health.mil/ontologies/Concept/DProt
+ModernizationDomainQualification http://health.mil/ontologies/Concept/ModernizationDomainQualification
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
+ContinuityofOperations http://health.mil/ontologies/Concept/ContinuityofOperations
 DocumentationProp http://health.mil/ontologies/Concept/DocumentationProp
 HL7 http://health.mil/ontologies/Concept/HL7
 VISTA http://health.mil/ontologies/Concept/VISTA
@@ -21,20 +24,23 @@ Workflows http://health.mil/ontologies/Concept/Workflows
 TransitionArchival http://health.mil/ontologies/Concept/TransitionArchival
 Documentation http://health.mil/ontologies/Concept/Documentation
 CoexistData http://health.mil/ontologies/Concept/CoexistData
-Continuity_of_Operations http://health.mil/ontologies/Concept/Continuity_of_Operations
 TechCategory http://health.mil/ontologies/Concept/TechCategory
 Hardware http://health.mil/ontologies/Concept/Hardware
 TechStandardIdentifier http://health.mil/ontologies/Concept/TechStandardIdentifier
+PatientAccess http://health.mil/ontologies/Concept/PatientAccess
 ModernizationData Latency http://health.mil/ontologies/Concept/ModernizationData Latency
 Reference http://health.mil/ontologies/Concept/Reference
 CDRElement http://health.mil/ontologies/Concept/CDRElement
 Activity http://health.mil/ontologies/Concept/Activity
+ModernizationDataLatency http://health.mil/ontologies/Concept/ModernizationDataLatency
 ModernizationDerived http://health.mil/ontologies/Concept/ModernizationDerived
 Clinical Decision Support http://health.mil/ontologies/Concept/Clinical Decision Support
 MissionElement http://health.mil/ontologies/Concept/MissionElement
 TransitionData Latency http://health.mil/ontologies/Concept/TransitionData Latency
 ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
 ModernizationPersistence http://health.mil/ontologies/Concept/ModernizationPersistence
+TransitionDataLatency http://health.mil/ontologies/Concept/TransitionDataLatency
+MobileDevices http://health.mil/ontologies/Concept/MobileDevices
 IntegrateData http://health.mil/ontologies/Concept/IntegrateData
 SystemUser http://health.mil/ontologies/Concept/SystemUser
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
@@ -43,6 +49,7 @@ ModernizationStandard http://health.mil/ontologies/Concept/ModernizationStandard
 CDR http://health.mil/ontologies/Concept/CDR
 Capability http://health.mil/ontologies/Concept/Capability
 Gap http://health.mil/ontologies/Concept/Gap
+DisconnectedCare http://health.mil/ontologies/Concept/DisconnectedCare
 DFreq http://health.mil/ontologies/Concept/DFreq
 ModernizationNonRepudiation http://health.mil/ontologies/Concept/ModernizationNonRepudiation
 DForm http://health.mil/ontologies/Concept/DForm
@@ -54,7 +61,6 @@ DataElement http://health.mil/ontologies/Concept/DataElement
 TechSubCategory http://health.mil/ontologies/Concept/TechSubCategory
 SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 System http://health.mil/ontologies/Concept/System
-ModernizationData_Latency http://health.mil/ontologies/Concept/ModernizationData_Latency
 MigrateData http://health.mil/ontologies/Concept/MigrateData
 Complexity http://health.mil/ontologies/Concept/Complexity
 Mobile Devices http://health.mil/ontologies/Concept/Mobile Devices
@@ -67,10 +73,9 @@ VISTAUnion http://health.mil/ontologies/Concept/VISTAUnion
 TransitionStandard http://health.mil/ontologies/Concept/TransitionStandard
 Database http://health.mil/ontologies/Concept/Database
 TaskerLifecycleSystemPhase http://health.mil/ontologies/Concept/TaskerLifecycleSystemPhase
-TransitionRoundTrip_Response_Latency http://health.mil/ontologies/Concept/TransitionRoundTrip_Response_Latency
-TransitionData_Latency http://health.mil/ontologies/Concept/TransitionData_Latency
 Requirement http://health.mil/ontologies/Concept/Requirement
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
+TransitionRoundTripResponseLatency http://health.mil/ontologies/Concept/TransitionRoundTripResponseLatency
 Element http://health.mil/ontologies/Concept/Element
 CCD http://health.mil/ontologies/Concept/CCD
 Service http://health.mil/ontologies/Concept/Service
@@ -79,20 +84,18 @@ VISTAElement http://health.mil/ontologies/Concept/VISTAElement
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
 SLA http://health.mil/ontologies/Concept/SLA
 BusinessStandard http://health.mil/ontologies/Concept/BusinessStandard
-ModernizationRoundTrip_Response_Latency http://health.mil/ontologies/Concept/ModernizationRoundTrip_Response_Latency
 Personnel http://health.mil/ontologies/Concept/Personnel
 Participant http://health.mil/ontologies/Concept/Participant
 CapabilityFunctionalArea http://health.mil/ontologies/Concept/CapabilityFunctionalArea
 DHMSM http://health.mil/ontologies/Concept/DHMSM
 FError http://health.mil/ontologies/Concept/FError
+ClinicalDecisionSupport http://health.mil/ontologies/Concept/ClinicalDecisionSupport
 MissionOutcome http://health.mil/ontologies/Concept/MissionOutcome
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 ModernizationAggregation http://health.mil/ontologies/Concept/ModernizationAggregation
 CCD_Element http://health.mil/ontologies/Concept/CCD_Element
-Clinical_Decision_Support http://health.mil/ontologies/Concept/Clinical_Decision_Support
 JMA http://health.mil/ontologies/Concept/JMA
 TransitionAudit http://health.mil/ontologies/Concept/TransitionAudit
-TransitionDomain_Qualification http://health.mil/ontologies/Concept/TransitionDomain_Qualification
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 TError http://health.mil/ontologies/Concept/TError
 TaskerLifecyclePhase http://health.mil/ontologies/Concept/TaskerLifecyclePhase
@@ -103,10 +106,7 @@ Disconnected Care http://health.mil/ontologies/Concept/Disconnected Care
 SoftwareModule http://health.mil/ontologies/Concept/SoftwareModule
 ModernizationArchival http://health.mil/ontologies/Concept/ModernizationArchival
 Connected Care http://health.mil/ontologies/Concept/Connected Care
-Patient_Access http://health.mil/ontologies/Concept/Patient_Access
 UserInterface http://health.mil/ontologies/Concept/UserInterface
-Mobile_Devices http://health.mil/ontologies/Concept/Mobile_Devices
-ModernizationDomain_Qualification http://health.mil/ontologies/Concept/ModernizationDomain_Qualification
 
 ##Base Predicates##
 
@@ -114,12 +114,13 @@ Capability_Utilizes_Workflows http://health.mil/ontologies/Relation/Utilizes
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 CapabilityFunctionalArea_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
 System_Supports_CapabilityFunctionalArea http://health.mil/ontologies/Relation/Supports
+Capability_Needs_DisconnectedCare http://health.mil/ontologies/Relation/Needs
 MissionElement_Requires_MissionOutcome http://health.mil/ontologies/Relation/Requires
+Capability_Needs_MobileDevices http://health.mil/ontologies/Relation/Needs
 Capability_Requires_ModernizationStandard http://health.mil/ontologies/Relation/Requires
 DataObject_MapsTo_CCD http://health.mil/ontologies/Relation/MapsTo
 Capability_Implements_MigrateData http://health.mil/ontologies/Relation/Implements
 System_Receives-Submits_SystemTasker http://health.mil/ontologies/Relation/Receives-Submits
-Capability_Requires_ModernizationData_Latency http://health.mil/ontologies/Relation/Requires
 Capability_Needs_Connected_Care http://health.mil/ontologies/Relation/Needs
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
@@ -128,10 +129,10 @@ CapabilityGroup_Consists_Capability http://health.mil/ontologies/Relation/Consis
 Capability_Implements_IntegrateData http://health.mil/ontologies/Relation/Implements
 VISTAUnion_MappedTo_VISTAElement http://health.mil/ontologies/Relation/MappedTo
 Capability_Requires_ModernizationNonRepudiation http://health.mil/ontologies/Relation/Requires
+Capability_Requires_TransitionDataLatency http://health.mil/ontologies/Relation/Requires
 TechSubCategory_Has_TechRequirement http://health.mil/ontologies/Relation/Has
 Activity_Needs_DataObject http://health.mil/ontologies/Relation/Needs
 BusinessProcess_Consists_Activity http://health.mil/ontologies/Relation/Consists
-Capability_Requires_TransitionRoundTrip_Response_Latency http://health.mil/ontologies/Relation/Requires
 TechRequirement_Has_TechStandardIdentifier http://health.mil/ontologies/Relation/Has
 ConformanceCriteria_Fulfill_DataObject http://health.mil/ontologies/Relation/Fulfill
 System_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
@@ -145,9 +146,11 @@ DataObject_Connected_CDR http://health.mil/ontologies/Relation/Connected
 DHMSM_TaggedBy_Capability http://health.mil/ontologies/Relation/TaggedBy
 Capability_Requires_ModernizationAudit http://health.mil/ontologies/Relation/Requires
 Attribute_Has_Gap http://health.mil/ontologies/Relation/Has
+Capability_Requires_ModernizationRoundTripResponseLatency http://health.mil/ontologies/Relation/Requires
 Requirement_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
 Capability_Fulfill_Requirement http://health.mil/ontologies/Relation/Fulfill
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
+Capability_Requires_TransitionDomainQualification http://health.mil/ontologies/Relation/Requires
 System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
@@ -159,17 +162,14 @@ Activity_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 TechCategory_Has_TechSubCategory http://health.mil/ontologies/Relation/Has
 Activity_MapsTo_JMA http://health.mil/ontologies/Relation/MapsTo
 InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
-Capability_Needs_Disconnected_Care http://health.mil/ontologies/Relation/Needs
 Capability_Requires_ModernizationAggregation http://health.mil/ontologies/Relation/Requires
 Task_Needs_DataObject http://health.mil/ontologies/Relation/Needs
-Capability_Requires_ModernizationRoundTrip_Response_Latency http://health.mil/ontologies/Relation/Requires
 Requirement_Consists_ConformanceCriteria http://health.mil/ontologies/Relation/Consists
-Capability_Requires_ModernizationDomain_Qualification http://health.mil/ontologies/Relation/Requires
 Task_Needs_BusinessLogicUnit http://health.mil/ontologies/Relation/Needs
 MissionOutcome_Utilizes_CapabilityGroup http://health.mil/ontologies/Relation/Utilizes
 System_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 Capability_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
-Capability_Utilizes_Clinical_Decision_Support http://health.mil/ontologies/Relation/Utilizes
+Capability_Needs_ContinuityofOperations http://health.mil/ontologies/Relation/Needs
 Task_Requires_Participant http://health.mil/ontologies/Relation/Requires
 Capability_Requires_TransitionArchival http://health.mil/ontologies/Relation/Requires
 Task_Needs_BusinessProcess http://health.mil/ontologies/Relation/Needs
@@ -184,6 +184,7 @@ InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relati
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
 System_Supports_Capability http://health.mil/ontologies/Relation/Supports
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
+Capability_Requires_ModernizationDomainQualification http://health.mil/ontologies/Relation/Requires
 TaskerLifecycleSystemPhase_TypeOf_TaskerLifecyclePhase http://health.mil/ontologies/Relation/TypeOf
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
@@ -193,6 +194,8 @@ BusinessLogicUnit_Requires_DataObject http://health.mil/ontologies/Relation/Requ
 System_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 Service_Replaces_InterfaceControlDocument http://health.mil/ontologies/Relation/Replaces
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
+Capability_Requires_TransitionRoundTripResponseLatency http://health.mil/ontologies/Relation/Requires
+Capability_Utilizes_ClinicalDecisionSupport http://health.mil/ontologies/Relation/Utilizes
 Task_Supports_BusinessRule http://health.mil/ontologies/Relation/Supports
 Capability_References_Reference http://health.mil/ontologies/Relation/References
 System_Has_TError http://health.mil/ontologies/Relation/Has
@@ -213,11 +216,11 @@ Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySpl
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 Capability_Requires_TransitionStandard http://health.mil/ontologies/Relation/Requires
-Capability_Needs_Continuity_of_Operations http://health.mil/ontologies/Relation/Needs
 System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
 System_Supports_CapabilityTag http://health.mil/ontologies/Relation/Supports
 RDF_Has_RDFElement http://health.mil/ontologies/Relation/Has
 DataObject_Connected_RDF http://health.mil/ontologies/Relation/Connected
+Capability_Requires_ModernizationDataLatency http://health.mil/ontologies/Relation/Requires
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
 BusinessRule_Requires_SLA http://health.mil/ontologies/Relation/Requires
 SoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
@@ -229,14 +232,11 @@ System_Supports_CapabilityGroup http://health.mil/ontologies/Relation/Supports
 Capability_Utilizes_Documentation http://health.mil/ontologies/Relation/Utilizes
 Task_Requires_SLA http://health.mil/ontologies/Relation/Requires
 System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
+Capability_Needs_PatientAccess http://health.mil/ontologies/Relation/Needs
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
-Capability_Requires_TransitionData_Latency http://health.mil/ontologies/Relation/Requires
-Capability_Needs_Patient_Access http://health.mil/ontologies/Relation/Needs
 Capability_Requires_TransitionDerived http://health.mil/ontologies/Relation/Requires
-Capability_Requires_TransitionDomain_Qualification http://health.mil/ontologies/Relation/Requires
-Capability_Needs_Mobile_Devices http://health.mil/ontologies/Relation/Needs
 JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
 Capability_Requires_TransitionNonRepudiation http://health.mil/ontologies/Relation/Requires
 
@@ -245,8 +245,8 @@ Capability_Requires_TransitionNonRepudiation http://health.mil/ontologies/Relati
 NCRMDUser_CLASS http://semoss.org/ontologies/Concept/NCRMDUser
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
 Element_CLASS http://semoss.org/ontologies/Concept/Element
+DisconnectedCare_CLASS http://semoss.org/ontologies/Concept/DisconnectedCare
 Connected_Care_CLASS http://semoss.org/ontologies/Concept/Connected_Care
-ModernizationDomain_Qualification_CLASS http://semoss.org/ontologies/Concept/ModernizationDomain_Qualification
 SLA_CLASS http://semoss.org/ontologies/Concept/SLA
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Concept/CapabilityFunctionalArea
@@ -261,7 +261,6 @@ Workflows_CLASS http://semoss.org/ontologies/Concept/Workflows
 MigrateData_CLASS http://semoss.org/ontologies/Concept/MigrateData
 CapabilityGroup_CLASS http://semoss.org/ontologies/Concept/CapabilityGroup
 Software_CLASS http://semoss.org/ontologies/Concept/Software
-Clinical_Decision_Support_CLASS http://semoss.org/ontologies/Concept/Clinical_Decision_Support
 DHMSM_CLASS http://semoss.org/ontologies/Concept/DHMSM
 ActivityLevel_CLASS http://semoss.org/ontologies/Concept/ActivityLevel
 ModernizationArchival_CLASS http://semoss.org/ontologies/Concept/ModernizationArchival
@@ -272,32 +271,34 @@ JMA_CLASS http://semoss.org/ontologies/Concept/JMA
 TransitionArchival_CLASS http://semoss.org/ontologies/Concept/TransitionArchival
 ModernizationAudit_CLASS http://semoss.org/ontologies/Concept/ModernizationAudit
 Database_CLASS http://semoss.org/ontologies/Concept/Database
+MobileDevices_CLASS http://semoss.org/ontologies/Concept/MobileDevices
 BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
-Patient_Access_CLASS http://semoss.org/ontologies/Concept/Patient_Access
 TransitionAudit_CLASS http://semoss.org/ontologies/Concept/TransitionAudit
 VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
 Attribute_CLASS http://semoss.org/ontologies/Concept/Attribute
 TaskerLifecyclePhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecyclePhase
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
+ModernizationDomainQualification_CLASS http://semoss.org/ontologies/Concept/ModernizationDomainQualification
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 FError_CLASS http://semoss.org/ontologies/Concept/FError
 MissionOutcome_CLASS http://semoss.org/ontologies/Concept/MissionOutcome
 CapabilityTag_CLASS http://semoss.org/ontologies/Concept/CapabilityTag
 CCD_Element_CLASS http://semoss.org/ontologies/Concept/CCD_Element
+PatientAccess_CLASS http://semoss.org/ontologies/Concept/PatientAccess
+TransitionDomainQualification_CLASS http://semoss.org/ontologies/Concept/TransitionDomainQualification
 BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
 TransitionNonRepudiation_CLASS http://semoss.org/ontologies/Concept/TransitionNonRepudiation
 ModernizationDerived_CLASS http://semoss.org/ontologies/Concept/ModernizationDerived
-ModernizationData_Latency_CLASS http://semoss.org/ontologies/Concept/ModernizationData_Latency
-Continuity_of_Operations_CLASS http://semoss.org/ontologies/Concept/Continuity_of_Operations
+ModernizationRoundTripResponseLatency_CLASS http://semoss.org/ontologies/Concept/ModernizationRoundTripResponseLatency
+ClinicalDecisionSupport_CLASS http://semoss.org/ontologies/Concept/ClinicalDecisionSupport
 TechRequirement_CLASS http://semoss.org/ontologies/Concept/TechRequirement
 TechSubCategory_CLASS http://semoss.org/ontologies/Concept/TechSubCategory
 SystemTasker_CLASS http://semoss.org/ontologies/Concept/SystemTasker
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
 Service_CLASS http://semoss.org/ontologies/Concept/Service
-TransitionData_Latency_CLASS http://semoss.org/ontologies/Concept/TransitionData_Latency
-Mobile_Devices_CLASS http://semoss.org/ontologies/Concept/Mobile_Devices
+TransitionDataLatency_CLASS http://semoss.org/ontologies/Concept/TransitionDataLatency
 MissionElement_CLASS http://semoss.org/ontologies/Concept/MissionElement
 BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 HL7_CLASS http://semoss.org/ontologies/Concept/HL7
@@ -309,9 +310,7 @@ ModernizationData Latency_CLASS http://semoss.org/ontologies/Concept/Modernizati
 ModernizationStandard_CLASS http://semoss.org/ontologies/Concept/ModernizationStandard
 UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
-Disconnected_Care_CLASS http://semoss.org/ontologies/Concept/Disconnected_Care
 CoexistData_CLASS http://semoss.org/ontologies/Concept/CoexistData
-ModernizationRoundTrip_Response_Latency_CLASS http://semoss.org/ontologies/Concept/ModernizationRoundTrip_Response_Latency
 SystemOwner_CLASS http://semoss.org/ontologies/Concept/SystemOwner
 TransitionStandard_CLASS http://semoss.org/ontologies/Concept/TransitionStandard
 TransitionPersistence_CLASS http://semoss.org/ontologies/Concept/TransitionPersistence
@@ -321,24 +320,25 @@ Reference_CLASS http://semoss.org/ontologies/Concept/Reference
 Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
 IntegrateData_CLASS http://semoss.org/ontologies/Concept/IntegrateData
 Task_CLASS http://semoss.org/ontologies/Concept/Task
-TransitionRoundTrip_Response_Latency_CLASS http://semoss.org/ontologies/Concept/TransitionRoundTrip_Response_Latency
 Capability_CLASS http://semoss.org/ontologies/Concept/Capability
 Disconnected Care_CLASS http://semoss.org/ontologies/Concept/Disconnected Care
 SystemUser_CLASS http://semoss.org/ontologies/Concept/SystemUser
 TError_CLASS http://semoss.org/ontologies/Concept/TError
 CCD_CLASS http://semoss.org/ontologies/Concept/CCD
+TransitionRoundTripResponseLatency_CLASS http://semoss.org/ontologies/Concept/TransitionRoundTripResponseLatency
 System_CLASS http://semoss.org/ontologies/Concept/System
 Documentation_CLASS http://semoss.org/ontologies/Concept/Documentation
 CDR_CLASS http://semoss.org/ontologies/Concept/CDR
 Gap_CLASS http://semoss.org/ontologies/Concept/Gap
 TransitionData Latency_CLASS http://semoss.org/ontologies/Concept/TransitionData Latency
-TransitionDomain_Qualification_CLASS http://semoss.org/ontologies/Concept/TransitionDomain_Qualification
 Mobile Devices_CLASS http://semoss.org/ontologies/Concept/Mobile Devices
+ModernizationDataLatency_CLASS http://semoss.org/ontologies/Concept/ModernizationDataLatency
 DocumentationProp_CLASS http://semoss.org/ontologies/Concept/DocumentationProp
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 RDFElement_CLASS http://semoss.org/ontologies/Concept/RDFElement
 TransitionAggregation_CLASS http://semoss.org/ontologies/Concept/TransitionAggregation
 Requirement_CLASS http://semoss.org/ontologies/Concept/Requirement
+ContinuityofOperations_CLASS http://semoss.org/ontologies/Concept/ContinuityofOperations
 DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 SoftwareModule_CLASS http://semoss.org/ontologies/Concept/SoftwareModule
 RDF_CLASS http://semoss.org/ontologies/Concept/RDF
@@ -352,30 +352,32 @@ Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
 ##Base Predicates Class##
 
 System_Supports_CapabilityTag_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_Utilizes_ClinicalDecisionSupport_CLASS http://semoss.org/ontologies/Relation/Utilizes
 CapabilityGroup_Consists_Capability_CLASS http://semoss.org/ontologies/Relation/Consists
+Capability_Requires_TransitionDataLatency_CLASS http://semoss.org/ontologies/Relation/Requires
 TechCategory_Has_TechSubCategory_CLASS http://semoss.org/ontologies/Relation/Has
-Capability_Needs_Continuity_of_Operations_CLASS http://semoss.org/ontologies/Relation/Needs
 MissionElement_Requires_MissionOutcome_CLASS http://semoss.org/ontologies/Relation/Requires
 BusinessRule_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Requires_ModernizationRoundTripResponseLatency_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Needs_DisconnectedCare_CLASS http://semoss.org/ontologies/Relation/Needs
 Task_Supports_BusinessStandard_CLASS http://semoss.org/ontologies/Relation/Supports
 FError_Supports_Attribute_CLASS http://semoss.org/ontologies/Relation/Supports
 Capability_Utilizes_Documentation_CLASS http://semoss.org/ontologies/Relation/Utilizes
+Capability_Requires_ModernizationDataLatency_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Implements_CoexistData_CLASS http://semoss.org/ontologies/Relation/Implements
-Capability_Requires_ModernizationDomain_Qualification_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Requires_ModernizationStandard_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Needs_Connected_Care_CLASS http://semoss.org/ontologies/Relation/Needs
 Task_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
-Capability_Requires_TransitionDomain_Qualification_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Requires_TransitionPersistence_CLASS http://semoss.org/ontologies/Relation/Requires
 CapabilityTag_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
 Capability_Requires_ModernizationAudit_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
-Capability_Needs_Patient_Access_CLASS http://semoss.org/ontologies/Relation/Needs
 TechRequirement_Satisfies_Attribute_CLASS http://semoss.org/ontologies/Relation/Satisfies
 Capability_Requires_TransitionAggregation_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Requires_TransitionRoundTripResponseLatency_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Utilizes_Workflows_CLASS http://semoss.org/ontologies/Relation/Utilizes
-Capability_Utilizes_Clinical_Decision_Support_CLASS http://semoss.org/ontologies/Relation/Utilizes
 MissionOutcome_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
+Capability_Needs_MobileDevices_CLASS http://semoss.org/ontologies/Relation/Needs
 CapabilityFunctionalArea_Utilizes_CapabilityGroup_CLASS http://semoss.org/ontologies/Relation/Utilizes
 Capability_Requires_ModernizationPersistence_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Requires_ModernizationAggregation_CLASS http://semoss.org/ontologies/Relation/Requires
@@ -383,23 +385,20 @@ Capability_Requires_TransitionNonRepudiation_CLASS http://semoss.org/ontologies/
 Capability_Requires_ModernizationDerived_CLASS http://semoss.org/ontologies/Relation/Requires
 System_Supports_Capability_CLASS http://semoss.org/ontologies/Relation/Supports
 Capability_Requires_TransitionArchival_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Requires_TransitionDomainQualification_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Implements_MigrateData_CLASS http://semoss.org/ontologies/Relation/Implements
 TechRequirement_Has_TechStandardIdentifier_CLASS http://semoss.org/ontologies/Relation/Has
 System_Supports_CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Relation/Supports
-Capability_Requires_ModernizationData_Latency_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
-Capability_Requires_ModernizationRoundTrip_Response_Latency_CLASS http://semoss.org/ontologies/Relation/Requires
+Capability_Requires_ModernizationDomainQualification_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Supports_BusinessRule_CLASS http://semoss.org/ontologies/Relation/Supports
 DHMSM_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
 Task_Has_Attribute_CLASS http://semoss.org/ontologies/Relation/Has
 Attribute_Has_Gap_CLASS http://semoss.org/ontologies/Relation/Has
-Capability_Needs_Disconnected_Care_CLASS http://semoss.org/ontologies/Relation/Needs
 Capability_References_Reference_CLASS http://semoss.org/ontologies/Relation/References
 System_BelongsTo_Portfolio_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 BusinessStandard_Requires_SLA_CLASS http://semoss.org/ontologies/Relation/Requires
-Capability_Requires_TransitionRoundTrip_Response_Latency_CLASS http://semoss.org/ontologies/Relation/Requires
-Capability_Requires_TransitionData_Latency_CLASS http://semoss.org/ontologies/Relation/Requires
-Capability_Needs_Mobile_Devices_CLASS http://semoss.org/ontologies/Relation/Needs
+Capability_Needs_ContinuityofOperations_CLASS http://semoss.org/ontologies/Relation/Needs
 Capability_Implements_IntegrateData_CLASS http://semoss.org/ontologies/Relation/Implements
 Capability_Requires_ModernizationArchival_CLASS http://semoss.org/ontologies/Relation/Requires
 Task_Needs_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Needs
@@ -411,6 +410,7 @@ Capability_Requires_ModernizationNonRepudiation_CLASS http://semoss.org/ontologi
 Capability_Requires_TransitionAudit_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Requires_TransitionDerived_CLASS http://semoss.org/ontologies/Relation/Requires
 TechSubCategory_Has_TechRequirement_CLASS http://semoss.org/ontologies/Relation/Has
+Capability_Needs_PatientAccess_CLASS http://semoss.org/ontologies/Relation/Needs
 Capability_Supports_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Supports
 
 PROP_URI http://semoss.org/ontologies/Relation/Contains
