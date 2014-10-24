@@ -47,11 +47,12 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 	final String row3Name = "Gap / Advantage ($US M)";
 	final String row4Name = "Gap / Advantage as % of total function cost";
 	final String salesColName = "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Sales";
-	final String adjustedLineColName = "Adjusted Line of Business";
-	final String TotalLineColName = "Total Line of Business";
+	final String adjustedLineColName = "Adjusted_Line_of_Business";
+	final String TotalLineColName = "Total_Line_of_Business";
 	final String valueKey = "valueKey";
 	final String rowKey = "rowKey";
 	final String colKey = "colKey";
+	final String[] colNames = new String[] {"http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Sales", "http://semoss.org/ontologies/Concept/FunctionLevel1/Marketing", "http://semoss.org/ontologies/Concept/FunctionLevel1/Product", "http://semoss.org/ontologies/Concept/FunctionLevel1/Distribution", "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/New_Business", "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Customer_Service", "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Corporate_Overhead", "http://semoss.org/ontologies/Concept/FunctionLevel1/Premium_Tax", "Adjusted_Line_of_Business", "Total_Line_of_Business"};
 	String title = "";
 	
 	ArrayList<String> passedQueries = new ArrayList<String>();
@@ -75,13 +76,29 @@ public class GBCHeatTablePlaySheet extends BrowserPlaySheet{
 		processingHash = addTotalColumns(processingHash);
 		
 		ArrayList<Hashtable<String, Hashtable<String, Object>>> dataObj = new ArrayList<Hashtable<String, Hashtable<String, Object>>>();
-		dataObj.addAll(processingHash.values());
+		ArrayList<Hashtable<String, Hashtable<String, Object>>> orderedArray = getOrderedArray(processingHash);
+		dataObj.addAll(orderedArray);
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("title", this.title);
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
+	}
+	
+	private ArrayList<Hashtable<String, Hashtable<String, Object>>> getOrderedArray(Hashtable<String, Hashtable<String, Hashtable<String, Object>>> processingHash)
+	{
+		ArrayList<Hashtable<String, Hashtable<String, Object>>> orderedArray = new ArrayList<Hashtable<String, Hashtable<String, Object>>>();
+		
+		int count = 0;
+		for(int colIdx = 0; colIdx < this.colNames.length; colIdx++){
+			String colName = this.colNames[colIdx];
+			if(processingHash.containsKey(colName)){
+				orderedArray.add(count, processingHash.get(colName));
+				count++;
+			}
+		}
+		return orderedArray;
 	}
 	
 	private Hashtable<String, Hashtable<String, Hashtable<String, Object>>> addTotalColumns(Hashtable<String, Hashtable<String, Hashtable<String, Object>>> processingHash){		

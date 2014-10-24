@@ -30,6 +30,9 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 	Properties presProps = new Properties();
 	String propsKey;
 	IPlaySheet realPlaySheet;
+	String playSheetClassName;
+
+
 	boolean update = false;
 	
 	public GBCPresentationPlaySheet() 
@@ -66,7 +69,9 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 		// this will do everything for the real play sheet
 
 		// now that the query is set lets create the playsheet and set those things
-		String playSheetClassName = presProps.getProperty(propsKey + "_LAYOUT");
+		if(this.playSheetClassName == null)
+			playSheetClassName = presProps.getProperty(propsKey + "_LAYOUT");
+		
 		try {
 			this.realPlaySheet = (IPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
@@ -93,13 +98,16 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 		{
 			//query must be specified on the prop sheet or it can be a pointer to a generic query key
 			this.query = presProps.getProperty(propsKey+"_QUERY");
-			if(presProps.getProperty(query) != null)
+			if(query == null) // this would happen when an actual query is passed in not just a props key
+				this.query = query1;
+			else if(presProps.getProperty(query) != null)
 				query = presProps.getProperty(query);
 			
 			//for each param see if defined specifically otherwise get the value for the whole presentation
 			Hashtable<String, String> filledParams = new Hashtable<String, String>();
 			Hashtable<String, String> params = Utility.getParams(this.query);
 			for (String param : params.keySet()){
+				logger.info("Setting param " + param);
 				String paramKey = param.substring(0, param.indexOf("-"));
 				String paramValue = presProps.getProperty(propsKey+"_"+paramKey);
 				if(paramValue == null)
@@ -174,6 +182,10 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 			}
 		}
 		DIHelper.getInstance().setLocalProperty("GBC_PROPERTIES", presProps);
+	}
+
+	public void setPlaySheetClassName(String playSheetClassName) {
+		this.playSheetClassName = playSheetClassName;
 	}
 	
 }
