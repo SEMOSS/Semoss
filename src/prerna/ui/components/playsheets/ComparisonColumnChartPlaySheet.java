@@ -51,6 +51,7 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		ArrayList<String> clientIndex = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
 		{
+			//format is ?x1 ?x1val ?x2 ?x2val .... ?seriesName
 			Object[] elemValues = list.get(i);
 			String seriesName = elemValues[lastCol].toString();
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
