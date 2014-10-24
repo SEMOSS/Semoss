@@ -22,6 +22,9 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.openrdf.model.Literal;
+
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -102,6 +105,15 @@ public class GridScatterSheet extends BrowserPlaySheet{
 		if(var.length>3)
 			allHash.put("zAxisTitle", var[3]);
 		return allHash;
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 	
 }
