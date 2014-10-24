@@ -62,7 +62,7 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 		for(int i = 0; i < names.length; i++) {
 			newNames[i] = names[i];
 		}
-		newNames[names.length] = "CluserID";
+		newNames[names.length] = "ClusterID";
 		names = newNames;
 
 		list.addAll(0,clusterAlg.getSummaryClusterRows());
