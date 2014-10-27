@@ -2,6 +2,7 @@ package prerna.algorithm.impl.specific.tap;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -102,6 +103,13 @@ public class ClusterHeatMapData {
 		int ch = 0;
 		
 		if(success){
+			boolean fileFlag = false;
+			File checker = new File(fileLoc + clusterMapData);
+			while(!fileFlag){
+				if(checker.isFile()){
+					fileFlag = true;
+				}
+			}
 			FileInputStream in = null;
 			try{
 				in = new FileInputStream(fileLoc + clusterMapData);
@@ -109,7 +117,9 @@ public class ClusterHeatMapData {
 					data.append((char) ch);
 				}
 				in.close();
-			} catch(IOException e){
+			} catch(FileNotFoundException e){
+				e.printStackTrace();
+			} catch(IOException e) {
 				e.printStackTrace();
 			}
 		}
