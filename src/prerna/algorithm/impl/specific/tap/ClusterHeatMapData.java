@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import prerna.util.Constants;
@@ -91,6 +94,8 @@ public class ClusterHeatMapData {
 		
 		if(success){
 			try {
+				Path path = Paths.get(fileLoc + clusterMapData);
+				Files.deleteIfExists(path);
 				ProcessBuilder pb = new ProcessBuilder("python", clusterScript);
 				pb.directory(new File(fileLoc));
 				Process p = pb.start();
