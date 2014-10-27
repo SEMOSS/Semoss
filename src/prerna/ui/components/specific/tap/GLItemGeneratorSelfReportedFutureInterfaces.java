@@ -268,7 +268,7 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		data = allData.get("TestGLItem-Ser");
 		data.remove(0);
 		data.remove(0);
-		insertRelData(data, TEST_GLITEM, OUTPUT, ICD); //TODO: check if service is replaced by icd
+		insertRelData(data, TEST_GLITEM, OUTPUT, ICD);
 
 		// System -> influences -> TestGLItem
 		data = allData.get("Sys-TestGLItem");
