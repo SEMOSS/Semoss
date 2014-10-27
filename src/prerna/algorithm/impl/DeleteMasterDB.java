@@ -44,14 +44,21 @@ public class DeleteMasterDB extends ModifyMasterDB{
 	private static final String loneMCQuery = "SELECT DISTINCT ?MasterConcept ?Label WHERE {{?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?MasterConcept <http://www.w3.org/2000/01/rdf-schema#label> ?Label} OPTIONAL{{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://semoss.org/ontologies/Relation/ConsistsOf> ?Keyword}}FILTER(!BOUND(?Keyword))}";
 	private static final String loneMCCQuery = "SELECT DISTINCT ?MasterConceptConnection ?Label WHERE {{?MasterConceptConnection <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConceptConnection>}{?MasterConceptConnection <http://www.w3.org/2000/01/rdf-schema#label> ?Label}  OPTIONAL{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?MasterConceptConnection}}FILTER(!BOUND(?Engine))}";
 	private static final String loneServerQuery = "SELECT DISTINCT ?Server ?p ?o WHERE {{?Server <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Server>} {?Server ?p ?o} OPTIONAL{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/HostedOn> ?Server}}FILTER(!BOUND(?Engine))}";
-	
+
+	public DeleteMasterDB(String localMasterDbName) {
+		super(localMasterDbName);
+	}
+	public DeleteMasterDB() {
+		super();
+	}
+
 	/**
 	 * Deletes an engine from the master database.
 	 * Uses QuestionAdministrator to remove all perspectives, insights, and params associated with the engine from Master DB.
 	 * Removes any keywords, master concept connections, and master concepts that no other engines use, otherwise leaves them alone.
 	 * @param engineName	String instance name of the engine to be deleted
 	 */
-	public void deleteEngine(String engineName) {
+	public Boolean deleteEngine(String engineName) {
 		//instantiate the master database based on default, or what name is given for it
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
@@ -127,6 +134,7 @@ public class DeleteMasterDB extends ModifyMasterDB{
 		}
 		logger.info("Finished desktop delete");
 
+		return true;
 	}
 	
 	/**
@@ -137,7 +145,7 @@ public class DeleteMasterDB extends ModifyMasterDB{
 	 * @param engineName
 	 * @return
 	 */
-	public String deleteEngineWeb(String engineName) {
+	public Boolean deleteEngineWeb(String engineName) {
 		//instantiate the master database based on default, or what name is given for it
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
@@ -151,7 +159,7 @@ public class DeleteMasterDB extends ModifyMasterDB{
 		
 		deleteEngine(engineName);
 		
-		return "success";
+		return true;
 	}
 
 	/**

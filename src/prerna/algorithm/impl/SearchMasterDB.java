@@ -61,6 +61,13 @@ public class SearchMasterDB extends ModifyMasterDB {
 	String databaseFilter = "";
 	Hashtable<String, Double> engineScores;
 	Hashtable<String,String> engineURLHash;
+	
+	public SearchMasterDB(String localMasterDbName) {
+		super(localMasterDbName);
+	}
+	public SearchMasterDB() {
+		super();
+	}
 
 	/**
 	 * Specify a list of instances and their keywords. Finds the master concepts for each instance.
