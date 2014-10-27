@@ -107,7 +107,7 @@ public class LocalOutlierFactorAlgorithm {
 			double[] similarityArrBetweenInstanceToAllOtherInstances = similarityMatrix[i];
 			int[] kNearestNeighbors = inm.kNearestNeighbors(similarityArrBetweenInstanceToAllOtherInstances.clone(), i, k);
 			// kNearestNeighbors has the most similar similar index first and least similar index last
-			if(kNearestNeighbors.length != 0) {
+			if(kNearestNeighbors != null && kNearestNeighbors.length != 0) {
 				int mostDistantNeighborIndex = kNearestNeighbors[kNearestNeighbors.length - 1];
 				kSimilarityArr[i] = similarityArrBetweenInstanceToAllOtherInstances[mostDistantNeighborIndex];
 				kSimilarityIndicesMatrix[i] = kNearestNeighbors;
@@ -117,12 +117,25 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 		// print out k neighborhood matrix for debugging
+		System.out.println("K-NEIGHBORHOOD SIM MATRIX");
+		for(i = 0; i < numInstances; i++) {
+			int[] simIndicies = kSimilarityIndicesMatrix[i];
+			if(simIndicies != null) {
+				for(int j = 0; j < simIndicies.length - 1; j++) {
+					int col = simIndicies[j];
+					System.out.print(similarityMatrix[i][col] + ", ");
+				}
+			}
+			System.out.println();
+		}
+		
+		// print out k neighborhood matrix for debugging
 		System.out.println("K-NEIGHBORHOOD MATRIX");
 		for(i = 0; i < numInstances; i++) {
 			int[] simIndicies = kSimilarityIndicesMatrix[i];
 			if(simIndicies != null) {
 				for(int j = 0; j < simIndicies.length - 1; j++) {
-					System.out.print(similarityMatrix[i][j] + ", ");
+					System.out.print(simIndicies[j] + ", ");
 				}
 			}
 			System.out.println();
@@ -138,7 +151,7 @@ public class LocalOutlierFactorAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			for(j = numInstances - 1; j >= 0 + counter; j--) {
 				// reach similarity is the minimum of the similarity between object i and j and the min similarity of the k closest clusters
-				if(kSimilarityArr[i] < 1E-2 || kSimilarityArr[j] < 1E-2) {
+				if(kSimilarityArr[i] < .1 || kSimilarityArr[j] < .1) {
 					reachSimMatrix[i][j] = 0;
 					reachSimMatrix[j][i] = 0;
 				} else {
@@ -183,13 +196,16 @@ public class LocalOutlierFactorAlgorithm {
 		
 		int i;
 		for(i = 0; i < numInstances; i++) {
+			if(i == 22) {
+				System.out.println("here");
+			}
 			double sumLRD = 0;
 			double sumReachSim = 0;
 			int[] kClosestNeighbors = kSimilarityIndicesMatrix[i];
 			if(kClosestNeighbors != null) {
 				for(int j : kClosestNeighbors) {
 					sumLRD += lrd[j];
-					sumReachSim += reachSimMatrix[j][j];
+					sumReachSim += reachSimMatrix[i][j];
 				}
 				lof[i] = sumLRD / sumReachSim;
 			} else {
