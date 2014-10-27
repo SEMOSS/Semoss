@@ -5,10 +5,15 @@ import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.ArrayUtilityMethods;
 
 public class BarChart {
 
+	private static final Logger LOGGER = LogManager.getLogger(BarChart.class.getName());
+	
 	private String[] stringValues;
 	private String[] uniqueValues;
 	private double[] numericalValuesSorted;
@@ -131,8 +136,13 @@ public class BarChart {
 		double[] logValuesUnsorted = new double[numOccurances];
 		double[] logValues = new double[numOccurances];
 		for(int i = 0; i < numValues.length; i++) {
-			logValues[i] = Math.log10(numValues[i]);
-			logValuesUnsorted[i] = Math.log10(unsortedValues[i]);
+			if(numValues[i] > 0) {
+				logValues[i] = Math.log10(numValues[i] + 1);
+				logValuesUnsorted[i] = Math.log10(unsortedValues[i] + 1);
+			} else {
+				logValues[i] = -1 * Math.log10((-1*numValues[i]) + 1);
+				logValuesUnsorted[i] = -1 * Math.log10((-1 * unsortedValues[i]) + 1);
+			}
 		}
 		
 		double min = logValues[0];
@@ -187,8 +197,7 @@ public class BarChart {
 		for(i = 0; i < numOccurances; i++) {
 			double val = unsortedValues[i];
 			for(j = 0; j < numBins; j++) {
-				Hashtable<String, Object> innerHash = retBins[j];
-				String bin = (String) innerHash.get("x");
+				String bin = numericalBinOrder[j];
 				String[] binSplit = bin.split(" - ");
 				double binMin = Double.parseDouble(binSplit[0].trim());
 				double binMax = Double.parseDouble(binSplit[1].trim());
@@ -206,6 +215,27 @@ public class BarChart {
 					counterArr[j]++;
 					assignmentForEachObject[i] = bin;
 					break;
+				}
+			}
+			
+			if(assignmentForEachObject[i] == null) {
+				// due to rounding
+				String minBin = numericalBinOrder[0];
+				String[] binSplit = minBin.split(" - ");
+				double binMin = Double.parseDouble(binSplit[0].trim());
+				if(val < binMin) {
+					counterArr[0]++;
+					assignmentForEachObject[i] = numericalBinOrder[0];
+				} else {
+					String maxBin = numericalBinOrder[numBins - 1];
+					binSplit = maxBin.split(" - ");
+					double binMax = Double.parseDouble(binSplit[0].trim());
+					if(val > binMax) {
+						counterArr[numBins - 1]++;
+						assignmentForEachObject[i] = numericalBinOrder[numBins - 1];
+					} else {
+						LOGGER.info("ERROR: BINS DO NOT CAPTURE VALUE: " + val);
+					}
 				}
 			}
 		}
