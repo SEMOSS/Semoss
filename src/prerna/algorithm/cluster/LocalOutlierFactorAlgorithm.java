@@ -89,13 +89,13 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 		// print out similarity matrix for debugging
-		System.out.println("SIMILARITY MATRIX");
-		for(i = 0; i < numInstances; i++) {
-			for(j = 0; j < numInstances; j++) {
-				System.out.print(similarityMatrix[i][j] + ", ");
-			}
-			System.out.println();
-		}
+//		System.out.println("SIMILARITY MATRIX");
+//		for(i = 0; i < numInstances; i++) {
+//			for(j = 0; j < numInstances; j++) {
+//				System.out.print(similarityMatrix[i][j] + ", ");
+//			}
+//			System.out.println();
+//		}
 	}
 	
 	private void calculateKSimilarityMatrix() {
@@ -117,29 +117,29 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 		// print out k neighborhood matrix for debugging
-		System.out.println("K-NEIGHBORHOOD SIM MATRIX");
-		for(i = 0; i < numInstances; i++) {
-			int[] simIndicies = kSimilarityIndicesMatrix[i];
-			if(simIndicies != null) {
-				for(int j = 0; j < simIndicies.length - 1; j++) {
-					int col = simIndicies[j];
-					System.out.print(similarityMatrix[i][col] + ", ");
-				}
-			}
-			System.out.println();
-		}
+//		System.out.println("K-NEIGHBORHOOD SIM MATRIX");
+//		for(i = 0; i < numInstances; i++) {
+//			int[] simIndicies = kSimilarityIndicesMatrix[i];
+//			if(simIndicies != null) {
+//				for(int j = 0; j < simIndicies.length - 1; j++) {
+//					int col = simIndicies[j];
+//					System.out.print(similarityMatrix[i][col] + ", ");
+//				}
+//			}
+//			System.out.println();
+//		}
 		
 		// print out k neighborhood matrix for debugging
-		System.out.println("K-NEIGHBORHOOD MATRIX");
-		for(i = 0; i < numInstances; i++) {
-			int[] simIndicies = kSimilarityIndicesMatrix[i];
-			if(simIndicies != null) {
-				for(int j = 0; j < simIndicies.length - 1; j++) {
-					System.out.print(simIndicies[j] + ", ");
-				}
-			}
-			System.out.println();
-		}
+//		System.out.println("K-NEIGHBORHOOD MATRIX");
+//		for(i = 0; i < numInstances; i++) {
+//			int[] simIndicies = kSimilarityIndicesMatrix[i];
+//			if(simIndicies != null) {
+//				for(int j = 0; j < simIndicies.length - 1; j++) {
+//					System.out.print(simIndicies[j] + ", ");
+//				}
+//			}
+//			System.out.println();
+//		}
 	}
 
 	private void calculateReachSimilarity() {
@@ -164,13 +164,13 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 		// print out reach-similarity matrix for debugging
-		System.out.println("REACH SIMILARITY MATRIX");
-		for(i = 0; i < numInstances; i++) {
-			for(j = 0;  j < numInstances; j++) {
-				System.out.print(reachSimMatrix[i][j] + ", ");
-			}
-			System.out.println();
-		}
+//		System.out.println("REACH SIMILARITY MATRIX");
+//		for(i = 0; i < numInstances; i++) {
+//			for(j = 0;  j < numInstances; j++) {
+//				System.out.print(reachSimMatrix[i][j] + ", ");
+//			}
+//			System.out.println();
+//		}
 	}
 	
 	private void calculateLRD() {
@@ -196,9 +196,6 @@ public class LocalOutlierFactorAlgorithm {
 		
 		int i;
 		for(i = 0; i < numInstances; i++) {
-			if(i == 22) {
-				System.out.println("here");
-			}
 			double sumLRD = 0;
 			double sumReachSim = 0;
 			int[] kClosestNeighbors = kSimilarityIndicesMatrix[i];
