@@ -67,6 +67,13 @@ public class CreateMasterDB extends ModifyMasterDB{
 	ArrayList<String> masterConceptList = new ArrayList<String>();
 	//ArrayList of keywordsLists (one for each master concept)
 	ArrayList<ArrayList<String>> masterConceptKeyWordsList = new ArrayList<ArrayList<String>>();
+
+	public CreateMasterDB(String localMasterDbName) {
+		super(localMasterDbName);
+	}
+	public CreateMasterDB() {
+		super();
+	}
 	
 	/**
 	 * Creates a new master database from the engines and metamodels provided.
@@ -214,7 +221,7 @@ public class CreateMasterDB extends ModifyMasterDB{
 		masterEngine.infer();
 	}
 	
-	public void addEngine(String engineName) {
+	public Boolean registerEngineLocal(String engineName) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 		
@@ -253,6 +260,7 @@ public class CreateMasterDB extends ModifyMasterDB{
 		masterEngine.infer();
 		
 		logger.info("Finished adding new engine "+engineName);
+		return true;
 	}
 	
 	/**
@@ -311,7 +319,7 @@ public class CreateMasterDB extends ModifyMasterDB{
 		}
 	}
 	
-	public String registerEngineAPI(String baseURI, String engineName) {
+	public Boolean registerEngineAPI(String baseURI, String engineName) {
 		//make sure the masterEngine has been set.
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
@@ -379,7 +387,7 @@ public class CreateMasterDB extends ModifyMasterDB{
 			e.printStackTrace();
 		}
 		
-		return "success";
+		return true;
 
 	}
 	
@@ -759,5 +767,5 @@ public class CreateMasterDB extends ModifyMasterDB{
 		wrapper.execute();
 		masterEngine.commit();
 		logger.info("All triples in Master Database deleted.");
-	}	
+	}
 }
