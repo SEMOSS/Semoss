@@ -377,45 +377,11 @@ public class ClusteringDataProcessor {
 
 	
 	/**
-	 * Generate occurrence of instance numerical properties to calculate entropy
-	 * @return	A list containing a hashtable that stores all the different instances of a given property
-	 */
-	private ArrayList<Hashtable<String, Integer>> getNumericalPropOccurance() {
-		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
-		
-		if(numericalMatrix != null)
-		{
-			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
-			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
-			int size = data.length;
-			numericalBinOrderingMatrix = new String[size][];
-			for(int i = 0; i < size; i++) {
-				Object[] propColumn = data[i];
-				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
-				Arrays.sort(dataRow);
-				BarChart chart = new BarChart(dataRow);
-				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
-				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
-				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
-				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
-				int j;
-				for(j = 0; j < bins.length; j++) {
-					String range = (String) bins[j].get("x");
-					Integer count = (int) bins[j].get("y");
-					colInformationHash.put(range, count);
-				}
-			}
-		}
-
-		return trackPropOccuranceArr;
-	}
-	
-	/**
 	 * Generate weights for categorical similarity matrix
 	 */
 	private void calculateNumericalWeights() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getNumericalPropOccurance();
-		generateNumericalBinMatrix(trackPropOccurance);
+//		generateNumericalBinMatrix(trackPropOccurance);
 		double[] entropyArr = calculateEntropy(trackPropOccurance);
 		int numWeights = entropyArr.length;
 		numericalWeights = new double[numWeights];
@@ -434,6 +400,53 @@ public class ClusteringDataProcessor {
 		// output category and weight to console
 		for(int i = 0; i < numericalWeights.length; i++) {
 			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
+		}
+	}
+	
+	/**
+	 * Generate occurrence of instance numerical properties to calculate entropy
+	 * @return	A list containing a hashtable that stores all the different instances of a given property
+	 */
+	private ArrayList<Hashtable<String, Integer>> getNumericalPropOccurance() {
+		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
+		
+		if(numericalMatrix != null)
+		{
+			int numRows = masterTable.size();
+			int numCols = numericalPropNames.length;
+			numericalBinMatrix = new String[numRows][numCols];
+			
+			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
+			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
+			int size = data.length;
+			numericalBinOrderingMatrix = new String[size][];
+			for(int i = 0; i < size; i++) {
+				Object[] propColumn = data[i];
+				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
+//				Arrays.sort(dataRow);
+				BarChart chart = new BarChart(dataRow);
+				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
+				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
+				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
+				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
+				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+				int j;
+				for(j = 0; j < bins.length; j++) {
+					String range = (String) bins[j].get("x");
+					Integer count = (int) bins[j].get("y");
+					colInformationHash.put(range, count);
+				}
+			}
+		}
+
+		return trackPropOccuranceArr;
+	}
+	
+	private void generateNumericalBinMatrix(int col, String[] values) {
+		int i;
+		int size = values.length;
+		for(i = 0; i < size; i++) {
+			numericalBinMatrix[i][col] = values[i];
 		}
 	}
 	
@@ -475,60 +488,61 @@ public class ClusteringDataProcessor {
 		return entropyArr;
 	}
 	
-	private void generateNumericalBinMatrix(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
-		if(numericalPropNames != null) {
-			int numRows = masterTable.size();
-			int numCols = numericalPropNames.length;
-			
-			numericalBinMatrix = new String[numRows][numCols];
-			int i;
-			int j;
-			for(i = 0; i < numRows; i++) {
-				COL_LOOP: for(j = 0; j < numCols; j++) {
-					double val = numericalMatrix[i][j];
-					Hashtable<String, Integer> colInstances = trackPropOccurance.get(j);
-					// due to loss of significant digits, the val can be larger than the max
-					double minBinVal = Double.MAX_VALUE;
-					double maxBinVal = Double.MIN_VALUE;
-					String minBin = "";
-					String maxBin = "";
-					for(String binRange : colInstances.keySet()) {
-						String[] split = binRange.split(" - ");
-						if(split.length == 2) {
-							double min = Double.parseDouble(split[0].trim());
-							double max = Double.parseDouble(split[1].trim());
-							if(val >= min && val <= max) {
-								numericalBinMatrix[i][j] = binRange;
-								continue COL_LOOP;
-							}
-							if(maxBinVal < max) {
-								maxBinVal = max;
-								maxBin = binRange;
-							}
-							if(minBinVal > min) {
-								minBinVal = min;
-								minBin = binRange;
-							}
-						} else {
-							// not enough unique values to create bins - columns become unique values
-							if(val == Double.parseDouble(binRange)) {
-								numericalBinMatrix[i][j] = binRange;
-								continue COL_LOOP;
-							}
-						}
-					}
-					// this check is technically unnecessary since we only get here when it is null -> otherwise it goes to the continue
-					if(numericalBinMatrix[i][j] == null) {
-						if(Math.abs(minBinVal - val) > Math.abs(maxBinVal - val)) {
-							numericalBinMatrix[i][j] = maxBin;
-						} else {
-							numericalBinMatrix[i][j] = minBin;
-						}
-					}
-				}
-			}
-		}
-	}
+//	private void generateNumericalBinMatrix(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
+//		if(numericalPropNames != null) {
+//			int numRows = masterTable.size();
+//			int numCols = numericalPropNames.length;
+//			
+//			numericalBinMatrix = new String[numRows][numCols];
+//			int i;
+//			int j;
+//			double minBinVal = Double.MAX_VALUE;
+//			double maxBinVal = Double.MIN_VALUE;
+//			for(i = 0; i < numRows; i++) {
+//				COL_LOOP: for(j = 0; j < numCols; j++) {
+//					double val = numericalMatrix[i][j];
+//					System.out.println(val); //TODO: delete
+//					Hashtable<String, Integer> colInstances = trackPropOccurance.get(j);
+//					// due to loss of significant digits, the val can be larger than the max
+//					String minBin = "";
+//					String maxBin = "";
+//					for(String binRange : colInstances.keySet()) {
+//						String[] split = binRange.split(" - ");
+//						if(split.length == 2) {
+//							double min = Double.parseDouble(split[0].trim());
+//							double max = Double.parseDouble(split[1].trim());
+//							if(maxBinVal < max) {
+//								maxBinVal = max;
+//								maxBin = binRange;
+//							}
+//							if(minBinVal > min) {
+//								minBinVal = min;
+//								minBin = binRange;
+//							}
+//							if(val > min && val <= max) {
+//								numericalBinMatrix[i][j] = binRange;
+//								continue COL_LOOP;
+//							}
+//						} else {
+//							// not enough unique values to create bins - columns become unique values
+//							if(val == Double.parseDouble(binRange)) {
+//								numericalBinMatrix[i][j] = binRange;
+//								continue COL_LOOP;
+//							}
+//						}
+//					}
+//					// this check is technically unnecessary since we only get here when it is null -> otherwise it goes to the continue
+//					if(numericalBinMatrix[i][j] == null) {
+//						if(Math.abs(minBinVal - val) > Math.abs(maxBinVal - val)) {
+//							numericalBinMatrix[i][j] = maxBin;
+//						} else {
+//							numericalBinMatrix[i][j] = minBin;
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
 	
 	//TODO: THIS METHOD IS USED IN MULTIPLE PLACES
 	/**
