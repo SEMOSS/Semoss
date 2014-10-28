@@ -52,9 +52,9 @@ SystemDCSite_Provide_BLU http://health.mil/ontologies/Relation/Provide
 InterfaceControlDocument_ImplementedAt_SystemDCSite http://health.mil/ontologies/Relation/ImplementedAt
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Carries_DataElement http://health.mil/ontologies/Relation/Carries
+Wave_BeginsOn_Year-Quarter http://health.mil/ontologies/Relation/BeginsOn
 MTF_Located_HealthServiceRegion http://health.mil/ontologies/Relation/Located
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
-Region_Preceeds_Region http://health.mil/ontologies/Relation/Preceeds
 Year-Quarter_has_Quarter http://health.mil/ontologies/Relation/has
 SystemDCSiteIncident_Affects_SystemDCSite http://health.mil/ontologies/Relation/Affects
 SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
@@ -63,6 +63,7 @@ InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Co
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SiteHardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
+Region_Precedes_Region http://health.mil/ontologies/Relation/Precedes
 Wave_Contains_DCSite http://health.mil/ontologies/Relation/Contains
 MTF_Has_FacComCode http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
@@ -70,13 +71,13 @@ Region_EndsOn_Year-Quarter http://health.mil/ontologies/Relation/EndsOn
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 SystemDCSite_Has_SiteHardwareModule http://health.mil/ontologies/Relation/Has
+Wave_Precedes_Wave http://health.mil/ontologies/Relation/Precedes
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DCSite_Located_City http://health.mil/ontologies/Relation/Located
 SystemDCSite_Has_TError http://health.mil/ontologies/Relation/Has
 Region_Deploys_Wave http://health.mil/ontologies/Relation/Deploys
 SystemDCSite_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
-Wave_Preceeds_Wave http://health.mil/ontologies/Relation/Preceeds
 InterfaceControlDocument_Implemented_At_SystemDCSite http://health.mil/ontologies/Relation/Implemented_At
 Year-Quarter_has_Year http://health.mil/ontologies/Relation/has
 SiteSoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
@@ -89,7 +90,6 @@ HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 DCSite_Has_DCSiteCmdCode http://health.mil/ontologies/Relation/Has
 DCSiteIncident_Affects_DCSite http://health.mil/ontologies/Relation/Affects
 SoftwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
-Region_BeginsOn_Year-Quarter http://health.mil/ontologies/Relation/BeginsOn
 MAAGSite_Contains_DCSite http://health.mil/ontologies/Relation/Contains
 
 ##Base Objects Class##
@@ -139,6 +139,7 @@ SystemIncident_Affects_System_CLASS http://semoss.org/ontologies/Relation/Affect
 System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Provide
 InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
 InterfaceControlDocument_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+Wave_BeginsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/BeginsOn
 SoftwareVersion_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSite_Consists_SiteSoftwareModule_CLASS http://semoss.org/ontologies/Relation/Consists
 MTF_Has_FacComCode_CLASS http://semoss.org/ontologies/Relation/Has
@@ -156,18 +157,17 @@ InterfaceControlDocument_Has_DForm_CLASS http://semoss.org/ontologies/Relation/H
 DCSiteIncident_Affects_DCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 SystemDCSite_Has_SiteHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Has_SoftwareVCategory_CLASS http://semoss.org/ontologies/Relation/Has
+Region_Precedes_Region_CLASS http://semoss.org/ontologies/Relation/Precedes
 Wave_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
 SystemDCSite_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
 SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
+Wave_Precedes_Wave_CLASS http://semoss.org/ontologies/Relation/Precedes
 MAAGSite_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
-Wave_Preceeds_Wave_CLASS http://semoss.org/ontologies/Relation/Preceeds
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
-Region_BeginsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/BeginsOn
-Region_Preceeds_Region_CLASS http://semoss.org/ontologies/Relation/Preceeds
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemDCSite_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Affects
