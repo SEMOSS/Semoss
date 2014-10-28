@@ -44,10 +44,11 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 	
 	public Hashtable<String, Object> processQueryData()
 	{		
-		Hashtable<String, ArrayList<Hashtable<String, Object>>> dataObj = new Hashtable<String, ArrayList<Hashtable<String, Object>>>();
+		ArrayList<ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList<ArrayList<Hashtable<String, Object>>>();
 		//series name - all objects in that series (x : ... , y : ...)
 		int lastCol = names.length - 1 ;
 		ArrayList<String> usedList = new ArrayList<String>();
+		ArrayList<String> seriesList = new ArrayList<String>();
 		ArrayList<String> clientIndex = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
 		{
@@ -66,10 +67,12 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 				if(!usedList.contains(usedKey)){
 					usedList.add(usedKey);
 					ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-					if(dataObj.containsKey(seriesName))
-						seriesArray = dataObj.get(seriesName);
-					else
-						dataObj.put(seriesName, seriesArray);
+					if(seriesList.contains(seriesName))
+						seriesArray = dataObj.get(seriesList.indexOf(seriesName));
+					else{
+						seriesList.add(seriesList.size(), seriesName);
+						dataObj.add(seriesList.indexOf(seriesName), seriesArray);
+					}
 					Hashtable<String, Object> elementHash = new Hashtable();
 					elementHash.put("x", xVal);
 					elementHash.put("y", yVal);
@@ -103,7 +106,7 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("names", names);
-		columnChartHash.put("dataSeries", dataObj.values());
+		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
 	}
