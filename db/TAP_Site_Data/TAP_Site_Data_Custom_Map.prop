@@ -64,10 +64,10 @@ SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SiteHardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Region_Precedes_Region http://health.mil/ontologies/Relation/Precedes
+Wave_EndsOn_Year-Quarter http://health.mil/ontologies/Relation/EndsOn
 Wave_Contains_DCSite http://health.mil/ontologies/Relation/Contains
 MTF_Has_FacComCode http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
-Region_EndsOn_Year-Quarter http://health.mil/ontologies/Relation/EndsOn
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 SystemDCSite_Has_SiteHardwareModule http://health.mil/ontologies/Relation/Has
@@ -168,12 +168,12 @@ Wave_Precedes_Wave_CLASS http://semoss.org/ontologies/Relation/Precedes
 MAAGSite_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
+Wave_EndsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/EndsOn
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemDCSite_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
-Region_EndsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/EndsOn
 SystemDCSite_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 InterfaceControlDocument_ImplementedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/ImplementedAt
 DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
