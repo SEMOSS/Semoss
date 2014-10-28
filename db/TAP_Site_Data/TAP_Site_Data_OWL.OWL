@@ -175,10 +175,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/DeployedAt">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/EndsOn">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/EndsOn">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/UsedBy">
@@ -290,11 +290,13 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemDCSite">
 	<Consists xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SiteSoftwareModule"/>
 </rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Wave">
+	<EndsOn xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Year-Quarter"/>
+</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/DProt"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Region">
-	<EndsOn xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Year-Quarter"/>
 	<Precedes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/Region"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemIncident">
