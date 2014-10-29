@@ -25,6 +25,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.ClusteringAlgorithm;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -84,5 +85,10 @@ public class ClusteringPlaySheet extends GridPlaySheet{
 			numClusters = Integer.parseInt(query.substring(0,semi));
 			this.query = query.substring(semi+1);
 		}
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
 	}
 }

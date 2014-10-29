@@ -3,6 +3,7 @@ package prerna.ui.components.playsheets;
 import java.util.ArrayList;
 
 import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 
 public class LocalOutlierPlaySheet extends GridPlaySheet{
 	
@@ -76,6 +77,11 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		String[] querySplit = query.split("\\+\\+\\+");
 		this.query = querySplit[0];
 		this.k = Integer.parseInt(querySplit[1]);
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
 	}
 	
 }
