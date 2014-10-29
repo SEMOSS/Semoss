@@ -42,6 +42,19 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 		this.learningConstants = opt.f.learningConstants;
 		this.maxYears = opt.maxYears;
 	}
+	/**
+	 * Sets the Systems Optimizer and other constants that will be used.
+	 * @param opt SysNetSavingsOptimizer
+	 */
+	public void setOptimzer (UnivariateSysOptimizer opt, double[] learningConstants)
+	{
+		this.opt=opt;
+		this.iniLC=opt.iniLC;
+		this.scdLT = opt.scdLT;
+		this.scdLC = opt.scdLC;
+		this.learningConstants = learningConstants;
+		this.maxYears = opt.maxYears;
+	}
 	
 	
 	public Hashtable createModernizedHeatMap()

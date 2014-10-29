@@ -61,7 +61,6 @@ public class UnivariateOpt implements IAlgorithm{
 	public UnivariateOptFunction f;
 	double optBudget =0.0;
 	JProgressBar progressBar;
-//	public String[] optSys;
 	
 	/**
 	 * Method setVariables.
