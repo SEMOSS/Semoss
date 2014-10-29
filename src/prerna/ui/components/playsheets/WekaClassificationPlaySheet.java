@@ -3,6 +3,7 @@ package prerna.ui.components.playsheets;
 import java.util.ArrayList;
 
 import prerna.algorithm.weka.impl.WekaClassification;
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 
 public class WekaClassificationPlaySheet extends GridPlaySheet{
 	
@@ -36,6 +37,11 @@ public class WekaClassificationPlaySheet extends GridPlaySheet{
 		String[] querySplit = query.split("\\+\\+\\+");
 		this.query = querySplit[0];
 		this.modelName = querySplit[1];
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
 	}
 	
 }
