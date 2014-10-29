@@ -46,7 +46,6 @@ public class InsertInterfaceModernizationProperty {
 		
 		processor.setEngine(HR_Core);
 		processor.getCostInfo(TAP_Cost_Data);
-		processor.getLPNIInfo(HR_Core);
 		for(String sysName : reportTypeHash.keySet()){
 			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
 			processor.setQuery(DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", sysName));

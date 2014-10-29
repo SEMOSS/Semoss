@@ -130,10 +130,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		specifySysInQueriesForReport();
 		processor = new LPInterfaceProcessor();
 		
-		if(reportType.equals("LPNI")){
-			processor.getLPNIInfo(HR_Core);
-		}
-
 		boolean includeCosts = true;
 		String exceptionError = "Could not find database:";
 		try {

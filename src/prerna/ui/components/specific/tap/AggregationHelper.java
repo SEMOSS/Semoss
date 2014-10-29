@@ -102,9 +102,6 @@ public class AggregationHelper implements IAggregationHelper {
 			addToDataHash(triple);
 			addToAllConcepts(triple[0].toString());
 			addToAllRelationships(triple[1].toString());
-			if(triple[1].toString().contains("/Concept/")) {
-				System.out.println(":error");
-			}
 			addToAllConcepts(triple[2].toString());
 		}
 	}
