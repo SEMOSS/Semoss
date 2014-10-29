@@ -507,6 +507,12 @@ public class FactSheetWriter {
 				if (j==0) {
 					String interfaceType = ((String) row.get(j) ).replaceAll("\"", "");
 					cellToWriteOn.setCellValue(interfaceType);
+					if (row.get(2).toString().equals(systemName)&&row.get(3).toString().equals(systemName)) {
+						cellToWriteOn = rowToWriteOn.getCell(1);
+						downstreamStyle.setFont(font1);
+						cellToWriteOn.setCellStyle(downstreamStyle);
+						cellToWriteOn.setCellValue("Internal");
+					}
 				}
 				if (j==1)
 					uniqueInterfaces.add(row.get(j));
@@ -521,7 +527,7 @@ public class FactSheetWriter {
 						cisUpstream.add(row.get(1));
 					if (row.get(j).toString().equals("CDR"))
 						cdrUpstream.add(row.get(1));
-					if (row.get(j).toString().equals(systemName)) {
+					if (row.get(j).toString().equals(systemName)&&!row.get(j+1).toString().equals(systemName)) {
 						cellToWriteOn = rowToWriteOn.getCell(1);
 						font1.setColor(lightBlue);
 						downstreamStyle.setFont(font1);
@@ -539,7 +545,7 @@ public class FactSheetWriter {
 						cisDownstream.add(row.get(1));
 					if (row.get(j).toString().equals("CDR"))
 						cdrDownstream.add(row.get(1));
-					if (row.get(j).toString().equals(systemName)) {
+					if (row.get(j).toString().equals(systemName)&&!row.get(j-1).toString().equals(systemName)) {
 						cellToWriteOn = rowToWriteOn.getCell(1);
 						font.setColor(darkBlue);
 						upstreamStyle.setFont(font);
@@ -746,9 +752,9 @@ public class FactSheetWriter {
 			}
 			String crm = (String) row.get(0);
 
-			if (crm.equals("\"C\"")) { countC++; indexC++; }					
-			if (crm.equals("\"M\"")) { countM++; indexM++; }
-			if (crm.equals("\"R\"")) { countR++; indexR++; }
+			if (crm.contains("C")) { countC++; indexC++; }					
+			if (crm.contains("M")) { countM++; indexM++; }
+			if (crm.contains("R")) { countR++; indexR++; }
 			if(indexC==1 || indexM == 1 ||indexR == 1)
 			{
 				if(rowToWriteOn.getLastCellNum()>=1)
