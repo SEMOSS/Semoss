@@ -284,7 +284,7 @@ public class Constants {
 	public static final String TIER3_CHECKBOX = "tierCheck3";
 	
 	//Fact Sheet Report Queries
-	public static final String FACT_SHEET_REPORT_TYPE_COMBO_BOX = "FactSheetReportTypecomboBox";
+	public static final String FACT_SHEET_REPORT_TYPE_COMBO_BOX = "factSheetReportTypecomboBox";
 	public static final String FACT_SHEET_SYSTEM_DROP_DOWN_PANEL = "factSheetReportSysDropDownPanel";
 	public static final String FACT_SHEET_SYSTEM_SELECT_COMBO_BOX = "factSheetReportSyscomboBox";
 	
