@@ -76,6 +76,7 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 		dataObj.addAll(orderedArray);
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
+		columnChartHash.put("title", this.title);
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
@@ -106,6 +107,9 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 			
 			String colHeader = getVariable(passedNames[0], sjss) + "";
 			String cellName = getVariable(passedNames[1], sjss) + "";
+
+			if(title.isEmpty())
+				title = sjss.getVar(passedNames[2]) + " vs. " + sjss.getVar(passedNames[10]);
 			
 			Double clientVal = ((BigdataLiteralImpl)getVariable(passedNames[5], sjss)).doubleValue();
 			Double peerVal = ((BigdataLiteralImpl)getVariable(passedNames[7], sjss)).doubleValue();
