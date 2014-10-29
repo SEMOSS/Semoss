@@ -228,8 +228,11 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		
 		
 	}
-
-
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
+	}
 	
 }
 
