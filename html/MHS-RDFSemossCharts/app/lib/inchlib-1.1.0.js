@@ -111,7 +111,7 @@
 * @option {string} [count_column_colors="Reds"]
 *   the color scale of count column
 
-* @option {boolean} [draw_row_ids=false]
+* @option {boolean} [draw_row_ids=true]
 *   draws the row IDs next to the heatmap when there is enough space to visualize them
 
 * @option {number} [max_percentile=100]
@@ -160,7 +160,7 @@ var _date = new Date();
           "metadata": false,
           "column_metadata": false,
           "column_metadata_row_height": 8,
-          "column_metadata_colors": "RdLrBu",
+          "column_metadata_colors": "GnBu",
           "max_height" : 800,
           "width" : target_width,
           "heatmap_colors" : "Greens",
@@ -178,7 +178,7 @@ var _date = new Date();
           "max_row_height": 25,
           "max_column_width": 150,
           "font": "Helvetica",
-          "draw_row_ids": false,
+          "draw_row_ids": true,
           "show_export_button": true,
           "max_percentile": 100,
           "min_percentile": 0,
@@ -3247,7 +3247,9 @@ var _date = new Date();
       if(_this.column_metadata_header !== undefined){
         header_type2value["cm"] = _this.column_metadata_header[column[1]];
       }
-      
+
+
+      var row_id = evt.target.parent.attrs.id;
       var value = attrs.value;
       var header = header_type2value[column[0]];
 
@@ -3265,6 +3267,11 @@ var _date = new Date();
       
       if(header !== undefined){
           value = [header, value].join("\n");
+      }
+
+      if(row_id !== undefined){
+        sysName = _this.data.nodes[row_id].objects[0];
+        value = [sysName, value].join("\n");
       }
 
       var tooltip = _this.objects_ref.tooltip_label.clone({x: x, y:y, id: "col_label",});
