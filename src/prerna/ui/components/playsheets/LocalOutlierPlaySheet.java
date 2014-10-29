@@ -20,7 +20,8 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		
 		double[] lrd = alg.getLRD();
 		double[] lof = alg.getLOF();
-		double[] zScore = alg.getZScore();
+//		double[] zScore = alg.getZScore();
+		double[] lop = alg.getLOP();
 		
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		int numRows = list.size();
@@ -41,11 +42,12 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 //						newRow[j+1] = lof[i];
 						newRow[j+1] = Math.round(lof[i] * 100) / 100.0;
 					}
-					if(Double.isNaN(zScore[i])) {
+					if(Double.isNaN(lop[i])) {
 						newRow[j+2] = "NaN";
 					} else {
 //						newRow[j+2] = zScore[i];
-						newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
+//						newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
+						newRow[j+2] = String.format("%.0f%%",lop[i]*100);
 					}
 				} else {
 					newRow[j] = row[j];
@@ -60,7 +62,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 			if(i == numCols) {
 				newNames[i] = "LRD";
 				newNames[i+1] = "LOF";
-				newNames[i+2] = "zScore_LOF";
+				newNames[i+2] = "LOP";
 			} else {
 				newNames[i] = names[i];
 			}

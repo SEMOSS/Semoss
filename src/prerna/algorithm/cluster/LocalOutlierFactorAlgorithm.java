@@ -2,6 +2,8 @@ package prerna.algorithm.cluster;
 
 import java.util.ArrayList;
 
+import org.apache.commons.math3.special.Erf;
+
 import prerna.math.StatisticsUtilityMethods;
 
 public class LocalOutlierFactorAlgorithm {
@@ -13,7 +15,8 @@ public class LocalOutlierFactorAlgorithm {
 	
 	private double[] lrd;
 	private double[] lof;
-	private double[] zScore;
+//	private double[] zScore;
+	private double[] lop;
 	
 	private int k;
 	
@@ -42,8 +45,12 @@ public class LocalOutlierFactorAlgorithm {
 		return lof;
 	}
 	
-	public double[] getZScore() {
-		return zScore;
+//	public double[] getZScore() {
+//		return zScore;
+//	}
+	
+	public double[] getLOP() {
+		return lop;
 	}
 	
 	public LocalOutlierFactorAlgorithm(ArrayList<Object[]> list, String[] names) {
@@ -70,7 +77,8 @@ public class LocalOutlierFactorAlgorithm {
 		calculateReachSimilarity();
 		calculateLRD();
 		calculateLOF();
-		calculateZScore();
+//		calculateZScore();
+		calculateLOOP();
 	}
 
 	private void calculateSimilarityMatrix() {
@@ -211,7 +219,26 @@ public class LocalOutlierFactorAlgorithm {
 		}
 	}
 	
-	private void calculateZScore() {
-		zScore = StatisticsUtilityMethods.calculateZScoresIgnoringInfinity(lof, false);
+	private void calculateLOOP() {
+		lop = new double[numInstances];
+		
+		double[] ploof = new double[numInstances];
+		int i;
+		for(i = 0; i < numInstances; i++) {
+			ploof[i] = lof[i] - 1;
+		}
+		
+		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(ploof);
+		double squareRoot2 = Math.sqrt(2);
+		for(i = 0; i < numInstances; i++) {
+			lop[i] = Math.max(0, Erf.erf(ploof[i]/(stdev * squareRoot2)));
+		}
+		
 	}
+	
+	
+//	private void calculateZScore() {
+//		zScore = StatisticsUtilityMethods.calculateZScoresIgnoringInfinity(lof, false);
+//	}
+	
 }
