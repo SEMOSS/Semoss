@@ -37,10 +37,6 @@ public class LPInterfaceProcessor {
 	private HashMap<String, String> sysTypeHash = new HashMap<String, String>();
 	private Set<String> selfReportedICDs = new HashSet<String>();
 	
-	// lpni indirect cost also requires
-	private HashSet<String> dhmsmSORList;
-	private HashSet<String> lpiSystemList;
-	
 	private final double COST_PER_HOUR = 150.0;
 	private double totalDirectCost = 0;
 	private double totalIndirectCost = 0;
