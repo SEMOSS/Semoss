@@ -92,7 +92,6 @@ public class DHMSMIntegrationTransitionCostWriter {
 		if(processor == null){
 			processor = new LPInterfaceProcessor();
 			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
-			processor.getLPNIInfo(hrCore);
 
 		} else {
 			processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
