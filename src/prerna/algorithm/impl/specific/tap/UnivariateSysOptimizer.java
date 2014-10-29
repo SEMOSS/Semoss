@@ -152,7 +152,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		query+="}";
 		return query;
 	}
-	public void getData()
+	private void getData()
 	{
 		String engine = playSheet.engine.getEngineName();
 		
@@ -209,7 +209,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		}
 		return retList;
 	}
-	public void getModernizedSysList()
+	private void getModernizedSysList()
 	{
 		playSheet.progressBar.setString("Determining Modernized List");
 		if(ignoreTheatGarr)
@@ -233,31 +233,8 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		this.preTransitionMaintenanceCost = sysOpt.denomCurrentMaintenance;
 		this.postTransitionMaintenanceCost = preTransitionMaintenanceCost - numMaintenanceSavings;
 	}
-	public void optimize()
-	{
-		getData();
-		if(noErrors == false)
-		{
-			playSheet.progressBar.setVisible(false);
-			Utility.showError(errorMessage);
-			return;
-		}
-		getModernizedSysList();
-		if(noErrors == false)
-		{
-			playSheet.progressBar.setVisible(false);
-			Utility.showError(errorMessage);
-			return;
-		}
-		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
-		{
-        	//playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
-			playSheet.progressBar.setVisible(false);
-			//Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
-			Utility.showError("Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
-			return;
-		}
+	
+	protected void optimizeBudget() {
 		
         progressBar = playSheet.progressBar;
         f.setConsoleArea(playSheet.consoleArea);
@@ -307,31 +284,59 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
             progressBar.setVisible(false);
             clearPlaysheet();
         }
-        //should this go in the try catch? prob shouldnt do it if we get an error....
-        //runOptIteration();
-        if(noErrors)
-        {
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nCumulative savings: "+netSavings);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nROI: "+roi);
-			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nIRR: "+irr);
-	        displayResults();
-	        displaySystemSpecifics();
-	        displayCurrFunctionality();
-	        displayFutureFunctionality();
-	        displayHeatMap();
-	        displayClusterHeatMap();
-        }
-        else
+	}
+	
+	protected void display() {
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBudget: "+budget);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGiven timespan to accumulate savings over: "+maxYears);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nCumulative savings: "+netSavings);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nROI: "+roi);
+		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nIRR: "+irr);
+        displayResults();
+        displaySystemSpecifics();
+        displayCurrFunctionality();
+        displayFutureFunctionality();
+        displayHeatMap();
+        displayClusterHeatMap();
+	}
+	public void optimize()
+	{
+		getData();
+		if(noErrors == false)
 		{
+			playSheet.progressBar.setVisible(false);
+			Utility.showError(errorMessage);
+			return;
+		}
+		getModernizedSysList();
+		if(noErrors == false)
+		{
+			playSheet.progressBar.setVisible(false);
+			Utility.showError(errorMessage);
+			return;
+		}
+		if(numMaintenanceSavings < serMainPerc*dataExposeCost)
+		{
+        	//playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
+			playSheet.progressBar.setVisible(false);
+			//Utility.showError("Potential annual sustainment savings is less than annual maintenance of exposed data objects. Rationalization solution is not available.");
+			Utility.showError("Cost of current annual maintenance of systems is the same as rationalized annual maintenance. Rationalization solution is not available.");
+			return;
+		}
+		
+		optimizeBudget();
+		
+		if(noErrors == false) {
         	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nError: "+"No possible Internal Rate of Return. Rationalization solution is not available.");
 			playSheet.progressBar.setVisible(false);
 			Utility.showError("No possible Internal Rate of Return. Rationalization solution is not available.");
 			return;
 		}
 		
+		display();
+
 	}
 	
 	public void calculateSavingsROIAndIRR()
@@ -452,7 +457,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		}
 		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).specificSysAlysPanel);
 	}
-	private void displayCurrFunctionality() {
+	protected void displayCurrFunctionality() {
 		provideDataBLUNow = new int[dataList.size()+bluList.size()];
 		ArrayList <Object []> list = new ArrayList<Object []>();
 		int size = resFunc.sysList.size()+3;
@@ -527,7 +532,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		displayListOnTab(colNames,list,((SysOptPlaySheet)playSheet).currentFuncPanel,true);
 	}
 	
-	private void displayFutureFunctionality() {
+	protected void displayFutureFunctionality() {
 		provideDataBLUFuture = new int[dataList.size()+bluList.size()];
 		
 		ArrayList <Object []> list = new ArrayList<Object []>();

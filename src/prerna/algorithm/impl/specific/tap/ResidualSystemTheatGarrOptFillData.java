@@ -230,22 +230,22 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 	public double percentDataBLUReplaced(int modIndex,int decommIndex) {
 		//if the modernized system cannot act in the environments the deommisioned system can, then 0%
 		//if decomm system in theater (systemTheater=1), then mod must be in theater return false if mod is not in theater(systemTheater=0)
-		if(systemTheater[decommIndex]>systemTheater[modIndex])
+		if(systemTheater!=null&&systemTheater[decommIndex]>systemTheater[modIndex])
 			return 0.0;
-		if(systemGarrison[decommIndex]>systemGarrison[modIndex])
+		if(systemGarrison!=null&&systemGarrison[decommIndex]>systemGarrison[modIndex])
 			return 0.0;
 		return super.percentDataBLUReplaced(modIndex,decommIndex);
 	}
 	
 	@Override
 	public boolean didSystemProvideReducedDataBLU(int decommIndex) {
-		if(systemTheater[decommIndex]>0.0) {
+		if(systemTheater!=null&&systemTheater[decommIndex]>0.0) {
 			if(didSysProvideReduced(systemDataMatrix,decommIndex,dataReducedTheaterIndex))
 				return true;
 			if(didSysProvideReduced(systemBLUMatrix,decommIndex,bluReducedTheaterIndex))
 				return true;
 		}
-		if(systemGarrison[decommIndex]>0.0) {
+		if(systemGarrison!=null&&systemGarrison[decommIndex]>0.0) {
 			if(didSysProvideReduced(systemDataMatrix,decommIndex,dataReducedGarrisonIndex))
 				return true;
 			if(didSysProvideReduced(systemBLUMatrix,decommIndex,bluReducedGarrisonIndex))
