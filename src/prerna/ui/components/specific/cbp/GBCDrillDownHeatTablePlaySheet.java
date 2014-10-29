@@ -52,6 +52,7 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 	final String colKey = "colKey";
 	final String cellKey = "cellKey";
 	final String[] colNames = new String[] {"http://semoss.org/ontologies/Concept/FunctionLevel1/Sales", "http://semoss.org/ontologies/Concept/FunctionLevel1/Marketing", "http://semoss.org/ontologies/Concept/FunctionLevel1/Product", "http://semoss.org/ontologies/Concept/FunctionLevel1/Distribution", "http://semoss.org/ontologies/Concept/FunctionLevel1/New_Business", "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Customer_Service", "http://semoss.org/ontologies/Concept/FunctionCategoryLevel0/Corporate_Overhead", "http://semoss.org/ontologies/Concept/FunctionLevel1/Premium_Tax", "Adjusted_Line_of_Business", "Total_Line_of_Business"};
+	String customTitle = "";
 	
 	ArrayList<String> passedQueries = new ArrayList<String>();
 	
@@ -76,7 +77,7 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 		dataObj.addAll(orderedArray);
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
-		columnChartHash.put("title", this.title);
+		columnChartHash.put("title", this.customTitle);
 		columnChartHash.put("dataSeries", dataObj);
 		
 		return columnChartHash;
@@ -108,8 +109,8 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 			String colHeader = getVariable(passedNames[0], sjss) + "";
 			String cellName = getVariable(passedNames[1], sjss) + "";
 
-			if(title.isEmpty())
-				title = sjss.getVar(passedNames[2]) + " vs. " + sjss.getVar(passedNames[10]);
+			if(customTitle.isEmpty())
+				customTitle = sjss.getVar(passedNames[2]) + " vs. " + sjss.getVar(passedNames[10]);
 			
 			Double clientVal = ((BigdataLiteralImpl)getVariable(passedNames[5], sjss)).doubleValue();
 			Double peerVal = ((BigdataLiteralImpl)getVariable(passedNames[7], sjss)).doubleValue();
