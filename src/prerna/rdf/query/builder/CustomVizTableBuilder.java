@@ -86,8 +86,12 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			String predName = predHash.get(varKey);
 			String predURI = predHash.get(uriKey);
 			for(SEMOSSQuery filterQuery : filterQueries){
-				SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, filterQuery);
-				SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"),filterQuery);
+				TriplePart relationVar = new TriplePart(predHash.get("SubjectVar"), TriplePart.VARIABLE);
+				TriplePart subPropURI = new TriplePart(predURI, TriplePart.URI);
+				TriplePart relationTypeURI = new TriplePart(predHash.get("ObjectVar"), TriplePart.VARIABLE);
+				filterQuery.addTriple(relationVar, subPropURI, relationTypeURI);
+//				SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, filterQuery);
+//				SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"),filterQuery);
 			}
 		}
 
@@ -283,26 +287,26 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		ArrayList<Hashtable<String, String>> predVarList = new ArrayList<Hashtable<String, String>>();
 		predVarList.addAll(predV);
 		// run through all of the predicates (which aren't variables) to get properties
-		for (int i=0;i<predVarList.size();i++)
-		{
-			Hashtable<String, String> predInfoHash = predVarList.get(i);
-			String varName = predInfoHash.get(varKey);
-
-			String edgePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Subject") + ">} {?target <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Object") + "> } {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <" + predInfoHash.get("Pred") + "> }{?source ?verb ?target;} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?verb ?entity ?prop }}";
-			Vector<String> propVector = coreEngine.getEntityOfType(edgePropQuery);
-			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
-			{
-				String propURI = propVector.get(propIdx);
-				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
-				totalVarList.add(propName);
-				//store rel prop info
-				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", varName);
-				elementHash.put(varKey, propName);
-				elementHash.put(uriKey, propURI);
-				edgePropV.add(elementHash);
-			}
-		}
+//		for (int i=0;i<predVarList.size();i++)
+//		{
+//			Hashtable<String, String> predInfoHash = predVarList.get(i);
+//			String varName = predInfoHash.get(varKey);
+//
+//			String edgePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Subject") + ">} {?target <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Object") + "> } {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <" + predInfoHash.get("Pred") + "> }{?source ?verb ?target;} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?verb ?entity ?prop }}";
+//			Vector<String> propVector = coreEngine.getEntityOfType(edgePropQuery);
+//			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
+//			{
+//				String propURI = propVector.get(propIdx);
+//				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
+//				totalVarList.add(propName);
+//				//store rel prop info
+//				Hashtable<String, String> elementHash = new Hashtable<String, String>();
+//				elementHash.put("SubjectVar", varName);
+//				elementHash.put(varKey, propName);
+//				elementHash.put(uriKey, propURI);
+//				edgePropV.add(elementHash);
+//			}
+//		}
 	}
 
 	public void setEngine(IEngine coreEngine)
@@ -350,7 +354,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				filterQuery = q.getQuery();
 			}
 			else{
-				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern;
+				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern ;
 			}
 			headerHash.put(this.queryKey, filterQuery);
 		}
