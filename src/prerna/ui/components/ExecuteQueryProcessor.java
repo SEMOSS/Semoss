@@ -63,16 +63,14 @@ public class ExecuteQueryProcessor {
 		prepareQueryOutputPlaySheet(engine, query, playSheetClassName, playSheetTitle,insightID);
 	}
 	
-	public void processQuestionQuery(String engineName, String insightString, Hashtable<String, Object> paramHash)
+	public void processQuestionQuery(IEngine engine, String insightString, Hashtable<String, Object> paramHash)
 	{
-		//get engine
 		//prepare insight and fill in paramHash into query
 		//create title...need to parse out the params to add into the question title then add title...what a pain
 		//create ID
 		//add count to playsheetstore
 		//paramFill for query
 		//feed to prepare playsheet
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		Insight insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
 		String playSheetTitle = "";
 		if(paramHash!=null || !paramHash.isEmpty())
@@ -98,6 +96,13 @@ public class ExecuteQueryProcessor {
 		System.out.println("SPARQL " + sparql);
 		sparql = prerna.util.Utility.fillParam(sparql, paramHash);
 		prepareQueryOutputPlaySheet(engine, sparql, insight.getOutput(), playSheetTitle,insightID);
+	}
+	
+	public void processQuestionQuery(String engineName, String insightString, Hashtable<String, Object> paramHash)
+	{
+		//get engine
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		processQuestionQuery(engine, insightString, paramHash);
 	}
 
 	public void prepareQueryOutputPlaySheet(IEngine engine, String sparql, String playSheetClassName, String playSheetTitle, String insightID)
