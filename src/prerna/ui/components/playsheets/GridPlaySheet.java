@@ -23,6 +23,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 
+import javax.swing.JButton;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -31,10 +32,20 @@ import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.Literal;
 
+import com.bigdata.rdf.model.BigdataURIImpl;
+
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.ui.components.GridTableModel;
+import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.QuestionPlaySheetStore;
+import prerna.util.Utility;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -46,6 +57,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
 	private static final Logger logger = LogManager.getLogger(GridPlaySheet.class.getName());
+	
 	@Override
 	public void addPanel()
 	{
@@ -112,6 +124,60 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		mainPanel.add(scrollPane, gbc_scrollPane);
+	}
+	
+	@Override
+	public void createView() {	
+		if(list!=null && list.isEmpty()){
+			String questionID = getQuestionID();
+			// fill the nodetype list so that they can choose from
+			// remove from store
+			// this will also clear out active sheet
+			QuestionPlaySheetStore.getInstance().remove(questionID);
+			if(QuestionPlaySheetStore.getInstance().isEmpty())
+			{
+				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
+				btnShowPlaySheetsList.setEnabled(false);
+			}
+			Utility.showError("Query returned no results.");
+			return;		
+		}
+		
+		if(table==null)
+			addPanel();
+
+		updateProgressBar("80%...Creating Visualization", 80);
+		if(list!=null){
+			//Filter URIs for the Grid View
+			for (Object[] item : list) {
+				for (int i=0; i<item.length; i++) {
+					if (item[i] != null && item[i] instanceof BigdataURIImpl) {
+						//get the instance value from the URI
+						item[i] = Utility.getInstanceName(item[i].toString());
+					}
+				}
+			}
+			gfd.setColumnNames(names);
+			gfd.setDataList(list);
+			GridTableModel model = new GridTableModel(gfd);
+			table.setModel(model);
+			table.setRowSorter(new GridTableRowSorter(model));
+		}
+
+		updateProgressBar("100%...Table Generation Complete", 100);
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
+	}
+	
+	public void createRAWView() {
+		super.createView();
 	}
 
 }

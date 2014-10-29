@@ -316,6 +316,11 @@ public class FillTMHash extends GridPlaySheet{
 	@Override
 	public void run() {
 		createView();
-	}	
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getVar(varName);
+	}
 
 }

@@ -35,4 +35,10 @@ public class GridRAWPlaySheet extends GridPlaySheet {
 		return sjss.getRawVar(varName);
 	}
 	
+	@Override
+	public void createView() {
+		super.createRAWView();
+	}
+	
+	
 }
