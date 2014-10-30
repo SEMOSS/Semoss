@@ -81,7 +81,9 @@ public class GridScatterSheet extends BrowserPlaySheet{
 				elementHash.put("y", listElement[2+offset]);
 			if(listElement.length > 3 + offset)
 				elementHash.put("z", listElement[3+offset]);
-//			
+			if(offset == 0 && listElement.length > 4)
+				elementHash.put("heat", listElement[4]);
+			
 //			Object[] dataSet = new Object[4];
 //			dataSet[0]=(Double) listElement[1];
 //			dataSet[1]=(Double) listElement[2];
@@ -104,6 +106,8 @@ public class GridScatterSheet extends BrowserPlaySheet{
 			allHash.put("yAxisTitle", var[2]);
 		if(var.length>3)
 			allHash.put("zAxisTitle", var[3]);
+		if(var.length>4)
+			allHash.put("heatTitle", var[4]);
 		return allHash;
 	}
 	
