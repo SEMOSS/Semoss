@@ -289,8 +289,10 @@ public class POIReader extends AbstractFileReader {
 		int lastColumn = 0;
 		for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++){
 			// add property name to vector
-			propNames.addElement(row.getCell(colIndex).getStringCellValue());
-			lastColumn = colIndex;
+			if(row.getCell(colIndex) != null) {
+				propNames.addElement(row.getCell(colIndex).getStringCellValue());
+				lastColumn = colIndex;
+			}
 		}
 		logger.info("Number of Columns: " + (lastColumn+1));
 
