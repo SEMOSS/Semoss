@@ -12,7 +12,6 @@ DataObject http://health.mil/ontologies/Concept/DataObject
 NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
 ActivityLevel http://health.mil/ontologies/Concept/ActivityLevel
 CapabilityGroup http://health.mil/ontologies/Concept/CapabilityGroup
-Connected_Care http://health.mil/ontologies/Concept/Connected_Care
 DProt http://health.mil/ontologies/Concept/DProt
 ModernizationDomainQualification http://health.mil/ontologies/Concept/ModernizationDomainQualification
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
@@ -30,6 +29,7 @@ TechStandardIdentifier http://health.mil/ontologies/Concept/TechStandardIdentifi
 PatientAccess http://health.mil/ontologies/Concept/PatientAccess
 ModernizationData Latency http://health.mil/ontologies/Concept/ModernizationData Latency
 Reference http://health.mil/ontologies/Concept/Reference
+ConnectedCare http://health.mil/ontologies/Concept/ConnectedCare
 CDRElement http://health.mil/ontologies/Concept/CDRElement
 Activity http://health.mil/ontologies/Concept/Activity
 ModernizationDataLatency http://health.mil/ontologies/Concept/ModernizationDataLatency
@@ -121,7 +121,6 @@ Capability_Requires_ModernizationStandard http://health.mil/ontologies/Relation/
 DataObject_MapsTo_CCD http://health.mil/ontologies/Relation/MapsTo
 Capability_Implements_MigrateData http://health.mil/ontologies/Relation/Implements
 System_Receives-Submits_SystemTasker http://health.mil/ontologies/Relation/Receives-Submits
-Capability_Needs_Connected_Care http://health.mil/ontologies/Relation/Needs
 VISTAUnion_MappedTo_VISTA http://health.mil/ontologies/Relation/MappedTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
@@ -235,6 +234,7 @@ System_Has_HardwareModule http://health.mil/ontologies/Relation/Has
 Capability_Needs_PatientAccess http://health.mil/ontologies/Relation/Needs
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 SystemTasker_BelongsTo_SystemUser http://health.mil/ontologies/Relation/BelongsTo
+Capability_Needs_ConnectedCare http://health.mil/ontologies/Relation/Needs
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
 Capability_Requires_TransitionDerived http://health.mil/ontologies/Relation/Requires
 JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
@@ -246,11 +246,11 @@ NCRMDUser_CLASS http://semoss.org/ontologies/Concept/NCRMDUser
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 DisconnectedCare_CLASS http://semoss.org/ontologies/Concept/DisconnectedCare
-Connected_Care_CLASS http://semoss.org/ontologies/Concept/Connected_Care
 SLA_CLASS http://semoss.org/ontologies/Concept/SLA
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 CapabilityFunctionalArea_CLASS http://semoss.org/ontologies/Concept/CapabilityFunctionalArea
 Portfolio_CLASS http://semoss.org/ontologies/Concept/Portfolio
+ConnectedCare_CLASS http://semoss.org/ontologies/Concept/ConnectedCare
 ModernizationAggregation_CLASS http://semoss.org/ontologies/Concept/ModernizationAggregation
 TechStandardIdentifier_CLASS http://semoss.org/ontologies/Concept/TechStandardIdentifier
 Connected Care_CLASS http://semoss.org/ontologies/Concept/Connected Care
@@ -352,6 +352,7 @@ Hardware_CLASS http://semoss.org/ontologies/Concept/Hardware
 ##Base Predicates Class##
 
 System_Supports_CapabilityTag_CLASS http://semoss.org/ontologies/Relation/Supports
+Capability_Needs_ConnectedCare_CLASS http://semoss.org/ontologies/Relation/Needs
 Capability_Utilizes_ClinicalDecisionSupport_CLASS http://semoss.org/ontologies/Relation/Utilizes
 CapabilityGroup_Consists_Capability_CLASS http://semoss.org/ontologies/Relation/Consists
 Capability_Requires_TransitionDataLatency_CLASS http://semoss.org/ontologies/Relation/Requires
@@ -366,7 +367,6 @@ Capability_Utilizes_Documentation_CLASS http://semoss.org/ontologies/Relation/Ut
 Capability_Requires_ModernizationDataLatency_CLASS http://semoss.org/ontologies/Relation/Requires
 Capability_Implements_CoexistData_CLASS http://semoss.org/ontologies/Relation/Implements
 Capability_Requires_ModernizationStandard_CLASS http://semoss.org/ontologies/Relation/Requires
-Capability_Needs_Connected_Care_CLASS http://semoss.org/ontologies/Relation/Needs
 Task_Needs_BusinessLogicUnit_CLASS http://semoss.org/ontologies/Relation/Needs
 Capability_Requires_TransitionPersistence_CLASS http://semoss.org/ontologies/Relation/Requires
 CapabilityTag_TaggedBy_Capability_CLASS http://semoss.org/ontologies/Relation/TaggedBy
