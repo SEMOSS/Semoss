@@ -47,7 +47,7 @@ public class ClusterRemoveDuplicates {
 			retVarNames = names;
 			return;
 		}
-
+		
 		retMasterTable = new ArrayList<Object[]>();
 		Object[] uniquePropNames = uniquePropNamesSet.toArray();
 		Object[] instances = instancesSet.toArray();
@@ -69,12 +69,12 @@ public class ClusterRemoveDuplicates {
 				Object[] newRow = retMasterTable.get(j);
 				if(row[0].equals(newRow[0])) {
 					int k;
-					for(k = 0; k < newNumCols; k++) {
+					INNERMOST: for(k = 0; k < newNumCols; k++) {
 						int l;
 						for(l = 1; l < row.length; l++) {
 							if(uniquePropNames[k].toString().equals(row[l].toString())){
 								newRow[k+1] = "Yes";
-								continue OUTER;
+								continue INNERMOST;
 							}
 						}
 					}
