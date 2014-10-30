@@ -26,8 +26,8 @@ GLTag_Includes_GLTag http://health.mil/ontologies/Relation/Includes
 SystemBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
 Enterprise_Consists_System http://health.mil/ontologies/Relation/Consists
-Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
 SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
 
 ##Base Objects Class##
 
