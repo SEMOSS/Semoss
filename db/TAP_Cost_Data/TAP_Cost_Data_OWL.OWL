@@ -130,10 +130,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/FundedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Has">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TaggedBy">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/TaggedBy">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Has">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Rated">
