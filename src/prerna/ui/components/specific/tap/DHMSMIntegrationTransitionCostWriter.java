@@ -236,8 +236,18 @@ public class DHMSMIntegrationTransitionCostWriter {
 				String key = tags[i].concat("+").concat(phases[j]);
 				String key1 = tags1[i].concat("+").concat(phases[j]);
 				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-				if(consolidatedSysCostInfo.containsKey(key) || consolidatedSysCostInfo.containsKey(key1)) {
+				if(consolidatedSysCostInfo.containsKey(key)) {
 					Double cost = consolidatedSysCostInfo.get(key);
+					if(cost == null) {
+						cost = (double) 0;
+					} else {
+						cost *= costPerHr;
+					}
+					totalCost[i] += cost;
+					XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
+					cellToWriteOn.setCellValue(Math.round(cost));
+				} else if(consolidatedSysCostInfo.containsKey(key1)) {
+					Double cost = consolidatedSysCostInfo.get(key1);
 					if(cost == null) {
 						cost = (double) 0;
 					} else {
