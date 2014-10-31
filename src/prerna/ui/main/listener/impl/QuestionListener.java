@@ -69,6 +69,7 @@ public class QuestionListener implements IChakraListener {
 		JComboBox questionBox = (JComboBox)actionevent.getSource();
 		// get the currently selected index
 		String question = (String)questionBox.getSelectedItem();	
+		AbstractEngine.selectedQuestion = question;
 		// get the question Hash from the DI Helper to get the question name
 		// get the ID for the question
 		if(question != null)

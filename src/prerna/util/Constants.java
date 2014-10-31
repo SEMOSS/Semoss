@@ -416,4 +416,14 @@ public class Constants {
 	public static final String PARAMETER_DEPENDENCIES_JLIST = "parameterDependList";
 	public static final String PARAMETER_QUERIES_JLIST = "parameterQueryList";
 	public static final String QUESTION_ORDER_COMBO_BOX = "questionOrderComboBox";
+	public static final String PARAMETER_OPTION_EDIT_BUTTON = "optionsEditButton";
+	public static final String PARAMETER_OPTION_DELETE_BUTTON = "optionsDeleteButton";
+	public static final String LABEL_PARAMETER_OPTION_LIST = "lblParameterOptionList";
+	public static final String PARAMETER_OPTION_SCROLL_LIST = "parameterOptionScrollList";
+	public static final String PARAMETER_OPTION_SCROLL = "parameterOptionScroll";
+	public static final String LABEL_PARAMETER_OPTION = "lblParameterOption";
+	public static final String ADD_PARAMETER_OPTION_BUTTON = "addParameterOptionButton";
+	public static final String PARAMETER_OPTION_TEXT_PANE = "parameterOptionTextPane";
+	public static final String PARAMETER_OPTIONS_JLIST = "parameterOptionList";
+	public static final String ENGINE_PROPERTIES = "PROPERTIES";
 }
