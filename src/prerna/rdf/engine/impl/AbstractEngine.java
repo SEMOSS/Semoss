@@ -18,11 +18,16 @@
  ******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -50,7 +55,6 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -77,6 +81,7 @@ public abstract class AbstractEngine implements IEngine {
 	String propFile = null;
 	Properties prop = null;
 	Properties dreamerProp = null;
+	Properties generalEngineProp = null;
 	Properties ontoProp = null;
 	RDFFileSesameEngine baseDataEngine;
 	//RepositoryConnection insightBase = null;
@@ -197,6 +202,10 @@ public abstract class AbstractEngine implements IEngine {
 
 	private String owl;
 
+	protected String questionXMLFile;
+	
+	public static String selectedQuestion;
+	
 	/**
 	 * Opens a database as defined by its properties file. What is included in
 	 * the properties file is dependent on the type of engine that is being
@@ -223,20 +232,45 @@ public abstract class AbstractEngine implements IEngine {
 				// get the questions sheet
 				// get to the working dir and load it up
 				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-				String questionPropFile = prop.getProperty(Constants.DREAMER);
+				
+				//loads the questionxmlfile if there is one, if not, get the question sheet and create an xml file and load to engine
+				questionXMLFile = prop.getProperty(Constants.XML);
+				createInsightBase();
+				
+				if(questionXMLFile != null) {
+					createBaseRelationXMLEngine(questionXMLFile);
+				}
+				else {
+					//need to add questionXML to the smss file
+					String questionPropFile = prop.getProperty(Constants.DREAMER);
+					questionXMLFile = "db/" + getEngineName() + "/" + getEngineName()	+ "_Questions.XML";
+					//addConfiguration(Constants.XML, questionXMLFile);
+					//saveConfiguration();
+					addPropToFile(propFile, Constants.XML, questionXMLFile, "OWL.OWL");
+					
+					if(questionPropFile != null){
+						dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
+						loadAllPerspectives(engineURI2);
+						createInsightBaseRelations();
+						createQuestionXMLFile(questionXMLFile, baseFolder);
+					}
+				}
+				/*String questionPropFile = prop.getProperty(Constants.DREAMER);
 				if (questionPropFile != null) {
 					createInsightBase();
 					dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
 					loadAllPerspectives(engineURI2);
-					createInsightBaseRelations();
-				}
+				}*/
 				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
 				String owlFile = prop.getProperty(Constants.OWL);
+				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
 				if (owlFile != null)
 					setOWL(baseFolder + "/" + owlFile);
 				System.err.println("Ontology is " + ontoFile);
 				if (ontoFile != null)
 					setOntology(baseFolder + "/" + ontoFile);
+				if (genEngPropFile != null)
+					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 
 			}
 		} catch (RuntimeException e) {
@@ -247,10 +281,117 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
+	
+	public void addPropToFile(String propFile, String key, String value, String lineLocation){
+		
+		FileOutputStream fileOut = null;
+		File file = new File(propFile);
+		ArrayList<String> content = new ArrayList<String>();
+		
+		BufferedReader reader = null;
+		FileReader fr = null;
+		
+		try{
+			fr = new FileReader(file);
+			reader = new BufferedReader(fr);
+			String line;
+			while((line = reader.readLine()) != null){
+				content.add(line);
+			}
+			
+			fileOut = new FileOutputStream(file);
+			for(int i=0; i<content.size(); i++){
+				byte[] contentInBytes = content.get(i).getBytes();
+				fileOut.write(contentInBytes);
+				fileOut.write("\n".getBytes());
+				
+				if(content.get(i).contains(lineLocation)){
+					String newProp = key + "\t" + value;
+					fileOut.write(newProp.getBytes());
+					fileOut.write("\n".getBytes());
+				}
+			}
+			
+		} catch(IOException e){
+			e.printStackTrace();
+		} finally{
+			try{
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			try{
+				fileOut.close();
+			} catch (IOException e){
+				e.printStackTrace();
+			}
+		}
+	}
 
+	public void createQuestionXMLFile(String questionXMLFile, String baseFolder){
+		FileWriter fWrite = null;
+		RDFXMLWriter questionXMLWriter = null;
+		
+		try {
+			String xmlFileName = baseFolder + "/" +questionXMLFile;
+
+			fWrite = new FileWriter(xmlFileName);
+			questionXMLWriter  = new RDFXMLWriter(fWrite);
+			//System.err.println(insightBaseXML.rc);
+			insightBaseXML.rc.export(questionXMLWriter);
+			
+			System.err.println("Created XML Question Sheet at: " + xmlFileName);
+		} catch (IOException | RDFHandlerException | RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally{
+			try{
+				if(fWrite!=null){
+					fWrite.close();
+				} 
+			} catch(IOException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void createBaseRelationXMLEngine(String questionXMLFile){
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+
+		insightBaseXML.fileName = baseFolder + "/" + questionXMLFile;
+		insightBaseXML.openDB(null);
+	}
+	
 	public String getProperty(String key) {
+		String retProp = null;
+		//String retProp = dreamerProp.getProperty(key);
 
-		String retProp = dreamerProp.getProperty(key);
+		Vector<SEMOSSParam> paramInfoVector = getParams(selectedQuestion);
+		//returns the query associated with the key
+		if(!paramInfoVector.isEmpty()){
+			for(int i = 0; i < paramInfoVector.size(); i++){
+				if(key.contains(paramInfoVector.get(i).getName() + "_OPTION")){
+					Vector options = paramInfoVector.get(i).getOptions();
+					for(int j = 0; j < options.size(); j++){
+						if(retProp==null)
+							retProp="";
+							retProp += options.get(j) + ";";
+					}
+					break;
+				}
+				else if(key.contains(paramInfoVector.get(i).getName() + "_QUERY")){
+					if(paramInfoVector.get(i).getQuery()!=null && !paramInfoVector.get(i).getQuery().equals(DIHelper.getInstance().getProperty(
+							"TYPE" + "_" + Constants.QUERY))){
+						retProp = paramInfoVector.get(i).getQuery();
+						break;
+					}
+				}
+			}
+		}
+
+		if (retProp == null && generalEngineProp != null && generalEngineProp.containsKey(key))
+			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
 			retProp = ontoProp.getProperty(key);
 		if (retProp == null && prop != null && prop.containsKey(key))
@@ -274,7 +415,6 @@ public abstract class AbstractEngine implements IEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 	
 	private void createInsightBaseRelations() {
@@ -360,9 +500,9 @@ public abstract class AbstractEngine implements IEngine {
 
 					Enumeration<String> paramKeys = paramHash.keys();
 
-					if(qsKey.equals("SysP15")){
+					/*if(qsKey.equals("SysP15")){
 						int x = 0;
-					}
+					}*/
 					// loops through to get all param dependencies, queries and options
 					while (paramKeys.hasMoreElements()) {
 						String param = paramKeys.nextElement();
@@ -387,7 +527,7 @@ public abstract class AbstractEngine implements IEngine {
 						{
 							// record this
 							// qsKey_paramkey  - qsKey:Depends - result
-							String parameterDependValue = dreamerProp.getProperty(qsKey + "_" + paramKey +"_" + Constants.DEPEND);
+							String parameterDependValue = dreamerProp.getProperty(parameterDependKey);
 							parameterDependKey = paramKey + "_" + Constants.DEPEND;
 							StringTokenizer depTokens = new StringTokenizer(parameterDependValue, ";");
 							
@@ -403,9 +543,9 @@ public abstract class AbstractEngine implements IEngine {
 						/////////String parameterOptionKey = qsKey + "_" +paramKey + "_" + Constants.OPTION;  ------ this is what it should be... oh well
 						String parameterOptionKey = type + "_" + Constants.OPTION;
 //						System.out.println("CHecking : " + parameterOptionKey);
-						if (qsKey.contains("T1")){
+						/*if (qsKey.contains("T1")){
 							int x = 0;
-						}
+						}*/
 						if(dreamerProp.containsKey(parameterOptionKey))
 						{
 //							System.out.println("TRUE");
@@ -445,7 +585,7 @@ public abstract class AbstractEngine implements IEngine {
 		Properties retProp = new Properties();
 		if(fileName != null)
 			retProp.load(new FileInputStream(fileName));
-		logger.info("Properties >>>>>>>>" + prop);
+		logger.info("Properties >>>>>>>>" + fileName);
 		return retProp;
 	}
 
@@ -884,7 +1024,7 @@ public abstract class AbstractEngine implements IEngine {
 		URI dependPred = insightVF.createURI("PARAM:DEPEND");
 		URI typePred = insightVF.createURI("PARAM:TYPE");
 
-		String queryParamSparql = "SELECT ?paramLabel ?query ?depend ?dependVar ?paramType WHERE {"
+		String queryParamSparql = "SELECT DISTINCT ?paramLabel ?query ?depend ?dependVar ?paramType WHERE {"
 			+"BIND(\"" + label + "\" AS ?insight)"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight}"
 			+ "{?insightURI <" + paramPred + "> ?param } "
@@ -901,7 +1041,7 @@ public abstract class AbstractEngine implements IEngine {
 		// check if its empty... if it is, it might be options... otherwise it really has no param
 //		if(retParam.isEmpty()){
 			URI optionPred = insightVF.createURI("PARAM:OPTION");
-			String optionParamSparql = "SELECT ?paramLabel ?option ?paramType WHERE {"
+			String optionParamSparql = "SELECT DISTINCT ?paramLabel ?option ?paramType WHERE {"
 					+"BIND(\"" + label + "\" AS ?insight)"
 					+ "{?insightURI <" + labelBaseURI + "> ?insight}"
 					+ "{?insightURI <" + paramPred + "> ?param } "
@@ -990,7 +1130,7 @@ public abstract class AbstractEngine implements IEngine {
 		Vector<Insight> insightV = new Vector<Insight>();
 		try{
 			System.err.println("Insighter... " + insightSparql + labels);
-			System.err.println("Lable is " + labels);
+			System.err.println("Label is " + labels);
 			TupleQuery query = insightBaseXML.rc.prepareTupleQuery(
 					QueryLanguage.SPARQL, insightSparql);
 			TupleQueryResult res = query.evaluate();
@@ -1000,22 +1140,22 @@ public abstract class AbstractEngine implements IEngine {
 				BindingSet bs = res.next();
 				in.setId( Utility.getInstanceName(bs.getBinding("insightURI").getValue() + ""));
 				
-				Literal lit = (Literal)bs.getValue("sparql");                         
-				String sparql = lit.getLabel();   
+				Literal lit = (Literal)bs.getValue("sparql");
+				String sparql = lit.getLabel();
 				in.setSparql(sparql);
 				
 				String label = bs.getBinding("insight").getValue().stringValue();
 				in.setLabel(label);
 	
-				Literal outputlit = (Literal)bs.getValue("output");                         
-				String output = outputlit.getLabel();   
+				Literal outputlit = (Literal)bs.getValue("output");
+				String output = outputlit.getLabel();
 				in.setOutput(output);
 	
-				String engine = bs.getValue("engine") + "";   
+				String engine = bs.getValue("engine") + "";
 				in.setEngine(engine);
 				
 				if(bs.getBinding("description") != null){
-					Literal descriptionlit = (Literal)bs.getValue("description");                         
+					Literal descriptionlit = (Literal)bs.getValue("description");
 					String description = descriptionlit.getLabel();
 					in.setDescription(description);
 				}
@@ -1061,7 +1201,7 @@ public abstract class AbstractEngine implements IEngine {
 //					+ "\" ,\"i\"))"
 					+ "}";
 			System.err.println("Insighter... " + insightSparql + label);
-			System.err.println("Lable is " + label);
+			System.err.println("Label is " + label);
 			TupleQuery query = insightBaseXML.rc.prepareTupleQuery(
 					QueryLanguage.SPARQL, insightSparql);
 			TupleQueryResult res = query.evaluate();
@@ -1373,23 +1513,76 @@ public abstract class AbstractEngine implements IEngine {
 	public Vector<String> getParamValues(String name, String type, String insightId, String query) {
 		// I have my insightId, query for the params and options or query making sure that the
 		
+		String insightLabelSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+				+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
+				+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
+				+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
+				+ "{?engineInsight <"+Constants.SUBPROPERTY_URI+"> <"+engineInsightBaseURI+">}"
+				+ "{?engine ?engineInsight ?insightURI.}"
+				+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
+				+ "}"
+				+ "BINDINGS ?insightURI {(<"+ insightBaseURI + "/" + insightId + ">)}";
 		
+		String question = "";
+
+		try{
+			TupleQuery labelQuery = insightBaseXML.rc.prepareTupleQuery(
+					QueryLanguage.SPARQL, insightLabelSparql);
+			TupleQueryResult result = labelQuery.evaluate();
+			while (result.hasNext()) {
+				BindingSet bs = result.next();
+				question = bs.getBinding("insight").getValue() + "";
+				System.out.println("Question is: " + question);
+			}
+		}catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedQueryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		// try to see if this type is available with direct values
 		Vector<String> uris = new Vector<String>();
-		if(dreamerProp!=null){
-			String options = dreamerProp.getProperty(type + "_" + Constants.OPTION);
-			if (options != null) {
-				StringTokenizer tokens = new StringTokenizer(options, ";");
-				// sorry for the cryptic crap below
-				int tknIndex = 0;
-				for (; tokens.hasMoreTokens(); tknIndex++) {
-	//				Node node = new Node();
-					String token = tokens.nextToken();
-	//				node.setLabel(token);
-	//				node.setURI(token);
-	//				node.setType(type);
-					uris.addElement(token);
+		
+		//get the options from the insight rather than dreamerProp
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+
+		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(question.replace("\"", ""));
+		String optionsConcat = null;
+
+		if(!paramInfoVector.isEmpty()){
+			for(int i = 0; i < paramInfoVector.size(); i++){
+				String test = paramInfoVector.get(i).getName();
+				if ((paramInfoVector.get(i).getType()).equals(type) && paramInfoVector.get(i).getOptions() != null
+						&& !paramInfoVector.get(i).getOptions().isEmpty()) {
+					Vector options = paramInfoVector.get(i).getOptions();
+					optionsConcat = "";
+					for (int j = 0; j < options.size(); j++) {
+						optionsConcat += options.get(j);
+						if(j!=options.size()-1){
+							optionsConcat += ";";
+						}
+					}
 				}
+			}
+		}
+		
+		String options = optionsConcat;//dreamerProp.getProperty(type + "_" + Constants.OPTION);
+		String customQuery = query ;//dreamerProp.getProperty(insightId.substring(insightId.lastIndexOf(":")+1) + "_" + name + "_" + Constants.QUERY);
+		if (options != null) {
+			StringTokenizer tokens = new StringTokenizer(options, ";");
+			// sorry for the cryptic crap below
+			int tknIndex = 0;
+			for (; tokens.hasMoreTokens(); tknIndex++) {
+//				Node node = new Node();
+				String token = tokens.nextToken();
+//				node.setLabel(token);
+//				node.setURI(token);
+//				node.setType(type);
+				uris.addElement(token);
 			}
 		}
 		if(uris.isEmpty()){
