@@ -52,7 +52,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private TAPLegacySystemDispositionReportWriter diacapReport;
 	
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
-	private final String[] tags = new String[]{"Consume", "Provide"};
+	private final String[] tags1 = new String[]{"Consume", "Provide"};
+	private final String[] tags = new String[]{"Consumer", "Provider"};
 	private final double sustainmentFactor = 0.18;
 	private final double trainingFactor = 0.15;
 	private final double inflation = 0.018;
@@ -233,8 +234,9 @@ public class DHMSMIntegrationTransitionCostWriter {
 			}
 			for(j = 0; j < numPhases; j++) {
 				String key = tags[i].concat("+").concat(phases[j]);
+				String key1 = tags1[i].concat("+").concat(phases[j]);
 				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-				if(consolidatedSysCostInfo.containsKey(key)) {
+				if(consolidatedSysCostInfo.containsKey(key) || consolidatedSysCostInfo.containsKey(key1)) {
 					Double cost = consolidatedSysCostInfo.get(key);
 					if(cost == null) {
 						cost = (double) 0;
