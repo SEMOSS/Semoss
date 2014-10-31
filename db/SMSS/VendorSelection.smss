@@ -4,6 +4,7 @@ ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/VendorSelection/VendorSelection_Custom_Map.prop
 OWL	db/VendorSelection/VendorSelection_OWL.OWL
 DREAMER	db/VendorSelection/VendorSelection_Questions.properties
+PROPERTIES	db/VendorSelection/VendorSelection_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference
