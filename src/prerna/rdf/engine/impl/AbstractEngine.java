@@ -1546,11 +1546,8 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		// try to see if this type is available with direct values
 		Vector<String> uris = new Vector<String>();
-		
-		//get the options from the insight rather than dreamerProp
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(question.replace("\"", ""));
+		Vector<SEMOSSParam> paramInfoVector = getParams(question.replace("\"", ""));
 		String optionsConcat = null;
 
 		if(!paramInfoVector.isEmpty()){
