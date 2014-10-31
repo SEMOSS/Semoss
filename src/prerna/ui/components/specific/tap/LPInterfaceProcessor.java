@@ -32,10 +32,13 @@ public class LPInterfaceProcessor {
 	private HashMap<String, HashMap<String, HashMap<String, Double>>> avgLoeForSysGLItemAndPhaseHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 	private HashMap<Integer, HashMap<String, Double>> sysCostInfo = new HashMap<Integer, HashMap<String, Double>>();
 	private HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
+	private HashMap<String, HashMap<String, String[]>> providerFutureICDProp;
+	private HashMap<String, HashMap<String, String[]>> consumerFutureICDProp;
 	
 	private Set<String> sysDataSOR = new HashSet<String>();
 	private HashMap<String, String> sysTypeHash = new HashMap<String, String>();
 	private Set<String> selfReportedICDs = new HashSet<String>();
+	private Set<String> selfReportedSystems = new HashSet<String>();
 	
 	private final double COST_PER_HOUR = 150.0;
 	private double totalDirectCost = 0;
@@ -204,10 +207,24 @@ public class LPInterfaceProcessor {
 		if(selfReportedICDs.isEmpty()) {
 			try {
 				IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
-				selfReportedICDs = DHMSMTransitionUtility.getAllSelfReportedICDQuery(futureDB);
+				selfReportedICDs = DHMSMTransitionUtility.getAllSelfReportedICDs(futureDB);
 			} catch(NullPointerException ex) {
 				// do nothing
 			}
+		}
+		if(selfReportedSystems.isEmpty()) {
+			try {
+				IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+				selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystems(futureDB);
+			} catch(NullPointerException ex) {
+				// do nothing
+			}
+		}			
+		if(providerFutureICDProp == null) {
+			providerFutureICDProp = DHMSMTransitionUtility.getProviderFutureICDProperties(engine);
+		}
+		if(consumerFutureICDProp == null) {
+			consumerFutureICDProp = DHMSMTransitionUtility.getConsumerFutureICDProperties(engine);
 		}
 		
 		//Process main query
@@ -219,12 +236,12 @@ public class LPInterfaceProcessor {
 		// get the bindings from it
 		names = wrapper.getVariables();
 
-		list = processBusinessRules(wrapper, names, sysDataSOR, sysTypeHash, selfReportedICDs);
+		list = processBusinessRules(wrapper, names, sysDataSOR, sysTypeHash);
 
 		return list;
 	}
 
-	private ArrayList<Object[]> processBusinessRules(SesameJenaSelectWrapper sjw, String[] names, Set<String> sorV, HashMap<String, String> sysTypeHash, Set<String> selfReportedICDs){
+	private ArrayList<Object[]> processBusinessRules(SesameJenaSelectWrapper sjw, String[] names, Set<String> sorV, HashMap<String, String> sysTypeHash){
 		ArrayList<Object[]> retList = new ArrayList<Object[]>();
 		relList = new ArrayList<Object[]>();
 		relPropList = new ArrayList<Object[]>();
@@ -421,8 +438,12 @@ public class LPInterfaceProcessor {
 			if(dhmsmSOR.contains(DHMSM_PROVIDE_KEY)) {
 				if(upstreamSysType.equals(LPI_KEY)) { // upstream system is LPI
 					newICD = makeDHMSMProviderOfICD(icdURI, upstreamSysName, data);
+					comment = comment.concat("Need to add interface DHMSM->").concat(upstreamSysName).concat(". ");
+					String[] propVals = getPropValsConsumer(upstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
-						comment = comment.concat("Need to add interface DHMSM->").concat(upstreamSysName).concat(". ");
 						// direct cost if system is upstream and indirect is downstream
 						if(generateCost && !costCalculated) {
 							costCalculated = true;
@@ -462,7 +483,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMProvider(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
 						}
@@ -487,6 +509,10 @@ public class LPInterfaceProcessor {
 					newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
 					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(" Recommend review of removing interface ")
 							.concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(". ");
+					String[] propVals = getPropValsConsumer(downstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
 						// direct cost if system is downstream
 						if(generateCost  && !costCalculated) {
@@ -508,7 +534,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
 						}
@@ -541,8 +568,12 @@ public class LPInterfaceProcessor {
 				if(upstreamSysType.equals(LPI_KEY) && sorV.contains(upstreamSystemURI + dataURI)) { // upstream system is LPI and SOR of data
 					otherwise = false;
 					newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
+					comment = comment.concat("Need to add interface ").concat(upstreamSysName).concat("->DHMSM. ");
+					String[] propVals = getPropValsProvider(upstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
-						comment = comment.concat("Need to add interface ").concat(upstreamSysName).concat("->DHMSM. ");
 						
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
@@ -563,7 +594,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 						}
@@ -571,8 +603,12 @@ public class LPInterfaceProcessor {
 				} else if(sorV.contains(upstreamSystemURI + dataURI) && !upstreamSysType.equals(HPI_KEY) && !upstreamSysType.equals(HPNI_KEY) && !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("") ) { // upstream system is SOR and has a probability
 					otherwise = false;
 					newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
+					comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
+					String[] propVals = getPropValsProvider(upstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
-						comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							costCalculated = true;
@@ -593,7 +629,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 						}
@@ -602,8 +639,12 @@ public class LPInterfaceProcessor {
 				if(downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSystemURI + dataURI)) { // downstream system is LPI and SOR of data
 					otherwise = false;
 					newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
+					comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->DHMSM. ");
+					String[] propVals = getPropValsProvider(downstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
-						comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->DHMSM. ");
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							if(sysName.equals(downstreamSysName)) {
@@ -623,7 +664,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 						}
@@ -631,8 +673,12 @@ public class LPInterfaceProcessor {
 				} else if(sorV.contains(downstreamSystemURI + dataURI) && !downstreamSysType.equals(HPNI_KEY) && !downstreamSysType.equals(HPI_KEY) && !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("") ) { // downstream system is SOR and has a probability
 					otherwise = false;
 					newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
+					comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
+					String[] propVals = getPropValsProvider(downstreamSysName, data);
+					if(propVals == null) {
+						propVals = new String[]{format, freq, prot};
+					}
 					if(!selfReportedICDs.contains(newICD)) {
-						comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							if(sysName.equals(downstreamSysName)) {
@@ -652,7 +698,8 @@ public class LPInterfaceProcessor {
 							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
 							addedInterfaces.add(newICD);
 							addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 						}
@@ -743,6 +790,46 @@ public class LPInterfaceProcessor {
 		return retList;
 	}
 
+	private String[] getPropValsConsumer(String system, String data) {
+		if(consumerFutureICDProp.get(system) != null) {
+			String[] propVals = consumerFutureICDProp.get(system).get(data);
+			if(propVals == null) {
+				if(providerFutureICDProp.get(system) != null) {
+					propVals = providerFutureICDProp.get(system).get(data);
+					return propVals;
+				}
+			} 
+			return propVals;
+		} else if(providerFutureICDProp.get(system) != null) {
+			if(providerFutureICDProp.get(system) != null) {	
+				String[] propVals = providerFutureICDProp.get(system).get(data);
+				return propVals;
+			} 
+		} 
+		
+		return null;
+	}
+	
+	private String[] getPropValsProvider(String system, String data) {
+		if(providerFutureICDProp.get(system) != null) {
+			String[] propVals = providerFutureICDProp.get(system).get(data);
+			if(propVals == null) {
+				if(consumerFutureICDProp.get(system) != null) {
+					propVals = consumerFutureICDProp.get(system).get(data);
+					return propVals;
+				}
+			} 
+			return propVals;
+		} else if(consumerFutureICDProp.get(system) != null) {
+			if(consumerFutureICDProp.get(system) != null) {	
+				String[] propVals = consumerFutureICDProp.get(system).get(data);
+				return propVals;
+			}
+		} 
+		
+		return null;
+	}
+	
 	private void addTripleWithDHMSMProvider(String icdURI, String downstreamSysURI, String downstreamSysName, String dataURI, String data, String payloadURI) {
 		// change DHMSM to type System
 		String upstreamSysURI = DHMSM_URI;
@@ -845,6 +932,20 @@ public class LPInterfaceProcessor {
 		values = new Object[]{payloadURI, semossPropURI.concat("Frequency"), freq};
 		relPropList.add(values);
 		values = new Object[]{payloadURI, semossPropURI.concat("Protocol"), prot};
+		relPropList.add(values);
+		values = new Object[]{payloadURI, semossPropURI.concat("Recommendation"), comment};
+		relPropList.add(values);
+		values = new Object[]{payloadURI, semossPropURI.concat(newProp), weight};
+		relPropList.add(values);
+	}
+	
+	private void addPropTriples(String payloadURI, String[] propVals, String comment, double weight) {
+		// payload -> contains -> prop
+		Object[] values = new Object[]{payloadURI, semossPropURI.concat("Format"), propVals[0]};
+		relPropList.add(values);
+		values = new Object[]{payloadURI, semossPropURI.concat("Frequency"), propVals[1]};
+		relPropList.add(values);
+		values = new Object[]{payloadURI, semossPropURI.concat("Protocol"), propVals[2]};
 		relPropList.add(values);
 		values = new Object[]{payloadURI, semossPropURI.concat("Recommendation"), comment};
 		relPropList.add(values);
