@@ -143,6 +143,12 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			commonSubgraphComboBox1Model.addElement(engineName);
 			commonSubgraphComboBox1.repaint();
 			
+			//initialize combo box for question modification
+			JComboBox questionDatabaseSelector = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
+			DefaultComboBoxModel questionDatabaseSelectorModel = (DefaultComboBoxModel) questionDatabaseSelector.getModel();
+			questionDatabaseSelectorModel.addElement(engineName);
+			questionDatabaseSelector.repaint();
+			
 			
 			JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
 					Constants.MAIN_FRAME);

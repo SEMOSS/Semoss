@@ -58,7 +58,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
-import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
@@ -120,7 +119,6 @@ import com.ibm.icu.util.StringTokenizer;
  * The playpane houses all of the components that create the user interface in SEMOSS.
  */
 public class PlayPane extends JFrame {
-
 	static final Logger logger = LogManager.getLogger(PlayPane.class.getName());
 
 	// Left Control Panel Components
@@ -322,7 +320,25 @@ public class PlayPane extends JFrame {
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
 //	public JButton btnCommonGraph;
-
+	
+	//Question Modification Panel
+	private JLabel lblQuestionPerspective, lblQuestion, lblQuestionLayout, lblQuestionSparql, lblQuestionModType, lblQuestionSelectDatabase, lblAddParameter, lblRequiredFields, lblQuestionOrder, lblOrderInfo;
+	public JLabel lblQuestionSelectPerspective, lblSelectQuestion;
+	public JTextField questionPerspectiveField, questionField, questionLayoutField;
+	private JScrollPane questionSparqlScroll;
+	public JTextPane questionSparqlTextPane;
+	public JComboBox<String> questionDatabaseSelector, questionPerspectiveSelector, questionModSelector;
+	public JComboBox<String> questionOrderComboBox;
+	public ParamComboBox addParameterComboBox;
+	public JRadioButton addQuestionButton, editQuestionButton, deleteQuestionButton;
+	public JButton questionModButton, questionAddParameterButton, questionMoreOptionsButton;
+	public JLabel lblParameterDependList, lblParameterQueryList, lblParameterDepend, lblParameterQuery, lblParameterOption, lblParameterOptionList;
+	public JScrollPane parameterQueryScrollList, parameterDependScrollList, parameterQueryScroll, parameterDependScroll, parameterOptionScroll, parameterOptionScrollList;
+	public JTextPane parameterQueryTextPane, parameterDependTextPane, parameterOptionTextPane;
+	public JList<String> parameterDependList, parameterQueryList, parameterOptionList;
+	public JButton addParameterDependencyButton, addParameterQueryButton, parameterQueriesDeleteButton, parameterQueriesEditButton, dependenciesDeleteButton, dependenciesEditButton, optionsEditButton, optionsDeleteButton, addParameterOptionButton;
+	
+	
 	/**
 	 * Launch the application.
 	 * @throws SecurityException 
@@ -400,7 +416,7 @@ public class PlayPane extends JFrame {
 			if (obj instanceof JComboBox || obj instanceof JButton
 					|| obj instanceof JToggleButton || obj instanceof JSlider
 					|| obj instanceof JInternalFrame
-					|| obj instanceof JRadioButton || obj instanceof JTextArea) {
+					|| obj instanceof JRadioButton || obj instanceof JTextArea || obj instanceof JTextPane) {
 				// load the controllers
 				// find the view
 				// right view and listener
@@ -417,6 +433,7 @@ public class PlayPane extends JFrame {
 						// in the future this could be a list
 						// add it to this object
 						logger.debug("Listener " + ctrlName + "<>" + listener);
+
 						// check to if this is a combobox or button
 						if (obj instanceof JComboBox)
 							((JComboBox) obj).addActionListener(listener);
@@ -430,6 +447,8 @@ public class PlayPane extends JFrame {
 							((JSlider) obj).addChangeListener((ChangeListener) listener);
 						else if (obj instanceof JTextArea)
 							((JTextArea) obj).addFocusListener((FocusListener) listener);
+						else if (obj instanceof JTextPane)
+							((JTextPane) obj).addFocusListener((FocusListener) listener);
 						else
 							((JInternalFrame) obj).addInternalFrameListener((InternalFrameListener) listener);
 						System.out.println(ctrlName + ":" + listener);	
@@ -624,7 +643,7 @@ public class PlayPane extends JFrame {
 
 		JPanel imExPanel = new JPanel();
 		imExPanel.setBackground(SystemColor.control);
-		JScrollPane imExPanelScroll = new JScrollPane(imExPanel);
+		JTabbedPane imExPanelScroll = new JTabbedPane();
 		rightView.addTab("DB Modification", null, imExPanelScroll, null);
 		GridBagLayout gbl_imExPanel = new GridBagLayout();
 		gbl_imExPanel.columnWidths = new int[] { 1026, 0 };
@@ -632,6 +651,7 @@ public class PlayPane extends JFrame {
 		gbl_imExPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
 		gbl_imExPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
 		imExPanel.setLayout(gbl_imExPanel);
+		imExPanelScroll.addTab("DB Modification", null, imExPanel, null);
 
 		JPanel importPanel = new JPanel();
 		importPanel.setBackground(SystemColor.control);
@@ -1024,7 +1044,7 @@ public class PlayPane extends JFrame {
 		gbc_dbmod_separator_1.gridx = 0;
 		gbc_dbmod_separator_1.gridy = 1;
 		imExPanel.add(dbmod_separator_1, gbc_dbmod_separator_1);
-
+		
 		JPanel modPanel = new JPanel();
 		modPanel.setBackground(SystemColor.control);
 		modPanel.setMinimumSize(new Dimension(0, 0));
@@ -1034,7 +1054,7 @@ public class PlayPane extends JFrame {
 		gbl_modPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		gbl_modPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		modPanel.setLayout(gbl_modPanel);
-
+		
 		JLabel lblDeleteInsert = new JLabel("Modify Data");
 		lblDeleteInsert.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblDeleteInsert = new GridBagConstraints();
@@ -1602,6 +1622,606 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnExportNodeLoadSheets,	".standardButton");
 		Style.registerTargetClassName(btnExportRelationshipsLoadSheets, ".standardButton");
 		//customUpdateScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+
+		//creating tabbed panels for Question Modification
+		JPanel questionModPanel = new JPanel();
+		questionModPanel.setBackground(SystemColor.control);
+		JScrollPane questionModPanelScroll = new JScrollPane(questionModPanel);
+		imExPanelScroll.addTab("Question Modification", null, questionModPanelScroll, null);
+		GridBagLayout gbl_questionModPanel = new GridBagLayout();
+		gbl_questionModPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_questionModPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_questionModPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_questionModPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, Double.MIN_VALUE };
+		questionModPanel.setLayout(gbl_questionModPanel);
+		
+		lblQuestionModType = new JLabel("Modification Type:");
+		lblQuestionModType.setMinimumSize(new Dimension(155, 32));
+		lblQuestionModType.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionModType = new GridBagConstraints();
+		gbc_lblQuestionModType.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionModType.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionModType.gridx = 0;
+		gbc_lblQuestionModType.gridy = 1;
+		questionModPanel.add(lblQuestionModType, gbc_lblQuestionModType);
+
+		addQuestionButton = new JRadioButton("Add Question");
+		addQuestionButton.setSelected(true);
+		GridBagConstraints gbc_addQuestionButton = new GridBagConstraints();
+		gbc_addQuestionButton.anchor = GridBagConstraints.WEST;
+		gbc_addQuestionButton.insets = new Insets(0, 20, 5, 5);
+		gbc_addQuestionButton.gridx = 1;
+		gbc_addQuestionButton.gridy = 1;
+		questionModPanel.add(addQuestionButton, gbc_addQuestionButton);
+		
+		editQuestionButton = new JRadioButton("Edit Question");
+		GridBagConstraints gbc_editQuestionButton = new GridBagConstraints();
+		gbc_editQuestionButton.anchor = GridBagConstraints.WEST;
+		gbc_editQuestionButton.insets = new Insets(0, 20, 5, 5);
+		gbc_editQuestionButton.gridx = 2;
+		gbc_editQuestionButton.gridy = 1;
+		questionModPanel.add(editQuestionButton, gbc_editQuestionButton);
+		
+		deleteQuestionButton = new JRadioButton("Delete Question");
+		GridBagConstraints gbc_deleteQuestionButton = new GridBagConstraints();
+		gbc_deleteQuestionButton.anchor = GridBagConstraints.WEST;
+		gbc_deleteQuestionButton.insets = new Insets(0, 20, 5, 5);
+		gbc_deleteQuestionButton.gridx = 3;
+		gbc_deleteQuestionButton.gridy = 1;
+		questionModPanel.add(deleteQuestionButton, gbc_deleteQuestionButton);
+		
+		ButtonGroup questionModTypeGroup = new ButtonGroup();
+		questionModTypeGroup.add(addQuestionButton);
+		questionModTypeGroup.add(editQuestionButton);
+		questionModTypeGroup.add(deleteQuestionButton);
+		
+		lblRequiredFields = new JLabel("* = Required Field");
+		lblRequiredFields.setMinimumSize(new Dimension(155, 32));
+		lblRequiredFields.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblRequiredFields = new GridBagConstraints();
+		gbc_lblRequiredFields.anchor = GridBagConstraints.WEST;
+		gbc_lblRequiredFields.insets = new Insets(0, 20, 5, 5);
+		gbc_lblRequiredFields.gridx = 4;
+		gbc_lblRequiredFields.gridy = 1;
+		questionModPanel.add(lblRequiredFields, gbc_lblRequiredFields);
+		
+		lblQuestionSelectDatabase = new JLabel("Select a Database:");
+		lblQuestionSelectDatabase.setMinimumSize(new Dimension(155, 32));
+		lblQuestionSelectDatabase.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionSelectDatabase = new GridBagConstraints();
+		gbc_lblQuestionSelectDatabase.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionSelectDatabase.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionSelectDatabase.gridx = 0;
+		gbc_lblQuestionSelectDatabase.gridy = 2;
+		questionModPanel.add(lblQuestionSelectDatabase, gbc_lblQuestionSelectDatabase);
+		
+		questionDatabaseSelector = new JComboBox();
+		questionDatabaseSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		questionDatabaseSelector.setBackground(new Color(119, 136, 153));
+		//questionDatabaseSelector.setPreferredSize(new Dimension(150, 25));
+		questionDatabaseSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXX");
+		GridBagConstraints gbc_questionDatabaseSelector = new GridBagConstraints();
+		gbc_questionDatabaseSelector.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionDatabaseSelector.gridwidth = 1;
+		gbc_questionDatabaseSelector.anchor = GridBagConstraints.NORTH;
+		gbc_questionDatabaseSelector.insets = new Insets(5, 5, 5, 5);
+		gbc_questionDatabaseSelector.gridx = 1;
+		gbc_questionDatabaseSelector.gridy = 2;
+		questionModPanel.add(questionDatabaseSelector, gbc_questionDatabaseSelector);
+		
+		lblQuestionSelectPerspective = new JLabel("Select a Perspective:");
+		lblQuestionSelectPerspective.setMinimumSize(new Dimension(155, 32));
+		lblQuestionSelectPerspective.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionSelectPerspective = new GridBagConstraints();
+		gbc_lblQuestionSelectPerspective.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionSelectPerspective.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionSelectPerspective.gridx = 0;
+		gbc_lblQuestionSelectPerspective.gridy = 3;
+		questionModPanel.add(lblQuestionSelectPerspective, gbc_lblQuestionSelectPerspective);
+		
+		questionPerspectiveSelector = new JComboBox<String>();
+		questionPerspectiveSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		questionPerspectiveSelector.setBackground(new Color(119, 136, 153));
+		//questionPerspectiveSelector.setPreferredSize(new Dimension(150, 25));
+		questionPerspectiveSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXX");
+		GridBagConstraints gbc_questionPerspectiveSelector = new GridBagConstraints();
+		gbc_questionPerspectiveSelector.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionPerspectiveSelector.gridwidth = 2;
+		gbc_questionPerspectiveSelector.anchor = GridBagConstraints.NORTH;
+		gbc_questionPerspectiveSelector.insets = new Insets(5, 5, 5, 5);
+		gbc_questionPerspectiveSelector.gridx = 1;
+		gbc_questionPerspectiveSelector.gridy = 3;
+		questionModPanel.add(questionPerspectiveSelector, gbc_questionPerspectiveSelector);
+		
+		lblSelectQuestion = new JLabel("Select a Question:");
+		lblSelectQuestion.setMinimumSize(new Dimension(155, 32));
+		lblSelectQuestion.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSelectQuestion = new GridBagConstraints();
+		gbc_lblSelectQuestion.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectQuestion.insets = new Insets(0, 20, 5, 5);
+		gbc_lblSelectQuestion.gridx = 0;
+		gbc_lblSelectQuestion.gridy = 4;
+		questionModPanel.add(lblSelectQuestion, gbc_lblSelectQuestion);
+		lblSelectQuestion.setVisible(false);
+		
+		questionModSelector = new JComboBox<String>();
+		questionModSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		questionModSelector.setBackground(new Color(119, 136, 153));
+		//questionModSelector.setMinimumSize(new Dimension(60, 25));
+		questionModSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXX");
+		GridBagConstraints gbc_questionModSelector = new GridBagConstraints();
+		gbc_questionModSelector.anchor = GridBagConstraints.NORTH;
+		gbc_questionModSelector.gridwidth = 3;
+		gbc_questionModSelector.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionModSelector.insets = new Insets(5, 5, 5, 5);
+		gbc_questionModSelector.gridx = 1;
+		gbc_questionModSelector.gridy = 4;
+		questionModPanel.add(questionModSelector, gbc_questionModSelector);
+		questionModSelector.setVisible(false);
+		
+		lblQuestionPerspective = new JLabel("*Perspective:");
+		lblQuestionPerspective.setMinimumSize(new Dimension(155, 32));
+		lblQuestionPerspective.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionPerspective = new GridBagConstraints();
+		gbc_lblQuestionPerspective.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionPerspective.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionPerspective.gridx = 0;
+		gbc_lblQuestionPerspective.gridy = 5;
+		questionModPanel.add(lblQuestionPerspective, gbc_lblQuestionPerspective);
+
+		questionPerspectiveField = new JTextField();
+		questionPerspectiveField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//questionPerspectiveField.setText("");
+		questionPerspectiveField.setColumns(30);
+		GridBagConstraints gbc_questionPerspectiveField = new GridBagConstraints();
+		gbc_questionPerspectiveField.gridwidth = 3;
+		gbc_questionPerspectiveField.insets = new Insets(0, 0, 5, 0);
+		gbc_questionPerspectiveField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionPerspectiveField.gridx = 1;
+		gbc_questionPerspectiveField.gridy = 5;
+		questionModPanel.add(questionPerspectiveField, gbc_questionPerspectiveField);
+		
+		lblQuestion = new JLabel("*Question:");
+		lblQuestion.setMinimumSize(new Dimension(155, 32));
+		lblQuestion.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestion = new GridBagConstraints();
+		gbc_lblQuestion.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestion.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestion.gridx = 0;
+		gbc_lblQuestion.gridy = 7;
+		questionModPanel.add(lblQuestion, gbc_lblQuestion);
+		
+		questionField = new JTextField();
+		questionField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//addQuestionField.setText("");
+		questionField.setColumns(30);
+		GridBagConstraints gbc_questionField = new GridBagConstraints();
+		gbc_questionField.gridwidth = 3;
+		gbc_questionField.insets = new Insets(0, 0, 5, 0);
+		gbc_questionField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionField.gridx = 1;
+		gbc_questionField.gridy = 7;
+		questionModPanel.add(questionField, gbc_questionField);
+		
+		lblQuestionOrder = new JLabel("*Order:");
+		lblQuestionOrder.setMinimumSize(new Dimension(155, 32));
+		lblQuestionOrder.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionOrder = new GridBagConstraints();
+		gbc_lblQuestionOrder.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionOrder.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionOrder.gridx = 0;
+		gbc_lblQuestionOrder.gridy = 8;
+		questionModPanel.add(lblQuestionOrder, gbc_lblQuestionOrder);
+		
+		questionOrderComboBox = new JComboBox<String>();
+		questionOrderComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		questionOrderComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		questionOrderComboBox.setBackground(new Color(119, 136, 153));
+		questionOrderComboBox.setPrototypeDisplayValue("XXXXX");
+		GridBagConstraints gbc_questionOrderComboBox = new GridBagConstraints();
+		gbc_questionOrderComboBox.gridwidth = 1;
+		gbc_questionOrderComboBox.insets = new Insets(0, 0, 5, 0);
+		gbc_questionOrderComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionOrderComboBox.gridx = 1;
+		gbc_questionOrderComboBox.gridy = 8;
+		questionModPanel.add(questionOrderComboBox, gbc_questionOrderComboBox);
+		
+		lblOrderInfo = new JLabel("*Insert question into a position or add as last question (last number).");
+		lblOrderInfo.setMinimumSize(new Dimension(155, 32));
+		lblOrderInfo.setFont(new Font("Tahoma", Font.ITALIC, 10));
+		GridBagConstraints gbc_lblOrderInfo = new GridBagConstraints();
+		gbc_lblOrderInfo.gridwidth = 2;
+		gbc_lblOrderInfo.anchor = GridBagConstraints.WEST;
+		gbc_lblOrderInfo.insets = new Insets(0, 0, 5, 0);
+		gbc_lblOrderInfo.gridx = 2;
+		gbc_lblOrderInfo.gridy = 8;
+		questionModPanel.add(lblOrderInfo, gbc_lblOrderInfo);
+		
+		lblQuestionLayout = new JLabel("*Layout:");
+		lblQuestionLayout.setMinimumSize(new Dimension(155, 32));
+		lblQuestionLayout.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionLayout = new GridBagConstraints();
+		gbc_lblQuestionLayout.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionLayout.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionLayout.gridx = 0;
+		gbc_lblQuestionLayout.gridy = 9;
+		questionModPanel.add(lblQuestionLayout, gbc_lblQuestionLayout);
+
+		questionLayoutField = new JTextField();
+		questionLayoutField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//addQuestionField.setText("");
+		questionLayoutField.setColumns(30);
+		questionLayoutField.setText("prerna.ui.components.playsheets.PlaySheetName");
+		GridBagConstraints gbc_questionLayoutField = new GridBagConstraints();
+		gbc_questionLayoutField.gridwidth = 3;
+		gbc_questionLayoutField.insets = new Insets(0, 0, 5, 0);
+		gbc_questionLayoutField.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionLayoutField.gridx = 1;
+		gbc_questionLayoutField.gridy = 9;
+		questionModPanel.add(questionLayoutField, gbc_questionLayoutField);
+		
+		lblQuestionSparql = new JLabel("*SPARQL Query:");
+		lblQuestionSparql.setMinimumSize(new Dimension(155, 32));
+		lblQuestionSparql.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblQuestionSparql = new GridBagConstraints();
+		gbc_lblQuestionSparql.anchor = GridBagConstraints.WEST;
+		gbc_lblQuestionSparql.insets = new Insets(0, 20, 5, 5);
+		gbc_lblQuestionSparql.gridx = 0;
+		gbc_lblQuestionSparql.gridy = 10;
+		questionModPanel.add(lblQuestionSparql, gbc_lblQuestionSparql);
+		
+		questionSparqlScroll = new JScrollPane();
+		questionSparqlScroll.setMaximumSize(new Dimension(32767, 200));
+		questionSparqlScroll.setPreferredSize(new Dimension(500, 200));
+		questionSparqlScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_questionSparqlScrollPane = new GridBagConstraints();
+		gbc_questionSparqlScrollPane.gridwidth = 4;
+		gbc_questionSparqlScrollPane.insets = new Insets(0, 20, 5, 5);
+		gbc_questionSparqlScrollPane.fill = GridBagConstraints.BOTH;
+		gbc_questionSparqlScrollPane.gridx = 0;
+		gbc_questionSparqlScrollPane.gridy = 11;
+		questionModPanel.add(questionSparqlScroll, gbc_questionSparqlScrollPane);
+
+		questionSparqlTextPane = new JTextPane();
+		questionSparqlTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		questionSparqlScroll.setViewportView(questionSparqlTextPane);
+		
+		lblAddParameter = new JLabel("Select a Parameter:");
+		lblAddParameter.setMinimumSize(new Dimension(155, 32));
+		lblAddParameter.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblAddParameter = new GridBagConstraints();
+		gbc_lblAddParameter.anchor = GridBagConstraints.WEST;
+		gbc_lblAddParameter.insets = new Insets(0, 20, 5, 5);
+		gbc_lblAddParameter.gridx = 0;
+		gbc_lblAddParameter.gridy = 12;
+		questionModPanel.add(lblAddParameter, gbc_lblAddParameter);
+		
+		addParameterComboBox = new ParamComboBox(new String[0]);
+		addParameterComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		addParameterComboBox.setBackground(new Color(119, 136, 153));
+		// addParameterComboBox.setMinimumSize(new Dimension(60, 25));
+		addParameterComboBox.setPrototypeDisplayValue("XXXXXXXXXXXXXXX");
+		GridBagConstraints gbc_addParameterComboBox = new GridBagConstraints();
+		gbc_addParameterComboBox.anchor = GridBagConstraints.NORTH;
+		gbc_addParameterComboBox.gridwidth = 1;
+		gbc_addParameterComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_addParameterComboBox.insets = new Insets(5, 5, 5, 5);
+		gbc_addParameterComboBox.gridx = 1;
+		gbc_addParameterComboBox.gridy = 12;
+		questionModPanel.add(addParameterComboBox, gbc_addParameterComboBox);
+		
+		questionAddParameterButton = new Button();
+		questionAddParameterButton.setText("Add Parameter");
+		GridBagConstraints gbc_questionAddParameterButton = new GridBagConstraints();
+		gbc_questionAddParameterButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionAddParameterButton.insets = new Insets(0, 20, 5, 5);
+		gbc_questionAddParameterButton.gridx = 2;
+		gbc_questionAddParameterButton.gridy = 12;
+		questionModPanel.add(questionAddParameterButton, gbc_questionAddParameterButton);
+		Style.registerTargetClassName(questionAddParameterButton, ".standardButton");
+		
+		questionMoreOptionsButton = new Button();
+		questionMoreOptionsButton.setText("+ Add Param Depend/Query");
+		questionMoreOptionsButton.setOpaque(false);
+		questionMoreOptionsButton.setContentAreaFilled(false);
+		questionMoreOptionsButton.setBorderPainted(false);
+		GridBagConstraints gbc_questionMoreOptionsButton = new GridBagConstraints();
+		gbc_questionMoreOptionsButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionMoreOptionsButton.insets = new Insets(0, 20, 5, 5);
+		gbc_questionMoreOptionsButton.gridx = 3;
+		gbc_questionMoreOptionsButton.gridy = 12;
+		questionModPanel.add(questionMoreOptionsButton, gbc_questionMoreOptionsButton);
+		Style.registerTargetClassName(questionMoreOptionsButton, ".standardButton");
+		
+		lblParameterOption = new JLabel ("Query Option:");
+		lblParameterOption.setMinimumSize(new Dimension(155, 32));
+		lblParameterOption.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterOption = new GridBagConstraints();
+		gbc_lblParameterOption.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterOption.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterOption.gridx = 0;
+		gbc_lblParameterOption.gridy = 13;
+		questionModPanel.add(lblParameterOption, gbc_lblParameterOption);
+		lblParameterOption.setVisible(false);
+		
+		parameterOptionScroll = new JScrollPane();
+		parameterOptionScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterOptionScroll.setPreferredSize(new Dimension(100, 100));
+		parameterOptionScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterOptionScroll = new GridBagConstraints();
+		gbc_parameterOptionScroll.gridwidth = 3;
+		gbc_parameterOptionScroll.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterOptionScroll.fill = GridBagConstraints.BOTH;
+		gbc_parameterOptionScroll.gridx = 0;
+		gbc_parameterOptionScroll.gridy = 14;
+		questionModPanel.add(parameterOptionScroll, gbc_parameterOptionScroll);
+		parameterOptionScroll.setVisible(false);
+		
+		parameterOptionTextPane = new JTextPane();
+		parameterOptionTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		parameterOptionScroll.setViewportView(parameterOptionTextPane);
+		parameterOptionTextPane.setText("Example:" + "\r" + "OverrideMonth_OPTION" + "\t" + "1;2;3;4;5;6;7;8;9;10;11;12");
+		parameterOptionTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
+		parameterOptionTextPane.setForeground(Color.GRAY);
+		
+		lblParameterOptionList = new JLabel("Parameter Options:");
+		lblParameterOptionList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterOptionList = new GridBagConstraints();
+		gbc_lblParameterOptionList.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterOptionList.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterOptionList.gridx = 3;
+		gbc_lblParameterOptionList.gridy = 13;
+		questionModPanel.add(lblParameterOptionList, gbc_lblParameterOptionList);
+		lblParameterOptionList.setVisible(false);
+		
+		parameterOptionList = new JList();
+		//parameterDependList.setMinimumSize(new Dimension(155, 32));
+		parameterOptionList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		parameterOptionScrollList = new JScrollPane(parameterOptionList);
+		//parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterOptionScrollList.setPreferredSize(new Dimension(120, 50));
+		//parameterDependScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterOptionScrollList = new GridBagConstraints();
+		gbc_parameterOptionScrollList.gridwidth = 1;
+		gbc_parameterOptionScrollList.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterOptionScrollList.fill = GridBagConstraints.BOTH;
+		gbc_parameterOptionScrollList.gridx = 3;
+		gbc_parameterOptionScrollList.gridy = 14;
+		questionModPanel.add(parameterOptionScrollList, gbc_parameterOptionScrollList);
+		parameterOptionScrollList.setVisible(false);
+		
+		optionsDeleteButton = new Button();
+		optionsDeleteButton.setText("Delete");
+		GridBagConstraints gbc_optionsDeleteButton = new GridBagConstraints();
+		gbc_optionsDeleteButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_optionsDeleteButton.insets = new Insets(70, 20, 0, 5);
+		gbc_optionsDeleteButton.gridx = 4;
+		gbc_optionsDeleteButton.gridy = 14;
+		questionModPanel.add(optionsDeleteButton, gbc_optionsDeleteButton);
+		Style.registerTargetClassName(optionsDeleteButton, ".standardButton");
+		optionsDeleteButton.setVisible(false);
+		
+		optionsEditButton = new Button();
+		optionsEditButton.setText("Edit");
+		GridBagConstraints gbc_optionsEditButton = new GridBagConstraints();
+		gbc_optionsEditButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_optionsEditButton.insets = new Insets(0, 20, 0, 5);
+		gbc_optionsEditButton.gridx = 4;
+		gbc_optionsEditButton.gridy = 14;
+		questionModPanel.add(optionsEditButton, gbc_optionsEditButton);
+		Style.registerTargetClassName(optionsEditButton, ".standardButton");
+		optionsEditButton.setVisible(false);
+		
+		addParameterOptionButton = new Button();
+		addParameterOptionButton.setText("Add");
+		GridBagConstraints gbc_addParameterOptionButton = new GridBagConstraints();
+		gbc_addParameterOptionButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_addParameterOptionButton.insets = new Insets(0, 20, 70, 5);
+		gbc_addParameterOptionButton.gridx = 4;
+		gbc_addParameterOptionButton.gridy = 14;
+		questionModPanel.add(addParameterOptionButton, gbc_addParameterOptionButton);
+		Style.registerTargetClassName(addParameterOptionButton, ".standardButton");
+		addParameterOptionButton.setVisible(false);
+		
+		lblParameterDepend = new JLabel("Query Dependency:");
+		lblParameterDepend.setMinimumSize(new Dimension(155, 32));
+		lblParameterDepend.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterDepend = new GridBagConstraints();
+		gbc_lblParameterDepend.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterDepend.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterDepend.gridx = 0;
+		gbc_lblParameterDepend.gridy = 13;
+		questionModPanel.add(lblParameterDepend, gbc_lblParameterDepend);
+		lblParameterDepend.setVisible(false);
+		
+		parameterDependScroll = new JScrollPane();
+		parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterDependScroll.setPreferredSize(new Dimension(100, 100));
+		parameterDependScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterDependScroll = new GridBagConstraints();
+		gbc_parameterDependScroll.gridwidth = 3;
+		gbc_parameterDependScroll.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterDependScroll.fill = GridBagConstraints.BOTH;
+		gbc_parameterDependScroll.gridx = 0;
+		gbc_parameterDependScroll.gridy = 14;
+		questionModPanel.add(parameterDependScroll, gbc_parameterDependScroll);
+		parameterDependScroll.setVisible(false);
+
+		parameterDependTextPane = new JTextPane();
+		parameterDependTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		parameterDependScroll.setViewportView(parameterDependTextPane);
+		parameterDependTextPane.setText("Example:" + "\r" + "Instance_DEPEND" + "\t" + "Concept");
+		parameterDependTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
+		parameterDependTextPane.setForeground(Color.GRAY);
+		
+		lblParameterDependList = new JLabel("Parameter Dependencies:");
+		//lblParameterDependList.setMinimumSize(new Dimension(155, 32));
+		lblParameterDependList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterDependList = new GridBagConstraints();
+		gbc_lblParameterDependList.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterDependList.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterDependList.gridx = 3;
+		gbc_lblParameterDependList.gridy = 13;
+		questionModPanel.add(lblParameterDependList, gbc_lblParameterDependList);
+		lblParameterDependList.setVisible(false);
+		
+		parameterDependList = new JList();
+		//parameterDependList.setMinimumSize(new Dimension(155, 32));
+		parameterDependList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		parameterDependScrollList = new JScrollPane(parameterDependList);
+		//parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterDependScrollList.setPreferredSize(new Dimension(120, 50));
+		//parameterDependScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterDependScrollList = new GridBagConstraints();
+		gbc_parameterDependScrollList.gridwidth = 1;
+		gbc_parameterDependScrollList.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterDependScrollList.fill = GridBagConstraints.BOTH;
+		gbc_parameterDependScrollList.gridx = 3;
+		gbc_parameterDependScrollList.gridy = 14;
+		questionModPanel.add(parameterDependScrollList, gbc_parameterDependScrollList);
+		parameterDependScrollList.setVisible(false);
+		
+		dependenciesDeleteButton = new Button();
+		dependenciesDeleteButton.setText("Delete");
+		GridBagConstraints gbc_dependenciesDeleteButton = new GridBagConstraints();
+		gbc_dependenciesDeleteButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dependenciesDeleteButton.insets = new Insets(70, 20, 0, 5);
+		gbc_dependenciesDeleteButton.gridx = 4;
+		gbc_dependenciesDeleteButton.gridy = 14;
+		questionModPanel.add(dependenciesDeleteButton, gbc_dependenciesDeleteButton);
+		Style.registerTargetClassName(dependenciesDeleteButton, ".standardButton");
+		dependenciesDeleteButton.setVisible(false);
+		
+		dependenciesEditButton = new Button();
+		dependenciesEditButton.setText("Edit");
+		GridBagConstraints gbc_dependenciesEditButton = new GridBagConstraints();
+		gbc_dependenciesEditButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dependenciesEditButton.insets = new Insets(0, 20, 0, 5);
+		gbc_dependenciesEditButton.gridx = 4;
+		gbc_dependenciesEditButton.gridy = 14;
+		questionModPanel.add(dependenciesEditButton, gbc_dependenciesEditButton);
+		Style.registerTargetClassName(dependenciesEditButton, ".standardButton");
+		dependenciesEditButton.setVisible(false);
+		
+		addParameterDependencyButton = new Button();
+		addParameterDependencyButton.setText("Add");
+		GridBagConstraints gbc_addParameterDependencyButton = new GridBagConstraints();
+		gbc_addParameterDependencyButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_addParameterDependencyButton.insets = new Insets(0, 20, 70, 5);
+		gbc_addParameterDependencyButton.gridx = 4;
+		gbc_addParameterDependencyButton.gridy = 14;
+		questionModPanel.add(addParameterDependencyButton, gbc_addParameterDependencyButton);
+		Style.registerTargetClassName(addParameterDependencyButton, ".standardButton");
+		addParameterDependencyButton.setVisible(false);
+		
+		lblParameterQueryList = new JLabel("Parameter Queries:");
+		//lblParameterQueryList.setMinimumSize(new Dimension(155, 32));
+		lblParameterQueryList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterQueryList = new GridBagConstraints();
+		gbc_lblParameterQueryList.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterQueryList.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterQueryList.gridx = 3;
+		gbc_lblParameterQueryList.gridy = 15;
+		questionModPanel.add(lblParameterQueryList, gbc_lblParameterQueryList);
+		lblParameterQueryList.setVisible(false);
+		
+		parameterQueryList = new JList();
+		//parameterQueryList.setMinimumSize(new Dimension(155, 32));
+		parameterQueryList.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		parameterQueryScrollList = new JScrollPane(parameterQueryList);
+		//parameterQueryScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterQueryScrollList.setPreferredSize(new Dimension(120, 50));
+		//parameterQueryScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterQueryScrollList = new GridBagConstraints();
+		gbc_parameterQueryScrollList.gridwidth = 1;
+		gbc_parameterQueryScrollList.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterQueryScrollList.fill = GridBagConstraints.BOTH;
+		gbc_parameterQueryScrollList.gridx = 3;
+		gbc_parameterQueryScrollList.gridy = 16;
+		questionModPanel.add(parameterQueryScrollList, gbc_parameterQueryScrollList);
+		parameterQueryScrollList.setVisible(false);
+		
+		parameterQueriesDeleteButton = new Button();
+		parameterQueriesDeleteButton.setText("Delete");
+		GridBagConstraints gbc_parameterQueriesDeleteButton = new GridBagConstraints();
+		gbc_parameterQueriesDeleteButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_parameterQueriesDeleteButton.insets = new Insets(70, 20, 0, 5);
+		gbc_parameterQueriesDeleteButton.gridx = 4;
+		gbc_parameterQueriesDeleteButton.gridy = 16;
+		questionModPanel.add(parameterQueriesDeleteButton, gbc_parameterQueriesDeleteButton);
+		Style.registerTargetClassName(parameterQueriesDeleteButton, ".standardButton");
+		parameterQueriesDeleteButton.setVisible(false);
+		
+		parameterQueriesEditButton = new Button();
+		parameterQueriesEditButton.setText("Edit");
+		GridBagConstraints gbc_parameterQueriesEditButton = new GridBagConstraints();
+		gbc_parameterQueriesEditButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_parameterQueriesEditButton.insets = new Insets(0, 20, 0, 5);
+		gbc_parameterQueriesEditButton.gridx = 4;
+		gbc_parameterQueriesEditButton.gridy = 16;
+		questionModPanel.add(parameterQueriesEditButton, gbc_parameterQueriesEditButton);
+		Style.registerTargetClassName(parameterQueriesEditButton, ".standardButton");
+		parameterQueriesEditButton.setVisible(false);
+		
+		lblParameterQuery = new JLabel("Parameter Query:");
+		lblParameterQuery.setMinimumSize(new Dimension(155, 32));
+		lblParameterQuery.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblParameterQuery = new GridBagConstraints();
+		gbc_lblParameterQuery.anchor = GridBagConstraints.WEST;
+		gbc_lblParameterQuery.insets = new Insets(0, 20, 5, 5);
+		gbc_lblParameterQuery.gridx = 0;
+		gbc_lblParameterQuery.gridy = 15;
+		questionModPanel.add(lblParameterQuery, gbc_lblParameterQuery);
+		lblParameterQuery.setVisible(false);
+		
+		parameterQueryScroll = new JScrollPane();
+		parameterQueryScroll.setMaximumSize(new Dimension(32767, 200));
+		parameterQueryScroll.setPreferredSize(new Dimension(100, 100));
+		parameterQueryScroll.setMinimumSize(new Dimension(0, 75));
+		GridBagConstraints gbc_parameterQueryScroll = new GridBagConstraints();
+		gbc_parameterQueryScroll.gridwidth = 3;
+		gbc_parameterQueryScroll.insets = new Insets(0, 20, 5, 5);
+		gbc_parameterQueryScroll.fill = GridBagConstraints.BOTH;
+		gbc_parameterQueryScroll.gridx = 0;
+		gbc_parameterQueryScroll.gridy = 16;
+		questionModPanel.add(parameterQueryScroll, gbc_parameterQueryScroll);
+		parameterQueryScroll.setVisible(false);
+
+		parameterQueryTextPane = new JTextPane();
+		parameterQueryTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		parameterQueryScroll.setViewportView(parameterQueryTextPane);
+		parameterQueryTextPane.setText("Example:" + "\r" + "Concept_QUERY" + "\t" 
+				+ "SELECT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }");
+		parameterQueryTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
+		parameterQueryTextPane.setForeground(Color.GRAY);
+		
+		addParameterQueryButton = new Button();
+		addParameterQueryButton.setText("Add");
+		GridBagConstraints gbc_addParameterQueryButton = new GridBagConstraints();
+		gbc_addParameterQueryButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_addParameterQueryButton.insets = new Insets(0, 20, 70, 5);
+		gbc_addParameterQueryButton.gridx = 4;
+		gbc_addParameterQueryButton.gridy = 16;
+		questionModPanel.add(addParameterQueryButton, gbc_addParameterQueryButton);
+		Style.registerTargetClassName(addParameterQueryButton, ".standardButton");
+		addParameterQueryButton.setVisible(false);
+		
+		questionModButton = new Button();
+		questionModButton.setText("Add Question");
+		GridBagConstraints gbc_questionModButton = new GridBagConstraints();
+		gbc_questionModButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_questionModButton.insets = new Insets(0, 20, 5, 5);
+		gbc_questionModButton.gridx = 0;
+		gbc_questionModButton.gridy = 18;
+		questionModPanel.add(questionModButton, gbc_questionModButton);
+		Style.registerTargetClassName(questionModButton, ".standardButton");
 
 		JTabbedPane tapTabPane = new JTabbedPane();
 		rightView.addTab("MHS TAP", null, tapTabPane, null);
