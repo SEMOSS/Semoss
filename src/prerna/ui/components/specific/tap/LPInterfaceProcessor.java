@@ -805,6 +805,8 @@ public class LPInterfaceProcessor {
 							values[12] = "";
 							values[13] = finalCost;
 							totalIndirectCost += finalCost;
+							// not including indirect cost
+							sysCostInfo.remove(rowIdx);
 						}
 					} else {
 						if(usePhase) {

@@ -246,11 +246,11 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		data.remove(0);
 		insertRelData(data, DESIGN_GLITEM, BELONGS_TO, PHASE);
 
-		// TestGLItem -> tagged by -> GLTag
+		// DevelopGLItem -> tagged by -> GLTag
 		data = allData.get("DevelopGLItemTag");
 		data.remove(0);
 		data.remove(0);
-		insertRelData(data, TEST_GLITEM, TAGGED_BY, GLTAG);
+		insertRelData(data, DEVELOP_GLITEM, TAGGED_BY, GLTAG);
 
 		// DevelopGLItem -> includes -> GLItemCoreTask
 		data = allData.get("DevelopGLItem-GLItemCT");
