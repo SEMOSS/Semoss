@@ -234,7 +234,7 @@ public abstract class AbstractEngine implements IEngine {
 				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				
 				//loads the questionxmlfile if there is one, if not, get the question sheet and create an xml file and load to engine
-				questionXMLFile = prop.getProperty(Constants.XML);
+				questionXMLFile = prop.getProperty(Constants.INSIGHTS);
 				createInsightBase();
 				
 				if(questionXMLFile != null) {
@@ -246,7 +246,7 @@ public abstract class AbstractEngine implements IEngine {
 					questionXMLFile = "db/" + getEngineName() + "/" + getEngineName()	+ "_Questions.XML";
 					//addConfiguration(Constants.XML, questionXMLFile);
 					//saveConfiguration();
-					addPropToFile(propFile, Constants.XML, questionXMLFile, "OWL.OWL");
+					addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
 					
 					if(questionPropFile != null){
 						dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
