@@ -443,7 +443,8 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(upstreamSystemURI)) {
 						// direct cost if system is upstream and indirect is downstream
 						if(generateCost && !costCalculated) {
 							costCalculated = true;
@@ -489,17 +490,16 @@ public class LPInterfaceProcessor {
 							addFutureDBCostRelTriples("", newICD, DHMSM_URI, dataURI, data, rowIdx);
 						}
 						
-						// if downstream system is HP, remove interface
-						if(downstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)) {
-							comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).") ;
-							// future db triples - removed interface
-							removedInterfaces.add(icdURI);
-							String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
-							addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
-							addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
-						}
 					}
-					
+					// if downstream system is HP, remove interface
+					if(downstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).") ;
+						// future db triples - removed interface
+						removedInterfaces.add(icdURI);
+						String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
+						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
+						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
+					}
 				} 
 				// new business rule might be added - will either un-comment or remove after discussion today
 				// else if (upstreamSysType.equals(lpniKey)) { // upstream system is LPNI
@@ -513,7 +513,8 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(downstreamSystemURI)) {
 						// direct cost if system is downstream
 						if(generateCost  && !costCalculated) {
 							if(sysName.equals(downstreamSysName)) {
@@ -538,14 +539,46 @@ public class LPInterfaceProcessor {
 							addPropTriples(payloadURI, propVals, comment, (double) 5);
 							// future cost triple
 							addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
+							// future db triples - removed interface
+							removedInterfaces.add(icdURI);
+							String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
+							addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
+							addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 						}
-					} else if(generateNewTriples) {
-						// future db triples - removed interface
-						removedInterfaces.add(icdURI);
-						String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
-						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
-						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
 					}
+//					if(!selfReportedICDs.contains(newICD)) {
+//						// direct cost if system is downstream
+//						if(generateCost  && !costCalculated) {
+//							if(sysName.equals(downstreamSysName)) {
+//								costCalculated = true;
+//								directCost = true;
+//								if(usePhase) {
+//									finalCost = calculateCost(data, downstreamSysName, "Consume", false, servicesProvideList, rowIdx);
+//								} else {
+//									finalCost = calculateCost(data, downstreamSysName, "Consume", false, servicesProvideList);
+//								}
+//							}
+//						}
+//						
+//						if(generateNewTriples) {
+//							finalCost = calculateCost(data, downstreamSysName, "Consume", false, new HashSet(), rowIdx);
+//							// future db triples - new interface
+//							newICD = makeDHMSMProviderOfICD(icdURI, downstreamSysName, data);
+//							payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/")+1)).concat(":").concat(data);
+//							addedInterfaces.add(newICD);
+//							addTripleWithDHMSMProvider(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
+////							addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//							addPropTriples(payloadURI, propVals, comment, (double) 5);
+//							// future cost triple
+//							addFutureDBCostRelTriples(icdURI, newICD, DHMSM_URI, dataURI, data, rowIdx);
+//						}
+//					} else if(generateNewTriples) {
+//						// future db triples - removed interface
+//						removedInterfaces.add(icdURI);
+//						String oldPayload = payloadInstanceRel.concat(icdURI.substring(icdURI.lastIndexOf("/")+1)).concat(":").concat(data);
+//						addTriples(icdURI, upstreamSystemURI, upstreamSysName, downstreamSystemURI, downstreamSysName, dataURI, data, oldPayload);
+//						addPropTriples(oldPayload, format, freq, prot, comment, (double) 0);
+//					}
 				} 
 				else
 				{
@@ -573,8 +606,8 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
-						
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(upstreamSystemURI)) {	
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							if(sysName.equals(upstreamSysName)) {
@@ -608,7 +641,9 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(upstreamSystemURI)) {	
+
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							costCalculated = true;
@@ -644,7 +679,9 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(downstreamSystemURI)) {	
+
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							if(sysName.equals(downstreamSysName)) {
@@ -678,7 +715,8 @@ public class LPInterfaceProcessor {
 					if(propVals == null) {
 						propVals = new String[]{format, freq, prot};
 					}
-					if(!selfReportedICDs.contains(newICD)) {
+//					if(!selfReportedICDs.contains(newICD)) {
+					if(!selfReportedSystems.contains(downstreamSystemURI)) {	
 						// direct cost if system is upstream
 						if(generateCost && !costCalculated) {
 							if(sysName.equals(downstreamSysName)) {
