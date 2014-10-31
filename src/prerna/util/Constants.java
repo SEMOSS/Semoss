@@ -380,6 +380,7 @@ public class Constants {
 	public static final Object URI_BASE = "URI_BASE";
 	
 	public static final String XML = "XML";
+	public static final String INSIGHTS = "INSIGHTS";
 	//question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE= "lblQuestionSelectPerspective";
 	public static final String QUESTION_PERSPECTIVE_SELECTOR= "questionPerspectiveSelector";
