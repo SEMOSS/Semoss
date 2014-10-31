@@ -3,6 +3,7 @@ ENGINE	NOAA3
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/NOAA3/NOAA3_Custom_Map.prop
 DREAMER	db/NOAA3/NOAA_Questions.properties
+PROPERTIES	db/NOAA3/NOAA3_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference

@@ -4,6 +4,7 @@ ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/HR_Core/HR_Core_Custom_Map.prop
 DREAMER	db/HR_Core/HR_Core_Question.properties
 OWL	db/HR_Core/HR_Core_OWL.OWL
+PROPERTIES	db/HR_Core/HR_Core_Properties.properties
 
 # changing the axiom model to none essentially disables all inference
 com.bigdata.rdf.store.AbstractTripleStore.axiomsClass=com.bigdata.rdf.axioms.NoAxioms
