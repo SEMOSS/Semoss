@@ -94,6 +94,7 @@ public class EntityFiller implements Runnable {
 						names.addElement("Incorrect Param Fill");
 						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
 						box.setModel(model);
+						box.notify();
 						return;
 					}
 					// use the type query defined on RDF Map unless external query has been defined

@@ -371,7 +371,7 @@ public abstract class AbstractEngine implements IEngine {
 		//returns the query associated with the key
 		if(!paramInfoVector.isEmpty()){
 			for(int i = 0; i < paramInfoVector.size(); i++){
-				if(key.contains(paramInfoVector.get(i).getName() + "_OPTION")){
+				if(key.contains(paramInfoVector.get(i).getType() + "_OPTION")){
 					Vector options = paramInfoVector.get(i).getOptions();
 					for(int j = 0; j < options.size(); j++){
 						if(retProp==null)
