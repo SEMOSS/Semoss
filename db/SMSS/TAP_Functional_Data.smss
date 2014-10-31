@@ -4,6 +4,7 @@ ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/TAP_Functional_Data/TAP_Functional_Data_Custom_Map.prop
 OWL	db/TAP_Functional_Data/TAP_Functional_Data_OWL.OWL
 DREAMER	db/TAP_Functional_Data/TAP_Functional_Data_Questions.properties
+PROPERTIES	db/TAP_Functional_Data/TAP_Functional_Data_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference

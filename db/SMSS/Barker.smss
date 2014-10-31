@@ -3,6 +3,7 @@ ENGINE	Barker
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/Barker/Barker_Custom_Map.prop
 DREAMER	db/Barker/Barker_Questions.properties
+PROPERTIES	db/Barker/Barker_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference
