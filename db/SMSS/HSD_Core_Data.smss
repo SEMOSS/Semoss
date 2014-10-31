@@ -3,6 +3,7 @@ ENGINE	HSD_Core_Data
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY	db/HSD_Core_Data/HSD_Core_Custom_Map.prop
 DREAMER	db/HSD_Core_Data/HSD_CORE_Question.properties
+PROPERTIES	db/HSD_Core_Data/HSD_Core_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference

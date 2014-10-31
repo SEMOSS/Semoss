@@ -3,6 +3,7 @@ ENGINE DocGraphND
 ENGINE_TYPE prerna.rdf.engine.impl.BigDataEngine
 ONTOLOGY db/DocGraphND/DocGraphND_Custom_Map.prop
 DREAMER db/DocGraphND/DocGraphND_Questions.properties
+PROPERTIES db/DocGraphND/DocGraphND_Properties.properties
 
 
 # changing the axiom model to none essentially disables all inference
