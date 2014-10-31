@@ -43,8 +43,8 @@ EnterpriseBudgetGLItem http://health.mil/ontologies/Concept/EnterpriseBudgetGLIt
 DevelopGLItem http://health.mil/ontologies/Concept/DevelopGLItem
 TargetPhaseBasisCoreTask http://health.mil/ontologies/Concept/TargetPhaseBasisCoreTask
 PfPhaseTask http://health.mil/ontologies/Concept/PfPhaseTask
-FYTag http://health.mil/ontologies/Concept/FYTag
 BasisSubTask http://health.mil/ontologies/Concept/BasisSubTask
+FYTag http://health.mil/ontologies/Concept/FYTag
 TargetOverheadItem http://health.mil/ontologies/Concept/TargetOverheadItem
 DesignGLItem http://health.mil/ontologies/Concept/DesignGLItem
 BasisTarget http://health.mil/ontologies/Concept/BasisTarget
