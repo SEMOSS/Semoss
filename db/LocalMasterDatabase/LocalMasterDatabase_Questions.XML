@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Generic CONSTRUCT Query</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Select Query Raw</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Rendered as a Grid</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Distinct Subjects</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Generic-Perspective:LocalMasterDatabase:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Explore an instance of a selected node type</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">MasterConcept-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MasterConcept-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are all the master concepts and their keywords?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?MasterConcept ?Keyword ?Database ?SimilarityScore WHERE {{?MasterConcept &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/MasterConcept&gt;}{?Keyword &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Keyword&gt;} {?Database &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Engine&gt;}{?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;}{?MasterConcept ?ConsistsOf ?Keyword}{?Database &lt;http://semoss.org/ontologies/Relation/Has&gt; ?Keyword}{?ConsistsOf &lt;http://semoss.org/ontologies/Relation/Contains/SimilarityScore&gt; ?SimilarityScore }} ORDER BY ?MasterConcept</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What is the master concept for this keyword?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?MasterConcept WHERE { BIND(&lt;@Keyword-http://semoss.org/ontologies/Concept/Keyword@&gt; AS ?keyword) BIND(&lt;@Database-http://semoss.org/ontologies/Concept/Engine@&gt; AS ?database) {?MasterConcept &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/MasterConcept&gt;} {?MasterConcept &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?keyword} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC2:Database"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC2:Database">
+	<LABEL xmlns="PARAM:">Database</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Engine&gt;}{?entity &lt;http://semoss.org/ontologies/Relation/Has&gt; &lt;@Keyword@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Keyword</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Engine"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC2">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC2:Keyword"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC2:Keyword">
+	<LABEL xmlns="PARAM:">Keyword</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Keyword&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Keyword"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What are all the keywords for this master concept?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Keyword ?Database WHERE { BIND(&lt;@MasterConcept-http://semoss.org/ontologies/Concept/MasterConcept@&gt; AS ?MasterConcept) {?Keyword &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Keyword&gt;}  {?Database &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Engine&gt;} {?MasterConcept &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?Keyword} {?Database &lt;http://semoss.org/ontologies/Relation/Has&gt; ?Keyword} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC3:MasterConcept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:MasterConcept-Perspective:MC3:MasterConcept">
+	<LABEL xmlns="PARAM:">MasterConcept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/MasterConcept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Recommend database for ICD, Data, Service, System, Data Element Subgraph</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">1</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.SearchMasterDBPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Recommend insights for ICD, Data, System with instances 'Referral_Information' and 'AHLTA'</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">3</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.SearchMasterDBPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:MC7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC7">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:MC7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<MC7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC7">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:MC7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<MC7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:MasterConcept-Perspective:LocalMasterDatabase:MasterConcept-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. Recommend databases for System instance AHLTA</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:MasterConcept-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">MC7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:MasterConcept-Perspective:MC7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">2</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.SearchMasterDBPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Insights-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<Insights-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/LocalMasterDatabase:LocalMasterDatabase:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:I1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<I1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<I1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the insights and their parameters for this engine?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">I1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Perspective ?InsightLabel ?Keyword ?MasterConcept WHERE {BIND(&lt;@Engine-http://semoss.org/ontologies/Concept/Engine@&gt; AS ?Engine) {?Perspective &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Perspective&gt;} {?Insight &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Insight&gt;} {?Keyword &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Keyword&gt;}{?MasterConcept &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/MasterConcept&gt;} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Perspective&gt; ?Perspective} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Insight&gt; ?Insight} {?Perspective &lt;http://semoss.org/ontologies/Relation/Perspective:Insight&gt; ?Insight} {?Insight &lt;http://semoss.org/ontologies/Relation/Contains/Label&gt; ?InsightLabel} {?Keyword &lt;http://semoss.org/ontologies/Relation/Keyword:Insight&gt; ?Insight} {?MasterConcept &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?Keyword}} ORDER BY ?Perspective ?InsightLabel ?Keyword</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I1:Engine"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I1:Engine">
+	<LABEL xmlns="PARAM:">Engine</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Engine"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:I2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<I2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<I2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What are the insights that use this parameter?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">I2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?MasterConcept ?Engine ?Perspective ?InsightLabel WHERE {BIND(&lt;@Keyword-http://semoss.org/ontologies/Concept/Keyword@&gt; AS ?Keyword){?MasterConcept &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/MasterConcept&gt;} {?Engine &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Engine&gt;} {?Perspective &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Perspective&gt;} {?Insight &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Insight&gt;} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Perspective&gt; ?Perspective} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Insight&gt; ?Insight} {?Perspective &lt;http://semoss.org/ontologies/Relation/Perspective:Insight&gt; ?Insight} {?Insight &lt;http://semoss.org/ontologies/Relation/Contains/Label&gt; ?InsightLabel} {?Keyword &lt;http://semoss.org/ontologies/Relation/Keyword:Insight&gt; ?Insight} {?MasterConcept &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?Keyword}} ORDER BY ?MasterConcept ?Engine ?Perspective ?InsightLabel</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I2:Keyword"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I2:Keyword">
+	<LABEL xmlns="PARAM:">Keyword</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Keyword"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:I3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:I3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/LocalMasterDatabase">
+	<I3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/LocalMasterDatabase:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:I3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<I3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/LocalMasterDatabase:Insights-Perspective:LocalMasterDatabase:Insights-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What are the insights for this master concept?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/LocalMasterDatabase:Insights-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">I3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/LocalMasterDatabase:Insights-Perspective:I3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Keyword ?Engine ?Perspective ?InsightLabel WHERE {BIND(&lt;@MasterConcept-http://semoss.org/ontologies/Concept/MasterConcept@&gt; AS ?MasterConcept) {?Engine &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Engine&gt;} {?Perspective &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Perspective&gt;} {?Insight &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Insight&gt;} {?Keyword &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Keyword&gt;} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Perspective&gt; ?Perspective} {?Engine &lt;http://semoss.org/ontologies/Relation/Engine:Insight&gt; ?Insight} {?Perspective &lt;http://semoss.org/ontologies/Relation/Perspective:Insight&gt; ?Insight} {?Insight &lt;http://semoss.org/ontologies/Relation/Contains/Label&gt; ?InsightLabel} {?Keyword &lt;http://semoss.org/ontologies/Relation/Keyword:Insight&gt; ?Insight} {?MasterConcept &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?Keyword} } ORDER BY ?Keyword ?Engine ?Perspective ?InsightLabel</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I3:MasterConcept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/LocalMasterDatabase:Insights-Perspective:I3:MasterConcept">
+	<LABEL xmlns="PARAM:">MasterConcept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/MasterConcept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+</rdf:RDF>
