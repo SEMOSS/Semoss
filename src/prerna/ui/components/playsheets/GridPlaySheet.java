@@ -152,8 +152,10 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			for (Object[] item : list) {
 				for (int i=0; i<item.length; i++) {
 					if (item[i] != null && item[i] instanceof BigdataURIImpl) {
+					//if (item[i] != null && item[i].contains("http://")) {
 						//get the instance value from the URI
 						item[i] = Utility.getInstanceName(item[i].toString());
+						//item[i] = Utility.getInstanceName(item[i]);
 					}
 				}
 			}
@@ -167,14 +169,14 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
 	
-	@Override
+/*	@Override
 	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);
 			} 
 		return var;
-	}
+	}*/
 	
 	public void createRAWView() {
 		super.createView();
