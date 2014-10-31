@@ -93,6 +93,7 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
 	<Output rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
 	<Includes rdf:resource="http://semoss.org/ontologies/Concept/GLItemCoreTask"/>
+	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
 	<BelongsTo rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
@@ -135,7 +136,6 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
-	<TaggedBy rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
 	<Precedes rdf:resource="http://semoss.org/ontologies/Concept/TestGLItem"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
