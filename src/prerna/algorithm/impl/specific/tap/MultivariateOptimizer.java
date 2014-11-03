@@ -33,7 +33,6 @@ import org.apache.log4j.Logger;
 
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
-import prerna.util.Utility;
 
 /**
  * This optimizer is used for implementation of system optimization for a multivariate budget.
@@ -52,22 +51,23 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
         f.setVariables(maxYears, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC,numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         if(f instanceof MultiVarSysIRRFunction)
         	((MultiVarSysIRRFunction)f).createLinearInterpolation();
-     //   ((MultivariateOptFunction)f).createYearAdjuster(sysList, dataList, hourlyCost);//TODO add back in
+        //((MultivariateOptFunction)f).createYearAdjuster(sysList, dataList, hourlyCost);TODO add in year adjuster
 
         //budget in LOE
         double[] startPoint = new double[maxYears];
 		double[][] boundaries = new double[2][maxYears];
         for(int i=0;i<maxYears;i++) {
-  //      	if(i < maxYears / 2)
+//        	if(i<maxYears/2)
         		startPoint[i] = this.maxBudget / 2;
 //        	else
-//        		startPoint[i] = 0;
+//            	startPoint[i] = 0;
 			boundaries[0][i] = this.minBudget;
 			boundaries[1][i] = this.maxBudget;
         }
         MaxEval eval = new MaxEval(500);
-        int numInterpolationPoints = startPoint.length+2;//2 * startPoint.length + 1;
-        BOBYQAOptimizer optimizer = new BOBYQAOptimizer(numInterpolationPoints,100,.001);
+     //   int numInterpolationPoints = startPoint.length+2;//2 * startPoint.length + 1;
+        int numInterpolationPoints = ((startPoint.length+1)*(startPoint.length+2))/startPoint.length;
+        BOBYQAOptimizer optimizer = new BOBYQAOptimizer(numInterpolationPoints,maxBudget*.01,.1);
 		ObjectiveFunction objF = new ObjectiveFunction(f);
       //TODO multistart
 //		RandomVectorGenerator rand = new Well1024a(500);
@@ -84,15 +84,12 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
             {
 	            yearlyBudget = pair.getPoint();
 	            optNumYears = ((MultivariateOptFunction)f).calculateYears(yearlyBudget);
-	            //optNumYears =  ((MultivariateOptFunction)f).yearAdjuster.adjustTimeToTransform(budget, optNumYears);TODO add in year adjuster
+	          //  optNumYears =  ((MultivariateOptFunction)f).yearAdjuster.adjustTimeToTransform(yearlyBudget, optNumYears);
 	            if(optNumYears<1) {
 	            	optNumYears = 1;
-	            	//budget = ((MultivariateSysOptFunction)f).calculateBudgetForOneYear();//TODO add back in?
 	            }
 	            calculateSavingsROIAndIRR();
-            }
-            else
-            {
+            } else  {
             	((SysOptPlaySheet)playSheet).solutionLbl.setText("No solution available within the given time frame");
     			return;
             }
@@ -119,7 +116,7 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
         MultiVarSysIRRFunction irrF = new MultiVarSysIRRFunction();
         irrF.setVariables(maxYears, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC,numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         irrF.createLinearInterpolation();
-        irr = irrF.calculateRet(yearlyBudget,optNumYears,netSavings);        
+        irr = irrF.calculateRet(yearlyBudget,optNumYears);        
  	 
         if(f instanceof MultiVarSysIRRFunction)
         {
@@ -138,12 +135,26 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nCumulative savings: "+netSavings);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nROI: "+roi);
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nIRR: "+irr);
-        displayResults();
+        displayOverview();
         displaySystemSpecifics();
         displayCurrFunctionality();
         displayFutureFunctionality();
         displayHeatMap();
         displayClusterHeatMap();
+	}
+	
+	@Override
+	protected void createGraphData() {
+		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
+		cumSavingsList = ((MultivariateOptFunction)f).createCumulativeSavings(optNumYears);
+		breakEvenList = ((MultivariateOptFunction)f).createBreakEven(yearlyBudget, optNumYears);
+		sustainCostList = ((MultivariateOptFunction)f).createSustainmentCosts(optNumYears);
+		installCostList = ((MultivariateOptFunction)f).createInstallCosts(yearlyBudget, optNumYears);
+	}
+	
+	protected void displayHeaderLabels() {
+		super.displayHeaderLabels();
+		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText("Varies");
 	}
 	
 	/**
@@ -152,55 +163,17 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 	 * This populates the overview tab
 	 * Optimizer used for TAP-specific calculations. 
 	 */
-	public void displayResults()
+	private void displayOverview()
 	{
 		displaySolutionLabel();
 
-		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
-		cumSavingsList = ((MultivariateOptFunction)f).createCumulativeSavings(optNumYears);
-		breakEvenList = ((MultivariateOptFunction)f).createBreakEven(yearlyBudget, optNumYears);
-		sustainCostList = ((MultivariateOptFunction)f).createSustainmentCosts(optNumYears);
-		installCostList = ((MultivariateOptFunction)f).createInstallCosts(yearlyBudget, optNumYears);
+		createGraphData();
 		
-		String netSavingsString = Utility.sciToDollar(netSavings);
-		((SysOptPlaySheet)playSheet).savingLbl.setText(netSavingsString);
-		double roiVal = Utility.round(roi*100, 2);
-		((SysOptPlaySheet)playSheet).roiLbl.setText(Double.toString(roiVal)+"%");
-		if((netSavings<0&&numMaintenanceSavings - serMainPerc*dataExposeCost<0))
-			((SysOptPlaySheet)playSheet).irrLbl.setText("N/A");
-		else {
-			double irrVal = Utility.round(irr*100,2);
-			((SysOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrVal)+"%");
-		}
-		if(optNumYears>maxYears)
-			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText("Beyond Max Time");
-		else {
-			double timeTransition = Utility.round(optNumYears,2);
-			((SysOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(timeTransition)+" Years");
-		}
-//		String annualBudgetString = Utility.sciToDollar(budget);
-//		((SysOptPlaySheet)playSheet).annualBudgetLbl.setText(annualBudgetString); //TODO what to put as budget
-		
-		int breakEvenYear = 0;
-		for(int i=0;i<breakEvenList.size();i++) {
-			if(breakEvenList.get(i)<0)
-				breakEvenYear = i+1;
-		}
-		if(breakEvenList.get(breakEvenList.size()-1)<0)
-			((SysOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
-		else if(breakEvenYear == 0) {
-			((SysOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
-		} else {
-			double amountInLastYear = breakEvenList.get(breakEvenYear)-breakEvenList.get(breakEvenYear-1);
-			double fraction = ( - breakEvenList.get(breakEvenYear))/amountInLastYear;
-			double breakEven = Utility.round(breakEvenYear+1+fraction,2);
-			((SysOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven)+" Years");
-		}
-		
+		displayHeaderLabels();
+
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
 		graphF.setOptimzer(this,f.learningConstants);
 
-		//Hashtable modernizedSysHeatMapChartHash = graphF.createModernizedHeatMap();
 		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();

@@ -77,7 +77,7 @@ public class MultiVarSysIRRLinInterp extends LinearInterpolation{
 		double v = (1+infRate)/(1+possibleDiscRate);
 		double vFactor = totalYrs-N;
 		if(v!=1)
-			vFactor = Math.pow(v, N+1)*(1-Math.pow(v, totalYrs-N))/(1-v);
+			vFactor = Math.pow(v, N+1.0)*(1.0-Math.pow(v, totalYrs-N))/(1.0-v);
 		double sustainSavings = vFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
 		double mu = (1+infRate)/(1+discRate);
 		double investment = 0.0;

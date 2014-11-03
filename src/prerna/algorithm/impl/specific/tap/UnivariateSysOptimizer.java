@@ -666,21 +666,15 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 		((SysOptPlaySheet) playSheet).clusterHeatMap.setVisible(true);
 	}
 
-	/**
-	 * Displays the results from various optimization calculations.
-	 * These include net savings, ROI, and IRR functions.
-	 * This populates the overview tab
-	 * Optimizer used for TAP-specific calculations. 
-	 */
-	public void displayResults()
-	{
-		displaySolutionLabel();
-		
+	protected void createGraphData() {
 		f.createLearningYearlyConstants((int)Math.ceil(optNumYears), scdLT, iniLC, scdLC);
 		cumSavingsList = ((UnivariateSysOptFunction)f).createCumulativeSavings(budget, optNumYears);
 		breakEvenList = ((UnivariateSysOptFunction)f).createBreakEven(budget, optNumYears);
 		sustainCostList = ((UnivariateSysOptFunction)f).createSustainmentCosts(budget, optNumYears);
 		installCostList = ((UnivariateSysOptFunction)f).createInstallCosts(budget, optNumYears);
+	}
+	
+	protected void displayHeaderLabels() {
 		
 		String netSavingsString = Utility.sciToDollar(netSavings);
 		((SysOptPlaySheet)playSheet).savingLbl.setText(netSavingsString);
@@ -717,6 +711,19 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 			((SysOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven)+" Years");
 		}
 		
+	}
+	/**
+	 * Displays the results from various optimization calculations.
+	 * These include net savings, ROI, and IRR functions.
+	 * This populates the overview tab
+	 * Optimizer used for TAP-specific calculations. 
+	 */
+	public void displayResults()
+	{
+		displaySolutionLabel();
+		createGraphData();
+		displayHeaderLabels();
+
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
 		graphF.setOptimzer(this);
 
