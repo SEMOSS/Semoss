@@ -19,6 +19,9 @@
 package prerna.ui.components.playsheets;
 
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.GridRAWTableModel;
+import prerna.ui.components.GridTableModel;
 
 /**
  */
@@ -36,9 +39,8 @@ public class GridRAWPlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public void createView() {
-		super.createRAWView();
+	public GridRAWTableModel setGridModel(GridFilterData gfd) {
+		GridRAWTableModel model = new GridRAWTableModel(gfd);
+		return model;
 	}
-	
-	
 }
