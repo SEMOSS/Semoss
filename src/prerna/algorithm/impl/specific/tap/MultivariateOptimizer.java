@@ -23,14 +23,23 @@ import java.util.Hashtable;
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
+import org.apache.commons.math3.optim.OptimizationData;
 import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.SimpleBounds;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.MultiStartMultivariateOptimizer;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
+import org.apache.commons.math3.random.GaussianRandomGenerator;
+import org.apache.commons.math3.random.NormalizedRandomGenerator;
+import org.apache.commons.math3.random.RandomVectorGenerator;
+import org.apache.commons.math3.random.UncorrelatedRandomVectorGenerator;
+import org.apache.commons.math3.random.UnitSphereRandomVectorGenerator;
+import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.math.RandVectorGenerator;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
@@ -39,10 +48,17 @@ import prerna.ui.components.specific.tap.SysOptPlaySheet;
  */
 public class MultivariateOptimizer extends UnivariateSysOptimizer{
 	
+	private int maxEvals;
 	public MultivariateOptFunction f;
 	double[] yearlyBudget;
 	static final Logger LOGGER = LogManager.getLogger(MultivariateOptimizer.class.getName());
 
+	public void setVariables(int maxYears, double interfaceCost, double serMainPerc, double attRate, double hireRate, double infRate, double disRate, int noOfPts, int maxEvals, double minBudget, double maxBudget, double hourlyCost, double iniLC, int scdLT, double scdLC)
+	{
+		super.setVariables(maxYears, interfaceCost, serMainPerc, attRate, hireRate, infRate, disRate, noOfPts, minBudget, maxBudget, hourlyCost, iniLC, scdLT, scdLC);
+		this.maxEvals = maxEvals;
+	}
+	
 	protected void optimizeBudget() {
 		
         progressBar = playSheet.progressBar;
@@ -55,34 +71,50 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 
         //budget in LOE
         double[] startPoint = new double[maxYears];
+        double[] stdDev = new double[maxYears];
 		double[][] boundaries = new double[2][maxYears];
         for(int i=0;i<maxYears;i++) {
 //        	if(i<maxYears/2)
         		startPoint[i] = this.maxBudget / 2;
 //        	else
 //            	startPoint[i] = 0;
+       		stdDev[i] = this.maxBudget * 0.01;
 			boundaries[0][i] = this.minBudget;
 			boundaries[1][i] = this.maxBudget;
         }
-        MaxEval eval = new MaxEval(500);
+        MaxEval eval = new MaxEval(maxEvals);
      //   int numInterpolationPoints = startPoint.length+2;//2 * startPoint.length + 1;
         int numInterpolationPoints = ((startPoint.length+1)*(startPoint.length+2))/startPoint.length;
-        BOBYQAOptimizer optimizer = new BOBYQAOptimizer(numInterpolationPoints,maxBudget*.01,.1);
+        BOBYQAOptimizer optimizer = new BOBYQAOptimizer(numInterpolationPoints,maxBudget*.01,maxBudget*.00001);
 		ObjectiveFunction objF = new ObjectiveFunction(f);
-      //TODO multistart
-//		RandomVectorGenerator rand = new Well1024a(500);
-//		MultiStartMultivariateOptimizer multiOpt = new MultiStartMultivariateOptimizer(optimizer, noOfPts, rand);
-//      SearchInterval search = new SearchInterval(minBudget,maxBudget); //budget in LOE
-//      optimizer.getStartValue();
+      //TODO multistart, UnitSphereRandomVectorGenerator is not very good.
+		RandVectorGenerator rand = new RandVectorGenerator();
+		rand.setMax(this.maxBudget);
+		rand.setSize(startPoint.length);
+		//RandomVectorGenerator rand = new UncorrelatedRandomVectorGenerator(startPoint.length, new GaussianRandomGenerator(new Well1024a(50000)));
+		MultiStartMultivariateOptimizer multiOpt = new MultiStartMultivariateOptimizer(optimizer, noOfPts, rand);
 
+        OptimizationData[] data = new OptimizationData[]{new SimpleBounds(boundaries[0], boundaries[1]), objF, GoalType.MAXIMIZE, eval, new InitialGuess(startPoint) };
       try {
-            PointValuePair pair = optimizer.optimize(eval, objF, GoalType.MAXIMIZE, new InitialGuess(startPoint),  new SimpleBounds(boundaries[0], boundaries[1]));
+    	  multiOpt.optimize(data);
+    	  PointValuePair[] pairs = multiOpt.getOptima();
+    	  
+    	  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nLocal Maxima: ");
+    	  for(int i=0;i<pairs.length;i++) {
+    		  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nFor starting point " + rand.getStartingPoints().get(i)+" the budget for each year is:\n");
+    		  yearlyBudget = pairs[i].getPoint();
+    			for(int j=0;j<yearlyBudget.length;j++)
+    				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+yearlyBudget[j]+", ");
+    	  }
+    	  
+//            PointValuePair pair = optimizer.optimize(eval, objF, GoalType.MAXIMIZE, new InitialGuess(startPoint),  new SimpleBounds(boundaries[0], boundaries[1]));
 
             progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
             if(((MultivariateOptFunction)f).solutionExists)
             {
-	            yearlyBudget = pair.getPoint();
+            	yearlyBudget = pairs[0].getPoint();
+	            //yearlyBudget = pair.getPoint();
 	            optNumYears = ((MultivariateOptFunction)f).calculateYears(yearlyBudget);
 	          //  optNumYears =  ((MultivariateOptFunction)f).yearAdjuster.adjustTimeToTransform(yearlyBudget, optNumYears);
 	            if(optNumYears<1) {
@@ -127,7 +159,7 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 	}
 
 	protected void display() {
-		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nFor Budget B: ");
+  	  	playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nOf these, the Global Maxima occurs when yearly budget is: ");
 		for(int i=0;i<yearlyBudget.length;i++)
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+yearlyBudget[i]+", ");
 		playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nNumber of Years to consolidate systems: "+optNumYears);
@@ -150,6 +182,8 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 		breakEvenList = ((MultivariateOptFunction)f).createBreakEven(yearlyBudget, optNumYears);
 		sustainCostList = ((MultivariateOptFunction)f).createSustainmentCosts(optNumYears);
 		installCostList = ((MultivariateOptFunction)f).createInstallCosts(yearlyBudget, optNumYears);
+		workDoneList = ((MultivariateOptFunction)f).createWorkDoneCosts(yearlyBudget, optNumYears);
+		
 	}
 	
 	protected void displayHeaderLabels() {

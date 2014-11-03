@@ -27,6 +27,7 @@ import prerna.algorithm.impl.specific.tap.MultiVarSysIRROptimizer;
 import prerna.algorithm.impl.specific.tap.MultiVarSysNetSavingsOptimizer;
 import prerna.algorithm.impl.specific.tap.MultiVarSysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.MultivariateOptimizer;
+import prerna.ui.components.specific.tap.MultiVarSysOptPlaySheet;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
 
@@ -34,6 +35,7 @@ import prerna.ui.helpers.AlgorithmRunner;
  */
 public class MultiVarSysOptBtnListener extends SerOptBtnListener {
 	
+	int maxEvals;
 	static final Logger logger = LogManager.getLogger(MultiVarSysOptBtnListener.class.getName());
 	/**
 	 * Method actionPerformed.
@@ -56,7 +58,7 @@ public class MultiVarSysOptBtnListener extends SerOptBtnListener {
 			else if(((SysOptPlaySheet)playSheet).rdbtnIRR.isSelected()) this.optimizer = new MultiVarSysIRROptimizer();
 
 			optimizer.setPlaySheet(playSheet);
-			((MultivariateOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
+			((MultivariateOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts,maxEvals, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
 			((MultivariateOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).systemSelectPanel,((SysOptPlaySheet)playSheet).capabilitySelectPanel,((SysOptPlaySheet)playSheet).dataBLUSelectPanel,((SysOptPlaySheet)playSheet).systemModernizePanel,((SysOptPlaySheet)playSheet).systemDecomissionPanel,((SysOptPlaySheet)playSheet).includeRegionalizationCheckbox.isSelected(),((SysOptPlaySheet)playSheet).garrTheaterCheckbox.isSelected());
 
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
@@ -76,11 +78,23 @@ public class MultiVarSysOptBtnListener extends SerOptBtnListener {
 	@Override
 	public String specificSetVariablesString(String failStr)
 	{
+		int maxEvals = Integer.parseInt(((MultiVarSysOptPlaySheet)playSheet).maxEvalsField.getText());
+		if(maxEvals<1){
+			failStr = failStr+"Maximum number of iterations must be an integer greater than 0\n";
+		}
+		else 
+			this.maxEvals = maxEvals;
 		return failStr;
 	}
 	@Override
 	public Integer specificSetVariablesCount(int failCount)
 	{
+		int maxEvals = Integer.parseInt(((MultiVarSysOptPlaySheet)playSheet).maxEvalsField.getText());
+		if(maxEvals<1){
+			failCount++;
+		}
+		else 
+			this.maxEvals = maxEvals;
 		return failCount;
 	}
 	

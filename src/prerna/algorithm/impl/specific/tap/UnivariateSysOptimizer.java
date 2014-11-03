@@ -73,7 +73,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt{
 	boolean includeGarrison = false;
 	String errorMessage = "";
 	boolean reducedFunctionality = false;
-	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList;
+	public ArrayList<Double> cumSavingsList, breakEvenList, sustainCostList, installCostList, workDoneList;
 	private int[] provideDataBLUNow;
 	private int[] provideDataBLUFuture;
 

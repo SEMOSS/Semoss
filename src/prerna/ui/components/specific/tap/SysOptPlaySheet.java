@@ -104,10 +104,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		
 		includeRegionalizationCheckbox = new JCheckBox("Include Regionalization");
 		GridBagConstraints gbc_includeRegionalizationCheckbox = new GridBagConstraints();
-		gbc_includeRegionalizationCheckbox.gridwidth = 3;
+		gbc_includeRegionalizationCheckbox.gridwidth = 2;
 		gbc_includeRegionalizationCheckbox.insets = new Insets(0, 0, 5, 20);
-		gbc_includeRegionalizationCheckbox.gridx = 2;
-		gbc_includeRegionalizationCheckbox.gridy = 4;
+		gbc_includeRegionalizationCheckbox.gridx = 0;
+		gbc_includeRegionalizationCheckbox.gridy = 5;
 		advParamPanel.add(includeRegionalizationCheckbox, gbc_includeRegionalizationCheckbox);
 		
 		garrTheaterCheckbox = new JCheckBox("Ignore Theater/Garrison Tag");

@@ -18,7 +18,13 @@
  ******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+
 import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 
 import prerna.ui.main.listener.specific.tap.MultiVarSysOptBtnListener;
 
@@ -28,6 +34,8 @@ import prerna.ui.main.listener.specific.tap.MultiVarSysOptBtnListener;
 @SuppressWarnings("serial")
 public class MultiVarSysOptPlaySheet extends SysOptPlaySheet{
 
+	public JTextField maxEvalsField;
+	
 	/**
 	 * Constructor for MultiVarSysOptPlaySheet.
 	 */
@@ -40,5 +48,30 @@ public class MultiVarSysOptPlaySheet extends SysOptPlaySheet{
 		MultiVarSysOptBtnListener obl = new MultiVarSysOptBtnListener();
 		obl.setOptPlaySheet(this);
 		btnRunOptimization.addActionListener(obl);
+	}
+	
+	@Override
+	public void createAdvParamPanels() {
+		super.createAdvParamPanels();
+		maxEvalsField = new JTextField();
+		maxEvalsField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		GridBagConstraints gbc_maxEvalsField = new GridBagConstraints();
+		gbc_maxEvalsField.anchor = GridBagConstraints.WEST;
+		gbc_maxEvalsField.insets = new Insets(0, 0, 5, 5);
+		gbc_maxEvalsField.gridx = 2;
+		gbc_maxEvalsField.gridy = 4;
+		advParamPanel.add(maxEvalsField, gbc_maxEvalsField);
+		maxEvalsField.setText("500");
+		maxEvalsField.setColumns(3);
+
+		JLabel lblMaxEvals = new JLabel("Maximum Iterations");
+		lblMaxEvals.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblMaxEvals = new GridBagConstraints();
+		gbc_lblMaxEvals.gridwidth = 3;
+		gbc_lblMaxEvals.insets = new Insets(0, 0, 5, 0);
+		gbc_lblMaxEvals.anchor = GridBagConstraints.WEST;
+		gbc_lblMaxEvals.gridx = 3;
+		gbc_lblMaxEvals.gridy = 4;
+		advParamPanel.add(lblMaxEvals, gbc_lblMaxEvals);
 	}
 }

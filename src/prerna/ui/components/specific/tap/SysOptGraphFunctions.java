@@ -118,6 +118,11 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 		colorHash.put("Build Costs", "#4572A7");
 		colorHash.put("Sustainment Costs", "#80699B");
 		
+		if(susPerYearList.size()>2) {
+			double[] workDoneSeries = susPerYearList.get(2);
+			seriesHash.put("Work Done", workDoneSeries);
+			colorHash.put("Work Done", "#4592B7");
+		}
 		barChartHash.put("dataSeries",  seriesHash);
 		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
@@ -127,18 +132,37 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 	public ArrayList<double[]> createSusPerYear()
 	{
 		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
+		
 		double[] buildCost = new double[maxYears];
 		for(int i=0;i<maxYears;i++)
 		{
 			buildCost[i] = opt.installCostList.get(i);
 		}
+		
 		double[] sustainCost = new double[maxYears];
 		for(int i=0;i<maxYears;i++)
 		{
 			sustainCost[i] = opt.sustainCostList.get(i);
 		}
-		susPerYearList.add(buildCost);
-		susPerYearList.add(sustainCost);		
+
+		if(opt.workDoneList==null) {
+			susPerYearList.add(buildCost);
+			susPerYearList.add(sustainCost);	
+			
+		}else {
+			double[] workDoneList = new double[maxYears];
+			for(int i=0;i<maxYears;i++)
+			{
+				workDoneList[i] = opt.workDoneList.get(i);
+			}
+			for(int i=0;i<maxYears;i++)
+			{
+				buildCost[i] = buildCost[i] - workDoneList[i];
+			}
+			susPerYearList.add(buildCost);
+			susPerYearList.add(sustainCost);
+			susPerYearList.add(workDoneList);
+		}
 		return susPerYearList;
 	}
 	
