@@ -18,7 +18,6 @@
  ******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
-import java.util.ArrayList;
 
 
 /**
@@ -37,36 +36,16 @@ public class MultiVarSysIRRFunction extends MultivariateOptFunction{
 		linInt.execute();
 		return linInt.retVal;
 	}
+//	
+//	public double calculateRet(double[] budget,double n, double savings)
+//	{
+//		if(n>totalYrs)
+//			return -1.0E30;
+//		linInt.setBAndN(budget, n);
+//		linInt.execute();
+//		return linInt.retVal;
+//	}
 	
-	public double calculateRet(double[] budget,double n, double savings)
-	{
-		if(n>totalYrs)
-			return -1.0E30;
-		linInt.setBAndN(budget, n);
-		linInt.execute();
-		return linInt.retVal;
-	}
-	
-	@Override
-	public double calculateYears(double[] budget)
-	{
-		int year = 0;
-		workPerformedArray = new ArrayList<Double>();
-		double workNeededAdj = 0.0;
-		while(workNeededAdj<dataExposeCost)
-		{
-			if(workPerformedArray.size()>totalYrs+5)
-				return -1;
-			//year 1, q=1 in index 0.
-			double workPerformedInYearq = calculateWorkPerformedInYearq(budget[year], workPerformedArray.size()+1);
-			workNeededAdj+=workPerformedInYearq;
-			workPerformedArray.add(workPerformedInYearq);
-			year++;
-		}
-		double workPerformedInLastYear = workPerformedArray.get(workPerformedArray.size()-1);
-		double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear))/workPerformedInLastYear;
-		return workPerformedArray.size()-1+fraction;
-	}
 	@Override
 	public void writeToAppConsole(double[] budget, double n, double savings)
 	{
@@ -81,7 +60,7 @@ public class MultiVarSysIRRFunction extends MultivariateOptFunction{
 	public void createLinearInterpolation()
 	{
 		 linInt = new MultiVarSysIRRLinInterp();
-		 linInt.setMinAndMax(-.95, 5);
+		 linInt.setMinAndMax(-.95, 2);
 		 linInt.setCalcParams(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate);
 		// linInt.setValues(numMaintenanceSavings,serMainPerc, dataExposeCost,totalYrs,infRate,disRate, -10, 10);
 	}

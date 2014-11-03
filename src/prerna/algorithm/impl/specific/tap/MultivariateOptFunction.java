@@ -380,7 +380,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 		return breakEvenList;
 	}
 
-	private void createYearAdjuster(ArrayList<String> sysList, ArrayList<String> dataList, double hourlyCost)
+	public void createYearAdjuster(ArrayList<String> sysList, ArrayList<String> dataList, double hourlyCost)
 	{
 		yearAdjuster = new SysDecommissionOptimizationFunctions();
 		yearAdjuster.setSysList(sysList);
