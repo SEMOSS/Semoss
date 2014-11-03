@@ -332,6 +332,36 @@ public class MultivariateOptFunction implements MultivariateFunction{
 		}
 		return installList;
 	}
+	public ArrayList<Double> createWorkDoneCosts(double[] budget, double n)
+	{
+		ArrayList<Double> workDoneList = new ArrayList<Double>();
+		int index = 0;
+		while(index<totalYrs)
+		{
+			if(index+1<n)//might need to say zero if null pointer, this should probably be adjusted to investment cost at each year.
+			{
+				double factor = 1.0;
+				if(inflDiscFactor!=1)
+					factor = Math.pow(inflDiscFactor,index);
+				//double buildCost = factor*budget[index];
+				double buildCost = factor*calculateWorkPerformedInYearq(budget[index],index+1);
+				workDoneList.add(buildCost);
+			}
+			else if(index<n)
+			{
+				double factor = 1.0;
+				if(inflDiscFactor!=1)
+					factor = Math.pow(inflDiscFactor,index);
+				//double buildCost = factor*budget[index]*(n-(index));
+				double buildCost = factor*calculateWorkPerformedInYearq(budget[index],index+1);	
+				workDoneList.add(buildCost);
+			}
+			else
+				workDoneList.add(0.0);
+			index++;
+		}
+		return workDoneList;
+	}
 	
 	public ArrayList<Double> createCumulativeSavings(double n)
 	{
