@@ -37,6 +37,8 @@ import org.openrdf.model.Literal;
 import com.bigdata.rdf.model.BigdataURIImpl;
 
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
@@ -126,50 +128,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		mainPanel.add(scrollPane, gbc_scrollPane);
 	}
 	
-	@Override
-	public void createView() {	
-		if(list!=null && list.isEmpty()){
-			String questionID = getQuestionID();
-			// fill the nodetype list so that they can choose from
-			// remove from store
-			// this will also clear out active sheet
-			QuestionPlaySheetStore.getInstance().remove(questionID);
-			if(QuestionPlaySheetStore.getInstance().isEmpty())
-			{
-				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
-				btnShowPlaySheetsList.setEnabled(false);
-			}
-			Utility.showError("Query returned no results.");
-			return;		
-		}
-		
-		if(table==null)
-			addPanel();
-
-		updateProgressBar("80%...Creating Visualization", 80);
-		if(list!=null){
-			//Filter URIs for the Grid View
-			for (Object[] item : list) {
-				for (int i=0; i<item.length; i++) {
-					if (item[i] != null && item[i] instanceof BigdataURIImpl) {
-					//if (item[i] != null && item[i].contains("http://")) {
-						//get the instance value from the URI
-						item[i] = Utility.getInstanceName(item[i].toString());
-						//item[i] = Utility.getInstanceName(item[i]);
-					}
-				}
-			}
-			gfd.setColumnNames(names);
-			gfd.setDataList(list);
-			GridTableModel model = new GridTableModel(gfd);
-			table.setModel(model);
-			table.setRowSorter(new GridTableRowSorter(model));
-		}
-
-		updateProgressBar("100%...Table Generation Complete", 100);
-	}
-	
-/*	@Override
+	/*@Override
 	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
@@ -178,8 +137,9 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		return var;
 	}*/
 	
-	public void createRAWView() {
-		super.createView();
+	@Override
+	public GridRAWTableModel setGridModel(GridFilterData gfd) {
+		GridTableModel model = new GridTableModel(gfd);
+		return model;
 	}
-
 }
