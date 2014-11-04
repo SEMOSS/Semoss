@@ -128,14 +128,14 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		mainPanel.add(scrollPane, gbc_scrollPane);
 	}
 	
-	/*@Override
+	@Override
 	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);
 			} 
 		return var;
-	}*/
+	}
 	
 	@Override
 	public GridRAWTableModel setGridModel(GridFilterData gfd) {

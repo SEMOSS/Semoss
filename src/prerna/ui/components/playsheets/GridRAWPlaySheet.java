@@ -35,7 +35,7 @@ public class GridRAWPlaySheet extends GridPlaySheet {
 	 * @return Object - results with given URI.*/
 	@Override
 	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
-		return sjss.getRawVar(varName);
+		return sjss.getRawVar(varName).toString();
 	}
 	
 	@Override
