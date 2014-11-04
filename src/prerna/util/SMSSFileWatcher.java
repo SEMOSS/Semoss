@@ -80,12 +80,16 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	
 			Utility.loadEngine(folderToWatch+ "/" +  newFile, prop);
 			String engineName = prop.getProperty(Constants.ENGINE);
-			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-			DefaultListModel listModel = (DefaultListModel) list.getModel();
-			listModel.addElement(engineName);
-			//list.setModel(listModel);
-			list.setSelectedIndex(0);
-			list.repaint();
+			//check if hidden database
+			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
+			if(!hidden){
+				JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+				DefaultListModel listModel = (DefaultListModel) list.getModel();
+				listModel.addElement(engineName);
+				//list.setModel(listModel);
+				list.setSelectedIndex(0);
+				list.repaint();
+			}
 			
 			// initialize combo box for cost db update
 			JComboBox changedDBComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.CHANGED_DB_COMBOBOX);

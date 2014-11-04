@@ -121,6 +121,7 @@ public class Constants {
 	public static final String SHOW_HINT = "btnShowHint";
 	public static final String SHOW_PLAYSHEETS_LIST = "btnShowPlaySheets";
 	public static final String ENGINE = "ENGINE";
+	public static final String HIDDEN_DATABASE = "HIDDEN_DATABASE";
 	public static final String ENGINES = "ENGINES";
 	public static final String ENGINE_PROPERTIES_FILE = "ENGINE_PROP";
 	public static final String ENGINE_TYPE = "ENGINE_TYPE";
