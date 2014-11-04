@@ -324,16 +324,10 @@ public class QuestionModButtonListener implements IChakraListener {
 						.showMessageDialog(
 								null,
 								"To add a new perspective, please select \"*NEW Perspective\".\nTo change the perspective name, please select \"Edit Question\" as the modification type.");
-			} else if (optionModel.getSize() != 0
-					&& (dependModel.getSize() != 0 || queryModel.getSize() != 0)) {
-				JOptionPane
-						.showMessageDialog(
-								null,
-								"You cannot define both parameter Options and parameter depend/query in the same question. Please remove one and add the question again.");
 			} else {
 				createQuestionKey();
-				Vector questionsVector = ((AbstractEngine) engine)
-						.getInsights(perspective);
+				//Vector questionsVector = ((AbstractEngine) engine)
+				//		.getInsights(perspective);
 
 				questionAdmin.addQuestion(perspective, questionKey, question,
 						sparql, layout, questionDescription,
