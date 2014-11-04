@@ -79,16 +79,25 @@ public class MultiVarSysIRRLinInterp extends LinearInterpolation{
 		if(v!=1)
 			vFactor = Math.pow(v, N+1.0)*(1.0-Math.pow(v, totalYrs-N))/(1.0-v);
 		double sustainSavings = vFactor*(numMaintenanceSavings - serMainPerc*dataExposeCost);
+		
 		double mu = (1+infRate)/(1+discRate);
 		double investment = 0.0;
-		for(int q=0;q<B.length;q++) {
-			double P1Inflation = 1.0;
+		int q=0;
+		double P1Inflation = 1.0;
+		for(q=0; q<N-1; q++) {
+			P1Inflation = 1.0;
 			if(mu!=1)
 				P1Inflation = Math.pow(mu, q);
 			investment += B[q]* P1Inflation;
 		}
+		if(mu!=1)
+			P1Inflation = Math.pow(mu,q);
+		double fraction = N - Math.floor(N);
+		double budgetUsedInLastYear = B[q] * P1Inflation * fraction;
+		investment+=budgetUsedInLastYear;
+		
 		double yVal = sustainSavings - investment;
-		printString += "\nv: "+v+" v^(N+1)*(1-v^(Q-N))/(1-v) "+vFactor+"\nmu: "+mu+" investment "+investment;
+		printString += "\nv: "+v+" v^(N+1)*(1-v^(Q-N))/(1-v) "+vFactor+"\ninvestment "+investment;
 		return yVal;
 	}
 }

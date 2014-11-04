@@ -39,7 +39,6 @@ public class MultivariateOptFunction implements MultivariateFunction{
 	
 	double investment;
 	ArrayList<Double> workPerformedArray;
-	double workNeededAdj;
 	public boolean solutionExists = false;
 	
 	public int totalYrs;
@@ -189,7 +188,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 	{
 		int year = 0;
 		workPerformedArray = new ArrayList<Double>();
-		workNeededAdj = 0.0;
+		double workNeededAdj = 0.0;
 		while(workNeededAdj<dataExposeCost&&year<budget.length)
 		{
 			//year 1, q=1 in index 0.
@@ -281,8 +280,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 		}
 		if(inflDiscFactor!=1)
 			P1Inflation = Math.pow(inflDiscFactor,q);
-		double workPerformedInLastYear = workPerformedArray.get(q);
-		double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear)) / workPerformedInLastYear;
+		double fraction = n - Math.floor(n);
 		double budgetUsedInLastYear = budget[q] * P1Inflation * fraction;
 		investment+=budgetUsedInLastYear;
 	}
@@ -364,7 +362,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 				if(inflDiscFactor!=1)
 					factor = Math.pow(inflDiscFactor,index);
 				double workPerformedInLastYear = workPerformedArray.get(index);
-				double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear)) / workPerformedInLastYear;
+				double fraction = n - Math.floor(n);
 				double workPerformedInLastFraction = factor * workPerformedInLastYear * fraction;
 				workDoneList.add(workPerformedInLastFraction);
 			}
