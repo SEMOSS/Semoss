@@ -58,6 +58,8 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 	JRadioButton clickedRadioButton = new JRadioButton();
 	JComboBox<String> questionDBSelector = new JComboBox<String>();
 	JComboBox<String> questionOrderComboBox = new JComboBox<String>();
+	JComboBox<String> questionLayoutListComboBox = new JComboBox<String>();
+	
 	String engineName = null;
 	String order = "";
 	
@@ -99,6 +101,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		
 		questionDBSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
 		questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
+		questionLayoutListComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 		
 		engineName = (String) questionDBSelector.getSelectedItem();
 	}
@@ -109,7 +112,6 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-
 		clickedRadioButton = (JRadioButton)e.getSource();
 		String modificationType = clickedRadioButton.getText()+ "";
 			
@@ -134,7 +136,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		else{
 			if(!existingNewPerspective){
 				questionPerspectiveSelector.insertItemAt("*NEW Perspective", 0);
-			} 
+			}
 		}
 		
 		questionPerspectiveField.setEnabled(true);
@@ -146,7 +148,8 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		questionAddParameterButton.setEnabled(true);
 		addParameterComboBox.setEnabled(true);
 		questionOrderComboBox.setEnabled(true);
-		
+		questionLayoutListComboBox.setEnabled(true);
+
 		parameterQueryList.setEnabled(true);
 		parameterDependList.setEnabled(true);
 		parameterOptionList.setEnabled(true);
@@ -227,10 +230,11 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 			questionPerspectiveField.setText(perspective);
 			questionOrderComboBox.setSelectedItem(questionOrderComboBox.getItemCount() + "");
 			questionField.setText("");
-			questionLayoutField.setText("prerna.ui.components.playsheets.PlaySheetName");
+			questionLayoutField.setText("");
 			parameterQueryList.setListData(new String[0]);
 			parameterDependList.setListData(new String[0]);
 			parameterOptionList.setListData(new String[0]);
+			questionLayoutListComboBox.setSelectedIndex(0);
 
 			questionModButton.setText("Add Question");
 			
@@ -303,6 +307,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 			questionAddParameterButton.setEnabled(false);
 			addParameterComboBox.setEnabled(false);
 			questionOrderComboBox.setEnabled(false);
+			questionLayoutListComboBox.setEnabled(false);
 			
 			parameterQueryList.setEnabled(false);
 			parameterDependList.setEnabled(false);

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Vector;
 
+import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
@@ -16,6 +17,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 
 public class QuestionModDBComboBoxListener implements IChakraListener {
 
@@ -26,6 +28,17 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		JRadioButton addQuestionModType = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
 
+		//populate layout combobox
+		JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
+		playSheetComboBox.removeAllItems();
+		
+		playSheetComboBox.insertItemAt("*Custom_PlaySheet", 0);
+		
+		ArrayList playsheetArray = PlaySheetEnum.getAllSheetNames();
+		for(int i = 0; i < playsheetArray.size(); i++){
+			playSheetComboBox.addItem(playsheetArray.get(i));
+		}
+		
 		//entity filler; this will populate the parameter combobox for users to select a parameter they want to bind
 		ArrayList<JComboBox> boxes = new ArrayList<JComboBox>();
 		ParamComboBox addParameterComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ADD_PARAMETER_COMBO_BOX);

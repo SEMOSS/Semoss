@@ -36,6 +36,7 @@ import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 
 /**
  * Controls selection of the perspective.
@@ -54,6 +55,8 @@ public class QuestionModSelectorListener implements IChakraListener {
 	JComboBox<String> questionModSelector = new JComboBox<String>();
 	JComboBox<String> questionDBSelector = new JComboBox<String>();
 	JComboBox<String> questionOrderComboBox = new JComboBox<String>();
+	JComboBox<String> questionLayoutComboBox = new JComboBox<String>();
+	
 	String engineName = null;
 	String question = null;
 	String perspective = null;
@@ -89,6 +92,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 				.getLocalProp(Constants.QUESTION_DB_SELECTOR);
 		questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance()
 				.getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
+		questionLayoutComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 
 		engineName = (String) questionDBSelector.getSelectedItem();
 		question = (String) questionModSelector.getSelectedItem();
@@ -202,6 +206,11 @@ public class QuestionModSelectorListener implements IChakraListener {
 
 				questionSparqlTextPane.setText(sparql);
 				questionLayoutField.setText(layoutValue);
+				if(PlaySheetEnum.getNameFromClass(layoutValue) != ""){
+					questionLayoutComboBox.setSelectedItem(PlaySheetEnum.getNameFromClass(layoutValue));
+				} else{
+					questionLayoutComboBox.setSelectedIndex(0);
+				}
 				questionOrderComboBox.setSelectedItem(order);
 				// questionKeyField.setText(questionKey);
 				// sets the dependencies in the UI
