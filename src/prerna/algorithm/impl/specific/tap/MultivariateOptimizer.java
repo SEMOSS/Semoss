@@ -94,21 +94,24 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 		//RandomVectorGenerator rand = new UncorrelatedRandomVectorGenerator(startPoint.length, new GaussianRandomGenerator(new Well1024a(50000)));
 		MultiStartMultivariateOptimizer multiOpt = new MultiStartMultivariateOptimizer(optimizer, noOfPts, rand);
 
-        OptimizationData[] data = new OptimizationData[]{new SimpleBounds(boundaries[0], boundaries[1]), objF, GoalType.MAXIMIZE, eval, new InitialGuess(startPoint) };
+        OptimizationData[] data = new OptimizationData[]{new SimpleBounds(boundaries[0], boundaries[1]), objF, GoalType.MAXIMIZE, eval, new InitialGuess(rand.nextVector()) };
       try {
     	  multiOpt.optimize(data);
     	  PointValuePair[] pairs = multiOpt.getOptima();
     	  
-    	  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nLocal Maxima: ");
+    	  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nFor starting points: ");
     	  for(int i=0;i<pairs.length;i++) {
-    		  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nFor starting point " + rand.getStartingPoints().get(i)+" the budget for each year is:\n");
+    		  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+rand.getStartingPoints().get(i)+", ");
+    	  }
+    	  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nThe yearly budgets producing local maxima are: ");
+     	  for(int i=0;i<pairs.length;i++) {
+    		  playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n");
     		  yearlyBudget = pairs[i].getPoint();
     			for(int j=0;j<yearlyBudget.length;j++)
     				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+yearlyBudget[j]+", ");
     	  }
     	  
 //            PointValuePair pair = optimizer.optimize(eval, objF, GoalType.MAXIMIZE, new InitialGuess(startPoint),  new SimpleBounds(boundaries[0], boundaries[1]));
-
             progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
             if(((MultivariateOptFunction)f).solutionExists)
