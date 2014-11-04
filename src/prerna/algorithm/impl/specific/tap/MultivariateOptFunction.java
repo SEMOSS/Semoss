@@ -39,6 +39,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 	
 	double investment;
 	ArrayList<Double> workPerformedArray;
+	double workNeededAdj;
 	public boolean solutionExists = false;
 	
 	public int totalYrs;
@@ -188,7 +189,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 	{
 		int year = 0;
 		workPerformedArray = new ArrayList<Double>();
-		double workNeededAdj = 0.0;
+		workNeededAdj = 0.0;
 		while(workNeededAdj<dataExposeCost&&year<budget.length)
 		{
 			//year 1, q=1 in index 0.
@@ -204,6 +205,7 @@ public class MultivariateOptFunction implements MultivariateFunction{
 			double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear)) / workPerformedInLastYear;
 			return year - 1 + fraction;
 	}
+
 	protected double calculateWorkPerformedInYearq(double budget, int q)
 	{
 		double P1q = calculateP1q(q);
@@ -265,15 +267,24 @@ public class MultivariateOptFunction implements MultivariateFunction{
 		return savings;
 	}
 	
+	
 	protected void calculateInvestment(double[] budget, double n)
 	{
 		investment = 0.0;
-		for(int q=0;q<budget.length;q++) {
-			double P1Inflation = 1.0;
+		int q=0;
+		double P1Inflation = 1.0;
+		for(q=0; q<n-1; q++) {
+			P1Inflation = 1.0;
 			if(inflDiscFactor!=1)
 				P1Inflation = Math.pow(inflDiscFactor, q);
 			investment += budget[q]* P1Inflation;
 		}
+		if(inflDiscFactor!=1)
+			P1Inflation = Math.pow(inflDiscFactor,q);
+		double workPerformedInLastYear = workPerformedArray.get(q);
+		double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear)) / workPerformedInLastYear;
+		double budgetUsedInLastYear = budget[q] * P1Inflation * fraction;
+		investment+=budgetUsedInLastYear;
 	}
 	
 	public ArrayList<Double> createSustainmentCosts(double n)
@@ -352,9 +363,10 @@ public class MultivariateOptFunction implements MultivariateFunction{
 				double factor = 1.0;
 				if(inflDiscFactor!=1)
 					factor = Math.pow(inflDiscFactor,index);
-				//double buildCost = factor*budget[index]*(n-(index));
-				double buildCost = factor*calculateWorkPerformedInYearq(budget[index],index+1);	
-				workDoneList.add(buildCost);
+				double workPerformedInLastYear = workPerformedArray.get(index);
+				double fraction = (dataExposeCost - (workNeededAdj - workPerformedInLastYear)) / workPerformedInLastYear;
+				double workPerformedInLastFraction = factor * workPerformedInLastYear * fraction;
+				workDoneList.add(workPerformedInLastFraction);
 			}
 			else
 				workDoneList.add(0.0);
