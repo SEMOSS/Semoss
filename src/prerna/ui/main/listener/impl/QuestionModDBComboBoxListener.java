@@ -66,6 +66,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		}
 		if (addQuestionModType.isSelected()){
 			box.insertItemAt("*NEW Perspective", 0);
+			playSheetComboBox.setSelectedIndex(0);
 		}
 		box.setSelectedIndex(0);
 	}

@@ -2,6 +2,8 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -65,6 +67,28 @@ public class QuestionModButtonListener implements IChakraListener {
 
 	boolean existingPerspective = false;
 
+	private void reloadDB(){
+		//selects the db in repolist so the questions refresh with the changes
+		//selects the db in repolist so the questions refresh with the changes
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		List selectedList = list.getSelectedValuesList();
+		String selectedValue = selectedList.get(selectedList.size()-1).toString();
+		
+		//don't need to refresh if selected db is not the db you're modifying. when you click to it it will refresh anyway.
+		if(engineName.equals(selectedValue)){
+			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
+			Vector<String> perspectives = engine.getPerspectives();
+			Collections.sort(perspectives);
+			
+			JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
+			box.removeAllItems();
+			
+			for(int itemIndex = 0;itemIndex < perspectives.size(); itemIndex++) {
+				box.addItem(perspectives.get(itemIndex).toString());
+			}
+		}
+	}
+	
 	public void getFieldData() {
 		addQuestionRadioButton = (JRadioButton) DIHelper.getInstance()
 				.getLocalProp(Constants.ADD_QUESTION_BUTTON);
@@ -347,6 +371,9 @@ public class QuestionModButtonListener implements IChakraListener {
 						.getSelectedItem();
 				questionDBSelector.setSelectedItem(currentDBSelected);
 
+				//reload the db with modified questions
+				reloadDB();
+				
 				JOptionPane.showMessageDialog(null,
 						"The question has been added.");
 			}
@@ -444,6 +471,9 @@ public class QuestionModButtonListener implements IChakraListener {
 							questionDBSelector
 									.setSelectedItem(currentDBSelected);
 
+							//reload db with modified questions
+							reloadDB();
+							
 							JOptionPane.showMessageDialog(null,
 									"The question has been updated.");
 						}
@@ -500,6 +530,9 @@ public class QuestionModButtonListener implements IChakraListener {
 							.getSelectedItem();
 					questionDBSelector.setSelectedItem(currentDBSelected);
 
+					//reload db with modified questions
+					reloadDB();
+					
 					JOptionPane.showMessageDialog(null,
 							"The question has been deleted.");
 				}
