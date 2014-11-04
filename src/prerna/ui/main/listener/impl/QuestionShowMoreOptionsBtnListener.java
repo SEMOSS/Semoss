@@ -46,8 +46,7 @@ public class QuestionShowMoreOptionsBtnListener implements IChakraListener {
 		JButton parameterOptionEditButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTION_EDIT_BUTTON);
 		
 		String buttonText = questionMoreOptionsButton.getText();
-		
-		if(buttonText.contains("Add Param Depend/Query")){
+		if(buttonText.equals("+ Advanced Param Settings")){
 			addParameterDependButton.setVisible(true);
 			addParameterQueryButton.setVisible(true);
 			parameterQueryScroll.setVisible(true);
@@ -63,32 +62,6 @@ public class QuestionShowMoreOptionsBtnListener implements IChakraListener {
 			parameterDependEditButton.setVisible(true);
 			parameterQueryEditButton.setVisible(true);
 			
-			parameterOptionEditButton.setVisible(false);
-			parameterOptionDeleteButton.setVisible(false);
-			addParameterOptionButton.setVisible(false);
-			lblParameterOption.setVisible(false);
-			parameterOptionScroll.setVisible(false);
-			parameterOptionScrollList.setVisible(false);
-			lblParameterOptionList.setVisible(false);
-			
-			questionMoreOptionsButton.setText("+ Add Param Option");
-		}
-		else if (buttonText.contains("Add Param Option")){
-			addParameterDependButton.setVisible(false);
-			addParameterQueryButton.setVisible(false);
-			lblParameterQuery.setVisible(false);
-			lblParameterDepend.setVisible(false);
-			parameterQueryScroll.setVisible(false);
-			parameterDependScroll.setVisible(false);
-			parameterDependScrollList.setVisible(false);
-			parameterQueryScrollList.setVisible(false);
-			lblParameterQueryList.setVisible(false);
-			lblParameterDependList.setVisible(false);
-			parameterDependDeleteButton.setVisible(false);
-			parameterQueryDeleteButton.setVisible(false);
-			parameterDependEditButton.setVisible(false);
-			parameterQueryEditButton.setVisible(false);
-			
 			parameterOptionEditButton.setVisible(true);
 			parameterOptionDeleteButton.setVisible(true);
 			addParameterOptionButton.setVisible(true);
@@ -97,9 +70,9 @@ public class QuestionShowMoreOptionsBtnListener implements IChakraListener {
 			parameterOptionScrollList.setVisible(true);
 			lblParameterOptionList.setVisible(true);
 			
-			questionMoreOptionsButton.setText("- Hide Param Option");
+			questionMoreOptionsButton.setText("- Advanced Param Settings");
 		}
-		else if (buttonText.contains("Hide Param Option")){
+		else if (buttonText.equals("- Advanced Param Settings")){
 			addParameterDependButton.setVisible(false);
 			addParameterQueryButton.setVisible(false);
 			lblParameterQuery.setVisible(false);
@@ -123,7 +96,7 @@ public class QuestionShowMoreOptionsBtnListener implements IChakraListener {
 			parameterOptionScrollList.setVisible(false);
 			lblParameterOptionList.setVisible(false);
 			
-			questionMoreOptionsButton.setText("+ Add Param Depend/Query");
+			questionMoreOptionsButton.setText("+ Advanced Param Settings");
 		}
 	}
 
