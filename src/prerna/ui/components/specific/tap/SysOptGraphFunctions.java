@@ -106,7 +106,7 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 		Hashtable seriesHash = new Hashtable();
 		Hashtable colorHash = new Hashtable();
 		barChartHash.put("type",  "column");
-		barChartHash.put("stack", "normal");
+		//barChartHash.put("stack", "normal");
 		barChartHash.put("title",  "Build and Sustainment Cost ");
 		barChartHash.put("yAxisTitle", "Learning-Adjusted Cost (Actual-time value)");
 		barChartHash.put("xAxisTitle", "Fiscal Year");
@@ -120,8 +120,8 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 		
 		if(susPerYearList.size()>2) {
 			double[] workDoneSeries = susPerYearList.get(2);
-			seriesHash.put("Work Done", workDoneSeries);
-			colorHash.put("Work Done", "#4592B7");
+			seriesHash.put("Work Performed", workDoneSeries);
+			colorHash.put("Work Performed", "#4592B7");
 		}
 		barChartHash.put("dataSeries",  seriesHash);
 		barChartHash.put("colorSeries", colorHash);
@@ -135,32 +135,19 @@ public class SysOptGraphFunctions extends OptGraphFunctions{
 		
 		double[] buildCost = new double[maxYears];
 		for(int i=0;i<maxYears;i++)
-		{
 			buildCost[i] = opt.installCostList.get(i);
-		}
 		
 		double[] sustainCost = new double[maxYears];
 		for(int i=0;i<maxYears;i++)
-		{
 			sustainCost[i] = opt.sustainCostList.get(i);
-		}
 
-		if(opt.workDoneList==null) {
-			susPerYearList.add(buildCost);
-			susPerYearList.add(sustainCost);	
-			
-		}else {
+		susPerYearList.add(buildCost);
+		susPerYearList.add(sustainCost);	
+		
+		if(opt.workDoneList!=null) {
 			double[] workDoneList = new double[maxYears];
 			for(int i=0;i<maxYears;i++)
-			{
 				workDoneList[i] = opt.workDoneList.get(i);
-			}
-			for(int i=0;i<maxYears;i++)
-			{
-				buildCost[i] = buildCost[i] - workDoneList[i];
-			}
-			susPerYearList.add(buildCost);
-			susPerYearList.add(sustainCost);
 			susPerYearList.add(workDoneList);
 		}
 		return susPerYearList;
