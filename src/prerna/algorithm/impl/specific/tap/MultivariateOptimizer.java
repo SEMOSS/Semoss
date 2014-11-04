@@ -111,13 +111,11 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
     				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+yearlyBudget[j]+", ");
     	  }
     	  
-//            PointValuePair pair = optimizer.optimize(eval, objF, GoalType.MAXIMIZE, new InitialGuess(startPoint),  new SimpleBounds(boundaries[0], boundaries[1]));
             progressBar.setIndeterminate(false);
             progressBar.setVisible(false);
             if(((MultivariateOptFunction)f).solutionExists)
             {
             	yearlyBudget = pairs[0].getPoint();
-	            //yearlyBudget = pair.getPoint();
 	            optNumYears = ((MultivariateOptFunction)f).calculateYears(yearlyBudget);
 	          //  optNumYears =  ((MultivariateOptFunction)f).yearAdjuster.adjustTimeToTransform(yearlyBudget, optNumYears);
 	            if(optNumYears<1) {
@@ -142,15 +140,18 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 
         MultiVarSysNetSavingsFunction savingsF = new MultiVarSysNetSavingsFunction();
         savingsF.setVariables(maxYears, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC,numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
+        savingsF.calculateYears(yearlyBudget);
         netSavings = savingsF.calculateRet(yearlyBudget,optNumYears);
 
         MultiVarSysROIFunction roiF = new MultiVarSysROIFunction();
         roiF.setVariables(maxYears, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC,numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
+        roiF.calculateYears(yearlyBudget);
         roi = roiF.calculateRet(yearlyBudget,optNumYears);
         
         MultiVarSysIRRFunction irrF = new MultiVarSysIRRFunction();
         irrF.setVariables(maxYears, attRate, hireRate,infRate, disRate, scdLT, iniLC, scdLC,numMaintenanceSavings, serMainPerc, dataExposeCost,preTransitionMaintenanceCost,postTransitionMaintenanceCost);
         irrF.createLinearInterpolation();
+        irrF.calculateYears(yearlyBudget);
         irr = irrF.calculateRet(yearlyBudget,optNumYears);        
  	 
         if(f instanceof MultiVarSysIRRFunction)
