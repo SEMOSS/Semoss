@@ -427,4 +427,6 @@ public class Constants {
 	public static final String PARAMETER_OPTION_TEXT_PANE = "parameterOptionTextPane";
 	public static final String PARAMETER_OPTIONS_JLIST = "parameterOptionList";
 	public static final String ENGINE_PROPERTIES = "PROPERTIES";
+	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
+	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
 }

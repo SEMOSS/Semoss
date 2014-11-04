@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Vector;
 
+import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
@@ -36,6 +38,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ComboboxToolTipRenderer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 import prerna.util.StringNumericComparator;
 
 /**
@@ -120,7 +123,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 		else{
 			questionOrderComboBox.removeAllItems();
 			questionOrderComboBox.addItem("1");
-		}
+		}		
 	}
 
 	/**
