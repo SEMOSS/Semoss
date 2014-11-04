@@ -14,6 +14,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+@SuppressWarnings("serial")
 public class ComparisonHeatMap extends BrowserPlaySheet {
 	
 	private String[] databaseArr;
@@ -97,11 +98,8 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 				
 				double simScore = (double) simCount/ uniqueValuesCount;
 				String key = instance1.concat("+").concat(instance2);
-				
-				if(key.equals("Airborne_NOAA_Fish_Srvy+Airborne_NOAA_Fish_Srvy")){
-					System.out.println("");
-				}
 				if(simValuesHash.containsKey(key)) {
+					@SuppressWarnings("unchecked")
 					Hashtable<String, Object> elemHash = (Hashtable<String, Object>) simValuesHash.get(key);
 					double oldSim = (double) elemHash.get("score");
 					elemHash.put("score", simScore + oldSim);
@@ -120,11 +118,7 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 	
 	private Hashtable<String, Object> averageSimScore(int length, Hashtable<String, Object> simValuesHash) {
 		for(String s : simValuesHash.keySet()) {
-			
-			if(s.equals("Airborne_NOAA_Fish_Srvy+Airborne_NOAA_Fish_Srvy")){
-				System.out.println("");
-			}
-			
+			@SuppressWarnings("unchecked")
 			Hashtable<String, Object> innerHash = (Hashtable<String, Object>) simValuesHash.get(s);
 			double totalScore = (double) innerHash.get("score");
 			double score = totalScore / length;
