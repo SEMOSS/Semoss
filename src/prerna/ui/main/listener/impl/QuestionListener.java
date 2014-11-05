@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -37,6 +38,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
+import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamPanel;
@@ -69,7 +71,6 @@ public class QuestionListener implements IChakraListener {
 		JComboBox questionBox = (JComboBox)actionevent.getSource();
 		// get the currently selected index
 		String question = (String)questionBox.getSelectedItem();	
-		AbstractEngine.selectedQuestion = question;
 		// get the question Hash from the DI Helper to get the question name
 		// get the ID for the question
 		if(question != null)
@@ -105,31 +106,11 @@ public class QuestionListener implements IChakraListener {
 
 			logger.info("Sparql is " + sparql);
 
-			// get all the parameters and names from the SPARQL
-			Hashtable paramHash = Utility.getParams(sparql);
-			// for each of the params pick out the type now
-			Enumeration keys = paramHash.keys();
-			Hashtable paramHash2 = new Hashtable();
-			while(keys.hasMoreElements())
-			{	
-				String key = (String)keys.nextElement();
-				StringTokenizer tokens = new StringTokenizer(key, "-");
-				// the first token is the name of the variable
-				String varName = tokens.nextToken();
-				String varType = Constants.EMPTY;
-				if(tokens.hasMoreTokens())
-					varType = tokens.nextToken();
-				logger.debug(varName + "<<>>" + varType);
-				paramHash2.put(varName, varType);
-				paramHash.put(key,"@" + varName + "@");
-			}
-			sparql = Utility.fillParam(sparql, paramHash);
-			logger.debug(sparql  + "<<<");
-			Hashtable paramHash3 = Utility.getParams(sparql);
-
+			Vector<SEMOSSParam> paramInfoVector = engine.getParams(question);
+			
 			ParamPanel panel = new ParamPanel();
-			panel.setParams(paramHash3);
-			panel.setParamType(paramHash2);
+			panel.setParams(paramInfoVector);
+			//panel.setParamType(paramHash2);
 			panel.setQuestionId(in.getId());
 			panel.paintParam();
 

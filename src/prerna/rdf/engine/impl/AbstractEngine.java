@@ -84,7 +84,6 @@ public abstract class AbstractEngine implements IEngine {
 	Properties generalEngineProp = null;
 	Properties ontoProp = null;
 	RDFFileSesameEngine baseDataEngine;
-	//RepositoryConnection insightBase = null;
 	protected RDFFileSesameEngine insightBaseXML;
 
 	ValueFactory insightVF = null;
@@ -203,8 +202,6 @@ public abstract class AbstractEngine implements IEngine {
 	private String owl;
 
 	protected String questionXMLFile;
-	
-	public static String selectedQuestion;
 	
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -365,32 +362,8 @@ public abstract class AbstractEngine implements IEngine {
 	
 	public String getProperty(String key) {
 		String retProp = null;
-		//String retProp = dreamerProp.getProperty(key);
 
-		Vector<SEMOSSParam> paramInfoVector = getParams(selectedQuestion);
-		//returns the query associated with the key
-		if(!paramInfoVector.isEmpty()){
-			for(int i = 0; i < paramInfoVector.size(); i++){
-				if(key.contains(paramInfoVector.get(i).getType() + "_OPTION")){
-					Vector options = paramInfoVector.get(i).getOptions();
-					for(int j = 0; j < options.size(); j++){
-						if(retProp==null)
-							retProp="";
-							retProp += options.get(j) + ";";
-					}
-					break;
-				}
-				else if(key.contains(paramInfoVector.get(i).getName() + "_QUERY")){
-					if(paramInfoVector.get(i).getQuery()!=null && !paramInfoVector.get(i).getQuery().equals(DIHelper.getInstance().getProperty(
-							"TYPE" + "_" + Constants.QUERY))){
-						retProp = paramInfoVector.get(i).getQuery();
-						break;
-					}
-				}
-			}
-		}
-
-		if (retProp == null && generalEngineProp != null && generalEngineProp.containsKey(key))
+		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
 			retProp = ontoProp.getProperty(key);

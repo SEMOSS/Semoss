@@ -31,6 +31,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
@@ -51,6 +52,7 @@ public class EntityFiller implements Runnable {
 	public Vector<String> names;
 	public String extQuery;
 	public Vector<String> nameVector;
+	public SEMOSSParam param;
 	
 	/**
 	 * Method run. Gets access to engine, gets the type query based on the type of engine, fills query parameters, and runs the query.
@@ -64,9 +66,20 @@ public class EntityFiller implements Runnable {
 		
 		if (box != null && type != null) {
 			synchronized(box) {
-				// if options for the parameter have been explicitly defined on the question sheet
-				// parse and use just those
-				if(DIHelper.getInstance().getProperty(type + "_" + Constants.OPTION) != null) {
+				// if options for the parameter have been explicitly defined
+				// use just those
+				if(param!=null && !param.getOptions().isEmpty()){
+					Vector<String> options = param.getOptions();
+					for(String option : options) {
+						names.addElement(option);
+					}
+					
+					DefaultComboBoxModel model = new DefaultComboBoxModel(names);
+
+					box.setModel(model);
+					box.setEditable(false);
+				}
+				/*if(DIHelper.getInstance().getProperty(type + "_" + Constants.OPTION) != null) {
 					// try to pick this from DBCM Properties table
 					// this will typically be of the format
 					String options = DIHelper.getInstance().getProperty(
@@ -85,18 +98,18 @@ public class EntityFiller implements Runnable {
 					box.setModel(model);
 					box.setEditable(false);
 					//DIHelper.getInstance().setLocalProperty(type, names);
-				}
+				}*/
 				// the the param options have not been explicitly defined and the combo box has not been cached
 				// time for the main processing
-				else if (DIHelper.getInstance().getLocalProp(type) == null) {
+				else {//if (DIHelper.getInstance().getLocalProp(type) == null) {
 					//check if URI is used in param filler
-					if(!type.contains("http://")) {
+					/*if(!type.contains("http://")) {
 						names.addElement("Incorrect Param Fill");
 						DefaultComboBoxModel model = new DefaultComboBoxModel(names);
 						box.setModel(model);
 						box.notify();
 						return;
-					}
+					}*/
 					// use the type query defined on RDF Map unless external query has been defined
 					String sparqlQuery = DIHelper.getInstance().getProperty(
 							"TYPE" + "_" + Constants.QUERY);
@@ -105,7 +118,11 @@ public class EntityFiller implements Runnable {
 					paramTable.put(Constants.ENTITY, type);
 					if (extQuery!=null) {
 						sparqlQuery=extQuery;
-					} else {
+					} else if (param!=null) {
+						sparqlQuery = param.getQuery();
+						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
+					}
+					else {
 						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 					}
 
@@ -136,16 +153,16 @@ public class EntityFiller implements Runnable {
 					}
 
 					box.setEditable(false);
-				} else {
+				} /*else {
 					names.addElement("Unknown");			
-				}
+				}*/
 				box.notify();
 			}
 		}
 		// if the type is not null but their is no box to fill
 		// fills the names array with all URIs of set type
 		else if (type !=null) {
-			if (DIHelper.getInstance().getLocalProp(type) == null) {
+			//if (DIHelper.getInstance().getLocalProp(type) == null) {
 				String sparqlQuery = DIHelper.getInstance().getProperty(
 						"TYPE" + "_" + Constants.QUERY);
 				Hashtable paramTable = new Hashtable();
@@ -169,7 +186,7 @@ public class EntityFiller implements Runnable {
 				Set nameC = paramHash.keySet();
 				nameVector = new Vector(nameC);
 				Collections.sort(nameVector);
-			}
+			//}
 		}
 	}
 
@@ -181,14 +198,4 @@ public class EntityFiller implements Runnable {
 	{
 		this.extQuery = query;
 	}
-	
-	/**
-	 * Method setData.  Sets the data
-	 * @param uriVector Vector<String> - The URIs that this is set to.
-	 */
-	public void setData(Vector<String> uriVector)
-	{
-		
-	}
-
 }

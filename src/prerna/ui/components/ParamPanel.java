@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +45,7 @@ import javax.swing.JPanel;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.SEMOSSParam;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -56,8 +58,9 @@ public class ParamPanel extends JPanel implements ActionListener {
 	
 	static final Logger logger = LogManager.getLogger(ParamPanel.class.getName());
 
-	Hashtable<String, String> params = null;
-	Hashtable<String, String> paramType = null;
+	//Hashtable<String, String> params = null;
+	Vector<SEMOSSParam> params = null;
+	//Hashtable<String, String> paramType = null;
 	String questionId = "";
 	Hashtable knownValues = new Hashtable();
 	ArrayList<ParamComboBox> dependentBoxes = new ArrayList();
@@ -101,46 +104,46 @@ public class ParamPanel extends JPanel implements ActionListener {
 		ArrayList<JLabel> labels = new ArrayList<JLabel>();
 		GridBagConstraints gbc_element = new GridBagConstraints();
 		
-		Enumeration<String> keys = params.keys();
+		//Enumeration<String> keys = params.keys();
 		int elementInt=0;
 		ArrayList<String> setParams = new ArrayList<String>();
 		
-		//Iterate over params retrieved from query
-		while(keys.hasMoreElements())
-		{
-			String key = (String)keys.nextElement();
-			JLabel label = new JLabel(key);
+		for(int i=0; i < params.size(); i++){
+			SEMOSSParam param = params.get(i);
+			String paramName = param.getName();
+			String paramType = param.getType();
+			String paramQuery = param.getQuery();
+			//should be a boolean; need to change SEMOSSParam's isDepends to boolean?
+			String paramIsDepends = param.isDepends();
+			
+			JLabel label = new JLabel(paramName);
 			label.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			label.setForeground(Color.DARK_GRAY);
 			
 			//Execute the logic for filling the information here
-			String entityType = (String)paramType.get(key);
+			String entityType = paramType;
 			String [] fetching = {"Fetching"};
 			
 			ParamComboBox field = new ParamComboBox(fetching);
 			field.setFont(new Font("Tahoma", Font.PLAIN, 11));
-			field.setParamName(key);
+			field.setParamName(paramName);
 			field.setEditable(false);
 			field.setPreferredSize(new Dimension(100, 25));
 			field.setMinimumSize(new Dimension(100, 25));
 			//field.setMaximumSize(new Dimension(200, 32767));
 			field.setBackground(new Color(119, 136, 153)); //Dropdown background color
-
+			System.err.println(params.get(i).getName());
+			
 			// get the list
 			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
 			selectedEngines = list.getSelectedValuesList();
-			String query = "";
 			
-			//Execute logic to set Entity Filler up for dependency
-			//try to get the query associated with the label
-			
-			if(DIHelper.getInstance().getProperty(this.questionId + "_" + key + "_" + Constants.QUERY) != null)
-				query = DIHelper.getInstance().getProperty(this.questionId + "_" + key + "_" + Constants.QUERY);
+			//Note: fine up to here but query has @entity@ which needs to be replaced with the type before going to next step.
 			
 			//see if the query needs to be filled
 			//if it does, set it as a dependent box
-			if(checkIfFullQuery(query))
+			if(paramIsDepends.equals("false"))
 			{
 				for(String engine : selectedEngines)
 				{
@@ -148,9 +151,11 @@ public class ParamPanel extends JPanel implements ActionListener {
 					filler.engineName = engine;
 					filler.box = field;
 					filler.type = entityType;
-					if(query != null && !query.isEmpty()) {
+					filler.param = param;
+					
+					/*if(query != null && !query.isEmpty()) {
 						filler.extQuery = query;
-					}
+					}*/
 					Thread aThread = new Thread(filler);
 					aThread.start();
 					
@@ -168,7 +173,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 			}
 			else
 			{
-				setDependencies(field, query);
+				setDependencies(field, param);
 				field.type = entityType;
 			}
 			
@@ -299,35 +304,40 @@ public class ParamPanel extends JPanel implements ActionListener {
 	 * Sets parameters.
 	 * @param params Hashtable of parameters.
 	 */
-	public void setParams(Hashtable<String, String> params)
+	/*public void setParams(Hashtable<String, String> params)
+	{
+		this.params = params;
+	}*/
+	
+	public void setParams(Vector<SEMOSSParam> params)
 	{
 		this.params = params;
 	}
-
+	
 	/**
 	 * Sets the type of parameter.
 	 * @param paramType 	Hashtable of parameter types.
 	 */
-	public void setParamType(Hashtable<String, String> paramType)
+	/*public void setParamType(Hashtable<String, String> paramType)
 	{
 		this.paramType = paramType;
-	}
+	}*/
 
 	/**
 	 * Puts the parameter names and values into the parameters hashtable.
 	 * @param paramName 	Parameter name.
 	 * @param paramValue 	Parameter value.
 	 */
-	public void setParam(String paramName, String paramValue)
+	/*public void setParam(String paramName, String paramValue)
 	{
 		params.put(paramName, paramValue);
-	}
+	}*/
 
 	/**
 	 * Gets parameters.
 	
 	 * @return Hashtable<String,String>	Hashtable of parameters. */
-	public Hashtable<String, String> getParams()
+	public Vector<SEMOSSParam> getParams()
 	{
 		return params;
 	}
@@ -362,17 +372,11 @@ public class ParamPanel extends JPanel implements ActionListener {
 	 * @param field 	Parameters combo box where dependencies and queries are set.
 	 * @param query 	Query.
 	 */
-	private void setDependencies(ParamComboBox field, String query)
+	private void setDependencies(ParamComboBox field, SEMOSSParam param)
 	{
-		ArrayList<String> dependencies = new ArrayList<String>();
-		Pattern pattern = Pattern.compile("[@]\\w+[@]");
-		Matcher matcher = pattern.matcher(query);
-		while(matcher.find()){
-			String data = matcher.group();
-			data = data.substring(1,data.length()-1);
-			logger.info(data);
-			dependencies.add(data);
-		}
+		Vector<String> dependencies = param.getDependVars();
+		String query = param.getQuery();
+		
 		field.setDependency(dependencies);
 		field.setQuery(query);
 		this.dependentBoxes.add(field);
