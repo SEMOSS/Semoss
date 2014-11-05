@@ -33,7 +33,7 @@ public class ParamComboBox extends JComboBox {
 	
 	String fieldName = null;
 	Hashtable paramHash = new Hashtable();
-	ArrayList<String> dependency = null;
+	Vector<String> dependency = null;
 	String query;
 	String type;
 	
@@ -90,7 +90,7 @@ public class ParamComboBox extends JComboBox {
 	 * Sets dependencies.
 	 * @param dep	List of dependencies.
 	 */
-	public void setDependency(ArrayList<String> dep)
+	public void setDependency(Vector<String> dep)
 	{
 		this.dependency = dep;
 	}
