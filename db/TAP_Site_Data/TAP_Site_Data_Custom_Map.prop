@@ -27,6 +27,7 @@ Hardware http://health.mil/ontologies/Concept/Hardware
 SiteHardwareModule http://health.mil/ontologies/Concept/SiteHardwareModule
 DCSite http://health.mil/ontologies/Concept/DCSite
 BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
+Floater http://health.mil/ontologies/Concept/Floater
 DFreq http://health.mil/ontologies/Concept/DFreq
 SystemDCSite http://health.mil/ontologies/Concept/SystemDCSite
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
@@ -59,6 +60,7 @@ Year-Quarter_has_Quarter http://health.mil/ontologies/Relation/has
 SystemDCSiteIncident_Affects_SystemDCSite http://health.mil/ontologies/Relation/Affects
 SystemDCSite_DeployedAt_DCSite http://health.mil/ontologies/Relation/DeployedAt
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
+Floater_Supports_System http://health.mil/ontologies/Relation/Supports
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 SoftwareVersion_Has_SoftwareVCategory http://health.mil/ontologies/Relation/Has
 SiteHardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
@@ -85,6 +87,7 @@ SystemIncident_Affects_System http://health.mil/ontologies/Relation/Affects
 InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 System_DeployedAt_SystemDCSite http://health.mil/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
+Floater_Supports_Wave http://health.mil/ontologies/Relation/Supports
 SystemDCSite_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 DCSite_Has_DCSiteCmdCode http://health.mil/ontologies/Relation/Has
@@ -126,6 +129,7 @@ Region_CLASS http://semoss.org/ontologies/Concept/Region
 FacComCode_CLASS http://semoss.org/ontologies/Concept/FacComCode
 Quarter_CLASS http://semoss.org/ontologies/Concept/Quarter
 SystemDCSite_CLASS http://semoss.org/ontologies/Concept/SystemDCSite
+Floater_CLASS http://semoss.org/ontologies/Concept/Floater
 UserInterface_CLASS http://semoss.org/ontologies/Concept/UserInterface
 SoftwareVersion_CLASS http://semoss.org/ontologies/Concept/SoftwareVersion
 BusinessProcess_CLASS http://semoss.org/ontologies/Concept/BusinessProcess
@@ -155,8 +159,8 @@ Hardware_Has_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Upgrade_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Upgrade
 InterfaceControlDocument_Has_DForm_CLASS http://semoss.org/ontologies/Relation/Has
 DCSiteIncident_Affects_DCSite_CLASS http://semoss.org/ontologies/Relation/Affects
-SystemDCSite_Has_SiteHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 SoftwareVersion_Has_SoftwareVCategory_CLASS http://semoss.org/ontologies/Relation/Has
+SystemDCSite_Has_SiteHardwareModule_CLASS http://semoss.org/ontologies/Relation/Has
 Region_Precedes_Region_CLASS http://semoss.org/ontologies/Relation/Precedes
 Wave_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
 SystemDCSite_Provide_DataObject_CLASS http://semoss.org/ontologies/Relation/Provide
@@ -164,11 +168,13 @@ SystemDCSite_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 SiteSoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
 System_DeployedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Has_DProt_CLASS http://semoss.org/ontologies/Relation/Has
+Floater_Supports_Wave_CLASS http://semoss.org/ontologies/Relation/Supports
 Wave_Precedes_Wave_CLASS http://semoss.org/ontologies/Relation/Precedes
 MAAGSite_Contains_DCSite_CLASS http://semoss.org/ontologies/Relation/Contains
 InterfaceControlDocument_Has_DFreq_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSite_Supports_Activity_CLASS http://semoss.org/ontologies/Relation/Supports
 Wave_EndsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/EndsOn
+Floater_Supports_System_CLASS http://semoss.org/ontologies/Relation/Supports
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemDCSite_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
 SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Affects
