@@ -1,0 +1,1728 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Financial-Budget-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Financial-Budget-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the shared services budget items?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?ent ?budget ?value  WHERE { BIND(&lt;http://health.mil/ontologies/Concept/Enterprise/MHS&gt; AS ?ent){?budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem&gt; ;} {?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?sys ?has ?budget .} {?budget &lt;http://semoss.org/ontologies/Relation/Contains/Cost&gt; ?value ;}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What line items does this system have for this year?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys ?budget ?value ?fytag1  WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?sys ?has ?budget .} {?budget &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?value ;} {?tagged1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ;} BIND(&lt;@Year-http://semoss.org/ontologies/Concept/FYTag@&gt; AS ?fytag1){?budget ?tagged1 ?fytag1 ;}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3:Year"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3:Year">
+	<LABEL xmlns="PARAM:">Year</LABEL>
+	<QUERY xmlns="PARAM:">SELECT DISTINCT ?entity WHERE {{?Has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;} BIND(&lt;@System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;} {?Budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt;} {?OccursIn &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/OccursIn&gt;} {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt;} {?System ?Has ?Budget} {?Budget ?OccursIn ?entity } }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/FYTag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT DISTINCT ?entity WHERE {{?Has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;} {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;} {?Budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt;} {?entity ?Has ?Budget } }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What enterprise line items exist below this tag?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys ?budget ?value ?gltag1 (COALESCE(?gltag2, '') AS ?GLtag2) (COALESCE(?gltag3, '') AS ?GLtag3) WHERE { {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;}{?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?sys ?has ?budget .}{?budget &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?value ;} BIND(&lt;@Tag-http://semoss.org/ontologies/Concept/GLTag@&gt; AS ?gltag1){ {?tagged1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ;} {?budget ?tagged1 ?gltag1 ;} }UNION{{?contains &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?gltag2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?gltag1 ?contains ?gltag2 ;} {?tagged1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ;} {?budget ?tagged1 ?gltag2 ;}} UNION {{?gltag3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?contains2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?gltag2 ?contains2 ?gltag3;}{?contains &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?gltag2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?gltag1 ?contains ?gltag2 ;} {?tagged1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ;} {?budget ?tagged1 ?gltag3 ;}}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4:Tag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4:Tag">
+	<LABEL xmlns="PARAM:">Tag</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What tags exist below this tag?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (?tag1 AS ?Tag1) (IF(BOUND(?tag2), ?tag2, '') AS ?Tag2)  (IF(BOUND(?tag3), ?tag3, '') AS ?Tag3)  (IF(BOUND(?tag4), ?tag4, '') AS ?Tag4) WHERE { BIND(&lt;@Tag-http://semoss.org/ontologies/Concept/GLTag@&gt; AS ?tag1) OPTIONAL { {?contains &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?tag2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?tag1 ?contains ?tag2 ;} OPTIONAL { {?tag3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?contains2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?tag2 ?contains2 ?tag3;} OPTIONAL{ {?tag4 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt;;}{?contains3 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?tag3 ?contains3 ?tag4;} } } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5:Tag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5:Tag">
+	<LABEL xmlns="PARAM:">Tag</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/GLTag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the line items this system has across the FYDP?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?Funding ?GLTag (MAX(COALESCE(?FY13,0)) AS ?fy13) (MAX(COALESCE(?FY14,0)) AS ?fy14) (MAX(COALESCE(?FY15,0)) AS ?fy15) (MAX(COALESCE(?FY16,0)) AS ?fy16) (MAX(COALESCE(?FY17,0)) AS ?fy17) (MAX(COALESCE(?FY18,0)) AS ?fy18) WHERE { { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?SystemBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemBudgetGLItem} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?Budget ;} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/FundedBy&gt; ?Funding} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) } } UNION { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?SystemService} {?SystemServiceBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem&gt; ;} {?SystemService &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemServiceBudgetGLItem} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/SelfReportCost&gt; ?Budget ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) BIND('' AS ?Funding) } } } GROUP BY ?System ?GLTag ?Funding</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What are the system costs for a given organization?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?FundingSource ?GLTag (max(coalesce(?FY13,0)) as ?fy13) (max(coalesce(?FY14,0)) as ?fy14) (max(coalesce(?FY15,0)) as ?fy15) (max(coalesce(?FY16,0)) as ?fy16) (max(coalesce(?FY17,0)) as ?fy17) (max(coalesce(?FY18,0)) as ?fy18)WHERE { BIND(&lt;@Enterprise-http://semoss.org/ontologies/Concept/Enterprise@&gt; AS ?Enterprise) {?Enterprise &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Enterprise&gt; ;} {?Consists &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consists&gt;;}  {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?SystemBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?Has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;}  {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;}{?TaggedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?FundedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/FundedBy&gt;;}{?FundingSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FundingSource&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?System ?Has ?SystemBudgetGLItem}{?SystemBudgetGLItem ?TaggedBy ?GLTag}{?SystemBudgetGLItem ?FundedBy ?FundingSource} {?Enterprise ?Consists ?System}  {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?Budget ;} {?SystemBudgetGLItem ?OccursIn ?FYTag} {?OccursIn &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/OccursIn&gt;;} BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) as ?FY13) BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) as ?FY14) BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) as ?FY16) BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) as ?FY17) BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) as ?FY18) BIND(if(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) as ?FY15)} GROUP BY ?System ?GLTag ?FundingSource</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7:Enterprise"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7:Enterprise">
+	<LABEL xmlns="PARAM:">Enterprise</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Enterprise"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<FBQ8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">7. What are the line items for all systems across the FYDP?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ8</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?Funding ?GLTag (MAX(COALESCE(?FY13,0)) AS ?fy13) (MAX(COALESCE(?FY14,0)) AS ?fy14) (MAX(COALESCE(?FY15,0)) AS ?fy15) (MAX(COALESCE(?FY16,0)) AS ?fy16) (MAX(COALESCE(?FY17,0)) AS ?fy17) (MAX(COALESCE(?FY18,0)) AS ?fy18) WHERE { { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?SystemBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemBudgetGLItem} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?Budget ;} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/FundedBy&gt; ?Funding} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) } } UNION { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?SystemService} {?SystemServiceBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem&gt; ;} {?SystemService &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemServiceBudgetGLItem} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/SelfReportCost&gt; ?Budget ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) BIND('' AS ?Funding) } } } GROUP BY ?System ?GLTag ?Funding</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Financial-Transition-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Financial-Transition-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the overhead items for this TargetPhaseBasisCoreTask?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?TargetPhaseBasisCoreTask ?TargetOverheadItem ?rate WHERE { BIND(&lt;@TPBCoreTask-http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask@&gt; AS ?TargetPhaseBasisCoreTask){?incurs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Incurs&gt;;} {?TargetOverheadItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetOverheadItem&gt; ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem &lt;http://semoss.org/ontologies/Relation/Contains/Rate&gt; ?rate ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4:TPBCoreTask"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4:TPBCoreTask">
+	<LABEL xmlns="PARAM:">TPBCoreTask</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What is the overhead table for this target?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?BasisTarget ?TargetPhaseBasisCoreTask ?TargetOverheadItem ?rate WHERE { BIND(&lt;@Target-http://semoss.org/ontologies/Concept/BasisTarget@&gt; AS ?BasisTarget)BIND(&lt;@SDLCPhase-http://semoss.org/ontologies/Concept/SDLCPhase@&gt; AS ?SDLCPhase){?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?TargetPhaseBasisCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask&gt; ;} {?BasisTarget ?has ?TargetPhaseBasisCoreTask ;} {?SDLCPhase ?belongs ?TargetPhaseBasisCoreTask ;} {?incurs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Incurs&gt;;} {?TargetOverheadItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetOverheadItem&gt; ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem &lt;http://semoss.org/ontologies/Relation/Contains/Rate&gt; ?rate ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7:SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7:SDLCPhase">
+	<LABEL xmlns="PARAM:">SDLCPhase</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7:Target"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7:Target">
+	<LABEL xmlns="PARAM:">Target</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/BasisTarget"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ12 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ12 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What is the total list of overhead items?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ12</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?BasisTarget ?TargetPhaseBasisCoreTask ?TargetOverheadItem ?rate WHERE { {?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?TargetPhaseBasisCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask&gt; ;} {?BasisTarget ?has ?TargetPhaseBasisCoreTask ;} {?SDLCPhase ?belongs ?TargetPhaseBasisCoreTask ;} {?incurs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Incurs&gt;;} {?TargetOverheadItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetOverheadItem&gt; ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem &lt;http://semoss.org/ontologies/Relation/Contains/Rate&gt; ?rate ;} } ORDER By ?TargetPhaseBasisCoreTask ?TargetOverheadItem ?rate</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ9 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ9 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What are the calculated hours for this service?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ9</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?ser ?GLitem ?glItemCoreTask ?multipliedTotal ?Rate ((?multipliedTotal*(1+?Rate)) AS ?calculatedTOTAL) WHERE { BIND(&lt;@Service-http://semoss.org/ontologies/Concept/Service@&gt; AS ?ser)BIND(&lt;@SDLCPhase-http://semoss.org/ontologies/Concept/SDLCPhase@&gt; AS ?phase){?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} {?contains &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?glItemCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLItemCoreTask&gt; ;} {?GLitem ?contains ?glItemCoreTask .} {SELECT DISTINCT ?glItemCoreTask (SUM(DISTINCT(?Factor*?loe)) AS ?multipliedTotal) WHERE { {SELECT DISTINCT (SAMPLE(?GLItemCoreTask) AS ?glItemCoreTask) ?GLItemSubTask (SAMPLE(?factor)AS ?Factor) (SAMPLE(?LOE) AS ?loe) WHERE { {?contains2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?GLItemSubTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLItemSubTask&gt; ;} {?GLItemCoreTask ?contains2 ?GLItemSubTask ;} {?type &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Estimated&gt;;} {?TargetPhaseBasisSubTaskComplexityComplexity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity&gt; ;} {?GLItemSubTask ?type ?TargetPhaseBasisSubTaskComplexityComplexity ;} {?GLItemSubTask &lt;http://semoss.org/ontologies/Relation/Contains/Factor&gt; ?factor ;}{?TargetPhaseBasisSubTaskComplexityComplexity &lt;http://semoss.org/ontologies/Relation/Contains/LOE&gt; ?LOE ;}} GROUP BY ?GLItemSubTask} } GROUP BY ?glItemCoreTask}{SELECT DISTINCT ?glItemCoreTask (SUM(?rate) AS ?Rate) WHERE { {SELECT DISTINCT ?glItemCoreTask ?TargetOverheadItem ?rate WHERE { {?TypeOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TypeOf&gt;;} {?TargetPhaseBasisCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask&gt; ;} {?glItemCoreTask ?TypeOf ?TargetPhaseBasisCoreTask ;} {?incurs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Incurs&gt;;} {?TargetOverheadItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetOverheadItem&gt; ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem &lt;http://semoss.org/ontologies/Relation/Contains/Rate&gt; ?rate ;} } } } GROUP BY ?glItemCoreTask}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9:Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9:Service">
+	<LABEL xmlns="PARAM:">Service</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9:SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9:SDLCPhase">
+	<LABEL xmlns="PARAM:">SDLCPhase</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ10 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ10 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the calculated hours for this system?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ10</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys ?GLitem ?glItemCoreTask ((?multipliedTotal*(1+?Rate)) AS ?calculatedTOTAL) WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys)BIND(&lt;@SDLCPhase-http://semoss.org/ontologies/Concept/SDLCPhase@&gt; AS ?phase){?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys ?influences ?GLitem ;} {?contains &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?glItemCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLItemCoreTask&gt; ;} {?GLitem ?contains ?glItemCoreTask .} {SELECT DISTINCT ?glItemCoreTask (SUM(DISTINCT(?Factor*?loe)) AS ?multipliedTotal) WHERE { {SELECT DISTINCT (SAMPLE(?GLItemCoreTask) AS ?glItemCoreTask) ?GLItemSubTask (SAMPLE(?factor)AS ?Factor) (SAMPLE(?LOE) AS ?loe) WHERE { {?contains2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Includes&gt;;} {?GLItemSubTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLItemSubTask&gt; ;} {?GLItemCoreTask ?contains2 ?GLItemSubTask ;} {?type &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Estimated&gt;;} {?TargetPhaseBasisSubTaskComplexityComplexity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisSubTaskComplexityComplexity&gt; ;} {?GLItemSubTask ?type ?TargetPhaseBasisSubTaskComplexityComplexity ;} {?GLItemSubTask &lt;http://semoss.org/ontologies/Relation/Contains/Factor&gt; ?factor ;}{?TargetPhaseBasisSubTaskComplexityComplexity &lt;http://semoss.org/ontologies/Relation/Contains/LOE&gt; ?LOE ;}} GROUP BY ?GLItemSubTask} } GROUP BY ?glItemCoreTask}{SELECT DISTINCT ?glItemCoreTask (SUM(?rate) AS ?Rate) WHERE { {SELECT DISTINCT ?glItemCoreTask ?TargetOverheadItem ?rate WHERE { {?TypeOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TypeOf&gt;;} {?TargetPhaseBasisCoreTask &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetPhaseBasisCoreTask&gt; ;} {?glItemCoreTask ?TypeOf ?TargetPhaseBasisCoreTask ;} {?incurs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Incurs&gt;;} {?TargetOverheadItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/TargetOverheadItem&gt; ;} {?TargetPhaseBasisCoreTask ?incurs ?TargetOverheadItem ;} {?TargetOverheadItem &lt;http://semoss.org/ontologies/Relation/Contains/Rate&gt; ?rate ;} } } } GROUP BY ?glItemCoreTask}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10:SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10:SDLCPhase">
+	<LABEL xmlns="PARAM:">SDLCPhase</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/SDLCPhase"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FTQ11 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<FTQ11 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What are all of the calculated and stored GLItems?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FTQ11</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?GLitem ?predicate ?value WHERE { BIND(&lt;http://semoss.org/ontologies/Relation/Contains/LOE&gt; AS ?predicate) {?GLitem ?predicate ?value ;}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Site-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Site-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Site-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Site-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Site-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Site-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What site deployment costs exist for all systems?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP18</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys (SUM(?loe/2) AS ?LOE) WHERE { {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSiteGLItem&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe ;} } GROUP BY ?sys ORDER BY ?sys</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:System-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">System-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:System-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<System-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP13 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<SysP13 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What transition costs are associated with this system?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP13</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?phase, "None") AS ?Phase) (COALESCE(?data, ?blu, ?syssite) AS ?Input) ?GLitem (COALESCE(?ser, "None") AS ?Output) (ROUND(?loe) AS ?LOE) ?gltag WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} { {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?data ?input ?GLitem} {?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt; ;} } UNION { {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?blu ?input ?GLitem} {?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt; ;}  } UNION {  {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?syssite ?input ?GLitem} {?syssite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSite&gt; ;}}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP13:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP13:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:SysP14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP14">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP14 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP14">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<SysP14 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What services does this system require and how many hours will each take?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP14</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (SAMPLE(?Sys) AS ?System) (SAMPLE(?comp) AS ?sampleComp) ?serv (ROUND(SUM(?Loe)) AS ?LOE) WHERE { SELECT DISTINCT (SAMPLE(?sys) AS ?Sys) (SAMPLE(COALESCE(?data, ?blu)) AS ?comp) (SAMPLE(?ser) AS ?serv) ?GLitem (ROUND(SAMPLE(?loe)) AS ?Loe) WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} { {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?data ?input ?GLitem} {?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt; ;} } UNION { {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?blu ?input ?GLitem} {?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt; ;}  } } GROUP BY ?GLitem }  GROUP BY ?serv</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP14:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP14:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What site deployment costs exist for all systems?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP18</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys (SUM(?loe/2) AS ?LOE) WHERE { {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSiteGLItem&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe ;} } GROUP BY ?sys ORDER BY ?sys</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:SysP19</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP19">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP19</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP19 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP19">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP19</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<SysP19 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What transition costs are specific to this system?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP19</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?sys ?influences ?GLitem} WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys ?influences ?GLitem ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP19:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:SysP19:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the line items this system has across the FYDP?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?Funding ?GLTag (MAX(COALESCE(?FY13,0)) AS ?fy13) (MAX(COALESCE(?FY14,0)) AS ?fy14) (MAX(COALESCE(?FY15,0)) AS ?fy15) (MAX(COALESCE(?FY16,0)) AS ?fy16) (MAX(COALESCE(?FY17,0)) AS ?fy17) (MAX(COALESCE(?FY18,0)) AS ?fy18) WHERE { { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?SystemBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemBudgetGLItem} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?Budget ;} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/FundedBy&gt; ?Funding} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) } } UNION { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?SystemService} {?SystemServiceBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem&gt; ;} {?SystemService &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemServiceBudgetGLItem} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/SelfReportCost&gt; ?Budget ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) BIND('' AS ?Funding) } } } GROUP BY ?System ?GLTag ?Funding</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ6:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ6:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<FBQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What line items does this system have for this year?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys ?budget ?value ?fytag1  WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;;} {?sys ?has ?budget .} {?budget &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?value ;} {?tagged1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ;} BIND(&lt;@Year-http://semoss.org/ontologies/Concept/FYTag@&gt; AS ?fytag1){?budget ?tagged1 ?fytag1 ;}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ3:Year"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ3:Year">
+	<LABEL xmlns="PARAM:">Year</LABEL>
+	<QUERY xmlns="PARAM:">SELECT DISTINCT ?entity WHERE {{?Has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;} BIND(&lt;@System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;} {?Budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt;} {?OccursIn &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/OccursIn&gt;} {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt;} {?System ?Has ?Budget} {?Budget ?OccursIn ?entity } }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/FYTag"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ3:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:System-Perspective:FBQ3:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT DISTINCT ?entity WHERE {{?Has &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Has&gt;} {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;} {?Budget &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt;} {?entity ?Has ?Budget } }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Service-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Service-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Service-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:SOAP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SOAP3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<SOAP3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What system specific costs are associated with implementing this service?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SOAP3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?phase (COALESCE(?sys, 'NONE') AS ?system) ?GLitem ?loe WHERE { BIND(&lt;@Service-http://semoss.org/ontologies/Concept/Service@&gt; AS ?ser){?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;}{?GLitem ?output ?ser ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?subclass2 &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass2 ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;}{?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;}  OPTIONAL { {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} } } ORDER BY ?system ?phase ?GLitem</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP3:Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP3:Service">
+	<LABEL xmlns="PARAM:">Service</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:SOAP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SOAP4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<SOAP4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What generic costs are associated with this service?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SOAP4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?phase ?GLitem (ROUND(?loe) AS ?LOE) WHERE { BIND(&lt;@Service-http://semoss.org/ontologies/Concept/Service@&gt; AS ?ser){?GLitem ?output ?ser ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?subclass2 &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass2 ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} OPTIONAL { {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} } FILTER(!bound(?sys))} ORDER BY ?phase ?GLitem</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP4:Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP4:Service">
+	<LABEL xmlns="PARAM:">Service</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:SOAP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SOAP5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<SOAP5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What systems are affected by implementing this service and how much will they have to spend?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SOAP5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys (ROUND(SUM(?loe)) AS ?LOE) WHERE { SELECT DISTINCT ?sys ?GLitem ?loe WHERE { BIND(&lt;@Service-http://semoss.org/ontologies/Concept/Service@&gt; AS ?ser){?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;}{?GLitem ?output ?ser ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?subclass2 &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; .} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass2 ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} } } GROUP BY ?sys</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP5:Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Service-Perspective:SOAP5:Service">
+	<LABEL xmlns="PARAM:">Service</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Service"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Data-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Data-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Data-Perspective:IOP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<IOP6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
+	<IOP6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What services does this data object require?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">IOP6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?ser ?expose ?data} WHERE { BIND(&lt;@Data-http://semoss.org/ontologies/Concept/DataObject@&gt; AS ?data) {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?expose &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Exposes&gt;;} {?ser ?expose ?data ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Data-Perspective:IOP6:Data"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Data-Perspective:IOP6:Data">
+	<LABEL xmlns="PARAM:">Data</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Data-Perspective:IOP7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<IOP7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
+	<IOP7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What services expose this data and what are their implementation costs?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">IOP7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?data ?ser ?gltag ?phase ?GLitem (ROUND(?loe) AS ?LOE) WHERE { BIND(&lt;@Data-http://semoss.org/ontologies/Concept/DataObject@&gt; AS ?data){?exposes &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Exposes&gt;;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?ser ?exposes ?data ;} {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;}  {?GLitem ?output ?ser ;} {?data ?input ?GLitem ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} } ORDER BY ?ser ?gltag ?phase ?GLitem</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Data-Perspective:IOP7:Data"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Data-Perspective:IOP7:Data">
+	<LABEL xmlns="PARAM:">Data</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Portfolio-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Portfolio-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:FBQ6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<FBQ6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the line items this system has across the FYDP?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">FBQ6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?Funding ?GLTag (MAX(COALESCE(?FY13,0)) AS ?fy13) (MAX(COALESCE(?FY14,0)) AS ?fy14) (MAX(COALESCE(?FY15,0)) AS ?fy15) (MAX(COALESCE(?FY16,0)) AS ?fy16) (MAX(COALESCE(?FY17,0)) AS ?fy17) (MAX(COALESCE(?FY18,0)) AS ?fy18) WHERE { { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?SystemBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemBudgetGLItem&gt; ;} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemBudgetGLItem} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/OldPrositeCost&gt; ?Budget ;} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} {?SystemBudgetGLItem &lt;http://semoss.org/ontologies/Relation/FundedBy&gt; ?Funding} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) } } UNION { SELECT DISTINCT ?System ?Funding ?GLTag ?FY13 ?FY14 ?FY15 ?FY16 ?FY17 ?FY18 WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?System &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt; ?SystemService} {?SystemServiceBudgetGLItem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem&gt; ;} {?SystemService &lt;http://semoss.org/ontologies/Relation/Has&gt; ?SystemServiceBudgetGLItem} {?GLTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?FYTag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FYTag&gt; ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt; ?GLTag} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/Contains/SelfReportCost&gt; ?Budget ;} {?SystemServiceBudgetGLItem &lt;http://semoss.org/ontologies/Relation/OccursIn&gt; ?FYTag} BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY13&gt;, ?Budget,0) AS ?FY13) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY14&gt;, ?Budget,0) AS ?FY14) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY16&gt;, ?Budget,0) AS ?FY16) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY17&gt;, ?Budget,0) AS ?FY17) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY18&gt;, ?Budget,0) AS ?FY18) BIND(IF(?FYTag = &lt;http://health.mil/ontologies/Concept/FYTag/FY15&gt;, ?Budget,0) AS ?FY15) BIND('' AS ?Funding) } } } GROUP BY ?System ?GLTag ?Funding</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Portfolio-Perspective:FBQ6:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Portfolio-Perspective:FBQ6:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP13 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<SysP13 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What transition costs are associated with this system?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP13</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?phase, "None") AS ?Phase) (COALESCE(?data, ?blu, ?syssite) AS ?Input) ?GLitem (COALESCE(?ser, "None") AS ?Output) (ROUND(?loe) AS ?LOE) ?gltag WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?sys){?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} { {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?data ?input ?GLitem} {?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt; ;} } UNION { {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?ser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Service&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?ser ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?blu ?input ?GLitem} {?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt; ;}  } UNION {  {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?syssite ?input ?GLitem} {?syssite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSite&gt; ;}}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Portfolio-Perspective:SysP13:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Portfolio-Perspective:SysP13:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP18">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<SysP18 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What site deployment costs exist for all systems?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP18</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys (SUM(?loe/2) AS ?LOE) WHERE { {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSiteGLItem&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe ;} } GROUP BY ?sys ORDER BY ?sys</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<PP1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
+	<PP1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1"/>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">PP1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?sys (SUM(?loe/2) AS ?LOE) WHERE { {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSiteGLItem&gt; ;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;} {?sys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt; ;} {?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe ;} } GROUP BY ?sys ORDER BY ?sys</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.PieChartPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>TAP_Cost_Data:Optimization-Transition-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Optimization-Transition-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Optimization-Transition-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:O1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<O1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:O1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
+	<O1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Budget Optimization Over Years.</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">O1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">NULL</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.SerOptPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What site deployment costs exist for all systems? (Pie)</Label>
+</rdf:Description>
+
+</rdf:RDF>
