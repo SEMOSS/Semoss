@@ -100,14 +100,14 @@ public class GridScatterSheet extends BrowserPlaySheet{
 		}
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", allData);
-		allHash.put("title",  var[1] + " vs " + var[2]);
-		allHash.put("xAxisTitle", var[1]);
+		allHash.put("title",  var[2+offset] + " vs " + var[1+offset]);
+		allHash.put("xAxisTitle", var[1+offset]);
 		if(var.length>2)
-			allHash.put("yAxisTitle", var[2]);
+			allHash.put("yAxisTitle", var[2+offset]);
 		if(var.length>3)
-			allHash.put("zAxisTitle", var[3]);
-		if(var.length>4)
-			allHash.put("heatTitle", var[4]);
+			allHash.put("zAxisTitle", var[3+offset]);
+		if(offset == 0 && var.length>4)
+			allHash.put("heatTitle", var[4+offset]);
 		return allHash;
 	}
 	
