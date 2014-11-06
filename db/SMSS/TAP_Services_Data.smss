@@ -1,8 +1,10 @@
 Base Properties 
 ENGINE	TAP_Services_Data
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
+INSIGHTS	db/TAP_Services_Data/TAP_Services_Data_Questions.XML
 ONTOLOGY	db/TAP_Services_Data/TAP_Services_Data_Custom_Map.prop
 OWL	db/TAP_Services_Data/TAP_Services_Data_OWL.OWL
+XML	db/TAP_Services_Data/TAP_Services_Data_Questions.XML
 DREAMER	db/TAP_Services_Data/TAP_Services_Data_Questions.properties
 
 
