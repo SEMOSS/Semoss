@@ -255,15 +255,17 @@ public class QuestionModButtonListener implements IChakraListener {
 					String[] questionIDArray = questionID.split(":");
 					String currentQuestionKey = questionIDArray[2];
 					int currentQuestionKeyValue = 0;
-					if (questionIDArray[1].equals(perspective)) {
+					if (questionIDArray[1].equals(perspective) && questionIDArray[2].contains(perspective)) {
 						currentQuestionKeyValue = Integer
 								.parseInt(currentQuestionKey.replace(
 										perspective + "_", ""));
 					} else {
-						currentQuestionKeyValue = Integer
-								.parseInt(currentQuestionKey.replace(
-										questionAdmin.currentPerspective + "_",
-										""));
+						if (questionIDArray[2].contains(perspective)) {
+							currentQuestionKeyValue = Integer
+									.parseInt(currentQuestionKey.replace(
+											questionAdmin.currentPerspective + "_",
+											""));
+						}
 					}
 					// the following will make largestQuestionKeyValue
 					// equal to the last auto-generated questionkeyvalue
