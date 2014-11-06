@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Services_Data:TAP_Services_Data:Generic-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Services_Data:TAP_Services_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:Generic-Perspective:TAP_Services_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:System-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:System-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">System-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Services_Data:TAP_Services_Data:System-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:System-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<System-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Services_Data:TAP_Services_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:System-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:System-Perspective:SysP1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:System-Perspective:SysP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:System-Perspective:SysP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:TAP_Services_Data:System-Perspective:SysP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Services_Data">
+	<SysP1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Services_Data:TAP_Services_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:System-Perspective:SysP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:System-Perspective:TAP_Services_Data:System-Perspective:SysP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Services_Data:System-Perspective:TAP_Services_Data:System-Perspective:SysP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:System-Perspective">
+	<SysP1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Services_Data:System-Perspective:TAP_Services_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:System-Perspective:SysP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:System-Perspective:SysP1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Use Heat Map to show how different Services use a given System</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Services_Data:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Services_Data:System-Perspective:SysP1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?SystemService ?BusinessLogicUnit ?DataObject ?Personnel ?InterfaceControlDocument ?UserInterface ?BusinessProcess ?Activity WHERE { { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;} {?BusinessLogicUnit &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt; ;} {?SystemService ?Provide ?BusinessLogicUnit} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;} {?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt; ;} {?SystemService ?Provide ?DataObject} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?UsedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/UsedBy&gt;;} {?Personnel &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Personnel&gt; ;} {?SystemService ?UsedBy ?Personnel} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Implemented_At &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Implemented_At&gt;;} {?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?SystemService ?Implemented_At ?InterfaceControlDocument} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Utilizes &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Utilizes&gt;;} {?UserInterface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/UserInterface&gt; ;} {?SystemService ?Utilizes ?UserInterface} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Supports &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Supports&gt;;} {?BusinessProcess &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessProcess&gt; ;} {?SystemService ?Supports ?BusinessProcess} } UNION { BIND(&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?System ?ConsistsOf ?SystemService} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;} {?Supports &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Supports&gt; ;} {?Activity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Activity&gt; ;} {?SystemService ?Supports ?Activity} } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DrillDownPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:System-Perspective:SysP1:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Services_Data:System-Perspective:SysP1:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {{SELECT ?entity (COUNT(?SystemService) as ?num) WHERE  {{?entity&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;&lt;http://semoss.org/ontologies/Concept/System&gt;}{?ConsistsOf &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/ConsistsOf&gt;;} {?SystemService &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemService&gt; ;}{?entity ?ConsistsOf ?SystemService} }GROUP BY ?entity } FILTER (?num &gt; 1)}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+</rdf:RDF>
