@@ -3,6 +3,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
@@ -16,24 +17,135 @@ public final class DHMSMDeploymentHelper {
 	public static final String CENTRALLY_DEPLOYED_SYS_QUERY = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'} }";
 	
 	public static final String SYS_SUSTIANMENT_BUDGET_QUERY = "SELECT DISTINCT ?System (SUM(?Cost) AS ?Sustainment) ?FY WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/O&M_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} {?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} {?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } GROUP BY ?System ?FY ORDER BY ?System";
+	public static final String SYS_SITE_SUPPORT_COST_QUERY = "SELECT DISTINCT ?System ?DCSite ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SysSiteGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DCSite <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?DCSite";
+	public static final String SYS_FLOATER_COST_QUERY = "SELECT DISTINCT ?System ?Floater ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?FloaterGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FloaterGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?Floater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?Floater <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?FloaterGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?FloaterGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?Floater";
 	
 	public static final String SYS_COUNT_AT_SITES = "SELECT ?System (COUNT(?HostSite) AS ?NumSites) WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} } GROUP BY ?System";
 	
 //	public static final String REGION_START_DATE = "SELECT DISTINCT ?Region ?Date WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Date <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Region <http://semoss.org/ontologies/Relation/BeginsOn> ?Date} }";
-	public static final String WAVE_ORDER_QUERY = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Precedes> ?Wave2}} ";
 //	public static final String REGION_ORDER_QUERY = "SELECT DISTINCT ?Region1 ?Region2 WHERE {{?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region1 <http://semoss.org/ontologies/Relation/Preceeds> ?Region2}}";
-	
 //	public static final String FIRST_REGION_QUERY = "SELECT DISTINCT ?Region1 WHERE { {?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} MINUS{ {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://semoss.org/ontologies/Relation/Preceeds> ?Region1}}  }";
+
+	public static final String WAVE_ORDER_QUERY = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Precedes> ?Wave2}} ";
 	public static final String FIRST_WAVE_QUERY = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Precedes> ?Wave1}} }";
-	
+	public static final String WAVE_START_END_DATE = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
+	public static final String SYS_IN_WAVES_QUERY = "SELECT DISTINCT ?System ?Wave WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} }";
+
 	public static final String SYS_DEPLOYED_AT_SITE_QUERY = "SELECT DISTINCT ?HostSite ?System WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?HostSite ?System";
 	public static final String SITE_IN_MULTIPLE_WAVES_QUERY = "SELECT DISTINCT ?HostSite ?Wave WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } ORDER BY ?HostSite";
 	public static final String SITE_IN_MULTIPLE_WAVES_COUNT_QUERY = "SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveCount) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } GROUP BY ?HostSite ORDER BY ?HostSite";
 	
-	public static final String WAVE_START_END_DATE = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
+		public static final String FLOATER_SUPPORTS_WAVE_QUERY = "SELECT DISTINCT ?Floater ?Wave WHERE { {?Floater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Floater <http://semoss.org/ontologies/Relation/Supports> ?Wave} } ORDER BY ?Floater";
 	
 	private DHMSMDeploymentHelper() {
 		
+	}
+	
+	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine) {
+		ArrayList<String> waveOrder = getWaveOrder(engine);
+		return getLastWaveForEachSystem(engine, waveOrder);
+	}
+	
+	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
+		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String sys = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+			List<String> waveList;
+			if(inputHash.containsKey(sys)) {
+				waveList = inputHash.get(sys);
+				waveList.add(wave);
+			} else {
+				waveList = new ArrayList<String>();
+				waveList.add(wave);
+				inputHash.put(sys, waveList);
+			}
+		}
+		
+		return determineLastWaveForInput(waveOrder, inputHash);
+	}
+	
+	public static HashMap<String, String> determineLastWaveForInput(ArrayList<String> waveOrder, HashMap<String, List<String>> waveHash) {
+		HashMap<String, String> retHash = new HashMap<String, String>();
+
+		for(String entity : waveHash.keySet()) {
+			List<String> waveList = waveHash.get(entity);
+			int lastWaveIndex = 0;
+			String lastWave = "";
+			for(String wave : waveList) {
+				int index = waveOrder.indexOf(wave);
+				if(lastWaveIndex < index) {
+					lastWaveIndex = index;
+					lastWave = wave;
+				}
+			}
+			retHash.put(entity, lastWave);
+		}
+		
+		return retHash;
+	}
+	
+	public static HashMap<String, HashMap<String, Double>> getSysFloaterCost(IEngine engine) {
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_FLOATER_COST_QUERY);
+		
+		return processCosts(sjsw);
+	}
+	
+	public static HashMap<String, HashMap<String, Double>> getSysSiteSupportCost(IEngine engine) {
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_SITE_SUPPORT_COST_QUERY);
+
+		return processCosts(sjsw);
+	}
+	
+	private static HashMap<String, HashMap<String, Double>> processCosts(SesameJenaSelectWrapper sjsw) {
+		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String system = sjss.getVar(names[0]).toString();
+			String floater = sjss.getVar(names[1]).toString();
+			Double cost = (Double) sjss.getVar(names[2]);
+			
+			HashMap<String, Double> innerHash;
+			if(retHash.containsKey(system)) {
+				innerHash = retHash.get(system);
+				// each floater/dcsite occurs once so no need to worry about overriding keys
+				innerHash.put(floater, cost);
+			} else {
+				innerHash = new HashMap<String, Double>();
+				innerHash.put(floater, cost);
+				retHash.put(system, innerHash);
+			}
+		}
+		
+		return retHash;
+	}
+	
+	public static HashMap<String, List<String>> getFloatersAndWaves(IEngine engine) {
+		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FLOATER_SUPPORTS_WAVE_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String floater = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+			List<String> waveList;
+			if(retHash.containsKey(floater)) {
+				waveList = retHash.get(floater);
+				waveList.add(wave);
+			} else {
+				waveList = new ArrayList<String>();
+				waveList.add(wave);
+				retHash.put(floater, waveList);
+			}
+		}
+		
+		return retHash;
 	}
 	
 	public static HashMap<String, String[]> getWaveStartAndEndDate(IEngine engine) {
@@ -68,8 +180,8 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	public static HashMap<String, ArrayList<String>> getSitesAndMultipleWaves(IEngine engine) {
-		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
+	public static HashMap<String, List<String>> getSitesAndMultipleWaves(IEngine engine) {
+		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
@@ -77,7 +189,7 @@ public final class DHMSMDeploymentHelper {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
-			ArrayList<String> waveList;
+			List<String> waveList;
 			if(retHash.containsKey(site)) {
 				waveList = retHash.get(site);
 				waveList.add(wave);
@@ -250,4 +362,5 @@ public final class DHMSMDeploymentHelper {
 		}
 		return retSet;
 	}
+
 }
