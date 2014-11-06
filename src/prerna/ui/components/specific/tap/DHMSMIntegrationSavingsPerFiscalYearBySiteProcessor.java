@@ -97,9 +97,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			HashMap<String, ArrayList<String>> sites = masterHash.get(wave);
 			if(sites != null) {
 				for(String site : sites.keySet()) {
-					if(site.equals("NAVBASE_KITSAP_BREMERTON")) {
-						System.out.println("");
-					}
 					boolean addSite = false;
 					if(!lastWaveForSitesAndFloatersInMultipleWavesHash.containsKey(site)) {
 						addSite = true;
