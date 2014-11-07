@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureCostDB:FutureCostDB:Generic-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureCostDB:FutureCostDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureCostDB:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureCostDB:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureCostDB:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureCostDB:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:FutureCostDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureCostDB">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureCostDB:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureCostDB:Generic-Perspective:FutureCostDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureCostDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureCostDB:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+</rdf:RDF>
