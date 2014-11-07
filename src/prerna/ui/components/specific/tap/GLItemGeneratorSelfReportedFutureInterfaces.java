@@ -19,6 +19,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
@@ -148,7 +149,8 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		data = allData.get("Sys-DesignGLItem");
 		data.remove(0);
 		data.remove(0);
-		insertRelData(data, SYSTEM, INFLUENCES, DESIGN_GLITEM);
+		// need to get list of all systems to make into ActiveSystems
+		insertRelDataAndGetSystems(data, SYSTEM, INFLUENCES, DESIGN_GLITEM);
 
 		// RequirementsGLItem -> includes -> GLItemCoreTask
 		data = allData.get("RequirementsGLItem-GLItemCT");
@@ -341,6 +343,37 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DevelopGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
 		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/TestGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
 		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DeployGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+	}
+	
+	public void insertRelDataAndGetSystems(Vector<String[]> data, String subBaseURI, String predBaseURI, String objBaseURI) {
+		dataHash.clear();
+		allConcepts.clear();
+		allRelations.clear();
+		
+		Set<String> sysList = new HashSet<String>();
+		
+		int size = data.size();
+		List<Object[]> newData = new Vector<Object[]>(size);
+		
+		int i;
+		for(i = 0; i < size; i++) {
+			String[] rel = data.get(i);
+			String sub = Utility.cleanString(rel[0], true);
+			String obj = Utility.cleanString(rel[1], true);
+			String predURI = predBaseURI.concat(sub).concat(":").concat(obj);
+			String subURI = subBaseURI.concat(sub);
+			sysList.add(subURI);
+			String objURI = objBaseURI.concat(obj);
+			
+			newData.add(new String[]{subURI, predURI, objURI});
+		}
+		processInstanceDataRelations(newData, baseFutureCostRelations);
+		processData(futureCostDB, dataHash);
+		// process the high lvl node data
+		processAllConceptTypeTriples(futureCostDB);
+		// process the high lvl rel data
+		processAllRelationshipSubpropTriples(futureCostDB);
+		processActiveSystemSubclassing(futureDB, sysList);
 	}
 	
 	public void insertRelData(Vector<String[]> data, String subBaseURI, String predBaseURI, String objBaseURI) {
