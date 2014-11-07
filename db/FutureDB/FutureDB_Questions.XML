@@ -1,0 +1,800 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:Generic-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Generic-Perspective:FutureDB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">System-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:System-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<System-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What is the network of systems surrounding this system?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?System1 ?passes ?System2. ?System3 ?passes1 ?System1. ?passes ?contains ?prop. ?passes ?subprop ?relation. ?passes1 ?contains ?prop. ?passes1 ?subprop ?relation.} WHERE { BIND(&lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; AS ?subprop) BIND(&lt;http://semoss.org/ontologies/Relation&gt; AS ?relation){?contains &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Relation/Contains&gt; }{?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?System1){BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System1), 45), ':', SUBSTR(STR(?System2), 45))) AS ?passes){?System2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?Upstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?ICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;}{?Downstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?ICD ?carries ?Data1;} {?carries ?contains ?prop ;}} UNION {BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System1), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes1){?Upstream2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;} {?Downstream2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;}{?System3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;}  {?ICD2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;}{?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?carries2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains ?prop ;}} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP1:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP1:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What ICDs does this system have and what are their details?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?System) {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} BIND('Downstream' AS ?type) } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} BIND('Upstream' AS ?type) } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP2:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP2:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. For this specific system, what are the interfaces that need to be developed for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?System) {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP3:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP3:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. For all systems, what are the interfaces that need to be developed for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. For this specific system, what are the interfaces that need to be decommissioned for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?System) {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP5:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:System-Perspective:SP5:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:SP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:SP6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:System-Perspective:SP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<SP6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:SP6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:System-Perspective:FutureDB:System-Perspective:SP6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<SP6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:System-Perspective:FutureDB:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. For all systems, what are the interfaces we propose to decommission for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SP6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:LPI-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:LPI-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:LPI-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<LPI-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:LPI-Perspective:LPI1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:LPI-Perspective:LPI1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:LPI-Perspective:LPI1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<LPI1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:LPI-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:LPI1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:LPI1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
+	<LPI1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. For all LPI systems, what are the interfaces that need to be developed for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">FutureDB&amp;HR_Core&amp;SELECT DISTINCT ?System ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) WHERE { {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }&amp;SELECT DISTINCT ?System WHERE { {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Received_Information&gt; 'Y'} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; 'N'}{?System &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?Probability} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM&gt; 'Y' }} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}&amp;false&amp;false</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.DualEngineGridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:LPI-Perspective:LPI2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:LPI-Perspective:LPI2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:LPI-Perspective:LPI2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<LPI2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:LPI-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:LPI2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:LPI2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
+	<LPI2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:LPI-Perspective:FutureDB:LPI-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. For all LPI systems, what are the interfaces we propose to decommission for the future state?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">FutureDB&amp;HR_Core&amp;SELECT DISTINCT ?System ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) WHERE { {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?Interface ?carries ?Data;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Frequency ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Protocol ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Recommendation&gt; ?Recommendation;} { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?System AS ?UpstreamSystem) (?DownstreamSys AS ?DownstreamSystem) WHERE { {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?DownstreamSys ;} } } UNION { SELECT DISTINCT ?System ?type ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation (?UpstreamSys AS ?UpstreamSystem) (?System AS ?DownstreamSystem) WHERE { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?Interface ;} {?Interface &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System ;} } } }&amp;SELECT DISTINCT ?System WHERE { {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Received_Information&gt; 'Y'} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; 'N'}{?System &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?Probability} {?System &lt;http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM&gt; 'Y' }} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}&amp;false&amp;false</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.DualEngineGridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Data-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Data-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:Data-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Data-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<Data-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Data-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Data-Perspective:DP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Data-Perspective:DP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Data-Perspective:DP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<DP1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Data-Perspective:FutureDB:Data-Perspective:DP1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Data-Perspective:FutureDB:Data-Perspective:DP1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Data-Perspective">
+	<DP1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Data-Perspective:FutureDB:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What is the network of systems for this data?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DP1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?Data1 ?provide ?System1. ?System2 ?passes ?System3. ?passes ?contains ?prop. ?passes ?subprop ?relation. ?provide ?contains2 ?crm.} WHERE { BIND( &lt;@Data-http://semoss.org/ontologies/Concept/DataObject@&gt; AS ?Data1). { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?System1 ?provide ?Data1 ;} BIND(&lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; AS ?contains2). {?provide ?contains2 ?crm ;} } UNION { BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System2), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes).{?System2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?contains &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Relation/Contains&gt; ;} {?icd1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;;} {?upstream1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?downstream1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} {?carries ?contains ?prop ;} } BIND(&lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; AS ?subprop) BIND(&lt;http://semoss.org/ontologies/Relation&gt; AS ?relation)} BINDINGS ?crm {('C') ('M')}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:Data-Perspective:DP1:Data"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:Data-Perspective:DP1:Data">
+	<LABEL xmlns="PARAM:">Data</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Time-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Time-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:Time-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Time-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<Time-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/FutureDB:FutureDB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Time-Perspective:T1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Time-Perspective:T1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Time-Perspective:T1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<T1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Time-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Time-Perspective:FutureDB:Time-Perspective:T1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Time-Perspective:FutureDB:Time-Perspective:T1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
+	<T1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Time-Perspective:FutureDB:Time-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. How does the composition of this system change over time?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">T1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?System1 ?Upstream ?ICD. ?ICD ?Downstream ?System2. ?ICD ?carries ?Data1. ?ICD ?contains2 ?prop2. ?System3 ?Upstream2 ?ICD2. ?ICD2 ?contains1 ?prop. ?ICD2 ?Downstream2 ?System1.?ICD2 ?carries2 ?Data2} WHERE { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;}  BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?System1){{?System2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?Upstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?ICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;}{?Downstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;}{?Data1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;}{?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Relation/Contains&gt; }} UNION {{?Upstream2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;} {?Downstream2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;}{?System3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;}  {?ICD2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;}{?Data2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?carries2 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Relation/Contains&gt; }}}+++TAP_Core_Data,FutureDB+++SELECT DISTINCT ?futureICD ?phase (CONCAT('[\\"',GROUP_CONCAT(DISTINCT ?oldICD ; SEPARATOR = '\\",\\"'),'\\"]') AS ?dependICDS) ?GLitem (ROUND(?loe) AS ?LOE) ?gltag WHERE { {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?futureICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?futureICD ;} OPTIONAL { {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?oldICD ?input ?GLitem} {?oldICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} } } GROUP BY ?phase ?futureICD ?GLitem ?loe ?gltag+++FutureCostDB+++SELECT DISTINCT ?decoICD ('Decommissioned' AS ?phase) WHERE { {?decoICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument&gt;;}}+++FutureDB+++SELECT DISTINCT ?System1 ('Decommissioned' AS ?phase) WHERE { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System1 &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; 'High'} }+++TAP_Core_Data+++SELECT DISTINCT ?decoICD ('Decommissioned' AS ?phase) WHERE { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System1 &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; 'High'} {?decoICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;}{{?System1 &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?decoICD ;}} UNION { {?decoICD &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System1 ;}} }+++TAP_Core_Data+++</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.GraphTimePlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:Time-Perspective:T1:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:Time-Perspective:T1:System">
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Time-Perspective:T2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Time-Perspective:T2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:FutureDB:Time-Perspective:T2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/FutureDB">
+	<T2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/FutureDB:FutureDB:Time-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Time-Perspective:FutureDB:Time-Perspective:T2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">FutureDB:Time-Perspective:FutureDB:Time-Perspective:T2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
+	<T2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/FutureDB:Time-Perspective:FutureDB:Time-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. How does the data network for this data change over time?</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">T2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?Data1 ?provide ?System1. ?System2 ?icd1 ?System3. ?icd1 ?contains ?prop. ?icd1 ?subprop ?relation. ?provide ?contains2 ?crm.} WHERE { BIND( &lt;@Data-http://semoss.org/ontologies/Concept/DataObject@&gt; AS ?Data1). { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?System1 ?provide ?Data1 ;} BIND(&lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; AS ?contains2). {?provide ?contains2 ?crm ;} } UNION {{?System2 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System3 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;} {?contains &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Relation/Contains&gt; ;} {?icd1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;;} {?upstream1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?downstream1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} {?carries ?contains ?prop ;} } BIND(&lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; AS ?subprop) BIND(&lt;http://semoss.org/ontologies/Relation&gt; AS ?relation) } BINDINGS ?crm {('C') ('M')}+++TAP_Core_Data,FutureDB+++SELECT DISTINCT ?futureICD ?phase (CONCAT('[\\"',GROUP_CONCAT(DISTINCT ?oldICD ; SEPARATOR = '\\",\\"'),'\\"]') AS ?dependICDS) ?GLitem (ROUND(?loe) AS ?LOE) ?gltag WHERE { {?subclass &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept/TransitionGLItem&gt; ;} {?GLitem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?subclass ;} {?tagged &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;} {?gltag &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/GLTag&gt; ;} {?GLitem ?tagged ?gltag;} {?influences &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Influences&gt;;}{?sys ?influences ?GLitem ;} {?GLitem &lt;http://semoss.org/ontologies/Relation/Contains/LOEcalc&gt; ?loe;} {?phase &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SDLCPhase&gt; ;} {?belongs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt;;} {?GLitem ?belongs ?phase ;} {?futureICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?output &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Output&gt;;} {?GLitem ?output ?futureICD ;} OPTIONAL { {?input &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Input&gt;;} {?oldICD ?input ?GLitem} {?oldICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} } } GROUP BY ?phase ?futureICD ?GLitem ?loe ?gltag+++FutureCostDB+++SELECT DISTINCT ?decoICD ('Decommissioned' AS ?phase) WHERE { {?decoICD &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument&gt;;} }+++FutureDB+++SELECT DISTINCT ?System1 ('Decommissioned' AS ?phase) WHERE { {?System1 &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?System1 &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; 'High'} }+++TAP_Core_Data+++</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.GraphTimePlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/FutureDB:Time-Perspective:T2:Data"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/FutureDB:Time-Perspective:T2:Data">
+	<LABEL xmlns="PARAM:">Data</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+</rdf:RDF>
