@@ -28,7 +28,6 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		GraphPlaySheet graphPS = createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC());
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<String,Set<String>> edges = processEdges(vertStore);
-		Hashtable<String,Set<String>> edges2 = processEdges(vertStore);
 
 //		names = new String[]{"Type","Closeness Centrality","Betweeness Centrality","Page Rank"};
 		names = new String[]{"Type","Closeness Centrality","Betweeness Centrality"};
@@ -37,7 +36,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		
 		CentralityCalculator cCalc = new CentralityCalculator();
 		Hashtable<String, Double> closeness = cCalc.calculateCloseness(edges);
-		Hashtable<String, Double> betweenness = cCalc.calculateBetweenness(edges2);
+		Hashtable<String, Double> betweenness = cCalc.calculateBetweenness(edges);
 		
 //		PageRankCalculator pCalc = new PageRankCalculator();
 //		Hashtable<SEMOSSVertex, Double> ranks = pCalc.calculatePageRank(graphPS.forest);

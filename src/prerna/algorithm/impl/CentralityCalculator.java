@@ -26,7 +26,8 @@ public class CentralityCalculator {
 		distances.put(node,0);
 		
 		int count = 1;
-		Set<String> nodesToAdd = edges.get(node);
+		Set<String> nodesToAdd = new HashSet<String>();
+		nodesToAdd.addAll(edges.get(node));
 		
 		//if isolated, then centrality is 0
 		if(nodesToAdd==null || nodesToAdd.size()==0)
@@ -35,7 +36,7 @@ public class CentralityCalculator {
 		//if there is at least something connected, get distances to every other node in the database
 		//stopping point when all nodes have been added to our distance hash
 		//or when our count is the size of the database(will stop if there are islands)
-		while(distances.size()<edges.size() && count < edges.size()) {
+		while(distances.size()<edges.size() && count <= edges.size()) {
 			Set<String> nextNodesToAdd = new HashSet<String>();
 			for(String nodeToAdd : nodesToAdd) {
 				if(!distances.containsKey(nodeToAdd))
@@ -52,7 +53,7 @@ public class CentralityCalculator {
 			totalDistance += distances.get(connectedNode);
 		}
 		
-		return (edges.size()-1.0) / totalDistance;
+		return (distances.size()-1.0) / totalDistance;
 			
 	}
 	
@@ -121,7 +122,8 @@ public class CentralityCalculator {
 				String nodeJ = nodes.get(t);
 				//find the shortest path between node i and node j
 				int distance = 1;
-				Set<String>  neighbors = (Set<String>)edges.get(nodeI);
+				Set<String>  neighbors = new HashSet<String>();
+				neighbors.addAll(edges.get(nodeI));
 				while(!neighbors.contains(nodeJ)&&distance<=edges.size()) {
 					Set<String>  nextNeighbors = new HashSet<String>();
 					distance++;
