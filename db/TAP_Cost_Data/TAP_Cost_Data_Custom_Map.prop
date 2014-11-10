@@ -30,9 +30,11 @@ TargetPhaseBasisSubTaskComplexityComplexity http://health.mil/ontologies/Concept
 PfSubSubTaskType http://health.mil/ontologies/Concept/PfSubSubTaskType
 RequirementsGLItem http://health.mil/ontologies/Concept/RequirementsGLItem
 DCSite http://health.mil/ontologies/Concept/DCSite
+FloaterGLItem http://health.mil/ontologies/Concept/FloaterGLItem
 SystemDCSiteGLItem http://health.mil/ontologies/Concept/SystemDCSiteGLItem
-Enterprise http://health.mil/ontologies/Concept/Enterprise
 PfSubSubTask http://health.mil/ontologies/Concept/PfSubSubTask
+Enterprise http://health.mil/ontologies/Concept/Enterprise
+Floater http://health.mil/ontologies/Concept/Floater
 SystemDCSite http://health.mil/ontologies/Concept/SystemDCSite
 GLItemCoreTask http://health.mil/ontologies/Concept/GLItemCoreTask
 SystemUser http://health.mil/ontologies/Concept/SystemUser
@@ -48,6 +50,7 @@ FYTag http://health.mil/ontologies/Concept/FYTag
 TargetOverheadItem http://health.mil/ontologies/Concept/TargetOverheadItem
 DesignGLItem http://health.mil/ontologies/Concept/DesignGLItem
 BasisTarget http://health.mil/ontologies/Concept/BasisTarget
+SystemSiteSupportGLItem http://health.mil/ontologies/Concept/SystemSiteSupportGLItem
 TrainingGLItem http://health.mil/ontologies/Concept/TrainingGLItem
 
 ##Base Predicates##
@@ -61,7 +64,9 @@ BusinessLogicUnit_Input_DeployGLItem http://health.mil/ontologies/Relation/Input
 GLItemCoreTask_Includes_GLItemSubTask http://health.mil/ontologies/Relation/Includes
 EnterpriseBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 EnterpriseBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+FloaterGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 System_Provide_BusinessLogicUnit http://health.mil/ontologies/Relation/Provide
+FloaterGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 BusinessLogicUnit_Input_RequirementsGLItem http://health.mil/ontologies/Relation/Input
 BasisCoreTask_ExistsAs_TargetPhaseBasisCoreTask http://health.mil/ontologies/Relation/ExistsAs
 SemanticsGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
@@ -77,12 +82,14 @@ PfPhase_Has_PfPhaseTask http://health.mil/ontologies/Relation/Has
 SystemServiceBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 BasisSubTask_ExistsAs_TargetPhaseBasisSubTask http://health.mil/ontologies/Relation/ExistsAs
 TargetPhaseBasisCoreTask_Includes_TargetPhaseBasisSubTask http://health.mil/ontologies/Relation/Includes
+System_Has_FloaterGLItem http://health.mil/ontologies/Relation/Has
 SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 SystemDCSiteGLItem_BelongsTo_SDLCPhase http://health.mil/ontologies/Relation/BelongsTo
 DataObject_Input_DesignGLItem http://health.mil/ontologies/Relation/Input
 SystemServiceBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
 BusinessLogicUnit_Input_DevelopGLItem http://health.mil/ontologies/Relation/Input
+Floater_Has_FloaterGLItem http://health.mil/ontologies/Relation/Has
 DesignGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 DeployGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 DesignGLItem_Output_Service http://health.mil/ontologies/Relation/Output
@@ -131,18 +138,22 @@ GLItemSubTask_Estimated_TargetPhaseBasisSubTaskComplexityComplexity http://healt
 TestGLItem_BelongsTo_SDLCPhase http://health.mil/ontologies/Relation/BelongsTo
 Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
 System_Influences_DevelopGLItem http://health.mil/ontologies/Relation/Influences
+DCSite_Has_SystemSiteSupportGLItem http://health.mil/ontologies/Relation/Has
 TargetPhaseBasisSubTaskComplexity_TypeOf_Complexity http://health.mil/ontologies/Relation/TypeOf
 DCSite_Has_DCTag http://health.mil/ontologies/Relation/Has
 DesignGLItem_BelongsTo_SDLCPhase http://health.mil/ontologies/Relation/BelongsTo
 DataObject_Input_TestGLItem http://health.mil/ontologies/Relation/Input
+SystemSiteSupportGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
 DataObject_Input_DeployGLItem http://health.mil/ontologies/Relation/Input
+SystemSiteSupportGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 SDLCPhase_BelongsTo_TargetPhaseBasisCoreTask http://health.mil/ontologies/Relation/BelongsTo
 DeployGLItem_BelongsTo_SDLCPhase http://health.mil/ontologies/Relation/BelongsTo
 BasisTarget_Includes_TargetOverheadItem http://health.mil/ontologies/Relation/Includes
 System_Influences_SemanticsGLItem http://health.mil/ontologies/Relation/Influences
 TargetPhaseBasisSubTask_Rated_TargetPhaseBasisSubTaskComplexity http://health.mil/ontologies/Relation/Rated
 System_Influences_SystemDCSiteGLItem http://health.mil/ontologies/Relation/Influences
+System_Has_SystemSiteSupportGLItem http://health.mil/ontologies/Relation/Has
 
 ##Base Objects Class##
 
@@ -164,15 +175,17 @@ TargetPhaseBasisSubTask_CLASS http://semoss.org/ontologies/Concept/TargetPhaseBa
 BasisSubTask_CLASS http://semoss.org/ontologies/Concept/BasisSubTask
 System_CLASS http://semoss.org/ontologies/Concept/System
 SystemHWUpgradeGLItem_CLASS http://semoss.org/ontologies/Concept/SystemHWUpgradeGLItem
+SystemSiteSupportGLItem_CLASS http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem
 DeployGLItem_CLASS http://semoss.org/ontologies/Concept/DeployGLItem
 BusinessLogicUnit_CLASS http://semoss.org/ontologies/Concept/BusinessLogicUnit
 SystemDCSiteGLItem_CLASS http://semoss.org/ontologies/Concept/SystemDCSiteGLItem
+FloaterGLItem_CLASS http://semoss.org/ontologies/Concept/FloaterGLItem
 BasisTarget_CLASS http://semoss.org/ontologies/Concept/BasisTarget
 PfPhase_CLASS http://semoss.org/ontologies/Concept/PfPhase
 FundingSource_CLASS http://semoss.org/ontologies/Concept/FundingSource
 SystemServiceBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem
-DateTag_CLASS http://semoss.org/ontologies/Concept/DateTag
 DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
+DateTag_CLASS http://semoss.org/ontologies/Concept/DateTag
 DCTag_CLASS http://semoss.org/ontologies/Concept/DCTag
 TrainingGLItem_CLASS http://semoss.org/ontologies/Concept/TrainingGLItem
 SemanticsGLItem_CLASS http://semoss.org/ontologies/Concept/SemanticsGLItem
@@ -188,6 +201,7 @@ Database_CLASS http://semoss.org/ontologies/Concept/Database
 EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem
 GLTag_CLASS http://semoss.org/ontologies/Concept/GLTag
 SystemOwner_CLASS http://semoss.org/ontologies/Concept/SystemOwner
+Floater_CLASS http://semoss.org/ontologies/Concept/Floater
 SystemDCSite_CLASS http://semoss.org/ontologies/Concept/SystemDCSite
 PfCoreTask_CLASS http://semoss.org/ontologies/Concept/PfCoreTask
 TargetOverheadItem_CLASS http://semoss.org/ontologies/Concept/TargetOverheadItem
