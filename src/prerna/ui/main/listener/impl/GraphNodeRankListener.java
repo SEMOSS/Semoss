@@ -22,6 +22,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Hashtable;
 import java.util.Iterator;
 
 import javax.swing.JInternalFrame;
@@ -29,12 +30,12 @@ import javax.swing.JInternalFrame;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.PageRankCalculator;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.QuestionPlaySheetStore;
-import edu.uci.ics.jung.algorithms.scoring.PageRank;
 
 /**
  * Controls the running of the node rank algorithm
@@ -62,19 +63,30 @@ public class GraphNodeRankListener implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
 		
-		//set up page rank
-		double alpha = 0.15;
-		double tolerance = 0.001;
-		int maxIterations = 100;
-		PageRank<SEMOSSVertex, Integer> ranker = new PageRank<SEMOSSVertex, Integer>(playSheet.forest, alpha);
+		PageRankCalculator calc = new PageRankCalculator();
+		Hashtable<SEMOSSVertex, Double> ranks = calc.calculatePageRank(playSheet.forest);
+
+		ArrayList <Object []> list = new ArrayList();
+		int count = 0;
 		
-		ranker.setTolerance(tolerance) ;
-		ranker.setMaxIterations(maxIterations);
-		ranker.evaluate();
-		
-		Collection<String> col =  playSheet.forest.getVertices();
-		
+		Collection<String> col = playSheet.forest.getVertices();
 		Iterator it = col.iterator();
+
+		//process through graph and list out all nodes, type, pagerank
+		while (it.hasNext()) {
+			SEMOSSVertex v= (SEMOSSVertex) it.next();
+			String url = v.getURI();
+			String[] urlSplit = url.split("/");
+			double r = ranks.get(v);
+			
+			String [] scores = new String[3];
+			scores[0] = urlSplit[urlSplit.length-1];
+			scores[1] = urlSplit[urlSplit.length-2];
+			scores[2] = Double.toString(r);
+			list.add(count, scores);
+			count++;
+		}
+		
 		GridFilterData gfd = new GridFilterData();
 		JInternalFrame nodeRankSheet = new JInternalFrame();
 		String[] colNames = new String[3];
@@ -82,27 +94,6 @@ public class GraphNodeRankListener implements ActionListener {
 		colNames[1] = "Vertex Type";
 		colNames[2] = "Page Rank Score";
 		gfd.setColumnNames(colNames);
-		ArrayList <Object []> list = new ArrayList();
-		ArrayList numList = new ArrayList();
-		int count = 0;
-		
-		//process through graph and list out all nodes, type, pagerank
-		while (it.hasNext()) {
-			SEMOSSVertex v= (SEMOSSVertex) it.next();
-			String url = v.getURI();
-			String[] urlSplit = url.split("/");
-			double r = ranker.getVertexScore(v);
-			
-			String [] scores = new String[colNames.length];
-			scores[0] = urlSplit[urlSplit.length-1];
-			scores[1] = urlSplit[urlSplit.length-2];
-			scores[2] = Double.toString(r);
-			numList.add(r);
-			list.add(count, scores);
-			count++;
-		}
-		//need to sort the list so highest page rank shows on top
-
 		//set list
 		GridScrollPane dataPane = new GridScrollPane(colNames, list);
 		nodeRankSheet.setContentPane(dataPane);
