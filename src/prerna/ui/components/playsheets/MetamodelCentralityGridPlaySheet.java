@@ -10,6 +10,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.om.SEMOSSEdge;
@@ -31,25 +32,33 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<String,Set<String>> unDirectedEdges = processEdges(vertStore, false);
 
-		names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Page Rank"};
+		names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
 
 		list = new ArrayList<Object[]>();
 		
 		CentralityCalculator cCalc = new CentralityCalculator();
 		Hashtable<String, Double> unDirCloseness = cCalc.calculateCloseness(unDirectedEdges);
 		Hashtable<String, Double> unDirBetweenness = cCalc.calculateBetweenness(unDirectedEdges);
+		Hashtable<String, Double> unDirEccentricity = cCalc.calculateEccentricity(unDirectedEdges);
 		
+		DelegateForest<SEMOSSVertex,SEMOSSEdge> forest = makeForestUndirected(graphPS.getGraphData().getEdgeStore(), graphPS.forest);
 		PageRankCalculator pCalc = new PageRankCalculator();
-		Hashtable<SEMOSSVertex, Double> ranks = pCalc.calculatePageRank(graphPS.forest);
+		Hashtable<SEMOSSVertex, Double> ranks = pCalc.calculatePageRank(forest);
+		
+		Hashtable<SEMOSSVertex, Double> ranksTimesNodes = pCalc.calculatePageRank(forest);
+		for(SEMOSSVertex vert : ranks.keySet()) {
+			ranksTimesNodes.put(vert, ranks.get(vert)*ranks.keySet().size());
+		}
 		
 		for(String node : vertStore.keySet()) {
 			SEMOSSVertex vert = vertStore.get(node);
 			String type = (String)vert.propHash.get(Constants.VERTEX_NAME);
-			Object[] row = new Object[4];
+			Object[] row = new Object[5];
 			row[0] = type;
 			row[1] = unDirCloseness.get(type);
 			row[2] = unDirBetweenness.get(type);
-			row[3] = ranks.get(vert);
+			row[3] = unDirEccentricity.get(type);
+			row[4] = ranks.get(vert);
 			list.add(row);
 		}
 	}
@@ -102,5 +111,14 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 			edges.put(type, neighbors);
 		}
 		return edges;
+	}
+	
+	private DelegateForest<SEMOSSVertex,SEMOSSEdge> makeForestUndirected(Hashtable<String, SEMOSSEdge> edgeStore, DelegateForest<SEMOSSVertex,SEMOSSEdge> forest) {
+		for(String edgeKey : edgeStore.keySet()) {
+			SEMOSSEdge oldEdge = edgeStore.get(edgeKey);
+			SEMOSSEdge newEdge = new SEMOSSEdge(oldEdge.inVertex,oldEdge.outVertex,oldEdge.inVertex.getURI()+":"+oldEdge.outVertex.propHash.get(Constants.VERTEX_NAME));//pull from the old edge
+			forest.addEdge(newEdge, oldEdge.inVertex,oldEdge.outVertex);			
+		}
+		return forest;
 	}
 }
