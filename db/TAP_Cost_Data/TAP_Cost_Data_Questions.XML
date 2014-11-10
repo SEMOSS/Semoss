@@ -70,8 +70,8 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Instance">
 	<LABEL xmlns="PARAM:">Instance</LABEL>
 	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
-	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
-	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
 </rdf:Description>
 
@@ -1723,6 +1723,42 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What site deployment costs exist for all systems? (Pie)</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
+	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. Explore the metamodel</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.MetamodelCentralityGridPlaySheet</Layout>
 </rdf:Description>
 
 </rdf:RDF>
