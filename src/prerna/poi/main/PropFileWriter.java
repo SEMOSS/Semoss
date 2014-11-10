@@ -19,6 +19,7 @@
 package prerna.poi.main;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -60,7 +61,7 @@ public class PropFileWriter {
 
 	public PropFileWriter () {
 		defaultDBPropName = "db/Default/Default.properties";
-		defaultQuestionProp = "db/Default/Default_Questions.properties";
+		defaultQuestionProp = "db/Default/Default_Questions.XML";
 		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 	}
 
@@ -167,9 +168,13 @@ public class PropFileWriter {
 	 */
 	private void copyFile(String newFilePath, String oldFilePath) throws FileReaderException, EngineException {
 		try{
-			Path newPath = Paths.get(newFilePath);
-			Path oldPath = Paths.get(oldFilePath);
-			Files.copy(oldPath, newPath);
+			if(!oldFilePath.contains("_Questions.XML")){
+				Path newPath = Paths.get(newFilePath);
+				Path oldPath = Paths.get(oldFilePath);
+				Files.copy(oldPath, newPath);
+			} else {
+				createXMLQuestionFile(newFilePath, oldFilePath);
+			}
 		} catch(FileAlreadyExistsException ex) {
 			ex.printStackTrace();
 			throw new EngineException("Database name already exists. Please load using a different database name.");
@@ -209,7 +214,7 @@ public class PropFileWriter {
 			pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 			pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
 			pw.write(Constants.OWL + "\t" + owlFile + "\n");
-			pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
+			pw.write(Constants.INSIGHTS + "\t" + questionFileName + "\n\n\n");
 			if(this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
@@ -247,6 +252,60 @@ public class PropFileWriter {
 				pw.close();
 		}catch (IOException e) {
 				e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
+	 * @param newFilePath 		String containing the path to the new database
+	 * @param oldFilePath 		String containing the path to the Default folder
+	 */
+	public void createXMLQuestionFile(String newFilePath, String oldFilePath){
+		BufferedReader reader = null;
+		BufferedWriter writer = null;
+		
+		try{
+			File oldFile = new File(oldFilePath);
+			File newFile = new File(newFilePath);
+			
+			newFile.createNewFile();
+			
+			reader = new BufferedReader(new FileReader(oldFile));
+			writer = new BufferedWriter(new FileWriter(newFile));
+			
+			String line;
+			
+			while((line=reader.readLine()) != null){
+				if(line.contains("Default")){
+					line = line.replace("Default", engineName);
+				}
+				
+				writer.write(line);
+				writer.newLine();
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+		    if (reader != null) {
+		        try {
+					reader.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		    if (writer != null) {
+		        try {
+					writer.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
 		}
 	}
 }
