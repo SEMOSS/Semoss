@@ -140,7 +140,33 @@ public class CentralityCalculator {
 		return shortestPath;
 	}
 	
-	//calculate shortest distance between all
-	//hashtable with vertex-vertex pair as key.
+	public Hashtable<String, Double> calculateEccentricity(Hashtable<String,Set<String>> edges) {
+		Hashtable<String, Double> nodeEccentricity = new Hashtable<String, Double>();
+		
+		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
+		
+		for(String node : edges.keySet()) {
+			nodeEccentricity.put(node,calculateEccentricity(node,edges,shortestPath));
+		}
+		
+		return nodeEccentricity;
+	}
 	
+	private Double calculateEccentricity(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
+		//for every node (go through edges)
+		double longestPath = 0.0;
+		for(String otherNode : edges.keySet()) {
+			double currPath = 0.0;
+			if(shortestPath.containsKey(node+"-"+otherNode)) {
+				currPath = shortestPath.get(node+"-"+otherNode);
+			} else if(shortestPath.containsKey(otherNode+"-"+node)) {
+				currPath = shortestPath.get(otherNode+"-"+node);
+			}
+			if(currPath>longestPath)
+				longestPath=currPath;
+		}
+		if(longestPath==0.0)
+			return 0.0;
+		return 1.0 / longestPath;
+	}
 }
