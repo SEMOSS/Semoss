@@ -994,7 +994,7 @@ public class PlayPane extends JFrame {
 		gbc_dbPropFileNameField.gridy = 1;
 		advancedImportOptionsPanel.add(dbPropFileNameField,	gbc_dbPropFileNameField);
 
-		JLabel lblselectCustomQuestionssheet = new JLabel("<HTML>Select Custom Questions Sheet</HTML>");
+		JLabel lblselectCustomQuestionssheet = new JLabel("<HTML>Select Custom Insights XML File</HTML>");
 		lblselectCustomQuestionssheet.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblselectCustomQuestionssheet = new GridBagConstraints();
 		gbc_lblselectCustomQuestionssheet.anchor = GridBagConstraints.WEST;
