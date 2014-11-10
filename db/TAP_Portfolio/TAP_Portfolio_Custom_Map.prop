@@ -2,10 +2,14 @@
 ##Base Objects##
 
 GLTag http://health.mil/ontologies/Concept/GLTag
+DCSite http://health.mil/ontologies/Concept/DCSite
+Floater http://health.mil/ontologies/Concept/Floater
 System http://health.mil/ontologies/Concept/System
 FundingSource http://health.mil/ontologies/Concept/FundingSource
 SystemServiceBudgetGLItem http://health.mil/ontologies/Concept/SystemServiceBudgetGLItem
+FloaterGLItem http://health.mil/ontologies/Concept/FloaterGLItem
 FYTag http://health.mil/ontologies/Concept/FYTag
+SystemSiteSupportGLItem http://health.mil/ontologies/Concept/SystemSiteSupportGLItem
 Enterprise http://health.mil/ontologies/Concept/Enterprise
 SystemBudgetGLItem http://health.mil/ontologies/Concept/SystemBudgetGLItem
 SystemService http://health.mil/ontologies/Concept/SystemService
@@ -14,50 +18,70 @@ Complexity http://health.mil/ontologies/Concept/Complexity
 
 ##Base Predicates##
 
-SystemService_Has_SystemServiceBudgetGLItem http://health.mil/ontologies/Relation/Has
-EnterpriseBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
-SystemServiceBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
-System_ConsistsOf_SystemService http://health.mil/ontologies/Relation/ConsistsOf
-System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
+SystemSiteSupportGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 EnterpriseBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
 SystemServiceBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
-SystemBudgetGLItem_FundedBy_FundingSource http://health.mil/ontologies/Relation/FundedBy
-GLTag_Includes_GLTag http://health.mil/ontologies/Relation/Includes
-SystemBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
-System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
-Enterprise_Consists_System http://health.mil/ontologies/Relation/Consists
+System_Has_SystemSiteSupportGLItem http://health.mil/ontologies/Relation/Has
 SystemBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+System_ConsistsOf_SystemService http://health.mil/ontologies/Relation/ConsistsOf
+EnterpriseBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+SystemServiceBudgetGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
 Enterprise_Has_EnterpriseBudgetGLItem http://health.mil/ontologies/Relation/Has
+System_Has_FloaterGLItem http://health.mil/ontologies/Relation/Has
+System_Has_SystemBudgetGLItem http://health.mil/ontologies/Relation/Has
+SystemBudgetGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
+SystemService_Has_SystemServiceBudgetGLItem http://health.mil/ontologies/Relation/Has
+FloaterGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
+Floater_Has_FloaterGLItem http://health.mil/ontologies/Relation/Has
+DCSite_Has_SystemSiteSupportGLItem http://health.mil/ontologies/Relation/Has
+FloaterGLItem_TaggedBy_GLTag http://health.mil/ontologies/Relation/TaggedBy
+SystemSiteSupportGLItem_OccursIn_FYTag http://health.mil/ontologies/Relation/OccursIn
+System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
+SystemBudgetGLItem_FundedBy_FundingSource http://health.mil/ontologies/Relation/FundedBy
+Enterprise_Consists_System http://health.mil/ontologies/Relation/Consists
+GLTag_Includes_GLTag http://health.mil/ontologies/Relation/Includes
 
 ##Base Objects Class##
 
 SystemService_CLASS http://semoss.org/ontologies/Concept/SystemService
+SystemSiteSupportGLItem_CLASS http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem
 FundingSource_CLASS http://semoss.org/ontologies/Concept/FundingSource
 FYTag_CLASS http://semoss.org/ontologies/Concept/FYTag
 System_CLASS http://semoss.org/ontologies/Concept/System
+Floater_CLASS http://semoss.org/ontologies/Concept/Floater
 Complexity_CLASS http://semoss.org/ontologies/Concept/Complexity
+DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
 EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem
 Enterprise_CLASS http://semoss.org/ontologies/Concept/Enterprise
 GLTag_CLASS http://semoss.org/ontologies/Concept/GLTag
 SystemBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/SystemBudgetGLItem
+FloaterGLItem_CLASS http://semoss.org/ontologies/Concept/FloaterGLItem
 SystemServiceBudgetGLItem_CLASS http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem
 
 ##Base Predicates Class##
 
-GLTag_Includes_GLTag_CLASS http://semoss.org/ontologies/Relation/Includes
-Enterprise_Has_EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
-System_ConsistsOf_SystemService_CLASS http://semoss.org/ontologies/Relation/ConsistsOf
 System_Has_SystemBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
-SystemBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
-SystemServiceBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
-SystemService_Has_SystemServiceBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
-System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
-SystemServiceBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
 Enterprise_Consists_System_CLASS http://semoss.org/ontologies/Relation/Consists
-SystemBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+SystemSiteSupportGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
+System_Has_FloaterGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+SystemSiteSupportGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
 SystemBudgetGLItem_FundedBy_FundingSource_CLASS http://semoss.org/ontologies/Relation/FundedBy
-EnterpriseBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+SystemBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+System_ConsistsOf_SystemService_CLASS http://semoss.org/ontologies/Relation/ConsistsOf
+FloaterGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+SystemServiceBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+DCSite_Has_SystemSiteSupportGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+Enterprise_Has_EnterpriseBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
 EnterpriseBudgetGLItem_TaggedBy_GLTag_CLASS http://semoss.org/ontologies/Relation/TaggedBy
+FloaterGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+SystemServiceBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+System_Has_SystemSiteSupportGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+EnterpriseBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
+GLTag_Includes_GLTag_CLASS http://semoss.org/ontologies/Relation/Includes
+SystemService_Has_SystemServiceBudgetGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+Floater_Has_FloaterGLItem_CLASS http://semoss.org/ontologies/Relation/Has
+SystemBudgetGLItem_OccursIn_FYTag_CLASS http://semoss.org/ontologies/Relation/OccursIn
 
 PROP_URI http://semoss.org/ontologies/Relation/Contains
 
