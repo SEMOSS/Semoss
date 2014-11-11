@@ -41,7 +41,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptsAndInstanceCountsQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?instance) AS ?count) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} } GROUP BY ?entity";
 		final String getConceptsAndPropCountsQuery = "SELECT DISTINCT ?nodeType (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { {?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType";
 		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity ( COUNT(DISTINCT ?inRel) + COUNT(DISTINCT ?outRel) AS ?edgeCount) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} OPTIONAL{?entity ?outRel ?node1} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} OPTIONAL{?node2 ?inRel ?entity} } GROUP BY ?entity";
-		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?engineInsight <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Engine:Insight>} {?engine ?engineInsight ?insight} {?insight <PARAM:TYPE> ?entity} } @ENTITY_BINDINGS@";
+		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
 		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
@@ -54,11 +54,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
-		String bindings = "BINDINGS { ";
+		String bindings = "BINDINGS ?entity { ";
 		for(String concept : conceptList) {
-			bindings.concat("<").concat(concept).concat(">").concat(" ");
+			if(!concept.equals("http://semoss.org/ontologies/Concept"))
+				bindings = bindings.concat("(<").concat(concept).concat(">)");
 		}
-		bindings.concat("}");
+		bindings = bindings.concat(" }");
 		specificInsightQuery = specificInsightQuery.replace("@ENTITY_BINDINGS@", bindings);
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
 		allData = addToAllData(insightEngine, specificInsightQuery, "heat", allData);
@@ -79,10 +80,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		int length = conceptList.size();
 		int i = 0;
 		for(;i < length; i++) {
-			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			elementHash.put("series", "Concepts");
-			elementHash.put("label", conceptList.get(i));
-			allData.put(conceptList.get(i), elementHash);
+			String key = conceptList.get(i);
+			if(!key.equals("http://semoss.org/ontologies/Concept")) {
+				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+				elementHash.put("series", "Concepts");
+				elementHash.put("label", conceptList.get(i));
+				allData.put(conceptList.get(i), elementHash);
+			}
 		}
 		
 		return allData;
@@ -96,23 +100,25 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String concept = sjss.getRawVar(param1).toString();
-			Object val = sjss.getVar(param2);
-			
-			Hashtable<String, Object> elementData = allData.get(concept);
-			elementData.put(key, val);
+			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
+				Object val = sjss.getVar(param2);
+				
+				Hashtable<String, Object> elementData = allData.get(concept);
+				elementData.put(key, val);
+			}
 		}
 		
 		return allData;
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsWithoutParams(IEngine engine) {
-		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(@ENGINE_NAME@ AS ?engine) {?engineInsight <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Engine:Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Description> ?questionDescription} MINUS{?insight <PARAM:TYPE> ?entity} }";
+		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
 		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engine.getEngineName()));
-		
+				
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
@@ -127,13 +133,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsForParam(IEngine engine, String typeURI) {
-		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(@ENGINE_NAME@ AS ?engine) {?engineInsight <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Engine:Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Description> ?questionDescription} {?insight <PARAM:TYPE> ?entity} }";
+		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
 		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engine.getEngineName()));		
-		query = getInsightsWithParamsQuery.replace("@ENTITY_TYPE@", typeURI);
+		query = query.replace("@ENTITY_TYPE@", typeURI);
 				
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
