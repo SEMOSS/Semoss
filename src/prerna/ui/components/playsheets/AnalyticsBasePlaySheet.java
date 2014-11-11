@@ -186,10 +186,10 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, Object>> getLargestOutliers(IEngine engine, String typeURI) {
-		final String basePropString = "<http://semoss.org/ontologies/Relation/Contains/@PROP@>";
 		final String baseQuery = "SELECT DISTINCT ?@TYPE@ @PROPERTIES@ WHERE { {?@TYPE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} @PROP_TRIPLES@ }";
-		
 		final String propListQuery = "SELECT DISTINCT ?prop WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?entity ?prop ?val} }";
+		
+		String type = Utility.getInstanceName(typeURI);
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, propListQuery.replace("@TYPE_URI@", typeURI));
 		String[] names = sjsw.getVariables();
@@ -198,14 +198,14 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		String propTriples = "";
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String varName = sjss.getVar(retVar).toString();
+			String varName = sjss.getVar(retVar).toString().replaceAll("-", "_");
 			String varURI = sjss.getRawVar(retVar).toString();
 			
-			propVars.concat("?").concat(varName).concat(" ");
-			propTriples.concat("?").concat(varName).concat(" ").concat(basePropString.replace("@PROP@", varName)).concat(" ").concat("<").concat(varURI).concat(">").concat(" ");
+			propVars = propVars.concat("?").concat(varName).concat(" ");
+			propTriples = propTriples.concat("OPTIONAL{?").concat(type).concat(" <").concat(varURI).concat("> ").concat("?").concat(varName).concat("} ");
 		}
 		
-		String query = baseQuery.replaceAll("@TYPE@", Utility.getInstanceName(typeURI)).replace("@TYPE_URI@", typeURI).replace("@PROPERTIES@", propVars).replace("@PROP_TRIPLES@", propTriples);
+		String query = baseQuery.replaceAll("@TYPE@", type).replace("@TYPE_URI@", typeURI).replace("@PROPERTIES@", propVars).replace("@PROP_TRIPLES@", propTriples);
 		
 		ArrayList<Object[]> results = new ArrayList<Object[]>();
 		sjsw = Utility.processQuery(engine, query);
