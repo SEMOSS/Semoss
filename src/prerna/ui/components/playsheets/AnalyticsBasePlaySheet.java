@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
+import prerna.algorithm.impl.CentralityCalculator;
+import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
@@ -40,8 +42,9 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} }";
 		final String getConceptsAndInstanceCountsQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?instance) AS ?count) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} } GROUP BY ?entity";
 		final String getConceptsAndPropCountsQuery = "SELECT DISTINCT ?nodeType (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { {?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType";
-		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity ( COUNT(DISTINCT ?inRel) + COUNT(DISTINCT ?outRel) AS ?edgeCount) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} OPTIONAL{?entity ?outRel ?node1} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} OPTIONAL{?node2 ?inRel ?entity} } GROUP BY ?entity";
+		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity (SUM(?count) AS ?totalCount) WHERE { { SELECT DISTINCT ?entity (COUNT(?outRel) AS ?count) WHERE { FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?outRel ?entity} } GROUP BY ?entity } UNION { SELECT DISTINCT ?entity (COUNT(?inRel) AS ?count) WHERE { FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?inRel ?node1} } GROUP BY ?entity } } GROUP BY ?entity";
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
+		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE { ?s ?p ?o} LIMIT 1";
 		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
@@ -51,6 +54,11 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		allData = addToAllData(baseDataEngine, getConceptEdgesCountQuery, "y", allData);
+		
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
+		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
+		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore, false);
+		allData = addToAllData(unDirEccentricity, "time", allData);
 
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
@@ -108,6 +116,20 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
+		return allData;
+	}
+	
+	private Hashtable<String, Hashtable<String, Object>> addToAllData(Hashtable<SEMOSSVertex, Double> unDirEccentricity, String key, Hashtable<String, Hashtable<String, Object>> allData) {
+		for(SEMOSSVertex vert : unDirEccentricity.keySet()) {
+			String concept = vert.getURI().replaceAll(" ", "");
+			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
+				Object val = unDirEccentricity.get(vert);
+				
+				Hashtable<String, Object> elementData = allData.get(concept);
+				elementData.put(key, val);
+			}
+		}
+
 		return allData;
 	}
 	
