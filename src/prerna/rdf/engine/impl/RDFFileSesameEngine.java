@@ -83,6 +83,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void openDB(String propFile)
 	{
+		super.openDB(propFile);
 		try
 		{
 			Repository myRepository;
