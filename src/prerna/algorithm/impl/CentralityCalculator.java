@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.Vector;
+
+import prerna.om.SEMOSSEdge;
+import prerna.om.SEMOSSVertex;
+import prerna.util.Constants;
 
 public class CentralityCalculator {
 	/**
@@ -140,6 +145,20 @@ public class CentralityCalculator {
 		return shortestPath;
 	}
 	
+	public Hashtable<SEMOSSVertex, Double> calculateEccentricity(Hashtable<String,SEMOSSVertex> vertStore, boolean directed) {
+		Hashtable<SEMOSSVertex, Double> nodeEccentricity = new Hashtable<SEMOSSVertex, Double>();
+		
+		Hashtable<String,Set<String>> edges = processEdges(vertStore, directed);
+		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
+		
+		for(String node : vertStore.keySet()) {
+			SEMOSSVertex vert = vertStore.get(node);
+			String type = (String) vert.propHash.get(Constants.VERTEX_NAME);
+			nodeEccentricity.put(vert,calculateEccentricity(type,edges,shortestPath));
+		}		
+		return nodeEccentricity;
+	}
+	
 	public Hashtable<String, Double> calculateEccentricity(Hashtable<String,Set<String>> edges) {
 		Hashtable<String, Double> nodeEccentricity = new Hashtable<String, Double>();
 		
@@ -168,5 +187,27 @@ public class CentralityCalculator {
 		if(longestPath==0.0)
 			return 0.0;
 		return 1.0 / longestPath;
+	}
+	
+	public Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
+		Hashtable<String,Set<String>> edges = new Hashtable<String,Set<String>>();
+		for(String key : vertStore.keySet()) {
+			SEMOSSVertex vertex= vertStore.get(key);
+			String type = (String)vertex.propHash.get(Constants.VERTEX_NAME);
+			
+			Set<String> neighbors = new HashSet<String>();
+			if(!directed) {
+				Vector<SEMOSSEdge> inEdges = vertex.getInEdges();
+				for(SEMOSSEdge edge : inEdges) {
+					neighbors.add((String)(edge.outVertex.propHash.get(Constants.VERTEX_NAME)));
+				}
+			}
+			Vector<SEMOSSEdge> outEdges = vertex.getOutEdges();
+			for(SEMOSSEdge edge : outEdges) {
+				neighbors.add((String)(edge.inVertex.propHash.get(Constants.VERTEX_NAME)));
+			}
+			edges.put(type, neighbors);
+		}
+		return edges;
 	}
 }

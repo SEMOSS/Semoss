@@ -30,13 +30,13 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		GraphPlaySheet graphPS = createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC());
 
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
-		Hashtable<String,Set<String>> unDirectedEdges = processEdges(vertStore, false);
 
 		names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
 
 		list = new ArrayList<Object[]>();
 		
 		CentralityCalculator cCalc = new CentralityCalculator();
+		Hashtable<String,Set<String>> unDirectedEdges = cCalc.processEdges(vertStore, false);
 		Hashtable<String, Double> unDirCloseness = cCalc.calculateCloseness(unDirectedEdges);
 		Hashtable<String, Double> unDirBetweenness = cCalc.calculateBetweenness(unDirectedEdges);
 		Hashtable<String, Double> unDirEccentricity = cCalc.calculateEccentricity(unDirectedEdges);
@@ -45,7 +45,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		PageRankCalculator pCalc = new PageRankCalculator();
 		Hashtable<SEMOSSVertex, Double> ranks = pCalc.calculatePageRank(forest);
 		
-		Hashtable<SEMOSSVertex, Double> ranksTimesNodes = pCalc.calculatePageRank(forest);
+		Hashtable<SEMOSSVertex, Double> ranksTimesNodes = new Hashtable<SEMOSSVertex, Double>();
 		for(SEMOSSVertex vert : ranks.keySet()) {
 			ranksTimesNodes.put(vert, ranks.get(vert)*ranks.keySet().size());
 		}
@@ -58,7 +58,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 			row[1] = unDirCloseness.get(type);
 			row[2] = unDirBetweenness.get(type);
 			row[3] = unDirEccentricity.get(type);
-			row[4] = ranks.get(vert);
+			row[4] = ranksTimesNodes.get(vert);
 			list.add(row);
 		}
 	}
@@ -91,28 +91,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		playSheet.createForest();
 		return playSheet;
 	}
-	private Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
-		Hashtable<String,Set<String>> edges = new Hashtable<String,Set<String>>();
-		for(String key : vertStore.keySet()) {
-			SEMOSSVertex vertex= vertStore.get(key);
-			String type = (String)vertex.propHash.get(Constants.VERTEX_NAME);
-			
-			Set<String> neighbors = new HashSet<String>();
-			if(!directed) {
-				Vector<SEMOSSEdge> inEdges = vertex.getInEdges();
-				for(SEMOSSEdge edge : inEdges) {
-					neighbors.add((String)(edge.outVertex.propHash.get(Constants.VERTEX_NAME)));
-				}
-			}
-			Vector<SEMOSSEdge> outEdges = vertex.getOutEdges();
-			for(SEMOSSEdge edge : outEdges) {
-				neighbors.add((String)(edge.inVertex.propHash.get(Constants.VERTEX_NAME)));
-			}
-			edges.put(type, neighbors);
-		}
-		return edges;
-	}
-	
+
 	private DelegateForest<SEMOSSVertex,SEMOSSEdge> makeForestUndirected(Hashtable<String, SEMOSSEdge> edgeStore, DelegateForest<SEMOSSVertex,SEMOSSEdge> forest) {
 		for(String edgeKey : edgeStore.keySet()) {
 			SEMOSSEdge oldEdge = edgeStore.get(edgeKey);
