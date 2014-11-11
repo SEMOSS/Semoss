@@ -34,7 +34,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -52,42 +51,29 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.alg.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.SimpleGraph;
-import org.openrdf.model.Literal;
-import org.openrdf.model.URI;
-import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
-import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.sail.SailException;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.om.SEMOSSEdge;
 import prerna.om.GraphDataModel;
+import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.InMemoryJenaEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
-import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
 import prerna.ui.components.ControlData;
 import prerna.ui.components.ControlPanel;
-import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.LegendPanel2;
 import prerna.ui.components.NewHoriScrollBarUI;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.PropertySpecData;
-import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
@@ -113,15 +99,8 @@ import prerna.ui.transformer.VertexStrokeTransformer;
 import prerna.ui.transformer.VertexTooltipTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.JenaSesameUtils;
 import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
-
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.Resource;
-
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
@@ -761,7 +740,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	/**
 	 * Method createForest.
 	 */
-	protected void createForest()
+	public void createForest()
 	{
 		// need to take the base information from the base query and insert it into the jena model
 		// this is based on EXTERNAL ontology

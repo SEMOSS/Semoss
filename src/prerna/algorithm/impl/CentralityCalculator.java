@@ -6,17 +6,28 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
+import org.openrdf.repository.RepositoryConnection;
+
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.ui.components.ExecuteQueryProcessor;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
+import edu.uci.ics.jung.graph.DelegateForest;
 
-public class CentralityCalculator {
+public final class CentralityCalculator {
+	
+	private CentralityCalculator() {
+		
+	}
+	
 	/**
 	 * Assumes that the relationships are added bidirectionally.
 	 * @param edges
 	 * @return
 	 */
-	public Hashtable<String, Double> calculateCloseness(Hashtable<String,Set<String>> edges) {
+	public static Hashtable<String, Double> calculateCloseness(Hashtable<String,Set<String>> edges) {
 		Hashtable<String, Double> nodeCloseness = new Hashtable<String, Double>();
 		
 		//for every node (go through edges)
@@ -26,7 +37,7 @@ public class CentralityCalculator {
 		return nodeCloseness;
 	}
 	
-	private Double calculateCloseness(String node, Hashtable<String,Set<String>> edges) {
+	private static Double calculateCloseness(String node, Hashtable<String,Set<String>> edges) {
 		Hashtable<String, Integer> distances = new Hashtable<String, Integer>();
 		distances.put(node,0);
 		
@@ -62,7 +73,7 @@ public class CentralityCalculator {
 			
 	}
 	
-	public Hashtable<String, Double> calculateBetweenness(Hashtable<String,Set<String>> edges) {
+	public static Hashtable<String, Double> calculateBetweenness(Hashtable<String,Set<String>> edges) {
 		Hashtable<String, Double> nodeBetweeness = new Hashtable<String, Double>();
 		
 		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
@@ -74,7 +85,7 @@ public class CentralityCalculator {
 		return nodeBetweeness;
 	}
 	
-	private Double calculateBetweenness(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
+	private static Double calculateBetweenness(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
 		Double betweeness = 0.0;
 		ArrayList<String> nodes = new ArrayList<String>(edges.keySet());
 		for(int s=0;s<nodes.size();s++) {
@@ -89,7 +100,7 @@ public class CentralityCalculator {
 		return betweeness / denominator;
 	}
 	
-	private boolean isBetween(String center, String nodeS, String nodeT, Hashtable<String,Integer> shortestPath) {
+	private static boolean isBetween(String center, String nodeS, String nodeT, Hashtable<String,Integer> shortestPath) {
 		int shortestDistanceST = getShortestDistance(nodeS, nodeT, shortestPath);
 		int shortestDistanceCenterS = getShortestDistance(center, nodeS, shortestPath);
 		int shortestDistanceCenterT = getShortestDistance(center, nodeT, shortestPath);
@@ -101,7 +112,7 @@ public class CentralityCalculator {
 		return false;
 	}
 	
-	private Integer getShortestDistance(String node1, String node2, Hashtable<String,Integer> shortestPath) {
+	private static Integer getShortestDistance(String node1, String node2, Hashtable<String,Integer> shortestPath) {
 		if(shortestPath.containsKey(node1 + "-" + node2))
 			return shortestPath.get(node1 + "-" + node2);
 		if(shortestPath.containsKey(node2 + "-" + node1))
@@ -117,7 +128,7 @@ public class CentralityCalculator {
 	 * @param edges Hashtable with keys representing nodes and values the nodes they are connected to independent of direction. ex: If nodes i and j are connected, then node i is a key with node j as a value in its Set and node j is a key with node i as a value in its Set.
 	 * @return
 	 */
-	private Hashtable<String,Integer> calculateShortestPaths(Hashtable<String,Set<String>> edges) {
+	private static Hashtable<String,Integer> calculateShortestPaths(Hashtable<String,Set<String>> edges) {
 		Hashtable<String,Integer> shortestPath = new Hashtable<String,Integer>();
 		
 		ArrayList<String> nodes = new ArrayList<String>(edges.keySet());
@@ -145,7 +156,7 @@ public class CentralityCalculator {
 		return shortestPath;
 	}
 	
-	public Hashtable<SEMOSSVertex, Double> calculateEccentricity(Hashtable<String,SEMOSSVertex> vertStore, boolean directed) {
+	public static Hashtable<SEMOSSVertex, Double> calculateEccentricity(Hashtable<String,SEMOSSVertex> vertStore, boolean directed) {
 		Hashtable<SEMOSSVertex, Double> nodeEccentricity = new Hashtable<SEMOSSVertex, Double>();
 		
 		Hashtable<String,Set<String>> edges = processEdges(vertStore, directed);
@@ -159,7 +170,7 @@ public class CentralityCalculator {
 		return nodeEccentricity;
 	}
 	
-	public Hashtable<String, Double> calculateEccentricity(Hashtable<String,Set<String>> edges) {
+	public static Hashtable<String, Double> calculateEccentricity(Hashtable<String,Set<String>> edges) {
 		Hashtable<String, Double> nodeEccentricity = new Hashtable<String, Double>();
 		
 		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
@@ -171,7 +182,7 @@ public class CentralityCalculator {
 		return nodeEccentricity;
 	}
 	
-	private Double calculateEccentricity(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
+	private static Double calculateEccentricity(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
 		//for every node (go through edges)
 		double longestPath = 0.0;
 		for(String otherNode : edges.keySet()) {
@@ -189,7 +200,7 @@ public class CentralityCalculator {
 		return 1.0 / longestPath;
 	}
 	
-	public Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
+	public static Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
 		Hashtable<String,Set<String>> edges = new Hashtable<String,Set<String>>();
 		for(String key : vertStore.keySet()) {
 			SEMOSSVertex vertex= vertStore.get(key);
@@ -209,5 +220,44 @@ public class CentralityCalculator {
 			edges.put(type, neighbors);
 		}
 		return edges;
+	}
+	
+	/**
+	 * Creates the GraphPlaySheet for a database that shows the metamodel.
+	 * @param engine IEngine to create the metamodel from
+	 * @return GraphPlaySheet that displays the metamodel
+	 */
+	public static GraphPlaySheet createMetamodel(RepositoryConnection rc, String query){
+		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
+		//hard code playsheet attributes since no insight exists for this
+		//String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
+		String playSheetName = "prerna.ui.components.playsheets.GraphPlaySheet";
+		RDFFileSesameEngine sesameEngine = new RDFFileSesameEngine();
+		sesameEngine.setRC(rc);
+		sesameEngine.setEngineName("Metamodel Engine");
+		
+		sesameEngine.setBaseData(sesameEngine);
+		Hashtable<String, String> filterHash = new Hashtable<String, String>();
+		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");
+		sesameEngine.setBaseHash(filterHash);
+		
+		exQueryProcessor.prepareQueryOutputPlaySheet(sesameEngine, query, playSheetName, "", "");
+
+		GraphPlaySheet playSheet= (GraphPlaySheet) exQueryProcessor.getPlaySheet();
+		playSheet.getGraphData().setSubclassCreate(true);//this makes the base queries use subclass instead of type--necessary for the metamodel query
+		playSheet.createData();
+		playSheet.runAnalytics();
+		playSheet.getForest();
+		playSheet.createForest();
+		return playSheet;
+	}
+
+	public static DelegateForest<SEMOSSVertex,SEMOSSEdge> makeForestUndirected(Hashtable<String, SEMOSSEdge> edgeStore, DelegateForest<SEMOSSVertex,SEMOSSEdge> forest) {
+		for(String edgeKey : edgeStore.keySet()) {
+			SEMOSSEdge oldEdge = edgeStore.get(edgeKey);
+			SEMOSSEdge newEdge = new SEMOSSEdge(oldEdge.inVertex,oldEdge.outVertex,oldEdge.inVertex.getURI()+":"+oldEdge.outVertex.propHash.get(Constants.VERTEX_NAME));//pull from the old edge
+			forest.addEdge(newEdge, oldEdge.inVertex,oldEdge.outVertex);			
+		}
+		return forest;
 	}
 }

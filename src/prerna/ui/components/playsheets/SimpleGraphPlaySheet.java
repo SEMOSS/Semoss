@@ -24,15 +24,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
-import prerna.ui.components.RDFEngineHelper;
-import prerna.util.Constants;
 
 /**
  */
@@ -42,7 +38,7 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 	/**
 	 * Method createForest.  Takes the base information from the query and inserts it into the jena model.
 	 */
-	protected void createForest()
+	public void createForest()
 	{
 		// need to take the base information from the base query and insert it into the jena model
 		// this is based on EXTERNAL ontology
