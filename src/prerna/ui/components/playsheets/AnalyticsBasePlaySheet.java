@@ -51,7 +51,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
 		allData = addToAllData(engine, getConceptsAndInstanceCountsQuery, "x", allData);
-		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "z", allData);
+		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "prop", allData);
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		allData = addToAllData(baseDataEngine, getConceptEdgesCountQuery, "y", allData);
@@ -59,7 +59,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore, false);
-		allData = addToAllData(unDirEccentricity, "time", allData);
+		allData = addToAllData(unDirEccentricity, "z", allData);
 
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
@@ -78,7 +78,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allHash.put("title", "Exploring_Data_Types_in_".concat(engineName));
 		allHash.put("xAxisTitle", "Number_of_Instances");
 		allHash.put("yAxisTitle", "Number_of_Edges");
-		allHash.put("zAxisTitle", "Number_of_Properties");
+		allHash.put("zAxisTitle", "Centrality_Value");
 		allHash.put("heatTitle", "Number_of_Insights");
 		
 		return allHash;
@@ -110,10 +110,8 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String concept = sjss.getRawVar(param1).toString();
 			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
-				Object val = sjss.getVar(param2);
-				
 				Hashtable<String, Object> elementData = allData.get(concept);
-				elementData.put(key, val);
+				elementData.put(key, sjss.getVar(param2));
 			}
 		}
 		
@@ -124,10 +122,8 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		for(SEMOSSVertex vert : unDirEccentricity.keySet()) {
 			String concept = vert.getURI().replaceAll(" ", "");
 			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
-				Object val = unDirEccentricity.get(vert);
-				
 				Hashtable<String, Object> elementData = allData.get(concept);
-				elementData.put(key, val);
+				elementData.put(key, unDirEccentricity.get(vert));
 			}
 		}
 
