@@ -3,7 +3,6 @@ package prerna.algorithm.cluster;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -15,6 +14,7 @@ import prerna.algorithm.impl.AlgorithmDataFormatting;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class ClusteringDataProcessor {
 
@@ -171,7 +171,7 @@ public class ClusteringDataProcessor {
 					Object[] dataRow = masterTable.get(i);
 					if(dataRow[j] != null && !dataRow[j].toString().equals("")) {
 						String colEntryAsString = dataRow[j].toString();
-						type = processType(colEntryAsString);
+						type = Utility.processType(colEntryAsString);
 						if(type.equals("STRING")) {
 							numCategorical++;
 						} else {
@@ -183,12 +183,12 @@ public class ClusteringDataProcessor {
 					categoryPropNames[categoryPropNamesCounter] = varNames[j];
 					categoryPropIndices[categoryPropNamesCounter] = j;
 					categoryPropNamesCounter++;
-					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
+//					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
 				} else {
 					numericalPropNames[numericalPropNamesCounter] = varNames[j];
 					numericalPropIndices[numericalPropNamesCounter] = j;
 					numericalPropNamesCounter++;
-					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
+//					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
 					if(type.equals("DATE")){
 						dateTypeIndices[dateTypeIndicesCounter] = j;
 						dateTypeIndicesCounter++;
@@ -371,7 +371,7 @@ public class ClusteringDataProcessor {
 
 		// output category and weight to console
 		for(int i = 0; i < categoricalWeights.length; i++) {
-			LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
+//			LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
 		}
 	}
 
@@ -399,7 +399,7 @@ public class ClusteringDataProcessor {
 
 		// output category and weight to console
 		for(int i = 0; i < numericalWeights.length; i++) {
-			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
+//			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
 		}
 	}
 	
@@ -543,51 +543,4 @@ public class ClusteringDataProcessor {
 //			}
 //		}
 //	}
-	
-	//TODO: THIS METHOD IS USED IN MULTIPLE PLACES
-	/**
-	 * Determines the type of a given value
-	 * @param s		The value to determine the type off
-	 * @return		The type of the value
-	 */
-	private static String processType(String s) {
-
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return ("DOUBLE");
-		}
-
-		// will analyze date types as numerical data
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		try {
-			formatLongDate.setLenient(true);
-			formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-		if(isLongDate){
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-		try {
-			formatSimpleDate.setLenient(true);
-			formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-		if(isSimpleDate){
-			return ("SIMPLEDATE");
-		}
-
-		return ("STRING");
-	}
 }

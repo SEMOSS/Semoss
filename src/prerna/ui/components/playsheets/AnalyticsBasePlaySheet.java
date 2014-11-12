@@ -1,5 +1,6 @@
 package prerna.ui.components.playsheets;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -44,7 +45,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptsAndPropCountsQuery = "SELECT DISTINCT ?nodeType (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { {?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType";
 		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity (SUM(?count) AS ?totalCount) WHERE { { SELECT DISTINCT ?entity (COUNT(?outRel) AS ?count) WHERE { FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?outRel ?entity} } GROUP BY ?entity } UNION { SELECT DISTINCT ?entity (COUNT(?inRel) AS ?count) WHERE { FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?inRel ?node1} } GROUP BY ?entity } } GROUP BY ?entity";
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
-		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE { ?s ?p ?o} LIMIT 1";
+		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
@@ -74,11 +75,11 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", allData.values());
-		allHash.put("title", "Exploring Data Types in ".concat(engineName));
-		allHash.put("xAxisTitle", "Number of Instances");
-		allHash.put("yAxisTitle", "Number of Edges");
-		allHash.put("zAxisTitle", "Number of Properties");
-		allHash.put("heatTitle", "Number of Insights");
+		allHash.put("title", "Exploring_Data_Types_in_".concat(engineName));
+		allHash.put("xAxisTitle", "Number_of_Instances");
+		allHash.put("yAxisTitle", "Number_of_Edges");
+		allHash.put("zAxisTitle", "Number_of_Properties");
+		allHash.put("heatTitle", "Number_of_Insights");
 		
 		return allHash;
 	}
@@ -177,12 +178,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getMostInfluentialInstancesForAllTypes(IEngine engine) {
-		final String getMostConncectedInstancesQuery = "SELECT DISTINCT ?entity ?instance (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel2} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel2} {?node2 ?inRel ?instance} } UNION { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel1} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel1} {?instance ?outRel ?node1} } } GROUP BY ?entity ?instance ORDER BY DESC(?edgeCount)";
+		final String getMostConncectedInstancesQuery = "SELECT DISTINCT ?entity ?instance (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel2} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel2} {?node2 ?inRel ?instance} } UNION { FILTER (STR(?entity)!='http://semoss.org/ontologies/Concept') {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?instance <http://www.w3.org/2000/01/rdf-schema#label> ?instanceLabel1} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?relLabel1} {?instance ?outRel ?node1} } } GROUP BY ?entity ?instance ORDER BY DESC(?edgeCount) LIMIT 10";
 		return mostConnectedInstancesProcessing(engine, getMostConncectedInstancesQuery);
 	}
 	
 	public List<Hashtable<String, String>> getMostInfluentialInstancesForSpecificTypes(IEngine engine, String typeURI) {
-		final String getMostConnectedInstancesWithType = "SELECT DISTINCT ?nodeType ?entity (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { BIND(<@NODE_URI@> AS ?nodeType) { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label2} {?node2 ?inRel ?entity} } UNION { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label1} {?entity ?outRel ?node1} } } GROUP BY ?entity ?type ORDER BY DESC(?edgeCount)";
+		final String getMostConnectedInstancesWithType = "SELECT DISTINCT ?nodeType ?entity (COUNT(?inRel) + COUNT(?outRel) AS ?edgeCount) WHERE { BIND(<@NODE_URI@> AS ?nodeType) { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label2} {?node2 ?inRel ?entity} } UNION { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label1} {?entity ?outRel ?node1} } } GROUP BY ?entity ?type ORDER BY DESC(?edgeCount) LIMIT 10";
 		String query = getMostConnectedInstancesWithType.replaceAll("@NODE_URI@", typeURI);
 		return mostConnectedInstancesProcessing(engine, query);
 	}
@@ -198,8 +199,10 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> instancesHash = new Hashtable<String, String>();
-			instancesHash.put("Node_Type", sjss.getRawVar(param1).toString());
-			instancesHash.put("Instance", sjss.getRawVar(param2).toString());
+			instancesHash.put("NodeTypeURI", sjss.getRawVar(param1).toString());
+			instancesHash.put("NodeTypeName", sjss.getVar(param1).toString());
+			instancesHash.put("InstanceURI", sjss.getRawVar(param2).toString());
+			instancesHash.put("InstanceURI", sjss.getVar(param2).toString());
 			instancesHash.put("Num_of_Edges", sjss.getVar(param3).toString());
 			retList.add(instancesHash);
 		}
@@ -238,7 +241,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			int i = 0;
 			for(i = 0; i < length; i++) {
-				row[i] = sjss.getVar(names[i]);
+				if(i == 0) {
+				// want to pass URI's for basepage
+					row[0] = sjss.getRawVar(names[0]);
+				} else {
+					row[i] = sjss.getVar(names[i]);
+				}
 			}
 			results.add(row);
 		}
@@ -248,41 +256,46 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		alg.execute();
 		
 		results = alg.getMasterTable();
-		double[] lof = alg.getLOF();
 		double[] lop = alg.getLOP();
 		
-		int i = 0;
-		int j = 0;
+		int i;
 		length = lop.length;
-		int numResults = 10;
-		Integer[] maxIndicies = new Integer[numResults];
-		for(; i < length; i++) {
-			for(; j < numResults; j++) {
-				// for the first 10 entries
-				if(maxIndicies[j] == null) {
-					maxIndicies[j] = i;
-					break;
-				}
-				else if(lof[maxIndicies[j]] < lof[i]) {
-					int k = numResults - 1;
-					// insert index in correct spot
-					for(; k < j; k--) {
-						maxIndicies[k] = maxIndicies[k - 1];
-					}
-					maxIndicies[j] = i;
-					break;
+		// loop through and order all values and indices
+		int[] indexOrder = new int[length];
+		for(i = 0; i < length; i++) {
+			indexOrder[i] = i;
+		}	
+		double tempProb;
+		int tempIndex;
+		boolean flag = true;
+		while(flag) {
+			flag = false;
+			for(i = 0; i < length - 1; i++) {
+				if(lop[i] < lop[i+1]){
+					tempProb = lop[i];
+					lop[i] = lop[i+1];
+					lop[i+1] = tempProb;
+					// change order of index value
+					tempIndex = indexOrder[i];
+					indexOrder[i] = indexOrder[i+1];
+					indexOrder[i+1] = tempIndex;
+					flag = true;
 				}
 			}
 		}
 		
+				
+		int numResults = 10;
 		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
-
+		DecimalFormat df = new DecimalFormat("#%");
 		i = 0;
 		for(; i < numResults; i++) {
-			int index = maxIndicies[i];
+			int index = indexOrder[i];
 			Hashtable<String, Object> instancesHash = new Hashtable<String, Object>();
-			instancesHash.put("Instance", results.get(index)[0]);
-			instancesHash.put("Outlier_Prob", lop[index]);
+			String instanceURI = results.get(index)[0].toString();
+			instancesHash.put("InstanceURI", instanceURI);
+			instancesHash.put("InstanceName", Utility.getInstanceName(instanceURI));
+			instancesHash.put("Outlier_Prob", df.format(lop[i]));
 			retList.add(instancesHash);
 		}
 		
