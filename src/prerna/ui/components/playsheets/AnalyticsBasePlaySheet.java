@@ -310,48 +310,31 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return retList;
 	}
 	
-	public Hashtable<String, List<Hashtable<String, Object>>> getConnectionMap(IEngine engine, String instanceURI) {
-		final String baseOutRelQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?outRel) AS ?count) WHERE { BIND(<@INSTANCE_URI@> AS ?instance) {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?instance ?outRel ?node} } GROUP BY ?type";
-		final String baseInRelQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?inRel) AS ?count) WHERE { BIND(<@INSTANCE_URI@> AS ?instance) {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node ?inRel ?instance} } GROUP BY ?type";
+	public List<Hashtable<String, Object>> getConnectionMap(IEngine engine, String instanceURI) {
+		final String baseQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?rel) AS ?count) ?case WHERE { { SELECT DISTINCT ?type ?rel ?case WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node ?rel ?instance} BIND('in' AS ?case) } } UNION { SELECT DISTINCT ?type ?rel ?case WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?instance ?rel ?node} BIND('out' AS ?case) } } } GROUP BY ?type ?case ORDER BY DESC(?count)";
 		
-		String outRelQuery = baseOutRelQuery.replace("@INSTANCE_URI@", instanceURI);
-		String inRelQuery = baseInRelQuery.replace("@INSTANCE_URI@", instanceURI);
+		String query = baseQuery.replace("@INSTANCE_URI@", instanceURI);
 		
-		Hashtable<String, List<Hashtable<String, Object>>> retHash = new Hashtable<String, List<Hashtable<String, Object>>>();
-		retHash.put("outBound", new ArrayList<Hashtable<String, Object>>());
-		retHash.put("inBound", new ArrayList<Hashtable<String, Object>>());
+		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, outRelQuery);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
+		String param3 = names[2];
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String type = sjss.getVar(param1).toString();
 			if(!type.equals("Concept")){
-				Object value = sjss.getVar(param2);
 				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-				innerHash.put(type, value);
-				retHash.get("outBound").add(innerHash);
+				innerHash.put("type", type);
+				innerHash.put("value", sjss.getVar(param2));
+				innerHash.put("direction", sjss.getVar(param3));
+				retList.add(innerHash);
 			}
 		}
 
-		sjsw = Utility.processQuery(engine, inRelQuery);
-		names = sjsw.getVariables();
-		param1 = names[0];
-		param2 = names[1];
-		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String type = sjss.getVar(param1).toString();
-			if(!type.equals("Concept")){
-				Object value = sjss.getVar(param2);
-				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-				innerHash.put(type, value);
-				retHash.get("inBound").add(innerHash);
-			}
-		}
-		
-		return retHash;
+		return retList;
 	}
 	
 	
