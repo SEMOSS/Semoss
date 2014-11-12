@@ -198,9 +198,9 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> instancesHash = new Hashtable<String, String>();
-			instancesHash.put("Node Type", sjss.getVar(param1).toString());
-			instancesHash.put("Instance", sjss.getVar(param2).toString());
-			instancesHash.put("# of Edges", sjss.getVar(param3).toString());
+			instancesHash.put("Node_Type", sjss.getRawVar(param1).toString());
+			instancesHash.put("Instance", sjss.getRawVar(param2).toString());
+			instancesHash.put("Num_of_Edges", sjss.getVar(param3).toString());
 			retList.add(instancesHash);
 		}
 		
@@ -282,7 +282,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			int index = maxIndicies[i];
 			Hashtable<String, Object> instancesHash = new Hashtable<String, Object>();
 			instancesHash.put("Instance", results.get(index)[0]);
-			instancesHash.put("Outlier Probability", lop[index]);
+			instancesHash.put("Outlier_Prob", lop[index]);
 			retList.add(instancesHash);
 		}
 		
