@@ -23,20 +23,17 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 
 import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
 
 import prerna.error.FileReaderException;
+import prerna.util.Utility;
 
 public class CSVMetamodelBuilder {
 
@@ -215,7 +212,7 @@ public class CSVMetamodelBuilder {
 				{
 					if(instances.get(i) != null)
 					{
-						String type = new String(determineProcessor(instances.get(i)));
+						String type = new String(Utility.processType(instances.get(i)));
 						dataType.get(header[i]).get("AllDataTypes").add(type);
 						dataType.get(header[i]).get("AllowedDataTypes").add(type);
 					}
@@ -285,66 +282,5 @@ public class CSVMetamodelBuilder {
 			//				allowedTypes.add("STRING");
 			//			}
 		}
-	}
-
-	private static String determineProcessor(String s) {
-
-		//		boolean isInt = true;
-		//		try { 
-		//			Integer.parseInt(s); 
-		//		} catch(NumberFormatException e) { 
-		//			isInt = false;
-		//		}
-		//
-		//		if(isInt){
-		//			return ("INTEGER");
-		//		}
-
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return ("DOUBLE");
-		}
-
-		//TODO: combine determining long date vs. simple date into a loop
-
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		Date longdate = null;
-		try {
-			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-
-		if(isLongDate){
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-		Date simpleDate = null;
-		try {
-			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-
-		if(isSimpleDate){
-			return ("SIMPLEDATE");
-		}
-
-		if(Boolean.parseBoolean(s)){
-			return ("BOOLEAN");
-		}
-
-		return ("STRING");
 	}
 }

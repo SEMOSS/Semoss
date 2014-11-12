@@ -28,10 +28,13 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -806,6 +809,52 @@ public class Utility {
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
 		return sjsw;
+	}
+	
+	/**
+	 * Determines the type of a given value
+	 * @param s		The value to determine the type off
+	 * @return		The type of the value
+	 */
+	public static String processType(String s) {
+		
+		boolean isDouble = true;
+		try {
+			Double.parseDouble(s);
+		} catch(NumberFormatException e) {
+			isDouble = false;
+		}
+
+		if(isDouble) {
+			return ("DOUBLE");
+		}
+
+		// will analyze date types as numerical data
+		Boolean isLongDate = true;
+		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+		try {
+			formatLongDate.setLenient(true);
+			formatLongDate.parse(s);
+		} catch (ParseException e) {
+			isLongDate = false;
+		}
+		if(isLongDate){
+			return ("DATE");
+		}
+
+		Boolean isSimpleDate = true;
+		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
+		try {
+			formatSimpleDate.setLenient(true);
+			formatSimpleDate.parse(s);
+		} catch (ParseException e) {
+			isSimpleDate = false;
+		}
+		if(isSimpleDate){
+			return ("SIMPLEDATE");
+		}
+
+		return ("STRING");
 	}
 
 	

@@ -1,9 +1,8 @@
 package prerna.algorithm.impl;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Locale;
+
+import prerna.util.Utility;
 
 public class AlgorithmDataFormatting {
 
@@ -35,7 +34,7 @@ public class AlgorithmDataFormatting {
 			int j;
 			for(j = 1; j < numProps - 1; j++) {
 				data[j][counter] = dataRow[j];
-				trackType[j][counter] = processType(dataRow[j].toString());
+				trackType[j][counter] = Utility.processType(dataRow[j].toString());
 			}
 			counter++;
 		}
@@ -78,7 +77,7 @@ public class AlgorithmDataFormatting {
 			int j;
 			for(j = 0; j < numProps; j++) {
 				data[j][counter] = dataRow[j];
-				trackType[j][counter] = processType(dataRow[j].toString());
+				trackType[j][counter] = Utility.processType(dataRow[j].toString());
 			}
 			counter++;
 		}
@@ -100,51 +99,5 @@ public class AlgorithmDataFormatting {
 		}
 		
 		return data;
-	}
-	
-	/**
-	 * Determines the type of a given value
-	 * @param s		The value to determine the type off
-	 * @return		The type of the value
-	 */
-	private static String processType(String s) {
-		
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return ("DOUBLE");
-		}
-
-		// will analyze date types as numerical data
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		try {
-			formatLongDate.setLenient(true);
-			formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-		if(isLongDate){
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-		try {
-			formatSimpleDate.setLenient(true);
-			formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-		if(isSimpleDate){
-			return ("SIMPLEDATE");
-		}
-
-		return ("STRING");
 	}
 }

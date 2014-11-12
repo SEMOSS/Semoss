@@ -124,14 +124,14 @@ public class BarChart {
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
 			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
-		} else if(numUniqueValues < 10 && skewness > 1) {
-			return calculatePoorlyDistributedBins(numValues, unsortedValues, formatter);
+		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 5) {
+			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
 			return calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
 		}
 	}
 	
-	public Hashtable<String, Object>[] calculatePoorlyDistributedBins(double[] numValues, double[] unsortedValues, NumberFormat formatter) {
+	public Hashtable<String, Object>[] calculateLogDistributedBins(double[] numValues, double[] unsortedValues, NumberFormat formatter) {
 		int numOccurances = numValues.length;
 		double[] logValuesUnsorted = new double[numOccurances];
 		double[] logValues = new double[numOccurances];
