@@ -76,7 +76,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 	public void setQuery(String query) {
 		String[] querySplit = query.split("\\+\\+\\+");
 		this.query = querySplit[0];
-		this.k = Integer.parseInt(querySplit[1]);
+		this.k = Integer.parseInt(querySplit[1].trim());
 	}
 	
 	@Override
