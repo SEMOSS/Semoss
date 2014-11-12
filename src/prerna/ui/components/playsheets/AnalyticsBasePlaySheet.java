@@ -135,7 +135,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsWithoutParams(IEngine engine) {
-		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
+		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?engine ?insight ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
@@ -145,10 +145,14 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
+		String param2 = names[1];
+		String param3 = names[2];
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("Questions", sjss.getVar(param1).toString());
+			questionHash.put("Engine", sjss.getVar(param1).toString());
+			questionHash.put("Insight", sjss.getVar(param2).toString());
+			questionHash.put("Question", sjss.getVar(param3).toString());
 			retList.add(questionHash);
 		}
 		
@@ -156,7 +160,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsForParam(IEngine engine, String typeURI) {
-		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?questionDescription WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} }";
+		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?engine ?insight ?questionDescription WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
@@ -167,10 +171,14 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
+		String param2 = names[1];
+		String param3 = names[2];
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("Questions", sjss.getVar(param1).toString());
+			questionHash.put("Engine", sjss.getVar(param1).toString());
+			questionHash.put("Insight", sjss.getVar(param2).toString());
+			questionHash.put("Question", sjss.getVar(param3).toString());
 			retList.add(questionHash);
 		}
 		
