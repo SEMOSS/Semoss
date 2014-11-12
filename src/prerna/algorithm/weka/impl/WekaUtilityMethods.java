@@ -1,16 +1,13 @@
 package prerna.algorithm.weka.impl;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Locale;
 
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -41,7 +38,7 @@ public final class WekaUtilityMethods {
 			int numNumeric = 0;
 			for(j = 0; j < numInstances; j++) {
 				Object dataElement = dataList.get(j)[i];
-				String type = processType(dataElement.toString());
+				String type = Utility.processType(dataElement.toString());
 				if(type.equals("STRING")) {
 					nominalValues[i].add(dataElement.toString());
 					numNominal++;
@@ -116,54 +113,4 @@ public final class WekaUtilityMethods {
 		
 		return data;
 	}
-	
-	//TODO: THIS METHOD IS USED IN MULTIPLE PLACES
-	/**
-	 * Determines the type of a given value
-	 * @param s		The value to determine the type off
-	 * @return		The type of the value
-	 */
-	private static String processType(String s) {
-
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return ("DOUBLE");
-		}
-
-		// will analyze date types as numerical data
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		Date longdate = null;
-		try {
-			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-		if(isLongDate){
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-		Date simpleDate = null;
-		try {
-			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-		if(isSimpleDate){
-			return ("SIMPLEDATE");
-		}
-
-		return ("STRING");
-	}
-	
 }
