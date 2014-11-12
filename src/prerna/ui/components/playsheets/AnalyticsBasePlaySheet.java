@@ -207,7 +207,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			instancesHash.put("NodeTypeURI", sjss.getRawVar(param1).toString());
 			instancesHash.put("NodeTypeName", sjss.getVar(param1).toString());
 			instancesHash.put("InstanceURI", sjss.getRawVar(param2).toString());
-			instancesHash.put("InstanceURI", sjss.getVar(param2).toString());
+			instancesHash.put("InstanceName", sjss.getVar(param2).toString());
 			instancesHash.put("Num_of_Edges", sjss.getVar(param3).toString());
 			retList.add(instancesHash);
 		}
@@ -298,6 +298,8 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			int index = indexOrder[i];
 			Hashtable<String, Object> instancesHash = new Hashtable<String, Object>();
 			String instanceURI = results.get(index)[0].toString();
+			instancesHash.put("NodeTypeURI", typeURI);
+			instancesHash.put("NodeTypeName", type);
 			instancesHash.put("InstanceURI", instanceURI);
 			instancesHash.put("InstanceName", Utility.getInstanceName(instanceURI));
 			instancesHash.put("Outlier_Prob", df.format(lop[i]));
