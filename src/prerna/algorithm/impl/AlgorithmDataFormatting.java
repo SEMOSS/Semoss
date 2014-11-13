@@ -7,6 +7,7 @@ import prerna.util.Utility;
 public class AlgorithmDataFormatting {
 
 	boolean[] isCategorical;
+	boolean includeLastColumn = false;
 	
 	public AlgorithmDataFormatting() {
 		
@@ -16,6 +17,10 @@ public class AlgorithmDataFormatting {
 		return isCategorical;
 	}
 	
+	public void setIncludeLastColumn(boolean includeLastColumn) {
+		this.includeLastColumn = includeLastColumn;
+	}
+	
 	//TODO: get to work with nulls/missing data
 	//TODO: already parse through data in clustering data processor, better way to improve efficiency?
 	//TODO: this uses indexing starting at 1 because this doesn't include the actual instance node name
@@ -23,7 +28,10 @@ public class AlgorithmDataFormatting {
 		int counter = 0;
 		
 		int numProps = queryData.get(0).length;
-		Object[][] data = new Object[numProps-1][queryData.size()];
+		int numPropsSize = numProps;
+		if(!includeLastColumn)
+			numPropsSize--;
+		Object[][] data = new Object[numPropsSize][queryData.size()];
 		isCategorical = new boolean[numProps];
 		Object[][] trackType = new Object[numProps][queryData.size()];
 		
@@ -32,14 +40,14 @@ public class AlgorithmDataFormatting {
 		for(i = 0; i < size; i++) {
 			Object[] dataRow = queryData.get(i);
 			int j;
-			for(j = 1; j < numProps - 1; j++) {
+			for(j = 1; j < numPropsSize; j++) {
 				data[j][counter] = dataRow[j];
 				trackType[j][counter] = Utility.processType(dataRow[j].toString());
 			}
 			counter++;
 		}
 		
-		for(i = 1; i < numProps - 1; i++) {
+		for(i = 1; i < numPropsSize; i++) {
 			int j;
 			int stringCounter = 0;
 			int doubleCounter = 0;
