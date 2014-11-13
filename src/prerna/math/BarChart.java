@@ -115,7 +115,8 @@ public class BarChart {
 		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArray(numValues).length;
 		
-		if(numUniqueValues < 10 && skewness < 1) {
+		if(numUniqueValues < 10 && (Double.isNaN(skewness) || skewness < 1) ) // skewness is NaN when all values are the same
+		{
 			String[] numValuesAsString = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
 			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(numValuesAsString);
