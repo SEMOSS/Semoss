@@ -50,7 +50,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
-		allData = addToAllData(engine, getConceptsAndInstanceCountsQuery, "x", allData);
+		allData = addToAllData(engine, getConceptsAndInstanceCountsQuery, "z", allData);
 		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "prop", allData);
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
@@ -59,7 +59,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore, false);
-		allData = addToAllData(unDirEccentricity, "z", allData);
+		allData = addToAllData(unDirEccentricity, "x", allData);
 
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
@@ -76,9 +76,9 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", allData.values());
 		allHash.put("title", "Exploring_Data_Types_in_".concat(engineName));
-		allHash.put("xAxisTitle", "Number_of_Instances");
+		allHash.put("zAxisTitle", "Number_of_Instances");
 		allHash.put("yAxisTitle", "Number_of_Edges");
-		allHash.put("zAxisTitle", "Centrality_Value");
+		allHash.put("xAxisTitle", "Centrality_Value");
 		allHash.put("heatTitle", "Number_of_Insights");
 		
 		return allHash;
