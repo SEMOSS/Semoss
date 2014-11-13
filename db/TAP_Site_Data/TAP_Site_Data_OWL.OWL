@@ -202,12 +202,18 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/ImplementedAt">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+<<<<<<< .mine
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Occurs_At">
+	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+=======
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Part_Of">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Occurs_At">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
+>>>>>>> .r4499
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Payload">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -263,6 +269,11 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DCSite">
 	<Located xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/City"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FCC">
+	<Has xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/FCC-MTF"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DCSite">
 	<Includes xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/MTF"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Wave">
