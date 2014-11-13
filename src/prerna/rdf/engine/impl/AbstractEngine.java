@@ -41,6 +41,7 @@ import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -100,6 +101,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected static final String perspectiveInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Perspective:Insight";
 	protected static final String engineInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Engine:Insight";
 	protected static final String containsBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Contains";
+	protected static final String orderBaseURI = containsBaseURI + "/Order";
 	protected static final String labelBaseURI = containsBaseURI + "/Label";
 	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
@@ -409,6 +411,7 @@ public abstract class AbstractEngine implements IEngine {
 		insightBaseXML.addStatement(perspectiveInsightBaseURI, subpropertyPredicate, semossRelationURI, true);
 		insightBaseXML.addStatement(engineInsightBaseURI, subpropertyPredicate, semossRelationURI, true);
 		insightBaseXML.addStatement(containsBaseURI, subpropertyPredicate, semossRelationURI, true);
+		insightBaseXML.addStatement(orderBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true);
 		insightBaseXML.addStatement(labelBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true);
 		insightBaseXML.addStatement(layoutBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true);
 		insightBaseXML.addStatement(sparqlBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true);
@@ -461,7 +464,10 @@ public abstract class AbstractEngine implements IEngine {
 					String qsDescr = dreamerProp.getProperty(qsKey);
 					String layoutName = dreamerProp.getProperty(qsKey + "_"
 							+ Constants.LAYOUT);
-					qsDescr = count + ". " + qsDescr;
+					
+					String qsOrder = count + "";
+					
+					//qsDescr = count + ". " + qsDescr;
 
 					String sparql = dreamerProp.getProperty(qsKey + "_"
 							+ Constants.QUERY);
@@ -526,7 +532,7 @@ public abstract class AbstractEngine implements IEngine {
 							parameterOptionList.add(parameterOptionKey + "_-_" + parameterOptionValue);
 						}
 					}
-					questionAdmin.addQuestion(perspective, qsKey, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
+					questionAdmin.addQuestion(perspective, qsKey, qsOrder, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
 					count++;
 				}
 				logger.info("Loaded Perspective " + key);
@@ -1072,10 +1078,11 @@ public abstract class AbstractEngine implements IEngine {
 		for (String insight : labels){
 			bindingsSet = bindingsSet + "(<" + insight + ">)";
 		}
-		String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+		String insightSparql = "SELECT DISTINCT ?insightURI ?order ?insight ?sparql ?output ?engine ?description WHERE {"
 					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
+					+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
 					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}" + "}"
 					+ "BINDINGS ?insightURI {"+ bindingsSet + "}";
 		return processInsight2(insightSparql,labels);
@@ -1086,12 +1093,13 @@ public abstract class AbstractEngine implements IEngine {
 		for (String insight : labels){
 			bindingsSet = bindingsSet + "(\"" + insight + "\")";
 		}
-		String insightSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+		String insightSparql = "SELECT DISTINCT ?insightURI ?order ?insight ?sparql ?output ?engine ?description WHERE {"
 					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
 					+ "{?engineInsight <"+Constants.SUBPROPERTY_URI+"> <"+engineInsightBaseURI+">}"
 					+ "{?engine ?engineInsight ?insightURI.}"
+					+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
 					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
 					+ "}"
 					+ "BINDINGS ?insight {"+ bindingsSet + "}";
@@ -1117,6 +1125,10 @@ public abstract class AbstractEngine implements IEngine {
 				String sparql = lit.getLabel();
 				in.setSparql(sparql);
 				
+				if(bs.getBinding("order") != null){
+					String order = bs.getBinding("order").getValue().stringValue();
+					in.setOrder(order);
+				}
 				String label = bs.getBinding("insight").getValue().stringValue();
 				in.setLabel(label);
 	
@@ -1164,11 +1176,12 @@ public abstract class AbstractEngine implements IEngine {
 		Insight in = new Insight();
 		try {
 	
-			String insightSparql = "SELECT ?insightURI ?insight ?sparql ?output WHERE {"
+			String insightSparql = "SELECT ?insightURI ?order ?insight ?sparql ?output WHERE {"
 					+"BIND(\"" + label + "\" AS ?insight)"
 					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
+					+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
 //					+ "FILTER (regex (?insight, \""
 //					+ label
 //					+ "\" ,\"i\"))"
@@ -1186,6 +1199,10 @@ public abstract class AbstractEngine implements IEngine {
 				in.setId(bs.getBinding("insightURI").getValue() + "");
 				String sparql = bs.getBinding("sparql").getValue() + "";
 				sparql = sparql.replace("\"", "");
+				if(bs.getBinding("order") != null){
+					String order = bs.getBinding("order").getValue() + "";
+					in.setOrder(order);
+				}
 				String label2 = bs.getBinding("insight").getValue() + "";
 				// label2 = label2.replace("\"", "");
 				System.err.println("Came in here " + sparql + label2);
@@ -1209,6 +1226,7 @@ public abstract class AbstractEngine implements IEngine {
 		if (in == null) {
 			// in = labelIdHash.get(label);
 			in = new Insight();
+			in.setOrder("Unknown");
 			in.setLabel(label);
 			in.setOutput("Unknown");
 			in.setId("DN");
@@ -1486,12 +1504,13 @@ public abstract class AbstractEngine implements IEngine {
 	public Vector<String> getParamValues(String name, String type, String insightId, String query) {
 		// I have my insightId, query for the params and options or query making sure that the
 		
-		String insightLabelSparql = "SELECT DISTINCT ?insightURI ?insight ?sparql ?output ?engine ?description WHERE {"
+		String insightLabelSparql = "SELECT DISTINCT ?insightURI ?order ?insight ?sparql ?output ?engine ?description WHERE {"
 				+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
 				+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
 				+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
 				+ "{?engineInsight <"+Constants.SUBPROPERTY_URI+"> <"+engineInsightBaseURI+">}"
 				+ "{?engine ?engineInsight ?insightURI.}"
+				+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
 				+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
 				+ "}"
 				+ "BINDINGS ?insightURI {(<"+ insightBaseURI + "/" + insightId + ">)}";
