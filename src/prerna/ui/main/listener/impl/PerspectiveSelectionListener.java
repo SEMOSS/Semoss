@@ -33,7 +33,9 @@ import javax.swing.JList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ComboboxToolTipRenderer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -79,6 +81,37 @@ public class PerspectiveSelectionListener extends AbstractListener {
 			try
 			{
 				questionsV = engine.getInsights(perspective);
+				if(questionsV != null){
+					//recreate qyestionsV with appended order number
+					Vector questionsVCopy = new Vector(questionsV);
+					
+					questionsV.clear();
+					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
+						
+						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
+						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
+						Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2((String)questionsVCopy.get(itemIndex));
+						Insight in = null;
+						if(vectorInsight.size() > 1){
+							for(Insight insight: vectorInsight){
+								if(insight.getId().contains(perspective)){
+									in = insight;
+								}
+							}
+						} else {
+							in = vectorInsight.get(0);
+						}
+						String order = in.getOrder();
+						//check to see if user has the most up-to-date XML structure to include order property;
+						//if not, assume the question label itself has the order and add it straight to the vector
+						if(order != null) {
+							questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
+						} else {
+							questionsV.add(questionsVCopy.get(itemIndex));
+						}
+					}
+				}
+				
 			}catch(RuntimeException ex)
 			{
 				ex.printStackTrace();
@@ -91,6 +124,7 @@ public class PerspectiveSelectionListener extends AbstractListener {
 				for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
 				{
 					tTip.add(questionsV.get(itemIndex));
+					
 					ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
 					qp.setRenderer(renderer);
 					renderer.setTooltips(tTip);

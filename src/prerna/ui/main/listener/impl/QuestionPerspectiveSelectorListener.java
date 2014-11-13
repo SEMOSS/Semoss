@@ -34,7 +34,9 @@ import javax.swing.JTextField;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ComboboxToolTipRenderer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -79,10 +81,48 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			Vector questionsV = new Vector();
 
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
-
 			try
 			{
 				questionsV = engine.getInsights(perspective);
+				
+				if(questionsV != null){
+					String newQuestionOrder = "";
+					//recreate qyestionsV with appended order number
+					Vector questionsVCopy = new Vector(questionsV);
+					
+					questionsV.clear();
+					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
+						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
+						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
+						Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2((String)questionsVCopy.get(itemIndex));
+						Insight in = null;
+						if(vectorInsight.size() > 1){
+							for(Insight insight: vectorInsight){
+								if(insight.getId().contains(perspective)){
+									in = insight;
+								}
+							}
+						} else {
+							in = vectorInsight.get(0);
+						}
+						
+						String order = in.getOrder();
+						
+						questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
+						newQuestionOrder = (Integer.parseInt(order)+1) + "";
+						questionOrderComboBox.addItem(order);
+					}
+					questionOrderComboBox.addItem(newQuestionOrder);
+					if(addQuestionButton.isSelected()){
+						questionOrderComboBox.setSelectedItem(newQuestionOrder);
+					}
+					else{
+						//removes the extra number (new question indicator) in the combobox used in the Add functionality; users don't need this number when editing questions
+						if(questionOrderComboBox.getItemCount()-(Integer.parseInt(newQuestionOrder)-1) == 1){
+							questionOrderComboBox.removeItemAt(questionOrderComboBox.getItemCount()-1);
+						}
+					}
+				}
 			}catch(RuntimeException ex)
 			{
 				ex.printStackTrace();
@@ -90,33 +130,17 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			StringNumericComparator comparator = new StringNumericComparator();
 			if(questionsV != null)
 			{
-				String newQuestionOrder = "";
 				Collections.sort(questionsV, comparator);
 				for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
 				{
 					String question = (String) questionsV.get(itemIndex);
+
 					tTip.add(question);
 					ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
 					qp.setRenderer(renderer);
 					renderer.setTooltips(tTip);
 					renderer.setBackground(Color.WHITE);
 					qp.addItem(question);
-					
-					//parse the order number from question and add to ordercombobox
-					String[] questionArray = question.split("\\. ", 2);
-					String order = Integer.parseInt(questionArray[0].trim()) + "";
-					questionOrderComboBox.addItem(order);
-					newQuestionOrder = (Integer.parseInt(order)+1) + "";
-				}
-				questionOrderComboBox.addItem(newQuestionOrder);
-				if(addQuestionButton.isSelected()){
-					questionOrderComboBox.setSelectedItem(newQuestionOrder);
-				}
-				else{
-					//removes the extra number (new question indicator) in the combobox used in the Add functionality; users don't need this number when editing questions
-					if(questionOrderComboBox.getItemCount()-(Integer.parseInt(newQuestionOrder)-1) == 1){
-						questionOrderComboBox.removeItemAt(questionOrderComboBox.getItemCount()-1);
-					}
 				}
 			}
 		}

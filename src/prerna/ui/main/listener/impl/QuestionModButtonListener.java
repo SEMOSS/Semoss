@@ -175,7 +175,7 @@ public class QuestionModButtonListener implements IChakraListener {
 		order = (String) questionOrderComboBox.getSelectedItem();
 		perspective = questionPerspectiveField.getText();
 		if (!questionField.getText().equals("")) {
-			question = order + ". " + questionField.getText();
+			question = questionField.getText();
 		}
 		layout = questionLayoutField.getText();
 		sparql = questionSparql.getText().replace("\n", "").replace("\r", "")
@@ -198,7 +198,8 @@ public class QuestionModButtonListener implements IChakraListener {
 		questionList.clear();
 		if (!selectedPerspective.equals("*NEW Perspective")) {
 			for (int i = 0; i < questionListModel.getSize(); i++) {
-				questionList.add((String) questionListModel.getElementAt(i));
+				String[] questionSplit = ((String) questionListModel.getElementAt(i)).split(". ", 2);
+				questionList.add(questionSplit[1]);
 			}
 		}
 	}
@@ -224,6 +225,8 @@ public class QuestionModButtonListener implements IChakraListener {
 			questionPerspectiveSelector.setSelectedItem(perspective);
 			for (int i = 0; i < questionSelector.getItemCount(); i++) {
 				String question = questionSelector.getItemAt(i);
+				String[] questionSplit = question.split(". ", 2);
+				question = questionSplit[1];
 
 				Insight in = ((AbstractEngine) engine).getInsight2(question)
 						.get(0);
@@ -247,7 +250,9 @@ public class QuestionModButtonListener implements IChakraListener {
 				int largestQuestionKeyValue = 0;
 				for (int i = 0; i < questionSelector.getItemCount(); i++) {
 					String question = questionSelector.getItemAt(i);
-
+					String[] questionSplit = question.split(". ", 2);
+					question = questionSplit[1];
+					
 					Insight in = ((AbstractEngine) engine)
 							.getInsight2(question).get(0);
 
@@ -355,7 +360,7 @@ public class QuestionModButtonListener implements IChakraListener {
 				//Vector questionsVector = ((AbstractEngine) engine)
 				//		.getInsights(perspective);
 
-				questionAdmin.addQuestion(perspective, questionKey, question,
+				questionAdmin.addQuestion(perspective, questionKey, order, question,
 						sparql, layout, questionDescription,
 						parameterDependListVector, parameterQueryListVector,
 						parameterOptionListVector);
@@ -441,23 +446,20 @@ public class QuestionModButtonListener implements IChakraListener {
 							if (existingPerspective) {
 								questionPerspectiveSelector
 										.setSelectedItem(perspective);
-								int newOrderNumber = questionSelector
-										.getItemCount() + 1;
+								String newOrderNumber = questionSelector
+										.getItemCount() + 1 + "";
 								questionPerspectiveSelector.setSelectedItem(originalPerspective);
 								questionSelector.setSelectedItem(question);
 								//QuestionAdministrator.currentNumberofQuestions = Integer.toString(questionSelector.getItemCount());
-								String questionArray[] = question.split("\\. ",
-										2);
-								question = newOrderNumber + ". "
-										+ questionArray[1];
+								
+								order = newOrderNumber;
 							} 
 							else {
-								String questionArray[] = question.split("\\. ", 2);
-								question = "1. " + questionArray[1]; 
+								order = "1";
 							}
 
 							questionAdmin.modifyQuestion(perspective,
-									questionKey, question, sparql, layout,
+									questionKey, order, question, sparql, layout,
 									questionDescription,
 									parameterDependListVector,
 									parameterQueryListVector,
@@ -480,7 +482,7 @@ public class QuestionModButtonListener implements IChakraListener {
 									"The question has been updated.");
 						}
 					} else {
-						questionAdmin.modifyQuestion(perspective, questionKey,
+						questionAdmin.modifyQuestion(perspective, questionKey, order,
 								question, sparql, layout, questionDescription,
 								parameterDependListVector,
 								parameterQueryListVector,
@@ -518,7 +520,7 @@ public class QuestionModButtonListener implements IChakraListener {
 
 				if (dialogResult == JOptionPane.YES_OPTION) {
 					questionAdmin
-							.deleteQuestion(perspective, questionKey, question,
+							.deleteQuestion(perspective, questionKey, order, question,
 									sparql, layout, questionDescription,
 									parameterDependListVector,
 									parameterQueryListVector,

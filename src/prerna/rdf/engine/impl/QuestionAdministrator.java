@@ -57,6 +57,7 @@ public class QuestionAdministrator {
 	String perspectiveURI;
 	String perspectivePred;
 	String qsKey;
+	String qsOrder;
 	String qsDescr;
 	String layoutName;
 	String description;
@@ -71,6 +72,7 @@ public class QuestionAdministrator {
 	public static String currentPerspective = null;
 	public static String currentQuestionKey = null;
 	public static String currentQuestion = null;
+	public static String currentQuestionOrder = null;
 	public static String currentLayout = null;
 	public static String currentSparql = null;
 	public static String currentQuestionDescription = null;
@@ -103,6 +105,7 @@ public class QuestionAdministrator {
 	protected static final String containsBaseURI = semossURI
 			+ Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	protected static final String labelBaseURI = containsBaseURI + "/Label";
+	protected static final String orderBaseURI = containsBaseURI + "/Order";
 	protected static final String idLabelBaseURI = containsBaseURI + "/IDLabel";
 	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
@@ -324,17 +327,19 @@ public class QuestionAdministrator {
 				true);
 	}
 
-	private void addQuestionLabel(String perspectiveURI, String qURI,
+	private void addQuestionLabel(String perspectiveURI, String qURI, String qsOrder,
 			String qsDescr, String qPred) {
 		// TODO might need to add a relationship between a perspective and the
 		// label associated with the insight that perspective is related too,
 		// but i think this should just be through queries.
 		insightBaseXML.addStatement(qURI, labelBaseURI, qsDescr, false);
+		insightBaseXML.addStatement(qURI, orderBaseURI, qsOrder, false);
 	}
 
-	private void removeQuestionLabel(String perspectiveURI, String qURI,
+	private void removeQuestionLabel(String perspectiveURI, String qURI, String qsOrder,
 			String qsDescr, String qPred) {
 		insightBaseXML.removeStatement(qURI, labelBaseURI, qsDescr, false);
+		insightBaseXML.removeStatement(qURI, orderBaseURI, qsOrder, false);
 	}
 
 	private void addQuestionIDLabel(String qURI, String qsKey) {
@@ -694,14 +699,16 @@ public class QuestionAdministrator {
 				String newQuestion = oldQuestion.replaceFirst(
 						Integer.toString(i) + ".", Integer.toString(i + 1)
 								+ ".");
+				String newQuestionOrder = Integer.toString(i + 1);
+				String oldQuestionOrder = Integer.toString(i);
 
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey,
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestionOrder,
 						oldQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
 						localCurrentParameterOptionList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey,
+				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestionOrder,
 						newQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
@@ -805,14 +812,16 @@ public class QuestionAdministrator {
 				String newQuestion = oldQuestion.replaceFirst(
 						Integer.toString(i + 1) + ".", Integer.toString(i)
 								+ ".");
-
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey,
+				String oldQuestionOrder = Integer.toString(i+1);
+				String newQuestionOrder = Integer.toString(i);
+				
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestionOrder,
 						oldQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
 						localCurrentParameterOptionList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey,
+				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestionOrder,
 						newQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
@@ -879,7 +888,7 @@ public class QuestionAdministrator {
 		return questionKey;
 	}
 	
-	public void addQuestion(String perspective, String questionKey,
+	public void addQuestion(String perspective, String questionKey, String questionOrder,
 			String question, String sparql, String layout,
 			String questionDescription, Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
@@ -901,9 +910,10 @@ public class QuestionAdministrator {
 		qsKey = questionKey;
 
 		if(qsKey==null){
-			createQuestionKey(perspective);
+			qsKey = createQuestionKey(perspective);
 		}
 		
+		qsOrder = questionOrder;
 		qsDescr = question;
 		layoutName = layout;
 		description = questionDescription;
@@ -934,7 +944,7 @@ public class QuestionAdministrator {
 		}
 
 		// add label, sparql, layout as properties
-		addQuestionLabel(perspectiveURI, qURI, qsDescr, qPred);
+		addQuestionLabel(perspectiveURI, qURI, qsOrder, qsDescr, qPred);
 		addQuestionIDLabel(perspectiveURI, qsKey);
 		addQuestionSparql(qURI, sparql);
 		addQuestionLayout(qURI, layoutName);
@@ -948,8 +958,8 @@ public class QuestionAdministrator {
 
 		// createQuestionXMLFile(xmlFile, baseFolder);
 		if (questionModType.equals("Add Question")) {
-			String[] questionArray = question.split("\\. ", 2);
-			String questionOrder = questionArray[0].trim();
+			//String[] questionArray = question.split("\\. ", 2);
+			//String questionOrderNum = questionArray[0].trim();
 			if (!selectedPerspective.equals("*NEW Perspective")) {
 				// if it's not the last question in the perspective; no need to
 				// reorder if question is added as the last question
@@ -965,7 +975,7 @@ public class QuestionAdministrator {
 		}
 	}
 
-	public void modifyQuestion(String perspective, String questionKey,
+	public void modifyQuestion(String perspective, String questionKey, String questionOrder,
 			String question, String sparql, String layout,
 			String questionDescription, Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
@@ -985,6 +995,10 @@ public class QuestionAdministrator {
 				+ perspective;
 
 		qsKey = questionKey;
+		
+		if(qsKey==null){
+			qsKey = createQuestionKey(perspective);
+		}
 
 		qsDescr = question;
 		layoutName = layout;
@@ -1013,24 +1027,22 @@ public class QuestionAdministrator {
 		// if not new, we have to get the order number and add it as the last
 		// question in the existing perspective
 
-		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestion,
+		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestionOrder, currentQuestion,
 				currentSparql, currentLayout, currentQuestionDescription,
 				currentParameterDependListVector,
 				currentParameterQueryListVector,
 				currentParameterOptionListVector);
-		addQuestion(perspective, questionKey, question, sparql, layout,
+		addQuestion(perspective, questionKey, questionOrder, question, sparql, layout,
 				questionDescription, parameterDependList, parameterQueryList,
 				parameterOptionList);
 
 		// check if user has modified the question label
-		if (!currentQuestion.equals(question)) {
+		if (!currentQuestion.equals(question) || !currentQuestionOrder.equals(questionOrder)) {
 			// check if the order number changed; if it did then add the new
 			// query and loops through all subsequent questions to re-order them
-			String[] currentQuestionArray = currentQuestion.split("\\. ", 2);
-			String currentOrder = currentQuestionArray[0].trim();
+			String currentOrder = currentQuestionOrder;
 
-			String[] questionArray = question.split("\\. ", 2);
-			String order = questionArray[0].trim();
+			String order = questionOrder;
 
 			if (!perspective.equals(currentPerspective)) {
 				// change the order here to the total # of questions in
@@ -1045,7 +1057,7 @@ public class QuestionAdministrator {
 		}
 	}
 
-	public void deleteQuestion(String perspective, String questionKey,
+	public void deleteQuestion(String perspective, String questionKey, String questionOrder,
 			String question, String sparql, String layout,
 			String questionDescription, Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
@@ -1065,6 +1077,7 @@ public class QuestionAdministrator {
 				+ perspective;
 
 		// add the question
+		qsOrder = questionOrder;
 		qsKey = questionKey;
 		qsDescr = question;
 		layoutName = layout;
@@ -1104,7 +1117,7 @@ public class QuestionAdministrator {
 		if (description != null) {
 			removeDescription(qURI, descriptionBaseURI, description);
 		}
-		removeQuestionLabel(perspectiveURI, qURI, qsDescr, qPred);
+		removeQuestionLabel(perspectiveURI, qURI, qsOrder, qsDescr, qPred);
 		removeQuestionIDLabel(perspectiveURI, qsKey);
 		removeQuestionSparql(qURI, sparql);
 		removeQuestionLayout(qURI, layoutName);
@@ -1116,8 +1129,8 @@ public class QuestionAdministrator {
 
 		if (questionModType.equals("Delete Question")
 				|| !perspective.equals(newPerspective)) {
-			String[] questionArray = question.split("\\. ", 2);
-			String questionOrder = questionArray[0].trim();
+			//String[] questionArray = question.split("\\. ", 2);
+			//String questionOrder = questionArray[0].trim();
 			// if it's not the last question in the perspective; no need to
 			// reorder if last question is deleted
 			if (!(Integer.parseInt(questionOrder) == questionList.size())
@@ -1147,6 +1160,7 @@ public class QuestionAdministrator {
 			
 			System.out.println("Removing question "+question2);
 			String perspective = perspectiveURI.substring(perspectiveURI.lastIndexOf(":")+1);
+			String questionOrder = in.getOrder();
 			String question = in.getLabel();
 			String questionID = in.getId();
 			String[] questionIDArray = questionID.split(":");
@@ -1201,7 +1215,7 @@ public class QuestionAdministrator {
 			}
 			reorder=false;
 			deletePerspective=true;
-			deleteQuestion(perspective, questionKey, question, sparql,
+			deleteQuestion(perspective, questionKey, questionOrder, question, sparql,
 					layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
 		}

@@ -35,6 +35,9 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.Insight;
+import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -110,6 +113,13 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		else 
 		{
 			String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
+			String[] insightStringSplit = insightString.split("\\. ", 2);
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			Insight in = ((AbstractEngine)engine).getInsight2(insightString).get(0);
+			if(((AbstractEngine)engine).getInsight2(insightString).get(0).getOutput().equals("Unknown")){
+				insightString = insightStringSplit[1];
+			}
+			
 			//get Swing UI and set ParamHash";
 			JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
 			DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN,	false);
