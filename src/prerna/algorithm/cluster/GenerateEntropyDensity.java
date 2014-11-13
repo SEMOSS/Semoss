@@ -15,6 +15,7 @@ public class GenerateEntropyDensity {
 	private Object[][] data;
 	private double[] entropyDensityArray;
 	private boolean[] isCategorical;
+	private boolean includeLastColumn = false;
 	
 	public double[] getEntropyDensityArray() {
 		return entropyDensityArray;
@@ -27,10 +28,23 @@ public class GenerateEntropyDensity {
 		isCategorical = formatter.getIsCategorical();
 	}
 	
+	public GenerateEntropyDensity(ArrayList<Object[]> queryData,boolean includeLastColumn) {
+		this.includeLastColumn = includeLastColumn;
+		this.queryData = queryData;
+		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
+		formatter.setIncludeLastColumn(includeLastColumn);
+		data = formatter.manipulateValues(queryData);
+		isCategorical = formatter.getIsCategorical();
+	}
+	
 	public double[] generateEntropy() {
 		int i;
 		int size = data.length;
-		entropyDensityArray = new double[size - 1];
+		if(includeLastColumn) {
+			entropyDensityArray = new double[size];
+		}
+		else
+			entropyDensityArray = new double[size - 1];
 		
 		for(i = 1; i < size; i++) {
 			Object[] objDataRow = data[i];

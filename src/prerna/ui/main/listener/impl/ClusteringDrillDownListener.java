@@ -20,25 +20,35 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JDesktopPane;
 
+import prerna.ui.components.ExecuteQueryProcessor;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
+import prerna.ui.helpers.PlaysheetCreateRunner;
+import prerna.ui.helpers.PlaysheetOverlayRunner;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.QuestionPlaySheetStore;
 
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
  * Used to determine if user wants to include HSD, HSS, or FHP functional areas in RFP report
  * Will populate sourceSelectPanel with all capabilities included in functional areas
  */
-public class ClusteringRefreshParamListener extends AbstractListener {
+public class ClusteringDrillDownListener extends AbstractListener {
 	
-	//need to pass the playsheet, the checkboxes, the names, and the master data list,
-	//sends back the updates names and data list
-	ClusteringVizPlaySheet playSheet;
+	//need to pass the checkboxes, the names, and the master data list,
+	//filters master data list to only include elements that were in the clusters marked in the checkbox list
+	
 	ArrayList<JCheckBox> paramCheckboxes;
 	String[] masterNames;
 	ArrayList<Object []> masterList;
+	ClusteringVizPlaySheet playSheet;
 	
 	/**
 	 * Updates the parameters to cluster on based on the params selected
@@ -46,6 +56,7 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
+
 		Integer numberSelected = 0;
 		for(int i=0;i<paramCheckboxes.size();i++) {
 			if(paramCheckboxes.get(i).isSelected())
@@ -61,9 +72,32 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 				colInd++;
 			}
 		}
-
+		
+		ArrayList<JCheckBox> clusterCheckboxes = playSheet.getClusterCheckboxes();
+		ArrayList<Integer> clustersToInclude = new ArrayList<Integer>();
+		for(int i=0;i<clusterCheckboxes.size();i++) {
+			JCheckBox checkbox = clusterCheckboxes.get(i);
+			if(checkbox.isSelected()) {
+				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
+			}
+		}
+		
+		Hashtable<String, Integer> instanceIndexHash = playSheet.getInstanceIndexHash();
+		int[] clusterAssigned  = playSheet.getClusterAssigned();
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		for(Object[] instanceRow : masterList) {
+			String instance = (String)instanceRow[0];
+			int cluster = clusterAssigned[instanceIndexHash.get(instance)];
+			//check if cluster is to be included
+			if(clustersToInclude.contains(cluster)) {
+				newList.add(instanceRow);
+			}
+		}
+		
+		//take out the clusters we dont care about from the master list...
+		//then do the filtering after that.
 		ArrayList<Object[]> filteredList = new ArrayList<Object []>();
-		for(Object[] row : masterList) {
+		for(Object[] row : newList) {
 			Object[] filteredRow = new Object[numberSelected+1];
 			filteredRow[0] = row[0];//whatever object name we're clustering on
 			colInd=1;
@@ -76,24 +110,33 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 			filteredList.add(filteredRow);
 		}
 		
-		playSheet.filterData(filteredNames,filteredList);
-
+		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();
+		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
+		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
+		drillDownPlaySheet.setQuery(playSheet.getFullQuery());
+		drillDownPlaySheet.setRDFEngine(playSheet.engine);
+		drillDownPlaySheet.setQuestionID(insightID);
+		drillDownPlaySheet.setTitle(playSheet.getTitle());
+		drillDownPlaySheet.drillDownData(masterNames, filteredNames, newList, filteredList);
+		drillDownPlaySheet.setSelectedParams(paramCheckboxes);
+		
+		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+		drillDownPlaySheet.setJDesktopPane(pane);
+		Runnable playRunner = new PlaysheetCreateRunner(drillDownPlaySheet);	
+		Thread playThread = new Thread(playRunner);
+		playThread.start();
+		
 	}
-
 	public void setPlaySheet(ClusteringVizPlaySheet playSheet) {
 		this.playSheet = playSheet;
 	}
-	
+		
 	public void setCheckBoxes(ArrayList<JCheckBox> paramCheckboxes) {
 		this.paramCheckboxes = paramCheckboxes;
 	}
 
 	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
 		this.masterNames = masterNames;
-		this.masterList = new ArrayList<Object []>();
-		for(Object[] row : masterList) {
-			this.masterList.add(row);
-		}
 		this.masterList = masterList;
 	}
 	

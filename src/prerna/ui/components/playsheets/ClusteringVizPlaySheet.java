@@ -34,6 +34,7 @@ import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
+import prerna.ui.main.listener.impl.ClusteringDrillDownListener;
 import prerna.ui.main.listener.impl.ClusteringRefreshParamListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.ArrayUtilityMethods;
@@ -49,12 +50,18 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	
 	private int inputNumClusters;
 	private int numClusters;
+	private String fullQuery;
 	
 //	private double n;
 //	private String type = "";
 	private ArrayList<Object[]> clusterInfo;
 	private ArrayList<JCheckBox> paramCheckboxes;
+	private ArrayList<JCheckBox> clusterCheckboxes;
+	private ArrayList<JCheckBox> paramsToCheck;
+	JPanel clusterSelectorPanel;
+	private ArrayList<Object []> originalMasterList;
 	private ArrayList<Object []> masterList;
+	private String[] originalMasterNames;
 	private String[] masterNames;
 
 	//indexing used for bar graph visualizations
@@ -62,6 +69,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private ArrayList<Object[]> rawDataList;
 	private String[] rawDataNames;
+	
+	Hashtable<String, Integer> instanceIndexHash;
+	int[] clusterAssigned;
 	
 	public ClusteringVizPlaySheet() {
 		super();
@@ -125,8 +135,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		}
 		jTab.addTab("Raw Data", panel);
 	}
+
 	public void addSelectorTab() {
-		GenerateEntropyDensity test = new GenerateEntropyDensity(list);
+		GenerateEntropyDensity test;
+		if(originalMasterList!=null) {
+			test = new GenerateEntropyDensity(originalMasterList,true);
+		}
+		else
+			test = new GenerateEntropyDensity(list);
 		double[] testVals = test.generateEntropy();
 		DecimalFormat formatter = new DecimalFormat("0.000E0");
 		JPanel panel = new JPanel();
@@ -137,7 +153,22 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbl_panel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		panel.setLayout(gbl_panel);
+	
+		JPanel paramSelectorPanel = new JPanel();
+		GridBagConstraints gbc_paramSelectorPanel = new GridBagConstraints();
+		gbc_paramSelectorPanel.anchor = GridBagConstraints.WEST;
+		gbc_paramSelectorPanel.insets = new Insets(10, 5, 0, 0);
+		gbc_paramSelectorPanel.gridx = 0;
+		gbc_paramSelectorPanel.gridy = 0;
+		panel.add(paramSelectorPanel, gbc_paramSelectorPanel);
 		
+		GridBagLayout gbl_paramSelectorPanel = new GridBagLayout();
+		gbl_paramSelectorPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_paramSelectorPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_paramSelectorPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		gbl_paramSelectorPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		paramSelectorPanel.setLayout(gbl_paramSelectorPanel);
+				
 		JLabel lblParamSelect = new JLabel("Select Parameters:");
 		lblParamSelect.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblParamSelect = new GridBagConstraints();
@@ -145,7 +176,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_lblParamSelect.insets = new Insets(10, 5, 0, 0);
 		gbc_lblParamSelect.gridx = 0;
 		gbc_lblParamSelect.gridy = 0;
-		panel.add(lblParamSelect, gbc_lblParamSelect);
+		paramSelectorPanel.add(lblParamSelect, gbc_lblParamSelect);
 		paramCheckboxes = new ArrayList<JCheckBox>();
 		
 		JLabel entropyDensityLabel = new JLabel("Entropy Density For Parameter:");
@@ -156,9 +187,11 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_entropyDensityLabel.insets = new Insets(10, 5, 0, 0);
 		gbc_entropyDensityLabel.gridx = 1;
 		gbc_entropyDensityLabel.gridy = 0;
-		panel.add(entropyDensityLabel, gbc_entropyDensityLabel);
-		
-		for(int i=1;i<masterNames.length;i++) {
+		paramSelectorPanel.add(entropyDensityLabel, gbc_entropyDensityLabel);
+		int numTimes = masterNames.length;
+		if(originalMasterNames!=null)
+			numTimes = originalMasterNames.length;
+		for(int i=1;i<numTimes;i++) {
 			
 			JLabel entropyDensityVal = new JLabel();
 			entropyDensityVal.setText(formatter.format(testVals[i-1]));
@@ -168,19 +201,27 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			gbc_entropyDensityVal.insets = new Insets(5, 10, 0, 0);
 			gbc_entropyDensityVal.gridx = 0;
 			gbc_entropyDensityVal.gridy = i;
-			panel.add(entropyDensityVal, gbc_entropyDensityVal);
+			paramSelectorPanel.add(entropyDensityVal, gbc_entropyDensityVal);
 			
-			String checkboxLabel = masterNames[i];
+			String checkboxLabel = "";
+			if(originalMasterNames!=null)
+				checkboxLabel = originalMasterNames[i];
+			else
+				checkboxLabel = masterNames[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
 			checkbox.setName(checkboxLabel+"checkBox");
 			checkbox.setSelected(true);
+			if(paramsToCheck!=null) {
+				boolean selected = paramsToCheck.get(i-1).isSelected();
+				checkbox.setSelected(selected);
+			}
 			GridBagConstraints gbc_checkbox = new GridBagConstraints();
 			gbc_checkbox.anchor = GridBagConstraints.NORTHWEST;
 			gbc_checkbox.fill = GridBagConstraints.NONE;
 			gbc_checkbox.insets = new Insets(5, 10, 0, 0);
 			gbc_checkbox.gridx = 1;
 			gbc_checkbox.gridy = i;
-			panel.add(checkbox, gbc_checkbox);
+			paramSelectorPanel.add(checkbox, gbc_checkbox);
 			paramCheckboxes.add(checkbox);
 		}
 		
@@ -191,19 +232,107 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_btnRefreshParam.anchor = GridBagConstraints.NORTH;
 		gbc_btnRefreshParam.fill = GridBagConstraints.VERTICAL;
 		gbc_btnRefreshParam.gridx = 0;
-		gbc_btnRefreshParam.gridy = names.length + 1;
+		gbc_btnRefreshParam.gridy = 2;
 		panel.add(btnRefreshParam, gbc_btnRefreshParam);
 		Style.registerTargetClassName(btnRefreshParam,  ".createBtn");
 
 		ClusteringRefreshParamListener refListener = new ClusteringRefreshParamListener();
 		refListener.setPlaySheet(this);
 		refListener.setCheckBoxes(paramCheckboxes);
-		refListener.setMasterData(masterNames, masterList);
+		if(originalMasterNames!=null)
+			refListener.setMasterData(originalMasterNames, originalMasterList);
+		else
+			refListener.setMasterData(masterNames, masterList);
 		btnRefreshParam.addActionListener(refListener);
+		
+		clusterSelectorPanel = new JPanel();
+		GridBagConstraints gbc_clusterSelectorPanel = new GridBagConstraints();
+		gbc_clusterSelectorPanel.anchor = GridBagConstraints.WEST;
+		gbc_clusterSelectorPanel.insets = new Insets(10, 5, 0, 0);
+		gbc_clusterSelectorPanel.gridx = 1;
+		gbc_clusterSelectorPanel.gridy = 0;
+		panel.add(clusterSelectorPanel, gbc_clusterSelectorPanel);
+		
+		GridBagLayout gbl_clusterSelectorPanel = new GridBagLayout();
+		gbl_clusterSelectorPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_clusterSelectorPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_clusterSelectorPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		gbl_clusterSelectorPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		clusterSelectorPanel.setLayout(gbl_clusterSelectorPanel);
+		
+		JLabel lblClusterSelect = new JLabel("Select Clusters to drill down:");
+		lblClusterSelect.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_lblClusterSelect = new GridBagConstraints();
+		gbc_lblClusterSelect.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblClusterSelect.fill = GridBagConstraints.NONE;
+		gbc_lblClusterSelect.insets = new Insets(10, 5, 0, 0);
+		gbc_lblClusterSelect.gridx = 0;
+		gbc_lblClusterSelect.gridy = 0;
+		clusterSelectorPanel.add(lblClusterSelect, gbc_lblClusterSelect);
+		clusterCheckboxes = new ArrayList<JCheckBox>();
+		
+		//need to iterate through the cluster list
+		updateClusterCheckboxes();
+
+		JButton btnDrillDownCluster = new CustomButton("Drill Down on Selected Clusters");
+		btnDrillDownCluster.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnDrillDownCluster = new GridBagConstraints();
+		gbc_btnDrillDownCluster.insets = new Insets(10, 5, 0, 0);
+		gbc_btnDrillDownCluster.anchor = GridBagConstraints.NORTH;
+		gbc_btnDrillDownCluster.fill = GridBagConstraints.VERTICAL;
+		gbc_btnDrillDownCluster.gridx = 1;
+		gbc_btnDrillDownCluster.gridy = 2;
+		panel.add(btnDrillDownCluster, gbc_btnDrillDownCluster);
+		Style.registerTargetClassName(btnDrillDownCluster,  ".createBtn");
+
+		ClusteringDrillDownListener drillDownListener = new ClusteringDrillDownListener();
+		drillDownListener.setCheckBoxes(paramCheckboxes);
+		if(originalMasterNames!=null)
+			drillDownListener.setMasterData(originalMasterNames, originalMasterList);
+		else
+			drillDownListener.setMasterData(masterNames, masterList);
+		drillDownListener.setPlaySheet(this);
+		btnDrillDownCluster.addActionListener(drillDownListener);
 		
 		JScrollPane scroll = new JScrollPane(panel);
 		jTab.insertTab("Param Selector", null, scroll, null, 0);
 		jTab.setSelectedIndex(0);
+	}
+	
+	private void updateClusterCheckboxes() {
+		//remove old clusters
+		for(JCheckBox checkbox : clusterCheckboxes) {
+			clusterSelectorPanel.remove(checkbox);
+		}
+		clusterCheckboxes = new ArrayList<JCheckBox>();
+		for(int i=0;i<numClusters;i++) {		
+			String checkboxLabel = "" + i;
+			JCheckBox checkbox = new JCheckBox(checkboxLabel);
+			checkbox.setName("Cluster "+checkboxLabel+"checkBox");
+			checkbox.setSelected(true);
+			GridBagConstraints gbc_checkbox = new GridBagConstraints();
+			gbc_checkbox.anchor = GridBagConstraints.NORTHWEST;
+			gbc_checkbox.fill = GridBagConstraints.NONE;
+			gbc_checkbox.insets = new Insets(5, 10, 0, 0);
+			gbc_checkbox.gridx = 0;
+			gbc_checkbox.gridy = i+1;
+			clusterSelectorPanel.add(checkbox, gbc_checkbox);
+			clusterCheckboxes.add(checkbox);
+		}
+	}
+	
+	public void setSelectedParams(ArrayList<JCheckBox> paramCheckboxes) {
+		this.paramsToCheck = paramCheckboxes;
+	}
+	
+	public void drillDownData(String[] masterNames,String[] filteredNames,ArrayList<Object []> masterList,ArrayList<Object []> filteredList) {
+		this.originalMasterNames = masterNames;
+		this.masterNames = filteredNames;
+		this.names = filteredNames;
+		this.originalMasterList = masterList;
+		this.masterList = filteredList;
+		this.list = filteredList;
+		numClusters = inputNumClusters;
 	}
 
 	public void filterData(String[] filteredNames,ArrayList<Object []> filteredList) {
@@ -214,6 +343,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		numClusters = inputNumClusters;
 		createData();
 		createView();
+		updateClusterCheckboxes();
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -260,6 +390,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
 						Arrays.sort(values);
 						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
+						int testInd=0;
+						while(testInd<numValues.length&&numValues[testInd]==0.0) {
+							testInd++;
+							if(testInd>10)
+							{String k= "k";}
+						}
 						BarChart chart = null;
 						try {
 							chart = new BarChart(numValues);
@@ -365,8 +501,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		clusterInfo = clusterAlg.getSummaryClusterRows();
 		
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		int[] clusterAssigned = clusterAlg.getClustersAssigned();
-		Hashtable<String, Integer> instanceIndexHash = clusterAlg.getInstanceIndexHash();
+		clusterAssigned = clusterAlg.getClustersAssigned();
+		instanceIndexHash = clusterAlg.getInstanceIndexHash();
 
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		String[] newNames = new String[names.length + 1];
@@ -446,6 +582,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	 */
 	@Override
 	public void setQuery(String query) {
+		fullQuery = query;
 		LOGGER.info("New Query " + query);
 		String[] querySplit = query.split("\\+\\+\\+");
 		if(querySplit.length == 1) {
@@ -462,7 +599,18 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //			this.type = querySplit[3];
 //		}
 	}
-
+	public String getFullQuery() {
+		return fullQuery;
+	}
+	public ArrayList<JCheckBox> getClusterCheckboxes() {
+		return clusterCheckboxes;
+	}
+	public Hashtable<String, Integer> getInstanceIndexHash() {
+		return instanceIndexHash;
+	}
+	public int[] getClusterAssigned() {
+		return clusterAssigned;
+	}
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
