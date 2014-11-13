@@ -86,6 +86,7 @@ SystemDCSite_Has_TError http://health.mil/ontologies/Relation/Has
 Region_Deploys_Wave http://health.mil/ontologies/Relation/Deploys
 SystemDCSite_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 InterfaceControlDocument_Implemented_At_SystemDCSite http://health.mil/ontologies/Relation/Implemented_At
+FCC_Has_FCC-MTF http://health.mil/ontologies/Relation/Has
 Year-Quarter_has_Year http://health.mil/ontologies/Relation/has
 SiteSoftwareModule_TypeOf_SoftwareVersion http://health.mil/ontologies/Relation/TypeOf
 SystemIncident_Affects_System http://health.mil/ontologies/Relation/Affects
@@ -187,13 +188,18 @@ Wave_EndsOn_Year-Quarter_CLASS http://semoss.org/ontologies/Relation/EndsOn
 Floater_Supports_System_CLASS http://semoss.org/ontologies/Relation/Supports
 SystemDCSite_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
 SystemDCSite_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
+FCC_Has_FCC-MTF_CLASS http://semoss.org/ontologies/Relation/Has
 SystemDCSiteIncident_Affects_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/Affects
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
 SystemDCSite_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 InterfaceControlDocument_ImplementedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/ImplementedAt
+<<<<<<< .mine
+FCC-MTF_Occurs_At_MTF_CLASS http://semoss.org/ontologies/Relation/Occurs_At
+=======
 FCC_Part_Of_Business_Process_CLASS http://semoss.org/ontologies/Relation/Part_Of
 FCC-MTF_Occurs_At_MTF_CLASS http://semoss.org/ontologies/Relation/Occurs_At
+>>>>>>> .r4499
 DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 SystemDCSite_DeployedAt_DCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
