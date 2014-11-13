@@ -138,10 +138,22 @@ public class BarChart {
 		for(int i = 0; i < numValues.length; i++) {
 			if(numValues[i] > 0) {
 				logValues[i] = Math.log10(numValues[i] + 1);
-				logValuesUnsorted[i] = Math.log10(unsortedValues[i] + 1);
 			} else {
 				logValues[i] = -1 * Math.log10((-1*numValues[i]) + 1);
+			}
+			if(unsortedValues[i] > 0) {
+				logValuesUnsorted[i] = Math.log10(unsortedValues[i] + 1);
+			} else {
 				logValuesUnsorted[i] = -1 * Math.log10((-1 * unsortedValues[i]) + 1);
+			}
+		}
+		
+		for(int i = 0; i < numValues.length; i++) {
+			if(Double.isNaN(logValues[i])) {
+				System.out.println(i);
+			}
+			if(Double.isNaN(logValuesUnsorted[i])) {
+				System.out.println(i);
 			}
 		}
 		
@@ -203,15 +215,6 @@ public class BarChart {
 				double binMax = Double.parseDouble(binSplit[1].trim());
 				if(binMin <= val && binMax >= val)
 				{
-					counterArr[j]++;
-					assignmentForEachObject[i] = bin;
-					break;
-				// in case rounding doesn't allow numbers to match up
-				} else if(Math.round(binMin) == Math.round(val)) {
-					counterArr[j]++;
-					assignmentForEachObject[i] = bin;
-					break;
-				} else if(Math.round(binMax) == Math.round(val)) {
 					counterArr[j]++;
 					assignmentForEachObject[i] = bin;
 					break;

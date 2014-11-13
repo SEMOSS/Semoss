@@ -16,13 +16,13 @@ import weka.core.Instances;
 public final class WekaUtilityMethods {
 
 	private WekaUtilityMethods() {
-		
+
 	}
-	
+
 	// currently only works for clean data - cannot mix strings with doubles for attributes
 	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
 		int numInstances = dataList.size();	
-		
+
 		int i;
 		int j;
 		int numAttr = names.length;
@@ -47,21 +47,20 @@ public final class WekaUtilityMethods {
 					numNumeric++;
 				}
 			}
-			
+
 			if(numNominal > numNumeric) {
 				isCategorical[i] = true;
 			} else {
 				isCategorical[i] = false;
 			}
 		}
-		
+
 		String[] binForInstance = null;
 		FastVector attributeList = new FastVector();
 		for(i = 0; i < numAttr; i++ ) {
 			//special case for predictor since it must be nominal
 			if(i == attributeIndex && !isCategorical[i]) {
 				//create bins for numeric value
-				Arrays.sort(numericValues[i]);
 				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleArr(numericValues[i]));
 				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
 				binForInstance = chart.getAssignmentForEachObject();
@@ -86,7 +85,7 @@ public final class WekaUtilityMethods {
 		}
 		//create the Instances Object to contain all the instance information
 		Instances data = new Instances(nameDataSet, attributeList, numInstances);
-		
+
 		for(i = 0; i < numInstances; i++) {
 			Instance dataEntry = new Instance(numAttr);
 			dataEntry.setDataset(data);
@@ -107,10 +106,30 @@ public final class WekaUtilityMethods {
 					}
 				}
 			}
-//			System.out.println(dataEntry);
+			//			System.out.println(dataEntry);
 			data.add(dataEntry);
 		}
-		
+
 		return data;
+	}
+
+	public double calculateAccuracy(FastVector predCorrect) {
+		double sumPerCorrect = 0;
+		int size = predCorrect.size();
+		for (int i = 0; i < size; i++) {
+			sumPerCorrect+= (double) predCorrect.elementAt(i);
+		}
+
+		return sumPerCorrect / size;
+	}
+
+	public double calculatePercision(FastVector kappaValues) {
+		double sumKappa = 0;
+		int size = kappaValues.size();
+		for (int i = 0; i < size; i++) {
+			sumKappa+= (double) kappaValues.elementAt(i);
+		}
+
+		return sumKappa / size;
 	}
 }
