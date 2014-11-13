@@ -1,6 +1,7 @@
 
 ##Base Objects##
 
+Business_Process http://health.mil/ontologies/Concept/Business_Process
 DataObject http://health.mil/ontologies/Concept/DataObject
 Software http://health.mil/ontologies/Concept/Software
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
@@ -9,6 +10,7 @@ DataElement http://health.mil/ontologies/Concept/DataElement
 Complexity http://health.mil/ontologies/Concept/Complexity
 BusinessLogicUnit http://health.mil/ontologies/Concept/BusinessLogicUnit
 SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
+FunctionalGap http://health.mil/ontologies/Concept/FunctionalGap
 Capability http://health.mil/ontologies/Concept/Capability
 CDR http://health.mil/ontologies/Concept/CDR
 NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
@@ -18,6 +20,7 @@ HL7 http://health.mil/ontologies/Concept/HL7
 SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+FCC http://health.mil/ontologies/Concept/FCC
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
 FError http://health.mil/ontologies/Concept/FError
 System http://health.mil/ontologies/Concept/System
@@ -83,6 +86,7 @@ SystemTasker_BelongsTo_NCRMDUser http://health.mil/ontologies/Relation/BelongsTo
 InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Activity_Has_ActivityLevel http://health.mil/ontologies/Relation/Has
 System_Supports_Activity http://health.mil/ontologies/Relation/Supports
+FCC_Part_Of_Business_Process http://health.mil/ontologies/Relation/Part_Of
 System_Utilizes_UserInterface http://health.mil/ontologies/Relation/Utilizes
 VISTAElement_BelongsTo_VISTA http://health.mil/ontologies/Relation/BelongsTo
 TaskerLifecycleSystemPhase_TypeOf_TaskerLifecyclePhase http://health.mil/ontologies/Relation/TypeOf
@@ -146,6 +150,7 @@ DProt_CLASS http://semoss.org/ontologies/Concept/DProt
 HardwareVersion_CLASS http://semoss.org/ontologies/Concept/HardwareVersion
 CCD_CLASS http://semoss.org/ontologies/Concept/CCD
 DFreq_CLASS http://semoss.org/ontologies/Concept/DFreq
+FunctionalGap_CLASS http://semoss.org/ontologies/Concept/FunctionalGap
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
 CDRElement_CLASS http://semoss.org/ontologies/Concept/CDRElement
 System_CLASS http://semoss.org/ontologies/Concept/System
@@ -159,8 +164,10 @@ SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
+FCC_CLASS http://semoss.org/ontologies/Concept/FCC
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
+Business_Process_CLASS http://semoss.org/ontologies/Concept/Business_Process
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
 CCD_Element_CLASS http://semoss.org/ontologies/Concept/CCD_Element
 VISTAUnion_CLASS http://semoss.org/ontologies/Concept/VISTAUnion
@@ -235,6 +242,7 @@ System_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
 HardwareModule_TypeOf_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
+FCC_Part_Of_Business_Process_CLASS http://semoss.org/ontologies/Relation/Part_Of
 Activity_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
 System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
