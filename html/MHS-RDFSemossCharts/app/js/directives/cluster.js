@@ -89,7 +89,7 @@ app.directive('d3Cluster', function() {
 
                 for(var key in d){
                     if(key != "x" && key != "y" && key != "px" && key != "py"){
-                        if(key != "weight" && key != "fixed" && key != "index" && key != groupingCategory && key != nodeName){
+                        if(key != "weight" && key != "fixed" && key != "index" && key != nodeName){
                             output[key] = d[key];
                         }
                     }
