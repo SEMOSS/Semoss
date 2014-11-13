@@ -1,7 +1,6 @@
 
 ##Base Objects##
 
-Business_Process http://health.mil/ontologies/Concept/Business_Process
 DataObject http://health.mil/ontologies/Concept/DataObject
 Software http://health.mil/ontologies/Concept/Software
 DataElement http://health.mil/ontologies/Concept/DataElement
@@ -72,7 +71,6 @@ InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Region_Precedes_Region http://health.mil/ontologies/Relation/Precedes
 Wave_EndsOn_Year-Quarter http://health.mil/ontologies/Relation/EndsOn
 Wave_Contains_DCSite http://health.mil/ontologies/Relation/Contains
-FCC_Part_Of_Business_Process http://health.mil/ontologies/Relation/Part_Of
 MTF_Has_FacComCode http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
@@ -131,7 +129,6 @@ InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceCon
 DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
 FCC_CLASS http://semoss.org/ontologies/Concept/FCC
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
-Business_Process_CLASS http://semoss.org/ontologies/Concept/Business_Process
 BLU_CLASS http://semoss.org/ontologies/Concept/BLU
 FCC-MTF_CLASS http://semoss.org/ontologies/Concept/FCC-MTF
 SystemIncident_CLASS http://semoss.org/ontologies/Concept/SystemIncident
@@ -194,12 +191,7 @@ Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
 SystemDCSite_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 InterfaceControlDocument_ImplementedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/ImplementedAt
-<<<<<<< .mine
 FCC-MTF_Occurs_At_MTF_CLASS http://semoss.org/ontologies/Relation/Occurs_At
-=======
-FCC_Part_Of_Business_Process_CLASS http://semoss.org/ontologies/Relation/Part_Of
-FCC-MTF_Occurs_At_MTF_CLASS http://semoss.org/ontologies/Relation/Occurs_At
->>>>>>> .r4499
 DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 SystemDCSite_DeployedAt_DCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
