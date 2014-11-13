@@ -74,8 +74,15 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
 		// get the selected question
 		String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
+
+		
 		// create insight to get sparql text
 		Insight insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
+		if(insight.getOutput().equals("Unknown")) {
+			String[] insightStringSplit = insightString.split("\\. ", 2);
+			insightString = insightStringSplit[1];
+			insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
+		}
 		String sparql = Utility.normalizeParam(insight.getSparql());
 
 		// only allow use of get current sparql question btn when custom sparql btn is selected

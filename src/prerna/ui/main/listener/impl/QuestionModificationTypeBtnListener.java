@@ -168,7 +168,9 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		String question = (String) questionModSelector.getSelectedItem();
-
+		String[] questionSplit = question.split("\\. ", 2);
+		question = questionSplit[1];
+		
 		Insight in = ((AbstractEngine)engine).getInsight2(question).get(0);
 
 		// now get the SPARQL query for this id
@@ -182,9 +184,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		Vector<String> optionVector = new Vector<String>();
 		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(question);
 		
-		String[] questionArray = question.split("\\. ", 2);
-		order = questionArray[0].trim();
-		String questionWithOutCounter = questionArray[1].trim();
+		order = in.getOrder();
 		
 		if(!paramInfoVector.isEmpty()){
 			for(int i = 0; i < paramInfoVector.size(); i++){
@@ -266,7 +266,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 				questionOrderComboBox.removeItemAt(questionOrderComboBox.getItemCount()-1);
 			}
 			//questionKeyField.setText(questionKey);
-			questionField.setText(questionWithOutCounter);
+			questionField.setText(question);
 			questionLayoutField.setText(layoutValue);
 			if(!dependVector.isEmpty()){
 				parameterDependList.setListData(dependVector.toArray(new String[dependVector.size()]));
@@ -334,7 +334,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 				questionOrderComboBox.removeItemAt(questionOrderComboBox.getItemCount()-1);
 			}
 			questionPerspectiveField.setText(perspective);
-			questionField.setText(questionWithOutCounter);
+			questionField.setText(question);
 			questionLayoutField.setText(layoutValue);
 			if(!dependVector.isEmpty()){
 				parameterDependList.setListData(dependVector);

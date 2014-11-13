@@ -88,8 +88,9 @@ public class ExecuteQueryProcessor {
 			}
 		}
 		System.out.println("Param Hash is " + paramHash);
-		String[] questionTitleArray = insightString.split("\\.");
-		playSheetTitle = playSheetTitle+questionTitleArray[1].trim()+" ("+questionTitleArray[0]+")";
+		//String[] questionTitleArray = insightString.split("\\.");
+		String order = insight.getOrder();
+		playSheetTitle = playSheetTitle+insightString.trim()+" ("+order+")";
 		QuestionPlaySheetStore.getInstance().idCount++;
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ insight.getId();
 		String sparql = Utility.normalizeParam(insight.getSparql());

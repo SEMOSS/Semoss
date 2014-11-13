@@ -13,6 +13,7 @@ public class Insight extends Hashtable {
 	String outputKey = "output";	// Output type of the question
 	String sparqlKey = "sparql";	// Sparql of the question
 	String descrKey = "description";	// Sparql of the question
+	String orderKey = "order";	// order of the question
 
 	// database id where this insight is
 	// this may be a URL
@@ -78,7 +79,15 @@ public class Insight extends Hashtable {
 	public void setDatabaseID(String databaseID) {
 		this.propHash.put(this.databaseIDkey, databaseID);
 	}
+	
+	public void setOrder (String order) {
+		this.propHash.put(this.orderKey, order);
+	}
 
+	public String getOrder() {
+		return this.propHash.get(this.orderKey);
+	}
+	
 	// type of database where it is
 	public enum DB_TYPE {MEMORY, FILE, REST};
 	

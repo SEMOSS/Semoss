@@ -70,11 +70,16 @@ public class QuestionListener implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 		JComboBox questionBox = (JComboBox)actionevent.getSource();
 		// get the currently selected index
-		String question = (String)questionBox.getSelectedItem();	
+		String fullQuestion = (String)questionBox.getSelectedItem();
+
+		
 		// get the question Hash from the DI Helper to get the question name
 		// get the ID for the question
-		if(question != null)
+		if(fullQuestion != null)
 		{
+			String[] questionSplit = fullQuestion.split("\\. ", 2);
+			String question = questionSplit[1];
+			
 			JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 			btnCustomSparql.setSelected(false);
 
@@ -83,8 +88,14 @@ public class QuestionListener implements IChakraListener {
 			List selectedValuesList = list.getSelectedValuesList();
 			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
 
+			Insight in = null;
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
-			Insight in = ((AbstractEngine)engine).getInsight2(question).get(0);
+			if(!((AbstractEngine)engine).getInsight2(question).get(0).getOutput().equals("Unknown")) {
+				in = ((AbstractEngine)engine).getInsight2(question).get(0);
+			} else {
+				question = fullQuestion;
+				in = ((AbstractEngine)engine).getInsight2(question).get(0);
+			}
 
 			// now get the SPARQL query for this id
 			String sparql = in.getSparql();

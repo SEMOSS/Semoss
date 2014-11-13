@@ -61,7 +61,6 @@ public class QuestionModSelectorListener implements IChakraListener {
 	String question = null;
 	String perspective = null;
 	String order;
-	String questionWithoutCounter = null;
 	Vector<String> parameterQueryVector = new Vector<String>();
 	Vector<String> dependVector = new Vector<String>();
 	Vector<String> optionVector = new Vector<String>();
@@ -96,13 +95,11 @@ public class QuestionModSelectorListener implements IChakraListener {
 
 		engineName = (String) questionDBSelector.getSelectedItem();
 		question = (String) questionModSelector.getSelectedItem();
-
-		if (!(question == null)) {
-			String[] questionArray = question.split("\\. ", 2);
-			order = questionArray[0].trim();
-			questionWithoutCounter = questionArray[1].trim();
+		
+		if(question != null){
+			String[] questionSplit = question.split(". ", 2);
+			question = questionSplit[1];
 		}
-
 		perspective = (String) questionPerspectiveSelector.getSelectedItem();
 	}
 
@@ -124,7 +121,21 @@ public class QuestionModSelectorListener implements IChakraListener {
 		if (question != null && !perspective.equals("*NEW Perspective")) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
 					engineName);
-			Insight in = ((AbstractEngine) engine).getInsight2(question).get(0);
+			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
+			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
+			Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2(question);
+			Insight in = null;
+			if(vectorInsight.size() > 1){
+				for(Insight insight: vectorInsight){
+					if(insight.getId().contains(perspective)){
+						in = insight;
+					}
+				}
+			} else {
+				in = vectorInsight.get(0);
+			}
+			
+			order = in.getOrder();
 			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
 					.getParams(question);
 			// empties the vectors so it doesn't duplicate existing elements
@@ -190,6 +201,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 			// question and then adding the modified question)
 			QuestionAdministrator.currentPerspective = perspective;
 			QuestionAdministrator.currentQuestionKey = questionKey;
+			QuestionAdministrator.currentQuestionOrder = order;
 			QuestionAdministrator.currentQuestion = question;
 			QuestionAdministrator.currentLayout = layoutValue;
 			QuestionAdministrator.currentSparql = sparql;
@@ -202,7 +214,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 			// sets the field data if user is editing or deleting question
 			if (!addQuestionModTypeBtn.isSelected()) {
 				// questionPerspectiveField.setText(perspective);
-				questionField.setText(questionWithoutCounter);
+				questionField.setText(question);
 
 				questionSparqlTextPane.setText(sparql);
 				questionLayoutField.setText(layoutValue);
