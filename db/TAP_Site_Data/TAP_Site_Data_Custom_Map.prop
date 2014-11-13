@@ -1,6 +1,7 @@
 
 ##Base Objects##
 
+Business_Process http://health.mil/ontologies/Concept/Business_Process
 DataObject http://health.mil/ontologies/Concept/DataObject
 Software http://health.mil/ontologies/Concept/Software
 DataElement http://health.mil/ontologies/Concept/DataElement
@@ -10,9 +11,11 @@ SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
 DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
 FacComCode http://health.mil/ontologies/Concept/FacComCode
 City http://health.mil/ontologies/Concept/City
+FCC|MTF http://health.mil/ontologies/Concept/FCC|MTF
 Quarter http://health.mil/ontologies/Concept/Quarter
 MAAGSite http://health.mil/ontologies/Concept/MAAGSite
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
+FCC http://health.mil/ontologies/Concept/FCC
 System http://health.mil/ontologies/Concept/System
 Region http://health.mil/ontologies/Concept/Region
 UserInterface http://health.mil/ontologies/Concept/UserInterface
@@ -30,6 +33,7 @@ BusinessProcess http://health.mil/ontologies/Concept/BusinessProcess
 Floater http://health.mil/ontologies/Concept/Floater
 DFreq http://health.mil/ontologies/Concept/DFreq
 SystemDCSite http://health.mil/ontologies/Concept/SystemDCSite
+FCC-MTF http://health.mil/ontologies/Concept/FCC-MTF
 SoftwareVCategory http://health.mil/ontologies/Concept/SoftwareVCategory
 DCSiteIncident http://health.mil/ontologies/Concept/DCSiteIncident
 HealthServiceRegion http://health.mil/ontologies/Concept/HealthServiceRegion
@@ -68,6 +72,7 @@ InterfaceControlDocument_Has_DFreq http://health.mil/ontologies/Relation/Has
 Region_Precedes_Region http://health.mil/ontologies/Relation/Precedes
 Wave_EndsOn_Year-Quarter http://health.mil/ontologies/Relation/EndsOn
 Wave_Contains_DCSite http://health.mil/ontologies/Relation/Contains
+FCC_Part_Of_Business_Process http://health.mil/ontologies/Relation/Part_Of
 MTF_Has_FacComCode http://health.mil/ontologies/Relation/Has
 SystemDCSite_Supports_BusinessProcess http://health.mil/ontologies/Relation/Supports
 InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
@@ -88,6 +93,7 @@ InterfaceControlDocument_Phase_LifeCycle http://health.mil/ontologies/Relation/P
 System_DeployedAt_SystemDCSite http://health.mil/ontologies/Relation/DeployedAt
 InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
 Floater_Supports_Wave http://health.mil/ontologies/Relation/Supports
+FCC-MTF_Occurs_At_MTF http://health.mil/ontologies/Relation/Occurs_At
 SystemDCSite_UsedBy_Personnel http://health.mil/ontologies/Relation/UsedBy
 HardwareVersion_Phase_LifeCycle http://health.mil/ontologies/Relation/Phase
 DCSite_Has_DCSiteCmdCode http://health.mil/ontologies/Relation/Has
@@ -101,6 +107,7 @@ TError_CLASS http://semoss.org/ontologies/Concept/TError
 NPI_CLASS http://semoss.org/ontologies/Concept/NPI
 DCSiteIncident_CLASS http://semoss.org/ontologies/Concept/DCSiteIncident
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
+FCC|MTF_CLASS http://semoss.org/ontologies/Concept/FCC|MTF
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 SystemDCSiteIncident_CLASS http://semoss.org/ontologies/Concept/SystemDCSiteIncident
@@ -121,8 +128,11 @@ Software_CLASS http://semoss.org/ontologies/Concept/Software
 DCSiteCmdCode_CLASS http://semoss.org/ontologies/Concept/DCSiteCmdCode
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
 DCSite_CLASS http://semoss.org/ontologies/Concept/DCSite
+FCC_CLASS http://semoss.org/ontologies/Concept/FCC
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
+Business_Process_CLASS http://semoss.org/ontologies/Concept/Business_Process
 BLU_CLASS http://semoss.org/ontologies/Concept/BLU
+FCC-MTF_CLASS http://semoss.org/ontologies/Concept/FCC-MTF
 SystemIncident_CLASS http://semoss.org/ontologies/Concept/SystemIncident
 Year_CLASS http://semoss.org/ontologies/Concept/Year
 Region_CLASS http://semoss.org/ontologies/Concept/Region
@@ -182,6 +192,8 @@ Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 DCSite_Located_City_CLASS http://semoss.org/ontologies/Relation/Located
 SystemDCSite_UsedBy_Personnel_CLASS http://semoss.org/ontologies/Relation/UsedBy
 InterfaceControlDocument_ImplementedAt_SystemDCSite_CLASS http://semoss.org/ontologies/Relation/ImplementedAt
+FCC_Part_Of_Business_Process_CLASS http://semoss.org/ontologies/Relation/Part_Of
+FCC-MTF_Occurs_At_MTF_CLASS http://semoss.org/ontologies/Relation/Occurs_At
 DCSite_Has_DCSiteCmdCode_CLASS http://semoss.org/ontologies/Relation/Has
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 SystemDCSite_DeployedAt_DCSite_CLASS http://semoss.org/ontologies/Relation/DeployedAt
