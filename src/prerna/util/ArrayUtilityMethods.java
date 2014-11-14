@@ -271,6 +271,25 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return retArr;
 	}
 	
+	public static Double[] convertObjArrToDoubleWrapperArr(final Object[] arr) {
+		int size = arr.length;
+		Double[] retArr = new Double[size];
+		int index;
+		for(index = 0; index < size; index++) {
+			Object obj = arr[index];
+			Double val = 0.0;
+			if(obj != null) {
+				try {
+					val = Double.valueOf(obj.toString());
+				} catch(NumberFormatException ex) {
+					throw new NumberFormatException("Value in Object array cannot be converted to double");
+				}
+				retArr[index] = val;
+			}
+		}
+		return retArr;
+	}
+	
 	public static String[] convertObjArrToStringArr(final Object[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
