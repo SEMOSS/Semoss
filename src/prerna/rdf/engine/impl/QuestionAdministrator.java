@@ -1131,8 +1131,10 @@ public class QuestionAdministrator {
 
 		if (questionModType.equals("Delete Question")
 				|| !perspective.equals(newPerspective)) {
-			//String[] questionArray = question.split("\\. ", 2);
-			//String questionOrder = questionArray[0].trim();
+			if(questionOrder==null){
+				String[] questionArray = question.split("\\. ", 2);
+				questionOrder = questionArray[0].trim();
+			}
 			// if it's not the last question in the perspective; no need to
 			// reorder if last question is deleted
 			if (!(Integer.parseInt(questionOrder) == questionList.size())
