@@ -66,9 +66,7 @@ public class AlgorithmDataFormatting {
 		return data;
 	}
 	
-	//TODO: get to work with nulls/missing data
-	//TODO: already parse through data in clustering data processor, better way to improve efficiency?
-	//TODO: this uses indexing starting at 0 because this doesn't include the actual instance node name
+	//TODO: parse through data too many times in clustering data processor, better way to improve efficiency?
 	public Object[][] convertColumnValuesToRows(Object[][] queryData) {
 		int counter = 0;
 		
@@ -85,7 +83,9 @@ public class AlgorithmDataFormatting {
 			int j;
 			for(j = 0; j < numProps; j++) {
 				data[j][counter] = dataRow[j];
-				trackType[j][counter] = Utility.processType(dataRow[j].toString());
+				if(dataRow[j] != null) {
+					trackType[j][counter] = Utility.processType(dataRow[j].toString());
+				}
 			}
 			counter++;
 		}
@@ -95,10 +95,13 @@ public class AlgorithmDataFormatting {
 			int stringCounter = 0;
 			int doubleCounter = 0;
 			for(j = 0; j < counter; j++) {
-				if(trackType[i][j].toString().equals("STRING")) {
-					stringCounter++;
-				} else {
-					doubleCounter++;
+				Object val = trackType[i][j];
+				if(val != null) {
+					if(val.toString().equals("STRING")) {
+						stringCounter++;
+					} else {
+						doubleCounter++;
+					}
 				}
 			}
 			if(stringCounter > doubleCounter) {
