@@ -67,8 +67,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 	private void configureQuery(){
 
 		buildFilter();
-		ArrayList<SEMOSSQuery> filterQueries = new ArrayList(this.headerFilterHash.values());
-		filterQueries.add(this.semossQuery);
 		
 		// use nodeV, predV, and propV (as determined from parsing path and properties) to add necessary pieces to query
 		// the rule is that all path variables must be included (otherwise we have a disconnected query) but properties are optional
@@ -76,23 +74,21 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		for(Hashtable<String, String> nodeHash : nodeV){
 			String nodeName = nodeHash.get(varKey);
 			String nodeURI = nodeHash.get(uriKey);
-			for(SEMOSSQuery filterQuery : filterQueries){
-				SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, filterQuery);
-			}
+			SEMOSSQuery headerQuery = createDefaultFilterQuery(nodeName);
+			this.headerFilterHash.put(nodeName, headerQuery);
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, headerQuery);
+			
+			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, semossQuery);
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(nodeName, semossQuery);
 		}
 
 		for(Hashtable<String, String> predHash : predV){
 			String predName = predHash.get(varKey);
 			String predURI = predHash.get(uriKey);
-			for(SEMOSSQuery filterQuery : filterQueries){
-				TriplePart relationVar = new TriplePart(predHash.get("SubjectVar"), TriplePart.VARIABLE);
-				TriplePart subPropURI = new TriplePart(predURI, TriplePart.URI);
-				TriplePart relationTypeURI = new TriplePart(predHash.get("ObjectVar"), TriplePart.VARIABLE);
-				filterQuery.addTriple(relationVar, subPropURI, relationTypeURI);
-//				SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, filterQuery);
-//				SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"),filterQuery);
-			}
+			TriplePart relationVar = new TriplePart(predHash.get("SubjectVar"), TriplePart.VARIABLE);
+			TriplePart subPropURI = new TriplePart(predURI, TriplePart.URI);
+			TriplePart relationTypeURI = new TriplePart(predHash.get("ObjectVar"), TriplePart.VARIABLE);
+			semossQuery.addTriple(relationVar, subPropURI, relationTypeURI);
 		}
 
 		ArrayList<Hashtable<String, String>> propV = new ArrayList<Hashtable<String, String>>();
@@ -101,9 +97,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		for(Hashtable<String, String> propHash : propV) {
 			String propName = propHash.get(varKey);
 			String propURI = propHash.get(uriKey);
-			for(SEMOSSQuery filterQuery : filterQueries){
-				SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, filterQuery);
-			}
+			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
 		}
 		
@@ -177,7 +171,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		{
 			for(String varName : filterResults.keySet())
 			{
-				this.headerFilterHash.put(varName, createDefaultFilterQuery(varName));
 				ArrayList<Object> results = filterResults.get(varName);
 				if(!results.isEmpty())
 				{
@@ -286,27 +279,6 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		}
 		ArrayList<Hashtable<String, String>> predVarList = new ArrayList<Hashtable<String, String>>();
 		predVarList.addAll(predV);
-		// run through all of the predicates (which aren't variables) to get properties
-//		for (int i=0;i<predVarList.size();i++)
-//		{
-//			Hashtable<String, String> predInfoHash = predVarList.get(i);
-//			String varName = predInfoHash.get(varKey);
-//
-//			String edgePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Subject") + ">} {?target <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + predInfoHash.get("Object") + "> } {?verb <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <" + predInfoHash.get("Pred") + "> }{?source ?verb ?target;} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?verb ?entity ?prop }}";
-//			Vector<String> propVector = coreEngine.getEntityOfType(edgePropQuery);
-//			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
-//			{
-//				String propURI = propVector.get(propIdx);
-//				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
-//				totalVarList.add(propName);
-//				//store rel prop info
-//				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-//				elementHash.put("SubjectVar", varName);
-//				elementHash.put(varKey, propName);
-//				elementHash.put(uriKey, propURI);
-//				edgePropV.add(elementHash);
-//			}
-//		}
 	}
 
 	public void setEngine(IEngine coreEngine)
@@ -320,8 +292,10 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		this.edgePropV = selectedEdgePropsList;
 	}
 	
-	public Integer runCountQuery(){
-		String q = this.semossQuery.getCountQuery();
+	public Integer runCountQuery(int maxCount){
+		Integer curLimit = this.semossQuery.getLimit();
+		this.semossQuery.setLimit(maxCount);
+		String q = this.semossQuery.getCountQuery(maxCount);
 		logger.info("Count query generated : " + q);
 		Vector<String> countV = coreEngine.getEntityOfType(q);
 		int totalSize = 0;
@@ -335,6 +309,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 				logger.error(e);
 			}
 		}
+		this.semossQuery.setLimit(curLimit); // reset the limit to whatever it was before
 		return totalSize;
 	}
 
