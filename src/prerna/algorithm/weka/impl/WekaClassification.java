@@ -59,8 +59,6 @@ public class WekaClassification {
 			}
 		}
 
-		System.out.println(treeAsString);
-		
 		processTreeString(model.getClass().toString());
 	}
 	
@@ -71,6 +69,10 @@ public class WekaClassification {
 			j48TreeStringArr = new String[treeSplit.length - 7];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 3, j48TreeStringArr, 0, j48TreeStringArr.length);
+			// to debugg
+//			for(int i = 0; i < j48TreeStringArr.length; i++) {
+//				System.out.println(i + ": " + j48TreeStringArr[i]);
+//			}
 			generateJ48Tree(j48Tree, "", 0);
 		}
 		
@@ -86,6 +88,7 @@ public class WekaClassification {
 		}
 		
 		for(; index < j48TreeStringArr.length; index++) {
+			System.out.println(index);
 			String row = j48TreeStringArr[index];
 			if(!row.startsWith("|")) {
 				if(row.matches(endRegex)) {
@@ -99,6 +102,7 @@ public class WekaClassification {
 					startKey = newRow;
 				}
 			} else if(row.lastIndexOf("| ") != subTreeIndex) {
+				index--;
 				return;
 			} else if(row.matches(endRegex)) {
 				String[] keyVal = row.substring(row.lastIndexOf("| ")+1, row.length()).trim().replaceFirst(lastRegex, "").split(": ");
@@ -111,7 +115,6 @@ public class WekaClassification {
 				// for a subtree to exist, there must be a new row after
 				int newSubTreeIndex = j48TreeStringArr[index].lastIndexOf("| ");
 				generateJ48Tree(currTree, newKey, newSubTreeIndex);
-				index++;
 			}
 		}
 	}
