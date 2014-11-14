@@ -818,6 +818,10 @@ public class Utility {
 	 */
 	public static String processType(String s) {
 		
+		if(s == null) {
+			return null;
+		}
+		
 		boolean isDouble = true;
 		try {
 			Double.parseDouble(s);

@@ -292,9 +292,9 @@ public class ClusteringDataProcessor {
 								numericalMatrix[row][counter] = (Double) dataRow[idx];
 							}
 						} catch (ParseException e) {
-							LOGGER.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
+							LOGGER.error("Column Variable " + numericalPropNames[counter] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
 						} catch (ClassCastException e) {
-							LOGGER.error("Column Variable " + numericalPropNames[idx] + " was found to be a numerical property but had a value of " + dataRow[idx]);
+							LOGGER.error("Column Variable " + numericalPropNames[counter] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 						}
 					}
 					// default values are null in new Double[][]
@@ -423,7 +423,6 @@ public class ClusteringDataProcessor {
 			for(int i = 0; i < size; i++) {
 				Object[] propColumn = data[i];
 				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
-//				Arrays.sort(dataRow);
 				BarChart chart = new BarChart(dataRow);
 				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
 				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
