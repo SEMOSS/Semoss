@@ -69,10 +69,6 @@ public class WekaClassification {
 			j48TreeStringArr = new String[treeSplit.length - 7];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 3, j48TreeStringArr, 0, j48TreeStringArr.length);
-			// to debugg
-//			for(int i = 0; i < j48TreeStringArr.length; i++) {
-//				System.out.println(i + ": " + j48TreeStringArr[i]);
-//			}
 			generateJ48Tree(j48Tree, "", 0);
 		}
 		
@@ -88,7 +84,6 @@ public class WekaClassification {
 		}
 		
 		for(; index < j48TreeStringArr.length; index++) {
-			System.out.println(index);
 			String row = j48TreeStringArr[index];
 			if(!row.startsWith("|")) {
 				if(row.matches(endRegex)) {
