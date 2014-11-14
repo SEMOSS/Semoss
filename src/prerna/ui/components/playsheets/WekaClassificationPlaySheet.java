@@ -1,20 +1,71 @@
 package prerna.ui.components.playsheets;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Map;
+
 import prerna.algorithm.weka.impl.WekaClassification;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.util.Utility;
 
-public class WekaClassificationPlaySheet extends GridPlaySheet{
+public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	private String modelName;
+	private WekaClassification alg = null;
+	
+	public WekaClassificationPlaySheet() {
+		super();
+	}
 	
 	@Override
 	public void createData() {
-		super.createData();
-		WekaClassification alg = new WekaClassification("Test", list, names, modelName);
+		generateData();
+		runAlgorithm();
+		dataHash = processQueryData();
+	}
+	
+	public void runAlgorithm() {
+		alg = new WekaClassification(list, names, modelName);
 		try {
 			alg.execute();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public Hashtable processQueryData() {
+		Map<String, Map> rootMap = alg.getJ48Tree();
+		
+		System.out.println(rootMap);
+		HashSet hashSet = new HashSet();
+		
+		processTree(rootMap, hashSet);
+
+		String root = engine.getEngineName();
+		
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("name", root);
+		allHash.put("children", hashSet);
+		return allHash;
+	}
+	
+	public void generateData() {
+		list = new ArrayList<Object[]>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		names = sjsw.getVariables();
+		int length = names.length;
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			Object[] row = new Object[length];
+			int i = 0;
+			for(; i < length; i++) {
+				row[i] = sjss.getVar(names[i]);
+			}
+			list.add(row);
 		}
 	}
 	
@@ -25,9 +76,5 @@ public class WekaClassificationPlaySheet extends GridPlaySheet{
 		this.modelName = querySplit[1].trim();
 	}
 	
-	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
-		return sjss.getVar(varName);
-	}
 	
 }
