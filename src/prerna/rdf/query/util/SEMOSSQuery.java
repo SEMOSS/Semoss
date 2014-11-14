@@ -52,13 +52,13 @@ public class SEMOSSQuery {
 		
 	}
 	
-	public String getCountQuery()
+	public String getCountQuery(int maxCount)
 	{
-		String countQuery = "SELECT ";
-		String retVarString = createCountReturnVariableString();
+		String countQuery = "SELECT (COUNT(*) AS ?entity) WHERE { SELECT * ";
+//		String retVarString = createCountReturnVariableString();
 		String wherePatternString = createPatternClauses();
 		String postWhereString = createPostPatternString();
-		countQuery=countQuery+retVarString + wherePatternString +postWhereString;
+		countQuery=countQuery + wherePatternString +postWhereString + "}"; //need extra bracket for nested query
 		return countQuery;
 	}
 	
@@ -154,6 +154,7 @@ public class SEMOSSQuery {
 			
 		}
 		retVarString = retVarString + ")) AS ?entity)";
+//		String retVarString = "(COUNT(*) AS ?entity)";
 		return retVarString;
 	}
 	
@@ -389,6 +390,11 @@ public class SEMOSSQuery {
 	public void setLimit(Integer limit)
 	{
 		this.limit = limit;
+	}
+
+	public Integer getLimit()
+	{
+		return this.limit;
 	}
 
 	public void setOffset(Integer offset)
