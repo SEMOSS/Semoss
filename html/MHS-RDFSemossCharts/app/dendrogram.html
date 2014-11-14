@@ -42,7 +42,17 @@ function start(dataString){
   var jsonData = jQuery.parseJSON(dataString);
   var data = jsonData;
 
-  
+d3.select(window).on("resize", resize); 
+
+function resize() {
+  var newHeight = parseInt(d3.select("body").style("height"));
+  var newWidth = parseInt(d3.select("body").style("width"));
+
+  d3.select("svg")
+    .attr("height", newHeight)
+    .attr("width", newWidth);
+}
+
 var countHeight = 0;
 var countWidth = 1;	//Every Dendrogram has at least one level
 
