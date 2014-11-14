@@ -1,14 +1,16 @@
 package prerna.algorithm.weka.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
+import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
 import weka.core.Attribute;
+import weka.core.DenseInstance;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -87,7 +89,7 @@ public final class WekaUtilityMethods {
 		Instances data = new Instances(nameDataSet, attributeList, numInstances);
 
 		for(i = 0; i < numInstances; i++) {
-			Instance dataEntry = new Instance(numAttr);
+			Instance dataEntry = new DenseInstance(numAttr);
 			dataEntry.setDataset(data);
 			Object[] dataRow = dataList.get(i);
 			for(j = 0; j < numAttr; j++) {
@@ -112,8 +114,28 @@ public final class WekaUtilityMethods {
 
 		return data;
 	}
+	
+	public static Instances[][] crossValidationSplit(Instances data, int numberOfFolds) {
+		Instances[][] split = new Instances[2][numberOfFolds];
 
-	public double calculateAccuracy(FastVector predCorrect) {
+		for (int i = 0; i < numberOfFolds; i++) {
+			split[0][i] = data.trainCV(numberOfFolds, i);
+			split[1][i] = data.testCV(numberOfFolds, i);
+		}
+
+		return split;
+	}
+
+	public static Evaluation classify(Classifier model, Instances trainingSet, Instances testingSet) throws Exception {
+		Evaluation evaluation = new Evaluation(trainingSet);
+
+		model.buildClassifier(trainingSet);
+		evaluation.evaluateModel(model, testingSet);
+
+		return evaluation;
+	}
+	
+	public static double calculateAccuracy(FastVector predCorrect) {
 		double sumPerCorrect = 0;
 		int size = predCorrect.size();
 		for (int i = 0; i < size; i++) {
@@ -123,7 +145,7 @@ public final class WekaUtilityMethods {
 		return sumPerCorrect / size;
 	}
 
-	public double calculatePercision(FastVector kappaValues) {
+	public static double calculatePercision(FastVector kappaValues) {
 		double sumKappa = 0;
 		int size = kappaValues.size();
 		for (int i = 0; i < size; i++) {
