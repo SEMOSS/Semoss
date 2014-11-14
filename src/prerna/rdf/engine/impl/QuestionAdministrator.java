@@ -339,7 +339,9 @@ public class QuestionAdministrator {
 	private void removeQuestionLabel(String perspectiveURI, String qURI, String qsOrder,
 			String qsDescr, String qPred) {
 		insightBaseXML.removeStatement(qURI, labelBaseURI, qsDescr, false);
-		insightBaseXML.removeStatement(qURI, orderBaseURI, qsOrder, false);
+		if(qsOrder != null){
+			insightBaseXML.removeStatement(qURI, orderBaseURI, qsOrder, false);
+		}
 	}
 
 	private void addQuestionIDLabel(String qURI, String qsKey) {
