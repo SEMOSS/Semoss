@@ -27,17 +27,24 @@ public final class CentralityCalculator {
 	 * @param edges
 	 * @return
 	 */
-	public static Hashtable<String, Double> calculateCloseness(Hashtable<String,Set<String>> edges) {
-		Hashtable<String, Double> nodeCloseness = new Hashtable<String, Double>();
-		
-		//for every node (go through edges)
-		for(String node : edges.keySet()) {
-			nodeCloseness.put(node,calculateCloseness(node,edges));
+	public static Hashtable<SEMOSSVertex, Double> calculateCloseness(Hashtable<String,SEMOSSVertex> vertStore, boolean directed) {
+		Hashtable<SEMOSSVertex, Double> nodeCloseness = new Hashtable<SEMOSSVertex, Double>();
+
+		Hashtable<String,Set<String>> edges = processEdges(vertStore, directed);
+
+		Hashtable<String,Integer> graphs = calculateGraphs(vertStore);
+		Hashtable<String,Integer> graphSize = calculateGraphSize(graphs);
+
+		for(String node : vertStore.keySet()) {
+			SEMOSSVertex vert = vertStore.get(node);
+			String type = (String) vert.propHash.get(Constants.VERTEX_NAME);
+			nodeCloseness.put(vert,calculateCloseness(type,edges,graphSize.get(type)));
 		}
+		
 		return nodeCloseness;
 	}
 	
-	private static Double calculateCloseness(String node, Hashtable<String,Set<String>> edges) {
+	private static Double calculateCloseness(String node, Hashtable<String,Set<String>> edges, int islandSize) {
 		Hashtable<String, Integer> distances = new Hashtable<String, Integer>();
 		distances.put(node,0);
 		
@@ -68,18 +75,21 @@ public final class CentralityCalculator {
 		for(String connectedNode : distances.keySet()) {
 			totalDistance += distances.get(connectedNode);
 		}
-		
-		return (distances.size()-1.0) / totalDistance;
+		return ((islandSize - 1) / totalDistance ) * ((islandSize - 1) / (edges.size()-1.0) );
+		//return (distances.size()-1.0) / totalDistance;
 			
 	}
 	
-	public static Hashtable<String, Double> calculateBetweenness(Hashtable<String,Set<String>> edges) {
-		Hashtable<String, Double> nodeBetweeness = new Hashtable<String, Double>();
+	public static Hashtable<SEMOSSVertex, Double> calculateBetweenness(Hashtable<String,SEMOSSVertex> vertStore, boolean directed) {
+		Hashtable<SEMOSSVertex, Double> nodeBetweeness = new Hashtable<SEMOSSVertex, Double>();
 		
+		Hashtable<String,Set<String>> edges = processEdges(vertStore, directed);
 		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
 		
-		for(String node : edges.keySet()) {
-			nodeBetweeness.put(node,calculateBetweenness(node,edges,shortestPath));
+		for(String node : vertStore.keySet()) {
+			SEMOSSVertex vert = vertStore.get(node);
+			String type = (String) vert.propHash.get(Constants.VERTEX_NAME);
+			nodeBetweeness.put(vert,calculateBetweenness(type,edges,shortestPath));
 		}
 		
 		return nodeBetweeness;
@@ -263,7 +273,7 @@ public final class CentralityCalculator {
 		return 1.0 / longestPath;
 	}
 	
-	public static Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
+	private static Hashtable<String,Set<String>> processEdges(Hashtable<String, SEMOSSVertex> vertStore, boolean directed) {
 		Hashtable<String,Set<String>> edges = new Hashtable<String,Set<String>>();
 		for(String key : vertStore.keySet()) {
 			SEMOSSVertex vertex= vertStore.get(key);
