@@ -51,7 +51,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
 		allData = addToAllData(engine, getConceptsAndInstanceCountsQuery, "z", allData);
-		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "prop", allData);
+		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "w", allData);
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		allData = addToAllData(baseDataEngine, getConceptEdgesCountQuery, "y", allData);
@@ -80,6 +80,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allHash.put("yAxisTitle", "Number_of_Edges");
 		allHash.put("xAxisTitle", "Centrality_Value");
 		allHash.put("heatTitle", "Number_of_Insights");
+		allHash.put("wAxisTitle", "Number_of_Properties");
 		
 		return allHash;
 	}
