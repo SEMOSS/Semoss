@@ -33,7 +33,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		Hashtable<String,Set<String>> unDirectedEdges = CentralityCalculator.processEdges(vertStore, false);
 		Hashtable<String, Double> unDirCloseness = CentralityCalculator.calculateCloseness(unDirectedEdges);
 		Hashtable<String, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(unDirectedEdges);
-		Hashtable<String, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(unDirectedEdges);
+		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore,false);
 		
 		DelegateForest<SEMOSSVertex,SEMOSSEdge> forest = CentralityCalculator.makeForestUndirected(graphPS.getGraphData().getEdgeStore(), graphPS.forest);
 		PageRankCalculator pCalc = new PageRankCalculator();
@@ -51,7 +51,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 			row[0] = type;
 			row[1] = unDirCloseness.get(type);
 			row[2] = unDirBetweenness.get(type);
-			row[3] = unDirEccentricity.get(type);
+			row[3] = unDirEccentricity.get(vert);
 			row[4] = ranksTimesNodes.get(vert);
 			list.add(row);
 		}
