@@ -2,7 +2,6 @@ package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -30,9 +29,8 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 
 		list = new ArrayList<Object[]>();
 		
-		Hashtable<String,Set<String>> unDirectedEdges = CentralityCalculator.processEdges(vertStore, false);
-		Hashtable<String, Double> unDirCloseness = CentralityCalculator.calculateCloseness(unDirectedEdges);
-		Hashtable<String, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(unDirectedEdges);
+		Hashtable<SEMOSSVertex, Double> unDirCloseness = CentralityCalculator.calculateCloseness(vertStore, false);
+		Hashtable<SEMOSSVertex, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(vertStore, false);
 		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore,false);
 		
 		DelegateForest<SEMOSSVertex,SEMOSSEdge> forest = CentralityCalculator.makeForestUndirected(graphPS.getGraphData().getEdgeStore(), graphPS.forest);
@@ -49,8 +47,8 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 			String type = (String)vert.propHash.get(Constants.VERTEX_NAME);
 			Object[] row = new Object[5];
 			row[0] = type;
-			row[1] = unDirCloseness.get(type);
-			row[2] = unDirBetweenness.get(type);
+			row[1] = unDirCloseness.get(vert);
+			row[2] = unDirBetweenness.get(vert);
 			row[3] = unDirEccentricity.get(vert);
 			row[4] = ranksTimesNodes.get(vert);
 			list.add(row);
