@@ -37,7 +37,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	@Override
 	public Hashtable processQueryData() {
-		Map<String, Map> rootMap = alg.getJ48Tree();
+		Map<String, Map> rootMap = alg.getTreeMap();
 		
 		System.out.println(rootMap);
 		HashSet hashSet = new HashSet();
