@@ -17,9 +17,8 @@ public class WekaClassification {
 	private Classifier model;
 	private String treeAsString;
 	
-	private String[] j48TreeStringArr = null;
-	private Map<String, Map> j48Tree = new HashMap<String, Map>();
-	
+	private String[] treeStringArr = null;
+	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
 	
 	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName) {
@@ -28,12 +27,8 @@ public class WekaClassification {
 		this.model = ClassificationFactory.createClassifier(modelName);
 	}
 
-	public String getTreeAsString() {
-		return treeAsString;
-	}
-	
-	public Map<String, Map> getJ48Tree() {
-		return j48Tree;
+	public Map<String, Map> getTreeMap() {
+		return treeMap;
 	}
 	
 	public void execute() throws Exception{
@@ -64,28 +59,47 @@ public class WekaClassification {
 	
 	private void processTreeString(String type) {
 		String[] treeSplit = treeAsString.split("\n");
-		j48Tree = new HashMap<String, Map>();
+		treeMap = new HashMap<String, Map>();
 		if(type.contains("J48")) {
-			j48TreeStringArr = new String[treeSplit.length - 7];
+			treeStringArr = new String[treeSplit.length - 7];
 			// indices based on weka J48 decision tree output
-			System.arraycopy(treeSplit, 3, j48TreeStringArr, 0, j48TreeStringArr.length);
-			generateJ48Tree(j48Tree, "", 0);
+			System.arraycopy(treeSplit, 3, treeStringArr, 0, treeStringArr.length);
+			generateTreeEndingWithParenthesis(treeMap, "", 0);
+		} else if(type.contains("SimpleCart")) {
+			treeStringArr = new String[treeSplit.length - 6];
+			// indices based on weka J48 decision tree output
+			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
+			generateTreeEndingWithParenthesis(treeMap, "", 0);
+		} else if(type.contains("REPTree")) {
+			treeStringArr = new String[treeSplit.length - 6];
+			// indices based on weka J48 decision tree output
+			System.arraycopy(treeSplit, 4, treeStringArr, 0, treeStringArr.length);
+			generateTreeEndingWithParenthesisAndBrackets(treeMap, "", 0);
+		} else if(type.contains("BFTree")) {
+			treeStringArr = new String[treeSplit.length - 6];
+			// indices based on weka J48 decision tree output
+			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
+			generateTreeEndingWithParenthesis(treeMap, "", 0);
 		}
 		
 	}
 	
-	private void generateJ48Tree(Map<String, Map> rootMap, String startKey, int subTreeIndex) {
-		String endRegex = "(.*\\(\\d+\\.\\d/\\d+\\.\\d\\))|(.*\\(\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d/\\d+\\.\\d\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
-		String lastRegex = "(\\(\\d+\\.\\d/\\d+\\.\\d\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
+	private void generateTreeEndingWithParenthesis(Map<String, Map> rootMap, String startKey, int subTreeIndex) {
+		String endRegex = "(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
+		String lastRegex = "(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
 				
 		Map<String, Map> currTree = new HashMap<String, Map>();
 		if(!startKey.isEmpty()) {
 			rootMap.put(startKey, currTree);
 		}
 		
-		for(; index < j48TreeStringArr.length; index++) {
-			String row = j48TreeStringArr[index];
+		for(; index < treeStringArr.length; index++) {
+			String row = treeStringArr[index];
 			if(!row.startsWith("|")) {
+				if(subTreeIndex > 0) {
+					index--;
+					return;
+				} 
 				if(row.matches(endRegex)) {
 					String[] keyVal = row.replaceFirst(lastRegex, "").split(": ");
 					Map<String, Map> endMap = new HashMap<String, Map>();
@@ -95,6 +109,7 @@ public class WekaClassification {
 					String newRow = row.trim();
 					rootMap.put(newRow, currTree);
 					startKey = newRow;
+					subTreeIndex = 0;
 				}
 			} else if(row.lastIndexOf("| ") != subTreeIndex) {
 				index--;
@@ -108,14 +123,54 @@ public class WekaClassification {
 				index++;
 				String newKey = row.substring(row.lastIndexOf("| ")+1, row.length()).trim();
 				// for a subtree to exist, there must be a new row after
-				int newSubTreeIndex = j48TreeStringArr[index].lastIndexOf("| ");
-				generateJ48Tree(currTree, newKey, newSubTreeIndex);
+				int newSubTreeIndex = treeStringArr[index].lastIndexOf("| ");
+				generateTreeEndingWithParenthesis(currTree, newKey, newSubTreeIndex);
 			}
 		}
 	}
 	
-	
-	
-	
+	private void generateTreeEndingWithParenthesisAndBrackets(Map<String, Map> rootMap, String startKey, int subTreeIndex) {
+		String endRegex = "((.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+/\\d+\\))|(.*\\(\\d+\\|\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\))|(\\(\\d+/\\d+\\.\\d+\\)))\\s((\\[\\d+\\.\\d+/\\d+\\.\\d+\\])|(\\[\\d+/\\d+\\])|(\\[\\d+\\.\\d+/\\d+\\])|(\\[\\d+/\\d+\\.\\d+\\]))";
+		String lastRegex = "((\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+/\\d+\\))|(\\(\\d+\\|\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\))|(\\(\\d+/\\d+\\.\\d+\\)))\\s((\\[\\d+\\.\\d+/\\d+\\.\\d+\\])|(\\[\\d+/\\d+\\])|(\\[\\d+\\.\\d+/\\d+\\])|(\\[\\d+/\\d+\\.\\d+\\]))";
+		Map<String, Map> currTree = new HashMap<String, Map>();
+		if(!startKey.isEmpty()) {
+			rootMap.put(startKey, currTree);
+		}
+		
+		for(; index < treeStringArr.length; index++) {
+			String row = treeStringArr[index];
+			if(!row.startsWith("|")) {
+				if(subTreeIndex > 0) {
+					index--;
+					return;
+				} 
+				if(row.matches(endRegex)) {
+					String[] keyVal = row.replaceFirst(lastRegex, "").split(": ");
+					Map<String, Map> endMap = new HashMap<String, Map>();
+					endMap.put(keyVal[1].trim(), new HashMap<String, Map>());
+					rootMap.put(keyVal[0].trim(), endMap);
+				} else {
+					String newRow = row.trim();
+					rootMap.put(newRow, currTree);
+					startKey = newRow;
+					subTreeIndex = 0;
+				}
+			} else if(row.lastIndexOf("| ") != subTreeIndex) {
+				index--;
+				return;
+			} else if(row.matches(endRegex)) {
+				String[] keyVal = row.substring(row.lastIndexOf("| ")+1, row.length()).trim().replaceFirst(lastRegex, "").split(": ");
+				Map<String, Map> endMap = new HashMap<String, Map>();
+				endMap.put(keyVal[1].trim(), new HashMap<String, Map>());
+				currTree.put(keyVal[0].trim(), endMap);
+			} else {
+				index++;
+				String newKey = row.substring(row.lastIndexOf("| ")+1, row.length()).trim();
+				// for a subtree to exist, there must be a new row after
+				int newSubTreeIndex = treeStringArr[index].lastIndexOf("| ");
+				generateTreeEndingWithParenthesisAndBrackets(currTree, newKey, newSubTreeIndex);
+			}
+		}
+	}
 	
 }
