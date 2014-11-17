@@ -121,6 +121,69 @@ public final class CentralityCalculator {
 	}
 	
 	/**
+	 * Calculates the component graphs that make up this bidirectional metamodel
+	 * Stores the shortest path for each set of nodes in a hashtable
+	 * where the key is a concatenation of the nodes with a "-"
+	 * the value is the shortest path between them and -1 if they do not connect
+	 * @param edges Hashtable with keys representing nodes and values the nodes they are connected to independent of direction. ex: If nodes i and j are connected, then node i is a key with node j as a value in its Set and node j is a key with node i as a value in its Set.
+	 * @return
+	 */
+	private static Hashtable<String,Integer> calculateGraphs(Hashtable<String, SEMOSSVertex> vertStore) {
+		Hashtable<String,Integer> graphs = new Hashtable<String,Integer>();
+
+		//go through every key in the vert store, add it to the current graph set.
+		//add all of its neighbors to the graph set.
+		//when we hit count, or have gone through all, move to the next vertex that hasnt been used.
+		int graphCount =0;
+		for(String vertKey : vertStore.keySet()) {
+			SEMOSSVertex vertex= vertStore.get(vertKey);
+			String type = (String)vertex.propHash.get(Constants.VERTEX_NAME);
+			
+			if(!graphs.containsKey(type)) {
+
+				Set<SEMOSSVertex> graph = new HashSet<SEMOSSVertex>();
+				Set<SEMOSSVertex> currNeighbors = new HashSet<SEMOSSVertex>();
+				graph.add(vertex);
+				currNeighbors.add(vertex);
+				
+				int count=0;
+				while(count<=vertStore.size()) {
+					Set<SEMOSSVertex> nextNeighbors = new HashSet<SEMOSSVertex>();
+					for(SEMOSSVertex currNeighbor : currNeighbors)
+						nextNeighbors.addAll(getInAndOutVertex(currNeighbor,true,true));
+					graph.addAll(currNeighbors);
+					currNeighbors.addAll(nextNeighbors);
+					count++;
+				}
+				for(SEMOSSVertex vert : graph) {
+					String vertType = (String)vert.propHash.get(Constants.VERTEX_NAME);
+					graphs.put(vertType,graphCount);
+				}
+				graphCount++;
+			}
+				
+		}
+
+		return graphs;
+	}
+	
+	private static Hashtable<String,Integer> calculateGraphSize(Hashtable<String,Integer> graphs) {
+		Hashtable<String,Integer> graphSize = new Hashtable<String,Integer>();
+		int[] sizes = new int[graphs.size()];
+		for(int i=0;i<sizes.length;i++)
+			sizes[i]=0;
+		for(String node : graphs.keySet()) {
+			int graphNum = graphs.get(node);
+			sizes[graphNum]++;
+		}
+		for(String node : graphs.keySet()) {
+			int graphNum = graphs.get(node);
+			graphSize.put(node, sizes[graphNum]);
+		}
+		return graphSize;
+	}
+	
+	/**
 	 * Calculates the shortest path between all the nodes in the edge hash.
 	 * Stores the shortest path for each set of nodes in a hashtable
 	 * where the key is a concatenation of the nodes with a "-"
@@ -162,26 +225,26 @@ public final class CentralityCalculator {
 		Hashtable<String,Set<String>> edges = processEdges(vertStore, directed);
 		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
 		
+		Hashtable<String,Integer> graphs = calculateGraphs(vertStore);
+		Hashtable<String,Integer> graphSize = calculateGraphSize(graphs);
+
 		for(String node : vertStore.keySet()) {
 			SEMOSSVertex vert = vertStore.get(node);
 			String type = (String) vert.propHash.get(Constants.VERTEX_NAME);
-			nodeEccentricity.put(vert,calculateEccentricity(type,edges,shortestPath));
+			Double eccentricity = calculateEccentricity(type,edges,shortestPath);
+			eccentricity = eccentricity * (graphSize.get(type)-1) / (vertStore.keySet().size() - 1);
+			nodeEccentricity.put(vert,eccentricity);
 		}		
 		return nodeEccentricity;
 	}
 	
-	public static Hashtable<String, Double> calculateEccentricity(Hashtable<String,Set<String>> edges) {
-		Hashtable<String, Double> nodeEccentricity = new Hashtable<String, Double>();
-		
-		Hashtable<String,Integer> shortestPath = calculateShortestPaths(edges);
-		
-		for(String node : edges.keySet()) {
-			nodeEccentricity.put(node,calculateEccentricity(node,edges,shortestPath));
-		}
-		
-		return nodeEccentricity;
-	}
-	
+	/**
+	 * assumes we aren't considering islands or island graphs. if so, need to account for this by mutiplying the answer
+	 * @param node
+	 * @param edges
+	 * @param shortestPath
+	 * @return
+	 */
 	private static Double calculateEccentricity(String node, Hashtable<String,Set<String>> edges, Hashtable<String,Integer> shortestPath) {
 		//for every node (go through edges)
 		double longestPath = 0.0;
@@ -205,18 +268,7 @@ public final class CentralityCalculator {
 		for(String key : vertStore.keySet()) {
 			SEMOSSVertex vertex= vertStore.get(key);
 			String type = (String)vertex.propHash.get(Constants.VERTEX_NAME);
-			
-			Set<String> neighbors = new HashSet<String>();
-			if(!directed) {
-				Vector<SEMOSSEdge> inEdges = vertex.getInEdges();
-				for(SEMOSSEdge edge : inEdges) {
-					neighbors.add((String)(edge.outVertex.propHash.get(Constants.VERTEX_NAME)));
-				}
-			}
-			Vector<SEMOSSEdge> outEdges = vertex.getOutEdges();
-			for(SEMOSSEdge edge : outEdges) {
-				neighbors.add((String)(edge.inVertex.propHash.get(Constants.VERTEX_NAME)));
-			}
+			Set<String> neighbors = getInAndOutNeighbors(vertex,!directed,true);
 			edges.put(type, neighbors);
 		}
 		return edges;
@@ -259,5 +311,39 @@ public final class CentralityCalculator {
 			forest.addEdge(newEdge, oldEdge.inVertex,oldEdge.outVertex);			
 		}
 		return forest;
+	}
+	
+	private static Set<String> getInAndOutNeighbors(SEMOSSVertex vertex,boolean includeIn, boolean includeOut) {
+		Set<String> neighbors = new HashSet<String>();
+		if(includeIn) {
+			Vector<SEMOSSEdge> inEdges = vertex.getInEdges();
+			for(SEMOSSEdge edge : inEdges) {
+				neighbors.add((String)(edge.outVertex.propHash.get(Constants.VERTEX_NAME)));
+			}
+		}
+		if(includeOut){
+			Vector<SEMOSSEdge> outEdges = vertex.getOutEdges();
+			for(SEMOSSEdge edge : outEdges) {
+				neighbors.add((String)(edge.inVertex.propHash.get(Constants.VERTEX_NAME)));
+			}
+		}
+		return neighbors;
+	}
+	
+	private static Set<SEMOSSVertex> getInAndOutVertex(SEMOSSVertex vertex,boolean includeIn, boolean includeOut) {
+		Set<SEMOSSVertex> neighbors = new HashSet<SEMOSSVertex>();
+		if(includeIn) {
+			Vector<SEMOSSEdge> inEdges = vertex.getInEdges();
+			for(SEMOSSEdge edge : inEdges) {
+				neighbors.add(edge.outVertex);
+			}
+		}
+		if(includeOut){
+			Vector<SEMOSSEdge> outEdges = vertex.getOutEdges();
+			for(SEMOSSEdge edge : outEdges) {
+				neighbors.add(edge.inVertex);
+			}
+		}
+		return neighbors;
 	}
 }
