@@ -26,6 +26,20 @@ public final class StatisticsUtilityMethods {
 		return values[index];
 	}
 	
+	public static Double quartile(final Double[] values, final double lowerPercent, final boolean isOrdered) {
+		if (values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+
+		// Rank order the values if not already ordered
+		if(!isOrdered) {
+			Arrays.sort(values);
+		}
+
+		int index = (int) Math.floor(values.length * lowerPercent / 100);
+		return values[index];
+	}
+	
 	public static double getMinimumValue(final double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -43,6 +57,27 @@ public final class StatisticsUtilityMethods {
 		return minValue;
 	}
 	
+	public static Double getMinimumValueIgnoringNull(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		Double minValue = null;
+		for(index = 0; index < size; index++) {
+			if(values[index] != null) {
+				if(minValue == null) {
+					minValue = values[index];
+				} else if(minValue > values[index]) {
+					minValue = values[index];
+				}
+			}
+		}
+		
+		return minValue;
+	}
+	
 	public static double getMaximumValue(final double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -54,6 +89,27 @@ public final class StatisticsUtilityMethods {
 		for(index = 1; index < size; index++) {
 			if(maxValue < values[index]) {
 				maxValue = values[index];
+			}
+		}
+		
+		return maxValue;
+	}
+	
+	public static Double getMaximumValueIgnoringNull(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		Double maxValue = null;
+		for(index = 0; index < size; index++) {
+			if(values[index] != null) {
+				if(maxValue == null) {
+					maxValue = values[index];
+				} else if(maxValue < values[index]) {
+					maxValue = values[index];
+				}
 			}
 		}
 		
@@ -139,6 +195,23 @@ public final class StatisticsUtilityMethods {
 		return sum;
 	}
 	
+	public static double getSumIgnoringNull(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double sum = 0.0;
+		for(index = 0; index < size; index++) {
+			if(values[index] != null) {
+				sum += values[index];
+			}
+		}
+		
+		return sum;
+	}
+	
 	public static double getAverage(final double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -148,6 +221,25 @@ public final class StatisticsUtilityMethods {
 		double sum = getSum(values);
 		
 		return sum/size;
+	}
+	
+	public static double getAverageIgnoringNull(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		int nonNullSize = 0;
+		double sum = 0.0;
+		for(index = 0; index < size; index++) {
+			if(values[index] != null) {
+				sum += values[index];
+				nonNullSize++;
+			}
+		}
+		
+		return sum/nonNullSize;
 	}
 	
 	public static double getSumIgnoringInfinity(final double[] values) {
@@ -185,8 +277,6 @@ public final class StatisticsUtilityMethods {
 			}
 		}
 		
-		
-		
 		return sum/counter;
 	}
 	
@@ -204,6 +294,26 @@ public final class StatisticsUtilityMethods {
 		}
 		
 		return Math.pow(stdev/(size - 1), 0.5);
+	}
+	
+	public static double getSampleStandardDeviationIgnoringNull(final Double[] values) {
+		if( values == null || values.length < 1) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		double avg = getAverageIgnoringNull(values);
+		int index;
+		int size = values.length;
+		int nonNullSize = 0;
+		double stdev = 0;
+		for(index = 1; index < size; index++) {
+			if(values[index] != null) {
+				stdev += Math.pow(values[index] - avg,2);
+				nonNullSize++;
+			}
+		}
+		
+		return Math.pow(stdev/(nonNullSize - 1), 0.5);
 	}
 	
 	public static double getSampleStandardDeviationIgnoringInfinity(final double[] values) {
@@ -261,6 +371,39 @@ public final class StatisticsUtilityMethods {
 			skewness += Math.pow( (values[i] - mean)/stdev, 3.0);
 		}
 		double coefficient = (double) numValues/ ( (numValues - 1) * (numValues - 2) );
+		
+		return coefficient * skewness; 
+		
+	}
+	
+	public static double getSkewnessIgnoringNull(final Double[] values, boolean isSorted) {
+		if( values == null || values.length < 1) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int numValues = values.length;
+		
+		int index;
+		int nonNullSize = 0;
+		double sum = 0.0;
+		for(index = 0; index < numValues; index++) {
+			if(values[index] != null) {
+				sum += values[index];
+				nonNullSize++;
+			}
+		}
+		
+		double mean = sum/nonNullSize;
+		double stdev = getSampleStandardDeviationIgnoringNull(values);
+		
+		int i;
+		double skewness = 0;
+		for(i = 0; i < numValues; i++) {
+			if(values[i] != null) {
+				skewness += Math.pow( (values[i] - mean)/stdev, 3.0);
+			}
+		}
+		double coefficient = (double) nonNullSize/ ( (nonNullSize - 1) * (nonNullSize - 2) );
 		
 		return coefficient * skewness; 
 		

@@ -422,7 +422,7 @@ public class ClusteringDataProcessor {
 			numericalBinOrderingMatrix = new String[size][];
 			for(int i = 0; i < size; i++) {
 				Object[] propColumn = data[i];
-				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(propColumn);
+				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);
 				BarChart chart = new BarChart(dataRow);
 				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
 				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
