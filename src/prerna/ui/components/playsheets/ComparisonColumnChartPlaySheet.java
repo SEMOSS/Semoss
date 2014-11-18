@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.swing.JButton;
 
@@ -48,13 +49,37 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		//series name - all objects in that series (x : ... , y : ...)
 		int lastCol = names.length - 1 ;
 		ArrayList<String> usedList = new ArrayList<String>();
-		ArrayList<String> seriesList = new ArrayList<String>();
+		Vector<String> seriesList = new Vector<String>();
 		ArrayList<String> clientIndex = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
 		{
 			//format is ?x1 ?x1val ?x2 ?x2val .... ?seriesName
 			Object[] elemValues = list.get(i);
 			String seriesName = elemValues[lastCol].toString();
+			
+			// need a way of passing metric ids on the series name.... for now splitting on "+++"
+			int splitIdx = seriesName.indexOf("+++");
+			String seriesKey = "";
+			String seriesUri = "";
+			if(splitIdx>=0){
+				seriesUri = seriesName.substring(0, splitIdx);
+				seriesName = seriesName.substring(splitIdx+3);
+				seriesKey = seriesUri;
+			}
+			else {
+				seriesKey = seriesName;
+			}
+
+			// get the correct series array and add to dataObj if not already there
+			ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+			if(seriesList.contains(seriesKey))
+				seriesArray = dataObj.get(seriesList.indexOf(seriesKey));
+			else{
+				seriesList.add(seriesList.size(), seriesKey);
+				dataObj.add(seriesList.indexOf(seriesKey), seriesArray);
+			}
+			
+			//add the element hashtables to the series array
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
 			{
 				int firstCol = (seriesVal - 1) * 2;
@@ -66,25 +91,12 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 				
 				if(!usedList.contains(usedKey)){
 					usedList.add(usedKey);
-					ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-					if(seriesList.contains(seriesName))
-						seriesArray = dataObj.get(seriesList.indexOf(seriesName));
-					else{
-						seriesList.add(seriesList.size(), seriesName);
-						dataObj.add(seriesList.indexOf(seriesName), seriesArray);
-					}
 					Hashtable<String, Object> elementHash = new Hashtable();
 					elementHash.put("x", xVal);
 					elementHash.put("y", yVal);
-					// need a way of passing metric ids on the series name.... for now splitting on "+++"
-					int splitIdx = seriesName.indexOf("+++");
-					if(splitIdx>=0){
-						elementHash.put("seriesName", seriesName.substring(splitIdx+3));
-						elementHash.put("seriesUri", seriesName.substring(0, splitIdx));
-					}
-					else {
-						elementHash.put("seriesName", seriesName);
-					}
+					elementHash.put("seriesName", seriesName);
+					if(!seriesUri.isEmpty())
+						elementHash.put("seriesUri", seriesKey);
 					
 					//figure out where to store it. Want all client values first and then peer group values
 					int index = seriesArray.size();
@@ -107,6 +119,7 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("names", names);
 		columnChartHash.put("dataSeries", dataObj);
+		columnChartHash.put("seriesList", seriesList);
 		
 		return columnChartHash;
 	}
