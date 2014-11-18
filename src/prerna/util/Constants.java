@@ -18,12 +18,11 @@
  ******************************************************************************/
 package prerna.util;
 
-
 /**
  * This class contains all of the constants referenced elsewhere in the code.
  */
 public class Constants {
-	
+
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
 	public static final String TRANSPARENT = "TRANSPARENT";
@@ -76,33 +75,38 @@ public class Constants {
 	public static final String PROCESS_CURRENT_USER = "PROCESS_CURRENT_USER";
 	public static final String CURRENT_PLAYSHEET = "layoutValue";
 	public static final String BASE_FOLDER = "BaseFolder";
-	
-	//graphplaysheet option constants
+
+	// graphplaysheet option constants
 	// layouts
-	public static final String GPSSudowl="GPS_SUDOWL_DEFAULT";
+	public static final String GPSSudowl = "GPS_SUDOWL_DEFAULT";
 	public static final String GPSSearch = "GPS_SEARCH_DEFAULT";
 	public static final String GPSProp = "GPS_PROPERTIES_DEFAULT";
 	public static final String highQualityExport = "GPSHighQualityExport";
-	public static final String sudowlCheck="sudowlCheck";
+	public static final String sudowlCheck = "sudowlCheck";
 	public static final String searchCheck = "searchCheck";
 	public static final String propertyCheck = "propertyCheck";
 	public static final String highQualityExportCheck = "highQualityExportCheck";
-	
-	
-	//Used by POIReader
-	public static final String RELATION_URI_CONCATENATOR = ":"; //used in between the in node and out node for relation instance uris.
+
+	// Used by POIReader
+	public static final String RELATION_URI_CONCATENATOR = ":"; // used in
+	// between the
+	// in node and
+	// out node for
+	// relation
+	// instance
+	// uris.
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String SUBPROPERTY_URI = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
-	public static final String SUBCLASS_URI = "http://www.w3.org/2000/01/rdf-schema#subClassOf";	
+	public static final String SUBCLASS_URI = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
 	public static final String CLASS_URI = "http://www.w3.org/2000/01/rdf-schema#Class";
 	public static final String DEFAULT_PROPERTY_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property";
 	public static final String SEMOSS_URI = "SEMOSS_URI";
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-	
+
 	// layouts
-	public static final String FR="Fruchterman-Reingold";
+	public static final String FR = "Fruchterman-Reingold";
 	public static final String KK = "Kamada-Kawai";
 	public static final String SPRING = "Spring-Layout";
 	public static final String SPRING2 = "Spring-Layout2";
@@ -111,9 +115,9 @@ public class Constants {
 	public static final String TREE_LAYOUT = "Tree-Layout";
 	public static final String RADIAL_TREE_LAYOUT = "Radial-Tree-Layout";
 	public static final String BALLOON_LAYOUT = "Balloon Layout";
-		
+
 	public static final String LEGEND = "_LEGEND";
-	
+
 	public static final String DESCR = "DESCRIPTION";
 	public static final String QUERY = "QUERY";
 	public static final String CUSTOMIZE_SPARQL = "btnCustomSparql";
@@ -125,7 +129,7 @@ public class Constants {
 	public static final String ENGINES = "ENGINES";
 	public static final String ENGINE_PROPERTIES_FILE = "ENGINE_PROP";
 	public static final String ENGINE_TYPE = "ENGINE_TYPE";
-	public static final String LISTENERS="LISTENERS";
+	public static final String LISTENERS = "LISTENERS";
 	public static final String MODEL = "MODEL";
 	public static final String CONTROL = "CONTROLLER";
 	public static final String VIEW = "VIEW";
@@ -137,8 +141,8 @@ public class Constants {
 	public static final String RIGHT_VIEW_FIELD = "rightView";
 	public static final String MAIN_FRAME = "playPane";
 	public static final String DESKTOP_PANE = "desktopPane";
-	
-	//colors
+
+	// colors
 	public static final String BROWN = "BROWN";
 	public static final String RED = "RED";
 	public static final String GREEN = "GREEN";
@@ -148,16 +152,16 @@ public class Constants {
 	public static final String PURPLE = "PURPLE";
 	public static final String AQUA = "AQUA";
 	public static final String MAGENTA = "MAGENTA";
-	
-	//shapes
-	public static final String SQUARE ="SQUARE";
+
+	// shapes
+	public static final String SQUARE = "SQUARE";
 	public static final String TRIANGLE = "TRIANGLE";
 	public static final String DIAMOND = "DIAMOND";
 	public static final String STAR = "STAR";
 	public static final String CIRCLE = "CIRCLE";
 	public static final String HEXAGON = "HEXAGON";
 	public static final String PENTAGON = "PENTAGON";
-	
+
 	public static final String TYPE_QUERY = "TYPE_QUERY";
 	public static final String TCCALC_PROGRESS_BAR = "calcTCprogressBar";
 	public static final String TMCALC_PROGRESS_BAR = "calcTMprogressBar";
@@ -229,7 +233,7 @@ public class Constants {
 	public static final String PPT_TRAINING_BUTTON = "pptTrainingBtn";
 	public static final String HTML_TRAINING_BUTTON = "htmlTrainingBtn";
 
-	//Traverse Freely Queries
+	// Traverse Freely Queries
 	public static final String NEIGHBORHOOD_TYPE_QUERY = "NEIGHBORHOOD_TYPE_QUERY";
 	public static final String NEIGHBORHOOD_TYPE_QUERY_JENA = "NEIGHBORHOOD_TYPE_QUERY_JENA";
 	public static final String NEIGHBORHOOD_OBJECT_QUERY = "NEIGHBORHOOD_OBJECT_QUERY";
@@ -242,32 +246,32 @@ public class Constants {
 	public static final String SUBJECT_TYPE_QUERY = "SUBJECT_TYPE_QUERY";
 	public static final String PREDICATE = "PREDICATE";
 	public static final String IGNORE_URI = "IGNORE_URI";
-	
-	//TAP Cost Transition Queries 
-	public static final String TRANSITION_COST_INSERT_WITH_OVERHEAD="TRANSITION_COST_INSERT_WITH_OVERHEAD";
-	public static final String TRANSITION_COST_INSERT_WITHOUT_OVERHEAD="TRANSITION_COST_INSERT_WITHOUT_OVERHEAD";
-	public static final String TRANSITION_COST_DELETE="TRANSITION_COST_DELETE";
-	public static final String TRANSITION_COST_INSERT_SITEGLITEM="TRANSITION_COST_INSERT_SITEGLITEM";
-	public static final String TRANSITION_QUERY_SEPARATOR="&";
-	public static final String TRANSITION_COST_INSERT_SUSTAINMENT="TRANSITION_COST_INSERT_SUSTAINMENT";
-	public static final String TRANSITION_COST_INSERT_TRAINING="TRANSITION_COST_INSERT_TRAINING";
-	public static final String TRANSITION_COST_INSERT_SEMANTICS="TRANSITION_COST_INSERT_SEMANTICS";
-	public static final String TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT="TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT";
-	public static final String TRANSITION_REPORT_COMBO_BOX="transCostReportSystemcomboBox";
-	public static final String TRANSITION_REPORT_TYPE_COMBO_BOX="TransReportTypecomboBox";
-	public static final String TRANSITION_REPORT_FORMAT_COMBO_BOX="TransReportFormatcomboBox";
-	public static final String TRANSITION_APPLY_OVERHEAD_RADIO ="rdbtnApplyTapOverhead";
+
+	// TAP Cost Transition Queries
+	public static final String TRANSITION_COST_INSERT_WITH_OVERHEAD = "TRANSITION_COST_INSERT_WITH_OVERHEAD";
+	public static final String TRANSITION_COST_INSERT_WITHOUT_OVERHEAD = "TRANSITION_COST_INSERT_WITHOUT_OVERHEAD";
+	public static final String TRANSITION_COST_DELETE = "TRANSITION_COST_DELETE";
+	public static final String TRANSITION_COST_INSERT_SITEGLITEM = "TRANSITION_COST_INSERT_SITEGLITEM";
+	public static final String TRANSITION_QUERY_SEPARATOR = "&";
+	public static final String TRANSITION_COST_INSERT_SUSTAINMENT = "TRANSITION_COST_INSERT_SUSTAINMENT";
+	public static final String TRANSITION_COST_INSERT_TRAINING = "TRANSITION_COST_INSERT_TRAINING";
+	public static final String TRANSITION_COST_INSERT_SEMANTICS = "TRANSITION_COST_INSERT_SEMANTICS";
+	public static final String TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT = "TRANSITION_DATA_FEDERATION_PHASE_INDEPENDENT";
+	public static final String TRANSITION_REPORT_COMBO_BOX = "transCostReportSystemcomboBox";
+	public static final String TRANSITION_REPORT_TYPE_COMBO_BOX = "TransReportTypecomboBox";
+	public static final String TRANSITION_REPORT_FORMAT_COMBO_BOX = "TransReportFormatcomboBox";
+	public static final String TRANSITION_APPLY_OVERHEAD_RADIO = "rdbtnApplyTapOverhead";
 	public static final String TRANSITION_NOT_APPLY_OVERHEAD_RADIO = "rdbtnDoNotApplyOverhead";
 	public static final String TRANSITION_SERVICE_PANEL = "transitionServicePanel";
 	public static final String SOURCE_SELECT_PANEL = "sourceSelectPanel";
 	public static final String DHMSM_CAPABILITY_SELECT_PANEL = "dhmsmCapabilitySelectPanel";
 	public static final String SELECT_RADIO_PANEL = "selectRadioPanel";
 	public static final String SELECT_DATA_ACCESS_FILE_JFIELD = "dhmsmDataAccessImportFileNameField";
-	public static final String TRANSITION_CHECK_BOX_DATA_FED="chckbxDataFederationTransReport";
-	public static final String TRANSITION_CHECK_BOX_DATA_CONSUMER="chckbxDataConsumer";
+	public static final String TRANSITION_CHECK_BOX_DATA_FED = "chckbxDataFederationTransReport";
+	public static final String TRANSITION_CHECK_BOX_DATA_CONSUMER = "chckbxDataConsumer";
 	public static final String TRANSITION_ITEM_GEN_BUTTON = "loadGenBtn";
-	public static final String TRANSITION_CHECK_BOX_BLU_PROVIDER="chckbxBLUprovider";
-	public static final String TRANSITION_CHECK_BOX_DATA_GENERIC="chckbxDataEsbImplementation";
+	public static final String TRANSITION_CHECK_BOX_BLU_PROVIDER = "chckbxBLUprovider";
+	public static final String TRANSITION_CHECK_BOX_DATA_GENERIC = "chckbxDataEsbImplementation";
 	public static final String TRANSITION_CHECK_BOX_BLU_GENERIC = "chckbxBluEsbImplementation";
 	public static final String TRANSITION_SYSTEM_DROP_DOWN_PANEL = "transReportSysDropDownPanel";
 	public static final String TRANSITION_GENERIC_BLU = "TRANSITION_GENERIC_BLU";
@@ -283,61 +287,61 @@ public class Constants {
 	public static final String TIER1_CHECKBOX = "tierCheck1";
 	public static final String TIER2_CHECKBOX = "tierCheck2";
 	public static final String TIER3_CHECKBOX = "tierCheck3";
-	
-	//Fact Sheet Report Queries
+
+	// Fact Sheet Report Queries
 	public static final String FACT_SHEET_REPORT_TYPE_COMBO_BOX = "factSheetReportTypecomboBox";
 	public static final String FACT_SHEET_SYSTEM_DROP_DOWN_PANEL = "factSheetReportSysDropDownPanel";
 	public static final String FACT_SHEET_SYSTEM_SELECT_COMBO_BOX = "factSheetReportSyscomboBox";
-	
-	//Used by optimization organizer
+
+	// Used by optimization organizer
 	public static final String TRANSITION_GENERIC_COSTS = "TRANSITION_GENERIC_COSTS";
 	public static final String TRANSITION_CONSUMER_COSTS = "TRANSITION_CONSUMER_COSTS";
 	public static final String TRANSITION_PROVIDER_COSTS = "TRANSITION_PROVIDER_COSTS";
-	
-	public static final String UPDATE_SPARQL_AREA="customUpdateTextPane";
+
+	public static final String UPDATE_SPARQL_AREA = "customUpdateTextPane";
 	public static final String INSERT_SYS_SUSTAINMENT_BUDGET_BUTTON = "btnInsertBudgetProperty";
 	public static final String SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY = "SYSTEM_SUSTAINMENT_BUDGET_INSERT_QUERY";
-	
-	//Distance Downstream
+
+	// Distance Downstream
 	public static final String INSERT_DOWNSTREAM_BUTTON = "btnInsertDownstream";
 	public static final String DISTANCE_DOWNSTREAM_QUERY = "DISTANCE_DOWNSTREAM_QUERY";
 	public static final String SOA_ALPHA_VALUE_TEXT_BOX = "soaAlphaValueTextField";
 	public static final String APPRECIATION_TEXT_BOX = "appreciationValueTextField";
 	public static final String DEPRECIATION_TEXT_BOX = "depreciationValueTextField";
-	
-	//Common Subgraph
+
+	// Common Subgraph
 	public static final String COMMON_SUBGRAPH_THRESHOLD_TEXT_BOX = "commonSubgraphThresholdTextField";
 	public static final String COMMON_SUBGRAPH_COMBO_BOX_0 = "commonSubgraphComboBox0";
 	public static final String COMMON_SUBGRAPH_COMBO_BOX_1 = "commonSubgraphComboBox1";
-	
-	//Central System Sys-BP Sys-Activity Aggregation Thresholds
+
+	// Central System Sys-BP Sys-Activity Aggregation Thresholds
 	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
 	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
-		
-	//SOA Transition All
-	public static final String SOA_TRANSITION_ALL_DATA_QUERY="SOA_TRANSITION_ALL_DATA_QUERY";
-	public static final String SOA_TRANSITION_ALL_GENERIC_DATA_QUERY="SOA_TRANSITION_ALL_GENERIC_DATA_QUERY";
-	public static final String SOA_TRANSITION_ALL_GENERIC_BLU_QUERY="SOA_TRANSITION_ALL_GENERIC_BLU_QUERY";
-	public static final String SOA_TRANSITION_ALL_BLU_QUERY ="SOA_TRANSITION_ALL_BLU_QUERY";
-	
+
+	// SOA Transition All
+	public static final String SOA_TRANSITION_ALL_DATA_QUERY = "SOA_TRANSITION_ALL_DATA_QUERY";
+	public static final String SOA_TRANSITION_ALL_GENERIC_DATA_QUERY = "SOA_TRANSITION_ALL_GENERIC_DATA_QUERY";
+	public static final String SOA_TRANSITION_ALL_GENERIC_BLU_QUERY = "SOA_TRANSITION_ALL_GENERIC_BLU_QUERY";
+	public static final String SOA_TRANSITION_ALL_BLU_QUERY = "SOA_TRANSITION_ALL_BLU_QUERY";
+
 	public static final String DREAMER = "DREAMER";
 	public static final String ONTOLOGY = "ONTOLOGY";
-	
+
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
-	
+
 	public static final String BROWSER_TYPE = "BROWSER_TYPE";
-	
+
 	public static final String SPARQL_QUERY_ENDPOINT = "SPARQL_QUERY_ENDPOINT";
 	public static final String SPARQL_UPDATE_ENDPOINT = "SPARQL_UPDATE_ENDPOINT";
-	
+
 	public static final String DATA_LATENCY_WEEKS_TEXT = "dataLatencyMonthsTextField";
 	public static final String DATA_LATENCY_DAYS_TEXT = "dataLatencyDaysTextField";
 	public static final String DATA_LATENCY_HOURS_TEXT = "dataLatencyHoursTextField";
-	
+
 	public static final String HTML = "HTML";
 	public static final String PROPERTY = "PROPERTY";
-	
-	//Load Sheet Export Panel
+
+	// Load Sheet Export Panel
 	public static final String EXPORT_LOAD_SHEET_SOURCE_COMBOBOX = "exportDataSourceComboBox";
 	public static final String EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX = "subjectNodeTypeComboBox";
 	public static final String EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX = "objectNodeTypeComboBox";
@@ -346,18 +350,18 @@ public class Constants {
 	public static final String EXPORT_LOAD_SHEET_CLEAR_ALL_BUTTON = "btnClearAll";
 	public static final String EXPORT_LOAD_SHEET_ADD_EXPORT_BUTTON = "btnAddExport";
 	public static final int MAX_EXPORTS = 9;
-	
+
 	public static final String SEARCH_DATABASE_TEXT = "databaseSearchTextField";
-	
-	//Update Cost DB Panel
+
+	// Update Cost DB Panel
 	public static final String CHANGED_DB_COMBOBOX = "changedDBComboBox";
 	public static final String COST_DB_COMBOBOX = "costDBComboBox";
-	
+
 	public static final String COST_DB_BASE_URI_FIELD = "costDBBaseURIField";
 	public static final String GLITEM_LOADING_SHEET = "LoadingSheets1.xlsx";
 	public static final String WATCHERS = "WATCHERS";
 	public static final String ENGINE_WATCHER = "ENGINE_WATCHER";
-	
+
 	public static final String GLITEM_CORE_LOADING_SHEET = "LoadingSheets1.xlsx";
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
@@ -365,26 +369,26 @@ public class Constants {
 
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
-	//public static final String TYPE_URI = "TYPE_URI";
-	public static final String INSIGHT = "INSIGHT"; 
+	// public static final String TYPE_URI = "TYPE_URI";
+	public static final String INSIGHT = "INSIGHT";
 	public static final String ID = "ID";
 	public static final String LABEL = "LABEL";
 	public static final String OUTPUT = "OUTPUT";
 	public static final String TYPE = "TYPE";
 	public static final String SPARQL = "SPARQL";
 	public static final String TAG = "TAG";
-	
+
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
 	public static final String DEPEND = "DEPEND";
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final Object URI_BASE = "URI_BASE";
-	
+
 	public static final String XML = "XML";
 	public static final String INSIGHTS = "INSIGHTS";
-	//question modification
-	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE= "lblQuestionSelectPerspective";
-	public static final String QUESTION_PERSPECTIVE_SELECTOR= "questionPerspectiveSelector";
+	// question modification
+	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";
+	public static final String QUESTION_PERSPECTIVE_SELECTOR = "questionPerspectiveSelector";
 	public static final String LABEL_SELECT_QUESTION = "lblSelectQuestion";
 	public static final String QUESTION_MOD_SELECTOR = "questionModSelector";
 	public static final String QUESTION_PERSPECTIVE_FIELD = "questionPerspectiveField";
@@ -430,4 +434,9 @@ public class Constants {
 	public static final String ENGINE_PROPERTIES = "PROPERTIES";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
+
+	// Compare Databases
+	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
+	public static final String OLD_DB_COMBOBOX = "oldDBComboBox";
+	public static final String DB_COMPARISON_BUTTON = "compareDBButton";
 }
