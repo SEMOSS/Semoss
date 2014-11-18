@@ -290,6 +290,37 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return retArr;
 	}
 	
+	public static Double[] sortDoubleWrapperArr(Double[] arr) {
+		int size = arr.length;
+		int index;
+
+		double tempVal;
+		
+		boolean flag = true;
+		while(flag) {
+			flag = false;
+			for(index = 0; index < size - 1; index++) {
+				
+				if(arr[index] == null) {
+					// do nothing, want null's to appear in the beginning
+				} else if(arr[index+1] == null) {
+					arr[index+1] = arr[index];
+					arr[index] = null;
+
+					flag = true;
+				} else if(arr[index] > arr[index+1]){
+					tempVal = arr[index+1];
+					arr[index+1] = arr[index];
+					arr[index] = tempVal;
+					
+					flag = true;
+				}
+			}
+		}
+		
+		return arr;
+	}
+	
 	public static String[] convertObjArrToStringArr(final Object[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
@@ -316,6 +347,19 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		return retArr;
 	}
 	
+	public static String[] convertDoubleWrapperArrToStringArr(final Double[] arr) {
+		int size = arr.length;
+		String[] retArr = new String[size];
+		int index;
+		for(index = 0; index < size; index++) {
+			Double val = arr[index];
+			if(val != null) {
+				retArr[index] = val.toString();
+			}
+		}
+		return retArr;
+	}
+	
 	public static String[] getUniqueArray(final String[] arr) {
         int size = arr.length;
         String[] temp = new String[size];
@@ -328,6 +372,23 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
             }
         }
         String[] uniqueArray = new String[counter];
+        System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+ 
+        return uniqueArray;
+    }
+	
+	public static Double[] getUniqueArrayIgnoringNull(final Double[] arr) {
+        int size = arr.length;
+        Double[] temp = new Double[size];
+
+		int counter = 0;
+        int index;
+        for (index = 0; index < size; index++) {
+            if(arr[index] != null && !arrayContainsValue(temp, arr[index])) {
+                temp[counter++] = arr[index];
+            }
+        }
+        Double[] uniqueArray = new Double[counter];
         System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
  
         return uniqueArray;

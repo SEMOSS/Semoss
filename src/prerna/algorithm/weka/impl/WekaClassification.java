@@ -17,6 +17,9 @@ public class WekaClassification {
 	private Classifier model;
 	private String treeAsString;
 	
+	private double accuracy;
+	private double percision;
+	
 	private String[] treeStringArr = null;
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
@@ -43,18 +46,24 @@ public class WekaClassification {
 		Instances[] trainingSplits = split[0];
 		Instances[] testingSplits = split[1];
 		
-		double pctCorrect = -1; // assign any negative value
+		accuracy = -1;
+		percision = 0;
 		// For each training-testing split pair, train and test the classifier
 		int j;
 		for(j = 0; j < trainingSplits.length; j++) {
 			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
 			double newPctCorrect = validation.pctCorrect();
-			if(newPctCorrect > pctCorrect) {
+			if(newPctCorrect > accuracy) {
 				treeAsString = model.toString();
+				accuracy = newPctCorrect;
+				percision = validation.kappa();
 			}
 		}
 
 		processTreeString(model.getClass().toString());
+		
+		System.out.println("Accuracy: " + accuracy);
+		System.out.println("Percision: " + percision);
 	}
 	
 	private void processTreeString(String type) {
