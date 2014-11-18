@@ -364,6 +364,10 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		int j;
 		for(String propInstance : propInfoForCluster.keySet()) {
 			int index = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propInstance);
+			//TODO: delete
+			if(index == -1) {
+				System.out.println("here");
+			}
 			int count = propInfoForCluster.get(propInstance);
 			numInstances[index] = (double) count;
 		}
