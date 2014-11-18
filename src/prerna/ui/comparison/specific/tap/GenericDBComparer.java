@@ -1,6 +1,8 @@
 package prerna.ui.comparison.specific.tap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -11,6 +13,11 @@ import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
 
+/**
+ * Used to create ArrayLists of Object Arrays holding comparative and duplicate data for databases
+ * @author kepark
+ *
+ */
 public class GenericDBComparer
 {
 	private static final Logger LOGGER = LogManager.getLogger(GenericDBComparer.class.getName());
@@ -35,12 +42,15 @@ public class GenericDBComparer
 	}
 	
 	/**
-	 * Compares the number of Instances exist for a Concept or the number of Properties for an Instance, depending on the
-	 * String argument passed into the method
+	 * Compares the number of Instances for instance level or Relations/Properties for metamodel level existing for a
+	 * Concept
 	 * 
 	 * @param query
 	 *            String form of query to be run
-	 * @return ArrayList of Object arrays that hold each row to be output into excel
+	 * @param isMeta
+	 *            true if the method is used to query the OWL file i.e. metamodel level. false if the method is used to
+	 *            query at the instance level
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
 	 */
 	public ArrayList<Object[]> compareConceptCount(String query, boolean isMeta)
 	{
@@ -85,13 +95,16 @@ public class GenericDBComparer
 			boolean matchFound = false;
 			for (int o = 0; o < oldDBList.size(); o++)
 			{
+				// if concept and counts are exactly the same
 				if (newDBList.get(n)[0].toString().equals(oldDBList.get(o)[0].toString())
 						&& newDBList.get(n)[1].toString().equals(oldDBList.get(o)[1].toString()))
 				{
 					matchFound = true;
 					oldDBList.remove(o);
 					break;
-				} else if (newDBList.get(n)[0].toString().equals(oldDBList.get(o)[0].toString()))
+				}
+				// concepts are same, but count is different
+				else if (newDBList.get(n)[0].toString().equals(oldDBList.get(o)[0].toString()))
 				{
 					matchFound = true;
 					System.out.println("Mismatch in " + newDBList.get(n)[0] + ". New DB has " + newDBList.get(n)[1] + ". Old DB has "
@@ -102,6 +115,7 @@ public class GenericDBComparer
 					break;
 				}
 			}
+			// Things in new DB not found in old DB were newly added
 			if (!matchFound)
 			{
 				System.out.println("New object added: " + newDBList.get(n)[0] + ". Number added: " + newDBList.get(n)[1]);
@@ -111,7 +125,7 @@ public class GenericDBComparer
 				n--;
 			}
 		}
-		// This for loop is necessary to find things removed from previous db
+		// This for loop is necessary to find things removed from old db
 		for (int o = 0; o < oldDBList.size(); o++)
 		{
 			System.out.println("Old object removed: " + oldDBList.get(o)[0] + ". Number removed: " + oldDBList.get(o)[1]);
@@ -130,10 +144,10 @@ public class GenericDBComparer
 	}
 	
 	/**
-	 * Used to count data elements at the instance level such as instance relationships and properties.
+	 * Used to compare counts of data elements at the instance level such as relationships and properties.
 	 * 
 	 * @param query
-	 * @return
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
 	 */
 	public ArrayList<Object[]> compareInstanceCount(String query)
 	{
@@ -213,6 +227,12 @@ public class GenericDBComparer
 		return finalComparison;
 	}
 	
+	/**
+	 * Used for total count comparisons at the metamodel level
+	 * 
+	 * @param query
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
+	 */
 	public ArrayList<Object[]> compareMetaSingleCount(String query)
 	{
 		ArrayList<Object[]> finalComparison = new ArrayList<Object[]>();
@@ -315,6 +335,12 @@ public class GenericDBComparer
 		return finalComparison;
 	}
 	
+	/**
+	 * Finds duplicates of instances without case sensitivity
+	 * 
+	 * @param query
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
+	 */
 	public ArrayList<Object[]> findCaseInstanceDuplicate(String query)
 	{
 		ArrayList<Object[]> finalComparison = new ArrayList<Object[]>();
@@ -364,11 +390,18 @@ public class GenericDBComparer
 		return finalComparison;
 	}
 	
+	/**
+	 * Finds duplicates of instance properties
+	 * 
+	 * @param query
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
+	 */
 	public ArrayList<Object[]> findInstancePropertyDuplicate(String query)
 	{
 		ArrayList<Object[]> finalComparison = new ArrayList<Object[]>();
-		// Hashtable assigns keys based on instance and values on String array holding property and property value
-		// HashMap<String, ArrayList<Object[]>> allInstancesAndProps = new HashMap<String, ArrayList<Object[]>>();
+		
+		// HashMap keys are instance, and values are String arrays holding property and property value
+		HashMap<String, ArrayList<Object[]>> allInstancesAndProps = new HashMap<String, ArrayList<Object[]>>();
 		ArrayList<Object[]> allProps = new ArrayList<Object[]>();
 		Object[] row = null;
 		
@@ -378,75 +411,43 @@ public class GenericDBComparer
 		while (sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			
-			Object[] singleProp = { sjss.getRawVar(values[0]), sjss.getRawVar(values[1]), sjss.getRawVar(values[2]), sjss.getVar(values[3]) };
-			allProps.add(singleProp);
-		}
-		
-		for (int i = 0; i < allProps.size(); i++)
-		{
-			boolean valueOneWasOutput = false;
-			for (int n = (i + 1); n < allProps.size(); n++)
+			String key = sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString());
+			if (!allInstancesAndProps.containsKey(key))
 			{
-				if (allProps.get(i)[0].toString().equals(allProps.get(n)[0].toString())
-						&& allProps.get(i)[1].toString().equals(allProps.get(n)[1].toString())
-						&& allProps.get(i)[2].toString().equals(allProps.get(n)[2].toString()))
+				allProps = new ArrayList<Object[]>();
+				allInstancesAndProps.put(key, allProps);
+			}
+			// Index 2 is property, 3 is property value
+			Object[] singleProp = { sjss.getRawVar(values[2]), sjss.getVar(values[3]) };
+			allInstancesAndProps.get(key).add(singleProp);
+		}
+		Set<String> keySet = allInstancesAndProps.keySet();
+		for (String key : keySet)
+		{
+			ArrayList<Object[]> instanceProp = allInstancesAndProps.get(key);
+			String[] conceptInstance = key.split("\\+\\+\\+");
+			for (int i = 0; i < instanceProp.size(); i++)
+			{
+				boolean valueOneWasOutput = false;
+				for (int n = (i + 1); n < instanceProp.size(); n++)
 				{
-					System.out.println("Property type duplicate found.");
-					if (!valueOneWasOutput)
+					if (instanceProp.get(i)[0].toString().equalsIgnoreCase(instanceProp.get(n)[0].toString()))
 					{
-						row = new Object[] { allProps.get(i)[0], allProps.get(i)[1], allProps.get(i)[2], allProps.get(i)[3] };
+						System.out.println("Property type duplicate found.");
+						if (!valueOneWasOutput)
+						{
+							row = new Object[] { conceptInstance[0], conceptInstance[1], instanceProp.get(i)[0], instanceProp.get(i)[1] };
+							finalComparison.add(row);
+							valueOneWasOutput = true;
+						}
+						row = new Object[] { conceptInstance[0], conceptInstance[1], instanceProp.get(n)[0], instanceProp.get(n)[1] };
 						finalComparison.add(row);
-						valueOneWasOutput = true;
+						instanceProp.remove(n);
+						n--;
 					}
-					row = new Object[] { allProps.get(n)[0], allProps.get(n)[1], allProps.get(n)[2], allProps.get(n)[3] };
-					finalComparison.add(row);
-					allProps.remove(n);
-					n--;
 				}
 			}
 		}
-		
-		// ***Old Version***
-		// while (sjsw.hasNext())
-		// {
-		// SesameJenaSelectStatement sjss = sjsw.next();
-		// String key = sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString());
-		// if (!allInstancesAndProps.containsKey(key))
-		// {
-		// allProps = new ArrayList<Object[]>();
-		// allInstancesAndProps.put(key, allProps);
-		// }
-		// // Index 0 is property, 1 is property value
-		// Object[] singleProp = { sjss.getRawVar(values[2]), sjss.getVar(values[3]) };
-		// allInstancesAndProps.get(key).add(singleProp);
-		// }
-		// Set<String> keySet = allInstancesAndProps.keySet();
-		// for (String key : keySet)
-		// {
-		// ArrayList<Object[]> instanceProp = allInstancesAndProps.get(key);
-		// String[] conceptInstance = key.split("\\+\\+\\+");
-		// for (int i = 0; i < instanceProp.size(); i++)
-		// {
-		// boolean valueOneWasOutput = false;
-		// for (int n = (i + 1); n < instanceProp.size(); n++)
-		// {
-		// if (instanceProp.get(i)[0].toString().equalsIgnoreCase(instanceProp.get(n)[0].toString()))
-		// {
-		// System.out.println("Property type duplicate found.");
-		// if (!valueOneWasOutput)
-		// {
-		// row = new Object[] { conceptInstance[0], conceptInstance[1], instanceProp.get(i)[0], instanceProp.get(i)[1] };
-		// finalComparison.add(row);
-		// valueOneWasOutput = true;
-		// }
-		// row = new Object[] { conceptInstance[0], conceptInstance[1], instanceProp.get(n)[0], instanceProp.get(n)[1] };
-		// finalComparison.add(row);
-		// duplicateFound = true;
-		// }
-		// }
-		// }
-		// }
 		
 		if (finalComparison.isEmpty())
 		{
@@ -457,102 +458,72 @@ public class GenericDBComparer
 		return finalComparison;
 	}
 	
+	/**
+	 * Finds duplicates of relation properties. Outputs entire triple that the relation is used in because subject and
+	 * object make the relation unique.
+	 * 
+	 * @param query
+	 * @return ArrayList of Object arrays, each array represents a row to be printed into excel
+	 */
 	public ArrayList<Object[]> findRelationPropertyDuplicate(String query)
 	{
 		ArrayList<Object[]> finalComparison = new ArrayList<Object[]>();
-		// Hashtable assigns keys based on instance and values on String array holding property and property value
-		// HashMap<String, ArrayList<Object[]>> allInstancesAndProps = new HashMap<String, ArrayList<Object[]>>();
+		
+		// HashMap keys are the triple, and values are String arrays holding property and property value
+		HashMap<String, ArrayList<Object[]>> allInstancesAndProps = new HashMap<String, ArrayList<Object[]>>();
 		ArrayList<Object[]> allProps = new ArrayList<Object[]>();
 		Object[] row = null;
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(newDB, query);
 		String[] values = sjsw.getVariables();
 		
+		
+
 		while (sjsw.hasNext())
 		{
 			SesameJenaSelectStatement sjss = sjsw.next();
-			
-			Object[] singleProp = { sjss.getRawVar(values[0]), sjss.getRawVar(values[1]), sjss.getRawVar(values[2]), sjss.getRawVar(values[3]),
-					sjss.getRawVar(values[4]), sjss.getRawVar(values[5]), sjss.getVar(values[6]) };
-			allProps.add(singleProp);
+			String key = sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString()).concat("+++").concat(
+					sjss.getRawVar(values[2]).toString()).concat("+++").concat(
+					sjss.getRawVar(values[3]).toString().concat("+++").concat(sjss.getRawVar(values[4]).toString()));
+			if (!allInstancesAndProps.containsKey(key))
+			{
+				allProps = new ArrayList<Object[]>();
+				allInstancesAndProps.put(key, allProps);
+			}
+			// Index 5 is property, 6 is property value
+			Object[] singleProp = { sjss.getRawVar(values[5]), sjss.getVar(values[6]) };
+			allInstancesAndProps.get(key).add(singleProp);
 		}
 		
-		for (int i = 0; i < allProps.size(); i++)
+		Set<String> keySet = allInstancesAndProps.keySet();
+		for (String key : keySet)
 		{
-			boolean valueOneWasOutput = false;
-			for (int n = (i + 1); n < allProps.size(); n++)
+			ArrayList<Object[]> instanceProp = allInstancesAndProps.get(key);
+			String[] conceptInstance = key.split("\\+\\+\\+");
+			for (int i = 0; i < instanceProp.size(); i++)
 			{
-				if (allProps.get(i)[0].toString().equals(allProps.get(n)[0].toString())
-						&& allProps.get(i)[1].toString().equals(allProps.get(n)[1].toString())
-						&& allProps.get(i)[2].toString().equals(allProps.get(n)[2].toString())
-						&& allProps.get(i)[3].toString().equals(allProps.get(n)[3].toString())
-						&& allProps.get(i)[4].toString().equals(allProps.get(n)[4].toString())
-						&& allProps.get(i)[5].toString().equals(allProps.get(n)[5].toString()))
+				boolean valueOneWasOutput = false;
+				for (int n = (i + 1); n < instanceProp.size(); n++)
 				{
-					System.out.println("Property type duplicate found.");
-					if (!valueOneWasOutput)
+					if (instanceProp.get(i)[0].toString().equalsIgnoreCase(instanceProp.get(n)[0].toString()))
 					{
-						row = new Object[] { allProps.get(i)[0], allProps.get(i)[1], allProps.get(i)[2], allProps.get(i)[3], allProps.get(i)[4],
-								allProps.get(i)[5], allProps.get(i)[6] };
+						System.out.println("Property type duplicate found.");
+						if (!valueOneWasOutput)
+						{
+							row = new Object[] { conceptInstance[0], conceptInstance[1], conceptInstance[2], conceptInstance[3], conceptInstance[4],
+									instanceProp.get(i)[0], instanceProp.get(i)[1] };
+							finalComparison.add(row);
+							valueOneWasOutput = true;
+						}
+						row = new Object[] { conceptInstance[0], conceptInstance[1], conceptInstance[2], conceptInstance[3], conceptInstance[4],
+								instanceProp.get(n)[0], instanceProp.get(n)[1] };
 						finalComparison.add(row);
-						valueOneWasOutput = true;
+						instanceProp.remove(n);
+						n--;
 					}
-					row = new Object[] { allProps.get(n)[0], allProps.get(n)[1], allProps.get(n)[2], allProps.get(n)[3], allProps.get(n)[4],
-							allProps.get(n)[5], allProps.get(n)[6] };
-					finalComparison.add(row);
-					allProps.remove(n);
-					n--;
 				}
 			}
 		}
-		// ***Old version***
-		// while (sjsw.hasNext())
-		// {
-		// SesameJenaSelectStatement sjss = sjsw.next();
-		// String key =
-		// sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString()).concat("+++").concat(
-		// sjss.getRawVar(values[2]).toString()).concat("+++").concat(
-		// sjss.getRawVar(values[3]).toString().concat("+++").concat(sjss.getRawVar(values[4]).toString()));
-		// if (!allInstancesAndProps.containsKey(key))
-		// {
-		// allProps = new ArrayList<Object[]>();
-		// allInstancesAndProps.put(key, allProps);
-		// }
-		// // Index 0 is property, 1 is property value
-		// Object[] singleProp = { sjss.getRawVar(values[5]), sjss.getVar(values[6]) };
-		// allInstancesAndProps.get(key).add(singleProp);
-		// }
-		//
-		// Set<String> keySet = allInstancesAndProps.keySet();
-		// for (String key : keySet)
-		// {
-		// ArrayList<Object[]> instanceProp = allInstancesAndProps.get(key);
-		// String[] conceptInstance = key.split("\\+\\+\\+");
-		// for (int i = 0; i < instanceProp.size(); i++)
-		// {
-		// boolean valueOneWasOutput = false;
-		// for (int n = (i + 1); n < instanceProp.size(); n++)
-		// {
-		// if (instanceProp.get(i)[0].toString().equalsIgnoreCase(instanceProp.get(n)[0].toString()))
-		// {
-		// System.out.println("Property type duplicate found.");
-		// if (!valueOneWasOutput)
-		// {
-		// row = new Object[] { conceptInstance[0], conceptInstance[1], conceptInstance[2], conceptInstance[3],
-		// conceptInstance[4],
-		// instanceProp.get(i)[0], instanceProp.get(i)[1] };
-		// finalComparison.add(row);
-		// valueOneWasOutput = true;
-		// }
-		// row = new Object[] { conceptInstance[0], conceptInstance[1], conceptInstance[2], conceptInstance[3],
-		// conceptInstance[4],
-		// instanceProp.get(n)[0], instanceProp.get(n)[1] };
-		// finalComparison.add(row);
-		// duplicateFound = true;
-		// }
-		// }
-		// }
-		// }
 		
 		if (finalComparison.isEmpty())
 		{
