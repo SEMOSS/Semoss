@@ -136,7 +136,7 @@ public class PlayPane extends JFrame {
 	public JTable filterTable, edgeTable, propertyTable;
 	private JScrollPane filterSliders;
 	public ButtonMenuDropDown btnShowPlaySheets;
-	public	ShowPlaySheetsButtonListener showPlaySheetsListener;
+	public ShowPlaySheetsButtonListener showPlaySheetsListener;
 
 	// left cosmetic panel components
 	public JTable colorShapeTable, sizeTable;
@@ -163,36 +163,33 @@ public class PlayPane extends JFrame {
 
 	// Financial Transition Report Components
 	public JScrollPane serviceSelectScrollPane;
-	public JPanel transitionServicePanel, transReportSysDropDownPanel,
-			transReportTypeDropDownPanel, transReportFormDropDownPanel,
+	public JPanel transitionServicePanel, transReportSysDropDownPanel, transReportTypeDropDownPanel, transReportFormDropDownPanel,
 			transReportCheckBoxPanel;
 	public TransitionReportComboBox transCostReportSystemcomboBox;
 	public JComboBox TransReportFormatcomboBox, TransReportTypecomboBox;
 	public JRadioButton rdbtnApplyTapOverhead, rdbtnDoNotApplyOverhead;
-	public JCheckBox chckbxDataEsbImplementation, chckbxBluEsbImplementation,
-			chckbxDataFederationTransReport, chckbxBLUprovider,
-			chckbxDataConsumer;
+	public JCheckBox chckbxDataEsbImplementation, chckbxBluEsbImplementation, chckbxDataFederationTransReport, chckbxBLUprovider, chckbxDataConsumer;
 	public JButton transitionReportGenButton = new JButton();
 
 	// Tap Generate Report Components
 	public JScrollPane sourceSelectScrollPane;
 	public JPanel sourceSelectPanel;
 	public JButton sourceReportGenButton = new JButton();
-	
-	//DHMSM Report Panel
+
+	// DHMSM Report Panel
 	public JPanel dhmsmReportTopPanel;
 	public JLabel dhmsmDataAccessSelectionFileLbl;
 	public Panel dhmsmDataAccessFileImportPanel;
 	public JButton dhmsmDataAccessFileBrowseBtn;
 	public JTextField dhmsmDataAccessImportFileNameField;
-	
+
 	public Panel dhmsmFunctionalAreaPanel;
 	public JCheckBox HSDCheckBoxDHMSM, HSSCheckBoxDHMSM, FHPCheckBoxDHMSM, DHMSMCheckBoxDHMSM;
 	public SourceSelectPanel dhmsmCapabilitySelectPanel;
 	public JScrollPane dhmsmCapabilitySelectScrollPane;
 	public JButton dhmsmUpdateDataFromFileButton = new JButton();
 	public JButton dhmsmUpdateDataButton = new JButton();
-	
+
 	public Panel dhmsmSelectAllAccessTypePanel;
 	public JRadioButton integratedAccessButton, hybridAccessButton, manualAccessButton;
 	public JRadioButton realAccessButton, nearAccessButton, archiveAccessButton, ignoreAccessButton;
@@ -201,10 +198,10 @@ public class PlayPane extends JFrame {
 	public JButton dhmsmDecommissionReportButton = new JButton();
 	public JButton dhmsmSystemSORAccessTypeReportButton = new JButton();
 	private JSeparator separator_9;
-	//DHMSM Report 2nd Panel
+	// DHMSM Report 2nd Panel
 	public JPanel dhmsmReportMidPanel;
 	public JButton dhmsmCapSystemIntersectionReportButton;
-	
+
 	public JTextField sysDecomOptimizationResourceTextField, sysDecomOptimizationTimeTextField;
 	public JButton btnSysDecomOptimization;
 	public DHMSMSystemSelectPanel dhmsmSystemSelectPanel;
@@ -213,48 +210,36 @@ public class PlayPane extends JFrame {
 	// Financial DB Mod Components
 	public JToggleButton serviceSelectionBtn, btnAdvancedFinancialFunctions;
 	public JPanel advancedFunctionsPanel;
-	public JButton btnInsertBudgetProperty, btnInsertServiceProperties,
-			calculateTransitionCostsButton, calcTransAdditionalButton;
+	public JButton btnInsertBudgetProperty, btnInsertServiceProperties, calculateTransitionCostsButton, calcTransAdditionalButton;
 	public JCheckBox tierCheck1, tierCheck2, tierCheck3;
 	public JProgressBar calcTCprogressBar;
 
 	// BV TM Components
 	public JButton btnRunBvAlone, btnRunTmAlone, btnInsertDownstream, btnRunCapabilityBV;
-	public JTextField soaAlphaValueTextField, depreciationValueTextField,
-			appreciationValueTextField;
+	public JTextField soaAlphaValueTextField, depreciationValueTextField, appreciationValueTextField;
 
 	// Import Components
 	public JComboBox dbImportTypeComboBox, loadingFormatComboBox, dbImportRDBMSDriverComboBox;
 	public JPanel advancedImportOptionsPanel, dbImportPanel;
-	public JTextField importFileNameField, customBaseURItextField, 
-			importMapFileNameField, dbPropFileNameField, questionFileNameField,
+	public JTextField importFileNameField, customBaseURItextField, importMapFileNameField, dbPropFileNameField, questionFileNameField,
 			dbSelectorField, dbImportURLField, dbImportUsernameField;
 	public JPasswordField dbImportPWField;
-	public JButton mapBrowseBtn, dbPropBrowseButton, questionBrowseButton,
-			btnShowAdvancedImportFeatures, importButton, fileBrowseBtn, btnTestRDBMSConnection, btnGetRDBMSSchema;
-	public JLabel selectionFileLbl, dbNameLbl, lblDataInputFormat, lblDBImportURL, 
-			lblDBImportUsername, lblDBImportPW, lblDBImportDriverType;
+	public JButton mapBrowseBtn, dbPropBrowseButton, questionBrowseButton, btnShowAdvancedImportFeatures, importButton, fileBrowseBtn,
+			btnTestRDBMSConnection, btnGetRDBMSSchema;
+	public JLabel selectionFileLbl, dbNameLbl, lblDataInputFormat, lblDBImportURL, lblDBImportUsername, lblDBImportPW, lblDBImportDriverType;
 
 	// Export Components
 	public JLabel lblMaxExportLimit;
 	public JButton btnExportNodeLoadSheets, btnExportRelationshipsLoadSheets;
-	public ParamComboBox exportDataSourceComboBox, subjectNodeTypeComboBox1,
-			subjectNodeTypeComboBox2, subjectNodeTypeComboBox3,
-			subjectNodeTypeComboBox4, subjectNodeTypeComboBox5,
-			subjectNodeTypeComboBox6, subjectNodeTypeComboBox7,
-			subjectNodeTypeComboBox8, subjectNodeTypeComboBox9;
-	public ParamComboBox objectNodeTypeComboBox1, objectNodeTypeComboBox2,
-			objectNodeTypeComboBox3, objectNodeTypeComboBox4,
-			objectNodeTypeComboBox5, objectNodeTypeComboBox6,
-			objectNodeTypeComboBox7, objectNodeTypeComboBox8,
-			objectNodeTypeComboBox9;
-	public ParamComboBox nodeRelationshipComboBox1, nodeRelationshipComboBox2,
-			nodeRelationshipComboBox3, nodeRelationshipComboBox4,
-			nodeRelationshipComboBox5, nodeRelationshipComboBox6,
-			nodeRelationshipComboBox7, nodeRelationshipComboBox8,
-			nodeRelationshipComboBox9;
+	public ParamComboBox exportDataSourceComboBox, subjectNodeTypeComboBox1, subjectNodeTypeComboBox2, subjectNodeTypeComboBox3,
+			subjectNodeTypeComboBox4, subjectNodeTypeComboBox5, subjectNodeTypeComboBox6, subjectNodeTypeComboBox7, subjectNodeTypeComboBox8,
+			subjectNodeTypeComboBox9;
+	public ParamComboBox objectNodeTypeComboBox1, objectNodeTypeComboBox2, objectNodeTypeComboBox3, objectNodeTypeComboBox4, objectNodeTypeComboBox5,
+			objectNodeTypeComboBox6, objectNodeTypeComboBox7, objectNodeTypeComboBox8, objectNodeTypeComboBox9;
+	public ParamComboBox nodeRelationshipComboBox1, nodeRelationshipComboBox2, nodeRelationshipComboBox3, nodeRelationshipComboBox4,
+			nodeRelationshipComboBox5, nodeRelationshipComboBox6, nodeRelationshipComboBox7, nodeRelationshipComboBox8, nodeRelationshipComboBox9;
 	public JButton btnAddExport;
-//	public JButton btnCreateMasterDatabase;
+	// public JButton btnCreateMasterDatabase;
 	public JTextField databaseSearchTextField;
 	public JButton btnSearchDatabase;
 	private Component rigidArea;
@@ -269,23 +254,23 @@ public class PlayPane extends JFrame {
 
 	// Active Systems
 	public CustomButton btnUpdateActiveSystems;
-	
+
 	// Aggregate TAP Services into TAP Core
 	public CustomButton btnAggregateTapServicesIntoTapCore;
 	public JComboBox<String> selectTapServicesComboBox, selectTapCoreForAggregationComboBox;
-	
+
 	// Create Future Interface Database
 	public CustomButton btnCreateFutureInterfaceDatabase;
 	public JComboBox<String> selectFutureInterfaceComboBox, selectHRCoreForFutureInterfaceDBComboBox, selectFutureCostInterfaceComboBox;
-	
-	//System-BP and System-Cap Insert
+
+	// System-BP and System-Cap Insert
 	public CustomButton btnSysBPCapInsert;
 	public JTextField bluThresholdValueTextField, dataObjectThresholdValueTextField;
 	public JComboBox relInferLogicTypeComboBox;
-	
-	//Source of Record Property Insert
+
+	// Source of Record Property Insert
 	public CustomButton btnSORInsert;
-	
+
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
 
@@ -302,27 +287,27 @@ public class PlayPane extends JFrame {
 	// Fact Sheet Report Generator Panel
 	private JSeparator separator_7;
 	public JButton btnFactSheetImageExport, btnFactSheetReport;
-	public JPanel factSheetReportSysDropDownPanel,
-			factSheetReportTypeDropDownPanel;
+	public JPanel factSheetReportSysDropDownPanel, factSheetReportTypeDropDownPanel;
 	public FactSheetReportComboBox factSheetReportSyscomboBox;
 	public JComboBox factSheetReportTypecomboBox;
 
-	//Tasker Generation and System Info Panel
+	// Tasker Generation and System Info Panel
 	private JSeparator separator_8;
 	public JButton btnTaskerGeneration, btnInterfaceReportButton;
 	public JButton btnSystemInfoGenButton, btnDataInterfaceWithDHMSM;
 	public FactSheetReportComboBox TaskerGenerationSyscomboBox;
-	
-	//MHS TAP: REPORT GENERATOR: COMMON SUBGRAPH
+
+	// MHS TAP: REPORT GENERATOR: COMMON SUBGRAPH
 	public JTextField commonSubgraphThresholdTextField;
-	public JComboBox<String> commonSubgraphComboBox0,commonSubgraphComboBox1;
-	
+	public JComboBox<String> commonSubgraphComboBox0, commonSubgraphComboBox1;
+
 	private JLabel lblModifyQueryOf;
 	private JSeparator separator;
-//	public JButton btnCommonGraph;
-	
-	//Question Modification Panel
-	private JLabel lblQuestionPerspective, lblQuestion, lblQuestionLayout, lblQuestionSparql, lblQuestionModType, lblQuestionSelectDatabase, lblAddParameter, lblRequiredFields, lblQuestionOrder, lblOrderInfo;
+	// public JButton btnCommonGraph;
+
+	// Question Modification Panel
+	private JLabel lblQuestionPerspective, lblQuestion, lblQuestionLayout, lblQuestionSparql, lblQuestionModType, lblQuestionSelectDatabase,
+			lblAddParameter, lblRequiredFields, lblQuestionOrder, lblOrderInfo;
 	public JLabel lblQuestionSelectPerspective, lblSelectQuestion, lblQuestionLayoutText;
 	public JTextField questionPerspectiveField, questionField, questionLayoutField;
 	private JScrollPane questionSparqlScroll;
@@ -333,23 +318,30 @@ public class PlayPane extends JFrame {
 	public JRadioButton addQuestionButton, editQuestionButton, deleteQuestionButton;
 	public JButton questionModButton, questionAddParameterButton, questionMoreOptionsButton;
 	public JLabel lblParameterDependList, lblParameterQueryList, lblParameterDepend, lblParameterQuery, lblParameterOption, lblParameterOptionList;
-	public JScrollPane parameterQueryScrollList, parameterDependScrollList, parameterQueryScroll, parameterDependScroll, parameterOptionScroll, parameterOptionScrollList;
+	public JScrollPane parameterQueryScrollList, parameterDependScrollList, parameterQueryScroll, parameterDependScroll, parameterOptionScroll,
+			parameterOptionScrollList;
 	public JTextPane parameterQueryTextPane, parameterDependTextPane, parameterOptionTextPane;
 	public JList<String> parameterDependList, parameterQueryList, parameterOptionList;
-	public JButton addParameterDependencyButton, addParameterQueryButton, parameterQueriesDeleteButton, parameterQueriesEditButton, dependenciesDeleteButton, dependenciesEditButton, optionsEditButton, optionsDeleteButton, addParameterOptionButton;
-	
-	
+	public JButton addParameterDependencyButton, addParameterQueryButton, parameterQueriesDeleteButton, parameterQueriesEditButton,
+			dependenciesDeleteButton, dependenciesEditButton, optionsEditButton, optionsDeleteButton, addParameterOptionButton;
+
+	// DB Comparison Components
+	public JComboBox newDBComboBox, oldDBComboBox;
+	public JButton compareDBButton;
+
 	/**
 	 * Launch the application.
-	 * @throws SecurityException 
-	 * @throws NoSuchMethodException 
-	 * @throws ClassNotFoundException 
-	 * @throws InvocationTargetException 
-	 * @throws IllegalArgumentException 
-	 * @throws IllegalAccessException 
-	 * @throws InstantiationException 
+	 * 
+	 * @throws SecurityException
+	 * @throws NoSuchMethodException
+	 * @throws ClassNotFoundException
+	 * @throws InvocationTargetException
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 * @throws InstantiationException
 	 */
-	public void start() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException {
+	public void start() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, ClassNotFoundException {
 
 		// load all the listeners
 		// cast it to IChakraListener
@@ -363,43 +355,37 @@ public class PlayPane extends JFrame {
 		Object popup = questionSelector.getUI().getAccessibleChild(questionSelector, 0);
 		Component c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		popup = perspectiveSelector.getUI().getAccessibleChild(perspectiveSelector, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		popup = TransReportFormatcomboBox.getUI().getAccessibleChild(TransReportFormatcomboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		popup = TransReportTypecomboBox.getUI().getAccessibleChild(TransReportTypecomboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		popup = factSheetReportSyscomboBox.getUI().getAccessibleChild(factSheetReportSyscomboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		popup = dbImportTypeComboBox.getUI().getAccessibleChild(dbImportTypeComboBox, 0);
 		c = ((Container) popup).getComponent(0);
 		if (c instanceof JScrollPane) {
-			((JScrollPane) c).getVerticalScrollBar()
-					.setUI(new NewScrollBarUI());
+			((JScrollPane) c).getVerticalScrollBar().setUI(new NewScrollBarUI());
 		}
 
 		// start with self reference
@@ -413,17 +399,14 @@ public class PlayPane extends JFrame {
 			Object obj = fields[fieldIndex].get(this);
 			logger.debug("Object set to " + obj);
 			String fieldName = fields[fieldIndex].getName();
-			if (obj instanceof JComboBox || obj instanceof JButton
-					|| obj instanceof JToggleButton || obj instanceof JSlider
-					|| obj instanceof JInternalFrame
-					|| obj instanceof JRadioButton || obj instanceof JTextArea || obj instanceof JTextPane) {
+			if (obj instanceof JComboBox || obj instanceof JButton || obj instanceof JToggleButton || obj instanceof JSlider
+					|| obj instanceof JInternalFrame || obj instanceof JRadioButton || obj instanceof JTextArea || obj instanceof JTextPane) {
 				// load the controllers
 				// find the view
 				// right view and listener
-				String ctrlNames = DIHelper.getInstance().getProperty(
-						fieldName + "_" + Constants.CONTROL);
+				String ctrlNames = DIHelper.getInstance().getProperty(fieldName + "_" + Constants.CONTROL);
 				if (ctrlNames != null && ctrlNames.length() != 0) {
-					logger.debug("Listeners >>>>  " + ctrlNames	+ "   for field " + fieldName);
+					logger.debug("Listeners >>>>  " + ctrlNames + "   for field " + fieldName);
 					StringTokenizer listenerTokens = new StringTokenizer(ctrlNames, ";");
 					while (listenerTokens.hasMoreTokens()) {
 						String ctrlName = listenerTokens.nextToken();
@@ -451,12 +434,12 @@ public class PlayPane extends JFrame {
 							((JTextPane) obj).addFocusListener((FocusListener) listener);
 						else
 							((JInternalFrame) obj).addInternalFrameListener((InternalFrameListener) listener);
-						System.out.println(ctrlName + ":" + listener);	
+						System.out.println(ctrlName + ":" + listener);
 						DIHelper.getInstance().setLocalProperty(ctrlName, listener);
 					}
 				}
 			}
-			System.out.println(fieldName + ":" + obj);	
+			System.out.println(fieldName + ":" + obj);
 			logger.debug("Loading <" + fieldName + "> <> " + obj);
 			DIHelper.getInstance().setLocalProperty(fieldName, obj);
 		}
@@ -482,22 +465,15 @@ public class PlayPane extends JFrame {
 			// set the parent views
 			viewName = DIHelper.getInstance().getProperty(lToken + "_" + Constants.PARENT_VIEW);
 			/*
-			 * if(viewName != null && listener != null) { // get the listener
-			 * object and set it Method method =
-			 * listener.getClass().getMethod("setParentView", JComponent.class);
-			 * Object param = DIHelper.getInstance().getLocalProp(viewName);
-			 * logger.debug("Param is <"+viewName+"><" + param + ">");
-			 * method.invoke(listener, param); }
+			 * if(viewName != null && listener != null) { // get the listener object and set it Method method =
+			 * listener.getClass().getMethod("setParentView", JComponent.class); Object param = DIHelper.getInstance().getLocalProp(viewName);
+			 * logger.debug("Param is <"+viewName+"><" + param + ">"); method.invoke(listener, param); }
 			 * 
 			 * 
-			 * // set the parent views viewName =
-			 * DIHelper.getInstance().getProperty(lToken + "_" +
-			 * Constants.RIGHT_VIEW); if(viewName != null && listener != null) {
-			 * // get the listener object and set it Method method =
-			 * listener.getClass().getMethod("setRightPanel", JComponent.class);
-			 * Object param = DIHelper.getInstance().getLocalProp(viewName);
-			 * logger.debug("Param is <"+viewName+"><" + param + ">");
-			 * method.invoke(listener, param); }
+			 * // set the parent views viewName = DIHelper.getInstance().getProperty(lToken + "_" + Constants.RIGHT_VIEW); if(viewName != null &&
+			 * listener != null) { // get the listener object and set it Method method = listener.getClass().getMethod("setRightPanel",
+			 * JComponent.class); Object param = DIHelper.getInstance().getLocalProp(viewName); logger.debug("Param is <"+viewName+"><" + param +
+			 * ">"); method.invoke(listener, param); }
 			 */
 		}
 		// set the repository
@@ -518,22 +494,16 @@ public class PlayPane extends JFrame {
 		// set the models now
 		// set the perspectives information
 		/*
-		 * Hashtable perspectiveHash = (Hashtable)
-		 * DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE);
-		 * Vector<String> perspectives =
-		 * Utility.convertEnumToArray(perspectiveHash.keys(),
-		 * perspectiveHash.size()); Collections.sort(perspectives);
-		 * logger.info("Perspectives " + perspectiveHash); for(int
-		 * itemIndex = 0;itemIndex <
-		 * perspectives.size();this.perspectiveSelector
-		 * .addItem(perspectives.get(itemIndex)), itemIndex++);
+		 * Hashtable perspectiveHash = (Hashtable) DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE); Vector<String> perspectives =
+		 * Utility.convertEnumToArray(perspectiveHash.keys(), perspectiveHash.size()); Collections.sort(perspectives); logger.info("Perspectives " +
+		 * perspectiveHash); for(int itemIndex = 0;itemIndex < perspectives.size();this.perspectiveSelector .addItem(perspectives.get(itemIndex)),
+		 * itemIndex++);
 		 */
 	}
 
 	/**
 	 * Create the frame.
 	 * 
-	
 	 */
 	public PlayPane() throws IOException {
 		setExtendedState(Frame.MAXIMIZED_BOTH);
@@ -571,21 +541,21 @@ public class PlayPane extends JFrame {
 		splitPane.setOneTouchExpandable(true);
 
 		JPanel rightViewPanel = new JPanel();
-		
+
 		LayoutManager rightViewLayout = new RightViewLayoutManager();
-		rightViewPanel.setLayout ( rightViewLayout);
+		rightViewPanel.setLayout(rightViewLayout);
 
 		RightView rightView = new RightView(JTabbedPane.TOP);
-		
+
 		showPlaySheetsListener = new ShowPlaySheetsButtonListener();
 
 		try {
-		    Image img = ImageIO.read(new File(workingDir+"/pictures/showPlaySheets.png"));
-		    Image newimg = img.getScaledInstance( 15, 15,  java.awt.Image.SCALE_SMOOTH );
-		    btnShowPlaySheets = new ButtonMenuDropDown(new ImageIcon(newimg));
-		  } catch (IOException ex) {
-			    btnShowPlaySheets = new ButtonMenuDropDown("");
-		  }
+			Image img = ImageIO.read(new File(workingDir + "/pictures/showPlaySheets.png"));
+			Image newimg = img.getScaledInstance(15, 15, java.awt.Image.SCALE_SMOOTH);
+			btnShowPlaySheets = new ButtonMenuDropDown(new ImageIcon(newimg));
+		} catch (IOException ex) {
+			btnShowPlaySheets = new ButtonMenuDropDown("");
+		}
 		GridBagConstraints gbc_btnShowPlaySheets = new GridBagConstraints();
 		gbc_btnShowPlaySheets.anchor = GridBagConstraints.WEST;
 		btnShowPlaySheets.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -593,11 +563,10 @@ public class PlayPane extends JFrame {
 		btnShowPlaySheets.addActionListener(showPlaySheetsListener);
 		btnShowPlaySheets.setEnabled(false);
 
-		
 		rightViewPanel.add(rightView);
-		rightViewPanel.add(btnShowPlaySheets, "special",0);
+		rightViewPanel.add(btnShowPlaySheets, "special", 0);
 		splitPane.setRightComponent(rightViewPanel);
-		
+
 		JPanel graphPanel = new JPanel();
 		rightView.addTab("Display Pane", null, graphPanel, null);
 		graphPanel.setLayout(new GridLayout(1, 0, 0, 0));
@@ -614,7 +583,8 @@ public class PlayPane extends JFrame {
 
 		String[] fetching = { "Fetching" };
 
-		// String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		// String workingDir =
+		// DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		FileReader fr = null;
 
 		// Here we read the release notes text file
@@ -622,20 +592,20 @@ public class PlayPane extends JFrame {
 		fr = new FileReader(releaseNotesTextFile);
 		BufferedReader releaseNotesTextReader = null;
 		String releaseNotesData = "<html><body bgcolor=\"#f0f0f0\"> ";
-		try{
+		try {
 			releaseNotesTextReader = new BufferedReader(fr);
 			String line = null;
 			while ((line = releaseNotesTextReader.readLine()) != null) {
 				releaseNotesData = releaseNotesData + line + "<br>";
 			}
 			releaseNotesData = releaseNotesData + "";
-		}catch(RuntimeException e) {
+		} catch (RuntimeException e) {
 			e.printStackTrace();
-		}finally{
-			try{
-				if(releaseNotesTextReader!=null)
+		} finally {
+			try {
+				if (releaseNotesTextReader != null)
 					releaseNotesTextReader.close();
-			}catch(IOException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
@@ -686,7 +656,8 @@ public class PlayPane extends JFrame {
 		dbImportTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dbImportTypeComboBox.setBackground(Color.GRAY);
 		dbImportTypeComboBox.setPreferredSize(new Dimension(400, 25));
-		dbImportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select a database import method",	"Add to existing database engine","Modify/Replace data in existing engine","Create new database engine","Create new RDBMS connection" }));
+		dbImportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "Select a database import method", "Add to existing database engine",
+				"Modify/Replace data in existing engine", "Create new database engine", "Create new RDBMS connection" }));
 		GridBagConstraints gbc_dbImportTypeComboBox = new GridBagConstraints();
 		gbc_dbImportTypeComboBox.anchor = GridBagConstraints.NORTHWEST;
 		gbc_dbImportTypeComboBox.insets = new Insets(0, 0, 5, 5);
@@ -718,17 +689,17 @@ public class PlayPane extends JFrame {
 		gbc_loadingFormatComboBox.gridx = 1;
 		gbc_loadingFormatComboBox.gridy = 2;
 		importPanel.add(loadingFormatComboBox, gbc_loadingFormatComboBox);
-		
+
 		GridBagConstraints gbc_dbImportPanel = new GridBagConstraints();
 		gbc_dbImportPanel.gridwidth = 2;
 		gbc_dbImportPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_dbImportPanel.fill = GridBagConstraints.BOTH;
 		gbc_dbImportPanel.gridx = 0;
 		gbc_dbImportPanel.gridy = 3;
-		
+
 		importPanel.add(dbImportPanel, gbc_dbImportPanel);
 		GridBagLayout gbl_dbImportPanel = new GridBagLayout();
-		gbl_dbImportPanel.columnWidths = new int[] { 160, 0, 0, 0, 0};
+		gbl_dbImportPanel.columnWidths = new int[] { 160, 0, 0, 0, 0 };
 		gbl_dbImportPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_dbImportPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		gbl_dbImportPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
@@ -753,7 +724,7 @@ public class PlayPane extends JFrame {
 		gbc_dbSelectorField.gridy = 0;
 		dbImportPanel.add(dbSelectorField, gbc_dbSelectorField);
 		dbSelectorField.setColumns(10);
-		
+
 		lblDBImportDriverType = new JLabel("DB Import Type");
 		lblDBImportDriverType.setVisible(false);
 		lblDBImportDriverType.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -767,7 +738,8 @@ public class PlayPane extends JFrame {
 		dbImportRDBMSDriverComboBox = new JComboBox();
 		dbImportRDBMSDriverComboBox.setBackground(Color.GRAY);
 		dbImportRDBMSDriverComboBox.setVisible(false);
-		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] {"Select Relational Database Type", "MySQL","Oracle","MS SQL Server","Aster Database"}));
+		dbImportRDBMSDriverComboBox.setModel(new DefaultComboBoxModel(new String[] { "Select Relational Database Type", "MySQL", "Oracle",
+				"MS SQL Server", "Aster Database" }));
 		dbImportRDBMSDriverComboBox.setPreferredSize(new Dimension(225, 25));
 		GridBagConstraints gbc_dbImportRDBMSDriverComboBox = new GridBagConstraints();
 		gbc_dbImportRDBMSDriverComboBox.gridwidth = 3;
@@ -776,7 +748,7 @@ public class PlayPane extends JFrame {
 		gbc_dbImportRDBMSDriverComboBox.gridx = 1;
 		gbc_dbImportRDBMSDriverComboBox.gridy = 1;
 		dbImportPanel.add(dbImportRDBMSDriverComboBox, gbc_dbImportRDBMSDriverComboBox);
-		
+
 		lblDBImportURL = new JLabel("Enter Database URL");
 		lblDBImportURL.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblDBImportURL = new GridBagConstraints();
@@ -785,7 +757,7 @@ public class PlayPane extends JFrame {
 		gbc_lblDBImportURL.gridx = 0;
 		gbc_lblDBImportURL.gridy = 2;
 		dbImportPanel.add(lblDBImportURL, gbc_lblDBImportURL);
-		
+
 		dbImportURLField = new JTextField();
 		dbImportURLField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dbImportURLField.setColumns(10);
@@ -796,7 +768,7 @@ public class PlayPane extends JFrame {
 		gbc_dbImportURLField.gridx = 1;
 		gbc_dbImportURLField.gridy = 2;
 		dbImportPanel.add(dbImportURLField, gbc_dbImportURLField);
-		
+
 		lblDBImportUsername = new JLabel("Enter Database Username");
 		lblDBImportUsername.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblDBImportUsername = new GridBagConstraints();
@@ -805,7 +777,7 @@ public class PlayPane extends JFrame {
 		gbc_lblDBImportUsername.gridx = 0;
 		gbc_lblDBImportUsername.gridy = 3;
 		dbImportPanel.add(lblDBImportUsername, gbc_lblDBImportUsername);
-		
+
 		dbImportUsernameField = new JTextField();
 		dbImportUsernameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dbImportUsernameField.setColumns(10);
@@ -816,7 +788,7 @@ public class PlayPane extends JFrame {
 		gbc_dbImportUsernameField.gridx = 1;
 		gbc_dbImportUsernameField.gridy = 3;
 		dbImportPanel.add(dbImportUsernameField, gbc_dbImportUsernameField);
-		
+
 		lblDBImportPW = new JLabel("Enter Database Password");
 		lblDBImportPW.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblDBImportPW = new GridBagConstraints();
@@ -825,7 +797,7 @@ public class PlayPane extends JFrame {
 		gbc_lblDBImportPW.gridx = 0;
 		gbc_lblDBImportPW.gridy = 4;
 		dbImportPanel.add(lblDBImportPW, gbc_lblDBImportPW);
-		
+
 		dbImportPWField = new JPasswordField();
 		dbImportPWField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		dbImportPWField.setColumns(10);
@@ -846,7 +818,7 @@ public class PlayPane extends JFrame {
 		gbc_btnTestRDBMSConnection.gridx = 3;
 		gbc_btnTestRDBMSConnection.gridy = 4;
 		dbImportPanel.add(btnTestRDBMSConnection, gbc_btnTestRDBMSConnection);
-		
+
 		btnGetRDBMSSchema = new CustomButton("Get RDBMS Schema");
 		btnGetRDBMSSchema.setName("Schema");
 		btnGetRDBMSSchema.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -856,7 +828,7 @@ public class PlayPane extends JFrame {
 		gbc_btnGetRDBMSSchema.gridx = 4;
 		gbc_btnGetRDBMSSchema.gridy = 4;
 		dbImportPanel.add(btnGetRDBMSSchema, gbc_btnGetRDBMSSchema);
-		
+
 		selectionFileLbl = new JLabel("Select File(s) to Import");
 		GridBagConstraints gbc_selectionFileLbl = new GridBagConstraints();
 		gbc_selectionFileLbl.anchor = GridBagConstraints.WEST;
@@ -927,11 +899,11 @@ public class PlayPane extends JFrame {
 		gbc_advancedImportOptionsPanel.fill = GridBagConstraints.BOTH;
 		gbc_advancedImportOptionsPanel.gridx = 0;
 		gbc_advancedImportOptionsPanel.gridy = 8;
-		dbImportPanel.add(advancedImportOptionsPanel,	gbc_advancedImportOptionsPanel);
+		dbImportPanel.add(advancedImportOptionsPanel, gbc_advancedImportOptionsPanel);
 		GridBagLayout gbl_advancedImportOptionsPanel = new GridBagLayout();
 		gbl_advancedImportOptionsPanel.columnWidths = new int[] { 210, 0, 0, 0 };
 		gbl_advancedImportOptionsPanel.rowHeights = new int[] { 0, 30, 0, 0 };
-		gbl_advancedImportOptionsPanel.columnWeights = new double[] { 0.0, 0.0,	1.0, Double.MIN_VALUE };
+		gbl_advancedImportOptionsPanel.columnWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		gbl_advancedImportOptionsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		advancedImportOptionsPanel.setLayout(gbl_advancedImportOptionsPanel);
 
@@ -963,7 +935,7 @@ public class PlayPane extends JFrame {
 		gbc_importMapFileNameField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_importMapFileNameField.gridx = 2;
 		gbc_importMapFileNameField.gridy = 0;
-		advancedImportOptionsPanel.add(importMapFileNameField,	gbc_importMapFileNameField);
+		advancedImportOptionsPanel.add(importMapFileNameField, gbc_importMapFileNameField);
 		importMapFileNameField.setColumns(10);
 
 		JLabel lblselectCustomProp = new JLabel("<HTML>Select Custom SMSS File</HTML>");
@@ -982,7 +954,7 @@ public class PlayPane extends JFrame {
 		gbc_dbPropBrowseButton.insets = new Insets(0, 0, 5, 5);
 		gbc_dbPropBrowseButton.gridx = 1;
 		gbc_dbPropBrowseButton.gridy = 1;
-		advancedImportOptionsPanel.add(dbPropBrowseButton,	gbc_dbPropBrowseButton);
+		advancedImportOptionsPanel.add(dbPropBrowseButton, gbc_dbPropBrowseButton);
 
 		dbPropFileNameField = new JTextField();
 		dbPropFileNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -992,7 +964,7 @@ public class PlayPane extends JFrame {
 		gbc_dbPropFileNameField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_dbPropFileNameField.gridx = 2;
 		gbc_dbPropFileNameField.gridy = 1;
-		advancedImportOptionsPanel.add(dbPropFileNameField,	gbc_dbPropFileNameField);
+		advancedImportOptionsPanel.add(dbPropFileNameField, gbc_dbPropFileNameField);
 
 		JLabel lblselectCustomQuestionssheet = new JLabel("<HTML>Select Custom Insights XML File</HTML>");
 		lblselectCustomQuestionssheet.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1044,7 +1016,7 @@ public class PlayPane extends JFrame {
 		gbc_dbmod_separator_1.gridx = 0;
 		gbc_dbmod_separator_1.gridy = 1;
 		imExPanel.add(dbmod_separator_1, gbc_dbmod_separator_1);
-		
+
 		JPanel modPanel = new JPanel();
 		modPanel.setBackground(SystemColor.control);
 		modPanel.setMinimumSize(new Dimension(0, 0));
@@ -1054,7 +1026,7 @@ public class PlayPane extends JFrame {
 		gbl_modPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		gbl_modPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		modPanel.setLayout(gbl_modPanel);
-		
+
 		JLabel lblDeleteInsert = new JLabel("Modify Data");
 		lblDeleteInsert.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblDeleteInsert = new GridBagConstraints();
@@ -1113,7 +1085,8 @@ public class PlayPane extends JFrame {
 		gbl_loadSheetExportPanel.columnWidths = new int[] { 0, 0, 0, 0 };
 		gbl_loadSheetExportPanel.rowHeights = new int[] { 10, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0 };
 		gbl_loadSheetExportPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_loadSheetExportPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_loadSheetExportPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 0.0, Double.MIN_VALUE };
 		loadSheetExportPanel.setLayout(gbl_loadSheetExportPanel);
 
 		JLabel lblExportDataTitle = new JLabel("Export Data");
@@ -1175,7 +1148,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox1 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox1.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox1.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox1.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "1");
+		subjectNodeTypeComboBox1.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "1");
 		subjectNodeTypeComboBox1.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox1 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox1.fill = GridBagConstraints.HORIZONTAL;
@@ -1194,7 +1167,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox1.insets = new Insets(0, 0, 5, 5);
 		gbc_nodeRelationshipComboBox1.gridx = 1;
 		gbc_nodeRelationshipComboBox1.gridy = 5;
-		loadSheetExportPanel.add(nodeRelationshipComboBox1,	gbc_nodeRelationshipComboBox1);
+		loadSheetExportPanel.add(nodeRelationshipComboBox1, gbc_nodeRelationshipComboBox1);
 
 		objectNodeTypeComboBox1 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox1.setBackground(Color.GRAY);
@@ -1210,7 +1183,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox2 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox2.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox2.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox2.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "2");
+		subjectNodeTypeComboBox2.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "2");
 		subjectNodeTypeComboBox2.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox2 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox2.fill = GridBagConstraints.HORIZONTAL;
@@ -1231,7 +1204,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox2.gridx = 1;
 		gbc_nodeRelationshipComboBox2.gridy = 6;
 		nodeRelationshipComboBox2.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox2,	gbc_nodeRelationshipComboBox2);
+		loadSheetExportPanel.add(nodeRelationshipComboBox2, gbc_nodeRelationshipComboBox2);
 
 		objectNodeTypeComboBox2 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox2.setBackground(Color.GRAY);
@@ -1248,7 +1221,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox3 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox3.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox3.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox3.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "3");
+		subjectNodeTypeComboBox3.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "3");
 		subjectNodeTypeComboBox3.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox3 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox3.insets = new Insets(0, 0, 5, 5);
@@ -1307,7 +1280,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox4.gridx = 1;
 		gbc_nodeRelationshipComboBox4.gridy = 8;
 		nodeRelationshipComboBox4.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox4,	gbc_nodeRelationshipComboBox4);
+		loadSheetExportPanel.add(nodeRelationshipComboBox4, gbc_nodeRelationshipComboBox4);
 
 		objectNodeTypeComboBox4 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox4.setBackground(Color.GRAY);
@@ -1345,7 +1318,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox5.gridx = 1;
 		gbc_nodeRelationshipComboBox5.gridy = 9;
 		nodeRelationshipComboBox5.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox5,	gbc_nodeRelationshipComboBox5);
+		loadSheetExportPanel.add(nodeRelationshipComboBox5, gbc_nodeRelationshipComboBox5);
 
 		objectNodeTypeComboBox5 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox5.setBackground(Color.GRAY);
@@ -1362,7 +1335,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox6 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox6.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox6.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox6.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "6");
+		subjectNodeTypeComboBox6.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "6");
 		subjectNodeTypeComboBox6.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox6 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox6.insets = new Insets(0, 0, 5, 5);
@@ -1383,8 +1356,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox6.gridx = 1;
 		gbc_nodeRelationshipComboBox6.gridy = 10;
 		nodeRelationshipComboBox6.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox6,
-				gbc_nodeRelationshipComboBox6);
+		loadSheetExportPanel.add(nodeRelationshipComboBox6, gbc_nodeRelationshipComboBox6);
 
 		objectNodeTypeComboBox6 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox6.setBackground(Color.GRAY);
@@ -1401,7 +1373,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox7 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox7.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox7.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox7.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "7");
+		subjectNodeTypeComboBox7.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "7");
 		subjectNodeTypeComboBox7.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox7 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox7.insets = new Insets(0, 0, 5, 5);
@@ -1422,7 +1394,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox7.gridx = 1;
 		gbc_nodeRelationshipComboBox7.gridy = 11;
 		nodeRelationshipComboBox7.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox7,	gbc_nodeRelationshipComboBox7);
+		loadSheetExportPanel.add(nodeRelationshipComboBox7, gbc_nodeRelationshipComboBox7);
 
 		objectNodeTypeComboBox7 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox7.setBackground(Color.GRAY);
@@ -1439,7 +1411,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox8 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox8.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox8.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox8.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "8");
+		subjectNodeTypeComboBox8.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "8");
 		subjectNodeTypeComboBox8.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox8 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox8.insets = new Insets(0, 0, 5, 5);
@@ -1464,7 +1436,7 @@ public class PlayPane extends JFrame {
 
 		objectNodeTypeComboBox8 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox8.setBackground(Color.GRAY);
-		objectNodeTypeComboBox8.setName(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX	+ "8");
+		objectNodeTypeComboBox8.setName(Constants.EXPORT_LOAD_SHEET_OBJECT_NODE_TYPE_COMBOBOX + "8");
 		objectNodeTypeComboBox8.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_objectNodeTypeComboBox8 = new GridBagConstraints();
 		gbc_objectNodeTypeComboBox8.insets = new Insets(0, 0, 5, 0);
@@ -1477,7 +1449,7 @@ public class PlayPane extends JFrame {
 		subjectNodeTypeComboBox9 = new ParamComboBox(new String[0]);
 		subjectNodeTypeComboBox9.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		subjectNodeTypeComboBox9.setBackground(Color.GRAY);
-		subjectNodeTypeComboBox9.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX	+ "9");
+		subjectNodeTypeComboBox9.setName(Constants.EXPORT_LOAD_SHEET_SUBJECT_NODE_TYPE_COMBOBOX + "9");
 		subjectNodeTypeComboBox9.setPreferredSize(new Dimension(300, 25));
 		GridBagConstraints gbc_subjectNodeTypeComboBox9 = new GridBagConstraints();
 		gbc_subjectNodeTypeComboBox9.insets = new Insets(0, 0, 5, 5);
@@ -1498,7 +1470,7 @@ public class PlayPane extends JFrame {
 		gbc_nodeRelationshipComboBox9.gridx = 1;
 		gbc_nodeRelationshipComboBox9.gridy = 13;
 		nodeRelationshipComboBox9.setVisible(false);
-		loadSheetExportPanel.add(nodeRelationshipComboBox9,	gbc_nodeRelationshipComboBox9);
+		loadSheetExportPanel.add(nodeRelationshipComboBox9, gbc_nodeRelationshipComboBox9);
 
 		objectNodeTypeComboBox9 = new ParamComboBox(new String[0]);
 		objectNodeTypeComboBox9.setBackground(Color.GRAY);
@@ -1521,7 +1493,7 @@ public class PlayPane extends JFrame {
 		gbc_btnAddExport.gridy = 14;
 		loadSheetExportPanel.add(btnAddExport, gbc_btnAddExport);
 
-		lblMaxExportLimit = new JLabel("Max Export Limit: "	+ Constants.MAX_EXPORTS);
+		lblMaxExportLimit = new JLabel("Max Export Limit: " + Constants.MAX_EXPORTS);
 		lblMaxExportLimit.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblMaxExportLimit = new GridBagConstraints();
 		gbc_lblMaxExportLimit.anchor = GridBagConstraints.WEST;
@@ -1565,7 +1537,7 @@ public class PlayPane extends JFrame {
 		loadSheetExportPanel.add(btnExportNodeLoadSheets, gbc_btnExportNodeLoadSheets);
 
 		btnExportRelationshipsLoadSheets = new CustomButton("Export Relationship Load Sheet");
-		btnExportRelationshipsLoadSheets.setFont(new Font("Tahoma", Font.BOLD,	11));
+		btnExportRelationshipsLoadSheets.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnExportRelationshipsLoad = new GridBagConstraints();
 		gbc_btnExportRelationshipsLoad.anchor = GridBagConstraints.WEST;
 		gbc_btnExportRelationshipsLoad.insets = new Insets(0, 0, 5, 5);
@@ -1573,16 +1545,19 @@ public class PlayPane extends JFrame {
 		gbc_btnExportRelationshipsLoad.gridy = 18;
 		loadSheetExportPanel.add(btnExportRelationshipsLoadSheets, gbc_btnExportRelationshipsLoad);
 
-//		btnCreateMasterDatabase = new CustomButton("Create Master Database");
-//		btnCreateMasterDatabase.setFont(new Font("Tahoma", Font.BOLD,	11));
-//		GridBagConstraints gbc_btnCreateMasterDatabase = new GridBagConstraints();
-//		gbc_btnCreateMasterDatabase.anchor = GridBagConstraints.WEST;
-//		gbc_btnCreateMasterDatabase.insets = new Insets(0, 0, 5, 5);
-//		gbc_btnCreateMasterDatabase.gridx = 0;
-//		gbc_btnCreateMasterDatabase.gridy = 19;
-//		loadSheetExportPanel.add(btnCreateMasterDatabase, gbc_btnCreateMasterDatabase);
-//		Style.registerTargetClassName(btnCreateMasterDatabase, ".standardButton");
-		
+		// btnCreateMasterDatabase = new CustomButton("Create Master Database");
+		// btnCreateMasterDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
+		// GridBagConstraints gbc_btnCreateMasterDatabase = new
+		// GridBagConstraints();
+		// gbc_btnCreateMasterDatabase.anchor = GridBagConstraints.WEST;
+		// gbc_btnCreateMasterDatabase.insets = new Insets(0, 0, 5, 5);
+		// gbc_btnCreateMasterDatabase.gridx = 0;
+		// gbc_btnCreateMasterDatabase.gridy = 19;
+		// loadSheetExportPanel.add(btnCreateMasterDatabase,
+		// gbc_btnCreateMasterDatabase);
+		// Style.registerTargetClassName(btnCreateMasterDatabase,
+		// ".standardButton");
+
 		databaseSearchTextField = new JTextField();
 		databaseSearchTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		databaseSearchTextField.setText("What are you looking for?");
@@ -1601,7 +1576,7 @@ public class PlayPane extends JFrame {
 		gbc_btnSearchDatabase.gridy = 20;
 		loadSheetExportPanel.add(btnSearchDatabase, gbc_btnSearchDatabase);
 		Style.registerTargetClassName(btnSearchDatabase, ".standardButton");
-		
+
 		GridBagConstraints gbc_loadSheetExportPanel = new GridBagConstraints();
 		gbc_loadSheetExportPanel.insets = new Insets(0, 15, 5, 0);
 		gbc_loadSheetExportPanel.fill = GridBagConstraints.BOTH;
@@ -1619,11 +1594,12 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnGetRDBMSSchema, ".standardButton");
 		Style.registerTargetClassName(btnAddExport, ".standardButton");
 		Style.registerTargetClassName(btnClearAll, ".standardButton");
-		Style.registerTargetClassName(btnExportNodeLoadSheets,	".standardButton");
+		Style.registerTargetClassName(btnExportNodeLoadSheets, ".standardButton");
 		Style.registerTargetClassName(btnExportRelationshipsLoadSheets, ".standardButton");
-		//customUpdateScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// customUpdateScrollPane.getVerticalScrollBar().setUI(new
+		// NewScrollBarUI());
 
-		//creating tabbed panels for Question Modification
+		// creating tabbed panels for Question Modification
 		JPanel questionModPanel = new JPanel();
 		questionModPanel.setBackground(SystemColor.control);
 		JScrollPane questionModPanelScroll = new JScrollPane(questionModPanel);
@@ -1632,9 +1608,10 @@ public class PlayPane extends JFrame {
 		gbl_questionModPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_questionModPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_questionModPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_questionModPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_questionModPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, Double.MIN_VALUE };
 		questionModPanel.setLayout(gbl_questionModPanel);
-		
+
 		lblQuestionModType = new JLabel("Modification Type:");
 		lblQuestionModType.setMinimumSize(new Dimension(155, 32));
 		lblQuestionModType.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1653,7 +1630,7 @@ public class PlayPane extends JFrame {
 		gbc_addQuestionButton.gridx = 1;
 		gbc_addQuestionButton.gridy = 0;
 		questionModPanel.add(addQuestionButton, gbc_addQuestionButton);
-		
+
 		editQuestionButton = new JRadioButton("Edit Question");
 		GridBagConstraints gbc_editQuestionButton = new GridBagConstraints();
 		gbc_editQuestionButton.anchor = GridBagConstraints.WEST;
@@ -1661,7 +1638,7 @@ public class PlayPane extends JFrame {
 		gbc_editQuestionButton.gridx = 2;
 		gbc_editQuestionButton.gridy = 0;
 		questionModPanel.add(editQuestionButton, gbc_editQuestionButton);
-		
+
 		deleteQuestionButton = new JRadioButton("Delete Question");
 		GridBagConstraints gbc_deleteQuestionButton = new GridBagConstraints();
 		gbc_deleteQuestionButton.anchor = GridBagConstraints.WEST;
@@ -1669,12 +1646,12 @@ public class PlayPane extends JFrame {
 		gbc_deleteQuestionButton.gridx = 3;
 		gbc_deleteQuestionButton.gridy = 0;
 		questionModPanel.add(deleteQuestionButton, gbc_deleteQuestionButton);
-		
+
 		ButtonGroup questionModTypeGroup = new ButtonGroup();
 		questionModTypeGroup.add(addQuestionButton);
 		questionModTypeGroup.add(editQuestionButton);
 		questionModTypeGroup.add(deleteQuestionButton);
-		
+
 		lblRequiredFields = new JLabel("* = Required Field");
 		lblRequiredFields.setMinimumSize(new Dimension(155, 32));
 		lblRequiredFields.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1684,7 +1661,7 @@ public class PlayPane extends JFrame {
 		gbc_lblRequiredFields.gridx = 4;
 		gbc_lblRequiredFields.gridy = 0;
 		questionModPanel.add(lblRequiredFields, gbc_lblRequiredFields);
-		
+
 		lblQuestionSelectDatabase = new JLabel("Select a Database:");
 		lblQuestionSelectDatabase.setMinimumSize(new Dimension(155, 32));
 		lblQuestionSelectDatabase.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1694,11 +1671,11 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestionSelectDatabase.gridx = 0;
 		gbc_lblQuestionSelectDatabase.gridy = 1;
 		questionModPanel.add(lblQuestionSelectDatabase, gbc_lblQuestionSelectDatabase);
-		
+
 		questionDatabaseSelector = new JComboBox();
 		questionDatabaseSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		questionDatabaseSelector.setBackground(new Color(119, 136, 153));
-		//questionDatabaseSelector.setPreferredSize(new Dimension(150, 25));
+		// questionDatabaseSelector.setPreferredSize(new Dimension(150, 25));
 		questionDatabaseSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXX");
 		GridBagConstraints gbc_questionDatabaseSelector = new GridBagConstraints();
 		gbc_questionDatabaseSelector.fill = GridBagConstraints.HORIZONTAL;
@@ -1708,7 +1685,7 @@ public class PlayPane extends JFrame {
 		gbc_questionDatabaseSelector.gridx = 1;
 		gbc_questionDatabaseSelector.gridy = 1;
 		questionModPanel.add(questionDatabaseSelector, gbc_questionDatabaseSelector);
-		
+
 		lblQuestionSelectPerspective = new JLabel("Select a Perspective:");
 		lblQuestionSelectPerspective.setMinimumSize(new Dimension(155, 32));
 		lblQuestionSelectPerspective.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1718,11 +1695,11 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestionSelectPerspective.gridx = 0;
 		gbc_lblQuestionSelectPerspective.gridy = 2;
 		questionModPanel.add(lblQuestionSelectPerspective, gbc_lblQuestionSelectPerspective);
-		
+
 		questionPerspectiveSelector = new JComboBox<String>();
 		questionPerspectiveSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		questionPerspectiveSelector.setBackground(new Color(119, 136, 153));
-		//questionPerspectiveSelector.setPreferredSize(new Dimension(150, 25));
+		// questionPerspectiveSelector.setPreferredSize(new Dimension(150, 25));
 		questionPerspectiveSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXX");
 		GridBagConstraints gbc_questionPerspectiveSelector = new GridBagConstraints();
 		gbc_questionPerspectiveSelector.fill = GridBagConstraints.HORIZONTAL;
@@ -1732,7 +1709,7 @@ public class PlayPane extends JFrame {
 		gbc_questionPerspectiveSelector.gridx = 1;
 		gbc_questionPerspectiveSelector.gridy = 2;
 		questionModPanel.add(questionPerspectiveSelector, gbc_questionPerspectiveSelector);
-		
+
 		lblSelectQuestion = new JLabel("Select a Question:");
 		lblSelectQuestion.setMinimumSize(new Dimension(155, 32));
 		lblSelectQuestion.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1743,11 +1720,11 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectQuestion.gridy = 3;
 		questionModPanel.add(lblSelectQuestion, gbc_lblSelectQuestion);
 		lblSelectQuestion.setVisible(false);
-		
+
 		questionModSelector = new JComboBox<String>();
 		questionModSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		questionModSelector.setBackground(new Color(119, 136, 153));
-		//questionModSelector.setMinimumSize(new Dimension(60, 25));
+		// questionModSelector.setMinimumSize(new Dimension(60, 25));
 		questionModSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXX");
 		GridBagConstraints gbc_questionModSelector = new GridBagConstraints();
 		gbc_questionModSelector.anchor = GridBagConstraints.NORTH;
@@ -1758,7 +1735,7 @@ public class PlayPane extends JFrame {
 		gbc_questionModSelector.gridy = 3;
 		questionModPanel.add(questionModSelector, gbc_questionModSelector);
 		questionModSelector.setVisible(false);
-		
+
 		lblQuestionPerspective = new JLabel("*Perspective:");
 		lblQuestionPerspective.setMinimumSize(new Dimension(155, 32));
 		lblQuestionPerspective.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1771,7 +1748,7 @@ public class PlayPane extends JFrame {
 
 		questionPerspectiveField = new JTextField();
 		questionPerspectiveField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//questionPerspectiveField.setText("");
+		// questionPerspectiveField.setText("");
 		questionPerspectiveField.setColumns(30);
 		GridBagConstraints gbc_questionPerspectiveField = new GridBagConstraints();
 		gbc_questionPerspectiveField.gridwidth = 3;
@@ -1780,7 +1757,7 @@ public class PlayPane extends JFrame {
 		gbc_questionPerspectiveField.gridx = 1;
 		gbc_questionPerspectiveField.gridy = 4;
 		questionModPanel.add(questionPerspectiveField, gbc_questionPerspectiveField);
-		
+
 		lblQuestion = new JLabel("*Question:");
 		lblQuestion.setMinimumSize(new Dimension(155, 32));
 		lblQuestion.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1790,10 +1767,10 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestion.gridx = 0;
 		gbc_lblQuestion.gridy = 5;
 		questionModPanel.add(lblQuestion, gbc_lblQuestion);
-		
+
 		questionField = new JTextField();
 		questionField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//addQuestionField.setText("");
+		// addQuestionField.setText("");
 		questionField.setColumns(30);
 		GridBagConstraints gbc_questionField = new GridBagConstraints();
 		gbc_questionField.gridwidth = 3;
@@ -1802,7 +1779,7 @@ public class PlayPane extends JFrame {
 		gbc_questionField.gridx = 1;
 		gbc_questionField.gridy = 5;
 		questionModPanel.add(questionField, gbc_questionField);
-		
+
 		lblQuestionOrder = new JLabel("*Order:");
 		lblQuestionOrder.setMinimumSize(new Dimension(155, 32));
 		lblQuestionOrder.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1812,7 +1789,7 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestionOrder.gridx = 0;
 		gbc_lblQuestionOrder.gridy = 6;
 		questionModPanel.add(lblQuestionOrder, gbc_lblQuestionOrder);
-		
+
 		questionOrderComboBox = new JComboBox<String>();
 		questionOrderComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		questionOrderComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -1825,7 +1802,7 @@ public class PlayPane extends JFrame {
 		gbc_questionOrderComboBox.gridx = 1;
 		gbc_questionOrderComboBox.gridy = 6;
 		questionModPanel.add(questionOrderComboBox, gbc_questionOrderComboBox);
-		
+
 		lblOrderInfo = new JLabel("*Insert question into a position or add as last question (last number).");
 		lblOrderInfo.setMinimumSize(new Dimension(155, 32));
 		lblOrderInfo.setFont(new Font("Tahoma", Font.ITALIC, 10));
@@ -1836,7 +1813,7 @@ public class PlayPane extends JFrame {
 		gbc_lblOrderInfo.gridx = 2;
 		gbc_lblOrderInfo.gridy = 6;
 		questionModPanel.add(lblOrderInfo, gbc_lblOrderInfo);
-		
+
 		lblQuestionLayout = new JLabel("*Layout:");
 		lblQuestionLayout.setMinimumSize(new Dimension(155, 32));
 		lblQuestionLayout.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1859,7 +1836,7 @@ public class PlayPane extends JFrame {
 		gbc_questionLayoutComboBox.gridx = 1;
 		gbc_questionLayoutComboBox.gridy = 7;
 		questionModPanel.add(questionLayoutComboBox, gbc_questionLayoutComboBox);
-		
+
 		lblQuestionLayoutText = new JLabel("*Specific Layout:");
 		lblQuestionLayoutText.setMinimumSize(new Dimension(155, 32));
 		lblQuestionLayoutText.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1869,10 +1846,10 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestionLayoutText.gridx = 0;
 		gbc_lblQuestionLayoutText.gridy = 8;
 		questionModPanel.add(lblQuestionLayoutText, gbc_lblQuestionLayoutText);
-		
+
 		questionLayoutField = new JTextField();
 		questionLayoutField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//addQuestionField.setText("");
+		// addQuestionField.setText("");
 		questionLayoutField.setColumns(30);
 		questionLayoutField.setText("");
 		GridBagConstraints gbc_questionLayoutField = new GridBagConstraints();
@@ -1882,7 +1859,7 @@ public class PlayPane extends JFrame {
 		gbc_questionLayoutField.gridx = 1;
 		gbc_questionLayoutField.gridy = 8;
 		questionModPanel.add(questionLayoutField, gbc_questionLayoutField);
-		
+
 		lblQuestionSparql = new JLabel("*SPARQL Query:");
 		lblQuestionSparql.setMinimumSize(new Dimension(155, 32));
 		lblQuestionSparql.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1892,7 +1869,7 @@ public class PlayPane extends JFrame {
 		gbc_lblQuestionSparql.gridx = 0;
 		gbc_lblQuestionSparql.gridy = 9;
 		questionModPanel.add(lblQuestionSparql, gbc_lblQuestionSparql);
-		
+
 		questionSparqlScroll = new JScrollPane();
 		questionSparqlScroll.setMaximumSize(new Dimension(32767, 200));
 		questionSparqlScroll.setPreferredSize(new Dimension(500, 200));
@@ -1907,9 +1884,9 @@ public class PlayPane extends JFrame {
 
 		questionSparqlTextPane = new JTextPane();
 		questionSparqlTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		// questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
 		questionSparqlScroll.setViewportView(questionSparqlTextPane);
-		
+
 		lblAddParameter = new JLabel("Select a Parameter:");
 		lblAddParameter.setMinimumSize(new Dimension(155, 32));
 		lblAddParameter.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1919,7 +1896,7 @@ public class PlayPane extends JFrame {
 		gbc_lblAddParameter.gridx = 0;
 		gbc_lblAddParameter.gridy = 11;
 		questionModPanel.add(lblAddParameter, gbc_lblAddParameter);
-		
+
 		addParameterComboBox = new ParamComboBox(new String[0]);
 		addParameterComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		addParameterComboBox.setBackground(new Color(119, 136, 153));
@@ -1933,7 +1910,7 @@ public class PlayPane extends JFrame {
 		gbc_addParameterComboBox.gridx = 1;
 		gbc_addParameterComboBox.gridy = 11;
 		questionModPanel.add(addParameterComboBox, gbc_addParameterComboBox);
-		
+
 		questionAddParameterButton = new Button();
 		questionAddParameterButton.setText("Add Parameter");
 		GridBagConstraints gbc_questionAddParameterButton = new GridBagConstraints();
@@ -1943,7 +1920,7 @@ public class PlayPane extends JFrame {
 		gbc_questionAddParameterButton.gridy = 11;
 		questionModPanel.add(questionAddParameterButton, gbc_questionAddParameterButton);
 		Style.registerTargetClassName(questionAddParameterButton, ".standardButton");
-		
+
 		questionMoreOptionsButton = new Button();
 		questionMoreOptionsButton.setText("+ Advanced Param Settings");
 		questionMoreOptionsButton.setOpaque(false);
@@ -1956,7 +1933,7 @@ public class PlayPane extends JFrame {
 		gbc_questionMoreOptionsButton.gridy = 11;
 		questionModPanel.add(questionMoreOptionsButton, gbc_questionMoreOptionsButton);
 		Style.registerTargetClassName(questionMoreOptionsButton, ".standardButton");
-		
+
 		lblParameterDepend = new JLabel("Query Dependency:");
 		lblParameterDepend.setMinimumSize(new Dimension(155, 32));
 		lblParameterDepend.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1967,7 +1944,7 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterDepend.gridy = 12;
 		questionModPanel.add(lblParameterDepend, gbc_lblParameterDepend);
 		lblParameterDepend.setVisible(false);
-		
+
 		parameterDependScroll = new JScrollPane();
 		parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterDependScroll.setPreferredSize(new Dimension(100, 100));
@@ -1983,14 +1960,14 @@ public class PlayPane extends JFrame {
 
 		parameterDependTextPane = new JTextPane();
 		parameterDependTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		// questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
 		parameterDependScroll.setViewportView(parameterDependTextPane);
 		parameterDependTextPane.setText("Example:" + "\r" + "Instance_DEPEND" + "\t" + "Concept");
 		parameterDependTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
 		parameterDependTextPane.setForeground(Color.GRAY);
-		
+
 		lblParameterDependList = new JLabel("Parameter Dependencies:");
-		//lblParameterDependList.setMinimumSize(new Dimension(155, 32));
+		// lblParameterDependList.setMinimumSize(new Dimension(155, 32));
 		lblParameterDependList.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblParameterDependList = new GridBagConstraints();
 		gbc_lblParameterDependList.anchor = GridBagConstraints.WEST;
@@ -1999,15 +1976,15 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterDependList.gridy = 12;
 		questionModPanel.add(lblParameterDependList, gbc_lblParameterDependList);
 		lblParameterDependList.setVisible(false);
-		
+
 		parameterDependList = new JList();
-		//parameterDependList.setMinimumSize(new Dimension(155, 32));
+		// parameterDependList.setMinimumSize(new Dimension(155, 32));
 		parameterDependList.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
+
 		parameterDependScrollList = new JScrollPane(parameterDependList);
-		//parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
+		// parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterDependScrollList.setPreferredSize(new Dimension(120, 50));
-		//parameterDependScroll.setMinimumSize(new Dimension(0, 75));
+		// parameterDependScroll.setMinimumSize(new Dimension(0, 75));
 		GridBagConstraints gbc_parameterDependScrollList = new GridBagConstraints();
 		gbc_parameterDependScrollList.gridwidth = 1;
 		gbc_parameterDependScrollList.insets = new Insets(0, 20, 5, 5);
@@ -2016,7 +1993,7 @@ public class PlayPane extends JFrame {
 		gbc_parameterDependScrollList.gridy = 13;
 		questionModPanel.add(parameterDependScrollList, gbc_parameterDependScrollList);
 		parameterDependScrollList.setVisible(false);
-		
+
 		dependenciesDeleteButton = new Button();
 		dependenciesDeleteButton.setText("Delete");
 		GridBagConstraints gbc_dependenciesDeleteButton = new GridBagConstraints();
@@ -2027,7 +2004,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(dependenciesDeleteButton, gbc_dependenciesDeleteButton);
 		Style.registerTargetClassName(dependenciesDeleteButton, ".standardButton");
 		dependenciesDeleteButton.setVisible(false);
-		
+
 		dependenciesEditButton = new Button();
 		dependenciesEditButton.setText("Edit");
 		GridBagConstraints gbc_dependenciesEditButton = new GridBagConstraints();
@@ -2038,7 +2015,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(dependenciesEditButton, gbc_dependenciesEditButton);
 		Style.registerTargetClassName(dependenciesEditButton, ".standardButton");
 		dependenciesEditButton.setVisible(false);
-		
+
 		addParameterDependencyButton = new Button();
 		addParameterDependencyButton.setText("Add");
 		GridBagConstraints gbc_addParameterDependencyButton = new GridBagConstraints();
@@ -2049,9 +2026,9 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(addParameterDependencyButton, gbc_addParameterDependencyButton);
 		Style.registerTargetClassName(addParameterDependencyButton, ".standardButton");
 		addParameterDependencyButton.setVisible(false);
-		
+
 		lblParameterQueryList = new JLabel("Parameter Queries:");
-		//lblParameterQueryList.setMinimumSize(new Dimension(155, 32));
+		// lblParameterQueryList.setMinimumSize(new Dimension(155, 32));
 		lblParameterQueryList.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblParameterQueryList = new GridBagConstraints();
 		gbc_lblParameterQueryList.anchor = GridBagConstraints.WEST;
@@ -2060,15 +2037,15 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterQueryList.gridy = 14;
 		questionModPanel.add(lblParameterQueryList, gbc_lblParameterQueryList);
 		lblParameterQueryList.setVisible(false);
-		
+
 		parameterQueryList = new JList();
-		//parameterQueryList.setMinimumSize(new Dimension(155, 32));
+		// parameterQueryList.setMinimumSize(new Dimension(155, 32));
 		parameterQueryList.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
+
 		parameterQueryScrollList = new JScrollPane(parameterQueryList);
-		//parameterQueryScroll.setMaximumSize(new Dimension(32767, 200));
+		// parameterQueryScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterQueryScrollList.setPreferredSize(new Dimension(120, 50));
-		//parameterQueryScroll.setMinimumSize(new Dimension(0, 75));
+		// parameterQueryScroll.setMinimumSize(new Dimension(0, 75));
 		GridBagConstraints gbc_parameterQueryScrollList = new GridBagConstraints();
 		gbc_parameterQueryScrollList.gridwidth = 1;
 		gbc_parameterQueryScrollList.insets = new Insets(0, 20, 5, 5);
@@ -2077,7 +2054,7 @@ public class PlayPane extends JFrame {
 		gbc_parameterQueryScrollList.gridy = 15;
 		questionModPanel.add(parameterQueryScrollList, gbc_parameterQueryScrollList);
 		parameterQueryScrollList.setVisible(false);
-		
+
 		parameterQueriesDeleteButton = new Button();
 		parameterQueriesDeleteButton.setText("Delete");
 		GridBagConstraints gbc_parameterQueriesDeleteButton = new GridBagConstraints();
@@ -2088,7 +2065,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(parameterQueriesDeleteButton, gbc_parameterQueriesDeleteButton);
 		Style.registerTargetClassName(parameterQueriesDeleteButton, ".standardButton");
 		parameterQueriesDeleteButton.setVisible(false);
-		
+
 		parameterQueriesEditButton = new Button();
 		parameterQueriesEditButton.setText("Edit");
 		GridBagConstraints gbc_parameterQueriesEditButton = new GridBagConstraints();
@@ -2099,7 +2076,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(parameterQueriesEditButton, gbc_parameterQueriesEditButton);
 		Style.registerTargetClassName(parameterQueriesEditButton, ".standardButton");
 		parameterQueriesEditButton.setVisible(false);
-		
+
 		lblParameterQuery = new JLabel("Parameter Query:");
 		lblParameterQuery.setMinimumSize(new Dimension(155, 32));
 		lblParameterQuery.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -2110,7 +2087,7 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterQuery.gridy = 14;
 		questionModPanel.add(lblParameterQuery, gbc_lblParameterQuery);
 		lblParameterQuery.setVisible(false);
-		
+
 		parameterQueryScroll = new JScrollPane();
 		parameterQueryScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterQueryScroll.setPreferredSize(new Dimension(100, 100));
@@ -2126,13 +2103,13 @@ public class PlayPane extends JFrame {
 
 		parameterQueryTextPane = new JTextPane();
 		parameterQueryTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		// questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
 		parameterQueryScroll.setViewportView(parameterQueryTextPane);
-		parameterQueryTextPane.setText("Example:" + "\r" + "Concept_QUERY" + "\t" 
+		parameterQueryTextPane.setText("Example:" + "\r" + "Concept_QUERY" + "\t"
 				+ "SELECT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> ;} }");
 		parameterQueryTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
 		parameterQueryTextPane.setForeground(Color.GRAY);
-		
+
 		addParameterQueryButton = new Button();
 		addParameterQueryButton.setText("Add");
 		GridBagConstraints gbc_addParameterQueryButton = new GridBagConstraints();
@@ -2143,8 +2120,8 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(addParameterQueryButton, gbc_addParameterQueryButton);
 		Style.registerTargetClassName(addParameterQueryButton, ".standardButton");
 		addParameterQueryButton.setVisible(false);
-		
-		lblParameterOption = new JLabel ("Query Option:");
+
+		lblParameterOption = new JLabel("Query Option:");
 		lblParameterOption.setMinimumSize(new Dimension(155, 32));
 		lblParameterOption.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblParameterOption = new GridBagConstraints();
@@ -2154,7 +2131,7 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterOption.gridy = 16;
 		questionModPanel.add(lblParameterOption, gbc_lblParameterOption);
 		lblParameterOption.setVisible(false);
-		
+
 		parameterOptionScroll = new JScrollPane();
 		parameterOptionScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterOptionScroll.setPreferredSize(new Dimension(100, 100));
@@ -2167,15 +2144,15 @@ public class PlayPane extends JFrame {
 		gbc_parameterOptionScroll.gridy = 17;
 		questionModPanel.add(parameterOptionScroll, gbc_parameterOptionScroll);
 		parameterOptionScroll.setVisible(false);
-		
+
 		parameterOptionTextPane = new JTextPane();
 		parameterOptionTextPane.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		//questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
+		// questionSparqlTextPane.setText("SELECT ?s ?p ?o WHERE { }");
 		parameterOptionScroll.setViewportView(parameterOptionTextPane);
 		parameterOptionTextPane.setText("Example:" + "\r" + "OverrideMonth_OPTION" + "\t" + "1;2;3;4;5;6;7;8;9;10;11;12");
 		parameterOptionTextPane.setFont(new Font("Tahoma", Font.ITALIC, 11));
 		parameterOptionTextPane.setForeground(Color.GRAY);
-		
+
 		lblParameterOptionList = new JLabel("Parameter Options:");
 		lblParameterOptionList.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblParameterOptionList = new GridBagConstraints();
@@ -2185,15 +2162,15 @@ public class PlayPane extends JFrame {
 		gbc_lblParameterOptionList.gridy = 16;
 		questionModPanel.add(lblParameterOptionList, gbc_lblParameterOptionList);
 		lblParameterOptionList.setVisible(false);
-		
+
 		parameterOptionList = new JList();
-		//parameterDependList.setMinimumSize(new Dimension(155, 32));
+		// parameterDependList.setMinimumSize(new Dimension(155, 32));
 		parameterOptionList.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		
+
 		parameterOptionScrollList = new JScrollPane(parameterOptionList);
-		//parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
+		// parameterDependScroll.setMaximumSize(new Dimension(32767, 200));
 		parameterOptionScrollList.setPreferredSize(new Dimension(120, 50));
-		//parameterDependScroll.setMinimumSize(new Dimension(0, 75));
+		// parameterDependScroll.setMinimumSize(new Dimension(0, 75));
 		GridBagConstraints gbc_parameterOptionScrollList = new GridBagConstraints();
 		gbc_parameterOptionScrollList.gridwidth = 1;
 		gbc_parameterOptionScrollList.insets = new Insets(0, 20, 5, 5);
@@ -2202,7 +2179,7 @@ public class PlayPane extends JFrame {
 		gbc_parameterOptionScrollList.gridy = 17;
 		questionModPanel.add(parameterOptionScrollList, gbc_parameterOptionScrollList);
 		parameterOptionScrollList.setVisible(false);
-		
+
 		optionsDeleteButton = new Button();
 		optionsDeleteButton.setText("Delete");
 		GridBagConstraints gbc_optionsDeleteButton = new GridBagConstraints();
@@ -2213,7 +2190,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(optionsDeleteButton, gbc_optionsDeleteButton);
 		Style.registerTargetClassName(optionsDeleteButton, ".standardButton");
 		optionsDeleteButton.setVisible(false);
-		
+
 		optionsEditButton = new Button();
 		optionsEditButton.setText("Edit");
 		GridBagConstraints gbc_optionsEditButton = new GridBagConstraints();
@@ -2224,7 +2201,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(optionsEditButton, gbc_optionsEditButton);
 		Style.registerTargetClassName(optionsEditButton, ".standardButton");
 		optionsEditButton.setVisible(false);
-		
+
 		addParameterOptionButton = new Button();
 		addParameterOptionButton.setText("Add");
 		GridBagConstraints gbc_addParameterOptionButton = new GridBagConstraints();
@@ -2235,7 +2212,7 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(addParameterOptionButton, gbc_addParameterOptionButton);
 		Style.registerTargetClassName(addParameterOptionButton, ".standardButton");
 		addParameterOptionButton.setVisible(false);
-		
+
 		questionModButton = new Button();
 		questionModButton.setText("Add Question");
 		GridBagConstraints gbc_questionModButton = new GridBagConstraints();
@@ -2257,7 +2234,8 @@ public class PlayPane extends JFrame {
 		gbl_financialsPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_financialsPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_financialsPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_financialsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_financialsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 0.0, Double.MIN_VALUE };
 		financialsPanel.setLayout(gbl_financialsPanel);
 
 		serviceSelectionBtn = new ToggleButton("Service Selection Mode");
@@ -2321,7 +2299,7 @@ public class PlayPane extends JFrame {
 		financialsPanel.add(lblTransitionCostReports, gbc_lblTransitionCostReports);
 
 		JLabel lblTransitionEstimatesGenerator = new JLabel("Transition Estimates Generator:");
-		lblTransitionEstimatesGenerator.setFont(new Font("Tahoma", Font.PLAIN,	12));
+		lblTransitionEstimatesGenerator.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblTransitionEstimatesGenerator = new GridBagConstraints();
 		gbc_lblTransitionEstimatesGenerator.gridwidth = 6;
 		gbc_lblTransitionEstimatesGenerator.anchor = GridBagConstraints.NORTHWEST;
@@ -2343,9 +2321,9 @@ public class PlayPane extends JFrame {
 		financialsPanel.add(transReportCheckBoxPanel, gbc_transReportCheckBoxPanel);
 		GridBagLayout gbl_transReportCheckBoxPanel = new GridBagLayout();
 		gbl_transReportCheckBoxPanel.columnWidths = new int[] { 0, 0 };
-		gbl_transReportCheckBoxPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0,	0 };
+		gbl_transReportCheckBoxPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 		gbl_transReportCheckBoxPanel.columnWeights = new double[] { 0.0, Double.MIN_VALUE };
-		gbl_transReportCheckBoxPanel.rowWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_transReportCheckBoxPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		transReportCheckBoxPanel.setLayout(gbl_transReportCheckBoxPanel);
 
 		JLabel lblSelectCostsTo = new JLabel("Select Costs to View");
@@ -2357,7 +2335,7 @@ public class PlayPane extends JFrame {
 		transReportCheckBoxPanel.add(lblSelectCostsTo, gbc_lblSelectCostsTo);
 
 		chckbxDataFederationTransReport = new JCheckBox("Data Federation");
-		chckbxDataFederationTransReport.setFont(new Font("Tahoma", Font.PLAIN,	12));
+		chckbxDataFederationTransReport.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_chckbxDataFederationTransReport = new GridBagConstraints();
 		gbc_chckbxDataFederationTransReport.anchor = GridBagConstraints.WEST;
 		gbc_chckbxDataFederationTransReport.insets = new Insets(0, 0, 5, 0);
@@ -2467,7 +2445,7 @@ public class PlayPane extends JFrame {
 		gbc_TransReportTypecomboBox.gridx = 0;
 		gbc_TransReportTypecomboBox.gridy = 1;
 		transReportTypeDropDownPanel.add(TransReportTypecomboBox, gbc_TransReportTypecomboBox);
-		TransReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] {"System Specific", "Generic" }));
+		TransReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "System Specific", "Generic" }));
 
 		transReportFormDropDownPanel = new JPanel();
 		transReportFormDropDownPanel.setBackground(SystemColor.control);
@@ -2482,7 +2460,7 @@ public class PlayPane extends JFrame {
 		gbl_transReportFormDropDownPanel.columnWidths = new int[] { 0, 0 };
 		gbl_transReportFormDropDownPanel.rowHeights = new int[] { 0, 0, 0, 0 };
 		gbl_transReportFormDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_transReportFormDropDownPanel.rowWeights = new double[] { 0.0, 0.0,	0.0, Double.MIN_VALUE };
+		gbl_transReportFormDropDownPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		transReportFormDropDownPanel.setLayout(gbl_transReportFormDropDownPanel);
 
 		JLabel lblSelectReportFormat = new JLabel("Select Report Format");
@@ -2491,7 +2469,7 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectReportFormat.insets = new Insets(0, 0, 5, 0);
 		gbc_lblSelectReportFormat.gridx = 0;
 		gbc_lblSelectReportFormat.gridy = 0;
-		transReportFormDropDownPanel.add(lblSelectReportFormat,	gbc_lblSelectReportFormat);
+		transReportFormDropDownPanel.add(lblSelectReportFormat, gbc_lblSelectReportFormat);
 
 		TransReportFormatcomboBox = new JComboBox();
 		TransReportFormatcomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -2620,10 +2598,11 @@ public class PlayPane extends JFrame {
 		JScrollPane tapCalcScroll = new JScrollPane(tapCalcPanel);
 		tapTabPane.addTab("Additional Calculations", null, tapCalcScroll, null);
 		GridBagLayout tapCalcPanelLayout = new GridBagLayout();
-		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		tapCalcPanelLayout.rowHeights = new int[] { 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		tapCalcPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 1.0 };
 		tapCalcPanelLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-		tapCalcPanelLayout.columnWidths = new int[] { 10, 10, 0, 0, 0, 0, 0, 0, 0};
+		tapCalcPanelLayout.columnWidths = new int[] { 10, 10, 0, 0, 0, 0, 0, 0, 0 };
 		tapCalcPanel.setLayout(tapCalcPanelLayout);
 
 		JLabel healthGridTitleLabel = new JLabel("Business Value and Technical Maturity Calculations");
@@ -2801,7 +2780,7 @@ public class PlayPane extends JFrame {
 		gbc_btnRunCapabilityBV.gridy = 12;
 		tapCalcPanel.add(btnRunCapabilityBV, gbc_btnRunCapabilityBV);
 		Style.registerTargetClassName(btnRunCapabilityBV, ".standardButton");
-		
+
 		separator = new JSeparator();
 		GridBagConstraints gbc_separator = new GridBagConstraints();
 		gbc_separator.fill = GridBagConstraints.HORIZONTAL;
@@ -2810,7 +2789,7 @@ public class PlayPane extends JFrame {
 		gbc_separator.gridx = 0;
 		gbc_separator.gridy = 13;
 		tapCalcPanel.add(separator, gbc_separator);
-		
+
 		JLabel lblUpdateActiveSystem = new JLabel("Update TAP Core Active Systems");
 		lblUpdateActiveSystem.setFont(new Font("Tahoma", Font.BOLD, 12));
 		lblUpdateActiveSystem.setBackground(Color.WHITE);
@@ -2821,7 +2800,7 @@ public class PlayPane extends JFrame {
 		gbc_lblUpdateActiveSystem.gridx = 0;
 		gbc_lblUpdateActiveSystem.gridy = 14;
 		tapCalcPanel.add(lblUpdateActiveSystem, gbc_lblUpdateActiveSystem);
-		
+
 		btnUpdateActiveSystems = new CustomButton("Update TAP Core Active Systems");
 		btnUpdateActiveSystems.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnUpdateActiveSystems = new GridBagConstraints();
@@ -2832,7 +2811,7 @@ public class PlayPane extends JFrame {
 		gbc_btnUpdateActiveSystems.gridy = 15;
 		tapCalcPanel.add(btnUpdateActiveSystems, gbc_btnUpdateActiveSystems);
 		Style.registerTargetClassName(btnUpdateActiveSystems, ".standardButton");
-		
+
 		JSeparator separateActiveSystems_AggregateTapServiceIntoTapCore = new JSeparator();
 		GridBagConstraints gbc_separateActiveSystems_AggregateTapServiceIntoTapCore = new GridBagConstraints();
 		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.fill = GridBagConstraints.HORIZONTAL;
@@ -2841,7 +2820,7 @@ public class PlayPane extends JFrame {
 		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.gridx = 0;
 		gbc_separateActiveSystems_AggregateTapServiceIntoTapCore.gridy = 16;
 		tapCalcPanel.add(separateActiveSystems_AggregateTapServiceIntoTapCore, gbc_separateActiveSystems_AggregateTapServiceIntoTapCore);
-		
+
 		JPanel aggregateTapServicesIntoTapCorePanel = new JPanel();
 		aggregateTapServicesIntoTapCorePanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_aggregateTapServicesIntoTapCorePanel = new GridBagConstraints();
@@ -2868,7 +2847,7 @@ public class PlayPane extends JFrame {
 		gbc_lblAggregateTapServiceIntoTapCore.gridx = 0;
 		gbc_lblAggregateTapServiceIntoTapCore.gridy = 0;
 		aggregateTapServicesIntoTapCorePanel.add(lblAggregateTapServiceIntoTapCore, gbc_lblAggregateTapServiceIntoTapCore);
-		
+
 		JLabel lblSelectTapServicesToInsertIntoTapCore = new JLabel("Select TAP Services Database:");
 		GridBagConstraints gbc_lblSelectTapServicesToInsertIntoTapCore = new GridBagConstraints();
 		gbc_lblSelectTapServicesToInsertIntoTapCore.anchor = GridBagConstraints.WEST;
@@ -2886,7 +2865,7 @@ public class PlayPane extends JFrame {
 		gbc_selectTapServicesComboBox.gridx = 2;
 		gbc_selectTapServicesComboBox.gridy = 1;
 		aggregateTapServicesIntoTapCorePanel.add(selectTapServicesComboBox, gbc_selectTapServicesComboBox);
-		
+
 		JLabel lblSelectTapCoreToInsertTapServices = new JLabel("Select TAP Core Database:");
 		GridBagConstraints gbc_lblSelectTapCoreToInsertTapServices = new GridBagConstraints();
 		gbc_lblSelectTapCoreToInsertTapServices.anchor = GridBagConstraints.WEST;
@@ -2894,7 +2873,7 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectTapCoreToInsertTapServices.gridx = 1;
 		gbc_lblSelectTapCoreToInsertTapServices.gridy = 2;
 		aggregateTapServicesIntoTapCorePanel.add(lblSelectTapCoreToInsertTapServices, gbc_lblSelectTapCoreToInsertTapServices);
-		
+
 		selectTapCoreForAggregationComboBox = new JComboBox<String>();
 		selectTapCoreForAggregationComboBox.setEditable(false);
 		GridBagConstraints gbc_selectTapCoreForAggregationComboBox = new GridBagConstraints();
@@ -2915,10 +2894,7 @@ public class PlayPane extends JFrame {
 		gbc_btnAggregateTapServicesIntoTapCore.gridy = 3;
 		aggregateTapServicesIntoTapCorePanel.add(btnAggregateTapServicesIntoTapCore, gbc_btnAggregateTapServicesIntoTapCore);
 		Style.registerTargetClassName(btnAggregateTapServicesIntoTapCore, ".standardButton");
-		
-		//TODO
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
+
 		JSeparator separateFutureInterfaceDB = new JSeparator();
 		GridBagConstraints gbc_separateFutureInterfaceDB = new GridBagConstraints();
 		gbc_separateFutureInterfaceDB.fill = GridBagConstraints.HORIZONTAL;
@@ -2927,7 +2903,7 @@ public class PlayPane extends JFrame {
 		gbc_separateFutureInterfaceDB.gridx = 0;
 		gbc_separateFutureInterfaceDB.gridy = 18;
 		tapCalcPanel.add(separateFutureInterfaceDB, gbc_separateFutureInterfaceDB);
-		
+
 		JPanel createFutureInterfaceDB = new JPanel();
 		createFutureInterfaceDB.setBackground(SystemColor.control);
 		GridBagConstraints gbc_createFutureInterfaceDB = new GridBagConstraints();
@@ -2954,7 +2930,7 @@ public class PlayPane extends JFrame {
 		gbc_lblCreateFutureInterfaceDB.gridx = 0;
 		gbc_lblCreateFutureInterfaceDB.gridy = 0;
 		createFutureInterfaceDB.add(lblCreateFutureInterfaceDB, gbc_lblCreateFutureInterfaceDB);
-		
+
 		JLabel lblSelectHRCoreForFutureInterfaceDBComboBox = new JLabel("Select HR Core Database:");
 		GridBagConstraints gbc_lblSelectHRCoreForFutureInterfaceDBComboBox = new GridBagConstraints();
 		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.anchor = GridBagConstraints.WEST;
@@ -2962,7 +2938,7 @@ public class PlayPane extends JFrame {
 		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.gridx = 1;
 		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.gridy = 1;
 		createFutureInterfaceDB.add(lblSelectHRCoreForFutureInterfaceDBComboBox, gbc_lblSelectHRCoreForFutureInterfaceDBComboBox);
-		
+
 		selectHRCoreForFutureInterfaceDBComboBox = new JComboBox<String>();
 		selectHRCoreForFutureInterfaceDBComboBox.setEditable(false);
 		GridBagConstraints gbc_selectHRCoreForFutureInterfaceDBComboBox = new GridBagConstraints();
@@ -2972,7 +2948,7 @@ public class PlayPane extends JFrame {
 		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridx = 2;
 		gbc_selectHRCoreForFutureInterfaceDBComboBox.gridy = 1;
 		createFutureInterfaceDB.add(selectHRCoreForFutureInterfaceDBComboBox, gbc_selectHRCoreForFutureInterfaceDBComboBox);
-		
+
 		JLabel lblSelectFutureInterfaceDatabase = new JLabel("Select Future Interface Database:");
 		GridBagConstraints gbc_lblSelectFutureInterfaceDatabase = new GridBagConstraints();
 		gbc_lblSelectFutureInterfaceDatabase.anchor = GridBagConstraints.WEST;
@@ -2998,7 +2974,7 @@ public class PlayPane extends JFrame {
 		gbc_gbc_lblSelectFutureCostInterfaceDatabase.gridx = 1;
 		gbc_gbc_lblSelectFutureCostInterfaceDatabase.gridy = 3;
 		createFutureInterfaceDB.add(gbc_lblSelectFutureCostInterfaceDatabase, gbc_gbc_lblSelectFutureCostInterfaceDatabase);
-		
+
 		selectFutureCostInterfaceComboBox = new JComboBox<String>();
 		selectFutureCostInterfaceComboBox.setEditable(false);
 		GridBagConstraints gbc_selectFutureCostInterfaceComboBox = new GridBagConstraints();
@@ -3019,9 +2995,9 @@ public class PlayPane extends JFrame {
 		gbc_btnCreateFutureInterfaceDatabase.gridy = 4;
 		createFutureInterfaceDB.add(btnCreateFutureInterfaceDatabase, gbc_btnCreateFutureInterfaceDatabase);
 		Style.registerTargetClassName(btnCreateFutureInterfaceDatabase, ".standardButton");
-		
-		////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
+
+		// //////////////////////////////////////////////////////////////////////////////////////////////////////
+
 		JSeparator separateCentralSystemBPActInsert = new JSeparator();
 		GridBagConstraints gbc_separateCentralSystemBPActInsert = new GridBagConstraints();
 		gbc_separateCentralSystemBPActInsert.fill = GridBagConstraints.HORIZONTAL;
@@ -3030,7 +3006,7 @@ public class PlayPane extends JFrame {
 		gbc_separateCentralSystemBPActInsert.gridx = 0;
 		gbc_separateCentralSystemBPActInsert.gridy = 20;
 		tapCalcPanel.add(separateCentralSystemBPActInsert, gbc_separateCentralSystemBPActInsert);
-		
+
 		JPanel inferredRelationshipInsertPanel = new JPanel();
 		inferredRelationshipInsertPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_inferredRelationshipInsertPanel = new GridBagConstraints();
@@ -3056,7 +3032,7 @@ public class PlayPane extends JFrame {
 		gbc_inferredRelationshipInsertLabel.gridx = 1;
 		gbc_inferredRelationshipInsertLabel.gridy = 1;
 		inferredRelationshipInsertPanel.add(inferredRelationshipInsertLabel, gbc_inferredRelationshipInsertLabel);
-		
+
 		JLabel centralSystemBPActInsertLabel = new JLabel("Sys-BP and Sys-Cap:");
 		centralSystemBPActInsertLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_centralSystemBPActInsertLabel = new GridBagConstraints();
@@ -3066,7 +3042,7 @@ public class PlayPane extends JFrame {
 		gbc_centralSystemBPActInsertLabel.gridx = 1;
 		gbc_centralSystemBPActInsertLabel.gridy = 2;
 		inferredRelationshipInsertPanel.add(centralSystemBPActInsertLabel, gbc_centralSystemBPActInsertLabel);
-		
+
 		JLabel logicTypelabel = new JLabel("Select Logic Type:");
 		logicTypelabel.setFont(new Font("Tahoma", Font.ITALIC, 12));
 		GridBagConstraints gbc_logicTypelabel = new GridBagConstraints();
@@ -3076,7 +3052,7 @@ public class PlayPane extends JFrame {
 		gbc_logicTypelabel.gridx = 1;
 		gbc_logicTypelabel.gridy = 3;
 		inferredRelationshipInsertPanel.add(logicTypelabel, gbc_logicTypelabel);
-		
+
 		relInferLogicTypeComboBox = new JComboBox();
 		relInferLogicTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		relInferLogicTypeComboBox.setBackground(Color.GRAY);
@@ -3086,7 +3062,7 @@ public class PlayPane extends JFrame {
 		gbc_relInferLogicTypeComboBox.gridx = 2;
 		gbc_relInferLogicTypeComboBox.gridy = 3;
 		inferredRelationshipInsertPanel.add(relInferLogicTypeComboBox, gbc_relInferLogicTypeComboBox);
-		relInferLogicTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "AND" , "OR" }));
+		relInferLogicTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "AND", "OR" }));
 
 		JLabel activityThresholdlabel_1 = new JLabel("Threshold Values for Inferred Relationships:");
 		activityThresholdlabel_1.setFont(new Font("Tahoma", Font.ITALIC, 12));
@@ -3130,7 +3106,7 @@ public class PlayPane extends JFrame {
 		gbc_dataObjectThresholdValueTextField.gridy = 6;
 		inferredRelationshipInsertPanel.add(dataObjectThresholdValueTextField, gbc_dataObjectThresholdValueTextField);
 		dataObjectThresholdValueTextField.setColumns(12);
-		
+
 		bluThresholdValueTextField = new JTextField();
 		bluThresholdValueTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		bluThresholdValueTextField.setMinimumSize(new Dimension(61, 28));
@@ -3144,7 +3120,7 @@ public class PlayPane extends JFrame {
 		gbc_bluThresholdValueTextField.gridx = 2;
 		gbc_bluThresholdValueTextField.gridy = 6;
 		inferredRelationshipInsertPanel.add(bluThresholdValueTextField, gbc_bluThresholdValueTextField);
-		bluThresholdValueTextField.setColumns(12);		
+		bluThresholdValueTextField.setColumns(12);
 
 		btnSysBPCapInsert = new CustomButton("Run Relationship Insert");
 		btnSysBPCapInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -3156,7 +3132,7 @@ public class PlayPane extends JFrame {
 		gbc_btnCentralSysBPActInsert.gridy = 7;
 		inferredRelationshipInsertPanel.add(btnSysBPCapInsert, gbc_btnCentralSysBPActInsert);
 		Style.registerTargetClassName(btnSysBPCapInsert, ".standardButton");
-		
+
 		JLabel SORpropInsertLabel = new JLabel("   Source of Record Prop Insert:");
 		SORpropInsertLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_SORpropInsertLabel = new GridBagConstraints();
@@ -3166,7 +3142,7 @@ public class PlayPane extends JFrame {
 		gbc_SORpropInsertLabel.gridx = 1;
 		gbc_SORpropInsertLabel.gridy = 8;
 		inferredRelationshipInsertPanel.add(SORpropInsertLabel, gbc_SORpropInsertLabel);
-		
+
 		btnSORInsert = new CustomButton("Run SOR Insert");
 		btnSORInsert.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnSORInsert = new GridBagConstraints();
@@ -3177,7 +3153,7 @@ public class PlayPane extends JFrame {
 		gbc_btnSORInsert.gridy = 8;
 		inferredRelationshipInsertPanel.add(btnSORInsert, gbc_btnSORInsert);
 		Style.registerTargetClassName(btnSORInsert, ".standardButton");
-		
+
 		JPanel tapReportPanel = new JPanel();
 		tapReportPanel.setBackground(SystemColor.control);
 		JScrollPane tapReportScroll = new JScrollPane(tapReportPanel);
@@ -3201,7 +3177,7 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_tapReportTopPanel = new GridBagLayout();
 		gbl_tapReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
 		gbl_tapReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_tapReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+		gbl_tapReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		gbl_tapReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		tapReportTopPanel.setLayout(gbl_tapReportTopPanel);
 
@@ -3252,7 +3228,7 @@ public class PlayPane extends JFrame {
 
 		FHPCheckBox = new JCheckBox("FHP");
 		functionalAreaPanel.add(FHPCheckBox);
-		
+
 		DHMSMCheckBox = new JCheckBox("DHMSM");
 		functionalAreaPanel.add(DHMSMCheckBox);
 
@@ -3335,7 +3311,7 @@ public class PlayPane extends JFrame {
 		updateTaskWeightPanel.add(btnUpdateVendorDB, gbc_btnUpdateVendorDB);
 		btnUpdateVendorDB.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(btnUpdateVendorDB, ".standardButton");
-		
+
 		btnCalculateVendorTMAlone = new CustomButton("Calculate External Stability");
 		btnCalculateVendorTMAlone.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnCalculateVendorTMAlone = new GridBagConstraints();
@@ -3344,8 +3320,8 @@ public class PlayPane extends JFrame {
 		gbc_btnCalculateVendorTMAlone.gridx = 2;
 		gbc_btnCalculateVendorTMAlone.gridy = 2;
 		gbc_btnCalculateVendorTMAlone.fill = GridBagConstraints.HORIZONTAL;
-		updateTaskWeightPanel.add(btnCalculateVendorTMAlone,gbc_btnCalculateVendorTMAlone);
-		Style.registerTargetClassName(btnCalculateVendorTMAlone,".standardButton");
+		updateTaskWeightPanel.add(btnCalculateVendorTMAlone, gbc_btnCalculateVendorTMAlone);
+		Style.registerTargetClassName(btnCalculateVendorTMAlone, ".standardButton");
 
 		JPanel deconflictingPanel = new JPanel();
 		deconflictingPanel.setBackground(SystemColor.control);
@@ -3356,10 +3332,10 @@ public class PlayPane extends JFrame {
 		gbc_deconflictingPanel.gridy = 2;
 		tapReportPanel.add(deconflictingPanel, gbc_deconflictingPanel);
 		GridBagLayout gbl_deconflictingPanel = new GridBagLayout();
-		gbl_deconflictingPanel.columnWidths = new int[]{10, 10, 0, 0, 75, 75, 300};
-		gbl_deconflictingPanel.rowHeights = new int[]{0, 0, 0, 0, 0};
-		gbl_deconflictingPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-		gbl_deconflictingPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0};
+		gbl_deconflictingPanel.columnWidths = new int[] { 10, 10, 0, 0, 75, 75, 300 };
+		gbl_deconflictingPanel.rowHeights = new int[] { 0, 0, 0, 0, 0 };
+		gbl_deconflictingPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+		gbl_deconflictingPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
 		deconflictingPanel.setLayout(gbl_deconflictingPanel);
 
 		JLabel deconflictingTitleLabel = new JLabel("Generate Deconflicting and Missing ICD/Data Report");
@@ -3369,7 +3345,7 @@ public class PlayPane extends JFrame {
 		gbc_deconflictingTitleLabel.insets = new Insets(5, 0, 10, 0);
 		gbc_deconflictingTitleLabel.gridx = 5;
 		gbc_deconflictingTitleLabel.gridy = 0;
-		updateTaskWeightPanel.add(deconflictingTitleLabel,	gbc_deconflictingTitleLabel);
+		updateTaskWeightPanel.add(deconflictingTitleLabel, gbc_deconflictingTitleLabel);
 		deconflictingTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 
 		btnDeconflictingReport = new CustomButton("Generate Report");
@@ -3380,7 +3356,7 @@ public class PlayPane extends JFrame {
 		gbc_btnDeconflictingReport.insets = new Insets(0, 0, 5, 5);
 		gbc_btnDeconflictingReport.gridx = 5;
 		gbc_btnDeconflictingReport.gridy = 1;
-		updateTaskWeightPanel.add(btnDeconflictingReport,gbc_btnDeconflictingReport);
+		updateTaskWeightPanel.add(btnDeconflictingReport, gbc_btnDeconflictingReport);
 		Style.registerTargetClassName(btnDeconflictingReport, ".standardButton");
 
 		separator_7 = new JSeparator();
@@ -3404,7 +3380,8 @@ public class PlayPane extends JFrame {
 		gbl_FactSheetPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_FactSheetPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_FactSheetPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_FactSheetPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, Double.MIN_VALUE };
+		gbl_FactSheetPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				Double.MIN_VALUE };
 		FactSheetPanel.setLayout(gbl_FactSheetPanel);
 
 		JLabel FactSheetTitleLabel = new JLabel("Services Fact Sheet Reports");
@@ -3435,12 +3412,12 @@ public class PlayPane extends JFrame {
 		gbc_factSheetReportSysDropDownPanel.fill = GridBagConstraints.BOTH;
 		gbc_factSheetReportSysDropDownPanel.gridx = 4;
 		gbc_factSheetReportSysDropDownPanel.gridy = 3;
-		FactSheetPanel.add(factSheetReportSysDropDownPanel,	gbc_factSheetReportSysDropDownPanel);
+		FactSheetPanel.add(factSheetReportSysDropDownPanel, gbc_factSheetReportSysDropDownPanel);
 		GridBagLayout gbl_factSheetReportSysDropDownPanel = new GridBagLayout();
 		gbl_factSheetReportSysDropDownPanel.columnWidths = new int[] { 0, 0 };
 		gbl_factSheetReportSysDropDownPanel.rowHeights = new int[] { 0, 0, 0 };
-		gbl_factSheetReportSysDropDownPanel.columnWeights = new double[] { 1.0,Double.MIN_VALUE };
-		gbl_factSheetReportSysDropDownPanel.rowWeights = new double[] { 0.0,0.0, Double.MIN_VALUE };
+		gbl_factSheetReportSysDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_factSheetReportSysDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		factSheetReportSysDropDownPanel.setLayout(gbl_factSheetReportSysDropDownPanel);
 		factSheetReportSysDropDownPanel.setVisible(false);
 
@@ -3450,7 +3427,7 @@ public class PlayPane extends JFrame {
 		gbc_lblFactSheetSelectSystem.insets = new Insets(0, 0, 5, 0);
 		gbc_lblFactSheetSelectSystem.gridx = 0;
 		gbc_lblFactSheetSelectSystem.gridy = 0;
-		factSheetReportSysDropDownPanel.add(lblFactSheetSelectSystem,gbc_lblFactSheetSelectSystem);
+		factSheetReportSysDropDownPanel.add(lblFactSheetSelectSystem, gbc_lblFactSheetSelectSystem);
 
 		factSheetReportSyscomboBox = new FactSheetReportComboBox(fetching);
 		factSheetReportSyscomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -3460,7 +3437,7 @@ public class PlayPane extends JFrame {
 		gbc_factSheetReportSyscomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_factSheetReportSyscomboBox.gridx = 0;
 		gbc_factSheetReportSyscomboBox.gridy = 1;
-		factSheetReportSysDropDownPanel.add(factSheetReportSyscomboBox,	gbc_factSheetReportSyscomboBox);
+		factSheetReportSysDropDownPanel.add(factSheetReportSyscomboBox, gbc_factSheetReportSyscomboBox);
 
 		factSheetReportTypeDropDownPanel = new JPanel();
 		factSheetReportTypeDropDownPanel.setBackground(SystemColor.control);
@@ -3470,14 +3447,13 @@ public class PlayPane extends JFrame {
 		gbc_factSheetReportTypeDropDownPanel.fill = GridBagConstraints.BOTH;
 		gbc_factSheetReportTypeDropDownPanel.gridx = 3;
 		gbc_factSheetReportTypeDropDownPanel.gridy = 3;
-		FactSheetPanel.add(factSheetReportTypeDropDownPanel,gbc_factSheetReportTypeDropDownPanel);
+		FactSheetPanel.add(factSheetReportTypeDropDownPanel, gbc_factSheetReportTypeDropDownPanel);
 		GridBagLayout gbl_factSheetReportTypeDropDownPanel = new GridBagLayout();
 		gbl_factSheetReportTypeDropDownPanel.columnWidths = new int[] { 0, 0 };
 		gbl_factSheetReportTypeDropDownPanel.rowHeights = new int[] { 0, 0, 0 };
-		gbl_factSheetReportTypeDropDownPanel.columnWeights = new double[] {	1.0, Double.MIN_VALUE };
-		gbl_factSheetReportTypeDropDownPanel.rowWeights = new double[] { 0.0,0.0, Double.MIN_VALUE };
+		gbl_factSheetReportTypeDropDownPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_factSheetReportTypeDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		factSheetReportTypeDropDownPanel.setLayout(gbl_factSheetReportTypeDropDownPanel);
-		
 
 		JLabel lblSelectFactSheetReportType = new JLabel("Select Report Type");
 		lblSelectFactSheetReportType.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -3495,7 +3471,7 @@ public class PlayPane extends JFrame {
 		gbc_factSheetReportTypecomboBox.gridx = 0;
 		gbc_factSheetReportTypecomboBox.gridy = 1;
 		factSheetReportTypeDropDownPanel.add(factSheetReportTypecomboBox, gbc_factSheetReportTypecomboBox);
-		factSheetReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems" , "System Specific" }));
+		factSheetReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems", "System Specific" }));
 
 		btnFactSheetReport = new CustomButton("Generate Fact Sheet Report");
 		btnFactSheetReport.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -3546,12 +3522,13 @@ public class PlayPane extends JFrame {
 		gbc_TaskerGenerationPanel.gridx = 0;
 		gbc_TaskerGenerationPanel.gridy = 6;
 		tapReportPanel.add(TaskerGenerationPanel, gbc_TaskerGenerationPanel);
-		
+
 		GridBagLayout gbl_TaskerGenerationPanel = new GridBagLayout();
-		gbl_TaskerGenerationPanel.columnWidths = new int[] {30, 0, 30, 30, 60, 30, 30, 30, 30, 30, 0};
+		gbl_TaskerGenerationPanel.columnWidths = new int[] { 30, 0, 30, 30, 60, 30, 30, 30, 30, 30, 0 };
 		gbl_TaskerGenerationPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_TaskerGenerationPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	0.0, 0.0, Double.MIN_VALUE };
+		gbl_TaskerGenerationPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 0.0, Double.MIN_VALUE };
 		TaskerGenerationPanel.setLayout(gbl_TaskerGenerationPanel);
 
 		JLabel TaskerGenerationTitleLabel = new JLabel("Tasker and System Info Report Generation");
@@ -3570,7 +3547,7 @@ public class PlayPane extends JFrame {
 		gbc_lblTaskerGenerationSelectSystem.insets = new Insets(0, 0, 5, 0);
 		gbc_lblTaskerGenerationSelectSystem.gridx = 1;
 		gbc_lblTaskerGenerationSelectSystem.gridy = 1;
-		TaskerGenerationPanel.add(lblTaskerGenerationSelectSystem,gbc_lblTaskerGenerationSelectSystem);
+		TaskerGenerationPanel.add(lblTaskerGenerationSelectSystem, gbc_lblTaskerGenerationSelectSystem);
 
 		TaskerGenerationSyscomboBox = new FactSheetReportComboBox(fetching);
 		TaskerGenerationSyscomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -3580,8 +3557,8 @@ public class PlayPane extends JFrame {
 		gbc_TaskerGenerationSyscomboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_TaskerGenerationSyscomboBox.gridx = 1;
 		gbc_TaskerGenerationSyscomboBox.gridy = 2;
-		TaskerGenerationPanel.add(TaskerGenerationSyscomboBox,	gbc_TaskerGenerationSyscomboBox);		
-		
+		TaskerGenerationPanel.add(TaskerGenerationSyscomboBox, gbc_TaskerGenerationSyscomboBox);
+
 		btnTaskerGeneration = new CustomButton("Generate Tasker Report");
 		btnTaskerGeneration.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnTaskerGeneration = new GridBagConstraints();
@@ -3603,7 +3580,7 @@ public class PlayPane extends JFrame {
 		gbc_btnInterfaceReportButton.gridy = 4;
 		TaskerGenerationPanel.add(btnInterfaceReportButton, gbc_btnInterfaceReportButton);
 		Style.registerTargetClassName(btnInterfaceReportButton, ".standardButton");
-		
+
 		btnSystemInfoGenButton = new CustomButton("Generate System Info Report");
 		btnSystemInfoGenButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnSystemInfoGenerator = new GridBagConstraints();
@@ -3614,7 +3591,7 @@ public class PlayPane extends JFrame {
 		gbc_btnSystemInfoGenerator.gridy = 3;
 		TaskerGenerationPanel.add(btnSystemInfoGenButton, gbc_btnSystemInfoGenerator);
 		Style.registerTargetClassName(btnSystemInfoGenButton, ".standardButton");
-		
+
 		btnDataInterfaceWithDHMSM = new CustomButton("Generate Data Interface With DHMSM Report");
 		btnDataInterfaceWithDHMSM.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnDataInterfaceWithDHMSM = new GridBagConstraints();
@@ -3625,9 +3602,11 @@ public class PlayPane extends JFrame {
 		gbc_btnDataInterfaceWithDHMSM.gridy = 4;
 		TaskerGenerationPanel.add(btnDataInterfaceWithDHMSM, gbc_btnDataInterfaceWithDHMSM);
 		Style.registerTargetClassName(btnDataInterfaceWithDHMSM, ".standardButton");
-		
-		///Common Subgraph functions --> ultimately to be used for database recommender. temporarily here for George's testing
-		
+
+		// /Common Subgraph functions --> ultimately to be used for database
+		// recommender. temporarily here for George's
+		// testing
+
 		JSeparator separator_10 = new JSeparator();
 		GridBagConstraints gbc_separator_10 = new GridBagConstraints();
 		gbc_separator_10.fill = GridBagConstraints.HORIZONTAL;
@@ -3661,7 +3640,7 @@ public class PlayPane extends JFrame {
 		gbc_commonSubgraphTitleLabel.gridy = 0;
 		commonSubgraphPanel.add(commonSubgraphTitleLabel, gbc_commonSubgraphTitleLabel);
 		commonSubgraphTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
+
 		JLabel lblCommonSubgraphThreshold = new JLabel("Similarity Threshold:");
 		lblCommonSubgraphThreshold.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblCommonSubgraphThreshold = new GridBagConstraints();
@@ -3684,7 +3663,7 @@ public class PlayPane extends JFrame {
 		gbc_commonSubgraphThresholdTextField.gridy = 1;
 		commonSubgraphPanel.add(commonSubgraphThresholdTextField, gbc_commonSubgraphThresholdTextField);
 		commonSubgraphThresholdTextField.setColumns(12);
-		
+
 		JLabel commonSubgraphDatabaseLabel = new JLabel("Select Databases:");
 		GridBagConstraints gbc_commonSubgraphDatabaseLabel = new GridBagConstraints();
 		gbc_commonSubgraphDatabaseLabel.anchor = GridBagConstraints.WEST;
@@ -3702,7 +3681,7 @@ public class PlayPane extends JFrame {
 		gbc_commonSubgraphComboBox0.gridx = 2;
 		gbc_commonSubgraphComboBox0.gridy = 3;
 		commonSubgraphPanel.add(commonSubgraphComboBox0, gbc_commonSubgraphComboBox0);
-		
+
 		commonSubgraphComboBox1 = new JComboBox<String>();
 		commonSubgraphComboBox1.setEditable(false);
 		GridBagConstraints gbc_commonSubgraphComboBox1 = new GridBagConstraints();
@@ -3711,7 +3690,7 @@ public class PlayPane extends JFrame {
 		gbc_commonSubgraphComboBox1.fill = GridBagConstraints.HORIZONTAL;
 		gbc_commonSubgraphComboBox1.gridx = 3;
 		gbc_commonSubgraphComboBox1.gridy = 3;
-		commonSubgraphPanel.add(commonSubgraphComboBox1, gbc_commonSubgraphComboBox1);		
+		commonSubgraphPanel.add(commonSubgraphComboBox1, gbc_commonSubgraphComboBox1);
 
 		btnCommonSubgraph = new CustomButton("Run Common Subgraph");
 		btnCommonSubgraph.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -3722,9 +3701,11 @@ public class PlayPane extends JFrame {
 		gbc_btnCommonSubgraph.gridx = 2;
 		gbc_btnCommonSubgraph.gridy = 4;
 		gbc_btnCommonSubgraph.fill = GridBagConstraints.HORIZONTAL;
-		commonSubgraphPanel.add(btnCommonSubgraph,gbc_btnCommonSubgraph);
-		Style.registerTargetClassName(btnCommonSubgraph,".standardButton");
-		
+		commonSubgraphPanel.add(btnCommonSubgraph, gbc_btnCommonSubgraph);
+		Style.registerTargetClassName(btnCommonSubgraph, ".standardButton");
+
+		// DHMSM Reports tab under MHS TAP tab
+		// TODO
 		JPanel dhmsmReportPanel = new JPanel();
 		dhmsmReportPanel.setBackground(SystemColor.control);
 		JScrollPane dhmsmReportScroll = new JScrollPane(dhmsmReportPanel);
@@ -3748,7 +3729,7 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
 		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
 		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
 
@@ -3761,7 +3742,6 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmDecommissionReportTitleLabel.gridy = 1;
 		dhmsmReportTopPanel.add(dhmsmDecommissionReportTitleLabel, gbc_dhmsmDecommissionReportTitleLabel);
 		dhmsmDecommissionReportTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
 
 		dhmsmDataAccessSelectionFileLbl = new JLabel("Select Data Access and Latency File to Import");
 		GridBagConstraints gbc_dhmsmDataAccessSelectionFileLbl = new GridBagConstraints();
@@ -3773,7 +3753,6 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmDataAccessSelectionFileLbl, gbc_dhmsmDataAccessSelectionFileLbl);
 		dhmsmDataAccessSelectionFileLbl.setFont(new Font("Tahoma", Font.PLAIN, 12));
 
-		
 		dhmsmDataAccessFileImportPanel = new Panel();
 		GridBagConstraints gbc_dhmsmDataAccessFileImportPanel = new GridBagConstraints();
 		gbc_dhmsmDataAccessFileImportPanel.insets = new Insets(0, 0, 5, 5);
@@ -3783,40 +3762,47 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmDataAccessFileImportPanel.gridy = 3;
 		dhmsmReportTopPanel.add(dhmsmDataAccessFileImportPanel, gbc_dhmsmDataAccessFileImportPanel);
 		dhmsmDataAccessFileImportPanel.setLayout(new GridBagLayout());
-		
-//		
-//		GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
-//		gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
-//		gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
-//		gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
-//		gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-//		dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
-		
+
+		//
+		// GridBagLayout gbl_dhmsmReportTopPanel = new GridBagLayout();
+		// gbl_dhmsmReportTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0
+		// };
+		// gbl_dhmsmReportTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0,
+		// 0, 0, 0, 0 };
+		// gbl_dhmsmReportTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,
+		// 0.0, 1.0 };
+		// gbl_dhmsmReportTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0,
+		// 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE
+		// };
+		// dhmsmReportTopPanel.setLayout(gbl_dhmsmReportTopPanel);
+
 		dhmsmDataAccessFileBrowseBtn = new CustomButton("Browse");
 		dhmsmDataAccessFileBrowseBtn.setName(Constants.IMPORT_BUTTON_BROWSE);
 		dhmsmDataAccessFileBrowseBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-//		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn);
+		// dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn);
 		GridBagConstraints gbc_dhmsmDataAccessFileBrowseBtn = new GridBagConstraints();
 		gbc_dhmsmDataAccessFileBrowseBtn.anchor = GridBagConstraints.WEST;
 		gbc_dhmsmDataAccessFileBrowseBtn.insets = new Insets(0, 0, 5, 5);
 		gbc_dhmsmDataAccessFileBrowseBtn.gridx = 0;
 		gbc_dhmsmDataAccessFileBrowseBtn.gridy = 0;
-//		dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
+		// dhmsmReportTopPanel.add(dhmsmDataAccessFileBrowseBtn,
+		// gbc_dhmsmDataAccessFileBrowseBtn);
 		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessFileBrowseBtn, gbc_dhmsmDataAccessFileBrowseBtn);
 		Style.registerTargetClassName(dhmsmDataAccessFileBrowseBtn, ".standardButton");
 
 		dhmsmDataAccessImportFileNameField = new JTextField();
 		dhmsmDataAccessImportFileNameField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-//		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField);
+		// dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField);
 		GridBagConstraints gbc_dhmsmDataAccessImportFileNameField = new GridBagConstraints();
 		gbc_dhmsmDataAccessImportFileNameField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_dhmsmDataAccessImportFileNameField.insets = new Insets(0, 0, 5, 0);
 		gbc_dhmsmDataAccessImportFileNameField.gridx = 1;
 		gbc_dhmsmDataAccessImportFileNameField.gridy = 0;
 		dhmsmDataAccessFileImportPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
-//		dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField, gbc_dhmsmDataAccessImportFileNameField);
-		dhmsmDataAccessImportFileNameField.setColumns(10);		
-		
+		// dhmsmReportTopPanel.add(dhmsmDataAccessImportFileNameField,
+		// gbc_dhmsmDataAccessImportFileNameField);
+		dhmsmDataAccessImportFileNameField.setColumns(10);
+
 		dhmsmFunctionalAreaPanel = new Panel();
 		GridBagConstraints gbc_functionalAreaDHMSMPanel = new GridBagConstraints();
 		gbc_functionalAreaDHMSMPanel.insets = new Insets(0, 0, 5, 5);
@@ -3826,7 +3812,7 @@ public class PlayPane extends JFrame {
 		gbc_functionalAreaDHMSMPanel.gridy = 4;
 		dhmsmReportTopPanel.add(dhmsmFunctionalAreaPanel, gbc_functionalAreaDHMSMPanel);
 		dhmsmFunctionalAreaPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-		
+
 		HSDCheckBoxDHMSM = new JCheckBox("HSD");
 		dhmsmFunctionalAreaPanel.add(HSDCheckBoxDHMSM);
 
@@ -3835,10 +3821,10 @@ public class PlayPane extends JFrame {
 
 		FHPCheckBoxDHMSM = new JCheckBox("FHP");
 		dhmsmFunctionalAreaPanel.add(FHPCheckBoxDHMSM);
-		
+
 		DHMSMCheckBoxDHMSM = new JCheckBox("DHMSM");
 		dhmsmFunctionalAreaPanel.add(DHMSMCheckBoxDHMSM);
-		
+
 		JLabel dhmsmlblCapName = new JLabel("Capabilities:");
 		dhmsmlblCapName.setMinimumSize(new Dimension(155, 32));
 		dhmsmlblCapName.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -3848,16 +3834,15 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmlblCapName.gridx = 2;
 		gbc_dhmsmlblCapName.gridy = 5;
 		dhmsmReportTopPanel.add(dhmsmlblCapName, gbc_dhmsmlblCapName);
-		
-				selectRadioPanel = new SelectRadioButtonPanel();// change this
-/*				GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints();
-				gbc_selectRadioPanel.insets = new Insets(0, 0, 5, 0);
-				gbc_selectRadioPanel.gridx = 4;
-				gbc_selectRadioPanel.gridy = 6;
-				dhmsmReportTopPanel.add(selectRadioPanel, gbc_selectRadioPanel);
-*/				FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
-				flowLayout3.setAlignment(FlowLayout.LEFT);
-				selectRadioPanel.setBackground(SystemColor.control);
+
+		selectRadioPanel = new SelectRadioButtonPanel();// change this
+		/*
+		 * GridBagConstraints gbc_selectRadioPanel = new GridBagConstraints(); gbc_selectRadioPanel.insets = new Insets(0, 0, 5, 0);
+		 * gbc_selectRadioPanel.gridx = 4; gbc_selectRadioPanel.gridy = 6; dhmsmReportTopPanel.add(selectRadioPanel, gbc_selectRadioPanel);
+		 */
+		FlowLayout flowLayout3 = (FlowLayout) selectRadioPanel.getLayout();
+		flowLayout3.setAlignment(FlowLayout.LEFT);
+		selectRadioPanel.setBackground(SystemColor.control);
 
 		dhmsmCapabilitySelectPanel = new SourceSelectPanel();// change this
 		FlowLayout flowLayout2 = (FlowLayout) dhmsmCapabilitySelectPanel.getLayout();
@@ -3882,7 +3867,7 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmUpdateDataFromFileButton, gbc_dhmsmUpdateDataFromFileButton);
 		dhmsmUpdateDataFromFileButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataFromFileButton, ".standardButton");
-		
+
 		dhmsmUpdateDataButton = new CustomButton("Update Data Access Type List from Capabilities");
 		GridBagConstraints gbc_dhmsmUpdateDataButton = new GridBagConstraints();
 		gbc_dhmsmUpdateDataButton.anchor = GridBagConstraints.WEST;
@@ -3892,7 +3877,7 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmUpdateDataButton, gbc_dhmsmUpdateDataButton);
 		dhmsmUpdateDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmUpdateDataButton, ".standardButton");
-	
+
 		dhmsmSelectAllAccessTypePanel = new Panel();
 		GridBagConstraints gbc_dhmsmSelectAllAccessTypePanel = new GridBagConstraints();
 		gbc_dhmsmSelectAllAccessTypePanel.insets = new Insets(0, 0, 5, 0);
@@ -3914,8 +3899,8 @@ public class PlayPane extends JFrame {
 		manualAccessButton = new JRadioButton("Manual");
 		selectAllDataAccessType.add(manualAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(manualAccessButton);
-		
-		ButtonGroup selectAllDataLatencyType = new ButtonGroup();		
+
+		ButtonGroup selectAllDataLatencyType = new ButtonGroup();
 		realAccessButton = new JRadioButton("RealTime");
 		selectAllDataLatencyType.add(realAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(realAccessButton);
@@ -3927,11 +3912,11 @@ public class PlayPane extends JFrame {
 		archiveAccessButton = new JRadioButton("Archive");
 		selectAllDataLatencyType.add(archiveAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(archiveAccessButton);
-		
+
 		ignoreAccessButton = new JRadioButton("Ignore");
 		selectAllDataLatencyType.add(ignoreAccessButton);
 		dhmsmSelectAllAccessTypePanel.add(ignoreAccessButton);
-		
+
 		JLabel dhmsmLblDataName = new JLabel("Data Objects:");
 		dhmsmLblDataName.setMinimumSize(new Dimension(155, 32));
 		dhmsmLblDataName.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -3969,7 +3954,7 @@ public class PlayPane extends JFrame {
 		dhmsmReportTopPanel.add(dhmsmSystemSORAccessTypeReportButton, gbc_dhmsmSystemSORAccessTypeReportButton);
 		dhmsmSystemSORAccessTypeReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmSystemSORAccessTypeReportButton, ".standardButton");
-		
+
 		separator_9 = new JSeparator();
 		GridBagConstraints gbc_separator_9 = new GridBagConstraints();
 		gbc_separator_9.fill = GridBagConstraints.HORIZONTAL;
@@ -3978,7 +3963,7 @@ public class PlayPane extends JFrame {
 		gbc_separator_9.gridx = 0;
 		gbc_separator_9.gridy = 3;
 		dhmsmReportPanel.add(separator_9, gbc_separator_9);
-		
+
 		dhmsmReportMidPanel = new JPanel();
 		dhmsmReportMidPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_dhmsmReportMidPanel = new GridBagConstraints();
@@ -3991,11 +3976,11 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_dhmsmReportMidPanel = new GridBagLayout();
 		gbl_dhmsmReportMidPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
 		gbl_dhmsmReportMidPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_dhmsmReportMidPanel.columnWeights = new double[] { 0.0, 0.0, 0.0,	0.0, 1.0 };
+		gbl_dhmsmReportMidPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
 		gbl_dhmsmReportMidPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		dhmsmReportMidPanel.setLayout(gbl_dhmsmReportMidPanel);
 
-		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap");
+		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap"); // TODO
 		GridBagConstraints gbc_dhmsmCapSystemIntersectionTitleLabel = new GridBagConstraints();
 		gbc_dhmsmCapSystemIntersectionTitleLabel.gridwidth = 2;
 		gbc_dhmsmCapSystemIntersectionTitleLabel.anchor = GridBagConstraints.WEST;
@@ -4004,7 +3989,7 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmCapSystemIntersectionTitleLabel.gridy = 1;
 		dhmsmReportMidPanel.add(dhmsmCapSystemIntersectionTitleLabel, gbc_dhmsmCapSystemIntersectionTitleLabel);
 		dhmsmCapSystemIntersectionTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
+
 		dhmsmCapSystemIntersectionReportButton = new CustomButton("Generate Capability and System Overlap");
 		GridBagConstraints gbc_dhmsmCapSystemIntersectionReportButton = new GridBagConstraints();
 		gbc_dhmsmCapSystemIntersectionReportButton.anchor = GridBagConstraints.WEST;
@@ -4015,7 +4000,6 @@ public class PlayPane extends JFrame {
 		dhmsmCapSystemIntersectionReportButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		Style.registerTargetClassName(dhmsmCapSystemIntersectionReportButton, ".standardButton");
 
-		
 		JLabel lblSysDecomOptimization = new JLabel("System Decommission Optimization");
 		GridBagConstraints gbc_lblSysDecomOptimization = new GridBagConstraints();
 		gbc_lblSysDecomOptimization.gridwidth = 2;
@@ -4025,7 +4009,7 @@ public class PlayPane extends JFrame {
 		gbc_lblSysDecomOptimization.gridy = 3;
 		dhmsmReportMidPanel.add(lblSysDecomOptimization, gbc_lblSysDecomOptimization);
 		lblSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 12));
-		
+
 		JLabel lblSysDecomOptimizationResourceConstraint = new JLabel("Resource Constraint:");
 		lblSysDecomOptimizationResourceConstraint.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblSysDecomOptimizationResourceConstraint = new GridBagConstraints();
@@ -4071,7 +4055,6 @@ public class PlayPane extends JFrame {
 		dhmsmReportMidPanel.add(sysDecomOptimizationTimeTextField, gbc_sysDecomOptimizationTimeTextField);
 		sysDecomOptimizationTimeTextField.setColumns(12);
 
-		
 		btnSysDecomOptimization = new CustomButton("Sys Decom Optimization");
 		btnSysDecomOptimization.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnSysDecomOptimizationResourceConstraint = new GridBagConstraints();
@@ -4081,7 +4064,7 @@ public class PlayPane extends JFrame {
 		gbc_btnSysDecomOptimizationResourceConstraint.gridy = 6;
 		dhmsmReportMidPanel.add(btnSysDecomOptimization, gbc_btnSysDecomOptimizationResourceConstraint);
 		Style.registerTargetClassName(btnSysDecomOptimization, ".standardButton");
-		
+
 		JPanel ICDServiceCostPanel = new JPanel();
 		dhmsmSystemSelectPanel = new DHMSMSystemSelectPanel();
 		JButton runButton = new CustomButton("Run ICD Estimates for SOA Services");
@@ -4089,16 +4072,16 @@ public class PlayPane extends JFrame {
 		serICDListener.setSystemSelectPanel(dhmsmSystemSelectPanel);
 		runButton.addActionListener(serICDListener);
 		Style.registerTargetClassName(runButton, ".standardButton");
-		
+
 		GridBagConstraints gbc_icdSerPanel = new GridBagConstraints();
-		
+
 		gbc_icdSerPanel.fill = GridBagConstraints.WEST;
 		gbc_icdSerPanel.anchor = GridBagConstraints.WEST;
 		gbc_icdSerPanel.insets = new Insets(0, 5, 5, 5);
 		gbc_icdSerPanel.gridx = 0;
 		gbc_icdSerPanel.gridy = 4;
 		dhmsmReportPanel.add(ICDServiceCostPanel, gbc_icdSerPanel);
-		
+
 		ICDServiceCostPanel.setLayout(new GridBagLayout());
 		GridBagConstraints gbc_dhmsmSystemSelectPanel = new GridBagConstraints();
 		ICDServiceCostPanel.setBackground(SystemColor.control);
@@ -4110,7 +4093,7 @@ public class PlayPane extends JFrame {
 		gbc_dhmsmSystemSelectPanel.gridy = 0;
 		gbc_dhmsmSystemSelectPanel.gridheight = 4;
 		ICDServiceCostPanel.add(dhmsmSystemSelectPanel, gbc_dhmsmSystemSelectPanel);
-		
+
 		GridBagConstraints gbc_runButton = new GridBagConstraints();
 		gbc_runButton.anchor = GridBagConstraints.NORTHWEST;
 		gbc_runButton.insets = new Insets(20, 0, 5, 5);
@@ -4119,8 +4102,8 @@ public class PlayPane extends JFrame {
 		gbc_runButton.gridwidth = 2;
 		gbc_dhmsmSystemSelectPanel.gridwidth = 2;
 		ICDServiceCostPanel.add(runButton, gbc_runButton);
-		
-		JLabel ICDServiceSusPerLabel = new JLabel ("SOA Sustainment Percentage");
+
+		JLabel ICDServiceSusPerLabel = new JLabel("SOA Sustainment Percentage");
 		GridBagConstraints gbc_ICDServiceSusPerLabel = new GridBagConstraints();
 		gbc_ICDServiceSusPerLabel.anchor = GridBagConstraints.NORTHWEST;
 		gbc_ICDServiceSusPerLabel.insets = new Insets(0, 0, 5, 5);
@@ -4128,8 +4111,8 @@ public class PlayPane extends JFrame {
 		gbc_ICDServiceSusPerLabel.gridy = 1;
 		gbc_ICDServiceSusPerLabel.gridwidth = 1;
 		ICDServiceCostPanel.add(ICDServiceSusPerLabel, gbc_ICDServiceSusPerLabel);
-		
-		JLabel ICDServiceICDSusLabel = new JLabel ("Annual ICD Sustainment Cost ($)");
+
+		JLabel ICDServiceICDSusLabel = new JLabel("Annual ICD Sustainment Cost ($)");
 		GridBagConstraints gbc_ICDServiceICDSusLabel = new GridBagConstraints();
 		gbc_ICDServiceICDSusLabel.anchor = GridBagConstraints.NORTHWEST;
 		gbc_ICDServiceICDSusLabel.insets = new Insets(0, 0, 5, 5);
@@ -4137,8 +4120,8 @@ public class PlayPane extends JFrame {
 		gbc_ICDServiceICDSusLabel.gridy = 2;
 		gbc_ICDServiceICDSusLabel.gridwidth = 1;
 		ICDServiceCostPanel.add(ICDServiceICDSusLabel, gbc_ICDServiceICDSusLabel);
-		
-		JLabel ICDServiceHourlyRateLabel = new JLabel ("Hourly Rate ($)");
+
+		JLabel ICDServiceHourlyRateLabel = new JLabel("Hourly Rate ($)");
 		GridBagConstraints gbc_ICDServiceHourlyRateLabel = new GridBagConstraints();
 		gbc_ICDServiceHourlyRateLabel.anchor = GridBagConstraints.NORTHWEST;
 		gbc_ICDServiceHourlyRateLabel.insets = new Insets(0, 0, 5, 5);
@@ -4146,11 +4129,11 @@ public class PlayPane extends JFrame {
 		gbc_ICDServiceHourlyRateLabel.gridy = 3;
 		gbc_ICDServiceHourlyRateLabel.gridwidth = 1;
 		ICDServiceCostPanel.add(ICDServiceHourlyRateLabel, gbc_ICDServiceHourlyRateLabel);
-		
+
 		icdServiceSusField = new JTextField();
 		icdServiceSusField.setText("0.18");
 		icdServiceSusField.setColumns(5);
-		
+
 		GridBagConstraints gbc_icdServiceSusField = new GridBagConstraints();
 		gbc_icdServiceSusField.anchor = GridBagConstraints.NORTHWEST;
 		gbc_icdServiceSusField.insets = new Insets(0, 0, 5, 5);
@@ -4158,11 +4141,11 @@ public class PlayPane extends JFrame {
 		gbc_icdServiceSusField.gridy = 1;
 		gbc_icdServiceSusField.gridwidth = 1;
 		ICDServiceCostPanel.add(icdServiceSusField, gbc_icdServiceSusField);
-		
+
 		icdServiceICDCostField = new JTextField();
 		icdServiceICDCostField.setText("100000");
 		icdServiceICDCostField.setColumns(5);
-		
+
 		GridBagConstraints gbc_icdServiceICDCostField = new GridBagConstraints();
 		gbc_icdServiceICDCostField.anchor = GridBagConstraints.NORTHWEST;
 		gbc_icdServiceICDCostField.insets = new Insets(0, 0, 5, 5);
@@ -4170,11 +4153,11 @@ public class PlayPane extends JFrame {
 		gbc_icdServiceICDCostField.gridy = 2;
 		gbc_icdServiceICDCostField.gridwidth = 1;
 		ICDServiceCostPanel.add(icdServiceICDCostField, gbc_icdServiceICDCostField);
-		
+
 		icdServiceHourlyRateField = new JTextField();
 		icdServiceHourlyRateField.setText("150");
 		icdServiceHourlyRateField.setColumns(5);
-		
+
 		GridBagConstraints gbc_icdServiceHourlyRateField = new GridBagConstraints();
 		gbc_icdServiceHourlyRateField.anchor = GridBagConstraints.NORTHWEST;
 		gbc_icdServiceHourlyRateField.insets = new Insets(0, 0, 5, 5);
@@ -4182,8 +4165,7 @@ public class PlayPane extends JFrame {
 		gbc_icdServiceHourlyRateField.gridy = 3;
 		gbc_icdServiceHourlyRateField.gridwidth = 1;
 		ICDServiceCostPanel.add(icdServiceHourlyRateField, gbc_icdServiceHourlyRateField);
-		
-		
+
 		JSeparator separator_5 = new JSeparator();
 		GridBagConstraints gbc_separator_5 = new GridBagConstraints();
 		gbc_separator_5.fill = GridBagConstraints.HORIZONTAL;
@@ -4192,8 +4174,6 @@ public class PlayPane extends JFrame {
 		gbc_separator_5.gridx = 0;
 		gbc_separator_5.gridy = 15;
 		financialsPanel.add(separator_5, gbc_separator_5);
-		
-		
 
 		JLabel lblAdvancedFinancialFunctions = new JLabel("Advanced Financial Functions");
 		lblAdvancedFinancialFunctions.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -4213,7 +4193,7 @@ public class PlayPane extends JFrame {
 		gbc_btnAdvancedFinancialFunctions.insets = new Insets(10, 20, 5, 5);
 		gbc_btnAdvancedFinancialFunctions.gridx = 0;
 		gbc_btnAdvancedFinancialFunctions.gridy = 17;
-		financialsPanel.add(btnAdvancedFinancialFunctions,	gbc_btnAdvancedFinancialFunctions);
+		financialsPanel.add(btnAdvancedFinancialFunctions, gbc_btnAdvancedFinancialFunctions);
 
 		advancedFunctionsPanel = new JPanel();
 		advancedFunctionsPanel.setBackground(SystemColor.control);
@@ -4228,8 +4208,8 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_advancedFunctionsPanel = new GridBagLayout();
 		gbl_advancedFunctionsPanel.columnWidths = new int[] { 0, 0, 0 };
 		gbl_advancedFunctionsPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_advancedFunctionsPanel.columnWeights = new double[] { 0.0, 1.0,	Double.MIN_VALUE };
-		gbl_advancedFunctionsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	Double.MIN_VALUE };
+		gbl_advancedFunctionsPanel.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_advancedFunctionsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		advancedFunctionsPanel.setLayout(gbl_advancedFunctionsPanel);
 
 		JLabel lblTransitionCostCalculations = new JLabel("Transition Cost Calculations");
@@ -4282,17 +4262,17 @@ public class PlayPane extends JFrame {
 		gbc_rdbtnDoNotApplyOverhead.insets = new Insets(0, 0, 5, 0);
 		gbc_rdbtnDoNotApplyOverhead.gridx = 1;
 		gbc_rdbtnDoNotApplyOverhead.gridy = 3;
-		advancedFunctionsPanel.add(rdbtnDoNotApplyOverhead,	gbc_rdbtnDoNotApplyOverhead);
+		advancedFunctionsPanel.add(rdbtnDoNotApplyOverhead, gbc_rdbtnDoNotApplyOverhead);
 
 		JLabel lbltransitionCostsCalulations_1 = new JLabel("<HTML>\r\nCalculate and insert Semantics, Training, and Sustainment: </HTML>");
-		lbltransitionCostsCalulations_1.setFont(new Font("Tahoma", Font.PLAIN,	12));
+		lbltransitionCostsCalulations_1.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lbltransitionCostsCalulations_1 = new GridBagConstraints();
 		gbc_lbltransitionCostsCalulations_1.anchor = GridBagConstraints.WEST;
 		gbc_lbltransitionCostsCalulations_1.insets = new Insets(10, 20, 5, 0);
 		gbc_lbltransitionCostsCalulations_1.gridwidth = 2;
 		gbc_lbltransitionCostsCalulations_1.gridx = 0;
 		gbc_lbltransitionCostsCalulations_1.gridy = 4;
-		advancedFunctionsPanel.add(lbltransitionCostsCalulations_1,	gbc_lbltransitionCostsCalulations_1);
+		advancedFunctionsPanel.add(lbltransitionCostsCalulations_1, gbc_lbltransitionCostsCalulations_1);
 
 		calcTransAdditionalButton = new CustomButton("Calculate Additional Transition Costs");
 		calcTransAdditionalButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -4312,6 +4292,189 @@ public class PlayPane extends JFrame {
 		gbc_calcTCprogressBar.gridy = 6;
 		advancedFunctionsPanel.add(calcTCprogressBar, gbc_calcTCprogressBar);
 
+		// DB Comparison tab under MHS TAP tab
+		// TODO: ADD NEW TAB HERE
+		JPanel dbComparisonPanel = new JPanel();
+		dbComparisonPanel.setBackground(SystemColor.control);
+		JScrollPane dbComparisonScroll = new JScrollPane(dbComparisonPanel);
+		tapTabPane.addTab("Compare DB", null, dbComparisonScroll, null);
+		GridBagLayout dbComparisonPanelLayout = new GridBagLayout();
+		dbComparisonPanelLayout.rowHeights = new int[] { 30, 0, 0, 0, 0 };
+		dbComparisonPanelLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		dbComparisonPanelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
+		dbComparisonPanelLayout.columnWidths = new int[] { 0, 0, 0 };
+		dbComparisonPanel.setLayout(dbComparisonPanelLayout);
+		
+		JPanel dbComparisonTopPanel = new JPanel();
+		dbComparisonTopPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_dbComparisonTopPanel = new GridBagConstraints();
+		gbc_dbComparisonTopPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dbComparisonTopPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_dbComparisonTopPanel.anchor = GridBagConstraints.NORTH;
+		gbc_dbComparisonTopPanel.gridx = 0;
+		gbc_dbComparisonTopPanel.gridy = 0;
+		dbComparisonPanel.add(dbComparisonTopPanel, gbc_dbComparisonTopPanel);
+		GridBagLayout gbl_dbComparisonTopPanel = new GridBagLayout();
+		gbl_dbComparisonTopPanel.columnWidths = new int[] { 10, 10, 10, 0, 0 };
+		gbl_dbComparisonTopPanel.rowHeights = new int[] { 10, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_dbComparisonTopPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0 };
+		gbl_dbComparisonTopPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		dbComparisonTopPanel.setLayout(gbl_dbComparisonTopPanel);
+
+		JLabel dbComparisonTitleLabel = new JLabel("Compare Databases");
+		GridBagConstraints gbc_dbComparisonTitleLabel = new GridBagConstraints();
+		gbc_dbComparisonTitleLabel.gridwidth = 2;
+		gbc_dbComparisonTitleLabel.anchor = GridBagConstraints.WEST;
+		gbc_dbComparisonTitleLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_dbComparisonTitleLabel.gridx = 1;
+		gbc_dbComparisonTitleLabel.gridy = 1;
+		dbComparisonTopPanel.add(dbComparisonTitleLabel, gbc_dbComparisonTitleLabel);
+		dbComparisonTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+
+		// JPanel dbSelectionPanel = new JPanel();
+		// dbSelectionPanel.setBackground(SystemColor.control);
+		// GridBagConstraints gbc_dbSelectionPanel = new GridBagConstraints();
+		// gbc_dbSelectionPanel.anchor = GridBagConstraints.WEST;
+		// gbc_dbSelectionPanel.gridwidth = 6;
+		// gbc_dbSelectionPanel.insets = new Insets(0, 0, 5, 5);
+		// gbc_dbSelectionPanel.gridx = 2;
+		// gbc_dbSelectionPanel.gridy = 2;
+		// dbComparisonPanel.add(dbSelectionPanel, gbc_dbSelectionPanel);
+		// GridBagLayout gbl_dbSelectionPanel = new GridBagLayout();
+		// gbl_dbSelectionPanel.columnWidths = new int[] { 0, 75, 75, 300 };
+		// gbl_dbSelectionPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		// gbl_dbSelectionPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		// gbl_dbSelectionPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		// dbSelectionPanel.setLayout(gbl_dbSelectionPanel);
+
+		JLabel lblNewDB = new JLabel("New DB:");
+		GridBagConstraints gbc_lblNewDB = new GridBagConstraints();
+		gbc_lblNewDB.anchor = GridBagConstraints.WEST;
+		gbc_lblNewDB.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNewDB.gridx = 1;
+		gbc_lblNewDB.gridy = 2;
+		dbComparisonTopPanel.add(lblNewDB, gbc_lblNewDB);
+
+		newDBComboBox = new JComboBox();
+		newDBComboBox.setEditable(false);
+		GridBagConstraints gbc_newDBComboBox = new GridBagConstraints();
+		gbc_newDBComboBox.gridwidth = 2;
+		gbc_newDBComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_newDBComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_newDBComboBox.gridx = 2;
+		gbc_newDBComboBox.gridy = 2;
+		dbComparisonTopPanel.add(newDBComboBox, gbc_newDBComboBox);
+
+		JLabel lblOldDB = new JLabel("Old DB:");
+		GridBagConstraints gbc_lblOldDB = new GridBagConstraints();
+		gbc_lblOldDB.anchor = GridBagConstraints.WEST;
+		gbc_lblOldDB.insets = new Insets(0, 0, 5, 5);
+		gbc_lblOldDB.gridx = 1;
+		gbc_lblOldDB.gridy = 3;
+		dbComparisonTopPanel.add(lblOldDB, gbc_lblOldDB);
+
+		oldDBComboBox = new JComboBox();
+		GridBagConstraints gbc_oldDBComboBox = new GridBagConstraints();
+		gbc_oldDBComboBox.gridwidth = 2;
+		gbc_oldDBComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_oldDBComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_oldDBComboBox.gridx = 2;
+		gbc_oldDBComboBox.gridy = 3;
+		dbComparisonTopPanel.add(oldDBComboBox, gbc_oldDBComboBox);
+
+		compareDBButton = new CustomButton("Compare DBs");
+		compareDBButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_compareDBButton = new GridBagConstraints();
+		gbc_compareDBButton.anchor = GridBagConstraints.WEST;
+		gbc_compareDBButton.insets = new Insets(0, 0, 5, 5);
+		gbc_compareDBButton.gridx = 1;
+		gbc_compareDBButton.gridy = 4;
+		dbComparisonTopPanel.add(compareDBButton, gbc_compareDBButton);
+		Style.registerTargetClassName(compareDBButton, ".standardButton");
+		
+
+		// JPanel dbComparisonPanel = new JPanel();
+		// dbComparisonPanel.setBackground(SystemColor.control);
+		//
+		// rightView.addTab("Compare DB", null, dbComparisonPanel, null);
+		// GridBagLayout gbl_dbComparisonPanel = new GridBagLayout();
+		// gbl_dbComparisonPanel.columnWidths = new int[] { 15, 0, 0 };
+		// gbl_dbComparisonPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		// gbl_dbComparisonPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		// gbl_dbComparisonPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		// dbComparisonPanel.setLayout(gbl_dbComparisonPanel);
+		//
+		// JLabel lblDBSelection = new JLabel("Compare Databases");
+		// lblDBSelection.setFont(new Font("Tahoma", Font.BOLD, 12));
+		// GridBagConstraints gbc_lblDBSelection = new GridBagConstraints();
+		// gbc_lblDBSelection.insets = new Insets(15, 0, 10, 0);
+		// gbc_lblDBSelection.gridx = 1;
+		// gbc_lblDBSelection.gridy = 0;
+		// dbComparisonPanel.add(lblDBSelection, gbc_lblDBSelection);
+		//
+		// JPanel dbSelectionPanel = new JPanel();
+		// dbSelectionPanel.setBackground(SystemColor.control);
+		// GridBagConstraints gbc_dbSelectionPanel = new GridBagConstraints();
+		// gbc_dbSelectionPanel.anchor = GridBagConstraints.WEST;
+		// gbc_dbSelectionPanel.gridwidth = 6;
+		// gbc_dbSelectionPanel.insets = new Insets(0, 0, 5, 5);
+		// gbc_dbSelectionPanel.gridx = 1;
+		// gbc_dbSelectionPanel.gridy = 1;
+		// dbComparisonPanel.add(dbSelectionPanel, gbc_dbSelectionPanel);
+		// GridBagLayout gbl_dbSelectionPanel = new GridBagLayout();
+		// gbl_dbSelectionPanel.columnWidths = new int[] { 0, 75, 75, 300 };
+		// gbl_dbSelectionPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		// gbl_dbSelectionPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		// gbl_dbSelectionPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		// dbSelectionPanel.setLayout(gbl_dbSelectionPanel);
+		//
+		// JLabel lblNewDB = new JLabel("New DB:");
+		// GridBagConstraints gbc_lblNewDB = new GridBagConstraints();
+		// gbc_lblNewDB.anchor = GridBagConstraints.WEST;
+		// gbc_lblNewDB.insets = new Insets(0, 20, 5, 5);
+		// gbc_lblNewDB.gridx = 0;
+		// gbc_lblNewDB.gridy = 0;
+		// dbSelectionPanel.add(lblNewDB, gbc_lblNewDB);
+		//
+		// newDBComboBox = new JComboBox();
+		// newDBComboBox.setEditable(false);
+		// GridBagConstraints gbc_newDBComboBox = new GridBagConstraints();
+		// gbc_newDBComboBox.gridwidth = 2;
+		// gbc_newDBComboBox.insets = new Insets(0, 0, 5, 5);
+		// gbc_newDBComboBox.fill = GridBagConstraints.HORIZONTAL;
+		// gbc_newDBComboBox.gridx = 1;
+		// gbc_newDBComboBox.gridy = 0;
+		// dbSelectionPanel.add(newDBComboBox, gbc_newDBComboBox);
+		//
+		// JLabel lblOldDB = new JLabel("Old DB:");
+		// GridBagConstraints gbc_lblOldDB = new GridBagConstraints();
+		// gbc_lblOldDB.anchor = GridBagConstraints.WEST;
+		// gbc_lblOldDB.insets = new Insets(0, 20, 5, 5);
+		// gbc_lblOldDB.gridx = 0;
+		// gbc_lblOldDB.gridy = 2;
+		// dbSelectionPanel.add(lblOldDB, gbc_lblOldDB);
+		//
+		// oldDBComboBox = new JComboBox();
+		// GridBagConstraints gbc_oldDBComboBox = new GridBagConstraints();
+		// gbc_oldDBComboBox.gridwidth = 2;
+		// gbc_oldDBComboBox.insets = new Insets(0, 0, 5, 5);
+		// gbc_oldDBComboBox.fill = GridBagConstraints.HORIZONTAL;
+		// gbc_oldDBComboBox.gridx = 1;
+		// gbc_oldDBComboBox.gridy = 2;
+		// dbSelectionPanel.add(oldDBComboBox, gbc_oldDBComboBox);
+		//
+		// compareDBButton = new CustomButton("Compare DBs");
+		// compareDBButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		// GridBagConstraints gbc_compareDBButton = new GridBagConstraints();
+		// gbc_compareDBButton.anchor = GridBagConstraints.WEST;
+		// gbc_compareDBButton.insets = new Insets(0, 20, 5, 5);
+		// gbc_compareDBButton.gridx = 0;
+		// gbc_compareDBButton.gridy = 3;
+		// dbSelectionPanel.add(compareDBButton, gbc_compareDBButton);
+		// Style.registerTargetClassName(compareDBButton, ".standardButton");
+		// TODO remove above
+
+		// Settings tab
 		JPanel settingsPanel = new JPanel();
 		settingsPanel.setBackground(SystemColor.control);
 
@@ -4319,8 +4482,8 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_settingsPanel = new GridBagLayout();
 		gbl_settingsPanel.columnWidths = new int[] { 15, 0, 0 };
 		gbl_settingsPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_settingsPanel.columnWeights = new double[] { 0.0, 0.0,	Double.MIN_VALUE };
-		gbl_settingsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,	Double.MIN_VALUE };
+		gbl_settingsPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_settingsPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		settingsPanel.setLayout(gbl_settingsPanel);
 
 		JLabel lblNetworkGraphsheetSettings = new JLabel("Network Graphsheet Generation Settings");
@@ -4329,12 +4492,12 @@ public class PlayPane extends JFrame {
 		gbc_lblNetworkGraphsheetSettings.insets = new Insets(15, 0, 10, 0);
 		gbc_lblNetworkGraphsheetSettings.gridx = 1;
 		gbc_lblNetworkGraphsheetSettings.gridy = 0;
-		settingsPanel.add(lblNetworkGraphsheetSettings,	gbc_lblNetworkGraphsheetSettings);
+		settingsPanel.add(lblNetworkGraphsheetSettings, gbc_lblNetworkGraphsheetSettings);
 
 		propertyCheck = new JCheckBox("Enable graph properties");
 		propertyCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		boolean propBool = false;
-		if(DIHelper.getInstance().getProperty(Constants.GPSProp) != null)
+		if (DIHelper.getInstance().getProperty(Constants.GPSProp) != null)
 			propBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
 		else
 			logger.error("Failed to read default sudowl boolean from map");
@@ -4348,7 +4511,7 @@ public class PlayPane extends JFrame {
 
 		sudowlCheck = new JCheckBox("Enable SUDOWL");
 		boolean sudowlBool = false;
-		if(DIHelper.getInstance().getProperty(Constants.GPSSudowl) != null)
+		if (DIHelper.getInstance().getProperty(Constants.GPSSudowl) != null)
 			sudowlBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
 		else
 			logger.error("Failed to read default sudowl boolean from map");
@@ -4363,7 +4526,7 @@ public class PlayPane extends JFrame {
 
 		searchCheck = new JCheckBox("Enable graph search");
 		boolean searchBool = false;
-		if(DIHelper.getInstance().getProperty(Constants.GPSSearch) != null)
+		if (DIHelper.getInstance().getProperty(Constants.GPSSearch) != null)
 			searchBool = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
 		else
 			logger.error("Failed to read default sudowl boolean from map");
@@ -4376,7 +4539,7 @@ public class PlayPane extends JFrame {
 		gbc_searchCheck.gridy = 3;
 		settingsPanel.add(searchCheck, gbc_searchCheck);
 
-		highQualityExportCheck = new JCheckBox(	"Enable high quality vector graph export (*.eps)");
+		highQualityExportCheck = new JCheckBox("Enable high quality vector graph export (*.eps)");
 		highQualityExportCheck.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		highQualityExportCheck.setSelected(false);
 		GridBagConstraints gbc_highQualityExportCheck = new GridBagConstraints();
@@ -4385,16 +4548,16 @@ public class PlayPane extends JFrame {
 		gbc_highQualityExportCheck.gridx = 1;
 		gbc_highQualityExportCheck.gridy = 4;
 		settingsPanel.add(highQualityExportCheck, gbc_highQualityExportCheck);
-		DIHelper.getInstance().setLocalProperty(Constants.highQualityExport,false);
-		
-//		btnCommonGraph = new JButton("Find Common Graph");
-//		btnCommonGraph.setFont(new Font("Tahoma", Font.BOLD, 11));
-//		GridBagConstraints gbc_btnCommonGraph = new GridBagConstraints();
-//		gbc_btnCommonGraph.gridx = 1;
-//		gbc_btnCommonGraph.gridy = 7;
-//		settingsPanel.add(btnCommonGraph, gbc_btnCommonGraph);
-//		Style.registerTargetClassName(btnCommonGraph, ".standardButton");
-		
+		DIHelper.getInstance().setLocalProperty(Constants.highQualityExport, false);
+
+		// btnCommonGraph = new JButton("Find Common Graph");
+		// btnCommonGraph.setFont(new Font("Tahoma", Font.BOLD, 11));
+		// GridBagConstraints gbc_btnCommonGraph = new GridBagConstraints();
+		// gbc_btnCommonGraph.gridx = 1;
+		// gbc_btnCommonGraph.gridy = 7;
+		// settingsPanel.add(btnCommonGraph, gbc_btnCommonGraph);
+		// Style.registerTargetClassName(btnCommonGraph, ".standardButton");
+
 		JPanel overAllHelpPanel = new JPanel();
 		overAllHelpPanel.setBackground(SystemColor.control);
 		overAllHelpPanel.setBorder(null);
@@ -4403,7 +4566,7 @@ public class PlayPane extends JFrame {
 		GridBagLayout gbl_overAllHelpPanel = new GridBagLayout();
 		gbl_overAllHelpPanel.columnWidths = new int[] { 0, 0 };
 		gbl_overAllHelpPanel.rowHeights = new int[] { 337, 0 };
-		gbl_overAllHelpPanel.columnWeights = new double[] { 1.0,Double.MIN_VALUE };
+		gbl_overAllHelpPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
 		gbl_overAllHelpPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		overAllHelpPanel.setLayout(gbl_overAllHelpPanel);
 
@@ -4419,9 +4582,9 @@ public class PlayPane extends JFrame {
 		overAllHelpPanel.add(helpPanel, gbc_helpPanel);
 		GridBagLayout gbl_helpPanel = new GridBagLayout();
 		gbl_helpPanel.columnWidths = new int[] { 0, 0, 0, 0 };
-		gbl_helpPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0 };
-		gbl_helpPanel.columnWeights = new double[] { 0.0, 0.0, 1.0,	Double.MIN_VALUE };
-		gbl_helpPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_helpPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_helpPanel.columnWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
+		gbl_helpPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		helpPanel.setLayout(gbl_helpPanel);
 
 		JLabel lblAbout = new JLabel("About");
@@ -4443,7 +4606,8 @@ public class PlayPane extends JFrame {
 		aboutArea.setForeground(new Color(0, 0, 0));
 		aboutArea.setWrapStyleWord(true);
 		aboutArea.setLineWrap(true);
-		aboutArea.setText("The Graph Tool is an innovative and data-driven application that allows users to explore and uncover connections among existing data from multiple repositories in an effort to make more informed decisions.\r\n\r\nThe tool displays data from one or more databases in an interactive format that users can customize, overlay, and extend based on their individual needs. This can help establish connections between a specific piece of data, that a healthcare provider needs to perform a certain procedure, with the system(s) that provide it.\r\n");
+		aboutArea
+				.setText("The Graph Tool is an innovative and data-driven application that allows users to explore and uncover connections among existing data from multiple repositories in an effort to make more informed decisions.\r\n\r\nThe tool displays data from one or more databases in an interactive format that users can customize, overlay, and extend based on their individual needs. This can help establish connections between a specific piece of data, that a healthcare provider needs to perform a certain procedure, with the system(s) that provide it.\r\n");
 		GridBagConstraints gbc_aboutArea = new GridBagConstraints();
 		gbc_aboutArea.gridwidth = 2;
 		gbc_aboutArea.fill = GridBagConstraints.HORIZONTAL;
@@ -4486,7 +4650,7 @@ public class PlayPane extends JFrame {
 		gbc_lblLearningMaterials.insets = new Insets(10, 20, 10, 250);
 		gbc_lblLearningMaterials.gridx = 1;
 		gbc_lblLearningMaterials.gridy = 5;
-//		helpPanel.add(lblLearningMaterials, gbc_lblLearningMaterials);
+		// helpPanel.add(lblLearningMaterials, gbc_lblLearningMaterials);
 
 		JLabel lblHeidiMaterials = new JLabel("Interactive Powerpoint");
 		lblHeidiMaterials.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -4495,16 +4659,15 @@ public class PlayPane extends JFrame {
 		gbc_lblHeidiMaterials.insets = new Insets(0, 40, 5, 250);
 		gbc_lblHeidiMaterials.gridx = 1;
 		gbc_lblHeidiMaterials.gridy = 6;
-//		helpPanel.add(lblHeidiMaterials, gbc_lblHeidiMaterials);
+		// helpPanel.add(lblHeidiMaterials, gbc_lblHeidiMaterials);
 
-		pptTrainingBtn = new CustomButton(
-				"Starting Interactive Powerpoint Training");
+		pptTrainingBtn = new CustomButton("Starting Interactive Powerpoint Training");
 		GridBagConstraints gbc_pptTrainingBtn = new GridBagConstraints();
 		gbc_pptTrainingBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_pptTrainingBtn.insets = new Insets(0, 45, 15, 250);
 		gbc_pptTrainingBtn.gridx = 1;
 		gbc_pptTrainingBtn.gridy = 7;
-//		helpPanel.add(pptTrainingBtn, gbc_pptTrainingBtn);
+		// helpPanel.add(pptTrainingBtn, gbc_pptTrainingBtn);
 
 		JLabel lblHowToVideo = new JLabel("How to Videos");
 		lblHowToVideo.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -4513,7 +4676,7 @@ public class PlayPane extends JFrame {
 		gbc_lblHowToVideo.insets = new Insets(0, 40, 5, 250);
 		gbc_lblHowToVideo.gridx = 1;
 		gbc_lblHowToVideo.gridy = 8;
-//		helpPanel.add(lblHowToVideo, gbc_lblHowToVideo);
+		// helpPanel.add(lblHowToVideo, gbc_lblHowToVideo);
 
 		htmlTrainingBtn = new CustomButton("Start Simulation Training");
 		GridBagConstraints gbc_htmlTrainingBtn = new GridBagConstraints();
@@ -4521,7 +4684,7 @@ public class PlayPane extends JFrame {
 		gbc_htmlTrainingBtn.insets = new Insets(0, 45, 5, 250);
 		gbc_htmlTrainingBtn.gridx = 1;
 		gbc_htmlTrainingBtn.gridy = 9;
-//		helpPanel.add(htmlTrainingBtn, gbc_htmlTrainingBtn);
+		// helpPanel.add(htmlTrainingBtn, gbc_htmlTrainingBtn);
 
 		advancedFunctionsPanel.setVisible(false);
 		calcTCprogressBar.setVisible(false);
@@ -4536,9 +4699,9 @@ public class PlayPane extends JFrame {
 		leftView.addTab("Main", null, inputPanel, null);
 		GridBagLayout gbl_inputPanel = new GridBagLayout();
 		gbl_inputPanel.columnWidths = new int[] { 5, 0, 55, 0, 0 };
-		gbl_inputPanel.rowHeights = new int[] { 30, 0, 89, 19, 0, 15, 0, 0, 0,0, 0, 0, 0, 30, 0, 30 };
+		gbl_inputPanel.rowHeights = new int[] { 30, 0, 89, 19, 0, 15, 0, 0, 0, 0, 0, 0, 0, 30, 0, 30 };
 		gbl_inputPanel.columnWeights = new double[] { 0.0, 0.0, 1.0, 0.0, 0.0 };
-		gbl_inputPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };	
+		gbl_inputPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 		inputPanel.setLayout(gbl_inputPanel);
 
 		JLabel lblSectionADefine = new JLabel("Define Graph");
@@ -4580,12 +4743,12 @@ public class PlayPane extends JFrame {
 		listScrollPane.setPreferredSize(new Dimension(150, 100));
 		// listScrollPane.setMinimumSize(new Dimension(200,100));
 		listScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		//listScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// listScrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		inputPanel.add(listScrollPane, gbc_repoList);
 		// set the listener
 		repoList.addListSelectionListener(RepoSelectionListener.getInstance());
 
-		JLabel lblPerspective = new JLabel(	"2. Select the category you'd like to address");
+		JLabel lblPerspective = new JLabel("2. Select the category you'd like to address");
 		lblPerspective.setForeground(Color.DARK_GRAY);
 		lblPerspective.setFont(new Font("SansSerif", Font.PLAIN, 10));
 		GridBagConstraints gbc_lblPerspective = new GridBagConstraints();
@@ -4666,9 +4829,9 @@ public class PlayPane extends JFrame {
 		submitButton.setText("Create");
 		// key binding
 		String keyStroke = "enter";
-		KeyStroke key = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,InputEvent.CTRL_DOWN_MASK);
+		KeyStroke key = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK);
 		// map keystroke with action id
-		submitButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key,keyStroke);
+		submitButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key, keyStroke);
 		// map action id to listener
 		ProcessQueryListener processQueryListener = new ProcessQueryListener();
 		submitButton.getActionMap().put(keyStroke, processQueryListener);
@@ -4750,10 +4913,8 @@ public class PlayPane extends JFrame {
 		btnShowHint.setToolTipText("Display Hint for PlaySheet");
 		// btnShowHint.setText("Show Hint");
 		try {
-			Image img = ImageIO.read(new File(workingDir
-					+ "/pictures/questionMark.png"));
-			Image newimg = img.getScaledInstance(15, 15,
-					java.awt.Image.SCALE_SMOOTH);
+			Image img = ImageIO.read(new File(workingDir + "/pictures/questionMark.png"));
+			Image newimg = img.getScaledInstance(15, 15, java.awt.Image.SCALE_SMOOTH);
 			btnShowHint.setIcon(new ImageIcon(newimg));
 		} catch (IOException ex) {
 		}
@@ -4782,10 +4943,8 @@ public class PlayPane extends JFrame {
 		// btnGetQuestionSparql.setText("Fill Current Query");
 		btnGetQuestionSparql.setToolTipText("Display Sparql Query for Current Question");
 		try {
-			Image img = ImageIO.read(new File(workingDir
-					+ "/pictures/download.png"));
-			Image newimg = img.getScaledInstance(15, 15,
-					java.awt.Image.SCALE_SMOOTH);
+			Image img = ImageIO.read(new File(workingDir + "/pictures/download.png"));
+			Image newimg = img.getScaledInstance(15, 15, java.awt.Image.SCALE_SMOOTH);
 			btnGetQuestionSparql.setIcon(new ImageIcon(newimg));
 		} catch (IOException ex) {
 		}
@@ -4843,7 +5002,7 @@ public class PlayPane extends JFrame {
 		gbl_owlPanel.columnWidths = new int[] { 228, 0 };
 		gbl_owlPanel.rowHeights = new int[] { 29, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_owlPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_owlPanel.rowWeights = new double[] { 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,0.0, 0.0, Double.MIN_VALUE };
+		gbl_owlPanel.rowWeights = new double[] { 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		owlPanel.setLayout(gbl_owlPanel);
 
 		JLabel lblDataProperties = new JLabel("Data Properties");
@@ -5069,9 +5228,9 @@ public class PlayPane extends JFrame {
 		leftView.addTab("Graph Cosmetics", null, cosmeticPanel, null);
 		GridBagLayout gbl_cosmeticPanel = new GridBagLayout();
 		gbl_cosmeticPanel.columnWidths = new int[] { 231 };
-		gbl_cosmeticPanel.rowHeights = new int[] { 0, 0, 350, 0, 350, 0, 0, 0,	150 };
+		gbl_cosmeticPanel.rowHeights = new int[] { 0, 0, 350, 0, 350, 0, 0, 0, 150 };
 		gbl_cosmeticPanel.columnWeights = new double[] { 1.0 };
-		gbl_cosmeticPanel.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, 1.0,	0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gbl_cosmeticPanel.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		cosmeticPanel.setLayout(gbl_cosmeticPanel);
 
 		JScrollPane scrollPane_9 = new JScrollPane((Component) null);
@@ -5193,16 +5352,16 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(htmlTrainingBtn, ".standardButton");
 		CSSApplication css = new CSSApplication(getContentPane());
 
-//		scrollPane_1.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_2.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_3.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_4.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_6.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_7.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_8.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_9.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_10.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		scrollPane_11.getVerticalScrollBar().setUI(new NewScrollBarUI());
-//		filterSliders.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_1.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_2.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_3.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_4.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_6.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_7.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_8.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_9.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_10.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// scrollPane_11.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		// filterSliders.getVerticalScrollBar().setUI(new NewScrollBarUI());
 	}
 }
