@@ -3705,7 +3705,6 @@ public class PlayPane extends JFrame {
 		Style.registerTargetClassName(btnCommonSubgraph, ".standardButton");
 
 		// DHMSM Reports tab under MHS TAP tab
-		// TODO
 		JPanel dhmsmReportPanel = new JPanel();
 		dhmsmReportPanel.setBackground(SystemColor.control);
 		JScrollPane dhmsmReportScroll = new JScrollPane(dhmsmReportPanel);
@@ -3980,7 +3979,7 @@ public class PlayPane extends JFrame {
 		gbl_dhmsmReportMidPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		dhmsmReportMidPanel.setLayout(gbl_dhmsmReportMidPanel);
 
-		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap"); // TODO
+		JLabel dhmsmCapSystemIntersectionTitleLabel = new JLabel("DHMSM Capability and System Overlap");
 		GridBagConstraints gbc_dhmsmCapSystemIntersectionTitleLabel = new GridBagConstraints();
 		gbc_dhmsmCapSystemIntersectionTitleLabel.gridwidth = 2;
 		gbc_dhmsmCapSystemIntersectionTitleLabel.anchor = GridBagConstraints.WEST;
@@ -4293,7 +4292,6 @@ public class PlayPane extends JFrame {
 		advancedFunctionsPanel.add(calcTCprogressBar, gbc_calcTCprogressBar);
 
 		// DB Comparison tab under MHS TAP tab
-		// TODO: ADD NEW TAB HERE
 		JPanel dbComparisonPanel = new JPanel();
 		dbComparisonPanel.setBackground(SystemColor.control);
 		JScrollPane dbComparisonScroll = new JScrollPane(dbComparisonPanel);
@@ -4330,22 +4328,6 @@ public class PlayPane extends JFrame {
 		gbc_dbComparisonTitleLabel.gridy = 1;
 		dbComparisonTopPanel.add(dbComparisonTitleLabel, gbc_dbComparisonTitleLabel);
 		dbComparisonTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
-
-		// JPanel dbSelectionPanel = new JPanel();
-		// dbSelectionPanel.setBackground(SystemColor.control);
-		// GridBagConstraints gbc_dbSelectionPanel = new GridBagConstraints();
-		// gbc_dbSelectionPanel.anchor = GridBagConstraints.WEST;
-		// gbc_dbSelectionPanel.gridwidth = 6;
-		// gbc_dbSelectionPanel.insets = new Insets(0, 0, 5, 5);
-		// gbc_dbSelectionPanel.gridx = 2;
-		// gbc_dbSelectionPanel.gridy = 2;
-		// dbComparisonPanel.add(dbSelectionPanel, gbc_dbSelectionPanel);
-		// GridBagLayout gbl_dbSelectionPanel = new GridBagLayout();
-		// gbl_dbSelectionPanel.columnWidths = new int[] { 0, 75, 75, 300 };
-		// gbl_dbSelectionPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
-		// gbl_dbSelectionPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
-		// gbl_dbSelectionPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		// dbSelectionPanel.setLayout(gbl_dbSelectionPanel);
 
 		JLabel lblNewDB = new JLabel("New DB:");
 		GridBagConstraints gbc_lblNewDB = new GridBagConstraints();
@@ -4391,88 +4373,6 @@ public class PlayPane extends JFrame {
 		gbc_compareDBButton.gridy = 4;
 		dbComparisonTopPanel.add(compareDBButton, gbc_compareDBButton);
 		Style.registerTargetClassName(compareDBButton, ".standardButton");
-		
-
-		// JPanel dbComparisonPanel = new JPanel();
-		// dbComparisonPanel.setBackground(SystemColor.control);
-		//
-		// rightView.addTab("Compare DB", null, dbComparisonPanel, null);
-		// GridBagLayout gbl_dbComparisonPanel = new GridBagLayout();
-		// gbl_dbComparisonPanel.columnWidths = new int[] { 15, 0, 0 };
-		// gbl_dbComparisonPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		// gbl_dbComparisonPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		// gbl_dbComparisonPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		// dbComparisonPanel.setLayout(gbl_dbComparisonPanel);
-		//
-		// JLabel lblDBSelection = new JLabel("Compare Databases");
-		// lblDBSelection.setFont(new Font("Tahoma", Font.BOLD, 12));
-		// GridBagConstraints gbc_lblDBSelection = new GridBagConstraints();
-		// gbc_lblDBSelection.insets = new Insets(15, 0, 10, 0);
-		// gbc_lblDBSelection.gridx = 1;
-		// gbc_lblDBSelection.gridy = 0;
-		// dbComparisonPanel.add(lblDBSelection, gbc_lblDBSelection);
-		//
-		// JPanel dbSelectionPanel = new JPanel();
-		// dbSelectionPanel.setBackground(SystemColor.control);
-		// GridBagConstraints gbc_dbSelectionPanel = new GridBagConstraints();
-		// gbc_dbSelectionPanel.anchor = GridBagConstraints.WEST;
-		// gbc_dbSelectionPanel.gridwidth = 6;
-		// gbc_dbSelectionPanel.insets = new Insets(0, 0, 5, 5);
-		// gbc_dbSelectionPanel.gridx = 1;
-		// gbc_dbSelectionPanel.gridy = 1;
-		// dbComparisonPanel.add(dbSelectionPanel, gbc_dbSelectionPanel);
-		// GridBagLayout gbl_dbSelectionPanel = new GridBagLayout();
-		// gbl_dbSelectionPanel.columnWidths = new int[] { 0, 75, 75, 300 };
-		// gbl_dbSelectionPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
-		// gbl_dbSelectionPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
-		// gbl_dbSelectionPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		// dbSelectionPanel.setLayout(gbl_dbSelectionPanel);
-		//
-		// JLabel lblNewDB = new JLabel("New DB:");
-		// GridBagConstraints gbc_lblNewDB = new GridBagConstraints();
-		// gbc_lblNewDB.anchor = GridBagConstraints.WEST;
-		// gbc_lblNewDB.insets = new Insets(0, 20, 5, 5);
-		// gbc_lblNewDB.gridx = 0;
-		// gbc_lblNewDB.gridy = 0;
-		// dbSelectionPanel.add(lblNewDB, gbc_lblNewDB);
-		//
-		// newDBComboBox = new JComboBox();
-		// newDBComboBox.setEditable(false);
-		// GridBagConstraints gbc_newDBComboBox = new GridBagConstraints();
-		// gbc_newDBComboBox.gridwidth = 2;
-		// gbc_newDBComboBox.insets = new Insets(0, 0, 5, 5);
-		// gbc_newDBComboBox.fill = GridBagConstraints.HORIZONTAL;
-		// gbc_newDBComboBox.gridx = 1;
-		// gbc_newDBComboBox.gridy = 0;
-		// dbSelectionPanel.add(newDBComboBox, gbc_newDBComboBox);
-		//
-		// JLabel lblOldDB = new JLabel("Old DB:");
-		// GridBagConstraints gbc_lblOldDB = new GridBagConstraints();
-		// gbc_lblOldDB.anchor = GridBagConstraints.WEST;
-		// gbc_lblOldDB.insets = new Insets(0, 20, 5, 5);
-		// gbc_lblOldDB.gridx = 0;
-		// gbc_lblOldDB.gridy = 2;
-		// dbSelectionPanel.add(lblOldDB, gbc_lblOldDB);
-		//
-		// oldDBComboBox = new JComboBox();
-		// GridBagConstraints gbc_oldDBComboBox = new GridBagConstraints();
-		// gbc_oldDBComboBox.gridwidth = 2;
-		// gbc_oldDBComboBox.insets = new Insets(0, 0, 5, 5);
-		// gbc_oldDBComboBox.fill = GridBagConstraints.HORIZONTAL;
-		// gbc_oldDBComboBox.gridx = 1;
-		// gbc_oldDBComboBox.gridy = 2;
-		// dbSelectionPanel.add(oldDBComboBox, gbc_oldDBComboBox);
-		//
-		// compareDBButton = new CustomButton("Compare DBs");
-		// compareDBButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		// GridBagConstraints gbc_compareDBButton = new GridBagConstraints();
-		// gbc_compareDBButton.anchor = GridBagConstraints.WEST;
-		// gbc_compareDBButton.insets = new Insets(0, 20, 5, 5);
-		// gbc_compareDBButton.gridx = 0;
-		// gbc_compareDBButton.gridy = 3;
-		// dbSelectionPanel.add(compareDBButton, gbc_compareDBButton);
-		// Style.registerTargetClassName(compareDBButton, ".standardButton");
-		// TODO remove above
 
 		// Settings tab
 		JPanel settingsPanel = new JPanel();
