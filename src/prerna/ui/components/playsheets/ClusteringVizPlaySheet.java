@@ -7,7 +7,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.swing.JButton;
@@ -388,24 +387,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				if(values != null) {
 					if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx) & values.length > 5) {					
 						// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
-						Arrays.sort(values);
-						double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleArr(values);
-						int testInd=0;
-						while(testInd<numValues.length&&numValues[testInd]==0.0) {
-							testInd++;
-							if(testInd>10)
-							{String k= "k";}
-						}
-						BarChart chart = null;
-						try {
-							chart = new BarChart(numValues);
-						} catch(OutOfMemoryError e) {
-							System.out.println("");
-							chart = new BarChart(numValues);
-						}
+						Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(values);
+						numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
+						BarChart chart = new BarChart(numValues);
 						Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
 						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-						String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(numValues, true);
+						String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
 						// cause JS is dumb
 						Object[] propBinsArr = new Object[]{propBins};
 						innerHash.put("dataSeries", propBinsArr);
@@ -503,7 +490,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
 		clusterAssigned = clusterAlg.getClustersAssigned();
 		instanceIndexHash = clusterAlg.getInstanceIndexHash();
-
+		
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		String[] newNames = new String[names.length + 1];
 		//create raw data for results

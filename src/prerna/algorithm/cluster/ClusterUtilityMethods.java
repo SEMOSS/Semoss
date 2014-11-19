@@ -48,6 +48,14 @@ public final class ClusterUtilityMethods {
 						String categoryValForInstance = instanceCategoryMatrix[instanceIdx][categoryIdx];
 						//add the category properties to the new cluster
 						Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryIdx);
+						if(propValHash == null) {
+							//TODO:
+							System.out.println();
+						}
+						if(categoryValForInstance == null) {
+							//TODO:
+							System.out.println();
+						}
 						if(propValHash.contains(categoryValForInstance)) {
 							int count = propValHash.get(categoryValForInstance);
 							propValHash.put(categoryValForInstance, ++count);
