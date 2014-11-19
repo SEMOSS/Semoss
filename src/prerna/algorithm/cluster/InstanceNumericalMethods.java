@@ -49,15 +49,25 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 		double similarity = 0;
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
-			// the values are either the same or different, which results in either adding the weight*1/1 = weight or weight*0/2 = 0
-			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
-			// numBins contains the number of bins
-			int numBins = sortedBinArr.length;
-			int indexOfInstance1 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues1[i]);
-			int indexOfInstance2 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues2[i]);
-			// adjustment factor simplifies since comparing only one instance to another instance
-			double adjustmentFactor = (1 - (double) Math.abs(indexOfInstance1 - indexOfInstance2) / numBins); 
-			similarity += weights[i] * adjustmentFactor;
+			// deal with empty values
+			if(categoricalValues1[i].equals("NaN")) {
+				if(categoricalValues2[i].equals("NaN")) {
+					similarity += weights[i];
+				} 
+//				else {
+//					// similarity is zero if one value is NaN and the other is not NaN
+//				}
+			} else {
+				// the values are either the same or different, which results in either adding the weight*1/1 = weight or weight*0/2 = 0
+				String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
+				// numBins contains the number of bins
+				int numBins = sortedBinArr.length;
+				int indexOfInstance1 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues1[i]);
+				int indexOfInstance2 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues2[i]);
+				// adjustment factor simplifies since comparing only one instance to another instance
+				double adjustmentFactor = (1 - (double) Math.abs(indexOfInstance1 - indexOfInstance2) / (numBins-1)); 
+				similarity += weights[i] * adjustmentFactor;
+			}
 		}
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;
