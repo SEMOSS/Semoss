@@ -4,6 +4,8 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
 
+import prerna.util.ArrayUtilityMethods;
+
 public final class StatisticsUtilityMethods {
 
 	private static final String ILLEGAL_ARGS_ERR = "The data array either is null or does not contain any data.";
@@ -57,6 +59,23 @@ public final class StatisticsUtilityMethods {
 		return minValue;
 	}
 	
+	public static double getMinimumValue(final Double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double minValue = values[0];
+		for(index = 1; index < size; index++) {
+			if(minValue > values[index]) {
+				minValue = values[index];
+			}
+		}
+		
+		return minValue;
+	}
+	
 	public static Double getMinimumValueIgnoringNull(final Double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
@@ -79,6 +98,23 @@ public final class StatisticsUtilityMethods {
 	}
 	
 	public static double getMaximumValue(final double[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		double maxValue = values[0];
+		for(index = 1; index < size; index++) {
+			if(maxValue < values[index]) {
+				maxValue = values[index];
+			}
+		}
+		
+		return maxValue;
+	}
+	
+	public static double getMaximumValue(final Double[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
@@ -376,9 +412,13 @@ public final class StatisticsUtilityMethods {
 		
 	}
 	
-	public static double getSkewnessIgnoringNull(final Double[] values, boolean isSorted) {
+	public static double getSkewnessIgnoringNull(Double[] values, boolean isSorted) {
 		if( values == null || values.length < 1) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		if(!isSorted){
+			values = ArrayUtilityMethods.sortDoubleWrapperArr(values);
 		}
 		
 		int numValues = values.length;
@@ -513,6 +553,67 @@ public final class StatisticsUtilityMethods {
 		
 		if(!isOrdered){
 			Arrays.sort(values);
+		}
+		
+		double[] zScoreVals = calculateZScoreRange(values, true);
+		int i;
+		int size = zScoreVals.length;
+		String[] zScoreValsAsString = new String[size];
+		for(i = 0; i < size; i++) {
+			zScoreValsAsString[i] = formatter.format(zScoreVals[i]);
+		}
+		
+		return zScoreValsAsString;
+	}
+	
+	public static double[] calculateZScoreRange(Double[] values, final boolean isOrdered) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		if(!isOrdered){
+			values = ArrayUtilityMethods.sortDoubleWrapperArr(values);
+		}
+		
+		double minVal = values[0];
+		double maxVal = values[values.length - 1];
+
+		double avg = getAverageIgnoringNull(values);
+		double stdev = getSampleStandardDeviationIgnoringNull(values);
+
+		double minZScore = (minVal - avg)/stdev;
+		double maxZScore = (maxVal - avg)/stdev;
+
+		int index;
+		int start = (int) Math.ceil(minZScore);
+		int end = (int) Math.floor(maxZScore);
+		if( (start-minZScore)/(maxZScore - minZScore) < 0.05 ) {
+			start++;
+		}
+		if( (maxZScore-end)/(maxZScore - minZScore) < 0.05 ) {
+			end--;
+		}
+		
+		double[] zScore = new double[end - start + 3]; //+3 due to minZScore, maxZScore, and including the end value
+		zScore[0] = minZScore;
+		zScore[zScore.length - 1] = maxZScore;
+		int counter = 1;
+		for(index = start; index <= end; index++){
+			zScore[counter] = index;
+			counter++;
+		}
+
+		return zScore;
+	}
+	
+	public static String[] getZScoreRangeAsStringIgnoringNull(Double[] values, final boolean isOrdered) {
+		NumberFormat formatter = new DecimalFormat("#.##");
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		if(!isOrdered){
+			values = ArrayUtilityMethods.sortDoubleWrapperArr(values);
 		}
 		
 		double[] zScoreVals = calculateZScoreRange(values, true);

@@ -9,20 +9,20 @@ import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
-//	private static final Logger LOGGER = LogManager.getLogger(ClusterUtilityMethods.class.getName());
-	
+	//	private static final Logger LOGGER = LogManager.getLogger(ClusterUtilityMethods.class.getName());
+
 	// static class used to calculate different distance measures for numerical similarity score
-//	private static DistanceCalculator disCalculator = new DistanceCalculator();
-	
+	//	private static DistanceCalculator disCalculator = new DistanceCalculator();
+
 	public ClusteringNumericalMethods(String[][] numericalBinMatrix, String[][] categoricalMatrix, String[][] instanceNumberBinOrderingMatrix) {
 		super(numericalBinMatrix, categoricalMatrix, instanceNumberBinOrderingMatrix);
 	}
-	
+
 	public double calculateAdjustmentFactor(int index1, int index2, int numBins) {
-		return 1 - (double) Math.pow((double) Math.abs(index1 - index2) / numBins, 2.0); 
+		return 1 - (double) Math.pow((double) Math.abs(index1 - index2) / (numBins-1), 2.0); 
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * @param numericalBinMatrix			All the numeric bin data for every instance
@@ -52,7 +52,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 		return numericalSimilarity + categorySimilarity;
 	}
-	
+
 	/**
 	 * Calculates the similarity score for the categorical/numerical-bin entries
 	 * @param propNum					The number of categorical/numerical props
@@ -88,10 +88,10 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;
 
-//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
+		//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
 		return coeff * similarity;
 	}
-	
+
 	/**
 	 * Calculates the similarity score for the categorical/numerical-bin entries
 	 * @param propNum					The number of categorical/numerical props
@@ -113,7 +113,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
 			// numBins contains the number of bins
 			int numBins = sortedBinArr.length;
-			
+
 			double adjustmentFactor = 0;
 			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
 			Set<String> propKeySet = propertyHash.keySet();
@@ -122,11 +122,24 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			for(String propName : propKeySet) {
 				sumProperties += propertyHash.get(propName);
 			}
-			for(String propName : propKeySet) {
-				double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
-				int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
-				int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
-				adjustmentFactor += normalizedNumInBin * calculateAdjustmentFactor(indexOfInstance, indexOfPropInCluster, numBins); 
+			// deal with empty values
+			if(instaceCategoricalInfo[i].equals("NaN")) {
+				if(propKeySet.contains("NaN")) {
+					double normalizedNumInBin = (double) propertyHash.get("NaN") / sumProperties;
+					adjustmentFactor += normalizedNumInBin;
+				} 
+//				else {
+//					// similarity is zero if one value is NaN and the other is not NaN
+//				}
+			} else {
+				for(String propName : propKeySet) {
+					if(!propName.equals("NaN")) {
+						double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
+						int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
+						int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
+						adjustmentFactor += normalizedNumInBin * calculateAdjustmentFactor(indexOfInstance, indexOfPropInCluster, numBins); 
+					}
+				}
 			}
 			similarity += weights[i] * adjustmentFactor;
 		}
@@ -137,73 +150,73 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		return coeff * similarity;
 	}
 
-//	/**
-//	 * Calculates the similarity score for the numerical entries using distance
-//	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
-//	 * @param instanceNumericalInfo			The numerical information for the specific index
-//	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
-//	 * @return								The similarity score value associated with the numerical properties
-//	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length 
-//	 */
-//	public static double calcuateNumericalSimilarityUsingDistance(int propNum, int totalProps, int clusterIdx, Double[] instanceNumericalInfo, Double[][] allNumericalClusterInfo) throws IllegalArgumentException 
-//	{
-//		double numericalSimilarity = 0;
-//		double distanceNormalization = 0;
-//		
-//		int numClusters = allNumericalClusterInfo.length;
-//		double[] distance = new double[numClusters];
-//
-//		// generate array of distances between the instance and the cluster for all numerical properties
-//		for(int i = 0; i < allNumericalClusterInfo.length; i++) {
-//			Double[] numericalClusterInfo = allNumericalClusterInfo[i];
-//			// deal with null values
-//			// set the values to be the same for this property such that the distance becomes 0
-//			Double[] copyInstanceNumericalInfo = new Double[instanceNumericalInfo.length];
-//			for(int j = 0; j < numericalClusterInfo.length; j++) {
-//				if(numericalClusterInfo[j] == null) {
-//					copyInstanceNumericalInfo = instanceNumericalInfo;
-//					if(copyInstanceNumericalInfo[j] == null) {
-//						numericalClusterInfo[j] = new Double(0);
-//						copyInstanceNumericalInfo[j] = new Double(0);
-//					} else {
-//						numericalClusterInfo[j] = copyInstanceNumericalInfo[j];
-//					}
-//				} else if(copyInstanceNumericalInfo[j] == null) {
-//					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
-//				} else {
-//					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
-//				}
-//			}
-//			distance[i] = disCalculator.calculateEuclidianDistance(copyInstanceNumericalInfo, numericalClusterInfo);
-//			distanceNormalization += distance[i];
-//		}
-//		
-//		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
-//		double coeff = 1.0 * propNum / totalProps;
-//		
-//		if(distanceNormalization == 0) {
-//			return coeff; // values are exactly the same
-//		}
-//		
-//		// normalize all the distances to avoid distortion
-//		for(int i = 0; i < distance.length; i++) {
-//			distance[i] /= distanceNormalization;
-//		}
-//		
-//		// distance of instance from cluster is a value between 0 and 1
-//		double distanceFromCluster = Math.exp(-0.5 * distance[clusterIdx]);
-//		double sumDistanceFromCluster = 0;
-//		for(int i = 0; i < distance.length; i++) {
-//			sumDistanceFromCluster += Math.exp(-0.5 * distance[i]);
-//		}
-//		// 
-//		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
-//
-////		LOGGER.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
-//		return coeff * numericalSimilarity;
-//	}
-	
-	
+	//	/**
+	//	 * Calculates the similarity score for the numerical entries using distance
+	//	 * @param clusterIdx					The index of the specific cluster we are looking to add the instance into
+	//	 * @param instanceNumericalInfo			The numerical information for the specific index
+	//	 * @param allNumericalClusterInfo		Contains the numerical cluster information for all the different clusters
+	//	 * @return								The similarity score value associated with the numerical properties
+	//	 * @throws IllegalArgumentException		The number of rows for the two arrays being compared to calculate Euclidian distance are of different length 
+	//	 */
+	//	public static double calcuateNumericalSimilarityUsingDistance(int propNum, int totalProps, int clusterIdx, Double[] instanceNumericalInfo, Double[][] allNumericalClusterInfo) throws IllegalArgumentException 
+	//	{
+	//		double numericalSimilarity = 0;
+	//		double distanceNormalization = 0;
+	//		
+	//		int numClusters = allNumericalClusterInfo.length;
+	//		double[] distance = new double[numClusters];
+	//
+	//		// generate array of distances between the instance and the cluster for all numerical properties
+	//		for(int i = 0; i < allNumericalClusterInfo.length; i++) {
+	//			Double[] numericalClusterInfo = allNumericalClusterInfo[i];
+	//			// deal with null values
+	//			// set the values to be the same for this property such that the distance becomes 0
+	//			Double[] copyInstanceNumericalInfo = new Double[instanceNumericalInfo.length];
+	//			for(int j = 0; j < numericalClusterInfo.length; j++) {
+	//				if(numericalClusterInfo[j] == null) {
+	//					copyInstanceNumericalInfo = instanceNumericalInfo;
+	//					if(copyInstanceNumericalInfo[j] == null) {
+	//						numericalClusterInfo[j] = new Double(0);
+	//						copyInstanceNumericalInfo[j] = new Double(0);
+	//					} else {
+	//						numericalClusterInfo[j] = copyInstanceNumericalInfo[j];
+	//					}
+	//				} else if(copyInstanceNumericalInfo[j] == null) {
+	//					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
+	//				} else {
+	//					copyInstanceNumericalInfo[j] = numericalClusterInfo[j];
+	//				}
+	//			}
+	//			distance[i] = disCalculator.calculateEuclidianDistance(copyInstanceNumericalInfo, numericalClusterInfo);
+	//			distanceNormalization += distance[i];
+	//		}
+	//		
+	//		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
+	//		double coeff = 1.0 * propNum / totalProps;
+	//		
+	//		if(distanceNormalization == 0) {
+	//			return coeff; // values are exactly the same
+	//		}
+	//		
+	//		// normalize all the distances to avoid distortion
+	//		for(int i = 0; i < distance.length; i++) {
+	//			distance[i] /= distanceNormalization;
+	//		}
+	//		
+	//		// distance of instance from cluster is a value between 0 and 1
+	//		double distanceFromCluster = Math.exp(-0.5 * distance[clusterIdx]);
+	//		double sumDistanceFromCluster = 0;
+	//		for(int i = 0; i < distance.length; i++) {
+	//			sumDistanceFromCluster += Math.exp(-0.5 * distance[i]);
+	//		}
+	//		// 
+	//		numericalSimilarity = distanceFromCluster/sumDistanceFromCluster;
+	//
+	////		LOGGER.info("Calculated similarity score for numerical properties: " + coeff * numericalSimilarity);
+	//		return coeff * numericalSimilarity;
+	//	}
+
+
 	/**
 	 * @param clusterIdx1
 	 * @param clusterIdx2
@@ -219,7 +232,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 	{
 		double numericSimilarity = 0;
 		double categoricalSimilarity = 0;
-		
+
 		if(clusterNumericalMatrix != null) {
 			ArrayList<Hashtable<String, Integer>> numericalClusterInfo1 = clusterNumericalMatrix.get(clusterIdx1);
 			ArrayList<Hashtable<String, Integer>> numericalClusterInfo2 = clusterNumericalMatrix.get(clusterIdx2);
@@ -236,7 +249,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 		return numericSimilarity + categoricalSimilarity;
 	}
-	
+
 	/**
 	 * 
 	 * @param propNum
@@ -303,8 +316,8 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 		return coeff * similarityScore;
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * @param propNum
@@ -331,115 +344,134 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			// for specific property
 			Hashtable<String, Integer> propInfoForCluster1 = clusterInfo1.get(i);
 			Hashtable<String, Integer> propInfoForCluster2 = clusterInfo2.get(i);
-			
+
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
 			// numBins contains the number of bins
 			int numBins = sortedBinArr.length;
 			Double[] numInstances1 = calculateComparisonArr(propInfoForCluster1, sortedBinArr);
 			Double[] numInstances2 = calculateComparisonArr(propInfoForCluster2, sortedBinArr);
-			
+
 			if(numInstances1[0] == null) {
 				System.out.println("ERROR");
 			}
 			double normalizationCount1 = StatisticsUtilityMethods.getSum(numInstances1);
 			double normalizationCount2 = StatisticsUtilityMethods.getSum(numInstances2);
-			
+
 			double sumClusterDiff = 0;
-			for(int index = 0; index < numBins; index++) {
+			for(int index = 0; index < numBins+1; index++) {
 				double count1 = numInstances1[index];
 				double count2 = numInstances2[index];
 				sumClusterDiff += Math.abs(count1/normalizationCount1 - count2/normalizationCount2);
 			}
-			
+
 			similarityScore += weights[i] * (1 - sumClusterDiff/numBins);
 		}
 
 		return coeff * similarityScore;
 	}
-	
+
 	private Double[] calculateComparisonArr(Hashtable<String, Integer> propInfoForCluster, String[] sortedBinArr){
 		int numBins = sortedBinArr.length;
 		Double[] numInstances = new Double[numBins]; 
-		Double[] retArr = new Double[numBins];
+		Double[] adjustedArr = new Double[numBins];
 		int j;
+		// Set NaN to be the first bin when creating comparison
 		for(String propInstance : propInfoForCluster.keySet()) {
-			int index = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propInstance);
-			//TODO: delete
-			if(index == -1) {
-				System.out.println("here");
+			if(!propInstance.equals("NaN")) {
+				int index = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propInstance);
+				int count = propInfoForCluster.get(propInstance);
+				numInstances[index] = (double) count;
 			}
-			int count = propInfoForCluster.get(propInstance);
-			numInstances[index] = (double) count;
 		}
 		for(j = 0; j < numBins; j++) {
 			if(numInstances[j] == null) {
-				int[] indicies = ArrayUtilityMethods.findAllClosestNonNullIndex(numInstances, j);
+				//if we don't have any instances with this specific bin value, find closest non-null value and add adjustment factor
+				int[] indicies;
+				try {
+					indicies = ArrayUtilityMethods.findAllClosestNonNullIndex(numInstances, j+1);
+				} catch(NullPointerException ex) {
+					// this means all information in cluster is NaN
+					break;
+				}
 				double innerCount = 0;
 				for(int k = 0; k < indicies.length; k++) {
 					innerCount += numInstances[indicies[k]];
 				}
 				innerCount /= indicies.length;
-				retArr[j] = innerCount * calculateAdjustmentFactor(indicies[0], j, numBins); 
+				adjustedArr[j] = innerCount * calculateAdjustmentFactor(indicies[0], j, numBins); 
 			} else {
-				retArr[j] = numInstances[j];
+				adjustedArr[j] = numInstances[j];
+			}
+		}
+		
+		Double[] retArr = new Double[numBins+1];
+		System.arraycopy(adjustedArr, 0, retArr, 1, numBins);
+		if(propInfoForCluster.keySet().contains("NaN")) {
+			retArr[0] = (double) propInfoForCluster.get("NaN");
+		} else {
+			retArr[0] = 0.0;
+		}
+		for(j = 0; j < numBins+1; j++) {
+			if(retArr[j] == null) {
+				retArr[j] = 0.0;
 			}
 		}
 
 		return retArr;
 	}
-	
-//	/**
-//	 * 
-//	 * @param clusterIdx1				The index for the cluster we are observing
-//	 * @param clusterIdx2				The index for the cluster we are comparing the observed cluster to
-//	 * @param clusterNumberMatrix		All the numerical properties
-//	 * @param clusterCategoryMatrix		All the categorical properties
-//	 * @return
-//	 */
-//	public double calculateClusterToClusterSimilarity(int clusterIdx1, int clusterIdx2, Double[][] clusterNumberMatrix, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix){
-//		double numericSimilarity = 0;
-//		double categoricalSimilarity = 0;
-//
-//		if(clusterNumberMatrix != null) {
-//			Double[] numericClusterInfo1 = clusterNumberMatrix[clusterIdx1];
-//			numericSimilarity = ClusterUtilityMethods.calcuateNumericalSimilarityUsingDistance(numericProps, totalProps, clusterIdx2, numericClusterInfo1, clusterNumberMatrix);
-//		}
-//
-//		if(clusterCategoryMatrix != null) {
-//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1 = clusterCategoryMatrix.get(clusterIdx1);
-//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2 = clusterCategoryMatrix.get(clusterIdx2);
-//
-//			categoricalSimilarity = calculateClusterCategoricalSimilarity(categoricalClusterInfo1, categoricalClusterInfo2);
-//		}
-//
-//		return numericSimilarity + categoricalSimilarity;
-//	}
-	
+
+	//	/**
+	//	 * 
+	//	 * @param clusterIdx1				The index for the cluster we are observing
+	//	 * @param clusterIdx2				The index for the cluster we are comparing the observed cluster to
+	//	 * @param clusterNumberMatrix		All the numerical properties
+	//	 * @param clusterCategoryMatrix		All the categorical properties
+	//	 * @return
+	//	 */
+	//	public double calculateClusterToClusterSimilarity(int clusterIdx1, int clusterIdx2, Double[][] clusterNumberMatrix, ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix){
+	//		double numericSimilarity = 0;
+	//		double categoricalSimilarity = 0;
+	//
+	//		if(clusterNumberMatrix != null) {
+	//			Double[] numericClusterInfo1 = clusterNumberMatrix[clusterIdx1];
+	//			numericSimilarity = ClusterUtilityMethods.calcuateNumericalSimilarityUsingDistance(numericProps, totalProps, clusterIdx2, numericClusterInfo1, clusterNumberMatrix);
+	//		}
+	//
+	//		if(clusterCategoryMatrix != null) {
+	//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo1 = clusterCategoryMatrix.get(clusterIdx1);
+	//			ArrayList<Hashtable<String, Integer>> categoricalClusterInfo2 = clusterCategoryMatrix.get(clusterIdx2);
+	//
+	//			categoricalSimilarity = calculateClusterCategoricalSimilarity(categoricalClusterInfo1, categoricalClusterInfo2);
+	//		}
+	//
+	//		return numericSimilarity + categoricalSimilarity;
+	//	}
+
 	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateNumericClusterCenter(
 			int[] clusterAssigned, 
 			Hashtable<String, Integer> instanceIndexHash) 
-	{
+			{
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
-		
+
 		if(numericalBinMatrix != null) {
 			ArrayList<ArrayList<Hashtable<String, Integer>>> numericClusterCenter = ClusterUtilityMethods.createClustersCategoryProperties(numericalBinMatrix, clusterAssigned, numClusters);
 			return numericClusterCenter;
 		}
-		
+
 		return null;
-	}
-	
+			}
+
 	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateCategoricalClusterCenter(
 			int[] clusterAssigned, 
 			Hashtable<String, Integer> instanceIndexHash) 
-	{
+			{
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
-		
+
 		if(categoricalMatrix != null) {
 			ArrayList<ArrayList<Hashtable<String, Integer>>> categoricalClusterCenter = ClusterUtilityMethods.createClustersCategoryProperties(categoricalMatrix, clusterAssigned, numClusters);
 			return categoricalClusterCenter;
 		}
-		
+
 		return null;
-	}
+			}
 }
