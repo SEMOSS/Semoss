@@ -217,17 +217,19 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, Object>> getLargestOutliers(IEngine engine, String typeURI) {
-		final String baseQuery = "SELECT DISTINCT ?@TYPE@ @PROPERTIES@ WHERE { {?@TYPE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} @PROP_TRIPLES@ }";
+		final String basePropQuery = "SELECT DISTINCT ?@TYPE@ @PROPERTIES@ WHERE { {?@TYPE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} @PROP_TRIPLES@ }";
 		final String propListQuery = "SELECT DISTINCT ?prop WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?entity ?prop ?val} }";
-		
+		final String baseRelQuery = "SELECT DISTINCT ?type (COUNT(?inRel) AS ?inRelCount) (COUNT(?outRel) AS ?outRelCount) WHERE { BIND(<@TYPE_URI@> AS ?entity) { {?type <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label2} {?node2 ?inRel ?type} } UNION { {?type <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label1} {?type ?outRel ?node1} } } GROUP BY ?type";
 		String type = Utility.getInstanceName(typeURI);
 		
+		boolean hasProperties = false;
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, propListQuery.replace("@TYPE_URI@", typeURI));
 		String[] names = sjsw.getVariables();
 		String retVar = names[0];
 		String propVars = "";
 		String propTriples = "";
 		while(sjsw.hasNext()) {
+			hasProperties = true;
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String varName = sjss.getVar(retVar).toString().replaceAll("-", "_");
 			String varURI = sjss.getRawVar(retVar).toString();
@@ -236,7 +238,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			propTriples = propTriples.concat("OPTIONAL{?").concat(type).concat(" <").concat(varURI).concat("> ").concat("?").concat(varName).concat("} ");
 		}
 		
-		String query = baseQuery.replaceAll("@TYPE@", type).replace("@TYPE_URI@", typeURI).replace("@PROPERTIES@", propVars).replace("@PROP_TRIPLES@", propTriples);
+		//if no properties found -> use number of edges
+		String query = null;
+		if(!hasProperties) {
+			query = baseRelQuery.replace("@TYPE_URI@", typeURI);
+		} else {
+			query = basePropQuery.replaceAll("@TYPE@", type).replace("@TYPE_URI@", typeURI).replace("@PROPERTIES@", propVars).replace("@PROP_TRIPLES@", propTriples);
+		}
 		
 		ArrayList<Object[]> results = new ArrayList<Object[]>();
 		sjsw = Utility.processQuery(engine, query);
@@ -311,9 +319,9 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, Object>> getConnectionMap(IEngine engine, String instanceURI) {
-		final String baseQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?rel) AS ?count) ?case WHERE { { SELECT DISTINCT ?type ?rel ?case WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node ?rel ?instance} BIND('in' AS ?case) } } UNION { SELECT DISTINCT ?type ?rel ?case WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?instance ?rel ?node} BIND('out' AS ?case) } } } GROUP BY ?type ?case ORDER BY DESC(?count)";
+		final String baseQuery = "SELECT DISTINCT ?type (COUNT(DISTINCT ?rel) AS ?count) ?direction ?description WHERE { { SELECT DISTINCT ?type ?rel ?direction ?description WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node ?rel ?instance} BIND('in' AS ?direction) BIND(CONCAT( REPLACE(STR(?node), '.*/', ''), ' To ', REPLACE(STR(?instance), '.*/', '')) AS ?description) } } UNION { SELECT DISTINCT ?type ?rel ?direction ?description WHERE { FILTER(?type != <http://semoss.org/ontologies/Concept>) BIND(<@INSTANCE_URI@> AS ?instance) {?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?rel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?type <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?instance ?rel ?node} BIND('out' AS ?direction) BIND(CONCAT( REPLACE(STR(?instance), '.*/', ''), ' To ', REPLACE(STR(?node), '.*/', '')) AS ?description)} } } GROUP BY ?type ?direction ?description ORDER BY DESC(?count)";
 		
-		String query = baseQuery.replace("@INSTANCE_URI@", instanceURI);
+		String query = baseQuery.replaceAll("@INSTANCE_URI@", instanceURI);
 		
 		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
 
@@ -322,16 +330,16 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
+		String param4 = names[3];
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
-			String type = sjss.getVar(param1).toString();
-			if(!type.equals("Concept")){
-				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-				innerHash.put("type", type);
-				innerHash.put("value", sjss.getVar(param2));
-				innerHash.put("direction", sjss.getVar(param3));
-				retList.add(innerHash);
-			}
+			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+			innerHash.put("typeURI", sjss.getRawVar(param1));
+			innerHash.put("typeName", sjss.getVar(param1));
+			innerHash.put("value", sjss.getVar(param2));
+			innerHash.put("direction", sjss.getVar(param3));
+			innerHash.put("description", sjss.getVar(param4));
+			retList.add(innerHash);
 		}
 
 		return retList;

@@ -130,7 +130,7 @@ public class BarChart {
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
 			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
-		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 5) {
+		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
 			return calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
@@ -157,8 +157,8 @@ public class BarChart {
 		double min = logValues[0];
 		double max = logValues[numOccurances -1];
 		double range = max - min;
-		double binSize = 1;
-		int numBins = (int) Math.ceil(range);
+		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
+		int numBins = (int) Math.ceil(range/binSize);
 
 		return allocateValuesToBin(numBins, binSize, logValuesUnsorted, logValues, formatter);
 	}
@@ -260,7 +260,6 @@ public class BarChart {
 	
 	private Hashtable<String, Object>[] calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
 		NumberFormat formatter = null;
-		int numOccurances = numValues.length;
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		//TODO: figure out what to do when entire values array is null
@@ -286,7 +285,7 @@ public class BarChart {
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
 			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
-		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 5) {
+		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
 			return calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
@@ -318,8 +317,8 @@ public class BarChart {
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(logValues);
 		//TODO: checks for when min/max are null/the same value
 		double range = max - min;
-		double binSize = 1;
-		int numBins = (int) Math.ceil(range);
+		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
+		int numBins = (int) Math.ceil(range/binSize);
 
 		return allocateValuesToBin(min, numBins, binSize, logValuesUnsorted, logValues, formatter);
 	}

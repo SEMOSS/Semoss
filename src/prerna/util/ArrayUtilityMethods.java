@@ -53,7 +53,7 @@ public final class ArrayUtilityMethods {
 		return false;
 	}
 	
-public static boolean arrayContainsValue(final double[] arr, final double value) {
+	public static boolean arrayContainsValue(final double[] arr, final double value) {
 		
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
@@ -67,6 +67,21 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 		int index;
 		for(index = 0; index < size; index++) {
 			if(arr[index] == value) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static boolean arrayContainsValue(final Double[] arr, final Double value) {
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
+		
+		int size = arr.length;
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index].doubleValue() == value.doubleValue()) {
 				return true;
 			}
 		}
@@ -282,7 +297,7 @@ public static boolean arrayContainsValue(final double[] arr, final double value)
 				try {
 					val = Double.valueOf(obj.toString());
 				} catch(NumberFormatException ex) {
-					throw new NumberFormatException("Value in Object array cannot be converted to double");
+					// ignore when value is not a number
 				}
 				retArr[index] = val;
 			}

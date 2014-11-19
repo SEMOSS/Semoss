@@ -306,7 +306,7 @@ public class ClusteringDataProcessor {
 			if(categoryPropIndices != null) 
 			{
 				for(Integer idx : categoryPropIndices) {
-					categoricalMatrix[row][counter] = (String) dataRow[idx].toString();
+					categoricalMatrix[row][counter] = dataRow[idx].toString();
 					counter++;
 				}
 			}
@@ -445,7 +445,12 @@ public class ClusteringDataProcessor {
 		int i;
 		int size = values.length;
 		for(i = 0; i < size; i++) {
-			numericalBinMatrix[i][col] = values[i];
+			String val = values[i];
+			if(val == null) {
+				numericalBinMatrix[i][col] = "NaN";
+			} else {
+				numericalBinMatrix[i][col] = values[i];
+			}
 		}
 	}
 	

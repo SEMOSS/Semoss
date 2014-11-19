@@ -159,7 +159,7 @@ public class LocalOutlierFactorAlgorithm {
 		for(i = 0; i < numInstances; i++) {
 			for(j = numInstances - 1; j >= 0 + counter; j--) {
 				// reach similarity is the minimum of the similarity between object i and j and the min similarity of the k closest clusters
-				if(kSimilarityArr[i] < .1 || kSimilarityArr[j] < .1) {
+				if(kSimilarityArr[i] == 0 || kSimilarityArr[j] == 0) {
 					reachSimMatrix[i][j] = 0;
 					reachSimMatrix[j][i] = 0;
 				} else {
@@ -228,7 +228,7 @@ public class LocalOutlierFactorAlgorithm {
 			ploof[i] = lof[i] - 1;
 		}
 		
-		double stdev = StatisticsUtilityMethods.getSampleStandardDeviation(ploof);
+		double stdev = StatisticsUtilityMethods.getSampleStandardDeviationIgnoringInfinity(ploof);
 		double squareRoot2 = Math.sqrt(2);
 		for(i = 0; i < numInstances; i++) {
 			lop[i] = Math.max(0, Erf.erf(ploof[i]/(stdev * squareRoot2)));
