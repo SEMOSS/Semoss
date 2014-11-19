@@ -18,8 +18,8 @@ public class GenericDBComparisonWriter
 	// Instance level queries
 	final String getConceptsAndInstanceCountQuery = "SELECT DISTINCT ?concept (COUNT(DISTINCT ?instance) AS ?count) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} } GROUP BY ?concept";
 	final String getInstanceAndPropCountQuery = "SELECT DISTINCT ?nodeType ?source (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { FILTER(?nodeType != <http://semoss.org/ontologies/Concept>){?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType ?source";
-	final String getInstanceInRelationCountQuery = "SELECT DISTINCT ?concept ?instance (COUNT(?inRel) AS ?totalIn) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?node2 ?inRel ?instance} } GROUP BY ?concept ?instance";
-	final String getInstanceOutRelationCountQuery = "SELECT DISTINCT ?concept ?instance (COUNT(?outRel) AS ?totalOut) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?instance ?outRel ?node} } GROUP BY ?concept ?instance";
+	final String getInstanceFromRelationCountQuery = "SELECT DISTINCT ?concept ?instance (COUNT(?inRel) AS ?totalIn) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?node2 ?inRel ?instance} } GROUP BY ?concept ?instance";
+	final String getInstanceToRelationCountQuery = "SELECT DISTINCT ?concept ?instance (COUNT(?outRel) AS ?totalOut) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?instance ?outRel ?node} } GROUP BY ?concept ?instance";
 	final String getInstanceListQuery = "SELECT DISTINCT ?concept ?instance WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} }";
 	final String getInstancePropertyValueQuery = "SELECT DISTINCT ?concept ?instance ?contains ?property WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?instance ?contains ?property }} ORDERBY ?concept";
 	final String getRelationPropertyValueQuery = "SELECT DISTINCT ?subConcept ?objConcept ?subject ?relation ?object ?contains ?property WHERE { FILTER(?subConcept != <http://semoss.org/ontologies/Concept>) FILTER(?objConcept != <http://semoss.org/ontologies/Concept>) {?subConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?objConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subConcept} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objConcept} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?relation <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?subject ?relation ?object} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?relation ?contains ?property }}";
@@ -27,10 +27,10 @@ public class GenericDBComparisonWriter
 	// Metamodel levelqueries
 	final String getMetaConceptCountQuery = "SELECT DISTINCT (COUNT(DISTINCT ?concept) AS ?conceptCount) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} }";
 	final String getMetaConceptPropertyCountQuery = "SELECT DISTINCT ?concept (COUNT(DISTINCT ?contains) AS ?propertyCount) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?instance ?contains ?property } } GROUP BY ?concept";
-	final String getMetaConceptInRelationCountQuery = "SELECT DISTINCT ?concept (COUNT(?inRel) AS ?totalIn) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?inRel ?concept} } GROUP BY ?concept";
-	final String getMetaConceptOutRelationCountQuery = "SELECT DISTINCT ?concept (COUNT(?outRel) AS ?totalOut) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?concept ?outRel ?node} } GROUP BY ?concept";
-	final String getMetaTotalInRelationCountQuery = "SELECT DISTINCT (COUNT(?relation) AS ?relationCount) WHERE {FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node ?relation ?concept} }";
-	final String getMetaTotalOutRelationCountQuery = "SELECT DISTINCT (COUNT(?relation) AS ?relationCount) WHERE {FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?concept ?relation ?node} }";
+	final String getMetaConceptFromRelationCountQuery = "SELECT DISTINCT ?concept (COUNT(?inRel) AS ?totalIn) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?inRel ?concept} } GROUP BY ?concept";
+	final String getMetaConceptToRelationCountQuery = "SELECT DISTINCT ?concept (COUNT(?outRel) AS ?totalOut) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?concept ?outRel ?node} } GROUP BY ?concept";
+	final String getMetaTotalFromRelationCountQuery = "SELECT DISTINCT (COUNT(?relation) AS ?relationCount) WHERE {FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node ?relation ?concept} }";
+	final String getMetaTotalToRelationCountQuery = "SELECT DISTINCT (COUNT(?relation) AS ?relationCount) WHERE {FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?concept ?relation ?node} }";
 	final String getMetaRelationPropertyCountQuery = "SELECT DISTINCT ?subConcept ?relation ?objConcept (COUNT(DISTINCT ?contains) AS ?propertyCount) WHERE { FILTER(?subConcept != <http://semoss.org/ontologies/Concept>) FILTER(?objConcept != <http://semoss.org/ontologies/Concept>) {?subConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?objConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subConcept} {?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?objConcept} {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?relation <http://www.w3.org/2000/01/rdf-schema#label> ?label} {?subject ?relation ?object} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?relation ?contains ?property }} GROUP BY ?subConcept ?relation ?objConcept";
 	
 	private GenericDBComparer comparer;
@@ -62,14 +62,14 @@ public class GenericDBComparisonWriter
 		writeToExcel(sheetName, comparer.compareInstanceCount(getInstanceAndPropCountQuery), "Concept", "Instance", newDBName + " Count", oldDBName
 				+ " Count", "Comments");
 		
-		sheetName = "InRelationCount";
+		sheetName = "FromRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareInstanceCount(getInstanceInRelationCountQuery), "Concept", "Instance", newDBName + " Count",
+		writeToExcel(sheetName, comparer.compareInstanceCount(getInstanceFromRelationCountQuery), "Concept", "Instance", newDBName + " Count",
 				oldDBName + " Count", "Comments");
 		
-		sheetName = "OutRelationCount";
+		sheetName = "ToRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareInstanceCount(getInstanceOutRelationCountQuery), "Concept", "Instance", newDBName + " Count",
+		writeToExcel(sheetName, comparer.compareInstanceCount(getInstanceToRelationCountQuery), "Concept", "Instance", newDBName + " Count",
 				oldDBName + " Count", "Comments");
 		
 		sheetName = "CaseSensitiveInstanceDuplicates";
@@ -99,23 +99,23 @@ public class GenericDBComparisonWriter
 		writeToExcel(sheetName, comparer.compareConceptCount(getMetaConceptPropertyCountQuery, false), "Concept", newDBName + " Count", oldDBName
 				+ " Count", "Comments");
 		
-		sheetName = "MetaConceptInRelationCount";
+		sheetName = "MetaConceptFromRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareConceptCount(getMetaConceptInRelationCountQuery, true), "Concept", newDBName + " Count", oldDBName
+		writeToExcel(sheetName, comparer.compareConceptCount(getMetaConceptFromRelationCountQuery, true), "Concept", newDBName + " Count", oldDBName
 				+ " Count", "Comments");
 		
-		sheetName = "MetaConceptOutRelationCount";
+		sheetName = "MetaConceptToRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareConceptCount(getMetaConceptOutRelationCountQuery, true), "Concept", newDBName + " Count", oldDBName
+		writeToExcel(sheetName, comparer.compareConceptCount(getMetaConceptToRelationCountQuery, true), "Concept", newDBName + " Count", oldDBName
 				+ " Count", "Comments");
 		
-		sheetName = "MetaTotalInRelationCount";
+		sheetName = "MetaTotalFromRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareMetaSingleCount(getMetaTotalInRelationCountQuery), newDBName + "Count", oldDBName + "Count");
+		writeToExcel(sheetName, comparer.compareMetaSingleCount(getMetaTotalFromRelationCountQuery), newDBName + "Count", oldDBName + "Count");
 		
-		sheetName = "MetaTotalOutRelationCount";
+		sheetName = "MetaTotalToRelationCount";
 		wb.createSheet(sheetName);
-		writeToExcel(sheetName, comparer.compareMetaSingleCount(getMetaTotalOutRelationCountQuery), newDBName + "Count", oldDBName + "Count");
+		writeToExcel(sheetName, comparer.compareMetaSingleCount(getMetaTotalToRelationCountQuery), newDBName + "Count", oldDBName + "Count");
 		
 		sheetName = "MetaRelationPropertyCount";
 		wb.createSheet(sheetName);
