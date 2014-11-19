@@ -13,6 +13,7 @@ import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class DatabaseComparisonListener implements IChakraListener
 {
@@ -41,6 +42,8 @@ public class DatabaseComparisonListener implements IChakraListener
 			comparisonWriter.runAllInstanceTests();
 			comparisonWriter.runAllMetaTests();
 			comparisonWriter.writeWB();
+			
+			Utility.showMessage("All tests are finished.");
 		} catch (EngineException e)
 		{
 			e.printStackTrace();
