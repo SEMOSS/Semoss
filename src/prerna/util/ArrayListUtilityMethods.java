@@ -10,6 +10,23 @@ public final class ArrayListUtilityMethods {
 		
 	}
 	
+	public static Object[] getColumnFromList(ArrayList<Object[]> list, int colToGet) {
+		if(list == null || list.isEmpty()) {
+			return null;
+		}
+		
+		int numRows = list.size();
+		Object[] retList = new Object[numRows];
+		
+		int i;
+		for(i = 0; i < numRows; i++) {
+			Object[] oldRow = list.get(i);
+			retList[i] = oldRow[colToGet];
+		}
+		
+		return retList;
+	}
+	
 	public static ArrayList<Object[]> removeColumnFromList(ArrayList<Object[]> list, int colToRemove) {
 		if(list == null || list.isEmpty()) {
 			return null;
