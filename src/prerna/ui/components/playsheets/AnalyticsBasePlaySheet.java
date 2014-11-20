@@ -267,6 +267,15 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			results.add(row);
 		}
 		
+		// when no results, return null
+		if(results.isEmpty()) {
+			return null;
+		}
+		// when not enough instances to determine outliers, return empty
+		if(results.size() < 20) {
+			return new ArrayList<Hashtable<String, Object>>();
+		}
+		
 		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(results, names);
 		alg.setK(25);
 		alg.execute();
