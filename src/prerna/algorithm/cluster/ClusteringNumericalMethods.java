@@ -128,9 +128,9 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 					double normalizedNumInBin = (double) propertyHash.get("NaN") / sumProperties;
 					adjustmentFactor += normalizedNumInBin;
 				} 
-//				else {
-//					// similarity is zero if one value is NaN and the other is not NaN
-//				}
+				//				else {
+				//					// similarity is zero if one value is NaN and the other is not NaN
+				//				}
 			} else {
 				for(String propName : propKeySet) {
 					if(!propName.equals("NaN")) {
@@ -146,7 +146,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;
 
-//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
+		//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
 		return coeff * similarity;
 	}
 
@@ -351,9 +351,6 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			Double[] numInstances1 = calculateComparisonArr(propInfoForCluster1, sortedBinArr);
 			Double[] numInstances2 = calculateComparisonArr(propInfoForCluster2, sortedBinArr);
 
-			if(numInstances1[0] == null) {
-				System.out.println("ERROR");
-			}
 			double normalizationCount1 = StatisticsUtilityMethods.getSum(numInstances1);
 			double normalizationCount2 = StatisticsUtilityMethods.getSum(numInstances2);
 
@@ -403,7 +400,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 				adjustedArr[j] = numInstances[j];
 			}
 		}
-		
+
 		Double[] retArr = new Double[numBins+1];
 		System.arraycopy(adjustedArr, 0, retArr, 1, numBins);
 		if(propInfoForCluster.keySet().contains("NaN")) {
@@ -450,7 +447,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateNumericClusterCenter(
 			int[] clusterAssigned, 
 			Hashtable<String, Integer> instanceIndexHash) 
-			{
+	{
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
 
 		if(numericalBinMatrix != null) {
@@ -459,12 +456,12 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		}
 
 		return null;
-			}
+	}
 
 	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateCategoricalClusterCenter(
 			int[] clusterAssigned, 
 			Hashtable<String, Integer> instanceIndexHash) 
-			{
+	{
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
 
 		if(categoricalMatrix != null) {
@@ -473,5 +470,5 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		}
 
 		return null;
-			}
+	}
 }

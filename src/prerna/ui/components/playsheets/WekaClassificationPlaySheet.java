@@ -52,7 +52,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		return allHash;
 	}
 	
-	public void generateData() {
+	private void generateData() {
 		list = new ArrayList<Object[]>();
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
