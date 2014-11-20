@@ -27,12 +27,83 @@ public class BarChart {
 	private String[] assignmentForEachObject;
 	private String[] numericalBinOrder;
 	
+	private String numericalLabel = "Distribution";
+	private String categoricalLabel = "Frequency";
+	
 	public BarChart(String[] values) {
 		this.stringValues = values;
 		this.numericalValuesSorted = null;
 		assignmentForEachObject = null;
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+		
 		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+	}
+	
+	public BarChart(String[] values, String categoricalLabel) {
+		this.stringValues = values;
+		this.numericalValuesSorted = null;
+		assignmentForEachObject = null;
+		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+		this.categoricalLabel = categoricalLabel;
+
+		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+	}
+	
+	public BarChart(double[] values) {
+		this.numericalValuesUnsorted = values;
+		double[] sortedValues = new double[values.length];
+		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
+		Arrays.sort(sortedValues);
+		this.numericalValuesSorted = sortedValues;
+		
+		this.stringValues = null;
+		this.uniqueValues = null;
+		assignmentForEachObject = new String[values.length];
+		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
+		
+		retHashForJSON = calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
+	}
+	
+	public BarChart(double[] values, String numericalLabel) {
+		this.numericalValuesUnsorted = values;
+		double[] sortedValues = new double[values.length];
+		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
+		Arrays.sort(sortedValues);
+		this.numericalValuesSorted = sortedValues;
+		
+		this.stringValues = null;
+		this.uniqueValues = null;
+		assignmentForEachObject = new String[values.length];
+		this.numericalLabel = numericalLabel;
+		
+		retHashForJSON = calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
+	}
+	
+	public BarChart(Double[] values) {
+		this.wrapperNumericalValuesUnsorted = values;
+		Double[] sortedValues = new Double[values.length];
+		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
+		this.wrapperNumericalValuesSorted = ArrayUtilityMethods.sortDoubleWrapperArr(sortedValues);
+		
+		this.stringValues = null;
+		this.uniqueValues = null;
+		assignmentForEachObject = new String[values.length];
+		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
+		retHashForJSON = calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
+	}
+	
+	public BarChart(Double[] values, String numericalLabel) {
+		this.wrapperNumericalValuesUnsorted = values;
+		Double[] sortedValues = new Double[values.length];
+		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
+		this.wrapperNumericalValuesSorted = ArrayUtilityMethods.sortDoubleWrapperArr(sortedValues);
+		
+		this.stringValues = null;
+		this.uniqueValues = null;
+		assignmentForEachObject = new String[values.length];
+		this.numericalLabel = numericalLabel;
+
+		retHashForJSON = calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -79,27 +150,13 @@ public class BarChart {
 		}
 		for(i = 0; i < uniqueSize; i++) {
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", "Frequency");
+			innerHash.put("seriesName", categoricalLabel);
 			innerHash.put("y0", "0");
 			innerHash.put("x", sortedValues[i]);
 			innerHash.put("y", sortedCounts[i]);
 			retBins[i] = innerHash;
 		}
 		return retBins;
-	}
-	
-	public BarChart(double[] values) {
-		this.numericalValuesUnsorted = values;
-		double[] sortedValues = new double[values.length];
-		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
-		Arrays.sort(sortedValues);
-		this.numericalValuesSorted = sortedValues;
-		
-		this.stringValues = null;
-		this.uniqueValues = null;
-		assignmentForEachObject = new String[values.length];
-		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
-		retHashForJSON = calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
 	}
 	
 	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues, double[] unsortedValues) {
@@ -189,7 +246,7 @@ public class BarChart {
 			numericalBinOrder[i] = bin;
 
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", "Distribution");
+			innerHash.put("seriesName", numericalLabel);
 			innerHash.put("y0", "0");
 			innerHash.put("x", bin);
 			retBins[i] = innerHash;
@@ -242,19 +299,6 @@ public class BarChart {
 		}
 		
 		return retBins;
-	}
-	
-	public BarChart(Double[] values) {
-		this.wrapperNumericalValuesUnsorted = values;
-		Double[] sortedValues = new Double[values.length];
-		System.arraycopy(values, 0, sortedValues, 0, sortedValues.length);
-		this.wrapperNumericalValuesSorted = ArrayUtilityMethods.sortDoubleWrapperArr(sortedValues);
-		
-		this.stringValues = null;
-		this.uniqueValues = null;
-		assignmentForEachObject = new String[values.length];
-		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
-		retHashForJSON = calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
 	}
 	
 	private Hashtable<String, Object>[] calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
@@ -350,7 +394,7 @@ public class BarChart {
 			numericalBinOrder[i] = bin;
 
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", "Distribution");
+			innerHash.put("seriesName", numericalLabel);
 			innerHash.put("y0", "0");
 			innerHash.put("x", bin);
 			retBins[i] = innerHash;
