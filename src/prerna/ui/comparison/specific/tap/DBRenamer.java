@@ -149,11 +149,12 @@ public class DBRenamer
 			public void actionPerformed(ActionEvent e)
 			{
 				String folderDirectory = importFolderNameField.getText();
+				String dbName = folderDirectory.substring(folderDirectory.indexOf("db\\") + 3);
 				File folder = new File(folderDirectory);
 				File[] listOfFiles = folder.listFiles();
 				for (int i = 0; i < listOfFiles.length; i++)
 				{
-					if (listOfFiles[i].isFile())
+					if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(dbName))
 					{
 						File f = new File(folderDirectory + "\\" + listOfFiles[i].getName());
 						f.renameTo(new File(folderDirectory + "\\old" + listOfFiles[i].getName()));
