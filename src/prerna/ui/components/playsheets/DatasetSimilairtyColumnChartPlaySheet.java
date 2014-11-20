@@ -49,13 +49,13 @@ public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet 
 	}
 	
 	public Hashtable<String, Object> processQueryData() {
-		BarChart chart = new BarChart(simValues);
+		BarChart chart = new BarChart(simValues, names[0]);
 		Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
 		
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		Object[] binArr = new Object[]{bins};
 		retHash.put("dataSeries", binArr);
-		retHash.put("names", new String[]{"Distribution"});
+		retHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center")});
 		
 		return retHash;
 	}
