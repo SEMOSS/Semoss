@@ -1050,6 +1050,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 					
 					//relationship from software to softwareVersion
 					String predSoffToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(software, "/") + ":" + getTextAfterFinalDelimeter(softwareV, "/");
+					addToAllRelationships(predSoffToVer);
 					LOGGER.debug("SOFTWARE TO SOFTWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					LOGGER.debug("ADDING:     " + software + " -----> {" + predSoffToVer + " --- " + softwareV + "}");
 					addToDataHash(new String[]{software, predSoffToVer, softwareV});
@@ -1092,6 +1093,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 					//relationship from software to softwareVersion
 					String predhARDToVer = baseUri + "/Relation/Has/" + getTextAfterFinalDelimeter(hardware, "/") + ":" + getTextAfterFinalDelimeter(hardwareV, "/");
+					addToAllRelationships(predhARDToVer);
 					LOGGER.debug("HARDWARE TO HARDWARE VERSION RELATIONSHIP DOES NOT EXIST IN TAP CORE");
 					LOGGER.debug("ADDING:     " + hardware + " -----> {" + predhARDToVer + " --- " + hardwareV + "}");
 					addToDataHash(new String[]{hardware, predhARDToVer, hardwareV});
