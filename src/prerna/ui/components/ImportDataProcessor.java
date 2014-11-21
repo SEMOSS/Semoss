@@ -29,6 +29,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class ImportDataProcessor {
 
@@ -244,7 +245,7 @@ public class ImportDataProcessor {
 						}
 						if ("Node".equalsIgnoreCase(sheetType)) {
 							if (row.getCell(1) != null) {
-								nodes.add(row.getCell(1).getStringCellValue());
+								nodes.add(Utility.cleanString(row.getCell(1).getStringCellValue(),true));
 							}
 						}
 						if ("Relation".equalsIgnoreCase(sheetType)) {
@@ -261,8 +262,8 @@ public class ImportDataProcessor {
 											.getStringCellValue();
 								}
 
-								relationships.add(new String[] { subject,
-										relationship, object });
+								relationships.add(new String[] { Utility.cleanString(subject, true),
+										Utility.cleanString(relationship, true), Utility.cleanString(object, true) });
 							}
 						}
 					}
