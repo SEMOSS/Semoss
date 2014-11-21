@@ -94,7 +94,9 @@ public class DHMSMIntegrationTransitionCostWriter {
 			processor = new LPInterfaceProcessor();
 			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
 		}
-		// add costs for self-reported values
+		processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
+		processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
+		consolidatedSysCostInfo.clear();
 		generateAllCost();
 		getCostForSys(systemName);
 		
