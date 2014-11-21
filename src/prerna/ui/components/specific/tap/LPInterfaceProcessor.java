@@ -1296,6 +1296,8 @@ public class LPInterfaceProcessor {
 		Double finalCost = null;
 		if(!servicesAllUsed) {
 			finalCost = (sysGLItemCost + genericCost) * COST_PER_HOUR;
+		} else {
+			sysCostInfo.remove(rowIdx);
 		}
 
 		return finalCost;

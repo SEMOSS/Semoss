@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -29,14 +31,11 @@ import prerna.util.Utility;
 public class DHMSMIntegrationTransitionCostWriter {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionCostWriter.class.getName());
-	private final String sysProposedICDQuery = "SELECT DISTINCT ?System ?ICD WHERE { {SELECT DISTINCT ?System ?ICD WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} {?Payload <http://semoss.org/ontologies/Relation/Contains/Self-Reported> 'Y'} } } UNION { SELECT DISTINCT ?System ?ICD WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} {?Payload <http://semoss.org/ontologies/Relation/Contains/Self-Reported> 'Y'} } } }";
-	private final String proposedICDCostQuery = "SELECT DISTINCT ?ICD (SUM(?loe) AS ?Cost) ?Phase ?GLTag WHERE { { SELECT DISTINCT ?ICD ?GLItem ?Phase ?GLTag ?loe WHERE { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?GLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItem>} {?ICD <http://semoss.org/ontologies/Relation/Input> ?GLItem} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } } UNION { SELECT DISTINCT ?ICD ?GLItem ?Phase ?GLTag ?loe WHERE{ {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?GLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLItem>} {?GLItem <http://semoss.org/ontologies/Relation/Output> ?ICD} {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } } } GROUP BY ?ICD ?GLItem ?Phase ?GLTag";
+	private final String sysProposedICDQuery = "SELECT DISTINCT ?System ?Data ?ICD ?Type WHERE { {SELECT DISTINCT ?System ?ICD ?Data ?Type WHERE { BIND('Provider' AS ?Type)  FILTER(?System != <http://health.mil/ontologies/Concept/System/DHMSM>) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} } } UNION { SELECT DISTINCT ?System ?ICD ?Data ?Type WHERE{ BIND('Consumer' AS ?Type) FILTER(?System != <http://health.mil/ontologies/Concept/System/DHMSM>) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} } } }";
 	
-	HashMap<String, ArrayList<String>> sysICDList = new HashMap<String, ArrayList<String>>();
-	HashMap<String, HashMap<String, Double[]>> icdCost = new HashMap<String, HashMap<String, Double[]>>();
+	private HashMap<String, ArrayList<String[]>> sysICDDataList = new HashMap<String, ArrayList<String[]>>();
 	
-	LPInterfaceProcessor processor;
-	public HashMap<String, Double> consolidatedSysCostInfo;
+	public HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
 
 	private IEngine hrCore;
 	private IEngine TAP_Cost_Data;
@@ -50,6 +49,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	int[] atoDateList = new int[2];
 
 	private TAPLegacySystemDispositionReportWriter diacapReport;
+	private LPInterfaceProcessor processor;
 	
 	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
 	private final String[] tags1 = new String[]{"Consume", "Provide"};
@@ -85,31 +85,15 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	public void setSysURI(String sysURI){
 		this.sysURI = sysURI;
+		this.systemName = Utility.getInstanceName(sysURI);
 	}
 	
 	public void calculateValuesForReport() throws EngineException 
 	{
-		//clear list since we call this method in a loop when generating all reports
-		if(processor == null){
+		if(processor == null) {
 			processor = new LPInterfaceProcessor();
 			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
-
-		} else {
-			processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
-			processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
 		}
-		this.systemName = Utility.getInstanceName(sysURI);
-		String regexSysName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", regexSysName);
-		processor.setQuery(lpSystemInterfacesQuery);
-		processor.setEngine(hrCore);
-		processor.setUsePhase(true);
-		processor.isGenerateCost(true);
-
-		processor.generateReport();
-		processor.consolodateCostHash();
-		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
-		
 		// add costs for self-reported values
 		generateAllCost();
 		getCostForSys(systemName);
@@ -131,77 +115,51 @@ public class DHMSMIntegrationTransitionCostWriter {
 	} 
 	
 	private void generateAllCost() {
-		if(sysICDList.isEmpty()) {
+		if(sysICDDataList.isEmpty()) {
 			SesameJenaSelectWrapper sjsw = Utility.processQuery(FutureDB, sysProposedICDQuery);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
 				SesameJenaSelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(names[0]).toString();
-				String icdName = sjss.getVar(names[1]).toString();
-				ArrayList<String> icdList;
-				if(sysICDList.containsKey(sysName)) {
-					icdList = sysICDList.get(sysName);
-					icdList.add(icdName);
+				String dataName = sjss.getVar(names[1]).toString();
+				String icdName = sjss.getVar(names[2]).toString();
+				String type = sjss.getVar(names[3]).toString();
+				ArrayList<String[]> icdList;
+				if(sysICDDataList.containsKey(sysName)) {
+					icdList = sysICDDataList.get(sysName);
+					icdList.add(new String[]{icdName, dataName, type});
 				} else {
-					icdList = new ArrayList<String>();
-					icdList.add(icdName);
-					sysICDList.put(sysName, icdList);
-				}
-			}
-		}
-		if(icdCost.isEmpty()) {
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(FutureCostDB, proposedICDCostQuery);
-			String[] names = sjsw.getVariables();
-			while(sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
-				String icdName = sjss.getVar(names[0]).toString();
-				double loe = (double) sjss.getVar(names[1]);
-				String phase = sjss.getVar(names[2]).toString();
-				String tag = sjss.getVar(names[3]).toString();
-				HashMap<String, Double[]> costInfo;
-				if(icdCost.containsKey(icdName)) {
-					costInfo = icdCost.get(icdName);
-					Double[] cost;
-					if(costInfo.containsKey(tag)) {
-						cost = costInfo.get(tag);
-					} else {
-						cost = new Double[5];
-					}
-					int position = ArrayUtilityMethods.calculateIndexOfArray(phases, phase);
-					cost[position] = loe;
-				} else {
-					costInfo = new HashMap<String, Double[]>();
-					Double[] cost = new Double[5];
-					int position = ArrayUtilityMethods.calculateIndexOfArray(phases, phase);
-					cost[position] = loe;
-					costInfo.put(tag, cost);
-					icdCost.put(icdName, costInfo);
+					icdList = new ArrayList<String[]>();
+					icdList.add(new String[]{icdName, dataName, type});
+					sysICDDataList.put(sysName, icdList);
 				}
 			}
 		}
 	}
 	
 	private void getCostForSys(String systemName) {
-		ArrayList<String> icdList = sysICDList.get(systemName);
-		if(icdList != null) {
-			for(String icd: icdList) {
-				HashMap<String, Double[]> costInfo = icdCost.get(icd);
-				for(String tag : costInfo.keySet()) {
-					Double[] cost = costInfo.get(tag);
-					for(int i = 0; i < cost.length; i++) {
-						String key = tag + "+" + phases[i];
-						if(consolidatedSysCostInfo.containsKey(key)) {
-							Double loe = consolidatedSysCostInfo.get(key);
-							if(loe != null ) {
-								consolidatedSysCostInfo.put(key, loe+cost[i]);
-							}
-						} else {
-							consolidatedSysCostInfo.put(key, cost[i]);
-						}
-					}
+		ArrayList<String[]> icdDataList = sysICDDataList.get(systemName);
+		
+		HashSet<String> serProvideList = new HashSet<String>();
+		HashSet<String> serConsumeList = new HashSet<String>();
+		if(icdDataList != null) {
+			int size = icdDataList.size();
+			int i = 0;
+			for(; i < size; i++) {
+				String[] icdArr = icdDataList.get(i);
+				String dataObject = icdArr[1];
+				String tag = icdArr[2];
+				boolean includeGenericCost = false;
+				if(tag.contains("Provide")) {
+					includeGenericCost = true;
+					processor.calculateCost(dataObject, systemName, tag, includeGenericCost, serProvideList, i);
+				} else {
+					processor.calculateCost(dataObject, systemName, tag, includeGenericCost, serConsumeList, i);
 				}
 			}
 		}
+		processor.consolodateCostHash();
+		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
 	}
 
 
