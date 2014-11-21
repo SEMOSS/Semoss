@@ -121,7 +121,7 @@ public class ClusterRemoveDuplicates {
 			Object[] row = masterTable.get(i);
 			for(j = 0; j < numInstances; j++) {
 				Object[] newRow = retMasterTable.get(j);
-				if(row[0].equals(newRow[0])) {
+				if(row[0].toString().equals(newRow[0].toString())) {
 					int k;
 					INNERMOST: for(k = 0; k < newCategoricalCols; k++) {
 						int l;
