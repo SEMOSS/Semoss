@@ -41,7 +41,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Explore an instance of a selected node type</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
@@ -98,7 +99,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic CONSTRUCT Query</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
@@ -134,7 +136,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Raw</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
@@ -170,7 +173,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Rendered as a Grid</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
@@ -206,7 +210,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Generic-Perspective:GQ5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Distinct Subjects</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Generic-Perspective">
@@ -257,7 +262,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What is the network of systems surrounding this system?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the network of systems surrounding this system?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -302,7 +308,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What ICDs does this system have and what are their details?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What ICDs does this system have and what are their details?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -347,7 +354,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. For this specific system, what are the interfaces that need to be developed for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For this specific system, what are the interfaces that need to be developed for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -392,7 +400,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. For all systems, what are the interfaces that need to be developed for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For all systems, what are the interfaces that need to be developed for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -428,7 +437,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. For this specific system, what are the interfaces that need to be decommissioned for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For this specific system, what are the interfaces that need to be decommissioned for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -473,7 +483,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:System-Perspective:SP6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. For all systems, what are the interfaces we propose to decommission for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For all systems, what are the interfaces we propose to decommission for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:System-Perspective">
@@ -524,7 +535,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. For all LPI systems, what are the interfaces that need to be developed for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For all LPI systems, what are the interfaces that need to be developed for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
@@ -560,7 +572,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:LPI-Perspective:LPI2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. For all LPI systems, what are the interfaces we propose to decommission for the future state?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For all LPI systems, what are the interfaces we propose to decommission for the future state?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:LPI-Perspective">
@@ -611,7 +624,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Data-Perspective:DP1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What is the network of systems for this data?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the network of systems for this data?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Data-Perspective">
@@ -671,7 +685,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. How does the composition of this system change over time?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the composition of this system change over time?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
@@ -716,7 +731,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/FutureDB:Time-Perspective:T2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. How does the data network for this data change over time?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the data network for this data change over time?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/FutureDB:Time-Perspective">
@@ -775,6 +791,10 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
 	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Order">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
