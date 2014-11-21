@@ -312,8 +312,8 @@ public class ImportDataProcessor {
 						}
 					}
 
-					String mapName = DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
-					String owlFile = DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
+					String mapName = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
+					String owlFile = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
 					// run the reader
 					reader.importFileWithConnection(repoName, file, customBaseURI,
 							mapName, owlFile);
