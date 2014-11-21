@@ -93,10 +93,14 @@ public class ClusterRemoveDuplicates {
 		
 		retMasterTable = new ArrayList<Object[]>();
 		String[] uniquePropNames = ArrayUtilityMethods.convertObjArrToStringArr(uniquePropNamesSet.toArray());
-		String[] numericPropNames = new String[0];
-		if(!numericPropForInstance.isEmpty()) {
-			numericPropNames = ArrayUtilityMethods.convertObjArrToStringArr(numericPropForInstance.get(masterTable.get(0)[0]).keySet().toArray());
+		
+		Set<String> numericPropNamesSet = new HashSet<String>();
+		for(i = 1; i < names.length; i++) {
+			if(isNumeric[i-1]) {
+				numericPropNamesSet.add(names[i]);
+			}
 		}
+		String[] numericPropNames = ArrayUtilityMethods.convertObjArrToStringArr(numericPropNamesSet.toArray());
 		String[] instances = ArrayUtilityMethods.convertObjArrToStringArr(instancesSet.toArray());
 		
 		retVarNames = Arrays.copyOf(new String[]{names[0]}, 1 + uniquePropNames.length + numericPropNames.length);
