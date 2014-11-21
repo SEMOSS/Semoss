@@ -25,6 +25,7 @@ import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
+import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -219,6 +220,7 @@ public class ImportDataProcessor {
 		if(importType == IMPORT_TYPE.EXCEL){
 			boolean success = true;
 			POIReader reader = new POIReader();
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repoName);
 			String[] files = fileNames.split(";");
 			for (String file : files) {
 				FileInputStream fileIn = null;
@@ -266,6 +268,7 @@ public class ImportDataProcessor {
 					}
 					String deleteQuery = "";
 					UpdateProcessor proc = new UpdateProcessor();
+					proc.setEngine(engine);
 
 					int numberNodes = nodes.size();
 					if (numberNodes > 0) {
@@ -279,6 +282,7 @@ public class ImportDataProcessor {
 
 							proc.setQuery(deleteQuery);
 							logger.info(deleteQuery);
+							proc.setEngine(engine);
 							proc.processQuery();
 						}
 					}
