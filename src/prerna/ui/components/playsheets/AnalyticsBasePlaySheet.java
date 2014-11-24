@@ -58,8 +58,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
-		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore, false);
-		allData = addToAllData(unDirEccentricity, "x", allData);
+		Hashtable<SEMOSSVertex, Double> centralityHash = new Hashtable<SEMOSSVertex, Double>();
+		centralityHash = addToCentralityHash(CentralityCalculator.calculateEccentricity(vertStore, false), centralityHash);
+		centralityHash = addToCentralityHash(CentralityCalculator.calculateBetweenness(vertStore, false), centralityHash);
+		centralityHash = addToCentralityHash(CentralityCalculator.calculateCloseness(vertStore, false), centralityHash);
+		centralityHash = averageCentralityValues(centralityHash, 3);
+		allData = addToAllData(centralityHash, "x", allData);
 
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
@@ -83,6 +87,30 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allHash.put("wAxisTitle", "Number_of_Properties");
 		
 		return allHash;
+	}
+	
+	private Hashtable<SEMOSSVertex, Double> averageCentralityValues(Hashtable<SEMOSSVertex, Double> appendingHash, double n) {
+		for(SEMOSSVertex key : appendingHash.keySet()) {
+			Double val = appendingHash.get(key);
+			val /= n;
+			appendingHash.put(key, val);
+		}
+		return appendingHash;
+	}
+	
+	private Hashtable<SEMOSSVertex, Double> addToCentralityHash(Hashtable<SEMOSSVertex, Double> dataToAdd, Hashtable<SEMOSSVertex, Double> appendingHash) {
+		for(SEMOSSVertex key : dataToAdd.keySet()) {
+			if(appendingHash.containsKey(key)) {
+				Double val = appendingHash.get(key);
+				val += dataToAdd.get(key);
+				appendingHash.put(key, val);
+			} else {
+				Double val = dataToAdd.get(key);
+				appendingHash.put(key, val);
+			}
+		}
+		
+		return appendingHash;
 	}
 	
 	private Hashtable<String, Hashtable<String, Object>> constructDataHash(Vector<String> conceptList) {
