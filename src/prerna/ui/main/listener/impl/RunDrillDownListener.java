@@ -23,51 +23,63 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
+import javax.swing.JProgressBar;
+import javax.swing.JTabbedPane;
+import javax.swing.JToggleButton;
 
-import prerna.ui.components.ExecuteQueryProcessor;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
+import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
-import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
+import prerna.util.Utility;
 
 /**
- * Determines which functional areas the user wants to incorporate in RFP report
- * Used to determine if user wants to include HSD, HSS, or FHP functional areas in RFP report
- * Will populate sourceSelectPanel with all capabilities included in functional areas
+ * Runs the algorithm selected on the Cluster/Classify playsheet and adds additional tabs. Tied to the button to the ClassifyClusterPlaySheet.
  */
-public class ClusteringDrillDownListener extends AbstractListener {
+public class RunDrillDownListener extends AbstractListener {
+	private static final Logger LOGGER = LogManager.getLogger(RunDrillDownListener.class.getName());
 	
-	//need to pass the checkboxes, the names, and the master data list,
-	//filters master data list to only include elements that were in the clusters marked in the checkbox list
-	
-	private ArrayList<JCheckBox> paramCheckboxes;
-	private String[] masterNames;
-	private ArrayList<Object []> masterList;
-	private ClusteringVizPlaySheet playSheet;
+	private ClassifyClusterPlaySheet playSheet;
+	private Hashtable<String, IPlaySheet> playSheetHash;
+	private JComboBox<String> drillDownTabSelectorComboBox;
+	private ArrayList<JCheckBox> columnCheckboxes;
 	
 	/**
-	 * Updates the parameters to cluster on based on the params selected
+	 * Method actionPerformed.
 	 * @param e ActionEvent
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-
+		//get the tabName selected
+		//use tabName to get the playSheetSelected
+		String tabName = drillDownTabSelectorComboBox.getSelectedItem() + "";
+		ClusteringVizPlaySheet clusteringPlaySheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
+		String[] masterNames = clusteringPlaySheet.getMasterNames();
+		ArrayList<Object []> masterList = clusteringPlaySheet.getMasterList();
+		
 		Integer numberSelected = 0;
-		for(int i=0;i<paramCheckboxes.size();i++) {
-			if(paramCheckboxes.get(i).isSelected())
+		for(int i=0;i<columnCheckboxes.size();i++) {
+			if(columnCheckboxes.get(i).isSelected())
 				numberSelected++;
 		}
 		
 		String[] filteredNames = new String[numberSelected+1];
 		filteredNames[0] = masterNames[0];
 		int colInd=1;
-		for(int i=0;i<paramCheckboxes.size();i++) {
-			if(paramCheckboxes.get(i).isSelected()) {
+		for(int i=0;i<columnCheckboxes.size();i++) {
+			if(columnCheckboxes.get(i).isSelected()) {
 				filteredNames[colInd] = masterNames[1+i];
 				colInd++;
 			}
@@ -82,8 +94,8 @@ public class ClusteringDrillDownListener extends AbstractListener {
 			}
 		}
 		
-		Hashtable<String, Integer> instanceIndexHash = playSheet.getInstanceIndexHash();
-		int[] clusterAssigned  = playSheet.getClusterAssigned();
+		Hashtable<String, Integer> instanceIndexHash = clusteringPlaySheet.getInstanceIndexHash();
+		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssigned();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		for(Object[] instanceRow : masterList) {
 			String instance = (String)instanceRow[0];
@@ -101,8 +113,8 @@ public class ClusteringDrillDownListener extends AbstractListener {
 			Object[] filteredRow = new Object[numberSelected+1];
 			filteredRow[0] = row[0];//whatever object name we're clustering on
 			colInd=1;
-			for(int i=0;i<paramCheckboxes.size();i++) {
-				if(paramCheckboxes.get(i).isSelected()) {
+			for(int i=0;i<columnCheckboxes.size();i++) {
+				if(columnCheckboxes.get(i).isSelected()) {
 					filteredRow[colInd] = row[1+i];
 					colInd++;
 				}
@@ -110,42 +122,34 @@ public class ClusteringDrillDownListener extends AbstractListener {
 			filteredList.add(filteredRow);
 		}
 		
-		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();
+		ClassifyClusterPlaySheet drillDownPlaySheet = new ClassifyClusterPlaySheet();
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
 		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
-		drillDownPlaySheet.setQuery(playSheet.getFullQuery());
+		drillDownPlaySheet.setQuery(playSheet.getQuery());
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);
 		drillDownPlaySheet.setQuestionID(insightID);
 		drillDownPlaySheet.setTitle(playSheet.getTitle());
-		drillDownPlaySheet.drillDownData(masterNames, filteredNames, newList, filteredList);
-		drillDownPlaySheet.setSelectedParams(paramCheckboxes);
+		drillDownPlaySheet.setData(masterNames, newList);
 		
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		drillDownPlaySheet.setJDesktopPane(pane);
-		Runnable playRunner = new PlaysheetCreateRunner(drillDownPlaySheet);	
-		Thread playThread = new Thread(playRunner);
-		playThread.start();
 		
-	}
-	public void setPlaySheet(ClusteringVizPlaySheet playSheet) {
-		this.playSheet = playSheet;
-	}
+		drillDownPlaySheet.runAnalytics();
+		drillDownPlaySheet.createView();
+		drillDownPlaySheet.setSelectedColumns(filteredNames);
 		
-	public void setCheckBoxes(ArrayList<JCheckBox> paramCheckboxes) {
-		this.paramCheckboxes = paramCheckboxes;
 	}
 
-	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
-		this.masterNames = masterNames;
-		this.masterList = masterList;
-	}
-	
 	/**
-	 * Override method from AbstractListener
-	 * @param view JComponent
+	 * Method setView. Sets a JComponent that the listener will access and/or modify when an action event occurs.  
+	 * @param view the component that the listener will access
 	 */
 	@Override
 	public void setView(JComponent view) {
-
+		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.columnCheckboxes = playSheet.getColumnCheckboxes();
+		this.drillDownTabSelectorComboBox = playSheet.getDrillDownTabSelectorComboBox();
+		this.playSheetHash = playSheet.getPlaySheetHash();
 	}
+
 }
