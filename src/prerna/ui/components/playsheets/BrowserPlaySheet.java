@@ -29,6 +29,7 @@ import java.util.logging.Level;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
@@ -269,6 +270,36 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		}
 	}
 	
+	public void addPanelAsTab(String tabName) {
+		browser = BrowserFactory.create();		
+		try {
+			table = new JTable();
+							
+			JPanel mainPanel = new JPanel();
+			this.setContentPane(mainPanel);
+			jTab.addTab(tabName, mainPanel);
+			jTab.setSelectedIndex(jTab.getTabCount()-1);
+			
+			BrowserPlaySheetListener psListener = new BrowserPlaySheetListener();
+			this.addInternalFrameListener(psListener);
+			
+			mainPanel.setLayout(new BorderLayout());
+			mainPanel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+
+			updateProgressBar("0%...Preprocessing", 0);
+			resetProgressBar();
+
+			this.pack();
+			this.setVisible(true);
+			this.setSelected(false);
+			this.setSelected(true);
+	//		LOGGER.debug("Added the main pane");
+		}
+		catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void createControlPanel(){
 		controlPanel = new ChartControlPanel();
 		controlPanel.addExportButton(0);
@@ -290,5 +321,13 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
 		return returnHash;
+	}
+	
+	public void setJTab(JTabbedPane jTab){
+		this.jTab = jTab;
+	}
+	
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 }

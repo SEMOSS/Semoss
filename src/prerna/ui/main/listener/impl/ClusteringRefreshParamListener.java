@@ -35,10 +35,10 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 	
 	//need to pass the playsheet, the checkboxes, the names, and the master data list,
 	//sends back the updates names and data list
-	ClusteringVizPlaySheet playSheet;
-	ArrayList<JCheckBox> paramCheckboxes;
-	String[] masterNames;
-	ArrayList<Object []> masterList;
+	private ClusteringVizPlaySheet playSheet;
+	private ArrayList<JCheckBox> paramCheckboxes;
+	private String[] masterNames;
+	private ArrayList<Object []> masterList;
 	
 	/**
 	 * Updates the parameters to cluster on based on the params selected
@@ -90,10 +90,6 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 
 	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
 		this.masterNames = masterNames;
-		this.masterList = new ArrayList<Object []>();
-		for(Object[] row : masterList) {
-			this.masterList.add(row);
-		}
 		this.masterList = masterList;
 	}
 	

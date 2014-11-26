@@ -9,8 +9,10 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -33,6 +35,7 @@ import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.ClusteringDrillDownListener;
 import prerna.ui.main.listener.impl.ClusteringRefreshParamListener;
 import prerna.ui.swing.custom.CustomButton;
@@ -51,17 +54,18 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	private int numClusters;
 	private String fullQuery;
 	
-//	private double n;
-//	private String type = "";
 	private ArrayList<Object[]> clusterInfo;
 	private ArrayList<JCheckBox> paramCheckboxes;
 	private ArrayList<JCheckBox> clusterCheckboxes;
 	private ArrayList<JCheckBox> paramsToCheck;
-	JPanel clusterSelectorPanel;
-	private ArrayList<Object []> originalMasterList;
+	private JPanel clusterSelectorPanel;
 	private ArrayList<Object []> masterList;
-	private String[] originalMasterNames;
 	private String[] masterNames;
+	private String paramSelectorTabName = "Param Selector";
+	private String rawDataTabName = "Raw Data";
+
+	private Hashtable<String, IPlaySheet> playSheetHash;
+	private JComboBox<String> drillDownTabSelectorComboBox;
 
 	//indexing used for bar graph visualizations
 	private int[] numericalPropIndices;
@@ -69,8 +73,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	private ArrayList<Object[]> rawDataList;
 	private String[] rawDataNames;
 	
-	Hashtable<String, Integer> instanceIndexHash;
-	int[] clusterAssigned;
+	private Hashtable<String, Integer> instanceIndexHash;
+	private int[] clusterAssigned;
+	private Boolean addAsTab = false;//determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
 	
 	public ClusteringVizPlaySheet() {
 		super();
@@ -82,14 +87,47 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	@Override
 	public void createView() {
 		super.createView();
-		if(jTab.getTabCount()==1) {
-			addSelectorTab();
+	}
+	
+	/**
+	 * Method addPanel. Creates a panel and adds the table to the panel.
+	 */
+	@Override
+	public void addPanel()
+	{
+		//if this is to be a separate playsheet, create the tab in a new window
+		//otherwise, if this is to be just a new tab in an existing playsheet,
+		if(!addAsTab) {
+			super.addPanel();
+			if(jTab.indexOfTab(paramSelectorTabName)<0) {//if param selecctor tab does not exist, add it
+				addSelectorTab();
+			}
+			if(jTab.indexOfTab(rawDataTabName)>0){//there is already a grid tab, remove it
+				jTab.remove(jTab.indexOfTab(rawDataTabName));
+			}
 			addGridTab();
-		} else {
-			jTab.remove(2);
+		}else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if(jTab.getTabCount()>1)
+				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
+			addPanelAsTab(count+". Clustering");
+			rawDataTabName = count+". Clustering Raw Data";
 			addGridTab();
-		}
+			
+			if(playSheetHash!=null) {
+				playSheetHash.put(rawDataTabName,this);
+			}
+			
+			//if there is a drop down, update it to include tab name
+			if(drillDownTabSelectorComboBox!=null){
+				DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>) drillDownTabSelectorComboBox.getModel();
+				model.addElement(rawDataTabName);
+				drillDownTabSelectorComboBox.repaint();
+			}
 
+		}
 		new CSSApplication(getContentPane());
 	}
 	
@@ -132,13 +170,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			table.setRowSorter(new GridTableRowSorter(model));
 
 		}
-		jTab.addTab("Raw Data", panel);
+		jTab.addTab(rawDataTabName, panel);
 	}
 
 	public void addSelectorTab() {
 		GenerateEntropyDensity test;
-		if(originalMasterList!=null) {
-			test = new GenerateEntropyDensity(originalMasterList,true);
+		if(masterList!=null) {
+			test = new GenerateEntropyDensity(masterList,true);
 		}
 		else
 			test = new GenerateEntropyDensity(list);
@@ -187,10 +225,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_entropyDensityLabel.gridx = 1;
 		gbc_entropyDensityLabel.gridy = 0;
 		paramSelectorPanel.add(entropyDensityLabel, gbc_entropyDensityLabel);
-		int numTimes = masterNames.length;
-		if(originalMasterNames!=null)
-			numTimes = originalMasterNames.length;
-		for(int i=1;i<numTimes;i++) {
+		for(int i=1;i<masterNames.length;i++) {
 			
 			JLabel entropyDensityVal = new JLabel();
 			entropyDensityVal.setText(formatter.format(testVals[i-1]));
@@ -203,10 +238,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			paramSelectorPanel.add(entropyDensityVal, gbc_entropyDensityVal);
 			
 			String checkboxLabel = "";
-			if(originalMasterNames!=null)
-				checkboxLabel = originalMasterNames[i];
-			else
-				checkboxLabel = masterNames[i];
+			checkboxLabel = masterNames[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
 			checkbox.setName(checkboxLabel+"checkBox");
 			checkbox.setSelected(true);
@@ -238,10 +270,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		ClusteringRefreshParamListener refListener = new ClusteringRefreshParamListener();
 		refListener.setPlaySheet(this);
 		refListener.setCheckBoxes(paramCheckboxes);
-		if(originalMasterNames!=null)
-			refListener.setMasterData(originalMasterNames, originalMasterList);
-		else
-			refListener.setMasterData(masterNames, masterList);
+		refListener.setMasterData(masterNames, masterList);
 		btnRefreshParam.addActionListener(refListener);
 		
 		clusterSelectorPanel = new JPanel();
@@ -286,15 +315,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 		ClusteringDrillDownListener drillDownListener = new ClusteringDrillDownListener();
 		drillDownListener.setCheckBoxes(paramCheckboxes);
-		if(originalMasterNames!=null)
-			drillDownListener.setMasterData(originalMasterNames, originalMasterList);
-		else
-			drillDownListener.setMasterData(masterNames, masterList);
+		drillDownListener.setMasterData(masterNames, masterList);
 		drillDownListener.setPlaySheet(this);
 		btnDrillDownCluster.addActionListener(drillDownListener);
 		
 		JScrollPane scroll = new JScrollPane(panel);
-		jTab.insertTab("Param Selector", null, scroll, null, 0);
+		jTab.insertTab(paramSelectorTabName, null, scroll, null, 0);
 		jTab.setSelectedIndex(0);
 	}
 	
@@ -325,19 +351,15 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	}
 	
 	public void drillDownData(String[] masterNames,String[] filteredNames,ArrayList<Object []> masterList,ArrayList<Object []> filteredList) {
-		this.originalMasterNames = masterNames;
-		this.masterNames = filteredNames;
+		this.masterNames = masterNames;
 		this.names = filteredNames;
-		this.originalMasterList = masterList;
-		this.masterList = filteredList;
+		this.masterList = masterList;
 		this.list = filteredList;
 		numClusters = inputNumClusters;
 	}
 
 	public void filterData(String[] filteredNames,ArrayList<Object []> filteredList) {
-		this.masterNames = filteredNames;
 		this.names = filteredNames;
-		this.masterList = filteredList;
 		this.list = filteredList;
 		numClusters = inputNumClusters;
 		createData();
@@ -442,11 +464,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public void createData() {
-		if(masterList==null) {
+		//if you dont have a list, then run the query
+		if(list==null) {
 			processQuery();
 			ClusterRemoveDuplicates formatter = new ClusterRemoveDuplicates(list, names);
-			masterList = formatter.getRetMasterTable();
-			masterNames = formatter.getRetVarNames();
+			list = formatter.getRetMasterTable();
+			names = formatter.getRetVarNames();
+			masterList =  new ArrayList<Object[]>(list);
+			masterNames = names.clone();//TODO make sure this writes properly
 		}
 		//For testing purposes
 //		PrintWriter writer = null;
@@ -475,10 +500,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //			clusterAlg.setNumClusters(numClusters);
 //			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
 		if(numClusters >= 2){
-			clusterAlg = new ClusteringAlgorithm(masterList, masterNames);
+			clusterAlg = new ClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
 		} else{
-			clusterAlg = new ClusteringOptimization(masterList, masterNames);
+			clusterAlg = new ClusteringOptimization(list, names);
 			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
 		}
@@ -491,58 +516,34 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		clusterAssigned = clusterAlg.getClustersAssigned();
 		instanceIndexHash = clusterAlg.getInstanceIndexHash();
 		
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		String[] newNames = new String[names.length + 1];
-		//create raw data for results
+		//updating our list and names to include the cluster assigned in the last column
+		ArrayList<Object[]> listWithCluster = new ArrayList<Object[]>();
 		for(Object[] dataRow : list) {
 			Object[] newDataRow = new Object[dataRow.length + 1];
-			String instance = "";
+			String instance="";
+			if(dataRow.length>0)
+				instance = dataRow[0].toString();
 			for(int i = 0; i < dataRow.length; i++) {
-				if(i == 0) {
-					instance = dataRow[i].toString();
-				}
 				newDataRow[i] = dataRow[i];
 			}
 			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
 			newDataRow[newDataRow.length - 1] = clusterNumber;
-			newList.add(newDataRow);
-			//add to matrix
+			listWithCluster.add(newDataRow);
 		}
-		rawDataList = newList;
+		list = listWithCluster;
+		String[] namesWithCluster = new String[names.length + 1];
 		for(int i = 0; i < names.length; i++) {
-			newNames[i] = names[i];
+			namesWithCluster[i] = names[i];
 		}
-		newNames[newNames.length - 1] = "CluserID";
-		rawDataNames = newNames;
-		
-		newList = new ArrayList<Object[]>();
-		newNames = new String[masterNames.length + 1];
-		
-		//iterate through query return
-		for(Object[] dataRow : masterList) {
-			Object[] newDataRow = new Object[dataRow.length + 1];
-			String instance = "";
-			for(int i = 0; i < dataRow.length; i++) {
-				if(i == 0) {
-					instance = dataRow[i].toString();
-				}
-				newDataRow[i] = dataRow[i];
-			}
-			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
-			newDataRow[newDataRow.length - 1] = clusterNumber;
-			newList.add(newDataRow);
-			//add to matrix
-		}
-		list = newList;
-		for(int i = 0; i < masterNames.length; i++) {
-			newNames[i] = masterNames[i];
-		}
-		newNames[newNames.length - 1] = "CluserID";
-		names = newNames;
+		namesWithCluster[namesWithCluster.length - 1] = "ClusterID";
+		names = namesWithCluster;
+		rawDataList =  new ArrayList<Object[]>(list);
+		rawDataNames = names.clone();//TODO make sure this writes properly
 
 		dataHash = processQueryData();
 	}
 
+	//TODO why arent we just calling super create data here?
 	private void processQuery() 
 	{
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
@@ -586,6 +587,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //			this.type = querySplit[3];
 //		}
 	}
+	
+//	public void setList(ArrayList<Object []> list){
+//		this.list = list;	
+//	}
+//	public void setNames(String[] names){
+//		this.names = names;	
+//	}
+	
 	public String getFullQuery() {
 		return fullQuery;
 	}
@@ -598,6 +607,15 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	public int[] getClusterAssigned() {
 		return clusterAssigned;
 	}
+	public void setAddAsTab(Boolean addAsTab) {
+		this.addAsTab = addAsTab;
+	}
+	public void setPlaySheetHash(Hashtable<String, IPlaySheet> playSheetHash) {
+		this.playSheetHash = playSheetHash;
+	}
+	public void setDrillDownTabSelectorComboBox(JComboBox<String> drillDownTabSelectorComboBox){
+		this.drillDownTabSelectorComboBox = drillDownTabSelectorComboBox;
+	}
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -608,5 +626,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+	public int getNumClusters() {
+		return numClusters;
+	}
+	public ArrayList<Object []> getMasterList() {
+		return masterList;
+	}
+	public String[] getMasterNames() {
+		return masterNames;
 	}
 }
