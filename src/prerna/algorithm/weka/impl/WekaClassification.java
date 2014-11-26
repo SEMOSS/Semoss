@@ -6,6 +6,7 @@ import java.util.Map;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
+import weka.core.FastVector;
 import weka.core.Instances;
 
 public class WekaClassification {
@@ -24,10 +25,26 @@ public class WekaClassification {
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
 	
-	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName) {
+	private String modelName;
+	private int classIndex;
+	
+	private FastVector<Double> accuracyArr = new FastVector<Double>();
+	private FastVector<Double> percisionArr = new FastVector<Double>();
+	
+	public FastVector<Double> getAccuracyArr() {
+		return accuracyArr;
+	}
+
+	public FastVector<Double> getPercisionArr() {
+		return percisionArr;
+	}
+	
+	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName, int classIndex) {
 		this.list = list;
 		this.names = names;
 		this.model = ClassificationFactory.createClassifier(modelName);
+		this.modelName = model.getClass().toString();
+		this.classIndex = classIndex;
 	}
 
 	public Map<String, Map> getTreeMap() {
@@ -35,10 +52,8 @@ public class WekaClassification {
 	}
 	
 	public void execute() throws Exception{
-		int numAttributes = names.length;
-		
-		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, numAttributes - 1);
-		data.setClassIndex(numAttributes - 1);
+		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
+		data.setClassIndex(classIndex);
 		// Do 10-split cross validation
 		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
 
@@ -58,33 +73,35 @@ public class WekaClassification {
 				accuracy = newPctCorrect;
 				percision = validation.kappa();
 			}
+			
+			// keep track of accuracy and percision of each test
+			accuracyArr.add(newPctCorrect);
+			percisionArr.add(validation.kappa());
 		}
-
-		processTreeString(model.getClass().toString());
 		
 		System.out.println("Accuracy: " + accuracy);
 		System.out.println("Percision: " + percision);
 	}
 	
-	private void processTreeString(String type) {
+	public void processTreeString() {
 		String[] treeSplit = treeAsString.split("\n");
 		treeMap = new HashMap<String, Map>();
-		if(type.contains("J48")) {
+		if(modelName.contains("J48")) {
 			treeStringArr = new String[treeSplit.length - 7];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 3, treeStringArr, 0, treeStringArr.length);
 			generateTreeEndingWithParenthesis(treeMap, "", 0);
-		} else if(type.contains("SimpleCart")) {
+		} else if(modelName.contains("SimpleCart")) {
 			treeStringArr = new String[treeSplit.length - 6];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
 			generateTreeEndingWithParenthesis(treeMap, "", 0);
-		} else if(type.contains("REPTree")) {
+		} else if(modelName.contains("REPTree")) {
 			treeStringArr = new String[treeSplit.length - 6];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 4, treeStringArr, 0, treeStringArr.length);
 			generateTreeEndingWithParenthesisAndBrackets(treeMap, "", 0);
-		} else if(type.contains("BFTree")) {
+		} else if(modelName.contains("BFTree")) {
 			treeStringArr = new String[treeSplit.length - 6];
 			// indices based on weka J48 decision tree output
 			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
