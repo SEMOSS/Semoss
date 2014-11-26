@@ -35,6 +35,7 @@ public enum PlaySheetEnum {
 	Grid_Scatter("Grid Scatter", "prerna.ui.components.playsheets.GridScatterSheet", "GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }"),
 	Column_Chart("Column Chart", "prerna.ui.components.playsheets.ColumnChartPlaySheet", "ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 ?yAxis3 ... (where all yAxis values are numbers) WHERE { ... }"),
 	Pie_Chart("Pie Chart", "prerna.ui.components.playsheets.PieChartPlaySheet", "PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }"),
+	Clustering_Module("Clustering Module", "prerna.ui.components.playsheets.ClassifyClusterPlaySheet", "ClassifyClusterPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }"),
 	Clustering("Clustering", "prerna.ui.components.playsheets.ClusteringVizPlaySheet", "ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters"),
 	Outliers("Outliers","prerna.ui.components.playsheets.LocalOutlierPlaySheet", "LocalOutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount"),
 	Classification("Classifier","prerna.ui.components.playsheets.WekaClassificationPlaySheet", "WekaClassificationPlaySheet Hint: SELECT ?instance ?prop1... ?propN ?classificationProp WHERE{ ... }+++ClassificationAlgorithm"),

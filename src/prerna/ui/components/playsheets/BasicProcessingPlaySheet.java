@@ -241,5 +241,14 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public ArrayList<Object[]> getList(){
 		return this.list;
 	}
+	
+	
+	public void setNames(String[] names) {
+		this.names = names;
+	}
+	
+	public void setList(ArrayList<Object []>list) {
+		this.list = list;
+	}
 
 }
