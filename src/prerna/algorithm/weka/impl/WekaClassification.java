@@ -66,6 +66,9 @@ public class WekaClassification {
 	public void execute() throws Exception{
 		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
 		data.setClassIndex(classIndex);
+		// setting class attribute
+		data.setClassIndex(data.numAttributes() - 1);
+		
 		// Do 10-split cross validation
 		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
 
@@ -73,17 +76,15 @@ public class WekaClassification {
 		Instances[] trainingSplits = split[0];
 		Instances[] testingSplits = split[1];
 		
-		accuracy = -1;
-		precision = 0;
+		double bestTreeAccuracy = -1;
 		// For each training-testing split pair, train and test the classifier
 		int j;
 		for(j = 0; j < trainingSplits.length; j++) {
 			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
 			double newPctCorrect = validation.pctCorrect();
-			if(newPctCorrect > accuracy) {
+			if(newPctCorrect > bestTreeAccuracy) {
 				treeAsString = model.toString();
-				accuracy = newPctCorrect;
-				precision = validation.kappa();
+				bestTreeAccuracy = newPctCorrect;
 			}
 			
 			// keep track of accuracy and percision of each test
@@ -91,8 +92,10 @@ public class WekaClassification {
 			precisionArr.add(validation.kappa());
 		}
 		
-		System.out.println("Accuracy: " + accuracy);
-		System.out.println("Precision: " + precision);
+		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);
+		precision = WekaUtilityMethods.calculateAccuracy(precisionArr);
+
+		
 	}
 	
 	public void processTreeString() {
