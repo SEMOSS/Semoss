@@ -19,7 +19,7 @@ public class WekaClassification {
 	private String treeAsString;
 	
 	private double accuracy;
-	private double percision;
+	private double precision;
 	
 	private String[] treeStringArr = null;
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
@@ -29,14 +29,26 @@ public class WekaClassification {
 	private int classIndex;
 	
 	private FastVector<Double> accuracyArr = new FastVector<Double>();
-	private FastVector<Double> percisionArr = new FastVector<Double>();
+	private FastVector<Double> precisionArr = new FastVector<Double>();
 	
 	public FastVector<Double> getAccuracyArr() {
 		return accuracyArr;
 	}
 
-	public FastVector<Double> getPercisionArr() {
-		return percisionArr;
+	public FastVector<Double> getPrecisionArr() {
+		return precisionArr;
+	}
+	
+	public double getAccuracy() {
+		return accuracy;
+	}
+	
+	public double getPrecision() {
+		return precision;
+	}
+	
+	public String getTreeAsString() {
+		return treeAsString;
 	}
 	
 	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName, int classIndex) {
@@ -62,7 +74,7 @@ public class WekaClassification {
 		Instances[] testingSplits = split[1];
 		
 		accuracy = -1;
-		percision = 0;
+		precision = 0;
 		// For each training-testing split pair, train and test the classifier
 		int j;
 		for(j = 0; j < trainingSplits.length; j++) {
@@ -71,16 +83,16 @@ public class WekaClassification {
 			if(newPctCorrect > accuracy) {
 				treeAsString = model.toString();
 				accuracy = newPctCorrect;
-				percision = validation.kappa();
+				precision = validation.kappa();
 			}
 			
 			// keep track of accuracy and percision of each test
 			accuracyArr.add(newPctCorrect);
-			percisionArr.add(validation.kappa());
+			precisionArr.add(validation.kappa());
 		}
 		
 		System.out.println("Accuracy: " + accuracy);
-		System.out.println("Percision: " + percision);
+		System.out.println("Precision: " + precision);
 	}
 	
 	public void processTreeString() {

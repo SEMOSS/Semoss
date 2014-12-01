@@ -101,7 +101,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			try {
 				weka.execute();
 				double accuracy = WekaUtilityMethods.calculateAccuracy(weka.getAccuracyArr());
-				double precision = WekaUtilityMethods.calculatePercision(weka.getPercisionArr());
+				double precision = WekaUtilityMethods.calculatePercision(weka.getPrecisionArr());
 				accuracyArr[i-1] = accuracy;
 				precisionArr[i-1] = precision;
 			} catch (Exception e) {
