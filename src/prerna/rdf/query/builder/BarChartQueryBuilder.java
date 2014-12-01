@@ -45,9 +45,9 @@ public class BarChartQueryBuilder extends AbstractQueryBuilder {
 			logger.info("Adding Return Variable: " + seriesColName);
 			addReturnVariable(seriesColName, allVarNames.get(seriesIdx+1), baseQuery, mathFunc);
 			
-			if(mathFunc.equals("false")){
+			/*if(mathFunc.equals("false")){
 				groupList.add(seriesColName);
-			}
+			}*/
 		}
 
 		logger.info("Adding GROUPBY to query: " + allColNames);
