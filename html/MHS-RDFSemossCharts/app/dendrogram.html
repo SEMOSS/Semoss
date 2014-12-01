@@ -232,7 +232,7 @@ var widthCount = treeWidthCount(data);
     });
   }
 
-if (_.size(data.stats)>0){
+if (data.stats.length>0){
     var rect = svg.append("rect")
         .attr('class', "box")
         .attr('x', width+ margin.right/2)
@@ -240,21 +240,23 @@ if (_.size(data.stats)>0){
         .attr('ry', 10)
         .attr('rx', 10)
         .attr('width', 150)
-        .attr('height', _.size(data.stats)* 22 + 8)
+        .attr('height', (data.stats.length)* 22)
         .attr('fill', 'white')
         .style('stroke', 'blue')
         .style('opacity', 0.8);
 
     var k= 0
-    for(var key in data.stats){
+    while(k<data.stats.length){
+    for(var key in data.stats[k]){
       svg.append('text')
         .attr('class', "leg")
         .attr('x', width+ margin.right/2 + 10)
         .attr('y', k*20 + 30)
         .style("fill", 'black')
-        .text( key + ": " + data.stats[key]);
+        .text( key + ": " + data.stats[k][key]);
       k++;
     }
+  }
 }
 
 
