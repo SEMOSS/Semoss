@@ -45,9 +45,9 @@ public class HeatMapQueryBuilder extends AbstractQueryBuilder {
 
 		logger.info("Adding heat math function " + heatMathFunc + " on column " + heatName);
 		addReturnVariable(heatName, varNames.get(2), baseQuery, heatMathFunc);//SEMOSSQueryHelper.addMathFuncToQuery(heatMathFunc, heatName, baseQuery, varNames.get(2));
-		if(heatMathFunc.equals("false")){
+		/*if(heatMathFunc.equals("false")){
 			groupList.add(heatName);
-		}
+		}*/
 		//add them as group by
 		logger.info("Query will GROUPBY: " + groupList);
 		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
