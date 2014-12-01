@@ -1,5 +1,6 @@
 package prerna.ui.components.playsheets;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -36,13 +37,14 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		if(classColumn<0) {
 			LOGGER.info("Creating classifier to predict column"+names[names.length-1]);
 			alg = new WekaClassification(list, names, modelName, names.length - 1);
-		}else {
+		} else {
 			LOGGER.info("Creating classifier to predict column"+names[classColumn]);
 			alg = new WekaClassification(list, names, modelName, classColumn);
 		}
 		try {
 			alg.execute();
 			alg.processTreeString();
+			System.out.println(alg.getTreeAsString());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -62,6 +64,13 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("name", root);
 		allHash.put("children", hashSet);
+		
+		DecimalFormat df = new DecimalFormat("#%");
+		Hashtable<String, Object> statHash = new Hashtable<String, Object>();
+		statHash.put("Accuracy", df.format(alg.getAccuracy()));
+		statHash.put("Precision", df.format(alg.getPrecision()));
+		allHash.put("stats", statHash);
+		
 		return allHash;
 	}
 	
