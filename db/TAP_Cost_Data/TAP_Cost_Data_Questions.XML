@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
-	xmlns="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Generic-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -20,12 +19,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:GQ1</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -33,8 +32,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -42,7 +41,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Explore an instance of a selected node type</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Explore an instance of a selected node type</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -70,19 +70,19 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Instance">
 	<LABEL xmlns="PARAM:">Instance</LABEL>
 	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
-	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
-	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:GQ2</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ2</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -90,8 +90,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ2</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -99,7 +99,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. Generic CONSTRUCT Query</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic CONSTRUCT Query</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -113,12 +114,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:GQ3</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -126,8 +127,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -135,7 +136,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. Select Query Raw</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Raw</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -149,12 +151,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:GQ4</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -162,8 +164,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -171,7 +173,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. Select Query Rendered as a Grid</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Rendered as a Grid</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -185,12 +188,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:GQ5</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -198,8 +201,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -207,7 +210,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:GQ5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. Select Distinct Subjects</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Distinct Subjects</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
@@ -221,13 +225,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Financial-Budget-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -236,12 +240,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -249,8 +253,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -258,7 +262,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the shared services budget items?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the shared services budget items?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -272,12 +277,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -285,8 +290,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -294,7 +299,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What line items does this system have for this year?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What line items does this system have for this year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -329,12 +335,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -342,8 +348,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -351,7 +357,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What enterprise line items exist below this tag?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What enterprise line items exist below this tag?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -374,12 +381,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -387,8 +394,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -396,7 +403,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What tags exist below this tag?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What tags exist below this tag?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -419,12 +427,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -432,8 +440,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -441,7 +449,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the line items this system has across the FYDP?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the line items this system has across the FYDP?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -464,12 +473,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -477,8 +486,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -486,7 +495,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ7">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What are the system costs for a given organization?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the system costs for a given organization?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -509,12 +519,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -522,8 +532,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Budget-Perspective:TAP_Cost_Data:Financial-Budget-Perspective:FBQ8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -531,7 +541,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Budget-Perspective:FBQ8">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">7. What are the line items for all systems across the FYDP?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the line items for all systems across the FYDP?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Budget-Perspective">
@@ -545,13 +556,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Financial-Transition-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -560,12 +571,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -573,8 +584,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -582,7 +593,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the overhead items for this TargetPhaseBasisCoreTask?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the overhead items for this TargetPhaseBasisCoreTask?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -605,12 +617,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -618,8 +630,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -627,7 +639,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ7">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What is the overhead table for this target?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the overhead table for this target?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -662,12 +675,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -675,8 +688,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -684,7 +697,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ12">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What is the total list of overhead items?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the total list of overhead items?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -698,12 +712,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -711,8 +725,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -720,7 +734,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ9">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What are the calculated hours for this service?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the calculated hours for this service?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -755,12 +770,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -768,8 +783,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -777,7 +792,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ10">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the calculated hours for this system?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the calculated hours for this system?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -812,12 +828,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -825,8 +841,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Financial-Transition-Perspective:TAP_Cost_Data:Financial-Transition-Perspective:FTQ11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -834,7 +850,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Financial-Transition-Perspective:FTQ11">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What are all of the calculated and stored GLItems?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are all of the calculated and stored GLItems?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Financial-Transition-Perspective">
@@ -848,13 +865,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Site-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Site-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Site-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Site-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Site-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Site-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -863,12 +880,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Site-Perspective:SysP18</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Site-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Site-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -876,8 +893,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Site-Perspective:TAP_Cost_Data:Site-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
@@ -885,7 +902,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Site-Perspective:SysP18">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What site deployment costs exist for all systems?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What site deployment costs exist for all systems?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Site-Perspective">
@@ -899,13 +917,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:System-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">System-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:System-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -914,12 +932,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:SysP13</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP13">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP13</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -927,8 +945,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP13">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP13</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -936,7 +954,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP13">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What transition costs are associated with this system?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What transition costs are associated with this system?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -959,12 +978,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:SysP14</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:SysP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP14">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP14</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -972,8 +991,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP14">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP14</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -981,7 +1000,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP14">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What services does this system require and how many hours will each take?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What services does this system require and how many hours will each take?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1004,12 +1024,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:SysP18</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1017,8 +1037,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1026,7 +1046,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP18">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What site deployment costs exist for all systems?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What site deployment costs exist for all systems?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1040,12 +1061,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:SysP19</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:SysP19</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP19">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP19</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:SysP19</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1053,8 +1074,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP19">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP19</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:SysP19</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1062,7 +1083,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:SysP19">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What transition costs are specific to this system?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What transition costs are specific to this system?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1085,12 +1107,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:FBQ6</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1098,8 +1120,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1107,7 +1129,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">5. What are the line items this system has across the FYDP?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the line items this system has across the FYDP?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1130,12 +1153,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:FBQ3</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:System-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1143,8 +1166,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:System-Perspective:TAP_Cost_Data:System-Perspective:FBQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1152,7 +1175,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:System-Perspective:FBQ3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. What line items does this system have for this year?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What line items does this system have for this year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:System-Perspective">
@@ -1187,13 +1211,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Service-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Service-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Service-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1202,12 +1226,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:SOAP3</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:SOAP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1215,8 +1239,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP3">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP3</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1224,7 +1248,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What system specific costs are associated with implementing this service?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What system specific costs are associated with implementing this service?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1247,12 +1272,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:SOAP4</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:SOAP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1260,8 +1285,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP4">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP4</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1269,7 +1294,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What generic costs are associated with this service?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What generic costs are associated with this service?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1292,12 +1318,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:SOAP5</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:SOAP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Service-Perspective:SOAP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1305,8 +1331,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP5">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP5</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Service-Perspective:TAP_Cost_Data:Service-Perspective:SOAP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1314,7 +1340,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Service-Perspective:SOAP5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What systems are affected by implementing this service and how much will they have to spend?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems are affected by implementing this service and how much will they have to spend?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Service-Perspective">
@@ -1337,13 +1364,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Data-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Data-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Data-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1352,12 +1379,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Data-Perspective:IOP6</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Data-Perspective:IOP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1365,8 +1392,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
@@ -1374,7 +1401,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What services does this data object require?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What services does this data object require?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
@@ -1397,12 +1425,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Data-Perspective:IOP7</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Data-Perspective:IOP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Data-Perspective:IOP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1410,8 +1438,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP7">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP7</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Data-Perspective:TAP_Cost_Data:Data-Perspective:IOP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
@@ -1419,7 +1447,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Data-Perspective:IOP7">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What services expose this data and what are their implementation costs?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What services expose this data and what are their implementation costs?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Data-Perspective">
@@ -1442,13 +1471,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Portfolio-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1457,12 +1486,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1470,8 +1499,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:FBQ6">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:FBQ6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1479,7 +1508,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:FBQ6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. What are the line items this system has across the FYDP?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the line items this system has across the FYDP?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1502,12 +1532,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP13">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1515,8 +1545,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP13">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1524,7 +1554,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP13">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">2. What transition costs are associated with this system?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What transition costs are associated with this system?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1547,12 +1578,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1560,8 +1591,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP18">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:SysP18</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1569,7 +1600,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:SysP18">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">3. What site deployment costs exist for all systems?</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What site deployment costs exist for all systems?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
@@ -1583,12 +1615,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:PP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:PP1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1596,12 +1628,20 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:PP1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:PP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
 	<PP1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Portfolio-Perspective:TAP_Cost_Data:Portfolio-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What site deployment costs exist for all systems?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Portfolio-Perspective">
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">PP1</IDLabel>
 </rdf:Description>
 
@@ -1612,13 +1652,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Cost_Data:Optimization-Transition-Perspective</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Optimization-Transition-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Optimization-Transition-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1627,12 +1667,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:O1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
@@ -1640,8 +1680,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:O1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Cost_Data:Optimization-Transition-Perspective:TAP_Cost_Data:Optimization-Transition-Perspective:O1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
@@ -1649,7 +1689,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Optimization-Transition-Perspective:O1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">1. Budget Optimization Over Years.</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Budget Optimization Over Years.</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Optimization-Transition-Perspective">
@@ -1670,35 +1711,39 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
-	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
-	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
-	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
-	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Order">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
@@ -1719,46 +1764,6 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Portfolio-Perspective:PP1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">4. What site deployment costs exist for all systems? (Pie)</Label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Cost_Data">
-	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Cost_Data:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
-	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Cost_Data:Generic-Perspective:TAP_Cost_Data:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">6. Explore the metamodel</Label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Cost_Data:Generic-Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective_1</IDLabel>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Cost_Data:Generic-Perspective:Generic-Perspective_1">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.MetamodelCentralityGridPlaySheet</Layout>
 </rdf:Description>
 
 </rdf:RDF>
