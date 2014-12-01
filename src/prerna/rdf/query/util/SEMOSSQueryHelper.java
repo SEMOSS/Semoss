@@ -2,8 +2,17 @@ package prerna.rdf.query.util;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 public abstract class SEMOSSQueryHelper {
+
+	static final Logger logger = LogManager.getLogger(SEMOSSQueryHelper.class.getName());
 
 	public static void addSingleReturnVarToQuery(String varString, SEMOSSQuery seQuery) 
 	{
@@ -27,6 +36,15 @@ public abstract class SEMOSSQueryHelper {
 			modConst = SPARQLAbstractReturnModifier.COUNT;
 		else if(type.equals(SPARQLAbstractReturnModifier.DISTINCT))
 			modConst = SPARQLAbstractReturnModifier.DISTINCT;
+		
+		else if(type.equals(SPARQLAbstractReturnModifier.AVERAGE))
+			modConst = SPARQLAbstractReturnModifier.AVERAGE;
+		else if(type.equals(SPARQLAbstractReturnModifier.MAX))
+			modConst = SPARQLAbstractReturnModifier.MAX;
+		else if(type.equals(SPARQLAbstractReturnModifier.MIN))
+			modConst = SPARQLAbstractReturnModifier.MIN;
+		else if(type.equals(SPARQLAbstractReturnModifier.NONE))
+			modConst = SPARQLAbstractReturnModifier.NONE;
 		else
 			throw new IllegalArgumentException("Modifiers include only SUM, COUNT, or DISTINCT");
 		
@@ -45,6 +63,15 @@ public abstract class SEMOSSQueryHelper {
 			modConst = SPARQLAbstractReturnModifier.COUNT;
 		else if(type.equals(SPARQLAbstractReturnModifier.DISTINCT))
 			modConst = SPARQLAbstractReturnModifier.DISTINCT;
+		
+		else if(type.equals(SPARQLAbstractReturnModifier.AVERAGE))
+			modConst = SPARQLAbstractReturnModifier.AVERAGE;
+		else if(type.equals(SPARQLAbstractReturnModifier.MAX))
+			modConst = SPARQLAbstractReturnModifier.MAX;
+		else if(type.equals(SPARQLAbstractReturnModifier.MIN))
+			modConst = SPARQLAbstractReturnModifier.MIN;
+		else if(type.equals(SPARQLAbstractReturnModifier.NONE))
+			modConst = SPARQLAbstractReturnModifier.NONE;
 		else
 			throw new IllegalArgumentException("Modifiers include only SUM, COUNT, or DISTINCT");
 		
@@ -334,11 +361,19 @@ public abstract class SEMOSSQueryHelper {
 	
 	public static void addGroupByToQuery(ArrayList<String> list, SEMOSSQuery seQuery)
 	{
+		// needs to be a unique list... having group by with the same variable doesn't make sense
+		logger.info("Passed " + list.size() + " for binding");
+		Set<String> uniqueList = new HashSet<String>(list);
+		logger.info("Unique list count: " + uniqueList.size());
+				
 		ArrayList<TriplePart> varsList = new ArrayList<TriplePart>();
-		for (int varIdx = 0; varIdx<list.size(); varIdx++)
+		Iterator<String> uniqueIt = uniqueList.iterator();
+		int count = 0;
+		while (uniqueIt.hasNext())
 		{
-			TriplePart var = new TriplePart(list.get(varIdx), TriplePart.VARIABLE);
-			varsList.add(varIdx, var);
+			TriplePart var = new TriplePart(uniqueIt.next(), TriplePart.VARIABLE);
+			varsList.add(count, var);
+			count++;
 		}
 		SPARQLGroupBy groupBy = new SPARQLGroupBy(varsList);
 		seQuery.setGroupBy(groupBy);
@@ -357,4 +392,36 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.setBindings(bindings);
 	}
 	
+	public static void addParametersToQuery(ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery seQuery, String clauseName){
+		for(int i=0; i < parameters.size(); i++){
+			Hashtable<String, String> paramHash = parameters.get(i);
+			
+			Set<String> paramKeys = paramHash.keySet();
+			for(String key : paramKeys){
+				TriplePart paramPart = new TriplePart(key, TriplePart.VARIABLE);
+
+				seQuery.addParameter(key, paramHash.get(key), paramPart, clauseName);
+			}
+		}
+	}
+	
+	public static void addMathFuncToQuery(String grouping, String selected, SEMOSSQuery semossQuery, String varName) {
+		String returnModifier = grouping;
+		
+		ISPARQLReturnModifier mod = null;
+		
+		if(returnModifier.equals("count")){
+			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.COUNT);
+		}
+		else if (returnModifier.equals("average")){
+			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.AVERAGE);
+		}
+		else if (returnModifier.equals("max")){
+			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.MAX);
+		}
+		else if (returnModifier.equals("min")){
+			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.MIN);
+		}
+		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, mod, semossQuery);
+	}
 }
