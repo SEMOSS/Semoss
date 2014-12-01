@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.swing.DefaultComboBoxModel;
@@ -22,10 +23,12 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.stanford.nlp.util.ArrayUtils;
 import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusterRemoveDuplicates;
 import prerna.algorithm.cluster.ClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusteringOptimization;
+import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
@@ -374,16 +377,24 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		Hashtable allHash = new Hashtable();
 		ArrayList<Hashtable<String, Object>> dataList = new ArrayList<Hashtable<String, Object>>(list.size());
 		ArrayList<Hashtable<String, Object[]>> clusterInformation = new ArrayList<Hashtable<String, Object[]>>(numClusters);
+		ArrayList<ArrayList<Object[]>> storeInstanceDataInCluster = new ArrayList<ArrayList<Object[]>>();
 		//initialize cluster information
 		for(int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> innerHash = new Hashtable<String, Object[]>();
 			clusterInformation.add(innerHash);
+			storeInstanceDataInCluster.add(new ArrayList<Object[]>());
 		}
 
+		//original names
 		for(Object[] dataRow : list) {
-			Hashtable<String, Object> instanceHash = new Hashtable<String, Object>();
 			//add name and cluster under special names first
 			int clusterID = (int) dataRow[dataRow.length - 1];
+			
+			//split up instances based on cluster
+			ArrayList<Object[]> instancesInCluster = storeInstanceDataInCluster.get(clusterID);
+			instancesInCluster.add(dataRow);
+			
+			Hashtable<String, Object> instanceHash = new Hashtable<String, Object>();
 			instanceHash.put("ClusterID", clusterID);
 			instanceHash.put("NodeName", dataRow[0]);
 			Hashtable<String,Object[]> clusterHash = clusterInformation.get(clusterID);
@@ -436,7 +447,25 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				}
 			}
 			barData[i] = clusterData;
+			
+			// add in similarity for cluster
+			String[] origArr = names;
+			origArr = Arrays.copyOfRange(origArr, 0, origArr.length - 1);
+			DatasetSimilarity alg = new DatasetSimilarity(storeInstanceDataInCluster.get(i), origArr);
+			alg.generateClusterCenters();
+			double[] simValues = alg.getSimilarityValuesForInstances();
+			BarChart chart = new BarChart(simValues, "");
+			Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+			String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
+
+			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+			Object[] binArr = new Object[]{bins};
+			innerHash.put("dataSeries", binArr);
+			innerHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center"), "Distribution"});
+			innerHash.put("zScore", zScore);
+			clusterData.put("Similarity Value to Dataset Center", innerHash);
 		}
+		
 		allHash.put("dataSeries", dataList);
 		allHash.put("barData", barData);
 
