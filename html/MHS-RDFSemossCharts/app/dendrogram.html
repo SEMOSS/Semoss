@@ -93,7 +93,7 @@ function treeWidthCount(dataset2) {	//recursive function
 var heightCount = treeHeightCount(data);
 var widthCount = treeWidthCount(data);
 
-  var margin = {top: 20, right: 500, bottom: 440, left: 120},
+  var margin = {top: 20, right: 500, bottom: 440, left: 190},
 	  nodeHeightSpace = 20;	//This is an arbitrary but tested value by which we scale the height
 	  nodeWidthSpace = 180;	//This is an arbitrary but tested value by which we scale the width
       width = widthCount * nodeWidthSpace;	//Here is where width of the dendrogram is set
@@ -235,7 +235,7 @@ var widthCount = treeWidthCount(data);
 if (data.stats.length>0){
     var rect = svg.append("rect")
         .attr('class', "box")
-        .attr('x', width+ margin.right/2)
+        .attr('x', -margin.left)
         .attr('y', 10)
         .attr('ry', 10)
         .attr('rx', 10)
@@ -250,7 +250,7 @@ if (data.stats.length>0){
     for(var key in data.stats[k]){
       svg.append('text')
         .attr('class', "leg")
-        .attr('x', width+ margin.right/2 + 10)
+        .attr('x', -margin.left+ 10)
         .attr('y', k*20 + 30)
         .style("fill", 'black')
         .text( key + ": " + data.stats[k][key]);
@@ -258,7 +258,6 @@ if (data.stats.length>0){
     }
   }
 }
-
 
   // Toggle children on click.
   function click(d) {
