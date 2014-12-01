@@ -7,6 +7,7 @@ public class SPARQLPatternClause{
 	ArrayList<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
 	ArrayList<SPARQLBind> binds = new ArrayList<SPARQLBind>();
 	ArrayList<SPARQLFilter> filters = new ArrayList<SPARQLFilter>();
+	ArrayList<SEMOSSParameter> params = new ArrayList<SEMOSSParameter>();
 	String clauseString;
 	
 	public void addTriple(SPARQLTriple triple)
@@ -24,9 +25,14 @@ public class SPARQLPatternClause{
 		filters.add(filter);
 	}
 	
+	public void addParameter(SEMOSSParameter param){
+		params.add(param);
+	}
+	
 	public String getClauseString()
 	{
 		clauseString ="";
+		addAllParametersToClause();
 		addAllBindsToClause();
 		addAllTriplesToClause();
 		addAllFiltersToClause();
@@ -67,6 +73,13 @@ public class SPARQLPatternClause{
 		{
 			//space out the variables
 			clauseString = clauseString + filters.get(filterIdx).getFilterString()+" ";
+		}
+	}
+	
+	private void addAllParametersToClause()	{
+		for(int paramIndex=0; paramIndex < params.size(); paramIndex++) {
+			String paramName = params.get(paramIndex).getParamName();
+			clauseString = clauseString + params.get(paramIndex).getParamString() + " ";
 		}
 	}
 }

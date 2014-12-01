@@ -141,6 +141,10 @@ public class SEMOSSQuery {
 		return retVarString;
 	}
 	
+	public void removeReturnVariables(){
+		retVars.clear();
+	}
+	
 	public String createCountReturnVariableString()
 	{
 		String retVarString = "(COUNT(CONCAT(" ;
@@ -270,6 +274,36 @@ public class SEMOSSQuery {
 		}
 		SPARQLBind newBind = new SPARQLBind(bindSubject, bindObject);
 		clause.addBind(newBind);
+		clauseHash.put(clauseName,  clause);
+	}
+	
+	public void addParameter(String param, String paramType, TriplePart paramPart) {
+		SPARQLPatternClause clause;
+		if(clauseHash.contains(main)){
+			clause = clauseHash.get(main);
+		}
+		else {
+			clause = new SPARQLPatternClause();
+		}
+		
+		SEMOSSParameter newParameter = new SEMOSSParameter(param, paramType, paramPart);
+		clause.addParameter(newParameter);
+		clauseHash.put(main, clause);
+		
+	}
+	
+	public void addParameter(String param, String paramType, TriplePart paramPart, String clauseName) {
+		SPARQLPatternClause clause;
+		if(clauseHash.containsKey(clauseName))
+		{
+			clause = clauseHash.get(clauseName);
+		}
+		else
+		{
+			clause = new SPARQLPatternClause();
+		}
+		SEMOSSParameter newParam = new SEMOSSParameter(param, paramType, paramPart);
+		clause.addParameter(newParam);
 		clauseHash.put(clauseName,  clause);
 	}
 	
