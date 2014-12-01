@@ -55,21 +55,15 @@ public class ScatterPlotQueryBuilder extends AbstractQueryBuilder{
         //x
         logger.info("Adding x-axis variable: " + xAxisColName);
         addReturnVariable(xAxisColName, varNames.get(1), baseQuery, xAxisMathFunc);
-        if(xAxisMathFunc.equals("false")){
-        	groupList.add(xAxisColName);
-        }
         
         //y
         logger.info("Adding y-axis variable: " + yAxisColName);
         addReturnVariable(yAxisColName, varNames.get(2), baseQuery, yAxisMathFunc);
-        if(yAxisColName.equals("false")){
-        	groupList.add(yAxisColName);
-        }
         
         //z if it is not null
         if(zAxisColName != null){
         	logger.info("Adding z-axis variable: " + zAxisColName);
-        	addReturnVariable(zAxisColName, varNames.get(3), baseQuery, zAxisMathFunc);
+        	addReturnVariable(zAxisColName, varNames.get(3), baseQuery, zAxisMathFunc);        	
         }
 
         //add them as group by
