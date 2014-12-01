@@ -98,30 +98,43 @@ public class WekaClassification {
 	public void processTreeString() {
 		String[] treeSplit = treeAsString.split("\n");
 		treeMap = new HashMap<String, Map>();
-		if(modelName.contains("J48")) {
-			treeStringArr = new String[treeSplit.length - 7];
-			// indices based on weka J48 decision tree output
-			System.arraycopy(treeSplit, 3, treeStringArr, 0, treeStringArr.length);
-			generateTreeEndingWithParenthesis(treeMap, "", 0);
-		} else if(modelName.contains("SimpleCart")) {
-			treeStringArr = new String[treeSplit.length - 6];
-			// indices based on weka J48 decision tree output
-			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
-			generateTreeEndingWithParenthesis(treeMap, "", 0);
-		} else if(modelName.contains("REPTree")) {
-			treeStringArr = new String[treeSplit.length - 6];
-			// indices based on weka J48 decision tree output
-			System.arraycopy(treeSplit, 4, treeStringArr, 0, treeStringArr.length);
-			generateTreeEndingWithParenthesisAndBrackets(treeMap, "", 0);
-		} else if(modelName.contains("BFTree")) {
-			treeStringArr = new String[treeSplit.length - 6];
-			// indices based on weka J48 decision tree output
-			System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
-			generateTreeEndingWithParenthesis(treeMap, "", 0);
+		// exception case when tree is a single node
+		if(treeSplit[2].startsWith(":")) {
+			generateNodeTree(treeMap, treeSplit);
+		} else {
+			if(modelName.contains("J48")) {
+				treeStringArr = new String[treeSplit.length - 7];
+				// indices based on weka J48 decision tree output
+				System.arraycopy(treeSplit, 3, treeStringArr, 0, treeStringArr.length);
+				generateTreeEndingWithParenthesis(treeMap, "", 0);
+			} else if(modelName.contains("SimpleCart")) {
+				treeStringArr = new String[treeSplit.length - 6];
+				// indices based on weka J48 decision tree output
+				System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
+				generateTreeEndingWithParenthesis(treeMap, "", 0);
+			} else if(modelName.contains("REPTree")) {
+				treeStringArr = new String[treeSplit.length - 6];
+				// indices based on weka J48 decision tree output
+				System.arraycopy(treeSplit, 4, treeStringArr, 0, treeStringArr.length);
+				generateTreeEndingWithParenthesisAndBrackets(treeMap, "", 0);
+			} else if(modelName.contains("BFTree")) {
+				treeStringArr = new String[treeSplit.length - 6];
+				// indices based on weka J48 decision tree output
+				System.arraycopy(treeSplit, 2, treeStringArr, 0, treeStringArr.length);
+				generateTreeEndingWithParenthesis(treeMap, "", 0);
+			}
 		}
 		
 	}
 	
+	private void generateNodeTree(Map<String, Map> rootMap, String[] treeSplit) {
+		String lastRegex = "(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
+
+		String row = treeSplit[2];
+		String key = row.replaceFirst(":", "").replaceFirst(lastRegex, "").trim();
+		rootMap.put(key, new HashMap<String, Map>());
+	}
+
 	private void generateTreeEndingWithParenthesis(Map<String, Map> rootMap, String startKey, int subTreeIndex) {
 		String endRegex = "(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(.*\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
 		String lastRegex = "(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
