@@ -16,7 +16,11 @@ public class SPARQLAbstractReturnModifier implements ISPARQLReturnModifier{
 	public final static SPARQLModifierConstant SUM = new SPARQLModifierConstant("SUM");
 	public final static SPARQLModifierConstant DISTINCT = new SPARQLModifierConstant("DISTINCT");
 	public final static SPARQLModifierConstant COUNT = new SPARQLModifierConstant("COUNT");
-
+	
+	public final static SPARQLModifierConstant AVERAGE = new SPARQLModifierConstant("AVG");
+	public final static SPARQLModifierConstant MAX = new SPARQLModifierConstant("MAX");
+	public final static SPARQLModifierConstant MIN = new SPARQLModifierConstant("MIN");
+	public final static SPARQLModifierConstant NONE = new SPARQLModifierConstant("");
 	
 	public void createModifier(Object entity, SPARQLModifierConstant type) {
 		// TODO Auto-generated method stub
