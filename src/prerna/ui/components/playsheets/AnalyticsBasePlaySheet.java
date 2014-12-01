@@ -47,6 +47,18 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		
+		final String getSubclassedConcepts = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, getSubclassedConcepts);
+		String[] names = sjsw.getVariables();
+		ArrayList<String[]> list = new ArrayList<String[]>();
+		
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String parent = sjss.getVar(names[0]).toString();
+			String child = sjss.getVar(names[1]).toString();
+			list.add(new String[]{parent, child});
+		}
+		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
@@ -87,7 +99,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allHash.put("wAxisTitle", "Number_of_Properties");
 		
 		return allHash;
-	}
+	}	
 	
 	private Hashtable<SEMOSSVertex, Double> averageCentralityValues(Hashtable<SEMOSSVertex, Double> appendingHash, double n) {
 		for(SEMOSSVertex key : appendingHash.keySet()) {
