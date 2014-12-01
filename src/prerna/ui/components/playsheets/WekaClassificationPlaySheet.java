@@ -35,10 +35,10 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	public void runAlgorithm() {
 		if(classColumn<0) {
-			LOGGER.info("Creating classifier to predict column"+names[names.length-1]);
+			LOGGER.info("Creating classifier to predict column "+names[names.length-1]);
 			alg = new WekaClassification(list, names, modelName, names.length - 1);
 		} else {
-			LOGGER.info("Creating classifier to predict column"+names[classColumn]);
+			LOGGER.info("Creating classifier to predict column "+names[classColumn]);
 			alg = new WekaClassification(list, names, modelName, classColumn);
 		}
 		try {
@@ -67,8 +67,8 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		
 		DecimalFormat df = new DecimalFormat("#%");
 		Hashtable<String, Object> statHash = new Hashtable<String, Object>();
-		statHash.put("Accuracy", df.format(alg.getAccuracy()));
-		statHash.put("Precision", df.format(alg.getPrecision()));
+		statHash.put("Accuracy", df.format(alg.getAccuracy()/100));
+		statHash.put("Precision", df.format(alg.getPrecision()/100));
 		allHash.put("stats", statHash);
 		
 		return allHash;
