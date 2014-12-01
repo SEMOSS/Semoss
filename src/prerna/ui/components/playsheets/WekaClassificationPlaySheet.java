@@ -66,10 +66,14 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		allHash.put("children", hashSet);
 		
 		DecimalFormat df = new DecimalFormat("#%");
+		ArrayList<Hashtable<String, Object>> statList = new ArrayList<Hashtable<String, Object>>();
 		Hashtable<String, Object> statHash = new Hashtable<String, Object>();
 		statHash.put("Accuracy", df.format(alg.getAccuracy()/100));
+		statList.add(statHash);
+		statHash = new Hashtable<String, Object>();
 		statHash.put("Precision", df.format(alg.getPrecision()/100));
-		allHash.put("stats", statHash);
+		statList.add(statHash);
+		allHash.put("stats", statList);
 		
 		return allHash;
 	}
