@@ -38,19 +38,20 @@ public class ScatterPlotQueryBuilder extends AbstractQueryBuilder{
         ArrayList<String> varNames = uniqifyColNames(Arrays.asList( labelColName, xAxisColName, yAxisColName, zAxisColName, seriesColName ));
         ArrayList<String> groupList = new ArrayList<String>();
 
-        // the order for the return variables is label, series, x, y, z
-        // start with the label
-        logger.info("Adding label: " + labelColName);
-        addReturnVariable(labelColName, varNames.get(0), baseQuery, "false");
-        groupList.add(labelColName);
-
-        // series if it is not null
+        // the order for the return variables is series, label, x, y, z
+        // start with series
         if(seriesColName != null){
         	logger.info("Adding series: " + seriesColName);
         	addReturnVariable(seriesColName, varNames.get(4), baseQuery, "false");
             groupList.add(seriesColName);
         }
         
+        //label
+        logger.info("Adding label: " + labelColName);
+        addReturnVariable(labelColName, varNames.get(0), baseQuery, "false");
+        groupList.add(labelColName);
+
+
         //x
         logger.info("Adding x-axis variable: " + xAxisColName);
         addReturnVariable(xAxisColName, varNames.get(1), baseQuery, xAxisMathFunc);
@@ -72,8 +73,10 @@ public class ScatterPlotQueryBuilder extends AbstractQueryBuilder{
         }
 
         //add them as group by
-        logger.info("Adding GroupBy to query: " + groupList);
-        SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+        if(!groupList.isEmpty()){
+        	logger.info("Adding GroupBy to query: " + groupList);
+        	SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+        }
         
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
