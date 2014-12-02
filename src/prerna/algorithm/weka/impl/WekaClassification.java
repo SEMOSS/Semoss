@@ -65,9 +65,8 @@ public class WekaClassification {
 	
 	public void execute() throws Exception{
 		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
-		data.setClassIndex(classIndex);
 		// setting class attribute
-		data.setClassIndex(data.numAttributes() - 1);
+		data.setClassIndex(classIndex);
 		
 		// Do 10-split cross validation
 		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
