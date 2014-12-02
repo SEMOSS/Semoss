@@ -2,8 +2,10 @@ package prerna.ui.components.playsheets;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
@@ -46,18 +48,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity (SUM(?count) AS ?totalCount) WHERE { { SELECT DISTINCT ?entity (COUNT(?outRel) AS ?count) WHERE { FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?outRel ?entity} } GROUP BY ?entity } UNION { SELECT DISTINCT ?entity (COUNT(?inRel) AS ?count) WHERE { FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?inRel ?node1} } GROUP BY ?entity } } GROUP BY ?entity";
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		
-		final String getSubclassedConcepts = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, getSubclassedConcepts);
-		String[] names = sjsw.getVariables();
-		ArrayList<String[]> list = new ArrayList<String[]>();
-		
-		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String parent = sjss.getVar(names[0]).toString();
-			String child = sjss.getVar(names[1]).toString();
-			list.add(new String[]{parent, child});
-		}
+//		final String getSubclassedConcepts = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";
 		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
@@ -151,8 +142,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String concept = sjss.getRawVar(param1).toString();
 			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
-				Hashtable<String, Object> elementData = allData.get(concept);
-				elementData.put(key, sjss.getVar(param2));
+				if(allData.containsKey(concept)) {
+					Hashtable<String, Object> elementData = allData.get(concept);
+					elementData.put(key, sjss.getVar(param2));
+				} else {
+					//TODO: add to error message
+				}
 			}
 		}
 		
@@ -163,13 +158,44 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		for(SEMOSSVertex vert : unDirEccentricity.keySet()) {
 			String concept = vert.getURI().replaceAll(" ", "");
 			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
-				Hashtable<String, Object> elementData = allData.get(concept);
-				elementData.put(key, unDirEccentricity.get(vert));
+				if(allData.containsKey(concept)) {
+					Hashtable<String, Object> elementData = allData.get(concept);
+					elementData.put(key, unDirEccentricity.get(vert));
+				} else {
+					//TODO: add to error message
+				}
 			}
 		}
 
 		return allData;
 	}
+	
+//	private void processSubclassing(IEngine engine, String query) {
+//		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+//		String[] names = sjsw.getVariables();
+//		ArrayList<String[]> subclassList = new ArrayList<String[]>();
+//		Set<String> parentList = new HashSet<String>();
+//		Set<String> childList = new HashSet<String>();
+//		
+//		while(sjsw.hasNext()) {
+//			SesameJenaSelectStatement sjss = sjsw.next();
+//			String parent = sjss.getRawVar(names[0]).toString();
+//			String child = sjss.getRawVar(names[1]).toString();
+//			subclassList.add(new String[]{parent, child});
+//			
+//			parentList.add(parent);
+//			childList.add(child);
+//		}
+//		
+//		
+//		for(String child : childList) {
+//			if(parentList.contains(child)) {
+//				
+//			}
+//		}
+//		
+//		
+//	}
 	
 	public List<Hashtable<String, String>> getQuestionsWithoutParams(IEngine engine) {
 		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?engine ?insight ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
