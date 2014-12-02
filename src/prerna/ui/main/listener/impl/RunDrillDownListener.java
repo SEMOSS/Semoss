@@ -134,9 +134,9 @@ public class RunDrillDownListener extends AbstractListener {
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		drillDownPlaySheet.setJDesktopPane(pane);
 		
-		drillDownPlaySheet.runAnalytics();
-		drillDownPlaySheet.createView();
-		drillDownPlaySheet.setSelectedColumns(filteredNames);
+		PlaysheetCreateRunner playRunner = new PlaysheetCreateRunner(drillDownPlaySheet);
+		Thread playThread = new Thread(playRunner);
+		playThread.start();
 		
 	}
 
