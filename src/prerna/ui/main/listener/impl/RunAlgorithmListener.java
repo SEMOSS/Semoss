@@ -35,9 +35,11 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
+import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Utility;
@@ -53,6 +55,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private JProgressBar jBar;
 	private Hashtable<String, IPlaySheet> playSheetHash;
 	private JComboBox<String> algorithmComboBox;
+	
 	//cluster
 	private JComboBox<String> selectNumClustersComboBox;
 	private String manuallySelectNumClustersText;
@@ -61,6 +64,10 @@ public class RunAlgorithmListener extends AbstractListener {
 	//classify
 	private JComboBox<String> classificationMethodComboBox;
 	private JComboBox<String> classComboBox;
+	
+	//outlier
+	private JTextField enterKNeighborsTextField;
+	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
@@ -81,6 +88,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		//.............. pass tab, and call the clustering on it
 		//if classifying... figure out the class and the method for classifying, run the classifying
 		//need to put chart/grid on correct tabs, updating if necessary
+		//if outlier.... figure out the kneighbors and run the outlier method
 		//TODO add logger statements
 		
 		//filter the names array and list of data based on the independent variables selected
@@ -94,7 +102,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		String[] filteredNames = Utility.filterNames(names, includeColArr);
 		ArrayList<Object[]> filteredList = Utility.filterList(list,includeColArr);
 
-		BrowserPlaySheet newPlaySheet;
+		BasicProcessingPlaySheet newPlaySheet;
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Cluster") ) {
 			int numClusters = 0;
@@ -123,7 +131,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			((ClusteringVizPlaySheet)newPlaySheet).drillDownData(names,filteredNames,list,filteredList);
 			((ClusteringVizPlaySheet)newPlaySheet).setDrillDownTabSelectorComboBox(drillDownTabSelectorComboBox);
 			((ClusteringVizPlaySheet)newPlaySheet).setPlaySheetHash(playSheetHash);
-			
+			((ClusteringVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((ClusteringVizPlaySheet)newPlaySheet).setJBar(jBar);
 			showDrillDownBtn.setVisible(true);			
 		}
 		else if(algorithm.equals("Classify")){
@@ -147,13 +156,34 @@ public class RunAlgorithmListener extends AbstractListener {
 			newPlaySheet.setNames(filteredNames);
 			((WekaClassificationPlaySheet)newPlaySheet).setModelName(classMethod);
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifierIndex);
+			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
+			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 
+		} else if(algorithm.equals("Outliers")){
+			int kneighbors = 0;
+			String kneighborsText = enterKNeighborsTextField.getText();
+				try {
+					kneighbors = Integer.parseInt(kneighborsText);
+				} catch(NumberFormatException exception) {
+					Utility.showError("Number of neighbors must be an integer greater than 1. Please fix and rerun.");
+					return;
+				}
+				if(kneighbors<1) {//if error {
+					Utility.showError("Number of neighbors must be an integer greater than 1. Please fix and rerun.");
+					return;
+				}
+			newPlaySheet = new LocalOutlierPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+			((LocalOutlierPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
+			((LocalOutlierPlaySheet)newPlaySheet).setJTab(jTab);
+			((LocalOutlierPlaySheet)newPlaySheet).setJBar(jBar);
+			
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
 		}
-		newPlaySheet.setJTab(jTab);
-		newPlaySheet.setJBar(jBar);
+
 		newPlaySheet.setRDFEngine(engine);
 		
 		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(newPlaySheet);
@@ -170,6 +200,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.playSheet = (ClassifyClusterPlaySheet)view;
 		this.columnCheckboxes = playSheet.getColumnCheckboxes();
 		this.algorithmComboBox = playSheet.getAlgorithmComboBox();
+		
 		//cluster
 		this.selectNumClustersComboBox = playSheet.getSelectNumClustersComboBox();
 		this.manuallySelectNumClustersText = playSheet.getManuallySelectNumClustersText();
@@ -177,6 +208,9 @@ public class RunAlgorithmListener extends AbstractListener {
 		//classification
 		this.classificationMethodComboBox = playSheet.getClassificationMethodComboBox();
 		this.classComboBox = playSheet.getClassComboBox();
+		//outlier
+		this.enterKNeighborsTextField = playSheet.getEnterKNeighborsTextField();
+		
 		this.names = playSheet.getNames();
 		this.list = playSheet.getList();
 		this.jTab = playSheet.getJTab();
