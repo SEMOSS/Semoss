@@ -94,8 +94,6 @@ public class WekaClassification {
 		
 		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);
 		precision = WekaUtilityMethods.calculateAccuracy(precisionArr);
-
-		
 	}
 	
 	public void processTreeString() {
