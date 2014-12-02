@@ -217,7 +217,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 				rowToOutput++;
 			}
 		}
-		//
+		
 		double consumerTraining = totalCost[0]*trainingFactor;
 		reportSheet.getRow(13).getCell(2).setCellValue(Math.round(consumerTraining));
 		double providerTraining = totalCost[1]*trainingFactor;
