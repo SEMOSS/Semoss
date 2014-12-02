@@ -31,8 +31,8 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 /**
  * Controls the algorithm to use, whether clustering or classifying. Tied to the JComboBox in the ClassifyClusterPlaySheet.
  */
-public class AlgorithmSelectionListener extends AbstractListener {
-	static final Logger logger = LogManager.getLogger(AlgorithmSelectionListener.class.getName());
+public class SelectAlgorithmListener extends AbstractListener {
+	static final Logger logger = LogManager.getLogger(SelectAlgorithmListener.class.getName());
 	
 	//given two panels, the cluster panel and the classify panel and determines which one to show based on what is clicked.
 	private ClassifyClusterPlaySheet playSheet;
@@ -47,11 +47,16 @@ public class AlgorithmSelectionListener extends AbstractListener {
 		String selection = bx.getSelectedItem() + "";
 		if(selection.equals("Cluster") ) {
 			playSheet.showClassify(false);
+			playSheet.showOutlier(false);
 			playSheet.showCluster(true);
-		}
-		else if(selection.equals("Classify")){
+		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
+			playSheet.showOutlier(false);
 			playSheet.showClassify(true);
+		} else if(selection.equals("Outliers")) {
+			playSheet.showCluster(false);
+			playSheet.showClassify(false);
+			playSheet.showOutlier(true);
 		}
 
 	}

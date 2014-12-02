@@ -16,7 +16,9 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
@@ -41,6 +43,8 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.ClusteringDrillDownListener;
 import prerna.ui.main.listener.impl.ClusteringRefreshParamListener;
+import prerna.ui.main.listener.impl.GridPlaySheetListener;
+import prerna.ui.main.listener.impl.JTableExcelExportListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.CSSApplication;
@@ -136,8 +140,24 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void addGridTab() {
-		JPanel panel = new JPanel();
+		
 		table = new JTable();
+		
+		//Add Excel export popup menu and menuitem
+		JPopupMenu popupMenu = new JPopupMenu();
+		JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
+		String questionTitle = this.getTitle();
+		menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
+		popupMenu.add(menuItemAdd);
+		table.setComponentPopupMenu(popupMenu);
+		
+		GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
+		LOGGER.debug("Created the table");
+		this.addInternalFrameListener(gridPSListener);
+		LOGGER.debug("Added the internal frame listener ");
+		//table.setAutoCreateRowSorter(true);
+		
+		JPanel panel = new JPanel();
 		panel.add(table);
 		GridBagLayout gbl_mainPanel = new GridBagLayout();
 		gbl_mainPanel.columnWidths = new int[]{0, 0};
@@ -145,6 +165,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		panel.setLayout(gbl_mainPanel);
+		
 		addScrollPanel(panel, table);
 		GridFilterData gfd = new GridFilterData();
 		if(names.length != rawDataNames.length) {
