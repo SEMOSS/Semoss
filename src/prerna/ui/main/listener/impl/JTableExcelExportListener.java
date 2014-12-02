@@ -37,13 +37,13 @@ import prerna.util.Utility;
 
 public class JTableExcelExportListener extends AbstractListener {
 	private final String WORKING_DIR = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-	private final String EXPORT_FOLDER = "\\export\\Excel\\";
+	private final String EXPORT_FOLDER = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Excel" + System.getProperty("file.separator");
 	private JTable table;
 	private String filename;
 
 	public JTableExcelExportListener(JTable table, String questionTitle) {
 		this.table = table;
-		this.filename = this.WORKING_DIR + this.EXPORT_FOLDER + questionTitle + ".xlsx";
+		this.filename = this.WORKING_DIR + this.EXPORT_FOLDER + questionTitle.replace("?", "") + ".xlsx";
 	}
 
 	/**
