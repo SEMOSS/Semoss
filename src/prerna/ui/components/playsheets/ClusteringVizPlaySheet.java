@@ -656,6 +656,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
 	}
+	public void setInputNumClusters(int inputNumClusters) {
+		this.inputNumClusters = inputNumClusters;
+		this.numClusters = inputNumClusters;
+	}
 	public int getNumClusters() {
 		return numClusters;
 	}
