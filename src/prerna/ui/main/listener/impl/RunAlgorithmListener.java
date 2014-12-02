@@ -74,6 +74,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private String[] names;
 	private ArrayList<Object[]> list;
 	private IEngine engine;
+	private String title;
 	
 	/**
 	 * Method actionPerformed.
@@ -185,6 +186,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		}
 
 		newPlaySheet.setRDFEngine(engine);
+		newPlaySheet.setTitle(title);
 		
 		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(newPlaySheet);
 		Thread playThread = new Thread(runner);
@@ -219,6 +221,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.drillDownTabSelectorComboBox = playSheet.getDrillDownTabSelectorComboBox();
 		this.showDrillDownBtn = playSheet.getShowDrillDownBtn();
 		this.playSheetHash = playSheet.getPlaySheetHash();
+		this.title = playSheet.getTitle();
 	}
 
 }
