@@ -2,9 +2,11 @@ package prerna.ui.components.playsheets;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -21,6 +23,10 @@ import prerna.util.Utility;
 public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	
 	private IEngine engine;
+	
+	// for recursive method
+	private Set<String> parentsThatAreChildren;
+	private Map<String, ArrayList<String>> subclassList;
 	
 	public AnalyticsBasePlaySheet(IEngine engine) {
 		this.engine = engine;
@@ -45,10 +51,11 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} }";
 		final String getConceptsAndInstanceCountsQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?instance) AS ?count) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} } GROUP BY ?entity";
 		final String getConceptsAndPropCountsQuery = "SELECT DISTINCT ?nodeType (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { {?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType";
-		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity (SUM(?count) AS ?totalCount) WHERE { { SELECT DISTINCT ?entity (COUNT(?outRel) AS ?count) WHERE { FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node2 ?outRel ?entity} } GROUP BY ?entity } UNION { SELECT DISTINCT ?entity (COUNT(?inRel) AS ?count) WHERE { FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?inRel ?node1} } GROUP BY ?entity } } GROUP BY ?entity";
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-//		final String getSubclassedConcepts = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";
+
+		final String getConceptEdgesCountQuery = "SELECT DISTINCT ?entity ?direction ?node WHERE { { SELECT DISTINCT ?entity ?direction ?node WHERE { BIND('in' AS ?direction) FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node ?inRel ?entity} } } UNION { SELECT DISTINCT ?entity ?direction ?node WHERE { BIND('out' AS ?direction) FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?outRel ?node} } } }";
+		final String getSubclassedConcepts = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) FILTER(?parent != ?child) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";		
 		
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
@@ -57,8 +64,10 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "w", allData);
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
-		allData = addToAllData(baseDataEngine, getConceptEdgesCountQuery, "y", allData);
-		
+		Map<String, Map> subclassMap = processSubclassing(baseDataEngine, getSubclassedConcepts);
+		HashMap<String, Integer> edgeCountsHash = calculateEdgeCounts(baseDataEngine, getConceptEdgesCountQuery, subclassMap);
+		allData = addToAllData(edgeCountsHash, "y", allData);
+
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<SEMOSSVertex, Double> centralityHash = new Hashtable<SEMOSSVertex, Double>();
@@ -170,32 +179,187 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		return allData;
 	}
 	
-//	private void processSubclassing(IEngine engine, String query) {
-//		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
-//		String[] names = sjsw.getVariables();
-//		ArrayList<String[]> subclassList = new ArrayList<String[]>();
-//		Set<String> parentList = new HashSet<String>();
-//		Set<String> childList = new HashSet<String>();
-//		
-//		while(sjsw.hasNext()) {
-//			SesameJenaSelectStatement sjss = sjsw.next();
-//			String parent = sjss.getRawVar(names[0]).toString();
-//			String child = sjss.getRawVar(names[1]).toString();
-//			subclassList.add(new String[]{parent, child});
-//			
-//			parentList.add(parent);
-//			childList.add(child);
-//		}
-//		
-//		
-//		for(String child : childList) {
-//			if(parentList.contains(child)) {
-//				
-//			}
-//		}
-//		
-//		
-//	}
+	private Hashtable<String, Hashtable<String, Object>> addToAllData(HashMap<String, Integer> edgeCounts, String key, Hashtable<String, Hashtable<String, Object>> allData) {
+		for(String concept : edgeCounts.keySet()) {
+			if(allData.containsKey(concept)) {
+				Hashtable<String, Object> elementData = allData.get(concept);
+				elementData.put(key, edgeCounts.get(concept));
+			} else {
+				//TODO: add to error message
+			}
+		}
+
+		return allData;
+	}
+	
+	private Map<String, Map> processSubclassing(IEngine engine, String query) {
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		String[] names = sjsw.getVariables();
+
+		subclassList = new HashMap<String, ArrayList<String>>();
+		Set<String> parentList = new HashSet<String>();
+		Set<String> childList = new HashSet<String>();
+		
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String parent = sjss.getRawVar(names[0]).toString();
+			String child = sjss.getRawVar(names[1]).toString();
+			
+			ArrayList<String> children;
+			if(subclassList.containsKey(parent)) {
+				children = subclassList.get(parent);
+				children.add(child);
+			} else {
+				children = new ArrayList<String>();
+				children.add(child);
+				subclassList.put(parent, children);
+			}
+			
+			parentList.add(parent);
+			childList.add(child);
+		}
+				
+		Map<String, Map> subclassingMap = new HashMap<String, Map>();
+		
+		if(subclassList.isEmpty()) {
+			return subclassingMap;
+		}
+		
+		parentsThatAreChildren = new HashSet<String>();
+		for(String parent : parentList) {
+			if(!childList.contains(parent)) {
+				
+				Map<String, Map> innerMap = new HashMap<String, Map>();
+				for(String child: subclassList.get(parent)) {
+					innerMap.put(child, new HashMap<String, Map>());
+				}
+				subclassingMap.put(parent, innerMap);
+			} else {
+				parentsThatAreChildren.add(parent);
+			}
+		}
+		
+		if(parentsThatAreChildren.isEmpty()) {
+			return subclassingMap;
+		}
+		
+		for(String key : subclassingMap.keySet()) {
+			recursivelyBuildNDegreeSubclassing(subclassingMap.get(key));
+		}
+		return subclassingMap;
+	}
+	
+	private void recursivelyBuildNDegreeSubclassing(Map<String, Map> rootMap) {
+		for(Object parent : rootMap.keySet()) {
+			if(parentsThatAreChildren.isEmpty()) {
+				return;
+			}
+			//loop through until you find the position of the parent
+			if(parentsThatAreChildren.contains(parent.toString())) {
+				parentsThatAreChildren.remove(parent.toString());
+				Map<String, Map> parentMap = rootMap.get(parent.toString());
+				for(String child : subclassList.get(parent.toString())) {
+					parentMap.put(child, new HashMap<String, Map>());
+					if(parentsThatAreChildren.contains(child)) {
+						recursivelyBuildNDegreeSubclassing(parentMap);
+					}
+				}
+			}
+		}
+	}
+	
+	private HashMap<String, Integer> calculateEdgeCounts(RDFFileSesameEngine baseDataEngine, String query, Map<String, Map> subclassMap) {
+		HashMap<String, HashMap<String, Set<String>>> conceptEdgeHash = new HashMap<String, HashMap<String, Set<String>>>();
+
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(baseDataEngine, query);
+		String[] names = sjsw.getVariables();
+		String param1 = names[0];
+		String param2 = names[1];
+		String param3 = names[2];
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String concept = sjss.getRawVar(param1).toString();
+			String direction = sjss.getVar(param2).toString();
+			String relationshipNode = sjss.getRawVar(param3).toString();
+			HashMap<String, Set<String>> innerHash;
+			if(conceptEdgeHash.containsKey(concept)) {
+				innerHash = conceptEdgeHash.get(concept);
+				if(innerHash.containsKey(direction)) {
+					innerHash.get(direction).add(relationshipNode);
+				} else {
+					HashSet<String> relationshipNodeSet = new HashSet<String>();
+					relationshipNodeSet.add(relationshipNode);
+					innerHash.put(direction, relationshipNodeSet);
+				}
+			} else {
+				HashSet<String> relationshipNodeSet = new HashSet<String>();
+				relationshipNodeSet.add(relationshipNode);
+				innerHash = new HashMap<String, Set<String>>();
+				innerHash.put(direction, relationshipNodeSet);
+				conceptEdgeHash.put(concept, innerHash);
+			}
+		}
+		
+		HashMap<String, Integer> retHash = new HashMap<String, Integer>();
+		//first add all edge counts
+		for(String concept : conceptEdgeHash.keySet()) {
+			HashMap<String, Set<String>> innerHash = conceptEdgeHash.get(concept);
+			int numConnections = 0;
+			for(String key : innerHash.keySet()) {
+				numConnections += innerHash.get(key).size();
+			}
+			retHash.put(concept, numConnections);
+		}
+		
+		//now fix the edge counts for those that are in the map
+		for(String rootParent : subclassMap.keySet()) {
+			Map subclasses = subclassMap.get(rootParent);
+			recursivelyGetEdgeCounts(subclasses, conceptEdgeHash, retHash, rootParent);
+		}
+		
+		return retHash;
+	}
+	
+	private void recursivelyGetEdgeCounts(Map<String, Map> rootMap, HashMap<String, HashMap<String, Set<String>>> conceptEdgeHash, HashMap<String, Integer> edgeCountsForConcepts, String parent) {
+		for(String child : rootMap.keySet()) {
+			HashMap<String, Set<String>> parentInnerHash = conceptEdgeHash.get(parent);
+			HashMap<String, Set<String>> childInnerHash = conceptEdgeHash.get(child);
+			//to avoid null point errors, just set it to an empty map
+			if(childInnerHash == null) {
+				childInnerHash = new HashMap<String, Set<String>>();
+			}
+			
+			int numUnqiueEdges = 0;
+			Set<String> allInnerHashKeySet = new HashSet<String>();
+			allInnerHashKeySet.addAll(parentInnerHash.keySet());
+			allInnerHashKeySet.addAll(childInnerHash.keySet());
+			
+			for(String innerKey : allInnerHashKeySet) {
+				if(parentInnerHash.containsKey(innerKey)) {
+					if(childInnerHash.containsKey(innerKey)) {
+						// compare to get unique edges and update child's list so future recursion takes it into consideration
+						Set<String> childList = childInnerHash.get(innerKey);
+						childList.addAll(parentInnerHash.get(innerKey));
+						numUnqiueEdges += childList.size();
+					} else {
+						// compare to get unique edges and update child's list so future recursion takes it into consideration
+						numUnqiueEdges += parentInnerHash.get(innerKey).size();
+						childInnerHash.put(innerKey, parentInnerHash.get(innerKey));
+					}
+				} else {
+					numUnqiueEdges += childInnerHash.get(innerKey).size();
+				}
+			}
+			
+			edgeCountsForConcepts.put(child, numUnqiueEdges);
+			
+			Map<String, Map> childSubclasses = rootMap.get(child);
+			if(!childSubclasses.isEmpty()) {
+				//recursively calculate all child's edge counts
+				recursivelyGetEdgeCounts(childSubclasses, conceptEdgeHash, edgeCountsForConcepts, child);
+			}
+		}
+	}
 	
 	public List<Hashtable<String, String>> getQuestionsWithoutParams(IEngine engine) {
 		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?engine ?insight ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
