@@ -31,17 +31,16 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.algorithm.weka.impl.WekaClassification;
-import prerna.algorithm.weka.impl.WekaUtilityMethods;
 import prerna.math.BarChart;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.main.listener.impl.AlgorithmSelectionListener;
 import prerna.ui.main.listener.impl.ClassificationSelectionListener;
 import prerna.ui.main.listener.impl.ClusterTabSelectionListener;
 import prerna.ui.main.listener.impl.NumberOfClustersSelectionListener;
 import prerna.ui.main.listener.impl.RunAlgorithmListener;
 import prerna.ui.main.listener.impl.RunDrillDownListener;
+import prerna.ui.main.listener.impl.SelectAlgorithmListener;
 import prerna.ui.main.listener.impl.SelectCheckboxesListener;
 import prerna.ui.main.listener.impl.ShowDrillDownListener;
 import prerna.ui.swing.custom.CustomButton;
@@ -95,6 +94,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JComboBox<String> classComboBox;
 	private JLabel lblSelectClass, lblSelectClassMethod;
 	
+	//outlier panel components
+	private JPanel outlierPanel;
+	private JLabel lblEnterKNeighbors;
+	private JTextField enterKNeighborsTextField;
+	
 	//drill down panel components
 	private JToggleButton showDrillDownBtn;
 	private JPanel drillDownPanel;
@@ -117,7 +121,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	@Override
 	public void runAnalytics() {
-		//if nothing there return? TODO make sure this is the right way to handle this exception
 		if(list==null)
 			return;
 		
@@ -223,120 +226,144 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagLayout gbl_panel = new GridBagLayout();
 		gbl_panel.columnWidths = new int[]{0, 0, 0};
 		gbl_panel.rowHeights = new int[]{0, 0, 0};
-		gbl_panel.columnWeights = new double[]{0.0, 1.0, 0.0};
-		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+		gbl_panel.columnWeights = new double[]{0.0, 0.0, 1.0};
+		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};//, 0.0, 0.0, 0.0, 0.0, 1.0};
 		variableSelectorPanel.setLayout(gbl_panel);
 
+		JLabel lblDataSetSimilarity = new JLabel();
+		lblDataSetSimilarity.setText("Dataset similarity distribution");
+		lblDataSetSimilarity.setFont(new Font("Tahoma", Font.BOLD, 16));
+		GridBagConstraints gbc_lblDataSetSimilarity = new GridBagConstraints();
+		gbc_lblDataSetSimilarity.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblDataSetSimilarity.fill = GridBagConstraints.NONE;
+		gbc_lblDataSetSimilarity.gridwidth = 3;
+		gbc_lblDataSetSimilarity.insets = new Insets(10, 5, 0, 0);
+		gbc_lblDataSetSimilarity.gridx = 0;
+		gbc_lblDataSetSimilarity.gridy = 0;
+		variableSelectorPanel.add(lblDataSetSimilarity, gbc_lblDataSetSimilarity);
+		
+		simBarChartPanel = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/columnchart.html");
+		simBarChartPanel.setPreferredSize(new Dimension(500, 300));
+		GridBagConstraints gbc_simBarChartPanel = new GridBagConstraints();
+		gbc_simBarChartPanel.fill = GridBagConstraints.BOTH;
+		gbc_simBarChartPanel.gridwidth = 3;
+		gbc_simBarChartPanel.insets = new Insets(10, 5, 0, 0);
+		gbc_simBarChartPanel.gridx = 0;
+		gbc_simBarChartPanel.gridy = 1;
+		variableSelectorPanel.add(simBarChartPanel, gbc_simBarChartPanel);
+		
 		JLabel indVariablesLabel = new JLabel();
-		indVariablesLabel.setText("Select Independent Variables to include in analysis");
+		indVariablesLabel.setText("Filter parameters");
 		indVariablesLabel.setFont(new Font("Tahoma", Font.BOLD, 16));
 		GridBagConstraints gbc_indVariablesLabel = new GridBagConstraints();
 		gbc_indVariablesLabel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_indVariablesLabel.fill = GridBagConstraints.NONE;
-	//	gbc_indVariablesLabel.gridwidth = 2;
 		gbc_indVariablesLabel.insets = new Insets(10, 5, 0, 0);
 		gbc_indVariablesLabel.gridx = 0;
-		gbc_indVariablesLabel.gridy = 0;
+		gbc_indVariablesLabel.gridy = 2;
 		variableSelectorPanel.add(indVariablesLabel, gbc_indVariablesLabel);
 		
 		JPanel indVariablesPanel = new JPanel();
 		GridBagConstraints gbc_indVariablesPanel = new GridBagConstraints();
 		gbc_indVariablesPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_indVariablesPanel.fill = GridBagConstraints.NONE;
-	//	gbc_indVariablesPanel.gridwidth = 2;
+		gbc_indVariablesPanel.gridheight = 3;
 		gbc_indVariablesPanel.insets = new Insets(10, 5, 0, 0);
 		gbc_indVariablesPanel.gridx = 0;
-		gbc_indVariablesPanel.gridy = 1;
+		gbc_indVariablesPanel.gridy = 3;
 		variableSelectorPanel.add(indVariablesPanel, gbc_indVariablesPanel);
 		
 		fillIndependentVariablePanel(indVariablesPanel);
-		
-		simBarChartPanel = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/columnchart.html");
-		simBarChartPanel.setPreferredSize(new Dimension(500, 300));
-		GridBagConstraints gbc_simBarChartPanel = new GridBagConstraints();
-		gbc_simBarChartPanel.fill = GridBagConstraints.BOTH;
-		gbc_simBarChartPanel.insets = new Insets(30, 5, 0, 0);
-		gbc_simBarChartPanel.gridx = 0;
-		gbc_simBarChartPanel.gridy = 2;
-		variableSelectorPanel.add(simBarChartPanel, gbc_simBarChartPanel);
-		
 
 		JLabel lblSelectAnalysis = new JLabel("Select analysis to perform:");
 		lblSelectAnalysis.setFont(new Font("Tahoma", Font.BOLD, 16));
 		GridBagConstraints gbc_lblSelectAnalysis = new GridBagConstraints();
 		gbc_lblSelectAnalysis.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_lblSelectAnalysis.fill = GridBagConstraints.NONE;
-		gbc_lblSelectAnalysis.insets = new Insets(30, 5, 0, 0);
-		gbc_lblSelectAnalysis.gridx = 0;
-		gbc_lblSelectAnalysis.gridy = 3;
+		gbc_lblSelectAnalysis.insets = new Insets(10, 15, 0, 0);
+		gbc_lblSelectAnalysis.gridx = 1;
+		gbc_lblSelectAnalysis.gridy = 2;
 		variableSelectorPanel.add(lblSelectAnalysis, gbc_lblSelectAnalysis);
 
 		algorithmComboBox = new JComboBox<String>();
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
 		gbc_algorithmComboBox.insets = new Insets(10, 5, 0, 0);
-		gbc_algorithmComboBox.gridx = 0;
-		gbc_algorithmComboBox.gridy = 4;
+		gbc_algorithmComboBox.gridx = 2;
+		gbc_algorithmComboBox.gridy = 2;
 		variableSelectorPanel.add(algorithmComboBox, gbc_algorithmComboBox);
-		AlgorithmSelectionListener algSelectList = new AlgorithmSelectionListener();
+		SelectAlgorithmListener algSelectList = new SelectAlgorithmListener();
 		algSelectList.setView(this);
 		algorithmComboBox.addActionListener(algSelectList);
 		
-		//add in cluster and classify panels
+		//add in cluster / classify / outlier panels
 		//show the cluster as default
 		clusterPanel = new JPanel();
-		clusterPanel.setMinimumSize(new Dimension(400, 100));
 		GridBagConstraints gbc_clusterPanel = new GridBagConstraints();
 		gbc_clusterPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_clusterPanel.fill = GridBagConstraints.NONE;
-		gbc_clusterPanel.insets = new Insets(10, 5, 0, 0);
-		gbc_clusterPanel.gridx = 0;
-		gbc_clusterPanel.gridy = 5;
+		gbc_clusterPanel.gridwidth = 3;
+		gbc_clusterPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_clusterPanel.gridx = 1;
+		gbc_clusterPanel.gridy = 3;
 		variableSelectorPanel.add(clusterPanel, gbc_clusterPanel);
 		
 		classifyPanel = new JPanel();
-		classifyPanel.setMinimumSize(new Dimension(400, 100));
 		GridBagConstraints gbc_classifyPanel = new GridBagConstraints();
 		gbc_classifyPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_classifyPanel.fill = GridBagConstraints.NONE;
-		gbc_classifyPanel.insets = new Insets(10, 5, 0, 0);
-		gbc_classifyPanel.gridx = 0;
-		gbc_classifyPanel.gridy = 5;
+		gbc_classifyPanel.gridwidth = 3;
+		gbc_classifyPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_classifyPanel.gridx = 1;
+		gbc_classifyPanel.gridy = 3;
 		variableSelectorPanel.add(classifyPanel, gbc_classifyPanel);
 		classifyPanel.setVisible(false);
 		
+		outlierPanel = new JPanel();
+		GridBagConstraints gbc_outlierPanel = new GridBagConstraints();
+		gbc_outlierPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_outlierPanel.fill = GridBagConstraints.NONE;
+		gbc_outlierPanel.gridwidth = 3;
+		gbc_outlierPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_outlierPanel.gridx = 1;
+		gbc_outlierPanel.gridy = 3;
+		variableSelectorPanel.add(outlierPanel, gbc_outlierPanel);
+		outlierPanel.setVisible(false);
+		
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
+		fillOutlierPanel(outlierPanel);
 		
 		runAlgorithm = new CustomButton("Run Algorithm");
 		runAlgorithm.setFont(new Font("Tahoma", Font.BOLD, 11));
 		runAlgorithm.setPreferredSize(new Dimension(150, 25));
 		GridBagConstraints gbc_runAlgorithm = new GridBagConstraints();
-		gbc_runAlgorithm.insets = new Insets(10, 5, 0, 40);
-		gbc_runAlgorithm.anchor = GridBagConstraints.FIRST_LINE_END;
+		gbc_runAlgorithm.insets = new Insets(10, 15, 0, 0);
+		gbc_runAlgorithm.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_runAlgorithm.fill = GridBagConstraints.NONE;
-		gbc_runAlgorithm.gridx = 0;
-		gbc_runAlgorithm.gridy = 6;
+		gbc_runAlgorithm.gridx = 1;
+		gbc_runAlgorithm.gridy = 4;
 		variableSelectorPanel.add(runAlgorithm, gbc_runAlgorithm);
 		Style.registerTargetClassName(runAlgorithm,  ".createBtn");
 
-		showDrillDownBtn = new ToggleButton("Drill Down on Clusters");
+		showDrillDownBtn = new ToggleButton("Drill Down on Specific Clusters");
 		showDrillDownBtn.setName("showDrillDownBtn");
 		showDrillDownBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		showDrillDownBtn.setPreferredSize(new Dimension(150, 25));
 		showDrillDownBtn.setVisible(false);
 		Style.registerTargetClassName(showDrillDownBtn,  ".toggleButton");
 		
 		GridBagConstraints gbc_showDrillDownBtn = new GridBagConstraints();
 		gbc_showDrillDownBtn.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_showDrillDownBtn.fill = GridBagConstraints.NONE;
-		gbc_showDrillDownBtn.insets = new Insets(10, 5, 0, 0);
-		gbc_showDrillDownBtn.gridx = 0;
-		gbc_showDrillDownBtn.gridy = 7;
+		gbc_showDrillDownBtn.insets = new Insets(10, 15, 0, 0);
+		gbc_showDrillDownBtn.gridx = 2;
+		gbc_showDrillDownBtn.gridy = 4;
 		variableSelectorPanel.add(showDrillDownBtn, gbc_showDrillDownBtn);
 		
 		drillDownPanel = new JPanel();
@@ -344,10 +371,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		GridBagConstraints gbc_drillDownPanel = new GridBagConstraints();
 		gbc_drillDownPanel.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_drillDownPanel.fill = GridBagConstraints.BOTH;
-		gbc_drillDownPanel.insets = new Insets(10, 5, 0, 0);
-		gbc_drillDownPanel.gridx = 0;
-		gbc_drillDownPanel.gridy = 8;
+		//gbc_drillDownPanel.fill = GridBagConstraints.BOTH;
+		gbc_drillDownPanel.gridwidth = 2;
+		gbc_drillDownPanel.insets = new Insets(15, 5, 0, 0);
+		gbc_drillDownPanel.gridx = 1;
+		gbc_drillDownPanel.gridy = 5;
 		variableSelectorPanel.add(drillDownPanel, gbc_drillDownPanel);
 		drillDownPanel.setVisible(false);
 
@@ -506,7 +534,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		clusterPanel.setLayout(gbl_clusterPanel);
 		
 		lblSelectNumClusters = new JLabel("Select number of clusters:");
-		lblSelectNumClusters.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblSelectNumClusters.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblSelectNumClusters = new GridBagConstraints();
 		gbc_lblSelectNumClusters.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_lblSelectNumClusters.fill = GridBagConstraints.NONE;
@@ -524,9 +552,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_selectNumClustersComboBox = new GridBagConstraints();
 		gbc_selectNumClustersComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_selectNumClustersComboBox.fill = GridBagConstraints.NONE;
-		gbc_selectNumClustersComboBox.insets = new Insets(10, 5, 0, 0);
-		gbc_selectNumClustersComboBox.gridx = 0;
-		gbc_selectNumClustersComboBox.gridy = 1;
+		gbc_selectNumClustersComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_selectNumClustersComboBox.gridx = 1;
+		gbc_selectNumClustersComboBox.gridy = 0;
 		clusterPanel.add(selectNumClustersComboBox, gbc_selectNumClustersComboBox);
 		
 		selectNumClustersTextField = new JTextField();
@@ -537,9 +565,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_selectNumClustersTextField = new GridBagConstraints();
 		gbc_selectNumClustersTextField.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_selectNumClustersTextField.fill = GridBagConstraints.NONE;
-		gbc_selectNumClustersTextField.insets = new Insets(10, 5, 0, 0);
-		gbc_selectNumClustersTextField.gridx = 1;
-		gbc_selectNumClustersTextField.gridy = 1;
+		gbc_selectNumClustersTextField.insets = new Insets(5, 5, 0, 0);
+		gbc_selectNumClustersTextField.gridx = 2;
+		gbc_selectNumClustersTextField.gridy = 0;
 		clusterPanel.add(selectNumClustersTextField, gbc_selectNumClustersTextField);
 		
 		NumberOfClustersSelectionListener numClustersSelectList = new NumberOfClustersSelectionListener();
@@ -557,7 +585,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classifyPanel.setLayout(gbl_classifyPanel);
 		
 		lblSelectClass = new JLabel("Select class:");
-		lblSelectClass.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblSelectClass.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblSelectClass = new GridBagConstraints();
 		gbc_lblSelectClass.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_lblSelectClass.fill = GridBagConstraints.NONE;
@@ -577,22 +605,22 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
 		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_classComboBox.fill = GridBagConstraints.NONE;
-		gbc_classComboBox.insets = new Insets(10, 5, 0, 0);
-		gbc_classComboBox.gridx = 0;
-		gbc_classComboBox.gridy = 1;
+		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_classComboBox.gridx = 1;
+		gbc_classComboBox.gridy = 0;
 		classifyPanel.add(classComboBox, gbc_classComboBox);
 		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
 		classSelectList.setView(this);
 		classComboBox.addActionListener(classSelectList);
 		
 		lblSelectClassMethod = new JLabel("Select classification Method:");
-		lblSelectClassMethod.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblSelectClassMethod.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblSelectClassMethod = new GridBagConstraints();
 		gbc_lblSelectClassMethod.anchor = GridBagConstraints.FIRST_LINE_END;
 		gbc_lblSelectClassMethod.fill = GridBagConstraints.NONE;
 		gbc_lblSelectClassMethod.insets = new Insets(10, 5, 0, 0);
-		gbc_lblSelectClassMethod.gridx = 1;
-		gbc_lblSelectClassMethod.gridy = 0;
+		gbc_lblSelectClassMethod.gridx = 0;
+		gbc_lblSelectClassMethod.gridy = 1;
 		classifyPanel.add(lblSelectClassMethod, gbc_lblSelectClassMethod);
 
 		classificationMethodComboBox = new JComboBox<String>();
@@ -604,11 +632,43 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_classificationMethodComboBox = new GridBagConstraints();
 		gbc_classificationMethodComboBox.anchor = GridBagConstraints.FIRST_LINE_END;
 		gbc_classificationMethodComboBox.fill = GridBagConstraints.NONE;
-		gbc_classificationMethodComboBox.insets = new Insets(10, 5, 0, 0);
+		gbc_classificationMethodComboBox.insets = new Insets(5, 5, 0, 0);
 		gbc_classificationMethodComboBox.gridx = 1;
 		gbc_classificationMethodComboBox.gridy = 1;
 		classifyPanel.add(classificationMethodComboBox, gbc_classificationMethodComboBox);
 
+	}
+	private void fillOutlierPanel(JPanel outlierPanel) {
+	
+		GridBagLayout gbl_outlierPanel = new GridBagLayout();
+		gbl_outlierPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_outlierPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_outlierPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_outlierPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		outlierPanel.setLayout(gbl_outlierPanel);
+		
+		lblEnterKNeighbors = new JLabel("Enter K neighbors:");
+		lblEnterKNeighbors.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterKNeighbors = new GridBagConstraints();
+		gbc_lblEnterKNeighbors.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterKNeighbors.fill = GridBagConstraints.NONE;
+		gbc_lblEnterKNeighbors.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterKNeighbors.gridx = 0;
+		gbc_lblEnterKNeighbors.gridy = 0;
+		outlierPanel.add(lblEnterKNeighbors, gbc_lblEnterKNeighbors);
+		
+		enterKNeighborsTextField = new JTextField();
+		enterKNeighborsTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		enterKNeighborsTextField.setText("5");
+		enterKNeighborsTextField.setColumns(4);
+		enterKNeighborsTextField.setVisible(false);
+		GridBagConstraints gbc_enterKNeighborsTextField = new GridBagConstraints();
+		gbc_enterKNeighborsTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterKNeighborsTextField.fill = GridBagConstraints.NONE;
+		gbc_enterKNeighborsTextField.insets = new Insets(5, 5, 0, 0);
+		gbc_enterKNeighborsTextField.gridx = 1;
+		gbc_enterKNeighborsTextField.gridy = 0;
+		outlierPanel.add(enterKNeighborsTextField, gbc_enterKNeighborsTextField);
 	}
 
 	public void fillDrillDownPanel(JPanel drillDownPanel) {
@@ -616,15 +676,15 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_drillDownPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_drillDownPanel.rowHeights = new int[]{0, 0, 0};
 		gbl_drillDownPanel.columnWeights = new double[]{0.0, 0.0, 1.0};
-		gbl_drillDownPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+		gbl_drillDownPanel.rowWeights = new double[]{0.0, 0.0, 1.0};
 		drillDownPanel.setLayout(gbl_drillDownPanel);
 		
-		lblDrillDownSelectTab = new JLabel("Select clustering run to drill down on:");
-		lblDrillDownSelectTab.setFont(new Font("Tahoma", Font.BOLD, 16));
+		lblDrillDownSelectTab = new JLabel("Select clustering run:");
+		lblDrillDownSelectTab.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblDrillDownSelectTab = new GridBagConstraints();
 		gbc_lblDrillDownSelectTab.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_lblDrillDownSelectTab.fill = GridBagConstraints.NONE;
-		gbc_lblDrillDownSelectTab.insets = new Insets(30, 5, 0, 0);
+		gbc_lblDrillDownSelectTab.insets = new Insets(10, 5, 0, 0);
 		gbc_lblDrillDownSelectTab.gridx = 0;
 		gbc_lblDrillDownSelectTab.gridy = 0;
 		drillDownPanel.add(lblDrillDownSelectTab, gbc_lblDrillDownSelectTab);
@@ -638,9 +698,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_drillDownTabSelectorComboBox = new GridBagConstraints();
 		gbc_drillDownTabSelectorComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_drillDownTabSelectorComboBox.fill = GridBagConstraints.NONE;
-		gbc_drillDownTabSelectorComboBox.insets = new Insets(10, 5, 0, 0);
-		gbc_drillDownTabSelectorComboBox.gridx = 0;
-		gbc_drillDownTabSelectorComboBox.gridy = 1;
+		gbc_drillDownTabSelectorComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_drillDownTabSelectorComboBox.gridx = 1;
+		gbc_drillDownTabSelectorComboBox.gridy = 0;
 		drillDownPanel.add(drillDownTabSelectorComboBox, gbc_drillDownTabSelectorComboBox);
 		drillDownTabSelectorComboBox.setVisible(false);
 		
@@ -648,9 +708,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		GridBagConstraints gbc_clusterCheckBoxPanel = new GridBagConstraints();
 		gbc_clusterCheckBoxPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_clusterCheckBoxPanel.fill = GridBagConstraints.NONE;
-		gbc_clusterCheckBoxPanel.insets = new Insets(10, 5, 0, 0);
+		gbc_clusterCheckBoxPanel.gridwidth = 2;
 		gbc_clusterCheckBoxPanel.gridx = 0;
-		gbc_clusterCheckBoxPanel.gridy = 2;
+		gbc_clusterCheckBoxPanel.gridy = 1;
 		drillDownPanel.add(clusterCheckBoxPanel, gbc_clusterCheckBoxPanel);
 		
 		GridBagLayout gbl_clusterCheckBoxPanel = new GridBagLayout();
@@ -660,12 +720,12 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_clusterCheckBoxPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 		clusterCheckBoxPanel.setLayout(gbl_clusterCheckBoxPanel);
 		
-		JLabel lblClusterSelect = new JLabel("Select Clusters to drill down:");
-		lblClusterSelect.setFont(new Font("Tahoma", Font.BOLD, 12));
+		JLabel lblClusterSelect = new JLabel("Select clusters to include:");
+		lblClusterSelect.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblClusterSelect = new GridBagConstraints();
-		gbc_lblClusterSelect.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblClusterSelect.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_lblClusterSelect.fill = GridBagConstraints.NONE;
-		gbc_lblClusterSelect.gridwidth = 4;
+		//gbc_lblClusterSelect.gridwidth = 6;
 		gbc_lblClusterSelect.insets = new Insets(10, 5, 0, 0);
 		gbc_lblClusterSelect.gridx = 0;
 		gbc_lblClusterSelect.gridy = 0;
@@ -677,12 +737,12 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		checkboxSelectAllClusters.setName(checkboxSelectLabel+"checkBox");
 		checkboxSelectAllClusters.setSelected(true);
 		GridBagConstraints gbc_checkboxSelect = new GridBagConstraints();
-		gbc_checkboxSelect.anchor = GridBagConstraints.NORTHWEST;
+		gbc_checkboxSelect.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_checkboxSelect.fill = GridBagConstraints.NONE;
-		gbc_checkboxSelect.gridwidth = 4;
-		gbc_checkboxSelect.insets = new Insets(5, 10, 0, 0);
-		gbc_checkboxSelect.gridx = 0;
-		gbc_checkboxSelect.gridy = 1;
+		gbc_checkboxSelect.gridwidth = 6;
+		gbc_checkboxSelect.insets = new Insets(10, 10, 0, 0);
+		gbc_checkboxSelect.gridx = 1;
+		gbc_checkboxSelect.gridy = 0;
 		clusterCheckBoxPanel.add(checkboxSelectAllClusters, gbc_checkboxSelect);
 
 		selectAllList = new SelectCheckboxesListener();
@@ -696,13 +756,21 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_runDrillDown.insets = new Insets(10, 5, 0, 40);
 		gbc_runDrillDown.anchor = GridBagConstraints.FIRST_LINE_END;
 		gbc_runDrillDown.fill = GridBagConstraints.NONE;
-		gbc_runDrillDown.gridx = 0;
-		gbc_runDrillDown.gridy = 3;
+		gbc_runDrillDown.gridx = 1;
+		gbc_runDrillDown.gridy = 2;
 		drillDownPanel.add(runDrillDown, gbc_runDrillDown);
 		Style.registerTargetClassName(runDrillDown,  ".createBtn");
 		
 	}
 	
+
+	public void showCluster(Boolean show) {
+		clusterPanel.setVisible(show);
+		lblSelectNumClusters.setVisible(show);
+		selectNumClustersComboBox.setVisible(show);
+		selectNumClustersTextField.setVisible(show);
+		selectNumClustersComboBox.setSelectedItem(automaticallySelectNumClustersText);
+	}
 	public void showClassify(Boolean show) {
 		classifyPanel.setVisible(show);
 		lblSelectClass.setVisible(show);
@@ -715,12 +783,10 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		} else
 			setDisabledCheckBox("");//all checkboxes will be enabled
 	}
-	public void showCluster(Boolean show) {
-		clusterPanel.setVisible(show);
-		lblSelectNumClusters.setVisible(show);
-		selectNumClustersComboBox.setVisible(show);
-		selectNumClustersTextField.setVisible(show);
-		selectNumClustersComboBox.setSelectedItem(automaticallySelectNumClustersText);
+	public void showOutlier(Boolean show) {
+		outlierPanel.setVisible(show);
+		lblEnterKNeighbors.setVisible(show);
+		enterKNeighborsTextField.setVisible(show);
 	}
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
@@ -751,9 +817,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			clusterCheckBoxPanel.remove(checkbox);
 		}
 		clusterCheckboxes = new ArrayList<JCheckBox>();
-		
-		for(int i=0;i<numClusters;i+=4) {
-			for(int j=i;j<i+4;j++) {
+		int numColumns = 6;
+		for(int i=0;i<numClusters;i+=numColumns) {
+			for(int j=i;j<i+numColumns;j++) {
 				if(j<numClusters) {
 				String checkboxLabel = "" + j;
 				JCheckBox checkbox = new JCheckBox(checkboxLabel);
@@ -763,8 +829,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 				gbc_checkbox.anchor = GridBagConstraints.NORTHWEST;
 				gbc_checkbox.fill = GridBagConstraints.NONE;
 				gbc_checkbox.insets = new Insets(5, 10, 0, 0);
-				gbc_checkbox.gridx = j % 4;
-				gbc_checkbox.gridy = j / 4 + 2;
+				gbc_checkbox.gridx = j % numColumns + 1;
+				gbc_checkbox.gridy = j / numColumns + 2;
 				clusterCheckBoxPanel.add(checkbox, gbc_checkbox);
 				clusterCheckboxes.add(checkbox);
 				}
@@ -832,6 +898,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JTextField getSelectNumClustersTextField() {
 		return selectNumClustersTextField;
+	}
+	public JTextField getEnterKNeighborsTextField() {
+		return enterKNeighborsTextField;
 	}
 	public JToggleButton getShowDrillDownBtn() {
 		return showDrillDownBtn;
