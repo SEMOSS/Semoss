@@ -123,7 +123,7 @@ public class POIReader extends AbstractFileReader {
 	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
-
+		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		// check parent and child nodes in correct position
 		XSSFRow row = subclassSheet.getRow(0);
 		String parentNode = row.getCell(0).toString();
@@ -142,13 +142,17 @@ public class POIReader extends AbstractFileReader {
 		int lastRow = subclassSheet.getLastRowNum();
 		for (int i = 1; i <= lastRow; i++){
 			row = subclassSheet.getRow(i);
-			parentNode = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + row.getCell(0).toString();
-			childNode = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + row.getCell(1).toString();
+			parentNode = semossNodeURI + "/" + row.getCell(0).toString();
+			childNode = semossNodeURI + "/" + row.getCell(1).toString();
 			// add triples to engine
 			createStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
+			createStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(semossNodeURI));
+			createStatement(vf.createURI(parentNode), vf.createURI(pred), vf.createURI(semossNodeURI));
 			// add triples to OWL
 			try {
 				scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
+				scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(semossNodeURI));
+				scOWL.addStatement(vf.createURI(parentNode), vf.createURI(pred), vf.createURI(semossNodeURI));
 			} catch (SailException e) {
 				e.printStackTrace();
 				throw new EngineException("Error processing subclassing relationships in OWL file. Error on triple {<" + childNode + "> <" + pred +"> <" + parentNode +">}");
