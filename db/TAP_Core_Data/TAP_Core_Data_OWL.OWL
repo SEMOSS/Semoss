@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
 	xmlns="http://semoss.org/ontologies/Relation/"
-	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
-	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
 <rdfs:Class rdf:about="http://semoss.org/ontologies/Concept"/>
 <rdf:Property rdf:about="http://semoss.org/ontologies/Relation"/>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
@@ -108,9 +108,6 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FCC">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Element">
@@ -227,9 +224,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Utilizes">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Part_Of">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Rated">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
@@ -263,9 +257,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
 	<Receives-Submits rdf:resource="http://semoss.org/ontologies/Concept/SystemTasker"/>
 	<Supports rdf:resource="http://semoss.org/ontologies/Concept/BusinessProcess"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FCC">
-	<Part_Of rdf:resource="http://semoss.org/ontologies/Concept/BusinessProcess"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/VISTAUnion">
 	<MappedTo rdf:resource="http://semoss.org/ontologies/Concept/VISTA"/>
