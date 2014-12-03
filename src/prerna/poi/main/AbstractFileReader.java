@@ -426,7 +426,6 @@ public abstract class AbstractFileReader {
 
 	protected String[] prepareReader(String fileNames, String customBase, String owlFile){
 		String[] files = fileNames.split(";");
-		semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
 		//make location of the owl file in the dbname folder
 		this.owlFile = owlFile; 
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
