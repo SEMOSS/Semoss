@@ -526,6 +526,11 @@ public final class StatisticsUtilityMethods {
 		int index;
 		int start = (int) Math.ceil(minZScore);
 		int end = (int) Math.floor(maxZScore);
+		
+		if(start == end) {
+			return new double[]{start};
+		}
+		
 		if( (start-minZScore)/(maxZScore - minZScore) < 0.05 ) {
 			start++;
 		}
@@ -587,6 +592,11 @@ public final class StatisticsUtilityMethods {
 		int index;
 		int start = (int) Math.ceil(minZScore);
 		int end = (int) Math.floor(maxZScore);
+		
+		if(start == end) {
+			return new double[]{start};
+		}
+		
 		if( (start-minZScore)/(maxZScore - minZScore) < 0.05 ) {
 			start++;
 		}
