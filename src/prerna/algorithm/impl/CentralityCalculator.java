@@ -318,12 +318,12 @@ public final class CentralityCalculator {
 		for(String edgeKey : edgeStore.keySet()) {
 			SEMOSSEdge oldEdge = edgeStore.get(edgeKey);
 			SEMOSSEdge newEdge = new SEMOSSEdge(oldEdge.inVertex,oldEdge.outVertex,oldEdge.inVertex.getURI()+":"+oldEdge.outVertex.propHash.get(Constants.VERTEX_NAME));//pull from the old edge
-			forest.addEdge(newEdge, oldEdge.inVertex,oldEdge.outVertex);			
+			forest.addEdge(newEdge, oldEdge.inVertex, oldEdge.outVertex);			
 		}
 		return forest;
 	}
 	
-	private static Set<String> getInAndOutNeighbors(SEMOSSVertex vertex,boolean includeIn, boolean includeOut) {
+	private static Set<String> getInAndOutNeighbors(SEMOSSVertex vertex, boolean includeIn, boolean includeOut) {
 		Set<String> neighbors = new HashSet<String>();
 		if(includeIn) {
 			Vector<SEMOSSEdge> inEdges = vertex.getInEdges();

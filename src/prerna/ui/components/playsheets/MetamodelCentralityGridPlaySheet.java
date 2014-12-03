@@ -2,12 +2,14 @@ package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
+import prerna.algorithm.impl.SubclassingMapGenerator;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.impl.AbstractEngine;
@@ -24,7 +26,15 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), query);
 
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getGraphData().getEdgeStore();
 
+		SubclassingMapGenerator subclassGen = new SubclassingMapGenerator();
+		subclassGen.processSubclassing(engine);
+		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, edgeStore);
+
+		vertStore = subclassGen.getVertStore();
+		edgeStore = subclassGen.getEdgeStore();
+		
 		names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
 
 		list = new ArrayList<Object[]>();
@@ -33,7 +43,8 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		Hashtable<SEMOSSVertex, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(vertStore, false);
 		Hashtable<SEMOSSVertex, Double> unDirEccentricity = CentralityCalculator.calculateEccentricity(vertStore,false);
 		
-		DelegateForest<SEMOSSVertex,SEMOSSEdge> forest = CentralityCalculator.makeForestUndirected(graphPS.getGraphData().getEdgeStore(), graphPS.forest);
+		DelegateForest<SEMOSSVertex,SEMOSSEdge> forest = subclassGen.updateForest(graphPS.forest);
+		forest = CentralityCalculator.makeForestUndirected(edgeStore, forest);
 		PageRankCalculator pCalc = new PageRankCalculator();
 		Hashtable<SEMOSSVertex, Double> ranks = pCalc.calculatePageRank(forest);
 		
