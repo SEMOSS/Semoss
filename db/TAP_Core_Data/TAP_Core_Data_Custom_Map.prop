@@ -18,7 +18,6 @@ HL7 http://health.mil/ontologies/Concept/HL7
 SystemOwner http://health.mil/ontologies/Concept/SystemOwner
 ConformanceCriteria http://health.mil/ontologies/Concept/ConformanceCriteria
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
-FCC http://health.mil/ontologies/Concept/FCC
 HardwareModule http://health.mil/ontologies/Concept/HardwareModule
 FError http://health.mil/ontologies/Concept/FError
 System http://health.mil/ontologies/Concept/System
@@ -96,7 +95,6 @@ InterfaceControlDocument_Has_DForm http://health.mil/ontologies/Relation/Has
 HardwareVersion_Upgrade_HardwareVersion http://health.mil/ontologies/Relation/Upgrade
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 System_OwnedBy_SystemOwner http://health.mil/ontologies/Relation/OwnedBy
-FCC_Part_Of_BusinessProcess http://health.mil/ontologies/Relation/Part_Of
 Software_Has_SoftwareVersion http://health.mil/ontologies/Relation/Has
 Requirement_Provide_DataObject http://health.mil/ontologies/Relation/Provide
 System_Provide_DataObject http://health.mil/ontologies/Relation/Provide
@@ -161,7 +159,6 @@ SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
-FCC_CLASS http://semoss.org/ontologies/Concept/FCC
 Element_CLASS http://semoss.org/ontologies/Concept/Element
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
@@ -238,7 +235,6 @@ System_Has_TError_CLASS http://semoss.org/ontologies/Relation/Has
 CDRElement_BelongsTo_CDR_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 DataObject_Connected_HL7_CLASS http://semoss.org/ontologies/Relation/Connected
 HardwareModule_TypeOf_HardwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
-FCC_Part_Of_BusinessProcess_CLASS http://semoss.org/ontologies/Relation/Part_Of
 Activity_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
 System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
