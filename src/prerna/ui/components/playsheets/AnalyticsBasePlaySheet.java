@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
 import prerna.algorithm.impl.CentralityCalculator;
@@ -22,7 +24,8 @@ import prerna.util.Utility;
 public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	
 	private IEngine engine;
-	
+	private static final Logger LOGGER = LogManager.getLogger(AnalyticsBasePlaySheet.class.getName());
+
 	public AnalyticsBasePlaySheet(IEngine engine) {
 		this.engine = engine;
 	}
@@ -42,7 +45,6 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		getMostInfluentialInstancesForAllTypes(engine);
 	}
 
-	@SuppressWarnings("rawtypes")
 	public Hashtable<String, Object> generateScatter(IEngine engine) {
 		final String getConceptListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} }";
 		final String getConceptsAndInstanceCountsQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?instance) AS ?count) WHERE { {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} } GROUP BY ?entity";
@@ -50,30 +52,41 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getConceptInsightCountQuery = "SELECT DISTINCT ?entity (COUNT(DISTINCT ?insight) AS ?count) WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } GROUP BY ?entity @ENTITY_BINDINGS@";
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 
+		LOGGER.info("Getting the list of concepts...");
 		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
+		LOGGER.info("Getting the number of instances for each concept...");
 		allData = addToAllData(engine, getConceptsAndInstanceCountsQuery, "z", allData);
+		
+		LOGGER.info("Getting the number of properties for each concept...");
 		allData = addToAllData(engine, getConceptsAndPropCountsQuery, "w", allData);
 		
 		RDFFileSesameEngine baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
+		LOGGER.info("Creating subclass map...");
 		SubclassingMapGenerator subclassGen = new SubclassingMapGenerator();
 		subclassGen.processSubclassing(baseDataEngine);
 		HashMap<String, Integer> edgeCountsHash = subclassGen.calculateEdgeCounts(baseDataEngine);
+		LOGGER.info("Adding number of edges for each concept...");
 		allData = addToAllData(edgeCountsHash, "y", allData);
 
+		LOGGER.info("Generating metamodel graph for centrality measures...");
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
+		LOGGER.info("Extending metamodel graph for subclassed concepts...");
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getGraphData().getEdgeStore());
 		vertStore = subclassGen.getVertStore();
 		
+		LOGGER.info("Calculating centrality values for each concepts...");
 		Hashtable<SEMOSSVertex, Double> centralityHash = new Hashtable<SEMOSSVertex, Double>();
 		centralityHash = addToCentralityHash(CentralityCalculator.calculateEccentricity(vertStore, false), centralityHash);
 		centralityHash = addToCentralityHash(CentralityCalculator.calculateBetweenness(vertStore, false), centralityHash);
 		centralityHash = addToCentralityHash(CentralityCalculator.calculateCloseness(vertStore, false), centralityHash);
 		centralityHash = averageCentralityValues(centralityHash, 3);
+		LOGGER.info("Adding average centrality value for each concepts...");
 		allData = addToAllData(centralityHash, "x", allData);
 
+		LOGGER.info("Constructing query to calculate the number of insights for each query...");
 		String engineName = engine.getEngineName();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 		String bindings = "BINDINGS ?entity { ";
@@ -84,6 +97,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		bindings = bindings.concat(" }");
 		specificInsightQuery = specificInsightQuery.replace("@ENTITY_BINDINGS@", bindings);
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
+		LOGGER.info("Adding number of insights for each concept...");
 		allData = addToAllData(insightEngine, specificInsightQuery, "heat", allData);
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
@@ -95,6 +109,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allHash.put("heatTitle", "Number_of_Insights");
 		allHash.put("wAxisTitle", "Number_of_Properties");
 		
+		LOGGER.info("Passing to monolith instance...");
 		return allHash;
 	}	
 	
@@ -277,6 +292,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, Object>> getLargestOutliers(IEngine engine, String typeURI) {
+		LOGGER.info("Constructing query to look get all properties for instances of type " + typeURI + "...");
 		final String basePropQuery = "SELECT DISTINCT ?@TYPE@ @PROPERTIES@ WHERE { {?@TYPE@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} @PROP_TRIPLES@ }";
 		final String propListQuery = "SELECT DISTINCT ?prop WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <@TYPE_URI@>} {?prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?entity ?prop ?val} }";
 		final String baseRelQuery = "SELECT DISTINCT ?type (COUNT(?inRel) AS ?inRelCount) (COUNT(?outRel) AS ?outRelCount) WHERE { BIND(<@TYPE_URI@> AS ?entity) { {?type <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?entity} {?node2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?inRel <http://www.w3.org/2000/01/rdf-schema#label> ?label2} {?node2 ?inRel ?type} } UNION { {?type <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type} {?node1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?outRel <http://www.w3.org/2000/01/rdf-schema#label> ?label1} {?type ?outRel ?node1} } } GROUP BY ?type";
@@ -301,11 +317,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		//if no properties found -> use number of edges
 		String query = null;
 		if(!hasProperties) {
+			LOGGER.info("...No properties found. Using counts for in/out relationships to determine outliers...");
 			query = baseRelQuery.replace("@TYPE_URI@", typeURI);
 		} else {
 			query = basePropQuery.replaceAll("@TYPE@", type).replace("@TYPE_URI@", typeURI).replace("@PROPERTIES@", propVars).replace("@PROP_TRIPLES@", propTriples);
 		}
 		
+		LOGGER.info("Constructing dataset based on query...");
 		ArrayList<Object[]> results = new ArrayList<Object[]>();
 		sjsw = Utility.processQuery(engine, query);
 		names = sjsw.getVariables();
@@ -327,10 +345,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		// when no results, return null
 		if(results.isEmpty()) {
+			LOGGER.info("...No data found...");
 			return null;
 		}
 		// when not enough instances to determine outliers, return empty
 		if(results.size() < 20) {
+			LOGGER.info("...Insufficient data size to run algorithm....");
 			return new ArrayList<Hashtable<String, Object>>();
 		}
 		
@@ -341,6 +361,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		results = alg.getMasterTable();
 		double[] lop = alg.getLOP();
 		
+		LOGGER.info("Ordering the probabilities to get the top results...");
 		int i;
 		length = lop.length;
 		// loop through and order all values and indices
@@ -384,6 +405,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			retList.add(instancesHash);
 		}
 		
+		LOGGER.info("Passing to monolith instance...");
 		return retList;
 	}
 	
