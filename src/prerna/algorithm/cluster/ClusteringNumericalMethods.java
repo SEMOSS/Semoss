@@ -110,6 +110,11 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		double similarity = 0;
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
+			if(weights[i] == 0) {
+				similarity = 1;
+				continue;
+			}
+			
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
 			// numBins contains the number of bins
 			int numBins = sortedBinArr.length;

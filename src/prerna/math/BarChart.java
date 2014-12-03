@@ -33,7 +33,7 @@ public class BarChart {
 	public BarChart(String[] values) {
 		this.stringValues = values;
 		this.numericalValuesSorted = null;
-		assignmentForEachObject = null;
+		assignmentForEachObject = new String[values.length];
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		
 		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
@@ -42,7 +42,7 @@ public class BarChart {
 	public BarChart(String[] values, String categoricalLabel) {
 		this.stringValues = values;
 		this.numericalValuesSorted = null;
-		assignmentForEachObject = null;
+		assignmentForEachObject = new String[values.length];
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		this.categoricalLabel = categoricalLabel;
 
@@ -115,6 +115,8 @@ public class BarChart {
 		// find counts for unique variables
 		int i;
 		for(i = 0; i < numOccurrences; i++) {
+			// each instance gets assigned its value
+			assignmentForEachObject[i] = values[i];
 			INNER : for(int j = 0; j < uniqueSize; j++) {
 				if(uniqueValues[j].equals(values[i])) {
 					uniqueCounts[j]++;
