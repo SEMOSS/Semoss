@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Default_NLP:Default_NLP:Generic-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Default_NLP:Default_NLP:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Explore an instance of a selected node type</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default_NLP:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Default_NLP:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default_NLP:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Default_NLP:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic CONSTRUCT Query</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Raw</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Rendered as a Grid</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:Generic-Perspective:Default_NLP:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Distinct Subjects</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">NLP-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Default_NLP:Default_NLP:NLP-Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<NLP-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Default_NLP:Default_NLP:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U1">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show all facts</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?subjectofpredicate ?predicate. ?predicate ?predicateofobject ?object. ?object ?objectofsubject ?subject.  } WHERE {{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} {?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} {?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U2">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show Roles to Object</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?object   WHERE {{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U3">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show Object to Actions</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT   ?object ?predicate WHERE {{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U4">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show Roles to Actions</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject  ?predicate WHERE {{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U5">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show Roles to actions to what they are acting on</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT  ?subject ?predicate ?object  WHERE {{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} {?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} {?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U6">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show all actions for a given role</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT  ?subject ?predicate ?object  WHERE {BIND(&lt;@Role-http://semoss.org/ontologies/Concept/subject@&gt; AS ?subject){?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} {?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} {?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U6:Role"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U6:Role">
+	<LABEL xmlns="PARAM:">Role</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/subject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U7">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U7">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show all roles and objects for a given action</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT  ?subject ?predicate ?object  WHERE {BIND(&lt;@Action-http://semoss.org/ontologies/Concept/predicate@&gt; AS ?predicate){?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} {?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} {?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U7:Action"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U7:Action">
+	<LABEL xmlns="PARAM:">Action</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/predicate"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:U8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:U8">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:Default_NLP:NLP-Perspective:U8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Default_NLP">
+	<U8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Default_NLP:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U8">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:U8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<U8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Default_NLP:NLP-Perspective:Default_NLP:NLP-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show all roles and actions for a given object</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Default_NLP:NLP-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">U8</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default_NLP:NLP-Perspective:U8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT  ?subject ?predicate ?object  WHERE {BIND(&lt;@Object-http://semoss.org/ontologies/Concept/object@&gt; AS ?object){?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?subjectofpredicate &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/subjectofpredicate&gt;;}{?predicate &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/predicate&gt;;}{?subject ?subjectofpredicate ?predicate} {?predicateofobject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/predicateofobject&gt;;}{?object &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/object&gt;;}{?predicate ?predicateofobject ?object} {?objectofsubject &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/objectofsubject&gt;;}{?subject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/subject&gt;;}{?object ?objectofsubject ?subject} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U8:Object"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Default_NLP:NLP-Perspective:U8:Object">
+	<LABEL xmlns="PARAM:">Object</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/object"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Order">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+</rdf:RDF>
