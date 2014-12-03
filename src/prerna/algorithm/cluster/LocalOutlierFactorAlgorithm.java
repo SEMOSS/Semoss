@@ -3,11 +3,15 @@ package prerna.algorithm.cluster;
 import java.util.ArrayList;
 
 import org.apache.commons.math3.special.Erf;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.math.StatisticsUtilityMethods;
 
 public class LocalOutlierFactorAlgorithm {
 	
+	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierFactorAlgorithm.class.getName());
+
 	private ArrayList<Object[]> masterTable;
 	private String[] masterNames;
 	private int numInstances;
@@ -15,7 +19,6 @@ public class LocalOutlierFactorAlgorithm {
 	
 	private double[] lrd;
 	private double[] lof;
-//	private double[] zScore;
 	private double[] lop;
 	
 	private int k;
@@ -45,19 +48,17 @@ public class LocalOutlierFactorAlgorithm {
 		return lof;
 	}
 	
-//	public double[] getZScore() {
-//		return zScore;
-//	}
-	
 	public double[] getLOP() {
 		return lop;
 	}
 	
 	public LocalOutlierFactorAlgorithm(ArrayList<Object[]> list, String[] names) {
+		LOGGER.info("Removing any duplicated instances...");
 		ClusterRemoveDuplicates crd = new ClusterRemoveDuplicates(list, names);
 		this.masterTable = crd.getRetMasterTable();
 		this.masterNames = crd.getRetVarNames();
 		
+		LOGGER.info("Formatting dataset to run algorithm...");
 		ClusteringDataProcessor cdp = new ClusteringDataProcessor(masterTable, masterNames);
 		inm = new InstanceNumericalMethods(cdp.getNumericalBinMatrix(), cdp.getCategoricalMatrix(), cdp.getNumericalBinOrderingMatrix());
 		inm.setCategoricalWeights(cdp.getCategoricalWeights());
@@ -69,15 +70,21 @@ public class LocalOutlierFactorAlgorithm {
 	public LocalOutlierFactorAlgorithm(ArrayList<Object[]> masterTable, String[] masterNames, int k) {
 		this(masterTable, masterNames);
 		this.k = k;
+		LOGGER.info("Starting local outlier algorithm using " + k + "-size neighborhood...");
 	}
 	
 	public void execute() {
+		LOGGER.info("Generating similarity matrix between every instance...");
 		calculateSimilarityMatrix();
+		LOGGER.info("Generating " + k + "-neighborhood similarity matrix for every instance...");
 		calculateKSimilarityMatrix();
+		LOGGER.info("Generating reach similarity matrix...");
 		calculateReachSimilarity();
+		LOGGER.info("Generating local reach density...");
 		calculateLRD();
+		LOGGER.info("Generating local outlier factor...");
 		calculateLOF();
-//		calculateZScore();
+		LOGGER.info("Generating local outlier probability...");
 		calculateLOOP();
 	}
 
@@ -235,10 +242,4 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 	}
-	
-	
-//	private void calculateZScore() {
-//		zScore = StatisticsUtilityMethods.calculateZScoresIgnoringInfinity(lof, false);
-//	}
-	
 }
