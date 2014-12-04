@@ -205,24 +205,29 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsWithoutParams(IEngine engine) {
-		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?engine ?insight ?questionDescription WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
+		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?perspective ?question ?viz WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?perspective} {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?question} {?insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?viz} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
+		String engineName = engine.getEngineName();
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
-		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engine.getEngineName()));
+		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 				
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
+		
+		String removeToGetPerspective = engineName.concat(":");
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("Engine", sjss.getVar(param1).toString());
-			questionHash.put("Insight", sjss.getVar(param2).toString());
-			questionHash.put("Question", sjss.getVar(param3).toString());
+			questionHash.put("database", engineName);
+			questionHash.put("keyword", ""); // no keyword since this is returning questions without parameters
+			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
+			questionHash.put("question", sjss.getVar(param2).toString());
+			questionHash.put("viz", sjss.getVar(param3).toString());
 			retList.add(questionHash);
 		}
 		
@@ -230,12 +235,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	public List<Hashtable<String, String>> getQuestionsForParam(IEngine engine, String typeURI) {
-		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?engine ?insight ?paramLabel ?questionDescription WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?engine ?engineInsight ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?questionDescription} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:LABEL> ?paramLabel} {?param <PARAM:TYPE> ?entity} }";
+		final String getInsightsWithParamsQuery = "SELECT DISTINCT ?perspective ?question ?viz WHERE { BIND(<@ENTITY_TYPE@> AS ?entity) BIND(<@ENGINE_NAME@> AS ?engine) {?perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?perspective} {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?question} {?insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?viz} {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
+		String engineName = engine.getEngineName();
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
-		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engine.getEngineName()));		
+		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 		query = query.replace("@ENTITY_TYPE@", typeURI);
 				
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
@@ -243,14 +249,16 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
-		String param4 = names[3];
+
+		String removeToGetPerspective = engineName.concat(":");
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("Engine", sjss.getVar(param1).toString());
-			questionHash.put("Insight", sjss.getVar(param2).toString());
-			questionHash.put("ParamLabel", sjss.getVar(param3).toString());
-			questionHash.put("Question", sjss.getVar(param4).toString());
+			questionHash.put("database", engineName);
+			questionHash.put("keyword", typeURI);
+			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
+			questionHash.put("question", sjss.getVar(param2).toString());
+			questionHash.put("viz", sjss.getVar(param3).toString());
 			retList.add(questionHash);
 		}
 		
