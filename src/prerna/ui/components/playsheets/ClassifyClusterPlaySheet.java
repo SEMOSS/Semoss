@@ -136,10 +136,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 				try {
 					weka.execute();
 					//both stored as percents
-					double accuracy = weka.getAccuracy();
-					double precision = weka.getPrecision();
-					accuracyArr[i-1] = accuracy; //accuracy already a percent
-					precisionArr[i-1] = precision*100; //precision is a decimal so making a percent
+					accuracyArr[i-1] = weka.getAccuracy(); 
+					precisionArr[i-1] = weka.getPrecision(); 
 				} catch (Exception e) {
 					e.printStackTrace();
 					LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
