@@ -56,6 +56,9 @@ public class ImportDataProcessor {
 		}
 		else if(importMethod == IMPORT_METHOD.OVERRIDE) {
 			processOverride(importType, customBaseURI, fileNames, repoName);
+		} else {
+			String errorMessage = "Import method is not supported";
+			throw new FileReaderException(errorMessage);
 		}
 	}
 
