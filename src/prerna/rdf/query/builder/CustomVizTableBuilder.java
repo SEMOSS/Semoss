@@ -210,13 +210,13 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			} else {
 				triplePartC = TriplePart.LITERAL;
 			}
-			// for every filter query, add the bind as long as it is not the variable in question
-			for(String varName : this.headerFilterHash.keySet()){
-				if(!s.equals(varName)){
-					SEMOSSQuery q = this.headerFilterHash.get(varName);
-					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
-				}
-			}
+//			// for every filter query, add the bind as long as it is not the variable in question
+//			for(String varName : this.headerFilterHash.keySet()){
+//				if(!s.equals(varName)){
+//					SEMOSSQuery q = this.headerFilterHash.get(varName);
+//					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
+//				}
+//			}
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
 		for(String s : bindingsDataHash.keySet())
@@ -229,25 +229,25 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			} else {
 				triplePartC = TriplePart.LITERAL;
 			}
-			// for every filter query, add the bind as long as it is not the variable in question
-			for(String varName : this.headerFilterHash.keySet()){
-				if(!s.equals(varName)){
-					SEMOSSQuery q = this.headerFilterHash.get(varName);
-					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
-				}
-			}
+//			// for every filter query, add the bind as long as it is not the variable in question
+//			for(String varName : this.headerFilterHash.keySet()){
+//				if(!s.equals(varName)){
+//					SEMOSSQuery q = this.headerFilterHash.get(varName);
+//					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
+//				}
+//			}
 			SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), this.semossQuery);
 		}
 		for(String s : filterDataHash.keySet())
 		{
 			ArrayList<Object> filterOptions = filterDataHash.get(s);
-			// for every filter query, add the bind as long as it is not the variable in question
-			for(String varName : this.headerFilterHash.keySet()){
-				if(!s.equals(varName)){
-					SEMOSSQuery q = this.headerFilterHash.get(varName);
-					SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, q);
-				}
-			}
+//			// for every filter query, add the bind as long as it is not the variable in question
+//			for(String varName : this.headerFilterHash.keySet()){
+//				if(!s.equals(varName)){
+//					SEMOSSQuery q = this.headerFilterHash.get(varName);
+//					SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, q);
+//				}
+//			}
 			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery);
 		}
 	}
