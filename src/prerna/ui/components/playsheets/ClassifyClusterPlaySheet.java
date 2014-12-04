@@ -20,6 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
@@ -97,7 +98,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	//outlier panel components
 	private JPanel outlierPanel;
 	private JLabel lblEnterKNeighbors;
-	private JTextField enterKNeighborsTextField;
+	private JSlider enterKNeighborsSlider;
 	
 	//drill down panel components
 	private JToggleButton showDrillDownBtn;
@@ -657,18 +658,24 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterKNeighbors.gridy = 0;
 		outlierPanel.add(lblEnterKNeighbors, gbc_lblEnterKNeighbors);
 		
-		enterKNeighborsTextField = new JTextField();
-		enterKNeighborsTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		enterKNeighborsTextField.setText("5");
-		enterKNeighborsTextField.setColumns(4);
-		enterKNeighborsTextField.setVisible(false);
-		GridBagConstraints gbc_enterKNeighborsTextField = new GridBagConstraints();
-		gbc_enterKNeighborsTextField.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_enterKNeighborsTextField.fill = GridBagConstraints.NONE;
-		gbc_enterKNeighborsTextField.insets = new Insets(5, 5, 0, 0);
-		gbc_enterKNeighborsTextField.gridx = 1;
-		gbc_enterKNeighborsTextField.gridy = 0;
-		outlierPanel.add(enterKNeighborsTextField, gbc_enterKNeighborsTextField);
+		enterKNeighborsSlider = new JSlider(5,45,25);
+		enterKNeighborsSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		enterKNeighborsSlider.setMajorTickSpacing(5);
+		enterKNeighborsSlider.setMinorTickSpacing(1);
+		enterKNeighborsSlider.setPaintLabels(true);
+		enterKNeighborsSlider.setPaintTicks(true);
+		enterKNeighborsSlider.setPreferredSize(new Dimension(400,40));
+		//enterKNeighborsSlider.set
+//		enterKNeighborsTextField.setText("5");
+//		enterKNeighborsTextField.setColumns(4);
+		enterKNeighborsSlider.setVisible(false);
+		GridBagConstraints gbc_getEnterKNeighborsSlider = new GridBagConstraints();
+		gbc_getEnterKNeighborsSlider.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_getEnterKNeighborsSlider.fill = GridBagConstraints.NONE;
+		gbc_getEnterKNeighborsSlider.insets = new Insets(5, 5, 0, 0);
+		gbc_getEnterKNeighborsSlider.gridx = 0;
+		gbc_getEnterKNeighborsSlider.gridy = 1;
+		outlierPanel.add(enterKNeighborsSlider, gbc_getEnterKNeighborsSlider);
 	}
 
 	public void fillDrillDownPanel(JPanel drillDownPanel) {
@@ -786,7 +793,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public void showOutlier(Boolean show) {
 		outlierPanel.setVisible(show);
 		lblEnterKNeighbors.setVisible(show);
-		enterKNeighborsTextField.setVisible(show);
+		enterKNeighborsSlider.setVisible(show);
 	}
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
@@ -899,8 +906,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public JTextField getSelectNumClustersTextField() {
 		return selectNumClustersTextField;
 	}
-	public JTextField getEnterKNeighborsTextField() {
-		return enterKNeighborsTextField;
+	public JSlider getEnterKNeighborsSlider() {
+		return enterKNeighborsSlider;
 	}
 	public JToggleButton getShowDrillDownBtn() {
 		return showDrillDownBtn;

@@ -26,6 +26,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JProgressBar;
+import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
@@ -66,7 +67,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private JComboBox<String> classComboBox;
 	
 	//outlier
-	private JTextField enterKNeighborsTextField;
+	private JSlider enterKNeighborsSlider;
 	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
@@ -161,18 +162,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 
 		} else if(algorithm.equals("Outliers")){
-			int kneighbors = 0;
-			String kneighborsText = enterKNeighborsTextField.getText();
-				try {
-					kneighbors = Integer.parseInt(kneighborsText);
-				} catch(NumberFormatException exception) {
-					Utility.showError("Number of neighbors must be an integer greater than 1. Please fix and rerun.");
-					return;
-				}
-				if(kneighbors<1) {//if error {
-					Utility.showError("Number of neighbors must be an integer greater than 1. Please fix and rerun.");
-					return;
-				}
+			int kneighbors = enterKNeighborsSlider.getValue();
 			newPlaySheet = new LocalOutlierPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
@@ -211,7 +201,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.classificationMethodComboBox = playSheet.getClassificationMethodComboBox();
 		this.classComboBox = playSheet.getClassComboBox();
 		//outlier
-		this.enterKNeighborsTextField = playSheet.getEnterKNeighborsTextField();
+		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
 		
 		this.names = playSheet.getNames();
 		this.list = playSheet.getList();
