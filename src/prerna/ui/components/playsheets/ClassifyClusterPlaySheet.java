@@ -131,17 +131,22 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		accuracyArr = new double[names.length-1];
 		precisionArr = new double[names.length-1];
 		for(int i=1; i < names.length; i++) {
-			WekaClassification weka = new WekaClassification(list, names, "J48", i);
-			try {
-				weka.execute();
-				//both stored as percents
-				double accuracy = weka.getAccuracy();
-				double precision = weka.getPrecision();
-				accuracyArr[i-1] = accuracy; //accuracy already a percent
-				precisionArr[i-1] = precision*100; //precision is a decimal so making a percent
-			} catch (Exception e) {
-				e.printStackTrace();
-				LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
+			if(entropyArr[i-1] != 0) {
+				WekaClassification weka = new WekaClassification(list, names, "J48", i);
+				try {
+					weka.execute();
+					//both stored as percents
+					double accuracy = weka.getAccuracy();
+					double precision = weka.getPrecision();
+					accuracyArr[i-1] = accuracy; //accuracy already a percent
+					precisionArr[i-1] = precision*100; //precision is a decimal so making a percent
+				} catch (Exception e) {
+					e.printStackTrace();
+					LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
+				}
+			} else {
+				accuracyArr[i-1] = 100;
+				precisionArr[i-1] = 100;
 			}
 		}
 		
