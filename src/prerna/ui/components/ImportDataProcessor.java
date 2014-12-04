@@ -410,7 +410,7 @@ public class ImportDataProcessor {
 		PropFileWriter propWriter = new PropFileWriter();
 
 		if(importType == IMPORT_TYPE.NLP)
-			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.XML");
 
 		propWriter.setBaseDir(baseDirectory);
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile);
