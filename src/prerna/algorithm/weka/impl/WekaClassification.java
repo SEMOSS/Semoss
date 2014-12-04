@@ -89,7 +89,7 @@ public class WekaClassification {
 			
 			// keep track of accuracy and percision of each test
 			accuracyArr.add(newPctCorrect);
-			precisionArr.add(validation.kappa());
+			precisionArr.add(validation.precision(1)*100);
 		}
 		
 		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);
