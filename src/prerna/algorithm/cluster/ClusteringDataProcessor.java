@@ -381,7 +381,6 @@ public class ClusteringDataProcessor {
 	 */
 	private void calculateNumericalWeights() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getNumericalPropOccurance();
-//		generateNumericalBinMatrix(trackPropOccurance);
 		double[] entropyArr = calculateEntropy(trackPropOccurance);
 		int numWeights = entropyArr.length;
 		numericalWeights = new double[numWeights];

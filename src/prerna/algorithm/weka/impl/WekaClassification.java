@@ -63,6 +63,7 @@ public class WekaClassification {
 		return treeMap;
 	}
 	
+	//error will be thrown when trying to classify a variable that is always the same value
 	public void execute() throws Exception{
 		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
 		// setting class attribute
