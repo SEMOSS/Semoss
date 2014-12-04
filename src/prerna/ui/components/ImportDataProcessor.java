@@ -49,6 +49,16 @@ public class ImportDataProcessor {
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
 	public void runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
 			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
+		if(importMethod == null) {
+			String errorMessage = "Import method is not supported";
+			throw new FileReaderException(errorMessage);
+		}
+		
+		if(importType == null) {
+			String errorMessage = "Import type is not supported";
+			throw new FileReaderException(errorMessage);
+		}
+		
 		if(importMethod == IMPORT_METHOD.CREATE_NEW) {
 			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile);
 		} else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING) {
@@ -56,9 +66,6 @@ public class ImportDataProcessor {
 		}
 		else if(importMethod == IMPORT_METHOD.OVERRIDE) {
 			processOverride(importType, customBaseURI, fileNames, repoName);
-		} else {
-			String errorMessage = "Import method is not supported";
-			throw new FileReaderException(errorMessage);
 		}
 	}
 
