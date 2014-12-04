@@ -642,6 +642,14 @@ public final class StatisticsUtilityMethods {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 
+		// if only one value, then entropy is 0
+		if(values.length == 1) {
+			return 0;
+		}
+		if(ArrayUtilityMethods.removeAllZeroValues(values).length == 1) {
+			return 0;
+		}
+		
 		double entropy = 0;
 		double sum = getSum(values);
 		int index;
