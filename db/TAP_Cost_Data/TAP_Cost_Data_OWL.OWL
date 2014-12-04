@@ -350,9 +350,14 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TransitionGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/GLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItem">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BudgetGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/GLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/EnterpriseBudgetGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/BudgetGLItem"/>
@@ -362,27 +367,37 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RequirementsGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TestGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DeployGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemDCSiteGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/UpgradeGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SDLCPhase">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/SDLC"/>
+	<rdfs:subClassOf>
+		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SDLC">
+			<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+		</rdf:Description>
+	</rdfs:subClassOf>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SemanticsGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/TransitionGLItem"/>
@@ -395,23 +410,23 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SiteIncident">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Incident"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Incident">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemDCSiteIncident">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Incident"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemIncident">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/Incident"/>
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemDCSiteGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept/DeployGLItem"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/GLItemSubTask">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DeployGLItem">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TestGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/BusinessLogicUnit">
@@ -421,15 +436,6 @@
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DesignGLItem">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/RequirementsGLItem">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DevelopGLItem">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SystemHWUpgradeGLItem">
