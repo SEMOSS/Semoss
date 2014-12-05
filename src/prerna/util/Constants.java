@@ -435,6 +435,7 @@ public class Constants {
 	public static final String ENGINE_PROPERTIES = "PROPERTIES";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
+	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
