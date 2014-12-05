@@ -112,9 +112,10 @@ app.directive('d3Cluster', function() {
                 }else if(d.values.length == 2){
                     groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
                 }else{
+                    var i=0
                     groupPathReturn = ("M" +
-                        d3.geom.hull(d.values.map(function (i) {
-                            return [i.x, i.y];
+                        d3.geom.hull(d.values.map(function (d) {
+                            return [d.x, d.y];
                         }))
                             .join("L")
                         + "Z");
@@ -266,7 +267,7 @@ app.directive('d3Cluster', function() {
                         .style("stroke-width", 40)
                         .style("stroke-linejoin", "round")
                         .style("opacity", .2)
-                        .attr("d", groupPath)
+                        //.attr("d", groupPath)
                         .on("click", function(d){
                             structureBarData(d, barData);
                             var allPaths = d3.selectAll("#" + scope.containerId + " path"),
