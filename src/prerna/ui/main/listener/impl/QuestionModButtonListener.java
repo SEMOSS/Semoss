@@ -198,93 +198,9 @@ public class QuestionModButtonListener implements IChakraListener {
 		questionList.clear();
 		if (!selectedPerspective.equals("*NEW Perspective")) {
 			for (int i = 0; i < questionListModel.getSize(); i++) {
-				String[] questionSplit = ((String) questionListModel.getElementAt(i)).split(". ", 2);
+				String[] questionSplit = ((String) questionListModel.getElementAt(i)).split("\\. ", 2);
 				questionList.add(questionSplit[1]);
 			}
-		}
-	}
-
-	private void createQuestionKey() {
-		existingPerspective = false;
-		// check to see if perspective already exists in the perspective
-		// drop-down
-		for (int i = 0; i < questionPerspectiveSelector.getItemCount(); i++) {
-			if (questionPerspectiveSelector.getItemAt(i).equals(perspective)) {
-				existingPerspective = true;
-				break;
-			}
-		}
-
-		// auto generate a questionKey based on existing similar
-		// question key
-		if (existingPerspective) {
-			boolean existingAutoGenQuestionKey = false;
-			//questionPerspectiveSelector.setSelectedItem(perspective);
-
-			//need to change the below questionselector to be filled with the new perspective questions
-			questionPerspectiveSelector.setSelectedItem(perspective);
-			for (int i = 0; i < questionSelector.getItemCount(); i++) {
-				String question = questionSelector.getItemAt(i);
-				String[] questionSplit = question.split(". ", 2);
-				question = questionSplit[1];
-
-				Insight in = ((AbstractEngine) engine).getInsight2(question)
-						.get(0);
-
-				String questionID = in.getId();
-				String[] questionIDArray = questionID.split(":");
-				String currentQuestionKey = questionIDArray[2];
-
-				// checks if there has been any auto-generated question
-				// key
-				if (currentQuestionKey.contains(perspective)) {
-					existingAutoGenQuestionKey = true;
-					break;
-				}
-			}
-			if (existingAutoGenQuestionKey) {
-				// run through all of the questions with auto-generated
-				// questionKey and determine what the current largest
-				// questionKey is
-				// assigns the next value for the new questionKey
-				int largestQuestionKeyValue = 0;
-				for (int i = 0; i < questionSelector.getItemCount(); i++) {
-					String question = questionSelector.getItemAt(i);
-					String[] questionSplit = question.split(". ", 2);
-					question = questionSplit[1];
-					
-					Insight in = ((AbstractEngine) engine)
-							.getInsight2(question).get(0);
-
-					String questionID = in.getId();
-					String[] questionIDArray = questionID.split(":");
-					String currentQuestionKey = questionIDArray[2];
-					int currentQuestionKeyValue = 0;
-					if (questionIDArray[1].equals(perspective) && questionIDArray[2].contains(perspective)) {
-						currentQuestionKeyValue = Integer
-								.parseInt(currentQuestionKey.replace(
-										perspective + "_", ""));
-					} else {
-						if (questionIDArray[2].contains(perspective)) {
-							currentQuestionKeyValue = Integer
-									.parseInt(currentQuestionKey.replace(
-											questionAdmin.currentPerspective + "_",
-											""));
-						}
-					}
-					// the following will make largestQuestionKeyValue
-					// equal to the last auto-generated questionkeyvalue
-					if (currentQuestionKeyValue > largestQuestionKeyValue) {
-						largestQuestionKeyValue = currentQuestionKeyValue;
-					}
-				}
-				largestQuestionKeyValue += 1;
-				questionKey = perspective + "_" + largestQuestionKeyValue;
-			} else {
-				questionKey = perspective + "_" + "1";
-			}
-		} else {
-			questionKey = perspective + "_" + "1";
 		}
 	}
 
@@ -297,10 +213,47 @@ public class QuestionModButtonListener implements IChakraListener {
 
 		// populate the fields with data based on question
 		getFieldData();
-
+		
 		questionAdmin = new QuestionAdministrator(engine, questionList,
 				selectedPerspective, questionModType);
 
+		// check to see if perspective already exists in the perspective
+		// drop-down
+		for (int i = 0; i < questionPerspectiveSelector.getItemCount(); i++) {
+			if (questionPerspectiveSelector.getItemAt(i).equals(perspective)) {
+				existingPerspective = true;
+				questionAdmin.existingPerspective = true;
+				
+				if (existingPerspective) {
+					questionPerspectiveSelector.setSelectedItem(perspective);
+					for (int j = 0; j < questionSelector.getItemCount(); j++) {
+						String question = questionSelector.getItemAt(j);
+						String[] questionSplit = question.split("\\. ", 2);
+						question = questionSplit[1];
+
+						Insight in = ((AbstractEngine) engine).getInsight2(question)
+								.get(0);
+
+						String questionID = in.getId();
+						String[] questionIDArray = questionID.split(":");
+						String currentQuestionKey = questionIDArray[2];
+
+						// checks if there has been any auto-generated question
+						// key
+						if (currentQuestionKey.contains(perspective)) {
+							questionAdmin.existingAutoGenQuestionKey = true;
+							break;
+						}
+					}
+				}
+				break;
+			}
+			else {
+				existingPerspective = false;
+				questionAdmin.existingPerspective = false;
+			}
+		}
+		
 		// get the perspectives from the combobox
 		DefaultComboBoxModel model = (DefaultComboBoxModel) questionPerspectiveSelector
 				.getModel();
@@ -356,9 +309,10 @@ public class QuestionModButtonListener implements IChakraListener {
 								null,
 								"To add a new perspective, please select \"*NEW Perspective\".\nTo change the perspective name, please select \"Edit Question\" as the modification type.");
 			} else {
-				createQuestionKey();
+				//createQuestionKey();
 				//Vector questionsVector = ((AbstractEngine) engine)
 				//		.getInsights(perspective);
+				questionKey = questionAdmin.createQuestionKey(perspective);
 
 				questionAdmin.addQuestion(perspective, questionKey, order, question,
 						sparql, layout, questionDescription,
@@ -441,7 +395,8 @@ public class QuestionModButtonListener implements IChakraListener {
 							// need to set the perspective to the new
 							// perspective
 							// if(existing perspective)
-							createQuestionKey();
+							//createQuestionKey();
+							questionKey = questionAdmin.createQuestionKey(perspective);
 
 							if (existingPerspective) {
 								questionPerspectiveSelector

@@ -97,7 +97,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 		question = (String) questionModSelector.getSelectedItem();
 		
 		if(question != null){
-			String[] questionSplit = question.split(". ", 2);
+			String[] questionSplit = question.split("\\. ", 2);
 			question = questionSplit[1];
 		}
 		perspective = (String) questionPerspectiveSelector.getSelectedItem();
@@ -136,6 +136,28 @@ public class QuestionModSelectorListener implements IChakraListener {
 			}
 			
 			order = in.getOrder();
+			
+			//this will get the question information using the old XML structure (without order property)
+			if(order==null){
+				question = (String) questionModSelector.getSelectedItem();
+				
+				vectorInsight = ((AbstractEngine)engine).getInsight2(question);
+				in = null;
+				if(vectorInsight.size() > 1){
+					for(Insight insight: vectorInsight){
+						if(insight.getId().contains(perspective)){
+							in = insight;
+						}
+					}
+				} else {
+					in = vectorInsight.get(0);
+				}
+				
+				String[] questionSplit = question.split("\\. ", 2);
+				
+				order = questionSplit[0];
+			}
+			
 			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
 					.getParams(question);
 			// empties the vectors so it doesn't duplicate existing elements
