@@ -308,7 +308,7 @@ public class PlayPane extends JFrame {
 	// Question Modification Panel
 	private JLabel lblQuestionPerspective, lblQuestion, lblQuestionLayout, lblQuestionSparql, lblQuestionModType, lblQuestionSelectDatabase,
 			lblAddParameter, lblRequiredFields, lblQuestionOrder, lblOrderInfo;
-	public JLabel lblQuestionSelectPerspective, lblSelectQuestion, lblQuestionLayoutText;
+	public JLabel lblQuestionSelectPerspective, lblSelectQuestion, lblQuestionLayoutText, lblOldXMLWarning;
 	public JTextField questionPerspectiveField, questionField, questionLayoutField;
 	private JScrollPane questionSparqlScroll;
 	public JTextPane questionSparqlTextPane;
@@ -2222,7 +2222,19 @@ public class PlayPane extends JFrame {
 		gbc_questionModButton.gridy = 18;
 		questionModPanel.add(questionModButton, gbc_questionModButton);
 		Style.registerTargetClassName(questionModButton, ".standardButton");
-
+		
+		lblOldXMLWarning = new JLabel("<html>*You have an outdated Question XML File. Obtain the updated version from the DB owner or update <br> it by opening the SMSS file and removing the line with \"INSIGHTS\" and restarting SEMOSS.</html>");
+		lblOldXMLWarning.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblOldXMLWarning.setForeground(Color.RED);
+		GridBagConstraints gbc_lblOldXMLWarning = new GridBagConstraints();
+		gbc_lblOldXMLWarning.gridwidth = 4;
+		gbc_lblOldXMLWarning.anchor = GridBagConstraints.WEST;
+		gbc_lblOldXMLWarning.insets = new Insets(0, 20, 5, 5);
+		gbc_lblOldXMLWarning.gridx = 0;
+		gbc_lblOldXMLWarning.gridy = 19;
+		questionModPanel.add(lblOldXMLWarning, gbc_lblOldXMLWarning);
+		lblOldXMLWarning.setVisible(false);
+		
 		JTabbedPane tapTabPane = new JTabbedPane();
 		rightView.addTab("MHS TAP", null, tapTabPane, null);
 
