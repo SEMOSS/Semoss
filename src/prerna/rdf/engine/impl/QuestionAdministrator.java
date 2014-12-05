@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
@@ -21,35 +22,28 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
 import com.ibm.icu.util.StringTokenizer;
 
 public class QuestionAdministrator {
-	IEngine engine;// = //(IEngine)
-					// DIHelper.getInstance().getLocalProp(selectedEngine);
-	RDFFileSesameEngine insightBaseXML;// =
-										// ((AbstractEngine)engine).getInsightBaseXML();
+	Logger logger = Logger.getLogger(QuestionAdministrator.class.getName());
+
+	IEngine engine;
+	RDFFileSesameEngine insightBaseXML;
 
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 	boolean reorder = true;
-	boolean deletePerspective=false;
-	
-	// JButton questionModButton = (JButton)
-	// DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
+	boolean deletePerspective = false;
+
 	String questionModType = "";
-	// JComboBox<String> questionSelector = (JComboBox<String>)
-	// DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
+
 	ArrayList<String> questionList2 = new ArrayList<String>();
 	public ArrayList<String> questionList = new ArrayList<String>();
-	// JComboBox<String> perspectiveSelector = (JComboBox<String>)
-	// DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
+
 	String selectedPerspective = "";
 	public static String selectedEngine = null;
 
 	String xmlFile = "db/" + selectedEngine + "/" + selectedEngine
 			+ "_Questions.XML";
-	//
-	// String questionModButtonText = questionModButton.getText();
 
 	// the following are variables used to in storing the triples for the
 	// questions
@@ -84,8 +78,10 @@ public class QuestionAdministrator {
 	String newPerspective;
 
 	protected static final String semossURI = "http://semoss.org/ontologies/";
-	protected static final String conceptBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS;
-	protected static final String relationBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS;
+	protected static final String conceptBaseURI = semossURI
+			+ Constants.DEFAULT_NODE_CLASS;
+	protected static final String relationBaseURI = semossURI
+			+ Constants.DEFAULT_RELATION_CLASS;
 	protected static final String engineBaseURI = semossURI
 			+ Constants.DEFAULT_NODE_CLASS + "/Engine";
 	protected static final String perspectiveBaseURI = semossURI
@@ -117,7 +113,7 @@ public class QuestionAdministrator {
 
 	public boolean existingPerspective;
 	public boolean existingAutoGenQuestionKey;
-	
+
 	public QuestionAdministrator(IEngine engine) {
 		this.engine = engine;
 		insightBaseXML = ((AbstractEngine) engine).getInsightBaseXML();
@@ -132,11 +128,11 @@ public class QuestionAdministrator {
 		this.selectedPerspective = selectedPerspective;
 		this.questionModType = questionModType;
 	}
-	
+
 	public RDFFileSesameEngine getInsightBaseXML() {
 		return insightBaseXML;
 	}
-	
+
 	public void setEngineURI2(String engineURI2) {
 		this.engineURI2 = engineURI2;
 	}
@@ -150,11 +146,11 @@ public class QuestionAdministrator {
 
 			fWrite = new FileWriter(xmlFileName);
 			questionXMLWriter = new RDFXMLWriter(fWrite);
-			// System.err.println(insightBaseXML.rc);
-			if(insightBaseXML instanceof RDFFileSesameEngine)
-				((RDFFileSesameEngine)insightBaseXML).rc.export(questionXMLWriter);
+			if (insightBaseXML instanceof RDFFileSesameEngine)
+				((RDFFileSesameEngine) insightBaseXML).rc
+						.export(questionXMLWriter);
 
-			System.err.println("Created XML Question Sheet at: " + xmlFileName);
+			logger.info("Created XML Question Sheet at: " + xmlFileName);
 		} catch (IOException | RDFHandlerException | RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -233,13 +229,12 @@ public class QuestionAdministrator {
 						+ ":" + perspective, false);
 		insightBaseXML.removeStatement(engineURI2, perspectivePred,
 				perspectiveURI, true);
-		
+
 		// remove the resource and concept uris
 		insightBaseXML.removeStatement(perspectiveURI, RDF.TYPE.stringValue(),
 				conceptBaseURI, true);
-		insightBaseXML.removeStatement(perspectiveURI,
-				RDF.TYPE.stringValue(), resourceURI,
-				true);
+		insightBaseXML.removeStatement(perspectiveURI, RDF.TYPE.stringValue(),
+				resourceURI, true);
 	}
 
 	/**
@@ -314,21 +309,21 @@ public class QuestionAdministrator {
 				selectedEngine + ":" + perspective
 						+ Constants.RELATION_URI_CONCATENATOR + selectedEngine
 						+ ":" + perspective + ":" + qsKey, false);
-		
-		
-		insightBaseXML.removeStatement(perspectiveURI, relationBaseURI, qURI, true);
-		insightBaseXML.removeStatement(perspectiveURI, perspectiveInsightBaseURI, qURI, true);
+
+		insightBaseXML.removeStatement(perspectiveURI, relationBaseURI, qURI,
+				true);
+		insightBaseXML.removeStatement(perspectiveURI,
+				perspectiveInsightBaseURI, qURI, true);
 		insightBaseXML.removeStatement(perspectiveURI, qPred, qURI, true);
-		
+
 		insightBaseXML.removeStatement(qURI, RDF.TYPE.stringValue(),
 				conceptBaseURI, true);
-		insightBaseXML.removeStatement(qURI,
-				RDF.TYPE.stringValue(), resourceURI,
-				true);
+		insightBaseXML.removeStatement(qURI, RDF.TYPE.stringValue(),
+				resourceURI, true);
 	}
 
-	private void addQuestionLabel(String perspectiveURI, String qURI, String qsOrder,
-			String qsDescr, String qPred) {
+	private void addQuestionLabel(String perspectiveURI, String qURI,
+			String qsOrder, String qsDescr, String qPred) {
 		// TODO might need to add a relationship between a perspective and the
 		// label associated with the insight that perspective is related too,
 		// but i think this should just be through queries.
@@ -336,10 +331,10 @@ public class QuestionAdministrator {
 		insightBaseXML.addStatement(qURI, orderBaseURI, qsOrder, false);
 	}
 
-	private void removeQuestionLabel(String perspectiveURI, String qURI, String qsOrder,
-			String qsDescr, String qPred) {
+	private void removeQuestionLabel(String perspectiveURI, String qURI,
+			String qsOrder, String qsDescr, String qPred) {
 		insightBaseXML.removeStatement(qURI, labelBaseURI, qsDescr, false);
-		if(qsOrder != null){
+		if (qsOrder != null) {
 			insightBaseXML.removeStatement(qURI, orderBaseURI, qsOrder, false);
 		}
 	}
@@ -403,8 +398,7 @@ public class QuestionAdministrator {
 			// if so, add the list of options and set the type ot be a literal
 			// String optionKey = qsKey + "_" + paramKey + "_" +
 			// Constants.OPTION;
-			String optionKey = qsKey + "_" + type + "_"
-					+ Constants.OPTION;
+			String optionKey = qsKey + "_" + type + "_" + Constants.OPTION;
 			if (parameterProperties.get(optionKey) != null) {
 				String option = parameterProperties.get(optionKey);
 				insightBaseXML.addStatement(qsParamKey, "PARAM:OPTION", option,
@@ -485,16 +479,14 @@ public class QuestionAdministrator {
 			// add a label to the param which is the label used in param panel
 			insightBaseXML.removeStatement(qsParamKey, "PARAM:LABEL", paramKey,
 					false);
-			insightBaseXML.removeStatement(qsParamKey,
-					RDF.TYPE.stringValue(), resourceURI,
-					true);
+			insightBaseXML.removeStatement(qsParamKey, RDF.TYPE.stringValue(),
+					resourceURI, true);
 
 			// see if the param key has options (not a query) associated with it
 			// usually it is of the form qsKey + _ + paramKey + _ + OPTION
 			// if so, remove the list of options and set the type ot be a
 			// literal
-			String optionKey = qsKey + "_" + type + "_"
-					+ Constants.OPTION;
+			String optionKey = qsKey + "_" + type + "_" + Constants.OPTION;
 			if (parameterProperties.get(optionKey) != null) {
 				String option = parameterProperties.get(optionKey);
 				insightBaseXML.removeStatement(qsParamKey, "PARAM:OPTION",
@@ -679,8 +671,10 @@ public class QuestionAdministrator {
 									optionsConcat += ";";
 								}
 							}
-							localCurrentParameterOptionList.add(paramInfoVector.get(j).getType()
-									+ "_OPTION_-_" + optionsConcat);
+							localCurrentParameterOptionList.add(paramInfoVector
+									.get(j).getType()
+									+ "_OPTION_-_"
+									+ optionsConcat);
 						}
 					}
 				}
@@ -704,14 +698,14 @@ public class QuestionAdministrator {
 				String newQuestionOrder = Integer.toString(i + 1);
 				String oldQuestionOrder = Integer.toString(i);
 
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestionOrder,
-						oldQuestion, localCurrentSparql,
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey,
+						oldQuestionOrder, oldQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
 						localCurrentParameterOptionList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestionOrder,
-						newQuestion, localCurrentSparql,
+				addQuestion(localCurrentPerspective, localCurrentQsKey,
+						newQuestionOrder, newQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
@@ -792,8 +786,10 @@ public class QuestionAdministrator {
 									optionsConcat += ";";
 								}
 							}
-							localCurrentParameterOptionList.add(paramInfoVector.get(j).getType()
-									+ "_OPTION_-_" + optionsConcat);
+							localCurrentParameterOptionList.add(paramInfoVector
+									.get(j).getType()
+									+ "_OPTION_-_"
+									+ optionsConcat);
 						}
 					}
 				}
@@ -814,17 +810,17 @@ public class QuestionAdministrator {
 				String newQuestion = oldQuestion.replaceFirst(
 						Integer.toString(i + 1) + ".", Integer.toString(i)
 								+ ".");
-				String oldQuestionOrder = Integer.toString(i+1);
+				String oldQuestionOrder = Integer.toString(i + 1);
 				String newQuestionOrder = Integer.toString(i);
-				
-				deleteQuestion(localCurrentPerspective, localCurrentQsKey, oldQuestionOrder,
-						oldQuestion, localCurrentSparql,
+
+				deleteQuestion(localCurrentPerspective, localCurrentQsKey,
+						oldQuestionOrder, oldQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
 						localCurrentParameterOptionList);
-				addQuestion(localCurrentPerspective, localCurrentQsKey, newQuestionOrder,
-						newQuestion, localCurrentSparql,
+				addQuestion(localCurrentPerspective, localCurrentQsKey,
+						newQuestionOrder, newQuestion, localCurrentSparql,
 						localCurrentLayoutName, localCurrentQsDesc,
 						localCurrentParameterDependList,
 						localCurrentParameterQueryList,
@@ -872,7 +868,7 @@ public class QuestionAdministrator {
 								.parseInt(currentQuestionKey.replace(
 										perspective + "_", ""));
 					}
-					
+
 					// the following will make largestQuestionKeyValue
 					// equal to the last auto-generated questionkeyvalue
 					if (currentQuestionKeyValue > largestQuestionKeyValue) {
@@ -887,14 +883,26 @@ public class QuestionAdministrator {
 		} else {
 			questionKey = perspective + "_" + "1";
 		}
+		logger.info("New question key created: " + questionKey);
 		return questionKey;
 	}
-	
-	public void addQuestion(String perspective, String questionKey, String questionOrder,
-			String question, String sparql, String layout,
-			String questionDescription, Vector<String> parameterDependList,
+
+	public void addQuestion(String perspective, String questionKey,
+			String questionOrder, String question, String sparql,
+			String layout, String questionDescription,
+			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
+		
+		logger.info("Adding question with the following information: perspective=" + perspective
+				+ "; questionKey=" + questionKey + "; questionOrder="
+				+ questionOrder + "; questionLabel=" + question + "; sparql="
+				+ sparql + "; layout=" + layout + "; questionDescription="
+				+ questionDescription + "; parameterDependList="
+				+ parameterDependList + "; parameterQueryList="
+				+ parameterQueryList + "; parameterOptionList="
+				+ parameterOptionList);
+
 		parameterProperties.clear();
 
 		// take in the parameter properties and store in a hashmap; will be used
@@ -911,10 +919,10 @@ public class QuestionAdministrator {
 
 		qsKey = questionKey;
 
-		if(qsKey==null){
+		if (qsKey == null) {
 			qsKey = createQuestionKey(perspective);
 		}
-		
+
 		qsOrder = questionOrder;
 		qsDescr = question;
 		layoutName = layout;
@@ -960,8 +968,8 @@ public class QuestionAdministrator {
 
 		// createQuestionXMLFile(xmlFile, baseFolder);
 		if (questionModType.equals("Add Question")) {
-			//String[] questionArray = question.split("\\. ", 2);
-			//String questionOrderNum = questionArray[0].trim();
+			// String[] questionArray = question.split("\\. ", 2);
+			// String questionOrderNum = questionArray[0].trim();
 			if (!selectedPerspective.equals("*NEW Perspective")) {
 				// if it's not the last question in the perspective; no need to
 				// reorder if question is added as the last question
@@ -977,9 +985,10 @@ public class QuestionAdministrator {
 		}
 	}
 
-	public void modifyQuestion(String perspective, String questionKey, String questionOrder,
-			String question, String sparql, String layout,
-			String questionDescription, Vector<String> parameterDependList,
+	public void modifyQuestion(String perspective, String questionKey,
+			String questionOrder, String question, String sparql,
+			String layout, String questionDescription,
+			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
 
@@ -997,8 +1006,8 @@ public class QuestionAdministrator {
 				+ perspective;
 
 		qsKey = questionKey;
-		
-		if(qsKey==null){
+
+		if (qsKey == null) {
 			qsKey = createQuestionKey(perspective);
 		}
 
@@ -1029,17 +1038,19 @@ public class QuestionAdministrator {
 		// if not new, we have to get the order number and add it as the last
 		// question in the existing perspective
 
-		deleteQuestion(currentPerspective, currentQuestionKey, currentQuestionOrder, currentQuestion,
-				currentSparql, currentLayout, currentQuestionDescription,
+		deleteQuestion(currentPerspective, currentQuestionKey,
+				currentQuestionOrder, currentQuestion, currentSparql,
+				currentLayout, currentQuestionDescription,
 				currentParameterDependListVector,
 				currentParameterQueryListVector,
 				currentParameterOptionListVector);
-		addQuestion(perspective, questionKey, questionOrder, question, sparql, layout,
-				questionDescription, parameterDependList, parameterQueryList,
-				parameterOptionList);
+		addQuestion(perspective, questionKey, questionOrder, question, sparql,
+				layout, questionDescription, parameterDependList,
+				parameterQueryList, parameterOptionList);
 
 		// check if user has modified the question label
-		if (!currentQuestion.equals(question) || !currentQuestionOrder.equals(questionOrder)) {
+		if (!currentQuestion.equals(question)
+				|| !currentQuestionOrder.equals(questionOrder)) {
 			// check if the order number changed; if it did then add the new
 			// query and loops through all subsequent questions to re-order them
 			String currentOrder = currentQuestionOrder;
@@ -1053,18 +1064,29 @@ public class QuestionAdministrator {
 			}
 
 			if (!currentOrder.equals(order) && reorder) {
+				logger.info("Question reordering from " + currentOrder + " to " + order);
 				reorder = false;
 				reorderQuestions(order, currentOrder);
 			}
 		}
 	}
 
-	public void deleteQuestion(String perspective, String questionKey, String questionOrder,
-			String question, String sparql, String layout,
-			String questionDescription, Vector<String> parameterDependList,
+	public void deleteQuestion(String perspective, String questionKey,
+			String questionOrder, String question, String sparql,
+			String layout, String questionDescription,
+			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
 
+		logger.info("Deleting question: perspective=" + perspective
+				+ "; questionKey=" + questionKey + "; questionOrder="
+				+ questionOrder + "; questionLabel=" + question + "; sparql="
+				+ sparql + "; layout=" + layout + "; questionDescription="
+				+ questionDescription + "; parameterDependList="
+				+ parameterDependList + "; parameterQueryList="
+				+ parameterQueryList + "; parameterOptionList="
+				+ parameterOptionList);
+		
 		parameterProperties.clear();
 
 		// populates parameterProperties based on on paramProp values passed in
@@ -1109,8 +1131,8 @@ public class QuestionAdministrator {
 		if (lastQuestion) {
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
-		
-		if(deletePerspective){
+
+		if (deletePerspective) {
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
 
@@ -1131,7 +1153,7 @@ public class QuestionAdministrator {
 
 		if (questionModType.equals("Delete Question")
 				|| !perspective.equals(newPerspective)) {
-			if(questionOrder==null){
+			if (questionOrder == null) {
 				String[] questionArray = question.split("\\. ", 2);
 				questionOrder = questionArray[0].trim();
 			}
@@ -1145,25 +1167,27 @@ public class QuestionAdministrator {
 			}
 		}
 	}
-	
 
 	public void deleteAllFromPerspective(String perspectiveURI) {
+		logger.info("Deleting all questions from perspective with this URI: " + perspectiveURI);
+		
 		Vector questionsVector = ((AbstractEngine) engine)
 				.getInsightsURI(perspectiveURI);
-		
+
 		questionList2.clear();
-		for (Object question : questionsVector){
+		for (Object question : questionsVector) {
 			questionList2.add((String) question);
 		}
-		
+
 		for (String question2 : questionList2) {
-			Insight in = ((AbstractEngine) engine).getInsight2URI(
-					question2).get(0);
+			Insight in = ((AbstractEngine) engine).getInsight2URI(question2)
+					.get(0);
 			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
 					.getParamsURI(question2);
-			
-			System.out.println("Removing question "+question2);
-			String perspective = perspectiveURI.substring(perspectiveURI.lastIndexOf(":")+1);
+
+			System.out.println("Removing question " + question2);
+			String perspective = perspectiveURI.substring(perspectiveURI
+					.lastIndexOf(":") + 1);
 			String questionOrder = in.getOrder();
 			String question = in.getLabel();
 			String questionID = in.getId();
@@ -1217,12 +1241,12 @@ public class QuestionAdministrator {
 					}
 				}
 			}
-			reorder=false;
-			deletePerspective=true;
-			deleteQuestion(perspective, questionKey, questionOrder, question, sparql,
-					layoutValue, questionDescription, dependVector,
+			reorder = false;
+			deletePerspective = true;
+			deleteQuestion(perspective, questionKey, questionOrder, question,
+					sparql, layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
 		}
-		
+
 	}
 }

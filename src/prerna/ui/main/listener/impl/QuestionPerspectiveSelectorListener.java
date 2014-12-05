@@ -26,8 +26,10 @@ import java.util.Vector;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
@@ -38,6 +40,7 @@ import prerna.om.Insight;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ComboboxToolTipRenderer;
+import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
@@ -63,6 +66,9 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 		JTextField perspectiveField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_PERSPECTIVE_FIELD);
 		JComboBox<String> questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
 		JRadioButton addQuestionButton = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
+		JLabel warning = (JLabel) DIHelper.getInstance().getLocalProp(Constants.QUESTION_XML_WARNING);
+		JButton questionModButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
+
 		JComboBox bx = (JComboBox)e.getSource();
 		String perspective = "";
 		if(bx.getSelectedItem() != null) {
@@ -78,7 +84,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			questionOrderComboBox.removeAllItems();
 			
 			String selectedVal = engineName;
-			Vector questionsV = new Vector();
+			Vector<String> questionsV = new Vector<String>();
 
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
 			try
@@ -88,7 +94,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 				if(questionsV != null){
 					String newQuestionOrder = "";
 					//recreate qyestionsV with appended order number
-					Vector questionsVCopy = new Vector(questionsV);
+					Vector<String> questionsVCopy = new Vector<String>(questionsV);
 					
 					questionsV.clear();
 					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
@@ -108,9 +114,27 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 						
 						String order = in.getOrder();
 						
-						questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
-						newQuestionOrder = (Integer.parseInt(order)+1) + "";
-						questionOrderComboBox.addItem(order);
+						CSSApplication css = new CSSApplication(questionModButton, ".toggleButton");
+						
+						if(order!=null) {
+							questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
+							newQuestionOrder = (Integer.parseInt(order)+1) + "";
+							questionOrderComboBox.addItem(order);
+							warning.setVisible(false);
+							questionModButton.setEnabled(true);
+						}
+						else {
+							warning.setVisible(true);
+							questionModButton.setEnabled(false);
+							css = new CSSApplication(questionModButton, ".toggleButtonDisabled");
+
+							String question = (String) questionsVCopy.get(itemIndex);
+							questionsV.add(question);
+							
+							String[] questionsArray = question.split("\\. ", 2);
+							newQuestionOrder = (Integer.parseInt(questionsArray[0]) + 1) + "";
+							questionOrderComboBox.addItem(questionsArray[0]);
+						}
 					}
 					questionOrderComboBox.addItem(newQuestionOrder);
 					if(addQuestionButton.isSelected()){
@@ -123,10 +147,10 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 						}
 					}
 				}
-			}catch(RuntimeException ex)
-			{
+			}catch(RuntimeException ex) {
 				ex.printStackTrace();
 			}
+			
 			StringNumericComparator comparator = new StringNumericComparator();
 			if(questionsV != null)
 			{
