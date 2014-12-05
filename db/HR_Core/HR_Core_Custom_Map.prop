@@ -65,7 +65,6 @@ MigrateData http://health.mil/ontologies/Concept/MigrateData
 Complexity http://health.mil/ontologies/Concept/Complexity
 Mobile Devices http://health.mil/ontologies/Concept/Mobile Devices
 RDFElement http://health.mil/ontologies/Concept/RDFElement
-FCC http://health.mil/ontologies/Concept/FCC
 HardwareVersion http://health.mil/ontologies/Concept/HardwareVersion
 TransitionDerived http://health.mil/ontologies/Concept/TransitionDerived
 LifeCycle http://health.mil/ontologies/Concept/LifeCycle
@@ -154,7 +153,6 @@ Capability_Requires_TransitionDomainQualification http://health.mil/ontologies/R
 System_UsedBy_SystemUser http://health.mil/ontologies/Relation/UsedBy
 System_Supports_Activity http://health.mil/ontologies/Relation/Supports
 DataElement_Connected_CDRElement http://health.mil/ontologies/Relation/Connected
-FCC_Part_Of_BusinessProcess http://health.mil/ontologies/Relation/Part_Of
 Capability_Requires_TransitionAudit http://health.mil/ontologies/Relation/Requires
 SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 ConformanceCriteria_Fulfill_BusinessLogicUnit http://health.mil/ontologies/Relation/Fulfill
@@ -278,7 +276,6 @@ BusinessRule_CLASS http://semoss.org/ontologies/Concept/BusinessRule
 TransitionAudit_CLASS http://semoss.org/ontologies/Concept/TransitionAudit
 VISTA_CLASS http://semoss.org/ontologies/Concept/VISTA
 Attribute_CLASS http://semoss.org/ontologies/Concept/Attribute
-FCC_CLASS http://semoss.org/ontologies/Concept/FCC
 TaskerLifecyclePhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecyclePhase
 VISTAElement_CLASS http://semoss.org/ontologies/Concept/VISTAElement
 ModernizationDomainQualification_CLASS http://semoss.org/ontologies/Concept/ModernizationDomainQualification
