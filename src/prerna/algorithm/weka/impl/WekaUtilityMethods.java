@@ -24,7 +24,6 @@ public final class WekaUtilityMethods {
 	// currently only works for clean data - cannot mix strings with doubles for attributes
 	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
 		int numInstances = dataList.size();	
-
 		int i;
 		int j;
 		int numAttr = names.length;
@@ -63,7 +62,7 @@ public final class WekaUtilityMethods {
 			//special case for predictor since it must be nominal
 			if(i == attributeIndex && !isCategorical[i]) {
 				//create bins for numeric value
-				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleArr(numericValues[i]));
+				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
 				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
 				binForInstance = chart.getAssignmentForEachObject();
 				int numBins = bins.length;

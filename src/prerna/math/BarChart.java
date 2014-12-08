@@ -377,7 +377,7 @@ public class BarChart {
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		//TODO: checks for when min/max are null/the same value
 		double range = max - min;
-		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
+		double iqr = StatisticsUtilityMethods.quartileIgnoringNull(numValues, 75, true) - StatisticsUtilityMethods.quartileIgnoringNull(numValues, 25, true);
 		if(iqr == 0) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		}

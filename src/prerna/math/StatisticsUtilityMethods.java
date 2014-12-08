@@ -28,7 +28,7 @@ public final class StatisticsUtilityMethods {
 		return values[index];
 	}
 	
-	public static Double quartile(Double[] values, final double lowerPercent, final boolean isOrdered) {
+	public static Double quartileIgnoringNull(Double[] values, final double lowerPercent, final boolean isOrdered) {
 		if (values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
