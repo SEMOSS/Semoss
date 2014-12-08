@@ -96,7 +96,10 @@ public final class WekaUtilityMethods {
 			Object[] dataRow = dataList.get(i);
 			for(j = 0; j < numAttr; j++) {
 				if(j == attributeIndex && !isCategorical[j]) {
-					dataEntry.setValue(j, binForInstance[i]);
+					String val = binForInstance[i];
+					if(!val.equals("NaN")) {
+						dataEntry.setValue(j, binForInstance[i]);
+					}
 				} else {
 					Object valAttr = dataRow[j];
 					if(!valAttr.toString().isEmpty()) {
@@ -108,13 +111,13 @@ public final class WekaUtilityMethods {
 					}
 				}
 			}
-			//			System.out.println(dataEntry);
+//			System.out.println(dataEntry);
 			data.add(dataEntry);
 		}
 
 		return data;
 	}
-
+	
 	public static Instances[][] crossValidationSplit(Instances data, int numberOfFolds) {
 		Instances[][] split = new Instances[2][numberOfFolds];
 
@@ -134,7 +137,7 @@ public final class WekaUtilityMethods {
 
 		return evaluation;
 	}
-
+	
 	public static double calculateAccuracy(FastVector predCorrect) {
 		double sumPerCorrect = 0;
 		int size = predCorrect.size();
