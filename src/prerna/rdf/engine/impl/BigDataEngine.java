@@ -199,11 +199,13 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		//tq.setIncludeInferred(true /* includeInferred */);
 		//tq.evaluate();
 		rc.setAutoCommit(false);
+		rc.begin();
 		up.execute();
 		//rc.commit();
         InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
         ie.computeClosure(null);
 		sc.commit();
+		rc.commit();
 	}
 	
 	/**
