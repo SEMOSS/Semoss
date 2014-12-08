@@ -364,6 +364,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			String pred = predicate.trim();
 			
 			//System.err.println("VF is " + vf);
+			sc.begin();
+
 			
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
@@ -399,10 +401,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			{
 				sc.removeStatements(newSub, newPred, vf.createURI(object+""));
 			}
+			sc.commit();
 		} catch (SailException e) 
 		{
 			e.printStackTrace();
-		}
+		} 
 	}
 	
 	/**
@@ -420,7 +423,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		logger.debug("\nSPARQL: " + query);
 		//tq.setIncludeInferred(true /* includeInferred */);
 		//tq.evaluate();
-		rc.setAutoCommit(false);
+		//rc.setAutoCommit(false);
+		sc.begin();
 		up.execute();
 		//rc.commit();
 		sc.commit();
