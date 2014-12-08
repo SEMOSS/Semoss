@@ -26,7 +26,7 @@ public class GenerateEntropyDensity {
 		isCategorical = formatter.getIsCategorical();
 	}
 	
-	public GenerateEntropyDensity(ArrayList<Object[]> queryData,boolean includeLastColumn) {
+	public GenerateEntropyDensity(ArrayList<Object[]> queryData, boolean includeLastColumn) {
 		this.includeLastColumn = includeLastColumn;
 		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
 		formatter.setIncludeLastColumn(includeLastColumn);
@@ -51,8 +51,7 @@ public class GenerateEntropyDensity {
 				BarChart chart = new BarChart(dataRow);
 				binData = chart.getRetHashForJSON();
 			} else {
-				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(objDataRow);
-				Arrays.sort(dataRow);
+				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
 				binData = chart.getRetHashForJSON();
 			}

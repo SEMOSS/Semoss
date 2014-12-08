@@ -28,14 +28,17 @@ public final class StatisticsUtilityMethods {
 		return values[index];
 	}
 	
-	public static Double quartile(final Double[] values, final double lowerPercent, final boolean isOrdered) {
+	public static Double quartile(Double[] values, final double lowerPercent, final boolean isOrdered) {
 		if (values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 
+		// remove the null values
+		values = (Double[]) ArrayUtilityMethods.removeAllNulls(values);
+		
 		// Rank order the values if not already ordered
 		if(!isOrdered) {
-			Arrays.sort(values);
+			values = ArrayUtilityMethods.sortDoubleWrapperArr(values);
 		}
 
 		int index = (int) Math.floor(values.length * lowerPercent / 100);

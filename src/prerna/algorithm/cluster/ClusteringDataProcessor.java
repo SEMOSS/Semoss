@@ -171,11 +171,13 @@ public class ClusteringDataProcessor {
 					Object[] dataRow = masterTable.get(i);
 					if(dataRow[j] != null && !dataRow[j].toString().equals("")) {
 						String colEntryAsString = dataRow[j].toString();
-						type = Utility.processType(colEntryAsString);
-						if(type.equals("STRING")) {
-							numCategorical++;
-						} else {
-							numNumerical++;
+						if(!colEntryAsString.isEmpty()) {
+							type = Utility.processType(colEntryAsString);
+							if(type.equals("STRING")) {
+								numCategorical++;
+							} else {
+								numNumerical++;
+							}
 						}
 					}
 				}
