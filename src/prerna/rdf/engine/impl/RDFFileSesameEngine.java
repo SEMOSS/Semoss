@@ -301,6 +301,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			
 			//System.err.println("VF is " + vf);
 			
+			rc.begin();
+			
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
 			
@@ -333,7 +335,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			else
 				sc.addStatement(newSub, newPred, vf.createURI(object+""));
+			rc.commit();
 		} catch (SailException e) {
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
