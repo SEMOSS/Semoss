@@ -150,7 +150,7 @@ public class QuestionAdministrator {
 				((RDFFileSesameEngine) insightBaseXML).rc
 						.export(questionXMLWriter);
 
-			logger.info("Created XML Question Sheet at: " + xmlFileName);
+			logger.info("Updated XML Question File at: " + xmlFileName);
 		} catch (IOException | RDFHandlerException | RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
