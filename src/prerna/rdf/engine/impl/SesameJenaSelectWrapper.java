@@ -106,25 +106,30 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	 * */
 	public String[] getVariables()
 	{
-		if(var == null)
-		{
-			if(engineType == IEngine.ENGINE_TYPE.SESAME)
+		try {
+			if(var == null)
 			{
-				var = new String[tqr.getBindingNames().size()];
-				List <String> names = tqr.getBindingNames();
-				for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-			}
-			else if(engineType == IEngine.ENGINE_TYPE.JENA)
-			{
-				var = new String[rs.getResultVars().size()];
-				List <String> names = rs.getResultVars();
-				for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-			}
-			else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				var = remoteWrapperProxy.getVariables();
-			}
+				if(engineType == IEngine.ENGINE_TYPE.SESAME)
+				{
+					var = new String[tqr.getBindingNames().size()];
+					List <String> names = tqr.getBindingNames();
+					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
+				}
+				else if(engineType == IEngine.ENGINE_TYPE.JENA)
+				{
+					var = new String[rs.getResultVars().size()];
+					List <String> names = rs.getResultVars();
+					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
+				}
+				else if(engineType == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+				{
+					var = remoteWrapperProxy.getVariables();
+				}
 
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return var;
 	}
