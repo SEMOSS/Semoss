@@ -135,7 +135,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 				WekaClassification weka = new WekaClassification(list, names, "J48", i);
 				try {
 					weka.execute();
-					//both stored as percents
+					// both stored as percents
 					accuracyArr[i-1] = weka.getAccuracy(); 
 					precisionArr[i-1] = weka.getPrecision(); 
 				} catch (Exception e) {
