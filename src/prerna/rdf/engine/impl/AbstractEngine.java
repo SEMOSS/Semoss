@@ -365,6 +365,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
+		System.err.println("Property is " + key + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -1397,22 +1398,28 @@ public abstract class AbstractEngine implements IEngine {
 		return fillNeighborsWithVerbsHash(query, baseDataEngine);
 	}
 	
-	private Hashtable<String, Vector<String>> fillNeighborsWithVerbsHash(String query, IEngine engine){
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();
-		String[] var = sjsw.getVariables();
+	private Hashtable<String, Vector<String>> fillNeighborsWithVerbsHash(String query, IEngine engine) {
 		Hashtable<String, Vector<String>> retHash = new Hashtable<String, Vector<String>>();
-		while(sjsw.hasNext()){
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String verb = sjss.getRawVar(var[0]) + "";
-			String node = sjss.getRawVar(var[1]) + "";
-			Vector<String> verbVect = new Vector<String>();
-			if(retHash.containsKey(verb))
-				verbVect = retHash.get(verb);
-			verbVect.add(node);
-			retHash.put(verb, verbVect);
+		
+		try {
+			SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+			sjsw.setEngine(engine);
+			sjsw.setQuery(query);
+			sjsw.executeQuery();
+			String[] var = sjsw.getVariables();
+			while(sjsw.hasNext()){
+				SesameJenaSelectStatement sjss = sjsw.next();
+				String verb = sjss.getRawVar(var[0]) + "";
+				String node = sjss.getRawVar(var[1]) + "";
+				Vector<String> verbVect = new Vector<String>();
+				if(retHash.containsKey(verb))
+					verbVect = retHash.get(verb);
+				verbVect.add(node);
+				retHash.put(verb, verbVect);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return retHash;
 	}
