@@ -227,6 +227,9 @@ public class BarChart {
 		double max = numValues[numOccurances -1];
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
+		if(iqr == 0) {
+			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+		}
 		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 		int numBins = (int) Math.ceil(range/binSize);
 		
@@ -375,6 +378,9 @@ public class BarChart {
 		//TODO: checks for when min/max are null/the same value
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
+		if(iqr == 0) {
+			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+		}
 		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 		int numBins = (int) Math.ceil(range/binSize);
 		

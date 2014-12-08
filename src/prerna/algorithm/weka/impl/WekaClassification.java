@@ -4,12 +4,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.poi.main.AbstractFileReader;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
+import weka.classifiers.trees.BFTree;
+import weka.classifiers.trees.J48;
+import weka.classifiers.trees.J48graft;
+import weka.classifiers.trees.REPTree;
+import weka.classifiers.trees.SimpleCart;
 import weka.core.FastVector;
 import weka.core.Instances;
 
 public class WekaClassification {
+
+	private static final Logger LOGGER = LogManager.getLogger(AbstractFileReader.class.getName());
 
 	private Instances data;
 	
@@ -51,12 +62,30 @@ public class WekaClassification {
 		return treeAsString;
 	}
 	
+	/**
+	 * Constructor to run classification algorithms in WEKA package
+	 * @param list			ArrayList<Object[]> containing the data for each instance
+	 * @param names			String[] containing the list of the variable names corresponding to each column in list
+	 * @param modelName		String containing the name of the algorithm to run.  The list of valid inputs is listed below.
+	 * @param classIndex	Integer corresponding to the column number that is being classified 
+	 * 
+	 * List of appropriate algorithms to run are: 
+	 * 		These algorithms require you to classify nominal values
+	 * 		1) J48 - Implementation of popular C4.5 algorithm.  For more information visit: http://en.wikipedia.org/wiki/C4.5_algorithm
+	 * 		2) J48Graft - Grafting on C4.5 algorithm. For more information visit: http://ijcai.org/Past%20Proceedings/IJCAI-99%20VOL-2/PDF/007.pdf
+	 * 		3) SimpleCart - Minimal Cost-Complexity Pruning algorithm. For more information visit: https://onlinecourses.science.psu.edu/stat557/node/93
+	 * 		4) BFTree - Best First Tree algorithm. For more information visit: http://researchcommons.waikato.ac.nz/bitstream/handle/10289/2317/thesis.pdf?sequence=1&isAllowed=y
+	 * 		These algorithms can be used to classify real number values
+	 * 	 	5) REPTree - Regression Tree algorithm. For more information visit:    
+	 */
 	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName, int classIndex) {
 		this.list = list;
 		this.names = names;
 		this.model = ClassificationFactory.createClassifier(modelName);
 		this.modelName = model.getClass().toString();
 		this.classIndex = classIndex;
+		
+		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
 	}
 
 	public Map<String, Map> getTreeMap() {
@@ -65,21 +94,27 @@ public class WekaClassification {
 	
 	//error will be thrown when trying to classify a variable that is always the same value
 	public void execute() throws Exception{
-		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
+		LOGGER.info("Generating Weka Instances object...");
+//		if(modelName.contains("REPTree")) {
+//			this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names);
+//		} else {
+			this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
+//		}
 		// setting class attribute
 		data.setClassIndex(classIndex);
 		
-		// Do 10-split cross validation
+		LOGGER.info("Performing 10-fold cross-validation split of data...");
 		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
 
 		// Separate split into training and testing arrays
 		Instances[] trainingSplits = split[0];
 		Instances[] testingSplits = split[1];
 		
-		double bestTreeAccuracy = -1;
 		// For each training-testing split pair, train and test the classifier
 		int j;
+		double bestTreeAccuracy = -1;
 		for(j = 0; j < trainingSplits.length; j++) {
+			LOGGER.info("Running classification on training and test set number " + j + "...");
 			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
 			double newPctCorrect = validation.pctCorrect();
 			if(newPctCorrect > bestTreeAccuracy) {
@@ -87,9 +122,14 @@ public class WekaClassification {
 				bestTreeAccuracy = newPctCorrect;
 			}
 			
-			// keep track of accuracy and percision of each test
+			// keep track of accuracy and precision of each test
 			accuracyArr.add(newPctCorrect);
-			precisionArr.add(validation.precision(1)*100);
+//			try {
+				double precisionVal = validation.precision(1);
+				precisionArr.add(precisionVal*100);
+//			} catch(NullPointerException ex) {
+//				// do nothing about algorithm not providing a method to get precision
+//			}
 		}
 		
 		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);
@@ -97,6 +137,7 @@ public class WekaClassification {
 	}
 	
 	public void processTreeString() {
+		LOGGER.info("Generating Tree Map from classification tree string...");
 		String[] treeSplit = treeAsString.split("\n");
 		treeMap = new HashMap<String, Map>();
 		// exception case when tree is a single node
