@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -79,6 +80,10 @@ public class SPARQLParse {
 		// String query =
 		// "SELECT ?db ?contains ?prop WHERE { {?db <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database> ;} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?db ?contains ?prop ;} } LIMIT 2";
 
+		query = "SELECT DISTINCT ?Director (AVG(?Title__MovieBudget) AS ?Title__MovieBudget) WHERE { BIND(<@Studio-http://semoss.org/ontologies/Concept/Studio@> AS ?Studio) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;} {?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Director";	
+		query = query.replace("&lt;", "<");
+		query = query.replace("&gt;", ">");
+			
 		SPARQLParse parse = new SPARQLParse();
 
 		String fileName = "C:/Users/bisutton/workspace/SEMOSS/db/TAP_Core_Data.smss";
@@ -216,36 +221,39 @@ public class SPARQLParse {
 		}
 	}
 
-	public void parseIt(String query) {
+	public Hashtable <String, Integer> parseIt(String query) {
+		Hashtable <String, Integer> finalHash = new Hashtable<String, Integer>();
 		try {
 			SPARQLParser parser = new SPARQLParser();
 
-			System.out.println("Query is " + query);
+			//System.out.println("Query is " + query);
 			ParsedQuery query2 = parser.parseQuery(query, null);
-			System.out.println(">>>" + query2.getTupleExpr());
+			//System.out.println(">>>" + query2.getTupleExpr());
 			StatementCollector collector = new StatementCollector();
 			query2.getTupleExpr().visit(collector);
 
 			patterns = collector.getPatterns();
-			System.err.println("Patterns is " + patterns);
+			//System.err.println("Patterns is " + patterns);
 			sourceTarget = collector.sourceTargetHash;
-			System.err.println("Source target is " + sourceTarget);
+			//System.err.println("Source target is " + sourceTarget);
 			constantHash = collector.constantHash;
-			System.out.println("Constants " + constantHash);
-			getURIList();
+			//System.out.println("Constants " + constantHash);
+			finalHash = getURIList();
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
-
+		return finalHash;
 	}
 	
-	public void getURIList()
+	public Hashtable getURIList()
 	{
 		Hashtable <String, Integer> finalHash = new Hashtable<String, Integer>();
+		Hashtable <String, String> types = new Hashtable<String, String>();
 		
 		// get all the constants
 		Iterator values = constantHash.values().iterator();
@@ -267,20 +275,64 @@ public class SPARQLParse {
 			//System.out.println(" " + subjectVar.getValue());
 			finalHash = recordVar(subjectVar, finalHash);
 			finalHash = recordVar(objectVar, finalHash);
+			
+			Var predicateVar = thisPattern.getPredicateVar();
+			//System.err.println("Predicate var " + predicateVar.getValue());
+			if(predicateVar.isConstant() && (predicateVar.getValue()+"").equalsIgnoreCase("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))
+			{
+				//System.err.println("subject  " + subjectVar.getName());
+				types.put(subjectVar.getName()+"_" + predicateVar.getValue(), objectVar.getValue()+"");
+			}
 		}
 		
-		System.out.println("URI List " + finalHash);
+		// synchronize it
+		Hashtable <String, Integer> synchronizedHash = new Hashtable<String, Integer>();
+		Enumeration keys = finalHash.keys();
+		while(keys.hasMoreElements())
+		{
+			String key = ""+keys.nextElement();
+			if(key.contains(":")) // namespaced let it go
+			{
+				Integer typeProxyCount = finalHash.get(key);
+				if(synchronizedHash.containsKey(key))
+					typeProxyCount = typeProxyCount + synchronizedHash.get(key);
+				synchronizedHash.put(key, typeProxyCount);
+			}else
+			{
+				String typeName = types.get(key + "_http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+				Integer typeProxyCount = finalHash.get(key);
+				if(typeName != null)
+				{
+					if(synchronizedHash.containsKey(typeName))
+							typeProxyCount = typeProxyCount + synchronizedHash.get(typeName);
+					synchronizedHash.put(typeName, typeProxyCount);
+				}
+			}
+		}
+		//System.out.println("Type has " + types);
+		//System.out.println("Final Hash " + finalHash);
+		//System.out.println("URI List " + synchronizedHash);
+		return synchronizedHash;
 	}
 	
 	public Hashtable <String, Integer> recordVar(Var var, Hashtable <String, Integer> inputHash)
 	{
-		if(var.isConstant())
+		//System.out.println("Var is " + var.getValue());
+		if(var.hasValue())
 		{
 			Integer count = inputHash.get(var.getValue()+"");
 			if(count == null)
 				count = new Integer(0);
 			count++;
 			inputHash.put(var.getValue()+"", count);
+		}
+		else
+		{
+			Integer count = inputHash.get(var.getName()+"");
+			if(count == null)
+				count = new Integer(0);
+			count++;
+			inputHash.put(var.getName()+"", count);
 		}
 		return inputHash;
 		

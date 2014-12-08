@@ -38,7 +38,7 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 
 	@Override
 	public void meet(StatementPattern node) {
-		System.out.println("here1");
+		//System.out.println("here1 " + node.getSubjectVar());
 		statementPatterns.add(node);
 		if(node.getSubjectVar().isAnonymous())
 			subjectURIstring.append("(<").append(node.getSubjectVar().getValue()).append(">)");
@@ -69,7 +69,7 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 
 	@Override
 	public void meet(ProjectionElem node) {
-		System.out.println("here2");
+		//System.out.println("here2");
 		// System.out.println("Projection is  " +node.getSourceName() +
 		// node.getTargetName());
 		String target = node.getTargetName();
@@ -83,7 +83,7 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 		// projections.add(node);
 	}
 
-	public void meet(ExtensionElem node) {
+	/*public void meet(ExtensionElem node) {
 		System.out.println("Extension Elem is  " + node.getName());
 		String target = node.getName();
 		// extension element can be one of many
@@ -104,6 +104,7 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 		ValueConstantCollector collector2 = new ValueConstantCollector();
 		try {
 			node.visit(collector2);
+			System.err.println("Constant Hash is " + constantHash + source + collector2.value);
 			constantHash.put(source, collector2.value);
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
@@ -114,17 +115,17 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 		}
 
 		// projections.add(node);
-	}
+	}*/
 
 	@Override
 	public void meet(Coalesce node) {
-		System.out.println("here3");
+		//System.out.println("here3");
 		// System.out.println("Coalesce is  " + node.getArguments().get(0) );
 		// System.out.println("Parent " + node.getParentNode());
 		try {
 			VarNameCollector collector = new VarNameCollector();
 			node.visit(collector);
-			System.out.println("Yoo hoo" + collector.getVarNames());
+			//System.out.println("Yoo hoo" + collector.getVarNames());
 
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
@@ -134,15 +135,15 @@ public class StatementCollector extends QueryModelVisitorBase<Exception> {
 
 	@Override
 	public void meet(LocalName constant) {
-		System.out.println("here4");
+		//System.out.println("here4");
 		// System.out.println("Constants is " + constant);
 	}
 
 	// @Override
 	public void meet2(ExtensionElem node) {
-		System.out.println("Extension Element is  " + node);
-		System.out.println(node.getName());
-		System.out.println(node.getExpr());
+		//System.out.println("Extension Element is  " + node);
+		//System.out.println(node.getName());
+		//System.out.println(node.getExpr());
 	}
 
 	public List<StatementPattern> getPatterns() {
