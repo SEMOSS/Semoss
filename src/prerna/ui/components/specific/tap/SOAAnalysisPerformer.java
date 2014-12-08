@@ -420,7 +420,9 @@ public class SOAAnalysisPerformer implements Runnable {
 		retValues.put("dataFedCost", 0.0);
 		retValues.put("dataConCost", 0.0);
 		while(enumKey.hasMoreElements()) {
+			
 			String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_DATA_QUERY);
+			System.err.println("Query is " + query);
 		    String key = enumKey.nextElement();
 		    String valueFill="";
 			Vector dataV = (Vector) sysDataHash.get(key);

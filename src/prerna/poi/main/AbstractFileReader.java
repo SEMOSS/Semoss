@@ -314,7 +314,9 @@ public abstract class AbstractFileReader {
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
 		try {
+			scOWL.begin();
 			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+			scOWL.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
 			throw new EngineException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");

@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -47,7 +48,6 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -65,39 +65,39 @@ public class SPARQLParse {
 	IEngine engine = null;
 	IEngine bdEngine = null;
 
-//	public static void main(String[] args) throws Exception {
-//		String query2 = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) WHERE {BIND(<http://health.mil/ontologies/Concept/SystemCategory/Central> AS ?SystemCategory) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/Status> ?status } } } LIMIT 1";
-//		
-//		String query = "SELECT ?Capability ?support ?BusinessProcess WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Laboratory> AS ?Capability) {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
-//
-//		String query1 = "SELECT ?Capability ?support ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
-//		
-//		//String query = "CONSTRUCT {?System1 ?Upstream ?ICD. ?ICD ?Downstream ?System2. ?ICD ?carries ?Data1. ?ICD ?contains2 ?prop2. ?System3 ?Upstream2 ?ICD2. ?ICD2 ?contains1 ?prop. ?ICD2 ?Downstream2 ?System1.?ICD2 ?carries2 ?Data2.?System1 ?Provide ?BLU}" ;
-//			String query3 = "SELECT ?System1 ?Upstream ?ICD ?Downstream ?System2 ?carries ?Data1 ?contains2 ?prop2 ?System3 ?Upstream2 ?ICD2 ?contains1 ?prop ?Downstream2 ?carries2 ?Data2 ?Provide ?BLU" +
-//				" WHERE { {?System1  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} BIND(<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System1){{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Data1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Upstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}  {?ICD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Data2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?carries2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System1 ?Provide ?BLU}}}";
-//		
-//		// String query =
-//		// "SELECT ?db ?contains ?prop WHERE { {?db <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database> ;} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?db ?contains ?prop ;} } LIMIT 2";
-//
-//		SPARQLParse parse = new SPARQLParse();
-//
-//		String fileName = "C:/Users/bisutton/workspace/SEMOSS/db/TAP_Core_Data.smss";
-//
-//		parse.bdEngine = new BigDataEngine();
-//
-//		parse.bdEngine.openDB(fileName);
-//		parse.createRepository(); // create in memory database
-//		parse.parseIt(query); // parse the query into grammar
-//		parse.executeQuery(query, parse.bdEngine);
-//		// load base DB
-//		System.out.println("Loading base DB");
-//		parse.loadBaseDB(parse.bdEngine.getProperty(Constants.OWL)); // load the OWL
-//		System.out.println("Testing Query"); 
-//		parse.testQueryGen(); // test the generated query
-//		parse.testIt(query1);
-//		//parse.exportToFile(); // export database to file if need to
-//		
-//	}
+	public static void main(String[] args) throws Exception {
+		String query2 = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (COALESCE(?status, \"\") AS ?SystemStatus) WHERE {BIND(<http://health.mil/ontologies/Concept/SystemCategory/Central> AS ?SystemCategory) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}{?System ?Has ?SystemCategory}OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} OPTIONAL { {?System <http://semoss.org/ontologies/Relation/Contains/Status> ?status } } } LIMIT 1";
+		
+		String query = "SELECT ?Capability ?support ?BusinessProcess WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/Laboratory> AS ?Capability) {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
+
+		String query1 = "SELECT ?Capability ?support ?BusinessProcess WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?support <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?Capability ?support ?BusinessProcess;} }";
+		
+		//String query = "CONSTRUCT {?System1 ?Upstream ?ICD. ?ICD ?Downstream ?System2. ?ICD ?carries ?Data1. ?ICD ?contains2 ?prop2. ?System3 ?Upstream2 ?ICD2. ?ICD2 ?contains1 ?prop. ?ICD2 ?Downstream2 ?System1.?ICD2 ?carries2 ?Data2.?System1 ?Provide ?BLU}" ;
+			String query3 = "SELECT ?System1 ?Upstream ?ICD ?Downstream ?System2 ?carries ?Data1 ?contains2 ?prop2 ?System3 ?Upstream2 ?ICD2 ?contains1 ?prop ?Downstream2 ?carries2 ?Data2 ?Provide ?BLU" +
+				" WHERE { {?System1  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} BIND(<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System1){{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Data1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Upstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}  {?ICD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?Data2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?carries2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System1 ?Provide ?BLU}}}";
+		
+		// String query =
+		// "SELECT ?db ?contains ?prop WHERE { {?db <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Database> ;} {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?db ?contains ?prop ;} } LIMIT 2";
+
+		SPARQLParse parse = new SPARQLParse();
+
+		String fileName = "C:/Users/bisutton/workspace/SEMOSS/db/TAP_Core_Data.smss";
+
+		//parse.bdEngine = new BigDataEngine();
+
+		//parse.bdEngine.openDB(fileName);
+		//parse.createRepository(); // create in memory database
+		parse.parseIt(query); // parse the query into grammar
+		//parse.executeQuery(query, parse.bdEngine);
+		// load base DB
+		System.out.println("Loading base DB");
+		//parse.loadBaseDB(parse.bdEngine.getProperty(Constants.OWL)); // load the OWL
+		System.out.println("Testing Query"); 
+		//parse.testQueryGen(); // test the generated query
+		//parse.testIt(query1);
+		//parse.exportToFile(); // export database to file if need to
+		
+	}
 	
 	public void executeQuery(String query, IEngine engine)
 	{
@@ -227,9 +227,12 @@ public class SPARQLParse {
 			query2.getTupleExpr().visit(collector);
 
 			patterns = collector.getPatterns();
+			System.err.println("Patterns is " + patterns);
 			sourceTarget = collector.sourceTargetHash;
+			System.err.println("Source target is " + sourceTarget);
 			constantHash = collector.constantHash;
 			System.out.println("Constants " + constantHash);
+			getURIList();
 		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -239,6 +242,50 @@ public class SPARQLParse {
 		}
 
 	}
+	
+	public void getURIList()
+	{
+		Hashtable <String, Integer> finalHash = new Hashtable<String, Integer>();
+		
+		// get all the constants
+		Iterator values = constantHash.values().iterator();
+		while(values.hasNext())
+		{
+			String value = values.next() +"";
+			finalHash.put(value,  new Integer(1));
+		}
+		
+		for(int patIndex = 0;patIndex < patterns.size();patIndex++)
+		{
+			StatementPattern thisPattern = patterns.get(patIndex);
+			// couple of things to check
+			// is the subject or predicate a constant
+			// if so add it
+			
+			Var subjectVar = thisPattern.getSubjectVar();
+			Var objectVar = thisPattern.getObjectVar();
+			//System.out.println(" " + subjectVar.getValue());
+			finalHash = recordVar(subjectVar, finalHash);
+			finalHash = recordVar(objectVar, finalHash);
+		}
+		
+		System.out.println("URI List " + finalHash);
+	}
+	
+	public Hashtable <String, Integer> recordVar(Var var, Hashtable <String, Integer> inputHash)
+	{
+		if(var.isConstant())
+		{
+			Integer count = inputHash.get(var.getValue()+"");
+			if(count == null)
+				count = new Integer(0);
+			count++;
+			inputHash.put(var.getValue()+"", count);
+		}
+		return inputHash;
+		
+	}
+	
 
 	public void generateTriple(Hashtable binds) throws SailException {
 		for (int index = 0; index < patterns.size(); index++) {
