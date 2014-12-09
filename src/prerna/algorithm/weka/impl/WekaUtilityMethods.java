@@ -2,7 +2,6 @@ package prerna.algorithm.weka.impl;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
 
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
@@ -21,7 +20,7 @@ public final class WekaUtilityMethods {
 
 	}
 
-	// currently only works for clean data - cannot mix strings with doubles for attributes
+	// cannot mix strings with doubles for attributes
 	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
 		int numInstances = dataList.size();	
 		int i;
@@ -66,14 +65,13 @@ public final class WekaUtilityMethods {
 			if(i == attributeIndex && !isCategorical[i]) {
 				//create bins for numeric value
 				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
-				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+				String[] binRange = chart.getNumericalBinOrder();
 				binForInstance = chart.getAssignmentForEachObject();
-				int numBins = bins.length;
+				int numBins = binRange.length;
 				int z;
 				FastVector nominalValuesInBin = new FastVector();
 				for(z = 0; z < numBins; z++) {
-					String binRange = (String) bins[z].get("x");
-					nominalValuesInBin.addElement(binRange);
+					nominalValuesInBin.addElement(binRange[z]);
 				}
 				attributeList.addElement(new Attribute(names[i], nominalValuesInBin));
 			} else if(isCategorical[i]) {
