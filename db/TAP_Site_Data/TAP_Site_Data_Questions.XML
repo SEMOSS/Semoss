@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
+	xmlns="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective</label>
+	<label>TAP_Site_Data:Generic-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:Generic-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -19,12 +20,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Generic-Perspective:GQ1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:GQ1</label>
+	<label>TAP_Site_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -32,8 +33,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
@@ -56,12 +57,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Generic-Perspective:GQ2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:GQ2</label>
+	<label>TAP_Site_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -69,8 +70,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
@@ -93,12 +94,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Generic-Perspective:GQ3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:GQ3</label>
+	<label>TAP_Site_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -106,8 +107,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
@@ -130,12 +131,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Generic-Perspective:GQ4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:GQ4</label>
+	<label>TAP_Site_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -143,8 +144,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
@@ -167,12 +168,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Generic-Perspective:GQ5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:GQ5</label>
+	<label>TAP_Site_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -180,8 +181,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Generic-Perspective:TAP_Site_Data:Generic-Perspective:GQ5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Generic-Perspective">
@@ -225,13 +226,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective</label>
+	<label>TAP_Site_Data:Facilities-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Facilities-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -240,12 +241,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP1</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -253,8 +254,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -286,12 +287,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP2</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -299,8 +300,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -332,12 +333,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP3</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -345,8 +346,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -378,12 +379,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP4</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -391,8 +392,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -415,12 +416,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP5</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -428,8 +429,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -461,12 +462,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP6</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -474,8 +475,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -498,12 +499,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Facilities-Perspective:FP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:FP7</label>
+	<label>TAP_Site_Data:Facilities-Perspective:FP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Facilities-Perspective:FP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -511,8 +512,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Facilities-Perspective:TAP_Site_Data:Facilities-Perspective:FP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Facilities-Perspective">
@@ -535,13 +536,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Infrastructure-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -550,12 +551,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP1</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -563,8 +564,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -581,7 +582,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP1">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?SystemDCSite ?DeployedAt ?DCSite. ?System ?DeployedAt1 ?SystemDCSite} WHERE { {?SystemDCSite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSite&gt; ;} {?DeployedAt &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DeployedAt&gt;;} {?DeployedAt1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DeployedAt&gt;;}{?DCSite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DCSite&gt;;}  BIND (&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} } </SPARQL>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?SystemDCSite ?DeployedAt ?DCSite. ?System ?DeployedAt1 ?SystemDCSite} WHERE { {?SystemDCSite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemDCSite&gt; ;} {?DeployedAt &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DeployedAt&gt;;} {?DeployedAt1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DeployedAt&gt;;}{?DCSite &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DCSite&gt;;}  BIND (&lt;@System-http://semoss.org/ontologies/Concept/System@&gt; AS ?System) {?SystemDCSite ?DeployedAt ?DCSite;}{?System ?DeployedAt1 ?SystemDCSite;} }</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Site_Data:Infrastructure-Perspective:IP1:System"/>
 </rdf:Description>
@@ -596,12 +597,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP2</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -609,8 +610,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -642,12 +643,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP3</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -655,8 +656,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -688,12 +689,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP4</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -701,8 +702,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -734,12 +735,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP5</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -747,8 +748,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -780,12 +781,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP6</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -793,8 +794,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -838,12 +839,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP7</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -851,8 +852,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -884,12 +885,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP8">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP8</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -897,8 +898,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -930,12 +931,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP9">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP9</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -943,8 +944,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -976,12 +977,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP10">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP10</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -989,8 +990,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -1013,12 +1014,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Infrastructure-Perspective:IP11">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:IP11</label>
+	<label>TAP_Site_Data:Infrastructure-Perspective:IP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Infrastructure-Perspective:IP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1026,8 +1027,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Infrastructure-Perspective:TAP_Site_Data:Infrastructure-Perspective:IP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Infrastructure-Perspective">
@@ -1050,13 +1051,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">SystemDCSite-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1065,12 +1066,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1078,8 +1079,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1111,12 +1112,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1124,8 +1125,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1157,12 +1158,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1170,8 +1171,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1203,12 +1204,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1216,8 +1217,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1249,12 +1250,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1262,8 +1263,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1295,12 +1296,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1308,8 +1309,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1341,12 +1342,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:SystemDCSite-Perspective:SP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1354,8 +1355,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:SystemDCSite-Perspective:TAP_Site_Data:SystemDCSite-Perspective:SP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:SystemDCSite-Perspective">
@@ -1387,13 +1388,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective</label>
+	<label>TAP_Site_Data:Transition-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Transition-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:Transition-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1402,12 +1403,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP1</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1415,8 +1416,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1439,12 +1440,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP2</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1452,8 +1453,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1476,12 +1477,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP3</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1489,8 +1490,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1513,12 +1514,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP4</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1526,8 +1527,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1550,12 +1551,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP5</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1563,8 +1564,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1596,12 +1597,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP6</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1609,8 +1610,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1642,12 +1643,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP7</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1655,8 +1656,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1688,12 +1689,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP8">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP8</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1701,8 +1702,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1734,12 +1735,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP9">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP9</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1747,8 +1748,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1780,12 +1781,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP10">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP10</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1793,8 +1794,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1826,12 +1827,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP11">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP11</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1839,8 +1840,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1872,12 +1873,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP12">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP12</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP12">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP12</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1885,8 +1886,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP12">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP12</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1918,12 +1919,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP13">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP13</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP13">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP13</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1931,8 +1932,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP13">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP13</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP13</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1955,12 +1956,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:Transition-Perspective:TP14">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TP14</label>
+	<label>TAP_Site_Data:Transition-Perspective:TP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP14">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP14</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:Transition-Perspective:TP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -1968,8 +1969,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP14">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP14</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:Transition-Perspective:TAP_Site_Data:Transition-Perspective:TP14</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:Transition-Perspective">
@@ -1992,13 +1993,13 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective</label>
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective</Label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2007,12 +2008,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2020,8 +2021,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2053,12 +2054,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2066,8 +2067,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP9</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2099,12 +2100,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2112,8 +2113,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2145,12 +2146,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2158,8 +2159,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP10</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2191,12 +2192,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2204,8 +2205,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2237,12 +2238,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2250,8 +2251,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP11</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2283,12 +2284,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2296,8 +2297,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2329,12 +2330,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2342,8 +2343,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2351,7 +2352,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Savings analysis for decomissioning all systems across host sites, by fiscal year. </Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Savings analysis for decomissioning all systems across host sites, by fiscal year.</Label>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
 </rdf:Description>
 
@@ -2366,12 +2367,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2379,8 +2380,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2388,7 +2389,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Savings analysis for decomissioning selected system across host sites, by fiscal year. </Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Savings analysis for decomissioning selected system across host sites, by fiscal year.</Label>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">9</Order>
 </rdf:Description>
 
@@ -2412,12 +2413,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2425,8 +2426,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2449,12 +2450,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2462,8 +2463,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP8</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2486,12 +2487,12 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
@@ -2499,8 +2500,8 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DDP12</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
@@ -2530,35 +2531,35 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
-	<subClassOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
-	<subPropertyOf xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Order">
@@ -2583,6 +2584,43 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
+	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Create a report detailing the cost saving per deactivated system, per year.</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">13</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerYearFromWkShtPlaySheet</Layout>
 </rdf:Description>
 
 </rdf:RDF>
