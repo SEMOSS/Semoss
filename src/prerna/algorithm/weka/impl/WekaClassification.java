@@ -95,12 +95,7 @@ public class WekaClassification {
 	//error will be thrown when trying to classify a variable that is always the same value
 	public void execute() throws Exception{
 		LOGGER.info("Generating Weka Instances object...");
-//		if(modelName.contains("REPTree")) {
-//			this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names);
-//		} else {
-			this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
-//		}
-		// setting class attribute
+		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
 		data.setClassIndex(classIndex);
 		
 		LOGGER.info("Performing 10-fold cross-validation split of data...");
@@ -117,19 +112,20 @@ public class WekaClassification {
 			LOGGER.info("Running classification on training and test set number " + j + "...");
 			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
 			double newPctCorrect = validation.pctCorrect();
-			if(newPctCorrect > bestTreeAccuracy) {
-				treeAsString = model.toString();
-				bestTreeAccuracy = newPctCorrect;
-			}
-			
-			// keep track of accuracy and precision of each test
-			accuracyArr.add(newPctCorrect);
-//			try {
+			// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
+			if(Double.isNaN(newPctCorrect)) {
+				LOGGER.info("Cannot use this classification since every instance in training set is unknown for " + names[classIndex]);
+			} else {
+				if(newPctCorrect > bestTreeAccuracy) {
+					treeAsString = model.toString();
+					bestTreeAccuracy = newPctCorrect;
+				}
+				
+				// keep track of accuracy and precision of each test
+				accuracyArr.add(newPctCorrect);
 				double precisionVal = validation.precision(1);
 				precisionArr.add(precisionVal*100);
-//			} catch(NullPointerException ex) {
-//				// do nothing about algorithm not providing a method to get precision
-//			}
+			}
 		}
 		
 		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);

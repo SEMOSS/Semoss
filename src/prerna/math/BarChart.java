@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -166,14 +167,27 @@ public class BarChart {
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
-		if(Math.abs(min) >= 0 && Math.abs(max) <= 1) {
+		double range = Math.abs(max - min);
+		if(range <= 1 & min > .01) {
 			formatter = new DecimalFormat("#.00");
-		} else if(Math.abs(min) >= 0 && Math.abs(max) <= 100) {
-			formatter = new DecimalFormat("0.00");
-		} else if(Math.abs(min) * 10 < Math.abs(max)) {
-			formatter = new DecimalFormat("0.00E0");
+		} else if(range <= 1) {
+			String pattern = "#.";
+			String text = Double.toString(Math.abs(range));
+			int integerPlaces = text.indexOf('.');
+			int decimalPlaces = text.length() - integerPlaces - 1;
+			for(int i = 0; i < decimalPlaces + 1; i++) {
+				pattern = pattern.concat("0");
+			}
+			pattern = pattern.concat("E0");
+			formatter = new DecimalFormat(pattern);
 		} else {
-			formatter = new DecimalFormat("0.#E0");
+			String pattern = "0.";
+			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
+			for(int i = 0; i < decimalPlaces; i++) {
+				pattern = pattern.concat("0");
+			}
+			pattern = pattern.concat("E0");
+			formatter = new DecimalFormat(pattern);
 		}
 		
 		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
@@ -311,14 +325,27 @@ public class BarChart {
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		//TODO: figure out what to do when entire values array is null
-		if(Math.abs(min) >= 0 && Math.abs(max) <= 1) {
+		double range = Math.abs(max - min);
+		if(range <= 1 & min > .01) {
 			formatter = new DecimalFormat("#.00");
-		} else if(Math.abs(min) >= 0 && Math.abs(max) <= 100) {
-			formatter = new DecimalFormat("0.00");
-		} else if(Math.abs(min) * 10 < Math.abs(max)) {
-			formatter = new DecimalFormat("0.00E0");
+		} else if(range <= 1) {
+			String pattern = "#.";
+			String text = Double.toString(Math.abs(range));
+			int integerPlaces = text.indexOf('.');
+			int decimalPlaces = text.length() - integerPlaces - 1;
+			for(int i = 0; i < decimalPlaces + 1; i++) {
+				pattern = pattern.concat("0");
+			}
+			pattern = pattern.concat("E0");
+			formatter = new DecimalFormat(pattern);
 		} else {
-			formatter = new DecimalFormat("0.#E0");
+			String pattern = "0.";
+			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
+			for(int i = 0; i < decimalPlaces; i++) {
+				pattern = pattern.concat("0");
+			}
+			pattern = pattern.concat("E0");
+			formatter = new DecimalFormat(pattern);
 		}
 		
 		Double skewness = StatisticsUtilityMethods.getSkewnessIgnoringNull(numValues, true);
