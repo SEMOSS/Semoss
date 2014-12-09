@@ -33,10 +33,10 @@ import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -115,26 +115,21 @@ public class ActiveSystemUpdater {
 	 */
 	public void insertSubclassTriple(ArrayList<String> activeSystems)
 	{
-		if(this.foundQuery)
+		if(foundQuery)
 		{
-			// add semoss base subclass triple
-			String insertQuery = "INSERT DATA { <" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "> .";
-			insertQuery = insertQuery + "<" + activeSystemURI +"> <"+  subclassURI +"> <"+ baseSemossSystemURI + "/System> .";
+			String semossSystemURI = baseSemossSystemURI + "/System";
+			( (BigDataEngine) engine).addStatement(activeSystemURI, subclassURI, baseSemossSystemURI, true);
+			( (BigDataEngine) engine).addStatement(activeSystemURI, subclassURI, semossSystemURI, true);
 			Iterator<String> iterator = activeSystems.iterator();
-			String systemInstanceURI = "";
-			// add all the instance typeOf triples
 			while(iterator.hasNext())
 			{
-				systemInstanceURI = "<" + iterator.next() + ">";
-				insertQuery = insertQuery + " " + systemInstanceURI +" <" +  typeURI + "> <"+ activeSystemURI + "> .";
+				String systemInstanceURI = iterator.next();
+				logger.info("Inserting: " + systemInstanceURI);
+				( (BigDataEngine) engine).addStatement(systemInstanceURI, typeURI, activeSystemURI, true);
 			}
-			insertQuery = insertQuery + " }";
-			logger.info("Inserting: " + insertQuery);
-			// process query suing UpdateProcessor class
-			UpdateProcessor proc = new UpdateProcessor();
-			proc.setEngine(engine);
-			proc.setQuery(insertQuery);
-			proc.processQuery();
+			
+			((BigDataEngine) engine).commit();
+			((BigDataEngine) engine).infer();
 		}
 	}
 	
@@ -152,7 +147,7 @@ public class ActiveSystemUpdater {
 		String queryData = DIHelper.getInstance().getProperty(query);
 		if(queryData != null)
 		{
-			this.foundQuery = true;
+			foundQuery = true;
 			logger.info("Running: " + queryData);
 			System.out.println(queryData);
 			SesameJenaSelectWrapper wrapperAllSystems = new SesameJenaSelectWrapper();
@@ -169,7 +164,7 @@ public class ActiveSystemUpdater {
 			}
 		}
 		else{
-			this.foundQuery = false;
+			foundQuery = false;
 		}
 		return systemList;
 	}
@@ -230,6 +225,6 @@ public class ActiveSystemUpdater {
 	 * @return	Boolean foundQuery which is true if the query is found in the question sheet
 	 */
 	public boolean getFoundQuery(){
-		return this.foundQuery;
+		return foundQuery;
 	}
 }
