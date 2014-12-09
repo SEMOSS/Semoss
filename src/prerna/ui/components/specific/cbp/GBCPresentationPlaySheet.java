@@ -44,7 +44,7 @@ public class GBCPresentationPlaySheet extends AbstractRDFPlaySheet{
 		if(props == null)
 		{
 			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			String fileName = workingDir + "/GBCPresentation.properties";
+			String fileName = workingDir + "/GBCPresentationV2.properties";
 			try {
 				presProps.load(new FileInputStream(fileName));
 			} catch (FileNotFoundException e) {
