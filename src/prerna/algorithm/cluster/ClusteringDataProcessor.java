@@ -360,6 +360,10 @@ public class ClusteringDataProcessor {
 		int numWeights = entropyArr.length;
 		categoricalWeights = new double[numWeights];
 
+		if(numWeights == 1) {
+			categoricalWeights[0] = 1;
+			return;
+		}
 		double totalEntropy = 0;
 		for(int i = 0; i < numWeights; i++) {
 			totalEntropy += entropyArr[i];
@@ -372,9 +376,9 @@ public class ClusteringDataProcessor {
 		}
 
 		// output category and weight to console
-		for(int i = 0; i < categoricalWeights.length; i++) {
+//		for(int i = 0; i < categoricalWeights.length; i++) {
 //			LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
-		}
+//		}
 	}
 
 	
