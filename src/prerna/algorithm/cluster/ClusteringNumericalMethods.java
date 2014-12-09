@@ -116,37 +116,40 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 			}
 			
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
-			// numBins contains the number of bins
-			int numBins = sortedBinArr.length;
-
-			double adjustmentFactor = 0;
-			Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
-			Set<String> propKeySet = propertyHash.keySet();
-			// sumProperties contains the total number of instances for the property
-			int sumProperties = 0;
-			for(String propName : propKeySet) {
-				sumProperties += propertyHash.get(propName);
-			}
-			// deal with empty values
-			if(instaceCategoricalInfo[i].equals("NaN")) {
-				if(propKeySet.contains("NaN")) {
-					double normalizedNumInBin = (double) propertyHash.get("NaN") / sumProperties;
-					adjustmentFactor += normalizedNumInBin;
-				} 
-				//				else {
-				//					// similarity is zero if one value is NaN and the other is not NaN
-				//				}
-			} else {
+			// check to make sure instances contain value for prop and not all missing data
+			if(sortedBinArr != null) {
+				// numBins contains the number of bins
+				int numBins = sortedBinArr.length;
+	
+				double adjustmentFactor = 0;
+				Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
+				Set<String> propKeySet = propertyHash.keySet();
+				// sumProperties contains the total number of instances for the property
+				int sumProperties = 0;
 				for(String propName : propKeySet) {
-					if(!propName.equals("NaN")) {
-						double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
-						int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
-						int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
-						adjustmentFactor += normalizedNumInBin * calculateAdjustmentFactor(indexOfInstance, indexOfPropInCluster, numBins); 
+					sumProperties += propertyHash.get(propName);
+				}
+				// deal with empty values
+				if(instaceCategoricalInfo[i].equals("NaN")) {
+					if(propKeySet.contains("NaN")) {
+						double normalizedNumInBin = (double) propertyHash.get("NaN") / sumProperties;
+						adjustmentFactor += normalizedNumInBin;
+					} 
+					//				else {
+					//					// similarity is zero if one value is NaN and the other is not NaN
+					//				}
+				} else {
+					for(String propName : propKeySet) {
+						if(!propName.equals("NaN")) {
+							double normalizedNumInBin = (double) propertyHash.get(propName) / sumProperties;
+							int indexOfInstance = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, instaceCategoricalInfo[i]);
+							int indexOfPropInCluster = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, propName);
+							adjustmentFactor += normalizedNumInBin * calculateAdjustmentFactor(indexOfInstance, indexOfPropInCluster, numBins); 
+						}
 					}
 				}
+				similarity += weights[i] * adjustmentFactor;
 			}
-			similarity += weights[i] * adjustmentFactor;
 		}
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;

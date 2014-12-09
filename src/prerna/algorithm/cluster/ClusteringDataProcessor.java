@@ -407,9 +407,9 @@ public class ClusteringDataProcessor {
 		}
 
 		// output category and weight to console
-		for(int i = 0; i < numericalWeights.length; i++) {
+//		for(int i = 0; i < numericalWeights.length; i++) {
 //			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
-		}
+//		}
 	}
 	
 	/**
@@ -431,11 +431,15 @@ public class ClusteringDataProcessor {
 			numericalBinOrderingMatrix = new String[size][];
 			for(int i = 0; i < size; i++) {
 				Object[] propColumn = data[i];
+				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
+				// if no instances contain a value for the property, skip it
+				if(ArrayUtilityMethods.removeAllNulls(propColumn).length == 0) {
+					continue;
+				}
 				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);
 				BarChart chart = new BarChart(dataRow);
 				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
 				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
-				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
 				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
 				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
 				int j;
@@ -485,7 +489,12 @@ public class ClusteringDataProcessor {
 					unqiueCountOfPropInstances++;
 				}
 			}
-
+			
+			//if all values missing for property, entropy is 0
+			if(columnPropInstanceCountArr.size() <= 1) {
+				continue;
+			}
+			
 			double sumProb = 0;
 			int columnPropInstanceSize = columnPropInstanceCountArr.size();
 			for(int j = 0; j < columnPropInstanceSize; j++) {
