@@ -39,7 +39,7 @@ public final class WekaUtilityMethods {
 			for(j = 0; j < numInstances; j++) {
 				Object dataElement = dataList.get(j)[i];
 				// ignore missing values to determine data type of column
-				if(!dataElement.toString().isEmpty()) {
+				if(!dataElement.toString().isEmpty() && !dataElement.toString().equals("?")) {
 					String type = Utility.processType(dataElement.toString());
 					if(type.equals("STRING")) {
 						nominalValues[i].add(dataElement.toString());
@@ -100,7 +100,7 @@ public final class WekaUtilityMethods {
 					}
 				} else {
 					Object valAttr = dataRow[j];
-					if(!valAttr.toString().isEmpty()) {
+					if(!valAttr.toString().isEmpty() && !valAttr.toString().equals("?")) {
 						if(isCategorical[j]) {
 							dataEntry.setValue(j, valAttr.toString());
 						} else {
