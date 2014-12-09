@@ -93,6 +93,10 @@ public class RunDrillDownListener extends AbstractListener {
 				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
 			}
 		}
+		if(clustersToInclude.isEmpty()) {
+			Utility.showError("No clusters were selected to drill down on. Please select at least one and retry.");
+			return;
+		}
 		
 		Hashtable<String, Integer> instanceIndexHash = clusteringPlaySheet.getInstanceIndexHash();
 		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssigned();

@@ -65,10 +65,13 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private double[] entropyArr;
 	private double[] accuracyArr;
 	private double[] precisionArr;
-	private ArrayList<JCheckBox> columnCheckboxes;
+	private ArrayList<JCheckBox> ivCheckboxes;
 	private ArrayList<JLabel> entropyLabels;
 	private ArrayList<JLabel> accuracyLabels;
 	private ArrayList<JLabel> precisionLabels;
+	//independent variable panel - select all
+	private JCheckBox checkboxSelectAllIVs;
+	private SelectCheckboxesListener selectAllIVsList;
 	
 	//data set similarity chart
 	private BrowserGraphPanel simBarChartPanel;
@@ -108,7 +111,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	//drill down panel cluster checkboxes
 	private JPanel clusterCheckBoxPanel;
 	private JCheckBox checkboxSelectAllClusters;
-	private SelectCheckboxesListener selectAllList;
+	private SelectCheckboxesListener selectAllClustersList;
 	private ArrayList<JCheckBox> clusterCheckboxes = new ArrayList<JCheckBox>();
 		
 	public void setData(String[] names, ArrayList<Object[]> list) {
@@ -190,7 +193,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	@Override
-	public void addPanel() {//TODO add control panel
+	public void addPanel() {//TODO add control panel?
 		setWindow();
 		updateProgressBar("0%...Preprocessing", 0);
 		resetProgressBar();
@@ -425,6 +428,19 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_indVariablesPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		indVariablesPanel.setLayout(gbl_indVariablesPanel);
 		
+		//select all, deselect all independent variables
+		String checkboxSelectLabel = "Select All Variables";
+		checkboxSelectAllIVs = new JCheckBox(checkboxSelectLabel);
+		checkboxSelectAllIVs.setName(checkboxSelectLabel+"checkBox");
+		checkboxSelectAllIVs.setSelected(true);
+		GridBagConstraints gbc_checkboxSelectAllIVs = new GridBagConstraints();
+		gbc_checkboxSelectAllIVs.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_checkboxSelectAllIVs.fill = GridBagConstraints.NONE;
+		gbc_checkboxSelectAllIVs.insets = new Insets(5, 20, 0, 0);
+		gbc_checkboxSelectAllIVs.gridx = 0;
+		gbc_checkboxSelectAllIVs.gridy = 0;
+		indVariablesPanel.add(checkboxSelectAllIVs, gbc_checkboxSelectAllIVs);
+
 		JLabel includeLabel = new JLabel();
 		includeLabel.setText("Independent Variable");
 		includeLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -434,7 +450,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_includeLabel.gridwidth = 2;
 		gbc_includeLabel.insets = new Insets(5, 20, 0, 0);
 		gbc_includeLabel.gridx = 0;
-		gbc_includeLabel.gridy = 0;
+		gbc_includeLabel.gridy = 1;
 		indVariablesPanel.add(includeLabel, gbc_includeLabel);
 		
 		JLabel entropyLabel = new JLabel();
@@ -445,7 +461,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_entropyLabel.fill = GridBagConstraints.NONE;
 		gbc_entropyLabel.insets = new Insets(5, 20, 0, 0);
 		gbc_entropyLabel.gridx = 2;
-		gbc_entropyLabel.gridy = 0;
+		gbc_entropyLabel.gridy = 1;
 		indVariablesPanel.add(entropyLabel, gbc_entropyLabel);
 		
 		JLabel accuracyLabel = new JLabel();
@@ -456,7 +472,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_accuracyLabel.fill = GridBagConstraints.NONE;
 		gbc_accuracyLabel.insets = new Insets(5, 20, 0, 0);
 		gbc_accuracyLabel.gridx = 3;
-		gbc_accuracyLabel.gridy = 0;
+		gbc_accuracyLabel.gridy = 1;
 		indVariablesPanel.add(accuracyLabel, gbc_accuracyLabel);
 		
 		JLabel precisionLabel = new JLabel();
@@ -467,10 +483,10 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_precisionLabel.fill = GridBagConstraints.NONE;
 		gbc_precisionLabel.insets = new Insets(5, 20, 0, 0);
 		gbc_precisionLabel.gridx = 4;
-		gbc_precisionLabel.gridy = 0;
+		gbc_precisionLabel.gridy = 1;
 		indVariablesPanel.add(precisionLabel, gbc_precisionLabel);
 		
-		columnCheckboxes = new ArrayList<JCheckBox>();
+		ivCheckboxes = new ArrayList<JCheckBox>();
 		entropyLabels = new ArrayList<JLabel>();
 		accuracyLabels = new ArrayList<JLabel>();
 		precisionLabels = new ArrayList<JLabel>();
@@ -490,9 +506,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			gbc_checkbox.fill = GridBagConstraints.NONE;
 			gbc_checkbox.insets = new Insets(5, 20, 0, 0);
 			gbc_checkbox.gridx = 0;
-			gbc_checkbox.gridy = i;
+			gbc_checkbox.gridy = i+1;
 			indVariablesPanel.add(checkbox, gbc_checkbox);
-			columnCheckboxes.add(checkbox);
+			ivCheckboxes.add(checkbox);
 				
 			JLabel entropyVal = new JLabel();
 			entropyVal.setText(entropyFormatter.format(entropyArr[i-1]));
@@ -501,7 +517,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			gbc_entropyVal.fill = GridBagConstraints.NONE;
 			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
 			gbc_entropyVal.gridx = 2;
-			gbc_entropyVal.gridy = i;
+			gbc_entropyVal.gridy = i+1;
 			indVariablesPanel.add(entropyVal, gbc_entropyVal);
 			entropyLabels.add(entropyVal);
 			
@@ -512,7 +528,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			gbc_accuracyVal.fill = GridBagConstraints.NONE;
 			gbc_accuracyVal.insets = new Insets(5, 20, 0, 0);
 			gbc_accuracyVal.gridx = 3;
-			gbc_accuracyVal.gridy = i;
+			gbc_accuracyVal.gridy = i+1;
 			indVariablesPanel.add(accuracyVal, gbc_accuracyVal);
 			accuracyLabels.add(accuracyVal);
 			
@@ -523,10 +539,14 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			gbc_precisionVal.fill = GridBagConstraints.NONE;
 			gbc_precisionVal.insets = new Insets(5, 20, 0, 0);
 			gbc_precisionVal.gridx = 4;
-			gbc_precisionVal.gridy = i;
+			gbc_precisionVal.gridy = i+1;
 			indVariablesPanel.add(precisionVal, gbc_precisionVal);
 			precisionLabels.add(precisionVal);
 		}
+		
+		selectAllIVsList = new SelectCheckboxesListener();
+		selectAllIVsList.setCheckboxes(ivCheckboxes);
+		checkboxSelectAllIVs.addActionListener(selectAllIVsList);
 	}
 	
 	private void fillClusterPanel(JPanel clusterPanel) {
@@ -601,7 +621,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classComboBox = new JComboBox<String>();
 		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		classComboBox.setBackground(Color.GRAY);
-		classComboBox.setPreferredSize(new Dimension(100, 25));
+		classComboBox.setPreferredSize(new Dimension(250, 25));
 		String[] cols = new String[names.length-1];
 		for(int i=1;i<names.length;i++)
 			cols[i-1] = names[i];
@@ -630,7 +650,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classificationMethodComboBox = new JComboBox<String>();
 		classificationMethodComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		classificationMethodComboBox.setBackground(Color.GRAY);
-		classificationMethodComboBox.setPreferredSize(new Dimension(100, 25));
+		classificationMethodComboBox.setPreferredSize(new Dimension(250, 25));
 		String[] classTypes = new String[] {"J48","J48GRAFT","SIMPLECART","REPTREE","BFTREE"};
 		classificationMethodComboBox.setModel(new DefaultComboBoxModel<String>(classTypes));
 		GridBagConstraints gbc_classificationMethodComboBox = new GridBagConstraints();
@@ -755,9 +775,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_checkboxSelect.gridy = 0;
 		clusterCheckBoxPanel.add(checkboxSelectAllClusters, gbc_checkboxSelect);
 
-		selectAllList = new SelectCheckboxesListener();
-		selectAllList.setCheckboxes(clusterCheckboxes);
-		checkboxSelectAllClusters.addActionListener(selectAllList);
+		selectAllClustersList = new SelectCheckboxesListener();
+		selectAllClustersList.setCheckboxes(clusterCheckboxes);
+		checkboxSelectAllClusters.addActionListener(selectAllClustersList);
 		
 		runDrillDown = new CustomButton("Drill Down");
 		runDrillDown.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -813,8 +833,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			ClusteringVizPlaySheet playSheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
 			int clusters = playSheet.getNumClusters();			
 			updateClusterCheckboxes(clusters);
-			selectAllList.setCheckboxes(clusterCheckboxes);
-			checkboxSelectAllClusters.setSelected(true);
+			resetClusterCheckboxesListener();
 		} else {
 			updateClusterCheckboxes(0); //remove all the checkboxes
 		}
@@ -847,12 +866,18 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			}
 		}
 	}
+	
+	public void resetClusterCheckboxesListener() {
+		selectAllClustersList.setCheckboxes(clusterCheckboxes);
+		checkboxSelectAllClusters.setSelected(true);
+	}
+	
 	public void setSelectedColumns(String[] selectedCols) {
-		for(JCheckBox checkbox : columnCheckboxes) {
+		for(JCheckBox checkbox : ivCheckboxes) {
 			checkbox.setSelected(false);
 		}
 		for(String checkboxToSelect : selectedCols) {
-			for(JCheckBox checkbox : columnCheckboxes) {
+			for(JCheckBox checkbox : ivCheckboxes) {
 				String name = checkbox.getName();
 				if(name.equals(checkboxToSelect + checkboxName))
 					checkbox.setSelected(true);
@@ -860,7 +885,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		}
 	}
 	public void setDisabledCheckBox(String checkboxToDisable){
-		for(JCheckBox checkbox : columnCheckboxes) {
+		for(JCheckBox checkbox : ivCheckboxes) {
 			String name = checkbox.getName();
 			if(name.equals(checkboxToDisable + checkboxName)) {
 				checkbox.setSelected(true);
@@ -889,11 +914,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		return classComboBox;
 	}
 	public ArrayList<JCheckBox> getColumnCheckboxes() {
-		return columnCheckboxes;
+		return ivCheckboxes;
 	}
 	public ArrayList<JCheckBox> getClusterCheckboxes() {
 		return clusterCheckboxes;
-	}	
+	}
 	public JComboBox<String> getDrillDownTabSelectorComboBox() {
 		return drillDownTabSelectorComboBox;
 	}

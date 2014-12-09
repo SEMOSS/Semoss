@@ -34,6 +34,7 @@ import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
+import prerna.util.Utility;
 
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
@@ -81,6 +82,12 @@ public class ClusteringDrillDownListener extends AbstractListener {
 				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
 			}
 		}
+		
+		if(clustersToInclude.isEmpty()) {
+			Utility.showError("No clusters were selected to drill down on. Please select at least one and retry.");
+			return;
+		}
+		
 		
 		Hashtable<String, Integer> instanceIndexHash = playSheet.getInstanceIndexHash();
 		int[] clusterAssigned  = playSheet.getClusterAssigned();
