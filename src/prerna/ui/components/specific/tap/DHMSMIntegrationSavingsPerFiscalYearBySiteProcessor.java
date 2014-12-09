@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 
@@ -20,6 +21,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 
 	private final String masterQuery = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
 	private String masterQueryForSingleSystem = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { BIND(@SYSTEM@ AS ?System) {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private String masterQueryForListOfSystems = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } BINDINGS ?System {@BINDINGS@} &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
 	
 	private final String TAP_PORTFOLIO = "TAP_Portfolio";
 	private final String TAP_SITE = "TAP_Site_Data";
@@ -87,9 +89,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 
 			int sustainmentIndex = 0;
 			switch(endYear) {
-			case "2017" : sustainmentIndex = 2; break;
-			case "2018" : sustainmentIndex = 3; break;
-			default : sustainmentIndex = 4;
+				case "2017" : sustainmentIndex = 2; break;
+				case "2018" : sustainmentIndex = 3; break;
+				default : sustainmentIndex = 4;
 			}
 
 			int outputYear = Integer.parseInt(endYear) - minYear + 1;
@@ -126,7 +128,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									} else {
 										savings += 0;
 									}
-									// store amount saved each individual time a sytem is decommissioned
+									// store amount saved each individual time a system is decommissioned
 									if(notAdded) {
 										if(sysSavings.containsKey(system)) {
 											double currSiteSavings = sysSavings.get(system);
@@ -204,9 +206,13 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			int index;
 			for(index = 0; index < numCols - 2; index++) {
 				double value = values[index];
-				totalRow+=value;
-				row[index + 1] = formatter.format(values[index]);
-				totalCol[index] += value;
+				if(value == 0.0) {
+					row[index + 1] = "No Cost Information Received";
+				} else {
+					totalRow+=value;
+					row[index + 1] = formatter.format(values[index]);
+					totalCol[index] += value;
+				}
 			}
 			row[index+1] = formatter.format(totalRow);
 			list.add(row);
@@ -312,6 +318,23 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			query = masterQueryForSingleSystem.replace("@SYSTEM@", sysURI);
 		}
 
+		processQuery(query);
+	}
+	
+	public void runMainQueryFromWorksheetList(ArrayList<String> sysNamesList) {
+		String bindingsStr = "";
+		for(String sysName : sysNamesList) {
+			sysName = Utility.cleanString(sysName, false);
+			bindingsStr += "(<http://health.mil/ontologies/Concept/System/";
+			bindingsStr += sysName;
+			bindingsStr += ">)";
+		}
+		String query = masterQueryForListOfSystems.replace("@BINDINGS@", bindingsStr);
+		
+		processQuery(query);
+	}
+	
+	private void processQuery(String query) {
 		LOGGER.info(query);
 
 		if(masterHash == null) {
@@ -352,6 +375,5 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			} 
 		}
 	}
-
 
 }
