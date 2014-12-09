@@ -59,8 +59,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	
 	
 	private JTabbedPane jTab;
-	Hashtable<String, IPlaySheet> playSheetHash = new Hashtable<String,IPlaySheet>();
-	
+	private Hashtable<String, IPlaySheet> playSheetHash = new Hashtable<String,IPlaySheet>();
+	private JPanel variableSelectorPanel;
+
 	//independent variable panel
 	private double[] entropyArr;
 	private double[] accuracyArr;
@@ -150,7 +151,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 				precisionArr[i-1] = 100;
 			}
 		}
-		
+		fillSimBarChartHash(names,list);
+
+	}
+	
+	public void fillSimBarChartHash(String[] names, ArrayList<Object[]> list) {
 		//run the algorithms for similarity bar chart to create hash.
 		DatasetSimilarity alg = new DatasetSimilarity(list, names);
 		alg.generateClusterCenters();
@@ -217,7 +222,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		barPanel.add(jBar, BorderLayout.CENTER);
 		
 		//Panel that will be the first tab to select variables
-		JPanel variableSelectorPanel = new JPanel();
+		variableSelectorPanel = new JPanel();
 		JScrollPane scrollPane = new JScrollPane(variableSelectorPanel);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		scrollPane.setAutoscrolls(true);
@@ -249,15 +254,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblDataSetSimilarity.gridy = 0;
 		variableSelectorPanel.add(lblDataSetSimilarity, gbc_lblDataSetSimilarity);
 		
-		simBarChartPanel = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/columnchart.html");
-		simBarChartPanel.setPreferredSize(new Dimension(500, 300));
-		GridBagConstraints gbc_simBarChartPanel = new GridBagConstraints();
-		gbc_simBarChartPanel.fill = GridBagConstraints.BOTH;
-		gbc_simBarChartPanel.gridwidth = 3;
-		gbc_simBarChartPanel.insets = new Insets(10, 5, 0, 0);
-		gbc_simBarChartPanel.gridx = 0;
-		gbc_simBarChartPanel.gridy = 1;
-		variableSelectorPanel.add(simBarChartPanel, gbc_simBarChartPanel);
+		addSimBarChart();
 		
 		JLabel indVariablesLabel = new JLabel();
 		indVariablesLabel.setText("Filter parameters");
@@ -296,7 +293,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Similarity"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -410,14 +407,42 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		try {
 			this.pack();
 			this.setVisible(true);
-			simBarChartPanel.callIt(simBarChartHash);
-			
+			simBarChartPanel.callIt(simBarChartHash);			
 			this.setSelected(false);
 			this.setSelected(true);
 		} catch (PropertyVetoException e) {
 			LOGGER.error("Exception creating view");
 		}
 	
+	}
+	
+	public void addSimBarChart() {
+		simBarChartPanel = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/columnchart.html");
+		simBarChartPanel.setPreferredSize(new Dimension(500, 300));
+		GridBagConstraints gbc_simBarChartPanel = new GridBagConstraints();
+		gbc_simBarChartPanel.fill = GridBagConstraints.BOTH;
+		gbc_simBarChartPanel.gridwidth = 3;
+		gbc_simBarChartPanel.insets = new Insets(10, 5, 0, 0);
+		gbc_simBarChartPanel.gridx = 0;
+		gbc_simBarChartPanel.gridy = 1;
+		variableSelectorPanel.add(simBarChartPanel, gbc_simBarChartPanel);
+	}
+	
+	public void recreateSimBarChart(String[] names, ArrayList<Object[]> list) {
+		BrowserGraphPanel oldSimBarChartPanel = simBarChartPanel;
+		fillSimBarChartHash(names, list);
+		addSimBarChart();
+		variableSelectorPanel.remove(oldSimBarChartPanel);
+		
+		this.pack();
+		this.setVisible(true);
+		simBarChartPanel.callIt(simBarChartHash);
+		try{
+			this.setSelected(false);
+			this.setSelected(true);
+		} catch (PropertyVetoException e) {
+			LOGGER.error("Exception creating similarity bar chart");
+		}
 	}
 	
 	private void fillIndependentVariablePanel(JPanel indVariablesPanel) {
