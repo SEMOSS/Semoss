@@ -47,15 +47,16 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 	{		
 		ArrayList<ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList<ArrayList<Hashtable<String, Object>>>();
 		//series name - all objects in that series (x : ... , y : ...)
-		int lastCol = names.length - 1 ;
+//		int lastCol = names.length - 1 ;
+		int seriesCol = 4 ;
 		ArrayList<String> usedList = new ArrayList<String>();
-		Vector<String> seriesList = new Vector<String>();
+		ArrayList<String> seriesList = new ArrayList<String>();
 		ArrayList<String> clientIndex = new ArrayList<String>();
 		for( int i = 0; i < list.size(); i++)
-		{
+		{	
 			//format is ?x1 ?x1val ?x2 ?x2val .... ?seriesName
 			Object[] elemValues = list.get(i);
-			String seriesName = elemValues[lastCol].toString();
+			String seriesName = elemValues[seriesCol].toString();
 			
 			// need a way of passing metric ids on the series name.... for now splitting on "+++"
 			int splitIdx = seriesName.indexOf("+++");
@@ -79,8 +80,8 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 				dataObj.add(seriesList.indexOf(seriesKey), seriesArray);
 			}
 			
-			//add the element hashtables to the series array
-			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
+			//add the element hashtables to the series array -- right now we only allow two. The rest will be properties on that column
+			for( int seriesVal = 1; seriesVal <= 2; seriesVal++)
 			{
 				int firstCol = (seriesVal - 1) * 2;
 				
@@ -117,6 +118,13 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 		}
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
+		if (names.length > 4 && list.size()>0){
+			for( int i = 5; i < names.length; i++) {
+				String value = list.get(0)[i].toString();
+				columnChartHash.put(names[i], value);
+			}
+		}
+		
 		columnChartHash.put("names", names);
 		columnChartHash.put("dataSeries", dataObj);
 		columnChartHash.put("seriesList", seriesList);
