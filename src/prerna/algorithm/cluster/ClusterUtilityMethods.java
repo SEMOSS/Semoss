@@ -46,15 +46,17 @@ public final class ClusterUtilityMethods {
 					int categoryIdx;
 					for(categoryIdx = 0; categoryIdx < numCategoricalProp; categoryIdx++) {
 						String categoryValForInstance = instanceCategoryMatrix[instanceIdx][categoryIdx];
-						//add the category properties to the new cluster
-						Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryIdx);
-						if(propValHash.containsKey(categoryValForInstance)) {
-							int count = propValHash.get(categoryValForInstance);
-							propValHash.put(categoryValForInstance, ++count);
-						} else {
-							propValHash.put(categoryValForInstance, 1);
+						if(categoryValForInstance != null) {
+							//add the category properties to the new cluster
+							Hashtable<String,Integer> propValHash = clusterCategoryMatrix.get(clusterInd).get(categoryIdx);
+							if(propValHash.containsKey(categoryValForInstance)) {
+								int count = propValHash.get(categoryValForInstance);
+								propValHash.put(categoryValForInstance, ++count);
+							} else {
+								propValHash.put(categoryValForInstance, 1);
+							}
+							clusterCategoryMatrix.get(clusterInd).set(categoryIdx, propValHash);
 						}
-						clusterCategoryMatrix.get(clusterInd).set(categoryIdx, propValHash);
 					}
 				}
 			}

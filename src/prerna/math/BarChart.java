@@ -119,7 +119,8 @@ public class BarChart {
 			// each instance gets assigned its value
 			assignmentForEachObject[i] = values[i];
 			INNER : for(int j = 0; j < uniqueSize; j++) {
-				if(uniqueValues[j].equals(values[i])) {
+				String val = values[i];
+				if(val != null && uniqueValues[j].equals(val)) {
 					uniqueCounts[j]++;
 					break INNER;
 				}
@@ -197,8 +198,9 @@ public class BarChart {
 		{
 			this.stringValues = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
-			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(stringValues);
-			this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			String[] nonNullValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			numericalBinOrder = nonNullValues;
+			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
 			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
@@ -355,8 +357,9 @@ public class BarChart {
 		{
 			this.stringValues = ArrayUtilityMethods.convertDoubleWrapperArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
-			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(stringValues);
-			this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			String[] nonNullValues = (String[]) ArrayUtilityMethods.removeAllNulls(stringValues);
+			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(nonNullValues);
+			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
 			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
