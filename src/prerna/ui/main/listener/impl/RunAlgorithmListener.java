@@ -37,11 +37,11 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
+import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Utility;
 
@@ -108,11 +108,23 @@ public class RunAlgorithmListener extends AbstractListener {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;
 		}
+		
 		String[] filteredNames = Utility.filterNames(names, includeColArr);
 		ArrayList<Object[]> filteredList = Utility.filterList(list,includeColArr);
 
-		BasicProcessingPlaySheet newPlaySheet;
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
+		if(algorithm.equals("Similarity")) {
+			
+			ClusteringModuleUpdateRunner runner = new ClusteringModuleUpdateRunner(playSheet);
+			runner.setValues(filteredNames, filteredList);
+			
+			Thread playThread = new Thread(runner);
+			playThread.start();
+			return;
+		}
+		
+		
+		BasicProcessingPlaySheet newPlaySheet;
 		if(algorithm.equals("Cluster") ) {
 			int numClusters = 0;
 			String selectNumClustersText = (String) selectNumClustersComboBox.getSelectedItem();

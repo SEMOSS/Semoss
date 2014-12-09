@@ -57,6 +57,10 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showOutlier(true);
+		} else if(selection.equals("Similarity")) {
+			playSheet.showCluster(false);
+			playSheet.showClassify(false);
+			playSheet.showOutlier(false);
 		}
 
 	}
