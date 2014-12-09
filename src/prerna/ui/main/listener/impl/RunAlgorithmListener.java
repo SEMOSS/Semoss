@@ -97,9 +97,16 @@ public class RunAlgorithmListener extends AbstractListener {
 		//must make sure that we include the first col, even though there is no checkbox
 		boolean[] includeColArr = new boolean[columnCheckboxes.size()+1];
 		includeColArr[0] = true; //this is the "title" or "name"
+		Boolean noIVsSelected = true;
 		for(int i=0;i<columnCheckboxes.size();i++) {
 			JCheckBox checkbox = columnCheckboxes.get(i);
 			includeColArr[i+1] = checkbox.isSelected();
+			if(checkbox.isSelected())
+				noIVsSelected = false;
+		}
+		if(noIVsSelected) {
+			Utility.showError("No variables were selected. Please select at least one and retry.");
+			return;
 		}
 		String[] filteredNames = Utility.filterNames(names, includeColArr);
 		ArrayList<Object[]> filteredList = Utility.filterList(list,includeColArr);

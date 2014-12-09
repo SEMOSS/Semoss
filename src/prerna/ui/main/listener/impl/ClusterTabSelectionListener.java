@@ -19,8 +19,10 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
@@ -40,6 +42,7 @@ public class ClusterTabSelectionListener extends AbstractListener {
 	//given two panels, the cluster panel and the classify panel and determines which one to show based on what is clicked.
 	private ClassifyClusterPlaySheet playSheet;
 	private Hashtable<String,IPlaySheet> playSheetHash;
+	
 	/**
 	 * Method actionPerformed.
 	 * @param e ActionEvent
@@ -52,6 +55,7 @@ public class ClusterTabSelectionListener extends AbstractListener {
 		ClusteringVizPlaySheet clusterVizPlaySheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
 		int clusters = clusterVizPlaySheet.getNumClusters();
 		playSheet.updateClusterCheckboxes(clusters);
+		playSheet.resetClusterCheckboxesListener();
 	}
 
 	/**

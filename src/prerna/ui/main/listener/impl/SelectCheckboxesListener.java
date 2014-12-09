@@ -49,7 +49,10 @@ public class SelectCheckboxesListener implements ActionListener {
 			return;
 		}
 		for(JCheckBox checkbox : checkboxes) {
-			checkbox.setSelected(isSelected);
+			if(checkbox.isEnabled())
+				checkbox.setSelected(isSelected);
+			else //if the checkbox is disabled, then needs to be selected
+				checkbox.setSelected(true);
 		}
 	}
 
