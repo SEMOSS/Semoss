@@ -434,6 +434,7 @@ public class ClusteringDataProcessor {
 				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
 				// if no instances contain a value for the property, skip it
 				if(ArrayUtilityMethods.removeAllNulls(propColumn).length == 0) {
+					generateNumericalBinMatrix(i, new String[numRows]);
 					continue;
 				}
 				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);

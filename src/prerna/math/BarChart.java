@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -37,7 +36,7 @@ public class BarChart {
 		assignmentForEachObject = new String[values.length];
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, true);
+		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "?", true);
 	}
 	
 	public BarChart(String[] values, String categoricalLabel) {
@@ -47,7 +46,7 @@ public class BarChart {
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		this.categoricalLabel = categoricalLabel;
 
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, true);
+		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "?", true);
 	}
 	
 	public BarChart(double[] values) {
@@ -108,7 +107,7 @@ public class BarChart {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Hashtable<String, Object>[] calculateCategoricalBins(String[] values, String[] uniqueValues, boolean orderGaussian) {
+	private Hashtable<String, Object>[] calculateCategoricalBins(String[] values, String[] uniqueValues, String missingDataSymbol, boolean orderGaussian) {
 		int numOccurrences = values.length;
 		int uniqueSize = uniqueValues.length;
 		int[] uniqueCounts = new int[uniqueSize];
@@ -117,12 +116,16 @@ public class BarChart {
 		int i;
 		for(i = 0; i < numOccurrences; i++) {
 			// each instance gets assigned its value
-			assignmentForEachObject[i] = values[i];
-			INNER : for(int j = 0; j < uniqueSize; j++) {
-				String val = values[i];
-				if(val != null && uniqueValues[j].equals(val)) {
-					uniqueCounts[j]++;
-					break INNER;
+			String val = values[i];
+			if(val == null) {
+				assignmentForEachObject[i] = missingDataSymbol;
+			} else {
+				assignmentForEachObject[i] = values[i];
+				INNER : for(int j = 0; j < uniqueSize; j++) {
+					if(uniqueValues[j].equals(val)) {
+						uniqueCounts[j]++;
+						break INNER;
+					}
 				}
 			}
 		}
@@ -209,7 +212,7 @@ public class BarChart {
 			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, false);
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
@@ -368,7 +371,7 @@ public class BarChart {
 			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, false);
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
