@@ -354,21 +354,23 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
 			// numBins contains the number of bins
-			int numBins = sortedBinArr.length;
-			Double[] numInstances1 = calculateComparisonArr(propInfoForCluster1, sortedBinArr);
-			Double[] numInstances2 = calculateComparisonArr(propInfoForCluster2, sortedBinArr);
-
-			double normalizationCount1 = StatisticsUtilityMethods.getSum(numInstances1);
-			double normalizationCount2 = StatisticsUtilityMethods.getSum(numInstances2);
-
-			double sumClusterDiff = 0;
-			for(int index = 0; index < numBins+1; index++) {
-				double count1 = numInstances1[index];
-				double count2 = numInstances2[index];
-				sumClusterDiff += Math.abs(count1/normalizationCount1 - count2/normalizationCount2);
+			if(sortedBinArr != null) {
+				int numBins = sortedBinArr.length;
+				Double[] numInstances1 = calculateComparisonArr(propInfoForCluster1, sortedBinArr);
+				Double[] numInstances2 = calculateComparisonArr(propInfoForCluster2, sortedBinArr);
+	
+				double normalizationCount1 = StatisticsUtilityMethods.getSum(numInstances1);
+				double normalizationCount2 = StatisticsUtilityMethods.getSum(numInstances2);
+	
+				double sumClusterDiff = 0;
+				for(int index = 0; index < numBins+1; index++) {
+					double count1 = numInstances1[index];
+					double count2 = numInstances2[index];
+					sumClusterDiff += Math.abs(count1/normalizationCount1 - count2/normalizationCount2);
+				}
+	
+				similarityScore += weights[i] * (1 - sumClusterDiff/numBins);
 			}
-
-			similarityScore += weights[i] * (1 - sumClusterDiff/numBins);
 		}
 
 		return coeff * similarityScore;
