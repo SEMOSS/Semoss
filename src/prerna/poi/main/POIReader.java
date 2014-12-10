@@ -188,7 +188,7 @@ public class POIReader extends AbstractFileReader {
 			throw new FileReaderException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xls, .xlsx) file");
+			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		}
 		// load the Loader tab to determine which sheets to load
 		XSSFSheet lSheet = workbook.getSheet("Loader");
