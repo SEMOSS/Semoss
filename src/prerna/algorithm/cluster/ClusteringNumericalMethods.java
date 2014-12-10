@@ -111,16 +111,15 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < weights.length; i++) {
 			if(weights[i] == 0) {
-				similarity = 1;
 				continue;
 			}
-			
+
 			String[] sortedBinArr = instanceNumberBinOrderingMatrix[i];
 			// check to make sure instances contain value for prop and not all missing data
 			if(sortedBinArr != null) {
 				// numBins contains the number of bins
 				int numBins = sortedBinArr.length;
-	
+
 				double adjustmentFactor = 0;
 				Hashtable<String, Integer> propertyHash = categoryClusterInfo.get(i);
 				Set<String> propKeySet = propertyHash.keySet();
@@ -135,9 +134,9 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 						double normalizedNumInBin = (double) propertyHash.get("NaN") / sumProperties;
 						adjustmentFactor += normalizedNumInBin;
 					} 
-					//				else {
-					//					// similarity is zero if one value is NaN and the other is not NaN
-					//				}
+					//	else {
+					//	// similarity is zero if one value is NaN and the other is not NaN
+					//	}
 				} else {
 					for(String propName : propKeySet) {
 						if(!propName.equals("NaN")) {
@@ -154,7 +153,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
 		double coeff = 1.0 * propNum / totalPropNum;
 
-		//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
+		// LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
 		return coeff * similarity;
 	}
 
@@ -479,4 +478,5 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 
 		return null;
 	}
+	
 }
