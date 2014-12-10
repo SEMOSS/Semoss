@@ -432,58 +432,61 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[numClusters];
 		for(int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
-			Hashtable<String, Hashtable<String, Object>> clusterData = new Hashtable<String, Hashtable<String, Object>>(allClusterInfo.keySet().size());
-			for(String propName : allClusterInfo.keySet()) {
-				int idx = ArrayUtilityMethods.calculateIndexOfArray(names, propName);
-				Object[] values = allClusterInfo.get(propName);
-				values = ArrayUtilityMethods.removeAllNulls(values);
-				if(values != null) {
-					if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx) & values.length > 5) {					
-						// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
-						Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(values);
-						numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
-						BarChart chart = new BarChart(numValues);
-						Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
-						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-						String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
-						// cause JS is dumb
-						Object[] propBinsArr = new Object[]{propBins};
-						innerHash.put("dataSeries", propBinsArr);
-						innerHash.put("names", new String[]{propName, "Distribution"});
-						innerHash.put("zScore", zScore);
-						clusterData.put(propName, innerHash);
-					} else {
-						String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
-						BarChart chart = new BarChart(stringValues);
-						Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
-						Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-						// cause JS is dumb
-						Object[] propBinsArr = new Object[]{propBins};
-						innerHash.put("dataSeries", propBinsArr);
-						innerHash.put("names", new String[]{propName, "Frequency"});
-						// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
-						clusterData.put(propName, innerHash);
+			// algorithm can determine that the number of clusters should be less than the number specified by the user
+			if(!allClusterInfo.isEmpty()) {
+				Hashtable<String, Hashtable<String, Object>> clusterData = new Hashtable<String, Hashtable<String, Object>>(allClusterInfo.keySet().size());
+				for(String propName : allClusterInfo.keySet()) {
+					int idx = ArrayUtilityMethods.calculateIndexOfArray(names, propName);
+					Object[] values = allClusterInfo.get(propName);
+					values = ArrayUtilityMethods.removeAllNulls(values);
+					if(values != null) {
+						if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx) & values.length > 5) {					
+							// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
+							Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(values);
+							numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
+							BarChart chart = new BarChart(numValues);
+							Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
+							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+							String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
+							// cause JS is dumb
+							Object[] propBinsArr = new Object[]{propBins};
+							innerHash.put("dataSeries", propBinsArr);
+							innerHash.put("names", new String[]{propName, "Distribution"});
+							innerHash.put("zScore", zScore);
+							clusterData.put(propName, innerHash);
+						} else {
+							String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
+							BarChart chart = new BarChart(stringValues);
+							Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
+							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+							// cause JS is dumb
+							Object[] propBinsArr = new Object[]{propBins};
+							innerHash.put("dataSeries", propBinsArr);
+							innerHash.put("names", new String[]{propName, "Frequency"});
+							// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
+							clusterData.put(propName, innerHash);
+						}
 					}
 				}
+				barData[i] = clusterData;
+				
+				// add in similarity for cluster
+				String[] origArr = names;
+				origArr = Arrays.copyOfRange(origArr, 0, origArr.length - 1);
+				DatasetSimilarity alg = new DatasetSimilarity(storeInstanceDataInCluster.get(i), origArr);
+				alg.generateClusterCenters();
+				double[] simValues = alg.getSimilarityValuesForInstances();
+				BarChart chart = new BarChart(simValues, "");
+				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+				String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
+	
+				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+				Object[] binArr = new Object[]{bins};
+				innerHash.put("dataSeries", binArr);
+				innerHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center"), "Distribution"});
+				innerHash.put("zScore", zScore);
+				clusterData.put("Similarity Value to Dataset Center", innerHash);
 			}
-			barData[i] = clusterData;
-			
-			// add in similarity for cluster
-			String[] origArr = names;
-			origArr = Arrays.copyOfRange(origArr, 0, origArr.length - 1);
-			DatasetSimilarity alg = new DatasetSimilarity(storeInstanceDataInCluster.get(i), origArr);
-			alg.generateClusterCenters();
-			double[] simValues = alg.getSimilarityValuesForInstances();
-			BarChart chart = new BarChart(simValues, "");
-			Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
-			String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
-
-			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			Object[] binArr = new Object[]{bins};
-			innerHash.put("dataSeries", binArr);
-			innerHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center"), "Distribution"});
-			innerHash.put("zScore", zScore);
-			clusterData.put("Similarity Value to Dataset Center", innerHash);
 		}
 		
 		allHash.put("dataSeries", dataList);
