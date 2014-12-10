@@ -37,7 +37,7 @@ public class BarChart {
 		assignmentForEachObject = new String[values.length];
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, true);
 	}
 	
 	public BarChart(String[] values, String categoricalLabel) {
@@ -47,7 +47,7 @@ public class BarChart {
 		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 		this.categoricalLabel = categoricalLabel;
 
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, true);
 	}
 	
 	public BarChart(double[] values) {
@@ -108,7 +108,7 @@ public class BarChart {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Hashtable<String, Object>[] calculateCategoricalBins(String[] values, String[] uniqueValues) {
+	private Hashtable<String, Object>[] calculateCategoricalBins(String[] values, String[] uniqueValues, boolean orderGaussian) {
 		int numOccurrences = values.length;
 		int uniqueSize = uniqueValues.length;
 		int[] uniqueCounts = new int[uniqueSize];
@@ -142,16 +142,22 @@ public class BarChart {
 					uniqueValues[i] = smallerPropName;
 				}
 			}
-		}		
-		// order the values to look the normal distribution
-		String[] sortedValues = new String[uniqueSize];
-		int[] sortedCounts = new int[uniqueSize];
-		int center = (int) Math.ceil(uniqueSize / 2.0);
-		int sgn;
-		for(i = 1, sgn = -1; i <= uniqueSize; i++, sgn *= -1) {
-			sortedCounts[center - 1 + (sgn*i/2)] = uniqueCounts[uniqueSize - i];
-			sortedValues[center - 1 + (sgn*i/2)] = uniqueValues[uniqueSize - i];
 		}
+		String[] sortedValues = uniqueValues;
+		int[] sortedCounts = uniqueCounts;
+		
+		if(orderGaussian) {
+			// order the values to look the normal distribution
+			sortedValues = new String[uniqueSize];
+			sortedCounts = new int[uniqueSize];
+			int center = (int) Math.ceil(uniqueSize / 2.0);
+			int sgn;
+			for(i = 1, sgn = -1; i <= uniqueSize; i++, sgn *= -1) {
+				sortedCounts[center - 1 + (sgn*i/2)] = uniqueCounts[uniqueSize - i];
+				sortedValues[center - 1 + (sgn*i/2)] = uniqueValues[uniqueSize - i];
+			}
+		}
+		
 		for(i = 0; i < uniqueSize; i++) {
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 			innerHash.put("seriesName", categoricalLabel);
@@ -203,7 +209,7 @@ public class BarChart {
 			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
@@ -362,7 +368,7 @@ public class BarChart {
 			this.uniqueValues = numericalBinOrder;
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues);
+			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
 			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
