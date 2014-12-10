@@ -12,7 +12,6 @@ SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
 Capability http://health.mil/ontologies/Concept/Capability
 CDR http://health.mil/ontologies/Concept/CDR
 NCRMDUser http://health.mil/ontologies/Concept/NCRMDUser
-Element http://health.mil/ontologies/Concept/Element
 Database http://health.mil/ontologies/Concept/Database
 HL7 http://health.mil/ontologies/Concept/HL7
 SystemOwner http://health.mil/ontologies/Concept/SystemOwner
@@ -58,8 +57,8 @@ DataObject_Connected_HL7 http://health.mil/ontologies/Relation/Connected
 SoftwareVersion_Upgrade_SoftwareVersion http://health.mil/ontologies/Relation/Upgrade
 ConformanceCriteria_Fulfill_DataObject http://health.mil/ontologies/Relation/Fulfill
 HardwareModule_TypeOf_HardwareVersion http://health.mil/ontologies/Relation/TypeOf
-BusinessLogicUnit_Requires_DataObject http://health.mil/ontologies/Relation/Requires
 JMA_Consists_JMA http://health.mil/ontologies/Relation/Consists
+BusinessLogicUnit_Requires_DataObject http://health.mil/ontologies/Relation/Requires
 Service_Exposes_DataObject http://health.mil/ontologies/Relation/Exposes
 Activity_Consists_Activity http://health.mil/ontologies/Relation/Consists
 Hardware_Has_HardwareVersion http://health.mil/ontologies/Relation/Has
@@ -112,7 +111,6 @@ SystemTasker_TypeOf_Tasker http://health.mil/ontologies/Relation/TypeOf
 System_Rated_Complexity http://health.mil/ontologies/Relation/Rated
 System_Has_TError http://health.mil/ontologies/Relation/Has
 CDRElement_BelongsTo_CDR http://health.mil/ontologies/Relation/BelongsTo
-Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
 Requirement_Consists_ConformanceCriteria http://health.mil/ontologies/Relation/Consists
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 DataElement_BelongsTo_DataObject http://health.mil/ontologies/Relation/BelongsTo
@@ -159,7 +157,6 @@ SoftwareVCategory_CLASS http://semoss.org/ontologies/Concept/SoftwareVCategory
 TaskerLifecycleSystemPhase_CLASS http://semoss.org/ontologies/Concept/TaskerLifecycleSystemPhase
 Software_CLASS http://semoss.org/ontologies/Concept/Software
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
-Element_CLASS http://semoss.org/ontologies/Concept/Element
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
 Tasker_CLASS http://semoss.org/ontologies/Concept/Tasker
 CCD_Element_CLASS http://semoss.org/ontologies/Concept/CCD_Element
@@ -226,8 +223,8 @@ System_OwnedBy_SystemOwner_CLASS http://semoss.org/ontologies/Relation/OwnedBy
 Activity_Has_ActivityLevel_CLASS http://semoss.org/ontologies/Relation/Has
 SystemTasker_BelongsTo_NCRMDUser_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_Phase_LifeCycle_CLASS http://semoss.org/ontologies/Relation/Phase
-BusinessLogicUnit_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
 Activity_MapsTo_JMA_CLASS http://semoss.org/ontologies/Relation/MapsTo
+BusinessLogicUnit_Requires_DataObject_CLASS http://semoss.org/ontologies/Relation/Requires
 Software_Has_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/Has
 CCD_Element_BelongsTo_CCD_CLASS http://semoss.org/ontologies/Relation/BelongsTo
 System_Utilizes_UserInterface_CLASS http://semoss.org/ontologies/Relation/Utilizes
@@ -240,7 +237,6 @@ System_Rated_Complexity_CLASS http://semoss.org/ontologies/Relation/Rated
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 VISTAUnion_MappedTo_VISTA_CLASS http://semoss.org/ontologies/Relation/MappedTo
 FError_Needs_DataObject_CLASS http://semoss.org/ontologies/Relation/Needs
-Activity_ActivitySplit_Element_CLASS http://semoss.org/ontologies/Relation/ActivitySplit
 VISTAUnion_MappedTo_VISTAElement_CLASS http://semoss.org/ontologies/Relation/MappedTo
 InterfaceControlDocument_Carries_DataElement_CLASS http://semoss.org/ontologies/Relation/Carries
 SoftwareModule_TypeOf_SoftwareVersion_CLASS http://semoss.org/ontologies/Relation/TypeOf
