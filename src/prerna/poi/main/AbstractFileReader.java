@@ -360,7 +360,7 @@ public abstract class AbstractFileReader {
 			String subjectInstance = baseHashIt.next() +"";
 			String predicate = Constants.SUBCLASS_URI;
 			//convert instances to URIs
-			String subject = baseConceptURIHash.get(subjectInstance) +"";
+			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) +"", false);
 			String object = semossURI + "/Concept";
 			// create the statement now
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
@@ -372,7 +372,7 @@ public abstract class AbstractFileReader {
 			String subjectInstance = baseHashIt.next() +"";
 			String predicate = Constants.SUBPROPERTY_URI;
 			//convert instances to URIs
-			String subject = baseRelationURIHash.get(subjectInstance) +"";
+			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) +"", false);
 			String object = semossURI + "/Relation";
 			// create the statement now
 			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
