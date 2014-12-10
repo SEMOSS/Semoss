@@ -22,7 +22,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 absoluteBarPadding = 1, barPadding = 0.05,
                 yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
             var columnData = {};
-            var barChartSignal = false;
+            var barChartSignal = true;
             var zScoreFlag = false;
             var zScoreData = [];
             var thresholdwidth = 960,
