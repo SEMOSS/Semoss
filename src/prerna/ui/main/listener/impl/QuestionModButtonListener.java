@@ -225,7 +225,6 @@ public class QuestionModButtonListener implements IChakraListener {
 				questionAdmin.existingPerspective = true;
 				
 				if (existingPerspective) {
-					questionPerspectiveSelector.setSelectedItem(perspective);
 					for (int j = 0; j < questionSelector.getItemCount(); j++) {
 						String question = questionSelector.getItemAt(j);
 						String[] questionSplit = question.split("\\. ", 2);
