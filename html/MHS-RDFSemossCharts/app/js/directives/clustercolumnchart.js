@@ -22,7 +22,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                 absoluteBarPadding = 1, barPadding = 0.05,
                 yGroupMax = 0, yStackMax = 0, layers = {}, stacked = true;
             var columnData = {};
-            var barChartSignal = true;
+            var barChartSignal = false;
             var zScoreFlag = false;
             var zScoreData = [];
             var thresholdwidth = 960,
@@ -735,7 +735,7 @@ app.directive('columnchart', function($filter, $rootScope) {
                         .attr("opacity", standardBarOpacity);
                 }
             }
-
+            resize();
             scope.$watch('barChartResized', function() {
                     if(barChartSignal != scope.barChartResized){
                         barChartSignal = scope.barChartResized;
