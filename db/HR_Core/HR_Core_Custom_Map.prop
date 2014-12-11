@@ -76,7 +76,6 @@ TaskerLifecycleSystemPhase http://health.mil/ontologies/Concept/TaskerLifecycleS
 Requirement http://health.mil/ontologies/Concept/Requirement
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 TransitionRoundTripResponseLatency http://health.mil/ontologies/Concept/TransitionRoundTripResponseLatency
-Element http://health.mil/ontologies/Concept/Element
 CCD http://health.mil/ontologies/Concept/CCD
 Service http://health.mil/ontologies/Concept/Service
 Portfolio http://health.mil/ontologies/Concept/Portfolio
@@ -211,7 +210,6 @@ Capability_Implements_CoexistData http://health.mil/ontologies/Relation/Implemen
 InterfaceControlDocument_Has_DProt http://health.mil/ontologies/Relation/Has
 System_BelongsTo_Portfolio http://health.mil/ontologies/Relation/BelongsTo
 Capability_Requires_ModernizationArchival http://health.mil/ontologies/Relation/Requires
-Activity_ActivitySplit_Element http://health.mil/ontologies/Relation/ActivitySplit
 Activity_Assigned_FError http://health.mil/ontologies/Relation/Assigned
 Service_Exposes_BusinessLogicUnit http://health.mil/ontologies/Relation/Exposes
 Capability_Requires_TransitionStandard http://health.mil/ontologies/Relation/Requires
@@ -244,7 +242,6 @@ Capability_Requires_TransitionNonRepudiation http://health.mil/ontologies/Relati
 
 NCRMDUser_CLASS http://semoss.org/ontologies/Concept/NCRMDUser
 Activity_CLASS http://semoss.org/ontologies/Concept/Activity
-Element_CLASS http://semoss.org/ontologies/Concept/Element
 DisconnectedCare_CLASS http://semoss.org/ontologies/Concept/DisconnectedCare
 SLA_CLASS http://semoss.org/ontologies/Concept/SLA
 LifeCycle_CLASS http://semoss.org/ontologies/Concept/LifeCycle
