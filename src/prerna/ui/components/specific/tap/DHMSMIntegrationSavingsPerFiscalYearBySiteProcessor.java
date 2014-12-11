@@ -5,7 +5,9 @@ import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,8 +27,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	
 	private final String TAP_PORTFOLIO = "TAP_Portfolio";
 	private final String TAP_SITE = "TAP_Site_Data";
+	private final String HR_CORE = "HR_Core";
 	private IEngine tapPortfolio;
 	private IEngine tapSite;
+	private IEngine hrCore;
 
 	private DualEngineGridPlaySheet dualQueries = new DualEngineGridPlaySheet();	
 
@@ -38,6 +42,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	private HashMap<String, String> lastWaveForEachSystem;
 	private HashMap<String, HashMap<String, ArrayList<String>>> masterHash;
 	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
+	private HashMap<String, HashMap<Integer, Boolean>> missingDataMap = new HashMap<String, HashMap<Integer, Boolean>>();
+	private Set<String> centrallyLocatedSys = new HashSet<String>();
 
 	private ArrayList<Object[]> list;
 	private String[] names;
@@ -81,8 +87,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
 		
 
-		for(String wave : waveStartEndDate.keySet()) 
-		{
+		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
 			String endTime[] = startDate[1].split("FY");
 			String endYear = endTime[1];
@@ -113,29 +118,28 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					if(addSite) {
 						ArrayList<String> systems = sites.get(site);
 						double[] yearlySavings = new double[numColumns];
-	
 						int counter = 0;
 						for(String system : systems) {
-							boolean notAdded = true;
-							
+							boolean dataMissing = false;
 							for(int index = outputYear; index < numColumns; index++) {
 								double savings = 0.0;
 								if(sysSiteSupportAndFloaterCostHash.containsKey(system)) {
 									// if we have cost information at the site lvl
 									HashMap<String, Double> siteSupportCostForSystem = sysSiteSupportAndFloaterCostHash.get(system);
 									if(siteSupportCostForSystem.containsKey(site)) {
-										savings += siteSupportCostForSystem.get(site);
+										savings += siteSupportCostForSystem.get(site);										
 									} else {
 										savings += 0;
+										dataMissing = true;
 									}
 									// store amount saved each individual time a system is decommissioned
-									if(notAdded) {
+									if(index == numColumns - 1) {
 										if(sysSavings.containsKey(system)) {
 											double currSiteSavings = sysSavings.get(system);
-											currSiteSavings += savings * inflationArr[index];
+											currSiteSavings += savings * inflationArr[index+1];
 											sysSavings.put(system, currSiteSavings);
 										} else {
-											sysSavings.put(system, savings *inflationArr[index]);
+											sysSavings.put(system, savings *inflationArr[index+1]);
 										}
 									}
 								} else {
@@ -144,8 +148,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									// assume cost for a specific site is total cost / num sites
 									double numSites = numSitesForSysHash.get(system);
 									if(costs != null){
-										if(costs[sustainmentIndex + counter] == null) {
-											savings += 0;
+										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
+											dataMissing = true;
 										} else {
 											savings += costs[sustainmentIndex + counter] / numSites;
 										}
@@ -155,7 +159,23 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 								if(sustainmentIndex+counter < 4) {
 									counter++;
 								}
-								yearlySavings[index] = savings * inflationArr[index+1];
+								if(dataMissing){
+									HashMap<Integer, Boolean> innerMap;
+									if(missingDataMap.containsKey(site)) {
+										innerMap = missingDataMap.get(site);
+										innerMap.put(index,  dataMissing);
+									} else {
+										innerMap = new HashMap<Integer, Boolean>();
+										missingDataMap.put(site, innerMap);
+										innerMap.put(index, dataMissing);
+									}
+								}
+								if(centrallyLocatedSys.contains(system)) {
+									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
+									break;
+								} else {
+									yearlySavings[index] += savings * inflationArr[index+1];
+								}
 							}
 						}
 	
@@ -170,6 +190,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 						}
 					}
 				}
+
 			}
 		}
 
@@ -206,13 +227,25 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			int index;
 			for(index = 0; index < numCols - 2; index++) {
 				double value = values[index];
-				if(value == 0.0) {
-					row[index + 1] = "No Cost Information Received";
+				if(missingDataMap.containsKey(site)){
+					HashMap<Integer, Boolean> innerMap = missingDataMap.get(site);
+					if(innerMap.containsKey(index)){
+						if(value == 0) {
+							row[index + 1] = "No Cost Data";
+						} else {
+							totalRow+=value;
+							row[index + 1] = formatter.format(values[index]) + "*";
+							totalCol[index] += value;
+						}
+					} else {
+						row[index + 1] = formatter.format(values[index]);
+					}
 				} else {
 					totalRow+=value;
 					row[index + 1] = formatter.format(values[index]);
 					totalCol[index] += value;
 				}
+
 			}
 			row[index+1] = formatter.format(totalRow);
 			list.add(row);
@@ -253,7 +286,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				double savings = costArr[position]; 
 				
 				for(index = outputYear; index < numCols - 2; index++) {
-					double inflatedSavings = savings * inflationArr[index-position];
+					double inflatedSavings = savings * inflationArr[index-position+1];
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
 				}
 			}
@@ -267,6 +300,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			totalSustainment += fixedAmount;
 		}
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
+		
 		row[numCols - 1] = formatter.format(combinedTotal + totalSustainment);
 		list.add(sustainmentRow);
 		list.add(row);
@@ -275,6 +309,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 	public void runSupportQueries() {
 		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(TAP_PORTFOLIO);
 		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(TAP_SITE);
+		this.hrCore = (IEngine) DIHelper.getInstance().getLocalProp(HR_CORE);
 
 		sysSustainmentInfoHash = DHMSMDeploymentHelper.getSysSustainmentBudget(tapPortfolio);
 		
@@ -294,6 +329,258 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
 		
 		lastWaveForEachSystem = DHMSMDeploymentHelper.getLastWaveForEachSystem(tapSite, waveOrder);
+		
+		centrallyLocatedSys = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
+	}
+	
+	public void processSystemData(){
+		Integer minYear = 3000; // arbitrarily large year
+		Integer maxYear = 0;
+		for(String wave : waveStartEndDate.keySet()) {
+			String[] startDate = waveStartEndDate.get(wave);
+			String startTime[] = startDate[0].split("FY");
+			String endTime[] = startDate[1].split("FY");
+			String startYear = startTime[1];
+			String endYear = endTime[1];
+			int startYearAsNum = Integer.parseInt(startYear);
+			int endYearAsNum = Integer.parseInt(endYear);
+			if(endYearAsNum > maxYear) {
+				maxYear = endYearAsNum;
+			} else if(startYearAsNum < minYear) {
+				minYear = startYearAsNum;
+			}
+		}
+		int numColumns = maxYear - minYear + 2; // costs gains are realized a year after
+		double[] inflationArr = new double[numColumns+1];
+		int i;
+		for(i = 0; i < numColumns+1; i++) {
+			if(i <= 1) {
+				inflationArr[i] = 1;
+			} else {
+				// only add inflation for years we don't have O&M budget info for
+				inflationArr[i] = Math.pow(1.03, i-1);
+			}
+		}
+		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
+		
+
+		for(String wave : waveStartEndDate.keySet()) {
+			String[] startDate = waveStartEndDate.get(wave);
+			String endTime[] = startDate[1].split("FY");
+			String endYear = endTime[1];
+
+			int sustainmentIndex = 0;
+			switch(endYear) {
+				case "2017" : sustainmentIndex = 2; break;
+				case "2018" : sustainmentIndex = 3; break;
+				default : sustainmentIndex = 4;
+			}
+
+			int outputYear = Integer.parseInt(endYear) - minYear + 1;
+
+			HashMap<String, ArrayList<String>> sites = masterHash.get(wave);
+			if(sites != null) {
+				for(String site : sites.keySet()) {
+					boolean addSite = false;
+					if(!lastWaveForSitesAndFloatersInMultipleWavesHash.containsKey(site)) {
+						addSite = true;
+					} else {
+						String lastWave = lastWaveForSitesAndFloatersInMultipleWavesHash.get(site); 
+						if(lastWave.equals(wave)) {
+							addSite = true;
+						} else {
+							addSite = false;
+						}
+					}
+					if(addSite) {
+						ArrayList<String> systems = sites.get(site);
+						double[] yearlySavings = new double[numColumns];
+						int counter = 0;
+						for(String system : systems) {
+							boolean dataMissing = false;
+							for(int index = outputYear; index < numColumns; index++) {
+								double savings = 0.0;
+								if(sysSiteSupportAndFloaterCostHash.containsKey(system)) {
+									// if we have cost information at the site lvl
+									HashMap<String, Double> siteSupportCostForSystem = sysSiteSupportAndFloaterCostHash.get(system);
+									if(siteSupportCostForSystem.containsKey(site)) {
+										savings += siteSupportCostForSystem.get(site);										
+									} else {
+										savings += 0;
+										dataMissing = true;
+									}
+									// store amount saved each individual time a system is decommissioned
+									if(index == numColumns - 1) {
+										if(sysSavings.containsKey(system)) {
+											double currSiteSavings = sysSavings.get(system);
+											currSiteSavings += savings * inflationArr[index+1];
+											sysSavings.put(system, currSiteSavings);
+										} else {
+											sysSavings.put(system, savings * inflationArr[index+1]);
+										}
+									}
+								} else {
+									// if we do not have cost information at the site lvl
+									Double[] costs = sysSustainmentInfoHash.get(system);
+									// assume cost for a specific site is total cost / num sites
+									double numSites = numSitesForSysHash.get(system);
+									if(costs != null){
+										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
+											dataMissing = true;
+										} else {
+											savings += costs[sustainmentIndex + counter] / numSites;
+										}
+									}
+								}
+								
+								if(sustainmentIndex+counter < 4) {
+									counter++;
+								}
+								if(dataMissing){
+									HashMap<Integer, Boolean> innerMap;
+									if(missingDataMap.containsKey(site)) {
+										innerMap = missingDataMap.get(site);
+										innerMap.put(index,  dataMissing);
+									} else {
+										innerMap = new HashMap<Integer, Boolean>();
+										missingDataMap.put(site, innerMap);
+										innerMap.put(index, dataMissing);
+									}
+								}
+								if(centrallyLocatedSys.contains(system)) {
+									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
+									break;
+								} else {
+									yearlySavings[index] += savings * inflationArr[index+1];
+								}
+							}
+							
+							if(savingsData.containsKey(system)) {
+								double[] currSavings = savingsData.get(system);
+								for(int index = 0; index < currSavings.length; index++) {
+									currSavings[index] += yearlySavings[index];
+								}
+								savingsData.put(system, currSavings);
+							} else {
+								savingsData.put(system, yearlySavings);
+							}
+						}
+					}
+				}
+			}
+			
+		}
+		
+		list = new ArrayList<Object[]>();
+		int numCols = 0;
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+		double[] totalCol = null; 
+		for(String site : savingsData.keySet()) {
+			double[] values = savingsData.get(site);
+
+			if(list.isEmpty()) {
+				numCols = values.length+2;
+				totalCol = new double[numCols-2];
+				names = new String[numCols];
+				int fy = minYear; // pass min year to start table
+				int index;
+				for(index = 0; index < numCols - 1; index++) {
+					if(index == 0) {
+						names[0] = "HostSite/Floater";
+					}
+					String fyString = "" + fy;
+					fyString = "FY" + fyString.substring(2,4);
+					names[index+1] = fyString;
+					fy++;				
+				}
+				names[index] = "Total";
+			}
+
+			Object[] row = new Object[numCols];
+			double totalRow = 0;
+			row[0] = site;
+			int index;
+			for(index = 0; index < numCols - 2; index++) {
+				double value = values[index];
+				if(missingDataMap.containsKey(site)){
+					HashMap<Integer, Boolean> innerMap = missingDataMap.get(site);
+					if(innerMap.containsKey(index)){
+						if(value == 0) {
+							row[index + 1] = "No Cost Data";
+						} else {
+							totalRow+=value;
+							row[index + 1] = formatter.format(values[index]) + "*";
+							totalCol[index] += value;
+						}
+					} else {
+						row[index + 1] = formatter.format(values[index]);
+					}
+				} else {
+					totalRow+=value;
+					row[index + 1] = formatter.format(values[index]);
+					totalCol[index] += value;
+				}
+
+			}
+			row[index+1] = formatter.format(totalRow);
+			list.add(row);
+		}
+		
+		//add fixed cost and column totals
+		Object[] row = new Object[numCols];
+		row[0] = "Total";
+		double combinedTotal = 0;
+		int index;
+		for(index = 0; index < numCols - 2; index++) {
+			combinedTotal += totalCol[index];
+		}
+		
+		// need to determine when last wave for each system we have information for was decommissioned
+		Object[] sustainmentRow = new Object[numCols];
+		double[] yearlySavings = new double[numCols - 2];
+		for(String system : sysSiteSupportAndFloaterCostHash.keySet()) {
+			Double currSiteSavings = sysSavings.get(system);
+			if(currSiteSavings != null) {
+				String wave = lastWaveForEachSystem.get(system);
+				String[] startDate = waveStartEndDate.get(wave);
+				String endTime[] = startDate[1].split("FY");
+				String endYear = endTime[1];
+				int outputYear = Integer.parseInt(endYear) - minYear + 1;
+				
+				// find last non-null cost information
+				Double[] costArr = sysSustainmentInfoHash.get(system);
+				int position = costArr.length - 1;
+				boolean loop = true;
+				while(loop) {
+					if(costArr[position] == null) {
+						position = position - 1;
+					} else {
+						loop = false;
+					}
+				}
+				double savings = costArr[position]; 
+				
+				for(index = outputYear; index < numCols - 2; index++) {
+					double inflatedSavings = savings * inflationArr[index-position+1];
+					yearlySavings[index] += inflatedSavings - currSiteSavings;
+				}
+			}
+		}
+		sustainmentRow[0] = "Fixed_Sustainment_Cost";
+		double totalSustainment = 0;
+		for(index = 1; index < numCols - 1; index++) {
+			double fixedAmount = yearlySavings[index-1];
+			sustainmentRow[index] = formatter.format(fixedAmount);
+			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
+			totalSustainment += fixedAmount;
+		}
+		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
+		
+		row[numCols - 1] = formatter.format(combinedTotal + totalSustainment);
+		list.add(sustainmentRow);
+		list.add(row);
 	}
 
 	private HashMap<String, HashMap<String, Double>> addAllCostInfo(HashMap<String, HashMap<String, Double>> sysSiteSupportCostHash, HashMap<String, HashMap<String, Double>> sysFloaterCostHash) {
