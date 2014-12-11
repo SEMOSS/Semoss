@@ -38,9 +38,13 @@ public class ImportDataProcessor {
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, RDBMS};
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL, OCR};
 
-	String baseDirectory;
-	Hashtable<String, String> propHash;
+	private String baseDirectory;
+	private Hashtable<String, String>[] propHashArr;
 
+	public void setPropHashArr(Hashtable<String, String>[] propHashArr) {
+		this.propHashArr = propHashArr;
+	}
+	
 	public void setBaseDirectory(String baseDirectory){
 		this.baseDirectory = baseDirectory;
 	}
@@ -94,8 +98,9 @@ public class ImportDataProcessor {
 			CSVReader csvReader = new CSVReader();
 			//If propHash has not been set, we are coming from semoss and need to read the propFile
 			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
-			if(propHash != null)
-				csvReader.setRdfMap(propHash);
+			if(propHashArr != null) {
+				csvReader.setRdfMapArr(propHashArr);
+			}
 			//run the reader
 			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
@@ -167,8 +172,9 @@ public class ImportDataProcessor {
 			CSVReader csvReader = new CSVReader();
 			//If propHash has not been set, we are coming from semoss and need to read the propFile
 			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
-			if(propHash != null)
-				csvReader.setRdfMap(propHash);
+			if(propHashArr != null) {
+				csvReader.setRdfMapArr(propHashArr);
+			}
 			csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
@@ -410,10 +416,6 @@ public class ImportDataProcessor {
 		propFile.delete();
 
 		return success;
-	}
-
-	public void setPropHash(Hashtable<String, String> propHash) {
-		this.propHash = propHash;
 	}
 
 	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType) throws FileReaderException, EngineException{

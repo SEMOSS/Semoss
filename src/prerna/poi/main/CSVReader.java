@@ -69,6 +69,7 @@ public class CSVReader extends AbstractFileReader {
 	private ArrayList<String> relPropArrayList = new ArrayList<String>();
 	private int count = 0;
 	private boolean propFileExist = true;
+	private Hashtable<String, String>[] rdfMapArr;
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -95,6 +96,8 @@ public class CSVReader extends AbstractFileReader {
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
+			} else {
+				rdfMap = rdfMapArr[i];
 			}
 			// determine the type of data in each column of CSV file
 			createProcessors();
@@ -133,6 +136,8 @@ public class CSVReader extends AbstractFileReader {
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
+			} else {
+				rdfMap = rdfMapArr[i];
 			}
 			// determine the type of data in each column of CSV file
 			createProcessors();
@@ -921,8 +926,8 @@ public class CSVReader extends AbstractFileReader {
 	 * Setter to store the metamodel created by user as a Hashtable
 	 * @param data	Hashtable<String, String> containing all the information in a properties file
 	 */
-	public void setRdfMap(Hashtable<String, String> rdfMap) {
-		this.rdfMap = rdfMap;
+	public void setRdfMapArr(Hashtable<String, String>[] rdfMapArr) {
+		this.rdfMapArr = rdfMapArr;
 		propFileExist = false;
 	}
 
