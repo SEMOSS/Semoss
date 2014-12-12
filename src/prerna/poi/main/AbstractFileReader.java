@@ -251,7 +251,8 @@ public abstract class AbstractFileReader {
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 			throw new EngineException("Could not create new repository connection to store OWL information");
-		}
+		} 
+
 		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
 		vfOWL = rcOWL.getValueFactory();
 	}
@@ -267,12 +268,13 @@ public abstract class AbstractFileReader {
 		try {
 			myRepository.initialize();
 			rcOWL = myRepository.getConnection();
+			rcOWL.begin();
+			scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
+			vfOWL = rcOWL.getValueFactory();
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 			throw new EngineException("Could not create new repository connection to store OWL information");
-		}
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
+		} 
 
 		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		baseDataHash = ((AbstractEngine)engine).getBaseHash();
@@ -314,7 +316,9 @@ public abstract class AbstractFileReader {
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
 		try {
-			scOWL.begin();
+			if(!scOWL.isActive() || !scOWL.isOpen()) {
+				scOWL.begin();
+			}
 			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
 			scOWL.commit();
 		} catch (SailException e) {
@@ -446,6 +450,7 @@ public abstract class AbstractFileReader {
 	protected void openEngineWithConnection(String engineName) throws EngineException {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		BigDataEngine bigEngine = (BigDataEngine) engine;
+		SailRepositoryConnection rc = bigEngine.rc;
 		bdSail = bigEngine.bdSail;
 		sc = bigEngine.sc;
 		vf = bigEngine.vf;
