@@ -2586,80 +2586,6 @@
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
-	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
-	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Create a report detailing the cost saving per deactivated system, per year.</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">13</Order>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective_1</IDLabel>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerYearFromWkShtPlaySheet</Layout>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
-	<DHMSM-Deployment-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
-	<DHMSM-Deployment-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Create a report showing savings, by system, over the course of the DHMSM Integration</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">14</Order>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective_2</IDLabel>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?j WHERE {{?j ?k ?l}}</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DHMSMIntegrationSavingsBySystemPerYearPlaySheet</Layout>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
 	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_3</label>
@@ -2704,6 +2630,80 @@
 	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
 	<DEPEND xmlns="PARAM:">None</DEPEND>
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
+	<DHMSM-Deployment-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<DHMSM-Deployment-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Create a report showing savings, by system, over the course of the DHMSM Integration</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">14</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective_2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">None</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DHMSMIntegrationSavingsBySelectedSystemPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Site_Data">
+	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Site_Data:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<DHMSM-Deployment-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:TAP_Site_Data:DHMSM-Deployment-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Create a report detailing the cost saving per deactivated system, per year.</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">13</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Site_Data:DHMSM-Deployment-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM-Deployment-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Site_Data:DHMSM-Deployment-Perspective:DHMSM-Deployment-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">None</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet</Layout>
 </rdf:Description>
 
 </rdf:RDF>
