@@ -6,26 +6,24 @@ import prerna.error.FileReaderException;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Utility;
 
-public class DHMSMIntegrationSavingsPerYearFromWkShtPlaySheet extends GridPlaySheet{
-
+public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData() {
 		DHMSMIntegrationSavingsPerYearFromWkSht reader = new DHMSMIntegrationSavingsPerYearFromWkSht();
-		DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor();
-		ArrayList<String> systems;
+		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		
 		processor.runSupportQueries();
 		
 		try {
 			reader.read();
-			systems = reader.getSystems();
+			ArrayList<String> systems = reader.getSystems();
 			processor.runMainQueryFromWorksheetList(systems);
-			processor.processData();
+			processor.processSystemData();
 			list = processor.getList();
 			names = processor.getNames();
 		} catch (FileReaderException e) {
 			Utility.showError(e.getMessage());
 			e.printStackTrace();
-		}		
+		}
 	}
 }

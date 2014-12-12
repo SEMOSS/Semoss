@@ -5,7 +5,7 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData(){
-		DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor();
+		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		processor.runSupportQueries();
 		if(query.equalsIgnoreCase("None")) {
 			processor.runMainQuery("");
