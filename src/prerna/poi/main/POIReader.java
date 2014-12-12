@@ -121,6 +121,14 @@ public class POIReader extends AbstractFileReader {
 	 * @throws SailException 
 	 */
 	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
+		try {
+			if(!scOWL.isActive() || !scOWL.isOpen()) {
+				scOWL.begin();
+			}
+		} catch (SailException e1) {
+			e1.printStackTrace();
+			throw new EngineException("Error opening connection to OWL file");
+		}
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
 		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
