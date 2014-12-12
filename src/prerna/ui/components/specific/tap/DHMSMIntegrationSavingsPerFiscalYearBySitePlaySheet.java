@@ -24,7 +24,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPla
 
 	@Override
 	public void createData() {
-		DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor();
+		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		processor.runSupportQueries();
 		if(query.equalsIgnoreCase("None")) {
 			processor.runMainQuery("");
