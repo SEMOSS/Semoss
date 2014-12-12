@@ -249,7 +249,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					totalCol[index] += value;
 					row[index + 1] = formatter.format(values[index]);
 				}
-
 			}
 			row[index+1] = formatter.format(totalRow);
 			list.add(row);
@@ -404,9 +403,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 					}
 					if(addSite) {
 						ArrayList<String> systems = sites.get(site);
-						double[] yearlySavings = new double[numColumns];
 						int counter = 0;
 						for(String system : systems) {
+							double[] yearlySavings = new double[numColumns];
 							boolean dataMissing = false;
 							for(int index = outputYear; index < numColumns; index++) {
 								double savings = 0.0;
@@ -500,7 +499,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 				int index;
 				for(index = 0; index < numCols - 1; index++) {
 					if(index == 0) {
-						names[0] = "HostSite/Floater";
+						names[0] = "System";
 					}
 					String fyString = "" + fy;
 					fyString = "FY" + fyString.substring(2,4);
