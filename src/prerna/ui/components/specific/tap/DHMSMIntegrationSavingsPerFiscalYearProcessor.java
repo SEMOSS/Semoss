@@ -299,23 +299,34 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				}
 			}
 		}
+		
 		sustainmentRow[0] = "Fixed_Sustainment_Cost";
 		double totalSustainment = 0;
+		boolean totalDataMissing = false;
+		boolean totalSustainmentMissing = false;
 		for(index = 1; index < numCols - 1; index++) {
 			double fixedAmount = yearlySavings[index-1];
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
 			if(missingDataYear[index-1]) {
 				row[index] += "*";
+				totalDataMissing = true;
 			}
 			if(index == numCols - 2 && missingDataYear[index-1]) {
 				sustainmentRow[index] += "*";
+				totalSustainmentMissing = true;
 			}
 			totalSustainment += fixedAmount;
 		}
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
-		
+		if(totalSustainmentMissing) {
+			sustainmentRow[numCols - 1] += "*";
+		}
 		row[numCols - 1] = formatter.format(combinedTotal + totalSustainment);
+		if(totalDataMissing) {
+			row[numCols - 1] += "*";
+		}
+		
 		list.add(sustainmentRow);
 		list.add(row);
 	}
@@ -588,21 +599,31 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 		sustainmentRow[0] = "Fixed_Sustainment_Cost";
 		double totalSustainment = 0;
+		boolean totalDataMissing = false;
+		boolean totalSustainmentMissing = false;
 		for(index = 1; index < numCols - 1; index++) {
 			double fixedAmount = yearlySavings[index-1];
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
 			if(missingDataYear[index-1]) {
 				row[index] += "*";
+				totalDataMissing = true;
 			}
 			if(index == numCols - 2 && missingDataYear[index-1]) {
 				sustainmentRow[index] += "*";
+				totalSustainmentMissing = true;
 			}
 			totalSustainment += fixedAmount;
 		}
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
-		
+		if(totalSustainmentMissing) {
+			sustainmentRow[numCols - 1] += "*";
+		}
 		row[numCols - 1] = formatter.format(combinedTotal + totalSustainment);
+		if(totalDataMissing) {
+			row[numCols - 1] += "*";
+		}
+
 		list.add(sustainmentRow);
 		list.add(row);
 	}
