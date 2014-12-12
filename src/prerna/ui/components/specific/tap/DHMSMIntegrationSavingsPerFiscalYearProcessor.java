@@ -318,6 +318,13 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		boolean totalSustainmentMissing = false;
 		for(index = 1; index < numCols - 1; index++) {
 			double fixedAmount = yearlySavings[index-1];
+			if(index == numCols - 2) {
+				// add in fixed sustainment cost for each locally deployed system at FOC
+				for(String sys : locallyDeployedSavingsHash.keySet()) {
+					fixedAmount += locallyDeployedSavingsHash.get(sys);
+				}
+			}
+			
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
 			if(missingDataYear[index-1]) {
@@ -329,11 +336,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				totalSustainmentMissing = true;
 			}
 			totalSustainment += fixedAmount;
-		}
-		
-		// add in fixed sustainment cost for each locally deployed system at FOC
-		for(String sys : locallyDeployedSavingsHash.keySet()) {
-			totalSustainment += locallyDeployedSavingsHash.get(sys);
 		}
 		
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
@@ -631,24 +633,26 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		boolean totalSustainmentMissing = false;
 		for(index = 1; index < numCols - 1; index++) {
 			double fixedAmount = yearlySavings[index-1];
+			if(index == numCols - 2) {
+				// add in fixed sustainment cost for each locally deployed system at FOC
+				for(String sys : locallyDeployedSavingsHash.keySet()) {
+					fixedAmount += locallyDeployedSavingsHash.get(sys);
+				}
+			}
+			
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
 			if(missingDataYear[index-1]) {
 				row[index] += "*";
 				totalDataMissing = true;
 			}
-			if(index == numCols - 2 && missingDataYear[index-1]) {
+			if(missingDataYear[index-1]) {
 				sustainmentRow[index] += "*";
 				totalSustainmentMissing = true;
 			}
 			totalSustainment += fixedAmount;
 		}
 		
-		// add in fixed sustainment cost for each locally deployed system at FOC
-		for(String sys : locallyDeployedSavingsHash.keySet()) {
-			totalSustainment += locallyDeployedSavingsHash.get(sys);
-		}
-				
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
 		if(totalSustainmentMissing) {
 			sustainmentRow[numCols - 1] += "*";
