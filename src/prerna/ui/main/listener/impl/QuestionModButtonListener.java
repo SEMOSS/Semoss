@@ -366,7 +366,8 @@ public class QuestionModButtonListener implements IChakraListener {
 						&& ((QuestionAdministrator.currentPerspective != null) && (QuestionAdministrator.currentPerspective
 								.equals(perspective)))
 						&& ((QuestionAdministrator.currentSparql != null) && (QuestionAdministrator.currentSparql
-								.equals(sparql)))) {
+								.equals(sparql)))
+						&& ((QuestionAdministrator.currentQuestionOrder.equals(order)))) {
 					JOptionPane
 							.showMessageDialog(null,
 									"No modifications were found. Please modify the field/s and try again.");
