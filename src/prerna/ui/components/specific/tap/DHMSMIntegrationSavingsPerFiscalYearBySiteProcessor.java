@@ -86,7 +86,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		}
 		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
 		
-
+		boolean[] missingDataYear = new boolean[numColumns];
 		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
 			String endTime[] = startDate[1].split("FY");
@@ -131,6 +131,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									} else {
 										savings += 0;
 										dataMissing = true;
+										missingDataYear[index] = true;
 									}
 									// store amount saved each individual time a system is decommissioned
 									if(index == numColumns - 1) {
@@ -150,6 +151,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									if(costs != null){
 										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
 											dataMissing = true;
+											missingDataYear[index] = true;
 										} else {
 											savings += costs[sustainmentIndex + counter] / numSites;
 										}
@@ -233,17 +235,19 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 						if(value == 0) {
 							row[index + 1] = "No Cost Data";
 						} else {
-							totalRow+=value;
-							row[index + 1] = formatter.format(values[index]) + "*";
+							totalRow += value;
 							totalCol[index] += value;
+							row[index + 1] = formatter.format(values[index]) + "*";
 						}
 					} else {
+						totalRow += value;
+						totalCol[index] += value;
 						row[index + 1] = formatter.format(values[index]);
 					}
 				} else {
-					totalRow+=value;
-					row[index + 1] = formatter.format(values[index]);
+					totalRow += value;
 					totalCol[index] += value;
+					row[index + 1] = formatter.format(values[index]);
 				}
 
 			}
@@ -297,6 +301,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			double fixedAmount = yearlySavings[index-1];
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
+			if(missingDataYear[index-1]) {
+				row[index] += "*";
+			}
+			if(index == numCols - 2 && missingDataYear[index-1]) {
+				sustainmentRow[index] += "*";
+			}
 			totalSustainment += fixedAmount;
 		}
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
@@ -363,7 +373,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 		}
 		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
 		
-
+		boolean[] missingDataYear = new boolean[numColumns];
 		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
 			String endTime[] = startDate[1].split("FY");
@@ -408,6 +418,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									} else {
 										savings += 0;
 										dataMissing = true;
+										missingDataYear[index] = true;
 									}
 									// store amount saved each individual time a system is decommissioned
 									if(index == numColumns - 1) {
@@ -427,6 +438,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 									if(costs != null){
 										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
 											dataMissing = true;
+											missingDataYear[index] = true;
 										} else {
 											savings += costs[sustainmentIndex + counter] / numSites;
 										}
@@ -438,12 +450,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 								}
 								if(dataMissing){
 									HashMap<Integer, Boolean> innerMap;
-									if(missingDataMap.containsKey(site)) {
-										innerMap = missingDataMap.get(site);
+									if(missingDataMap.containsKey(system)) {
+										innerMap = missingDataMap.get(system);
 										innerMap.put(index,  dataMissing);
 									} else {
 										innerMap = new HashMap<Integer, Boolean>();
-										missingDataMap.put(site, innerMap);
+										missingDataMap.put(system, innerMap);
 										innerMap.put(index, dataMissing);
 									}
 								}
@@ -510,17 +522,19 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 						if(value == 0) {
 							row[index + 1] = "No Cost Data";
 						} else {
-							totalRow+=value;
-							row[index + 1] = formatter.format(values[index]) + "*";
+							totalRow += value;
 							totalCol[index] += value;
+							row[index + 1] = formatter.format(values[index]) + "*";
 						}
 					} else {
+						totalCol[index] += value;
+						totalRow += value;
 						row[index + 1] = formatter.format(values[index]);
 					}
 				} else {
 					totalRow+=value;
-					row[index + 1] = formatter.format(values[index]);
 					totalCol[index] += value;
+					row[index + 1] = formatter.format(values[index]);
 				}
 
 			}
@@ -574,6 +588,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySiteProcessor {
 			double fixedAmount = yearlySavings[index-1];
 			sustainmentRow[index] = formatter.format(fixedAmount);
 			row[index] = formatter.format(totalCol[index-1] + fixedAmount);
+			if(missingDataYear[index-1]) {
+				row[index] += "*";
+			}
+			if(index == numCols - 2 && missingDataYear[index-1]) {
+				sustainmentRow[index] += "*";
+			}
 			totalSustainment += fixedAmount;
 		}
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
