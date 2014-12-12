@@ -44,7 +44,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
 	private HashMap<String, HashMap<Integer, Boolean>> missingDataMap = new HashMap<String, HashMap<Integer, Boolean>>();
 	private Set<String> centrallyLocatedSys = new HashSet<String>();
-
+	private HashMap<String, Double> locallyDeployedSavingsHash = new HashMap<String, Double>();
+	private final double percentRealized = .18;
+	
 	private ArrayList<Object[]> list;
 	private String[] names;
 
@@ -176,7 +178,17 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
 									break;
 								} else {
-									yearlySavings[index] += savings * inflationArr[index+1];
+									double inflatedSavings = savings * inflationArr[index+1];
+									double realizedSavings = inflatedSavings * percentRealized;
+									
+									yearlySavings[index] += realizedSavings;
+									if(locallyDeployedSavingsHash.containsKey(system)) {
+										double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
+										currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
+										locallyDeployedSavingsHash.put(system, currentDelayedSavings);
+									} else {
+										locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+									}
 								}
 							}
 						}
@@ -318,6 +330,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			}
 			totalSustainment += fixedAmount;
 		}
+		
+		// add in fixed sustainment cost for each locally deployed system at FOC
+		for(String sys : locallyDeployedSavingsHash.keySet()) {
+			totalSustainment += locallyDeployedSavingsHash.get(sys);
+		}
+		
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
 		if(totalSustainmentMissing) {
 			sustainmentRow[numCols - 1] += "*";
@@ -478,7 +496,17 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
 									break;
 								} else {
-									yearlySavings[index] += savings * inflationArr[index+1];
+									double inflatedSavings = savings * inflationArr[index+1];
+									double realizedSavings = inflatedSavings * percentRealized;
+									
+									yearlySavings[index] += realizedSavings;
+									if(locallyDeployedSavingsHash.containsKey(system)) {
+										double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
+										currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
+										locallyDeployedSavingsHash.put(system, currentDelayedSavings);
+									} else {
+										locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+									}
 								}
 							}
 							
@@ -615,6 +643,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			}
 			totalSustainment += fixedAmount;
 		}
+		
+		// add in fixed sustainment cost for each locally deployed system at FOC
+		for(String sys : locallyDeployedSavingsHash.keySet()) {
+			totalSustainment += locallyDeployedSavingsHash.get(sys);
+		}
+				
 		sustainmentRow[numCols - 1] = formatter.format(totalSustainment);
 		if(totalSustainmentMissing) {
 			sustainmentRow[numCols - 1] += "*";
