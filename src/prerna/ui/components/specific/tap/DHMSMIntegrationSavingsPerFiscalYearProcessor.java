@@ -282,6 +282,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			list.add(row);
 		}
 		
+		if(numCols == 0) {
+			throw new ArrayIndexOutOfBoundsException("The System(s) selected are not part of the DHMSM Deployment Strategy");
+		}
 		//add fixed cost and column totals
 		Object[] row = new Object[numCols];
 		row[0] = "Total";
@@ -639,6 +642,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			list.add(row);
 		}
 		
+		if(numCols == 0) {
+			throw new ArrayIndexOutOfBoundsException("The System(s) selected are not part of the DHMSM Deployment Strategy");
+		}
 		//add fixed cost and column totals
 		Object[] row = new Object[numCols];
 		row[0] = "Total";

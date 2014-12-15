@@ -1,6 +1,7 @@
 package prerna.ui.components.specific.tap;
 
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySheet{
 	@Override
@@ -12,7 +13,12 @@ public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySh
 		} else {
 			processor.runMainQuery(query);
 		}
-		processor.processSystemData();
+		try {
+			processor.processSystemData();
+		} catch(ArrayIndexOutOfBoundsException e) {
+			Utility.showMessage(e.getMessage());
+			e.printStackTrace();
+		}
 		list = processor.getList();
 		names = processor.getNames();
 	}
