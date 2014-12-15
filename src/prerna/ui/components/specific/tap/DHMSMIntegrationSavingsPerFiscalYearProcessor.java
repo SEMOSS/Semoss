@@ -317,7 +317,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		for(String system : systemsToAddList) {
 			Double[] costs = sysSustainmentInfoHash.get(system);
 			if(costs != null) {
-				systemsNotIncludedCost += costs[costs.length - 1] * inflationArr[inflationArr.length - 1];
+				systemsNotIncludedCost += costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
 			}
 		}
 		systemsNotIncludedRow[numCols - 2] = formatter.format(systemsNotIncludedCost * percentRealized);
@@ -734,7 +734,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			Double[] costArr = sysSustainmentInfoHash.get(system);
 			double inflatedSavings = 0;
 			if(costArr != null) {
-				inflatedSavings = costArr[costArr.length - 1] * inflationArr[inflationArr.length - 1];
+				inflatedSavings = costArr[costArr.length - 1] * inflationArr[inflationArr.length - costArr.length];
 			}
 			if(inflatedSavings == 0) {
 				row[row.length - 2] = "No Cost Information";
