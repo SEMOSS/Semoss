@@ -791,7 +791,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		String query = masterQuery;
 		if(!sysURI.isEmpty()) {
 			query = masterQueryForSingleSystem.replace("@SYSTEM@", sysURI);
-			systemsToAddList.add(Utility.processType(sysURI));
+			systemsToAddList.add(Utility.getInstanceName(sysURI.replace("<", "").replace(">", "")));
 		} else {
 			systemsToAddList = DHMSMDeploymentHelper.getHPSysList(hrCore);
 		}
