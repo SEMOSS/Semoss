@@ -37,8 +37,22 @@ public final class DHMSMDeploymentHelper {
 	
 	public static final String FLOATER_SUPPORTS_WAVE_QUERY = "SELECT DISTINCT ?Floater ?Wave WHERE { {?Floater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Floater <http://semoss.org/ontologies/Relation/Supports> ?Wave} } ORDER BY ?Floater";
 	
+	public static final String GET_HP_SYSTEM_LIST = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob }  } BINDINGS ?Prob {('High')('Question')}";
+	
 	private DHMSMDeploymentHelper() {
 		
+	}
+	
+	public static Set<String> getHPSysList(IEngine engine) {
+		Set<String> sysList = new HashSet<String>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			sysList.add(sjsw.next().getVar(names[0]).toString());
+		}
+		
+		return sysList;
 	}
 	
 	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine) {
@@ -276,15 +290,15 @@ public final class DHMSMDeploymentHelper {
 //		return retHash;
 //	}
 	
-	public static HashMap<String, Double> getNumSitesSysDeployedAt(IEngine engine) {
-		HashMap<String, Double> retHash = new HashMap<String, Double>();
+	public static HashMap<String, Integer> getNumSitesSysDeployedAt(IEngine engine) {
+		HashMap<String, Integer> retHash = new HashMap<String, Integer>();
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_COUNT_AT_SITES);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
 			String sysName = sjss.getVar(names[0]).toString();
-			Double siteCount = (Double) sjss.getVar(names[1]);
+			Integer siteCount = ((Double) sjss.getVar(names[1])).intValue();
 			retHash.put(sysName, siteCount);
 		}
 		

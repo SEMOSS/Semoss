@@ -35,13 +35,18 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	private DualEngineGridPlaySheet dualQueries = new DualEngineGridPlaySheet();	
 
 	private HashMap<String, Double[]> sysSustainmentInfoHash;
-	private HashMap<String, Double> numSitesForSysHash;
+	private HashMap<String, Integer> numSitesForSysHash;
+	private HashMap<String, Integer> numSitesNotInWaveForSysHash;
+	private Set<String> sysList = new HashSet<String>();
+	private Set<String> systemsToAddList = new HashSet<String>();
 	private HashMap<String, HashMap<String, Double>> sysSiteSupportAndFloaterCostHash;
 	private HashMap<String, String[]> waveStartEndDate;
 	private HashMap<String, String> lastWaveForSitesAndFloatersInMultipleWavesHash;
 	private HashMap<String, String> lastWaveForEachSystem;
 	private HashMap<String, HashMap<String, ArrayList<String>>> masterHash;
 	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
+	
+	
 	private HashMap<String, HashMap<Integer, Boolean>> missingDataMap = new HashMap<String, HashMap<Integer, Boolean>>();
 	private Set<String> centrallyLocatedSys = new HashSet<String>();
 	private HashMap<String, Double> locallyDeployedSavingsHash = new HashMap<String, Double>();
@@ -119,6 +124,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					}
 					if(addSite) {
 						ArrayList<String> systems = sites.get(site);
+						systemsToAddList.removeAll(systems);
+						sysList.addAll(systems);
 						double[] yearlySavings = new double[numColumns];
 						int counter = 0;
 						for(String system : systems) {
@@ -153,7 +160,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 									// if we do not have cost information at the site lvl
 									Double[] costs = sysSustainmentInfoHash.get(system);
 									// assume cost for a specific site is total cost / num sites
-									double numSites = numSitesForSysHash.get(system);
+									int numSites = numSitesForSysHash.get(system);
 									if(costs != null){
 										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
 											dataMissing = true;
@@ -220,32 +227,30 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 
 		list = new ArrayList<Object[]>();
-		int numCols = 0;
+		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
-		double[] totalCol = null; 
+		double[] totalCol = new double[numCols-2];
+		
+		if(list.isEmpty()) {
+			names = new String[numCols];
+			int fy = minYear; // pass min year to start table
+			int index;
+			for(index = 0; index < numCols - 1; index++) {
+				if(index == 0) {
+					names[0] = "HostSite/Floater";
+				}
+				String fyString = "" + fy;
+				fyString = "FY" + fyString.substring(2,4);
+				names[index+1] = fyString;
+				fy++;				
+			}
+			names[index] = "Total";
+		}
+		
 		for(String site : savingsData.keySet()) {
 			double[] values = savingsData.get(site);
-
-			if(list.isEmpty()) {
-				numCols = values.length+2;
-				totalCol = new double[values.length];
-				names = new String[numCols];
-				int fy = minYear; // pass min year to start table
-				int index;
-				for(index = 0; index < numCols - 1; index++) {
-					if(index == 0) {
-						names[0] = "HostSite/Floater";
-					}
-					String fyString = "" + fy;
-					fyString = "FY" + fyString.substring(2,4);
-					names[index+1] = fyString;
-					fy++;				
-				}
-				names[index] = "Total";
-			}
-
 			Object[] row = new Object[numCols];
 			double totalRow = 0;
 			row[0] = site;
@@ -282,15 +287,52 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			list.add(row);
 		}
 		
-		if(numCols == 0) {
-			throw new ArrayIndexOutOfBoundsException("The System(s) selected are not part of the DHMSM Deployment Strategy");
+		// add in information for systems in deployment strategy but have waves not included
+		double otherSiteCost = 0;
+		Object[] otherSiteRow = new Object[numCols];
+		otherSiteRow[0] = "Other Sites Not in Waves";
+		for(i = 1; i < numCols - 2; i++) {
+			otherSiteRow[i] = formatter.format(0);
 		}
+		for(String system : numSitesNotInWaveForSysHash.keySet()) {
+			if(sysList.contains(system)) {
+				Double[] costs = sysSustainmentInfoHash.get(system);
+				if(costs != null) {
+					int numSites = numSitesForSysHash.get(system);
+					int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
+					otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
+				}
+			}
+		}
+		otherSiteRow[numCols - 2] = formatter.format(otherSiteCost * percentRealized);
+		otherSiteRow[numCols - 1] = formatter.format(otherSiteCost * percentRealized);
+
+		
+		double systemsNotIncludedCost = 0;
+		Object[] systemsNotIncludedRow = new Object[numCols];
+		systemsNotIncludedRow[0] = "Systems Not At Host Sites";
+		for(i = 1; i < numCols - 2; i++) {
+			systemsNotIncludedRow[i] = formatter.format(0);
+		}
+		for(String system : systemsToAddList) {
+			Double[] costs = sysSustainmentInfoHash.get(system);
+			if(costs != null) {
+				systemsNotIncludedCost += costs[costs.length - 1] * inflationArr[inflationArr.length - 1];
+			}
+		}
+		systemsNotIncludedRow[numCols - 2] = formatter.format(systemsNotIncludedCost * percentRealized);
+		systemsNotIncludedRow[numCols - 1] = formatter.format(systemsNotIncludedCost * percentRealized);
+
 		//add fixed cost and column totals
 		Object[] row = new Object[numCols];
 		row[0] = "Total";
 		double combinedTotal = 0;
 		int index;
 		for(index = 0; index < numCols - 2; index++) {
+			if(index == numCols - 3) {
+				totalCol[index] += otherSiteCost * percentRealized;
+				totalCol[index] += systemsNotIncludedCost * percentRealized;
+			}
 			combinedTotal += totalCol[index];
 		}
 		
@@ -337,6 +379,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(String sys : locallyDeployedSavingsHash.keySet()) {
 					fixedAmount += locallyDeployedSavingsHash.get(sys);
 				}
+				fixedAmount += otherSiteCost * (1 - percentRealized);
+				fixedAmount += systemsNotIncludedCost * (1- percentRealized);
 			}
 			
 			sustainmentRow[index] = formatter.format(fixedAmount);
@@ -356,12 +400,15 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		if(totalSustainmentMissing) {
 			sustainmentRow[numCols - 1] += "*";
 		}
+		
 		row[numCols - 1] = formatter.format(combinedTotal + totalSustainment);
 		if(totalDataMissing) {
 			row[numCols - 1] += "*";
 		}
 		
 		list.add(sustainmentRow);
+		list.add(otherSiteRow);
+		list.add(systemsNotIncludedRow);
 		list.add(row);
 	}
 
@@ -390,6 +437,23 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		lastWaveForEachSystem = DHMSMDeploymentHelper.getLastWaveForEachSystem(tapSite, waveOrder);
 		
 		centrallyLocatedSys = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
+		
+		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
+		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
+		gap.createData();
+		ArrayList<Object[]> gapList = gap.getList();
+		int size = gapList.size();
+		int i = 0;
+		for(; i < size; i++) {
+			Object[] row = gapList.get(i);
+			String sys = row[1].toString();
+			if(numSitesNotInWaveForSysHash.containsKey(sys)) {
+				int count = numSitesNotInWaveForSysHash.get(sys);
+				numSitesNotInWaveForSysHash.put(sys, count+1);
+			} else {
+				numSitesNotInWaveForSysHash.put(sys, 1);
+			}
+		}
 	}
 	
 	public void processSystemData(){
@@ -453,6 +517,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					}
 					if(addSite) {
 						ArrayList<String> systems = sites.get(site);
+						systemsToAddList.removeAll(systems);
+						sysList.addAll(systems);
 						int counter = 0;
 						for(String system : systems) {
 							double[] yearlySavings = new double[numColumns];
@@ -554,30 +620,41 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 		
 		list = new ArrayList<Object[]>();
-		int numCols = 0;
+		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
-		double[] totalCol = null; 
+		double[] totalCol = new double[numCols-2];
+		
+		if(list.isEmpty()) {
+			names = new String[numCols];
+			int fy = minYear; // pass min year to start table
+			int index;
+			for(index = 0; index < numCols - 1; index++) {
+				if(index == 0) {
+					names[0] = "System";
+				}
+				String fyString = "" + fy;
+				fyString = "FY" + fyString.substring(2,4);
+				names[index+1] = fyString;
+				fy++;				
+			}
+			names[index] = "Total";
+		}
+		
 		for(String system : savingsData.keySet()) {
 			double[] values = savingsData.get(system);
-
-			if(list.isEmpty()) {
-				numCols = values.length+2;
-				totalCol = new double[numCols-2];
-				names = new String[numCols];
-				int fy = minYear; // pass min year to start table
-				int index;
-				for(index = 0; index < numCols - 1; index++) {
-					if(index == 0) {
-						names[0] = "System";
+			// add in information for systems in deployment strategy but have waves not included
+			double otherSiteCost = 0;
+			if(numSitesNotInWaveForSysHash.containsKey(system)) {
+				if(sysList.contains(system)) {
+					Double[] costs = sysSustainmentInfoHash.get(system);
+					if(costs != null) {
+						int numSites = numSitesForSysHash.get(system);
+						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
+						otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
 					}
-					String fyString = "" + fy;
-					fyString = "FY" + fyString.substring(2,4);
-					names[index+1] = fyString;
-					fy++;				
 				}
-				names[index] = "Total";
 			}
 
 			Object[] row = new Object[numCols];
@@ -611,6 +688,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 							value += inflatedSavings - currSiteSavings;
 						}
 					}
+					
+					//include values not listed
+					value += otherSiteCost;
 				}
 				if(missingDataMap.containsKey(system)){
 					missing = true;
@@ -642,9 +722,29 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			list.add(row);
 		}
 		
-		if(numCols == 0) {
-			throw new ArrayIndexOutOfBoundsException("The System(s) selected are not part of the DHMSM Deployment Strategy");
+		// add in systems not in deployment strategy to be decommissioned at FOC
+		for(String system : systemsToAddList) {
+			Object[] row = new Object[numCols];
+			row[0] = system;
+			for(i = 1; i < numCols - 2; i++) {
+				row[i] = formatter.format(0);
+			}
+			Double[] costArr = sysSustainmentInfoHash.get(system);
+			double inflatedSavings = 0;
+			if(costArr != null) {
+				inflatedSavings = costArr[costArr.length - 1] * inflationArr[inflationArr.length - 1];
+			}
+			if(inflatedSavings == 0) {
+				row[row.length - 2] = "No Cost Information";
+				row[row.length - 1] = formatter.format(0) + "*";
+			} else {
+				row[row.length - 2] = formatter.format(inflatedSavings); 
+				row[row.length - 1] = formatter.format(inflatedSavings); 
+				totalCol[totalCol.length - 1] += inflatedSavings;
+			}
+			list.add(row);
 		}
+		
 		//add fixed cost and column totals
 		Object[] row = new Object[numCols];
 		row[0] = "Total";
@@ -691,6 +791,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		String query = masterQuery;
 		if(!sysURI.isEmpty()) {
 			query = masterQueryForSingleSystem.replace("@SYSTEM@", sysURI);
+			systemsToAddList.add(Utility.processType(sysURI));
+		} else {
+			systemsToAddList = DHMSMDeploymentHelper.getHPSysList(hrCore);
 		}
 
 		processQuery(query);
@@ -703,6 +806,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			bindingsStr += "(<http://health.mil/ontologies/Concept/System/";
 			bindingsStr += sysName;
 			bindingsStr += ">)";
+			
+			systemsToAddList.add(sysName);
 		}
 		String query = masterQueryForListOfSystems.replace("@BINDINGS@", bindingsStr);
 		

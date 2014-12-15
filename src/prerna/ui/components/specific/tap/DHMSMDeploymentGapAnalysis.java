@@ -50,6 +50,9 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 				list.add(values1);
 			}
 		}
-		
+	}
+	
+	public ArrayList<Object[]> getList() {
+		return list;
 	}
 }
