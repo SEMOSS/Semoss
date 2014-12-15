@@ -188,12 +188,14 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 										
 										yearlySavings[index] += realizedSavings;
 										
-										if(locallyDeployedSavingsHash.containsKey(system)) {
-											double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
-											currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
-											locallyDeployedSavingsHash.put(system, currentDelayedSavings);
-										} else {
-											locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+										if(index == outputYear) {
+											if(locallyDeployedSavingsHash.containsKey(system)) {
+												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
+												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
+												locallyDeployedSavingsHash.put(system, currentDelayedSavings);
+											} else {
+												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+											}
 										}
 									} else {
 										yearlySavings[index] += inflatedSavings;
@@ -517,12 +519,14 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 										
 										yearlySavings[index] += realizedSavings;
 										
-										if(locallyDeployedSavingsHash.containsKey(system)) {
-											double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
-											currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
-											locallyDeployedSavingsHash.put(system, currentDelayedSavings);
-										} else {
-											locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+										if(index == outputYear) {
+											if(locallyDeployedSavingsHash.containsKey(system)) {
+												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
+												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
+												locallyDeployedSavingsHash.put(system, currentDelayedSavings);
+											} else {
+												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+											}
 										}
 									} else {
 										yearlySavings[index] += inflatedSavings;
