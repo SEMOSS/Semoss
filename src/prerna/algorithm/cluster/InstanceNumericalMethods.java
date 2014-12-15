@@ -65,7 +65,7 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 				int indexOfInstance1 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues1[i]);
 				int indexOfInstance2 = ArrayUtilityMethods.calculateIndexOfArray(sortedBinArr, categoricalValues2[i]);
 				// adjustment factor simplifies since comparing only one instance to another instance
-				double adjustmentFactor = (1 - (double) Math.abs(indexOfInstance1 - indexOfInstance2) / (numBins-1)); 
+				double adjustmentFactor = calculateAdjustmentFactor(indexOfInstance1, indexOfInstance2, numBins); 
 				similarity += weights[i] * adjustmentFactor;
 			}
 		}
@@ -111,7 +111,7 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods{
 			int index = indexOrderArr[idxCounter];
 			if(index != instanceIdx) {	
 				// don't include nodes with zero similarity
-				if(similarityBetweenInstanceToAllOtherInstances[idxCounter] < .1) {
+				if(similarityBetweenInstanceToAllOtherInstances[idxCounter] == 0) {
 					noKCluster = true;
 					return null;
 				}

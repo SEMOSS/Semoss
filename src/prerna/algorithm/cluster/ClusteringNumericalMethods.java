@@ -18,11 +18,6 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		super(numericalBinMatrix, categoricalMatrix, instanceNumberBinOrderingMatrix);
 	}
 
-	public double calculateAdjustmentFactor(int index1, int index2, int numBins) {
-		return 1 - (double) Math.pow((double) Math.abs(index1 - index2) / (numBins-1), 2.0); 
-	}
-
-
 	/**
 	 * 
 	 * @param numericalBinMatrix			All the numeric bin data for every instance
