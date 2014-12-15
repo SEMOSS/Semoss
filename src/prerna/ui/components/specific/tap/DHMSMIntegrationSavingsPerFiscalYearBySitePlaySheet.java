@@ -19,7 +19,6 @@
 package prerna.ui.components.specific.tap;
 
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPlaySheet {
 
@@ -32,12 +31,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPla
 		} else {
 			processor.runMainQuery(query);
 		}
-		try {
-			processor.processData();
-		} catch(ArrayIndexOutOfBoundsException e) {
-			Utility.showError(e.getMessage());
-			e.printStackTrace();
-		}
+		processor.processData();
 		list = processor.getList();
 		names = processor.getNames();
 	}

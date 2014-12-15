@@ -24,9 +24,6 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 		} catch (FileReaderException e) {
 			Utility.showError(e.getMessage());
 			e.printStackTrace();
-		} catch(ArrayIndexOutOfBoundsException e) {
-			Utility.showError(e.getMessage());
-			e.printStackTrace();
 		}
 	}
 }
