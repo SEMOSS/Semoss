@@ -290,7 +290,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		// add in information for systems in deployment strategy but have waves not included
 		double otherSiteCost = 0;
 		Object[] otherSiteRow = new Object[numCols];
-		otherSiteRow[0] = "Other Sites Not in Waves";
+		otherSiteRow[0] = "Other Sites Not In Waves";
 		for(i = 1; i < numCols - 2; i++) {
 			otherSiteRow[i] = formatter.format(0);
 		}
