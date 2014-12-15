@@ -181,13 +181,15 @@ public final class ArrayUtilityMethods {
 		int positionInOriginalArr;
 		int positionInNewArr;
 		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
+		
+		Object[] dummyArr = arr.clone();
 		while (positionInOriginalArr > 0) {
-			Object value = arr[--positionInOriginalArr];
+			Object value = dummyArr[--positionInOriginalArr];
 			if (value != null) {
-				arr[--positionInNewArr] = value;
+				dummyArr[--positionInNewArr] = value;
 			}
 		}
-		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
+		return Arrays.copyOfRange(dummyArr, positionInNewArr, originalLength);
 	}
 	
 	public static double[] removeAllZeroValues(final double[] arr) {
