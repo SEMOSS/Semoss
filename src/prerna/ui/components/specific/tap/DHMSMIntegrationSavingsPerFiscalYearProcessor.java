@@ -647,17 +647,17 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		for(String system : savingsData.keySet()) {
 			double[] values = savingsData.get(system);
 			// add in information for systems in deployment strategy but have waves not included
-			double otherSiteCost = 0;
-			if(numSitesNotInWaveForSysHash.containsKey(system)) {
-				if(sysList.contains(system)) {
-					Double[] costs = sysSustainmentInfoHash.get(system);
-					if(costs != null) {
-						int numSites = numSitesForSysHash.get(system);
-						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-						otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
-					}
-				}
-			}
+//			double otherSiteCost = 0;
+//			if(numSitesNotInWaveForSysHash.containsKey(system)) {
+//				if(sysList.contains(system)) {
+//					Double[] costs = sysSustainmentInfoHash.get(system);
+//					if(costs != null) {
+//						int numSites = numSitesForSysHash.get(system);
+//						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
+//						otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
+//					}
+//				}
+//			}
 
 			Object[] row = new Object[numCols];
 			double totalRow = 0;
@@ -692,7 +692,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					}
 					
 					//include values not listed
-					value += otherSiteCost;
+//					value += otherSiteCost;
 				}
 				if(missingDataMap.containsKey(system)){
 					missing = true;
