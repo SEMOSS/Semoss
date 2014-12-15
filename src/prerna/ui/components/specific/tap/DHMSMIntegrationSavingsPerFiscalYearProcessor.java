@@ -364,6 +364,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(index = outputYear; index < numCols - 2; index++) {
 					double inflatedSavings = savings * inflationArr[index-position+1];
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
+					if(index == yearlySavings.length - 1) {
+						yearlySavings[index] -= otherSiteCost * percentRealized;
+						yearlySavings[index] -= systemsNotIncludedCost * percentRealized;
+					}
 				}
 			}
 		}
@@ -379,8 +383,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(String sys : locallyDeployedSavingsHash.keySet()) {
 					fixedAmount += locallyDeployedSavingsHash.get(sys);
 				}
-				fixedAmount += otherSiteCost * (1 - percentRealized);
-				fixedAmount += systemsNotIncludedCost * (1- percentRealized);
 			}
 			
 			sustainmentRow[index] = formatter.format(fixedAmount);
