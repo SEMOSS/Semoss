@@ -236,9 +236,20 @@ public class LocalOutlierFactorAlgorithm {
 		}
 		
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviationIgnoringInfinity(ploof);
-		double squareRoot2 = Math.sqrt(2);
-		for(i = 0; i < numInstances; i++) {
-			lop[i] = Math.max(0, Erf.erf(ploof[i]/(stdev * squareRoot2)));
+		// no variation
+		if(stdev == 0) {
+			for(i = 0; i < numInstances; i++) {
+				if(Double.isInfinite(lof[i])) {
+					lop[i] = 1;
+				} else {
+					lop[i] = 0;
+				}
+			}
+		} else {
+			double squareRoot2 = Math.sqrt(2);
+			for(i = 0; i < numInstances; i++) {
+				lop[i] = Math.max(0, Erf.erf(ploof[i]/(stdev * squareRoot2)));
+			}
 		}
 		
 	}
