@@ -54,25 +54,29 @@ public final class ArrayListUtilityMethods {
 		return retList;
 	}
 	
-	public static String[] removeNameFromList(String[] name, int colToRemove) {
-		if(name == null || name.length == 0) {
-			return null;
-		}
-		
-		int numCols = name.length;
-
-		String[] retNames = new String[numCols - 1];
-		int i;
-		int counter = 0;
-		for(i = 0; i < numCols; i++) {
-			if(i != colToRemove) {
-				retNames[counter] = name[i];
-				counter++;
+	public static ArrayList<Object[]> filterList(ArrayList<Object[]> list, boolean[] include) {
+		int size = 0;
+		for(boolean val : include) {
+			if(val) {
+				size++;
 			}
 		}
 		
-		return retNames;
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		for(Object[] row : list) {
+			Object[] newRow = new Object[size];
+			int nextIndex=0;
+			for(int i=0;i<row.length;i++) {
+				if(include[i]) {
+					newRow[nextIndex]=row[i];
+					nextIndex++;
+				}
+			}
+			newList.add(newRow);
+		}
+		return newList;
 	}
+	
 	
 	public static ArrayList<Object[]> orderQuery(ArrayList<Object[]> queryResults){
 		ArrayList<Object[]> sortedQuery = new ArrayList<Object[]>();
