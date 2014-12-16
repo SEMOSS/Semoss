@@ -447,4 +447,43 @@ public final class ArrayUtilityMethods {
 		
 		return retNames;
 	}
+
+	/**
+	 * Returns a specific range of rows from the original list passed in
+	 * @param list			The main list you plan on taking a section from
+	 * @param startRow		The first row you want returned from the list, inclusive
+	 * @param endRow		The last row you want returned from the list, exclusive
+	 * @return				The portioned list from row startNum to row endNum 
+	 */
+	public static String[][] getRowRangeFromMatrix(String[][] dataMatrix, int startRow, int endRow) {
+		if(dataMatrix == null) {
+			throw new NullPointerException("list is null");
+		}
+		int size = dataMatrix.length;
+		if(startRow < 0) {
+			throw new IllegalArgumentException("startRow must be larger than 0");
+		} 
+		if(startRow > size) {
+			throw new IllegalArgumentException("startRow is larger than the size of the list");
+		}
+		if(endRow < 0) {
+			throw new IllegalArgumentException("endRow must be larger than 0");
+		}
+		if(endRow > size) {
+			throw new IllegalArgumentException("endRow is larger than the size of the list");
+		}
+		if(endRow <= startRow) {	
+			throw new IllegalArgumentException("startRow is larger than or equal to endRow");
+		}
+		
+		String[][] retDataMatrix = new String[endRow-startRow][];
+		int i = startRow;
+		int counter = 0;
+		for(; i < endRow; i++) {
+			retDataMatrix[counter] = dataMatrix[i];
+			counter++;
+		}
+		
+		return retDataMatrix;
+	}
 }

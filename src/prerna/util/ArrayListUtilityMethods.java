@@ -54,6 +54,43 @@ public final class ArrayListUtilityMethods {
 		return retList;
 	}
 	
+	/**
+	 * Returns a specific range of rows from the original list passed in
+	 * @param list			The main list you plan on taking a section from
+	 * @param startRow		The first row you want returned from the list, inclusive
+	 * @param endRow		The last row you want returned from the list, exclusive
+	 * @return				The portioned list from row startNum to row endNum 
+	 */
+	public static ArrayList<Object[]> getRowRangeFromList(ArrayList<Object[]> list, int startRow, int endRow) {
+		if(list == null) {
+			throw new NullPointerException("list is null");
+		}
+		int size = list.size();
+		if(startRow < 0) {
+			throw new IllegalArgumentException("startRow must be larger than 0");
+		} 
+		if(startRow > size) {
+			throw new IllegalArgumentException("startRow is larger than the size of the list");
+		}
+		if(endRow < 0) {
+			throw new IllegalArgumentException("endRow must be larger than 0");
+		}
+		if(endRow > size) {
+			throw new IllegalArgumentException("endRow is larger than the size of the list");
+		}
+		if(endRow <= startRow) {	
+			throw new IllegalArgumentException("startRow is larger than or equal to endRow");
+		}
+		
+		ArrayList<Object[]> retList = new ArrayList<Object[]>(endRow-startRow);
+		int i = startRow;
+		for(; i < endRow; i++) {
+			retList.add(list.get(i));
+		}
+		
+		return retList;
+	}
+	
 	public static ArrayList<Object[]> filterList(ArrayList<Object[]> list, boolean[] include) {
 		int size = 0;
 		for(boolean val : include) {
