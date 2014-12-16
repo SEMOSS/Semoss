@@ -47,7 +47,7 @@ public class ClusteringClassification {
 		countMatrix = new int[numCols - 1][][];
 		originalClusterAssignedIndices = new int[numCols][numRows];
 		newClusterAssignedIndices = new int[numCols][numRows];
-
+		
 		for(i = 1; i < numCols; i++) {
 			ArrayList<Object[]> clusterData = useColumnFromList(masterTable, i);
 			String[] clusterNames = useNameFromList(masterNames, i);
@@ -56,8 +56,7 @@ public class ClusteringClassification {
 			alg.determineOptimalCluster();
 			alg.execute();
 			
-			originalClusterAssignedIndices[i] = alg.getClustersAssigned();
-			Hashtable<String, Integer> instanceIndexHash = alg.getInstanceIndexHash();
+			originalClusterAssignedIndices[i] = alg.getClusterAssignment();
 			int[] numInstancesInCluster = alg.getNumInstancesInCluster();
 			
 			ArrayList<Object[]> data = ArrayListUtilityMethods.removeColumnFromList(masterTable, i);
@@ -70,13 +69,14 @@ public class ClusteringClassification {
 			cnm.setNumericalWeights(cdp.getNumericalWeights());
 			
 			// generate cluster centers
-			ArrayList<ArrayList<Hashtable<String, Integer>>> clusterCategoryMatrix = cnm.generateCategoricalClusterCenter(originalClusterAssignedIndices[i], instanceIndexHash);
-			ArrayList<ArrayList<Hashtable<String, Integer>>> clusterNumberBinMatrix = cnm.generateNumericClusterCenter(originalClusterAssignedIndices[i], instanceIndexHash);
+			ArrayList<ArrayList<Hashtable<String, Integer>>> clusterCategoryMatrix = cnm.generateCategoricalClusterCenter(originalClusterAssignedIndices[i]);
+			ArrayList<ArrayList<Hashtable<String, Integer>>> clusterNumberBinMatrix = cnm.generateNumericClusterCenter(originalClusterAssignedIndices[i]);
 			
 			// determine where each instance is closest to but never change the state
 			newClusterAssignedIndices[i] = new int[originalClusterAssignedIndices[i].length];
-			for(String instance : instanceIndexHash.keySet()) {
-				int instanceInd = instanceIndexHash.get(instance);
+			int j;
+			for(j = 0; j < numRows; j++) {
+				int instanceInd = originalClusterAssignedIndices[i][j];
 				int mostSimilarCluster = ClusterUtilityMethods.findNewClusterForInstance(cnm, clusterCategoryMatrix, clusterNumberBinMatrix, numInstancesInCluster, instanceInd);
 				newClusterAssignedIndices[i][instanceInd] = mostSimilarCluster;
 			}
