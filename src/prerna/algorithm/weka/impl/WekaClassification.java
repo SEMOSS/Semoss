@@ -98,6 +98,14 @@ public class WekaClassification {
 		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
 		data.setClassIndex(classIndex);
 		
+		// cannot classify when only one value
+		if(data.numDistinctValues(classIndex) == 1) {
+			LOGGER.info("There is only one distinct value for collumn " + names[classIndex]);
+			accuracy = 100;
+			precision = 100;
+			return;
+		}
+		
 		LOGGER.info("Performing 10-fold cross-validation split of data...");
 		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
 
