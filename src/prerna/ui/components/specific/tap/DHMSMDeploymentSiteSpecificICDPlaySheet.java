@@ -10,6 +10,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.ArrayListUtilityMethods;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 
 public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
@@ -51,8 +52,8 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 		
 		list = ArrayListUtilityMethods.removeColumnFromList(retList, 1);
 		list = ArrayListUtilityMethods.removeColumnFromList(list, 1);
-		names = ArrayListUtilityMethods.removeNameFromList(names, 1);
-		names = ArrayListUtilityMethods.removeNameFromList(names, 1);
+		names = ArrayUtilityMethods.removeNameFromList(names, 1);
+		names = ArrayUtilityMethods.removeNameFromList(names, 1);
 		
 		if(list == null) {
 			list = new ArrayList<Object[]>();
