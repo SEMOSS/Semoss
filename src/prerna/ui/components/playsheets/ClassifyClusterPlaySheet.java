@@ -57,7 +57,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(ClassifyClusterPlaySheet.class.getName());
 	
-	
 	private JTabbedPane jTab;
 	private Hashtable<String, IPlaySheet> playSheetHash = new Hashtable<String,IPlaySheet>();
 	private JPanel variableSelectorPanel;
@@ -73,6 +72,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	//independent variable panel - select all
 	private JCheckBox checkboxSelectAllIVs;
 	private SelectCheckboxesListener selectAllIVsList;
+	public JPanel indVariablesPanel;
 	
 	//data set similarity chart
 	private BrowserGraphPanel simBarChartPanel;
@@ -131,28 +131,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		GenerateEntropyDensity test = new GenerateEntropyDensity(list,true);
 		entropyArr = test.generateEntropy();
-		
-		accuracyArr = new double[names.length-1];
-		precisionArr = new double[names.length-1];
-		for(int i=1; i < names.length; i++) {
-			if(entropyArr[i-1] != 0) {
-				WekaClassification weka = new WekaClassification(list, names, "J48", i);
-				try {
-					weka.execute();
-					// both stored as percents
-					accuracyArr[i-1] = weka.getAccuracy(); 
-					precisionArr[i-1] = weka.getPrecision(); 
-				} catch (Exception e) {
-					e.printStackTrace();
-					LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
-				}
-			} else {
-				accuracyArr[i-1] = 100;
-				precisionArr[i-1] = 100;
-			}
-		}
 		fillSimBarChartHash(names,list);
-
 	}
 	
 	public void fillSimBarChartHash(String[] names, ArrayList<Object[]> list) {
@@ -267,7 +246,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_indVariablesLabel.gridy = 2;
 		variableSelectorPanel.add(indVariablesLabel, gbc_indVariablesLabel);
 		
-		JPanel indVariablesPanel = new JPanel();
+		indVariablesPanel = new JPanel();
 		GridBagConstraints gbc_indVariablesPanel = new GridBagConstraints();
 		gbc_indVariablesPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_indVariablesPanel.fill = GridBagConstraints.NONE;
@@ -293,7 +272,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Similarity"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Similarity","Predictability"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -387,6 +366,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		RunAlgorithmListener runListener = new RunAlgorithmListener();
 		runListener.setView(this);
+		runListener.setEntropyArr(entropyArr);
 		runAlgorithm.addActionListener(runListener);
 		
 		ShowDrillDownListener drillDownListener = new ShowDrillDownListener();
@@ -467,7 +447,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		indVariablesPanel.add(checkboxSelectAllIVs, gbc_checkboxSelectAllIVs);
 
 		JLabel includeLabel = new JLabel();
-		includeLabel.setText("Independent Variable");
+		includeLabel.setText("Variables");
 		includeLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_includeLabel = new GridBagConstraints();
 		gbc_includeLabel.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -513,12 +493,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		ivCheckboxes = new ArrayList<JCheckBox>();
 		entropyLabels = new ArrayList<JLabel>();
-		accuracyLabels = new ArrayList<JLabel>();
-		precisionLabels = new ArrayList<JLabel>();
 
-		DecimalFormat entropyFormatter = new DecimalFormat("##.##");
-		DecimalFormat accuracyFormatter = new DecimalFormat("##.##");
-		DecimalFormat precisionFormatter = new DecimalFormat("##.##");
+		DecimalFormat formatter = new DecimalFormat("##.00");
 		
 		for(int i=1;i<names.length;i++) {
 			String checkboxLabel = names[i];
@@ -536,7 +512,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			ivCheckboxes.add(checkbox);
 				
 			JLabel entropyVal = new JLabel();
-			entropyVal.setText(entropyFormatter.format(entropyArr[i-1]));
+			entropyVal.setText(formatter.format(entropyArr[i-1]));
 			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
 			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
 			gbc_entropyVal.fill = GridBagConstraints.NONE;
@@ -545,33 +521,89 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			gbc_entropyVal.gridy = i+1;
 			indVariablesPanel.add(entropyVal, gbc_entropyVal);
 			entropyLabels.add(entropyVal);
-			
-			JLabel accuracyVal = new JLabel();
-			accuracyVal.setText(accuracyFormatter.format(accuracyArr[i-1])+"%");
-			GridBagConstraints gbc_accuracyVal = new GridBagConstraints();
-			gbc_accuracyVal.anchor = GridBagConstraints.FIRST_LINE_START;
-			gbc_accuracyVal.fill = GridBagConstraints.NONE;
-			gbc_accuracyVal.insets = new Insets(5, 20, 0, 0);
-			gbc_accuracyVal.gridx = 3;
-			gbc_accuracyVal.gridy = i+1;
-			indVariablesPanel.add(accuracyVal, gbc_accuracyVal);
-			accuracyLabels.add(accuracyVal);
-			
-			JLabel precisionVal = new JLabel();
-			precisionVal.setText(precisionFormatter.format(precisionArr[i-1])+"%");
-			GridBagConstraints gbc_precisionVal = new GridBagConstraints();
-			gbc_precisionVal.anchor = GridBagConstraints.FIRST_LINE_START;
-			gbc_precisionVal.fill = GridBagConstraints.NONE;
-			gbc_precisionVal.insets = new Insets(5, 20, 0, 0);
-			gbc_precisionVal.gridx = 4;
-			gbc_precisionVal.gridy = i+1;
-			indVariablesPanel.add(precisionVal, gbc_precisionVal);
-			precisionLabels.add(precisionVal);
 		}
 		
 		selectAllIVsList = new SelectCheckboxesListener();
 		selectAllIVsList.setCheckboxes(ivCheckboxes);
 		checkboxSelectAllIVs.addActionListener(selectAllIVsList);
+		
+		accuracyLabels = new ArrayList<JLabel>(names.length);
+		precisionLabels = new ArrayList<JLabel>(names.length);
+	}
+	
+	public void fillAccuracyAndPrecision(double[] accuracyArr, double[] precisionArr) {
+		DecimalFormat formatter = new DecimalFormat("##.00");
+		
+		boolean[] includeColArr = new boolean[ivCheckboxes.size()];
+		includeColArr[0] = true; //this is the "title" or "name"
+		for(int i = 0; i < ivCheckboxes.size(); i++) {
+			JCheckBox checkbox = ivCheckboxes.get(i);
+			includeColArr[i] = checkbox.isSelected();
+		}
+
+		for(int i = 0; i < names.length; i++) {
+			if(includeColArr[i]) {
+				try {
+					// try to remove old values if present
+					indVariablesPanel.remove(accuracyLabels.get(i));
+					indVariablesPanel.remove(precisionLabels.get(i));
+					accuracyLabels.remove(i);
+					precisionLabels.remove(i);
+				} catch (IndexOutOfBoundsException ex) {
+					// do nothing
+				}				
+				JLabel accuracyVal = new JLabel();
+				accuracyVal.setText(formatter.format(accuracyArr[i])+"%");
+				GridBagConstraints gbc_accuracyVal = new GridBagConstraints();
+				gbc_accuracyVal.anchor = GridBagConstraints.FIRST_LINE_START;
+				gbc_accuracyVal.fill = GridBagConstraints.NONE;
+				gbc_accuracyVal.insets = new Insets(5, 20, 0, 0);
+				gbc_accuracyVal.gridx = 3;
+				gbc_accuracyVal.gridy = i+2;
+				indVariablesPanel.add(accuracyVal, gbc_accuracyVal);
+				accuracyLabels.add(i, accuracyVal);
+				
+				JLabel precisionVal = new JLabel();
+				precisionVal.setText(formatter.format(precisionArr[i])+"%");
+				GridBagConstraints gbc_precisionVal = new GridBagConstraints();
+				gbc_precisionVal.anchor = GridBagConstraints.FIRST_LINE_START;
+				gbc_precisionVal.fill = GridBagConstraints.NONE;
+				gbc_precisionVal.insets = new Insets(5, 20, 0, 0);
+				gbc_precisionVal.gridx = 4;
+				gbc_precisionVal.gridy = i+2;
+				indVariablesPanel.add(precisionVal, gbc_precisionVal);
+				precisionLabels.add(i, precisionVal);
+			} else {
+				try {
+					accuracyLabels.get(i);
+				} catch (IndexOutOfBoundsException ex) {
+					// if value isn't present
+					JLabel accuracyVal = new JLabel();
+					accuracyVal.setText("Not Selected");
+					GridBagConstraints gbc_accuracyVal = new GridBagConstraints();
+					gbc_accuracyVal.anchor = GridBagConstraints.FIRST_LINE_START;
+					gbc_accuracyVal.fill = GridBagConstraints.NONE;
+					gbc_accuracyVal.insets = new Insets(5, 20, 0, 0);
+					gbc_accuracyVal.gridx = 3;
+					gbc_accuracyVal.gridy = i+2;
+					indVariablesPanel.add(accuracyVal, gbc_accuracyVal);
+					accuracyLabels.add(i, accuracyVal);
+					
+					JLabel precisionVal = new JLabel();
+					precisionVal.setText("Not Selected");
+					GridBagConstraints gbc_precisionVal = new GridBagConstraints();
+					gbc_precisionVal.anchor = GridBagConstraints.FIRST_LINE_START;
+					gbc_precisionVal.fill = GridBagConstraints.NONE;
+					gbc_precisionVal.insets = new Insets(5, 20, 0, 0);
+					gbc_precisionVal.gridx = 4;
+					gbc_precisionVal.gridy = i+2;
+					indVariablesPanel.add(precisionVal, gbc_precisionVal);
+					precisionLabels.add(i, precisionVal);
+				}
+			}
+		}
+		indVariablesPanel.validate();
+		indVariablesPanel.repaint();
 	}
 	
 	private void fillClusterPanel(JPanel clusterPanel) {

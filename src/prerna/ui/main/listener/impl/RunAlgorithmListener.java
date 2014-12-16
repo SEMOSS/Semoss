@@ -34,6 +34,7 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.weka.impl.WekaClassification;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
@@ -76,6 +77,8 @@ public class RunAlgorithmListener extends AbstractListener {
 	private ArrayList<Object[]> list;
 	private IEngine engine;
 	private String title;
+
+	private double[] entropyArr;
 	
 	/**
 	 * Method actionPerformed.
@@ -155,8 +158,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			((ClusteringVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((ClusteringVizPlaySheet)newPlaySheet).setJBar(jBar);
 			showDrillDownBtn.setVisible(true);			
-		}
-		else if(algorithm.equals("Classify")){
+	
+		} else if(algorithm.equals("Classify")) {
 			//method of classification to use
 			String classMethod = classificationMethodComboBox.getSelectedItem() + "";
 			
@@ -179,8 +182,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifierIndex);
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
-
-		} else if(algorithm.equals("Outliers")){
+		
+		} else if(algorithm.equals("Outliers")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
 			newPlaySheet = new LocalOutlierPlaySheet();
 			newPlaySheet.setList(filteredList);
@@ -188,6 +191,33 @@ public class RunAlgorithmListener extends AbstractListener {
 			((LocalOutlierPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
 			((LocalOutlierPlaySheet)newPlaySheet).setJTab(jTab);
 			((LocalOutlierPlaySheet)newPlaySheet).setJBar(jBar);
+		
+		} else if(algorithm.equals("Predictability")) {
+			
+			double[] accuracyArr = new double[columnCheckboxes.size()];
+			double[] precisionArr = new double[columnCheckboxes.size()];
+			
+			for(int i=1; i < names.length; i++) {
+				if(includeColArr[i]) {
+					if(entropyArr[i-1] != 0) {
+						WekaClassification weka = new WekaClassification(list, names, "J48", i);
+						try {
+							weka.execute();
+							// both stored as percents
+							accuracyArr[i-1] = weka.getAccuracy(); 
+							precisionArr[i-1] = weka.getPrecision(); 
+						} catch (Exception ex) {
+							ex.printStackTrace();
+							LOGGER.error("Could not generate accuracy and precision values from WEKA classification");
+						}
+					} else {
+						accuracyArr[i-1] = 100;
+						precisionArr[i-1] = 100;
+					}
+				}
+			}
+			playSheet.fillAccuracyAndPrecision(accuracyArr, precisionArr);
+			return;
 			
 		} else {
 			LOGGER.error("Cannot find algorithm");
@@ -231,6 +261,10 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.showDrillDownBtn = playSheet.getShowDrillDownBtn();
 		this.playSheetHash = playSheet.getPlaySheetHash();
 		this.title = playSheet.getTitle();
+	}
+
+	public void setEntropyArr(double[] entropyArr) {
+		this.entropyArr = entropyArr;
 	}
 
 }
