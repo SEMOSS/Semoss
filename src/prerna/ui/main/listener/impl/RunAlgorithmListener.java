@@ -44,6 +44,7 @@ import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
+import prerna.util.ArrayListUtilityMethods;
 import prerna.util.Utility;
 
 /**
@@ -113,7 +114,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		}
 		
 		String[] filteredNames = Utility.filterNames(names, includeColArr);
-		ArrayList<Object[]> filteredList = Utility.filterList(list,includeColArr);
+		ArrayList<Object[]> filteredList = ArrayListUtilityMethods.filterList(list,includeColArr);
 
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
