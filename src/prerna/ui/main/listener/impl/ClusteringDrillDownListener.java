@@ -20,17 +20,13 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
-import prerna.ui.components.ExecuteQueryProcessor;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
-import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
@@ -89,8 +85,6 @@ public class ClusteringDrillDownListener extends AbstractListener {
 			return;
 		}
 		
-		//TODO:delete
-//		Hashtable<String, Integer> instanceIndexHash = playSheet.getInstanceIndexHash();
 		int[] clusterAssigned  = playSheet.getClusterAssignment();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		for(i = 0; i < clusterAssigned.length; i++) {

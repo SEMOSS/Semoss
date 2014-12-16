@@ -26,19 +26,13 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
-import javax.swing.JProgressBar;
-import javax.swing.JTabbedPane;
-import javax.swing.JToggleButton;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
-import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -99,13 +93,10 @@ public class RunDrillDownListener extends AbstractListener {
 			return;
 		}
 		
-//		Hashtable<String, Integer> instanceIndexHash = clusteringPlaySheet.getInstanceIndexHash();
 		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssignment();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		for(i = 0; i < clusterAssigned.length; i++) {
 			Object[] instanceRow = masterList.get(i);
-//			String instance = (String)instanceRow[0];
-//			int cluster = clusterAssigned[instanceIndexHash.get(instance)];
 			int cluster = clusterAssigned[i];
 			//check if cluster is to be included
 			if(clustersToInclude.contains(cluster)) {
