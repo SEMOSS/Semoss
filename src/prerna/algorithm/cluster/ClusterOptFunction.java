@@ -2,7 +2,6 @@ package prerna.algorithm.cluster;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.commons.math3.analysis.UnivariateFunction;

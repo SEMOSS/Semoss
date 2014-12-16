@@ -14,7 +14,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithm.class.getName());
 
-	//Constructor
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		super(masterTable, varNames);
 	}
