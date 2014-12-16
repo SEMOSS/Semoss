@@ -541,7 +541,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			includeColArr[i] = checkbox.isSelected();
 		}
 
-		for(int i = 0; i < names.length; i++) {
+		for(int i = 0; i < names.length - 1; i++) {
 			if(includeColArr[i]) {
 				try {
 					// try to remove old values if present
