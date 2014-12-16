@@ -5,6 +5,7 @@ import java.util.Hashtable;
 
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayListUtilityMethods;
+import prerna.util.ArrayUtilityMethods;
 
 /**
  * Algorithm logic:
@@ -60,7 +61,7 @@ public class ClusteringClassification {
 			int[] numInstancesInCluster = alg.getNumInstancesInCluster();
 			
 			ArrayList<Object[]> data = ArrayListUtilityMethods.removeColumnFromList(masterTable, i);
-			String[] names = ArrayListUtilityMethods.removeNameFromList(masterNames, i);
+			String[] names = ArrayUtilityMethods.removeNameFromList(masterNames, i);
 			// process through data
 			ClusteringDataProcessor cdp = new ClusteringDataProcessor(data, names);
 			// take results of data processing to generate cluster centers
