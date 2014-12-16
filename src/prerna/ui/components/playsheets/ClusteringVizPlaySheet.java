@@ -79,8 +79,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	private ArrayList<Object[]> rawDataList;
 	private String[] rawDataNames;
 	
-	private Hashtable<String, Integer> instanceIndexHash;
-	private int[] clusterAssigned;
+	private int[] clusterAssignment;
 	private Boolean addAsTab = false;//determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
 	
 	public ClusteringVizPlaySheet() {
@@ -554,37 +553,37 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		if(numClusters >= 2){
 			clusterAlg = new ClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
-		} else{
+		} else {
 			clusterAlg = new ClusteringOptimization(list, names);
 			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
 		}
+		clusterAlg.setDataVariables();
 		clusterAlg.execute();
 		//store cluster final state information
 		clusterInfo = new ArrayList<Object[]>(numClusters);
 		clusterInfo = clusterAlg.getSummaryClusterRows();
 		
 		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		clusterAssigned = clusterAlg.getClustersAssigned();
-		instanceIndexHash = clusterAlg.getInstanceIndexHash();
+		clusterAssignment = clusterAlg.getClusterAssignment();
 		
 		//updating our list and names to include the cluster assigned in the last column
 		ArrayList<Object[]> listWithCluster = new ArrayList<Object[]>();
-		for(Object[] dataRow : list) {
+		int i;
+		int size = list.size();
+		for(i = 0; i < size; i++) {
+			Object[] dataRow = list.get(i);
 			Object[] newDataRow = new Object[dataRow.length + 1];
-			String instance="";
-			if(dataRow.length>0)
-				instance = dataRow[0].toString();
-			for(int i = 0; i < dataRow.length; i++) {
-				newDataRow[i] = dataRow[i];
+			for(int j = 0; j < dataRow.length; j++) {
+				newDataRow[j] = dataRow[j];
 			}
-			int clusterNumber = clusterAssigned[instanceIndexHash.get(instance)];
+			int clusterNumber = clusterAssignment[i];
 			newDataRow[newDataRow.length - 1] = clusterNumber;
 			listWithCluster.add(newDataRow);
 		}
 		list = listWithCluster;
 		String[] namesWithCluster = new String[names.length + 1];
-		for(int i = 0; i < names.length; i++) {
+		for(i = 0; i < names.length; i++) {
 			namesWithCluster[i] = names[i];
 		}
 		namesWithCluster[namesWithCluster.length - 1] = "ClusterID";
@@ -595,7 +594,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		dataHash = processQueryData();
 	}
 
-	//TODO why arent we just calling super create data here?
 	private void processQuery() 
 	{
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
@@ -640,24 +638,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //		}
 	}
 	
-//	public void setList(ArrayList<Object []> list){
-//		this.list = list;	
-//	}
-//	public void setNames(String[] names){
-//		this.names = names;	
-//	}
-	
 	public String getFullQuery() {
 		return fullQuery;
 	}
 	public ArrayList<JCheckBox> getClusterCheckboxes() {
 		return clusterCheckboxes;
 	}
-	public Hashtable<String, Integer> getInstanceIndexHash() {
-		return instanceIndexHash;
-	}
-	public int[] getClusterAssigned() {
-		return clusterAssigned;
+	public int[] getClusterAssignment() {
+		return clusterAssignment;
 	}
 	public void setAddAsTab(Boolean addAsTab) {
 		this.addAsTab = addAsTab;

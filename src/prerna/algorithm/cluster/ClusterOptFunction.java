@@ -68,6 +68,7 @@ public class ClusterOptFunction implements UnivariateFunction{
 		} 
 		if(clusterAlg == null) {
 			clusterAlg = new ClusteringAlgorithm(list, names);
+			clusterAlg.setDataVariables();
 		}
 		clusterAlg.setNumClusters(arg0);
 		clusterAlg.execute();

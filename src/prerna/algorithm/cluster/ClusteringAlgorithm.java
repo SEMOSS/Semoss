@@ -28,6 +28,8 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	@Override
 	public boolean execute() throws IllegalArgumentException {
 		
+		long startTime = System.currentTimeMillis();
+		
 		if(numClusters > numInstances) {
 			return success = false;
 		}
@@ -41,10 +43,10 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		//or quit after some ridiculously large number of times with an error
 		while(!noChange && iterationCount <= maxIterations) {
 			noChange = true;
-			for(String instance : instanceIndexHash.keySet()) {
-				int instanceInd = instanceIndexHash.get(instance);
+			int instanceInd = 0;
+			for(instanceInd = 0; instanceInd < numInstances; instanceInd++) {
 				int newClusterForInstance = ClusterUtilityMethods.findNewClusterForInstance(cnm, clusterCategoryMatrix, clusterNumberBinMatrix, numInstancesInCluster, instanceInd);
-				int oldClusterForInstance = clustersAssigned[instanceInd];
+				int oldClusterForInstance = clusterAssignment[instanceInd];
 				if(newClusterForInstance != oldClusterForInstance) {
 					noChange = false;
 //					clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance, newClusterForInstance, clusterNumberMatrix, clustersNumInstances);
@@ -54,7 +56,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 						numInstancesInCluster[oldClusterForInstance]--;
 					}
 					numInstancesInCluster[newClusterForInstance]++;
-					clustersAssigned[instanceInd] = newClusterForInstance;
+					clusterAssignment[instanceInd] = newClusterForInstance;
 				}
 			}
 			iterationCount++;
@@ -79,10 +81,10 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 						clusterCategoryMatrix.remove(i - counter);
 					}
 					int j;
-					int size = clustersAssigned.length;
+					int size = clusterAssignment.length;
 					for(j = 0; j < size; j++) {
-						if(clustersAssigned[j] > i - counter) {
-							clustersAssigned[j]--;
+						if(clusterAssignment[j] > i - counter) {
+							clusterAssignment[j]--;
 						}
 					}
 					counter++;
@@ -92,12 +94,15 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			numClusters = numInstancesInCluster.length;
 		}
 		
-//		printOutClusters();
 		createClusterSummaryRowsForGrid();
 		
 		//need indices for visualization
 		categoryPropIndices = cdp.getCategoryPropIndices();
 		numericalPropIndices = cdp.getTotalNumericalPropIndices();
+		
+		long endTime = System.currentTimeMillis();
+		
+		System.out.println("Time in seconds for execute = " + (endTime-startTime)/1000 );
 		
 		return success;
 	}

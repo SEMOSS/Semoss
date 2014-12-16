@@ -66,18 +66,11 @@ public class ClusteringDataProcessor {
 		}
 	}
 
-	// Hashtable containing the instance name as the key and the value being the row it's information is contained in the numerical and categorical Matrices
-	private Hashtable<String, Integer> instanceHash = new Hashtable<String, Integer>();
 	// list of all the categorical property names 
 	private String[] categoryPropNames;
 	// list of all the numerical property names
 	private String[] numericalPropNames;
 	
-	@SuppressWarnings("unchecked")
-	public Hashtable<String, Integer> getInstanceHash() {
-		return (Hashtable<String, Integer>) instanceHash.clone();
-	}
-
 	public String[] getCategoryPropNames() {
 		if(categoryPropNames != null) {
 			return categoryPropNames.clone();
@@ -118,7 +111,12 @@ public class ClusteringDataProcessor {
 	private Integer[] categoryPropIndices; 
 
 	public int[] getTotalNumericalPropIndices() {
-		return totalNumericalPropIndices;
+		if(totalNumericalPropIndices != null) {
+			return totalNumericalPropIndices;
+		} else {
+			return null;
+		}
+		
 	}
 
 	public Integer[] getCategoryPropIndices() {
@@ -199,15 +197,9 @@ public class ClusteringDataProcessor {
 						simpleDateTypeIndicesCounter++;
 					}
 				}
-			} else {
-				// get list of all instances in the order they are being stored
-				for(int i = 0; i < masterTable.size(); i++) {
-					Object[] dataRow = masterTable.get(i);
-					String colEntry = dataRow[j].toString();
-					instanceHash.put(colEntry, i);
-				}
-			}
+			} 
 		}
+		
 		categoryPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(categoryPropNames);
 		categoryPropIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(categoryPropIndices);
 		numericalPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(numericalPropNames);
@@ -524,7 +516,6 @@ public class ClusteringDataProcessor {
 //			for(i = 0; i < numRows; i++) {
 //				COL_LOOP: for(j = 0; j < numCols; j++) {
 //					double val = numericalMatrix[i][j];
-//					System.out.println(val); //TODO: delete
 //					Hashtable<String, Integer> colInstances = trackPropOccurance.get(j);
 //					// due to loss of significant digits, the val can be larger than the max
 //					String minBin = "";
