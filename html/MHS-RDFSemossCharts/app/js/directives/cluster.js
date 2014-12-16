@@ -106,19 +106,42 @@ app.directive('d3Cluster', function() {
             var container = vis.append("g");
 
             var groupPath = function (d) {
+                console.log(d.values);
+                var i = 0;
                 var groupPathReturn = "";
-                if(d.values.length == 1){
-                    groupPathReturn = ("M" + (d.values[0].x + 0.04) + "," + d.values[0].y + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y + 0.03) + "L" + (d.values[0].x - 0.03) + "," + (d.values[0].y - 0.03) + "Z");
-                }else if(d.values.length == 2){
-                    groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
-                }else{
-                    var i=0
-                    groupPathReturn = ("M" +
-                        d3.geom.hull(d.values.map(function (d) {
-                            return [d.x, d.y];
-                        }))
-                            .join("L")
-                        + "Z");
+                var sumx = 0;
+                var sumy = 0;
+                var avg = 0;
+                while ( i < d.values.length){
+                    sumx += d.values[i].x
+                    sumy += d.values[i].y
+                    i++
+                }
+                var avgx = sumx/d.values.length;
+                var avgy = sumy/d.values.length;
+                console.log(avgx)
+                console.log(avgy)
+                if(d.values.length >0){
+                    groupPathReturn = ("M" + (avgx+ .5*d.values.length) + "," + (avgy+ .5* d.values.length) + "L" + (avgx + .5* d.values.length) + "," + (avgy - .5* d.values.length) + "L" + (avgx -  .5* d.values.length) + "," + (avgy- .5* d.values.length)+ "L" + (avgx- .5* d.values.length) + "," + (avgy+ .5* d.values.length) + "Z");
+                // }else if(d.values.length == 2){
+                //     groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
+                // }else{
+                //     groupPathReturn = ("M" +
+                //         d3.geom.hull(d.values.map(function (d) {
+                //             return [d.x, d.y];
+                //         }))
+                //             .join("L")
+                //         + "Z")
+                    // console.log(groupPathReturn);
+                    //     var i = 0
+                    //     while( i<d.values.length){
+                    //     groupPathReturn = ("M" + (d.values[].x) + "," + d.values[i].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
+                    //     i++
+                    // }
+                    // var hullFunction = d3.geom.hull()
+                    //  .x(d.x)
+                    //  .y(d.y);
+                    //  groupPathReturn = hullFunction(d)
                 }
                 return groupPathReturn;
             };
@@ -264,7 +287,7 @@ app.directive('d3Cluster', function() {
                         .enter().insert("path", "circle")
                         .style("fill", groupFill)
                         .style("stroke", groupFill)
-                        .style("stroke-width", 40)
+                        .style("stroke-width", 100)
                         .style("stroke-linejoin", "round")
                         .style("opacity", .2)
                         //.attr("d", groupPath)
@@ -274,13 +297,13 @@ app.directive('d3Cluster', function() {
                                 selectedPath = d3.select(this);
                             //set all circles (and previously selected nodes) to default stroke & stroke-width
                             allPaths.style({
-                                "stroke-width": 40,
+                                "stroke-width": 100,
                                 "opacity":.2
                             });
                             //set selected node to <color> and <border> size
                             selectedPath.style({
                                 "opacity":.8,
-                                "stroke-width": 50
+                                "stroke-width": 110
                             });
                         });
                 });
