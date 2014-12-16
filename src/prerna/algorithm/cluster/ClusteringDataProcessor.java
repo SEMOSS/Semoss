@@ -363,7 +363,11 @@ public class ClusteringDataProcessor {
 
 		int counter = 0;
 		for(int i = 0; i < numWeights; i++) {
-			categoricalWeights[counter] = (entropyArr[i] / totalEntropy);
+			if(totalEntropy == 0) {
+				categoricalWeights[counter] = 0.0;
+			} else {
+				categoricalWeights[counter] = (entropyArr[i] / totalEntropy);
+			}
 			counter++;
 		}
 
