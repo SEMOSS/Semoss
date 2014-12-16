@@ -427,4 +427,24 @@ public final class ArrayUtilityMethods {
  
         return uniqueArray;
     }
+	
+	public static String[] removeNameFromList(String[] name, int colToRemove) {
+		if(name == null || name.length == 0) {
+			return null;
+		}
+		
+		int numCols = name.length;
+
+		String[] retNames = new String[numCols - 1];
+		int i;
+		int counter = 0;
+		for(i = 0; i < numCols; i++) {
+			if(i != colToRemove) {
+				retNames[counter] = name[i];
+				counter++;
+			}
+		}
+		
+		return retNames;
+	}
 }
