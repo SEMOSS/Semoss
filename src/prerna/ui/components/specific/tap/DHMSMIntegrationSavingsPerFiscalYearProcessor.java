@@ -80,7 +80,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				minYear = startYearAsNum;
 			}
 		}
-		int numColumns = maxYear - minYear + 2; // costs gains are realized a year after
+		int numColumns = maxYear - minYear + 2; // costs gains are typically realized a year after, except for centrally distributed systems
 		double[] inflationArr = new double[numColumns+1];
 		int i;
 		for(i = 0; i < numColumns+1; i++) {
@@ -110,7 +110,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 
 			HashMap<String, ArrayList<String>> sites = masterHash.get(wave);
 			if(sites != null) {
-				for(String site : sites.keySet()) {
+				for(String site : sites.keySet()) {//calculate per site
 					boolean addSite = false;
 					if(!lastWaveForSitesAndFloatersInMultipleWavesHash.containsKey(site)) {
 						addSite = true;
@@ -130,6 +130,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						int counter = 0;
 						for(String system : systems) {
 							boolean takePercentage = true;
+							// dataMissing is a flag that is used to determine if a system at a site that should have savings has $0 in savings
+							// this is denoted in the report by an asterisk next to that figure
+							// missingData year gets updated to put that asterisk in the right spot
 							boolean dataMissing = false;
 							for(int index = outputYear; index < numColumns; index++) {
 								double savings = 0.0;
@@ -185,6 +188,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 										innerMap.put(index, dataMissing);
 									}
 								}
+								// Determine if a system is Centrally Located
+								// The logic to determine if a system is centrally located is performed earleir and stored in a relationship, which we access directly
+								// Centrally located systems only realize their savings after TOC
 								if(centrallyLocatedSys.contains(system)) {
 									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
 									break;
@@ -225,7 +231,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 
 			}
 		}
-
+		
 		list = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
@@ -233,6 +239,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 		double[] totalCol = new double[numCols-2];
 		
+		// create system column
 		if(list.isEmpty()) {
 			names = new String[numCols];
 			int fy = minYear; // pass min year to start table
@@ -248,7 +255,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			}
 			names[index] = "Total";
 		}
-		
+		// calculate site data
 		for(String site : savingsData.keySet()) {
 			double[] values = savingsData.get(site);
 			Object[] row = new Object[numCols];
@@ -267,7 +274,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						} else {
 							totalRow += value;
 							totalCol[index] += value;
-							row[index + 1] = formatter.format(value) + "*";
+							row[index + 1] = formatter.format(value) + "*"; // dataMissing flag for any system for the year and site in question
 						}
 					} else {
 						totalRow += value;
@@ -458,6 +465,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 	}
 	
+	//This method does the same thing as the above Process Data, but swaps the systems for the sites, getting a total per-site
 	public void processSystemData(){
 		Integer minYear = 3000; // arbitrarily large year
 		Integer maxYear = 0;
