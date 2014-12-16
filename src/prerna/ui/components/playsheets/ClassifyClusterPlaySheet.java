@@ -494,7 +494,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		ivCheckboxes = new ArrayList<JCheckBox>();
 		entropyLabels = new ArrayList<JLabel>();
 
-		DecimalFormat formatter = new DecimalFormat("##.00");
+		DecimalFormat formatter = new DecimalFormat("#0.00");
 		
 		for(int i=1;i<names.length;i++) {
 			String checkboxLabel = names[i];
@@ -532,7 +532,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	public void fillAccuracyAndPrecision(double[] accuracyArr, double[] precisionArr) {
-		DecimalFormat formatter = new DecimalFormat("##.00");
+		DecimalFormat formatter = new DecimalFormat("#0.00");
 		
 		boolean[] includeColArr = new boolean[ivCheckboxes.size()];
 		includeColArr[0] = true; //this is the "title" or "name"
@@ -602,7 +602,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 				}
 			}
 		}
-		indVariablesPanel.validate();
+		indVariablesPanel.revalidate();
 		indVariablesPanel.repaint();
 	}
 	
