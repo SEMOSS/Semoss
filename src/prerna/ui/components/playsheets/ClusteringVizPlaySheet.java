@@ -553,12 +553,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		if(numClusters >= 2){
 			clusterAlg = new ClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
+			clusterAlg.setDataVariables();
 		} else {
 			clusterAlg = new ClusteringOptimization(list, names);
+			clusterAlg.setDataVariables();
 			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
 		}
-		clusterAlg.setDataVariables();
 		clusterAlg.execute();
 		//store cluster final state information
 		clusterInfo = new ArrayList<Object[]>(numClusters);
