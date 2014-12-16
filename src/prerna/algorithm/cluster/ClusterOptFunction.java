@@ -13,11 +13,11 @@ public class ClusterOptFunction implements UnivariateFunction{
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusterOptFunction.class.getName());
 	
-	private AbstractClusteringAlgorithm clusterAlg;
-	private ArrayList<Object[]> list;
-	private String[] names;
-	PrintWriter writer = null;
+	private AbstractClusteringAlgorithm clusteringOptimization;
 	private HashMap<Integer, Double> values = new HashMap<Integer, Double>();
+	private int numInstances;
+	
+	PrintWriter writer = null;
 	
 	@Override
 	public double value(double arg0) {
@@ -66,16 +66,12 @@ public class ClusterOptFunction implements UnivariateFunction{
 				e.printStackTrace();
 			}
 		} 
-		if(clusterAlg == null) {
-			clusterAlg = new ClusteringAlgorithm(list, names);
-			clusterAlg.setDataVariables();
-		}
-		clusterAlg.setNumClusters(arg0);
-		clusterAlg.execute();
-		double instanceToClusterSim = clusterAlg.calculateFinalInstancesToClusterSimilarity();
-		double clusterToClusterSim = clusterAlg.calculateFinalTotalClusterToClusterSimilarity();
+		clusteringOptimization.setNumClusters(arg0);
+		clusteringOptimization.execute();
+		double instanceToClusterSim = clusteringOptimization.calculateFinalInstancesToClusterSimilarity();
+		double clusterToClusterSim = clusteringOptimization.calculateFinalTotalClusterToClusterSimilarity();
 		double sum = instanceToClusterSim + clusterToClusterSim;
-		double items = list.size() + (double) (arg0 * (arg0-1) /2);
+		double items = numInstances + (double) (arg0 * (arg0-1) /2);
 		double average = sum/items;
 		
 		values.put(arg0, average);
@@ -88,17 +84,11 @@ public class ClusterOptFunction implements UnivariateFunction{
 		writer.close();
 	}
 	
-	public ArrayList<Object[]> getList() {
-		return list;
-	}
-	public void setList(ArrayList<Object[]> list) {
-		this.list = list;
-	}
-	public String[] getNames() {
-		return names;
-	}
-	public void setNames(String[] names) {
-		this.names = names;
+	public void setClusterOptimization(ClusteringOptimization clusteringOptimization) {
+		this.clusteringOptimization = clusteringOptimization;
 	}
 	
+	public void setNumInstances(int numInstances){
+		this.numInstances = numInstances;
+	}
 }
