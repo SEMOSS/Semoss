@@ -69,8 +69,9 @@ public class RunDrillDownListener extends AbstractListener {
 		String[] masterNames = clusteringPlaySheet.getMasterNames();
 		ArrayList<Object []> masterList = clusteringPlaySheet.getMasterList();
 		
+		int i;
 		Integer numberSelected = 0;
-		for(int i=0;i<columnCheckboxes.size();i++) {
+		for(i = 0; i < columnCheckboxes.size(); i++) {
 			if(columnCheckboxes.get(i).isSelected())
 				numberSelected++;
 		}
@@ -78,7 +79,7 @@ public class RunDrillDownListener extends AbstractListener {
 		String[] filteredNames = new String[numberSelected+1];
 		filteredNames[0] = masterNames[0];
 		int colInd=1;
-		for(int i=0;i<columnCheckboxes.size();i++) {
+		for(i = 0; i < columnCheckboxes.size(); i++) {
 			if(columnCheckboxes.get(i).isSelected()) {
 				filteredNames[colInd] = masterNames[1+i];
 				colInd++;
@@ -87,7 +88,7 @@ public class RunDrillDownListener extends AbstractListener {
 		
 		ArrayList<JCheckBox> clusterCheckboxes = playSheet.getClusterCheckboxes();
 		ArrayList<Integer> clustersToInclude = new ArrayList<Integer>();
-		for(int i=0;i<clusterCheckboxes.size();i++) {
+		for(i = 0; i < clusterCheckboxes.size(); i++) {
 			JCheckBox checkbox = clusterCheckboxes.get(i);
 			if(checkbox.isSelected()) {
 				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
@@ -98,12 +99,14 @@ public class RunDrillDownListener extends AbstractListener {
 			return;
 		}
 		
-		Hashtable<String, Integer> instanceIndexHash = clusteringPlaySheet.getInstanceIndexHash();
-		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssigned();
+//		Hashtable<String, Integer> instanceIndexHash = clusteringPlaySheet.getInstanceIndexHash();
+		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssignment();
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		for(Object[] instanceRow : masterList) {
-			String instance = (String)instanceRow[0];
-			int cluster = clusterAssigned[instanceIndexHash.get(instance)];
+		for(i = 0; i < clusterAssigned.length; i++) {
+			Object[] instanceRow = masterList.get(i);
+//			String instance = (String)instanceRow[0];
+//			int cluster = clusterAssigned[instanceIndexHash.get(instance)];
+			int cluster = clusterAssigned[i];
 			//check if cluster is to be included
 			if(clustersToInclude.contains(cluster)) {
 				newList.add(instanceRow);
@@ -117,7 +120,7 @@ public class RunDrillDownListener extends AbstractListener {
 			Object[] filteredRow = new Object[numberSelected+1];
 			filteredRow[0] = row[0];//whatever object name we're clustering on
 			colInd=1;
-			for(int i=0;i<columnCheckboxes.size();i++) {
+			for(i = 0; i < columnCheckboxes.size(); i++) {
 				if(columnCheckboxes.get(i).isSelected()) {
 					filteredRow[colInd] = row[1+i];
 					colInd++;

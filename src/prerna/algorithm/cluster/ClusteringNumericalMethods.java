@@ -448,10 +448,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 	//		return numericSimilarity + categoricalSimilarity;
 	//	}
 
-	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateNumericClusterCenter(
-			int[] clusterAssigned, 
-			Hashtable<String, Integer> instanceIndexHash) 
-	{
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateNumericClusterCenter(int[] clusterAssigned) {
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
 
 		if(numericalBinMatrix != null) {
@@ -462,10 +459,7 @@ public class ClusteringNumericalMethods extends AbstractNumericalMethods{
 		return null;
 	}
 
-	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateCategoricalClusterCenter(
-			int[] clusterAssigned, 
-			Hashtable<String, Integer> instanceIndexHash) 
-	{
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> generateCategoricalClusterCenter(int[] clusterAssigned) {
 		int numClusters = StatisticsUtilityMethods.getMaximumValue(clusterAssigned) + 1;
 
 		if(categoricalMatrix != null) {
