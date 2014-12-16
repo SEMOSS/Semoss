@@ -22,8 +22,8 @@ public class ClusteringOptimization extends ClusteringAlgorithm {
 
 	public void determineOptimalCluster() {
 		ClusterOptFunction f = new ClusterOptFunction();
-		f.setList(masterTable);
-		f.setNames(varNames);
+		f.setClusterOptimization(this);
+		f.setNumInstances(numInstances);
 		UnivariateOptimizer optimizer = new BrentOptimizer(1E-6, 1E-6);
         RandomGenerator rand = new Well1024a(500);
         MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, 5, rand);
