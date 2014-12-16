@@ -106,7 +106,7 @@ app.directive('d3Cluster', function() {
             var container = vis.append("g");
 
             var groupPath = function (d) {
-                console.log(d.values);
+                // console.log(d.values);
                 var i = 0;
                 var groupPathReturn = "";
                 var sumx = 0;
@@ -119,10 +119,9 @@ app.directive('d3Cluster', function() {
                 }
                 var avgx = sumx/d.values.length;
                 var avgy = sumy/d.values.length;
-                console.log(avgx)
-                console.log(avgy)
+
                 if(d.values.length >0){
-                    groupPathReturn = ("M" + (avgx+ .5*d.values.length) + "," + (avgy+ .5* d.values.length) + "L" + (avgx + .5* d.values.length) + "," + (avgy - .5* d.values.length) + "L" + (avgx -  .5* d.values.length) + "," + (avgy- .5* d.values.length)+ "L" + (avgx- .5* d.values.length) + "," + (avgy+ .5* d.values.length) + "Z");
+                    groupPathReturn = ("M" + (avgx+ .7*d.values.length) + "," + (avgy+ .7* d.values.length) + "L" + (avgx + .7* d.values.length) + "," + (avgy - .7* d.values.length) + "L" + (avgx -  .7* d.values.length) + "," + (avgy- .7* d.values.length)+ "L" + (avgx- .7* d.values.length) + "," + (avgy+ .7* d.values.length) + "Z");
                 // }else if(d.values.length == 2){
                 //     groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
                 // }else{
@@ -176,7 +175,7 @@ app.directive('d3Cluster', function() {
                     .nodes(nodes)
                     .links([])
                     .size([w, h])
-                    .charge(-10)
+                    .charge(-8)
                     .start();
 
                 node = container.selectAll("circle.node")
@@ -232,14 +231,14 @@ app.directive('d3Cluster', function() {
 //                    var aspectRatio = w/h;
 
                     if(numGroups > 20){
-                        heightAmplification = 0.010;
-                        widthAmplification = 0.010;
+                        heightAmplification = 0.020;
+                        widthAmplification = 0.015;
                     }else if(numGroups > 10){
-                        heightAmplification = 0.008;
-                        widthAmplification = 0.010;
+                        heightAmplification = 0.010;
+                        widthAmplification = 0.014;
                     }else if(numGroups > 5){
-                        heightAmplification = 0.007;
-                        widthAmplification = 0.006;
+                        heightAmplification = 0.009;
+                        widthAmplification = 0.008;
                     }else{
                         heightAmplification = 0.005;
                         widthAmplification = 0.005;
@@ -287,7 +286,9 @@ app.directive('d3Cluster', function() {
                         .enter().insert("path", "circle")
                         .style("fill", groupFill)
                         .style("stroke", groupFill)
-                        .style("stroke-width", 100)
+                        .style("stroke-width", function(d) {
+                            return 60;
+                        })
                         .style("stroke-linejoin", "round")
                         .style("opacity", .2)
                         //.attr("d", groupPath)
@@ -297,7 +298,7 @@ app.directive('d3Cluster', function() {
                                 selectedPath = d3.select(this);
                             //set all circles (and previously selected nodes) to default stroke & stroke-width
                             allPaths.style({
-                                "stroke-width": 100,
+                                "stroke-width": 60,
                                 "opacity":.2
                             });
                             //set selected node to <color> and <border> size
