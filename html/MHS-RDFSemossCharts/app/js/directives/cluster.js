@@ -120,8 +120,8 @@ app.directive('d3Cluster', function() {
                 var avgx = sumx/d.values.length;
                 var avgy = sumy/d.values.length;
 
-                if(d.values.length >0){
-                    groupPathReturn = ("M" + (avgx+ .7*d.values.length) + "," + (avgy+ .7* d.values.length) + "L" + (avgx + .7* d.values.length) + "," + (avgy - .7* d.values.length) + "L" + (avgx -  .7* d.values.length) + "," + (avgy- .7* d.values.length)+ "L" + (avgx- .7* d.values.length) + "," + (avgy+ .7* d.values.length) + "Z");
+                // if(d.values.length >0){
+                //     groupPathReturn = ("M" + (avgx+ .7*d.values.length) + "," + (avgy+ .7* d.values.length) + "L" + (avgx + .7* d.values.length) + "," + (avgy - .7* d.values.length) + "L" + (avgx -  .7* d.values.length) + "," + (avgy- .7* d.values.length)+ "L" + (avgx- .7* d.values.length) + "," + (avgy+ .7* d.values.length) + "Z");
                 // }else if(d.values.length == 2){
                 //     groupPathReturn = ("M" + (d.values[1].x) + "," + d.values[1].y + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y +0.01) + "L" + (d.values[0].x -0.01) + "," + (d.values[0].y - 0.01) + "Z");
                 // }else{
@@ -141,7 +141,7 @@ app.directive('d3Cluster', function() {
                     //  .x(d.x)
                     //  .y(d.y);
                     //  groupPathReturn = hullFunction(d)
-                }
+                // }
                 return groupPathReturn;
             };
 
@@ -200,7 +200,10 @@ app.directive('d3Cluster', function() {
                     .call(force.drag);
 
                 node.on("click", function(d){
+                    var grp = d.ClusterID;
+                    structureBarData(groups[grp], barData);
                     structureNodeData(d, groupingCategory, nodeName);
+
                     var allCircles = d3.selectAll("circle.node"),
                         selectedCircle = d3.select(this);
                     //set all circles (and previously selected nodes) to default stroke & stroke-width
