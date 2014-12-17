@@ -72,9 +72,9 @@ public class CSVPropFileBuilder{
 		}
 	}
 
-	public void constructPropHash(){
-		propHash.put("START_ROW","2");
-		propHash.put("END_ROW","100000");
+	public void constructPropHash(String startRowNumAsString, String endRowNumAsString){
+		propHash.put("START_ROW", startRowNumAsString);
+		propHash.put("END_ROW", endRowNumAsString);
 		propHash.put("NOT_OPTIONAL", ";");
 		propHash.put("RELATION", relationships.toString());
 		propHash.put("NODE_PROP", node_properties.toString());
@@ -85,8 +85,8 @@ public class CSVPropFileBuilder{
 		propFile.append("RELATION_PROP\t \n");
 	}
 
-	public Hashtable<String, String> getPropHash() {
-		constructPropHash();
+	public Hashtable<String, String> getPropHash(String startRowNumAsString, String endRowNumAsString) {
+		constructPropHash(startRowNumAsString, endRowNumAsString);
 		return propHash;
 	}
 	
