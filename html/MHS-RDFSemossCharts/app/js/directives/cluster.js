@@ -171,6 +171,13 @@ app.directive('d3Cluster', function() {
                     return d[groupingCategory];
                 }).entries(nodes);
 
+                // console.log(groups);
+                var ordgroups = groups.sort(function(a,b) {
+                    return parseFloat(a.key) - parseFloat(b.key)
+                });
+                // console.log(ordgroups);
+
+
                 force
                     .nodes(nodes)
                     .links([])
