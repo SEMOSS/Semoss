@@ -103,6 +103,7 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 					int index = seriesArray.size();
 					if(seriesVal == 1)
 					{
+						elementHash.put("client", true);
 						if(clientIndex.contains(xVal))
 							index = clientIndex.indexOf(xVal);
 						else{
