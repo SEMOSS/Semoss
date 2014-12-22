@@ -595,10 +595,16 @@ public class Utility {
 	}
 	
 	public static String cleanVariableString(String original){
-		String cleaned = cleanString (original, true);
-		cleaned = cleaned.replaceAll(",", "");
-		return cleaned;
-	}
+        String cleaned = cleanString (original, true);
+        cleaned = cleaned.replaceAll("\\,", "");
+        cleaned = cleaned.replaceAll("\\%", "");
+        cleaned = cleaned.replaceAll("\\-", "");
+        cleaned = cleaned.replaceAll("\\(", "");
+        cleaned = cleaned.replaceAll("\\)", "");
+        cleaned = cleaned.replaceAll("\\&", "and");
+        return cleaned;
+  }
+
 
 	/**
 	 * Creates an excel workbook
