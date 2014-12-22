@@ -126,15 +126,15 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 		{
 			ArrayList<String> thisTripleArray = tripleArray.get(tripleIdx);
 			String subjectURI = thisTripleArray.get(subIdx);
-			String subjectName = Utility.getInstanceName(subjectURI);
+			String subjectVarName = Utility.cleanVariableString(Utility.getInstanceName(subjectURI));
 			// store node/rel info
-			if (!totalVarList.contains(subjectName))
+			if (!totalVarList.contains(subjectVarName))
 			{
 				//store node info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put(varKey, subjectName);
+				elementHash.put(varKey, subjectVarName);
 				elementHash.put(uriKey, subjectURI);
-				totalVarList.add(subjectName);
+				totalVarList.add(subjectVarName);
 				nodeV.add(elementHash);
 			}
 			// if a full path has been selected and not just a single node, go through predicate and object
@@ -142,28 +142,28 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			{
 				String predURI = thisTripleArray.get(predIdx);
 				String objectURI = thisTripleArray.get(objIdx);
-				String objectName = Utility.getInstanceName(objectURI);
-				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
-				if (!totalVarList.contains(predName))
+				String objectVarName = Utility.cleanVariableString(Utility.getInstanceName(objectURI));
+				String predVarName = subjectVarName + "_" +Utility.cleanVariableString(Utility.getInstanceName(predURI)) + "_" + objectVarName;
+				if (!totalVarList.contains(predVarName))
 				{
 					Hashtable<String, String> predInfoHash = new Hashtable<String,String>();
 					predInfoHash.put("Subject", subjectURI);
-					predInfoHash.put("SubjectVar", subjectName);
+					predInfoHash.put("SubjectVar", subjectVarName);
 					predInfoHash.put("Pred", predURI);
 					predInfoHash.put("Object", objectURI);
-					predInfoHash.put("ObjectVar", objectName);
+					predInfoHash.put("ObjectVar", objectVarName);
 					predInfoHash.put(uriKey, predURI);
-					predInfoHash.put(varKey, predName);
+					predInfoHash.put(varKey, predVarName);
 
-					totalVarList.add(predName);
+					totalVarList.add(predVarName);
 					predV.add(predInfoHash);
 				}
-				if (!totalVarList.contains(objectName))
+				if (!totalVarList.contains(objectVarName))
 				{
-					totalVarList.add(objectName);
+					totalVarList.add(objectVarName);
 					//store node info
 					Hashtable<String, String> elementHash = new Hashtable<String, String>();
-					elementHash.put(varKey, objectName);
+					elementHash.put(varKey, objectVarName);
 					elementHash.put(uriKey, objectURI);
 					nodeV.add(elementHash);
 				}
@@ -282,7 +282,7 @@ public class CustomVizTableBuilder extends AbstractCustomVizBuilder{
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);
-				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
+				String propName = Utility.cleanVariableString(varName + "__" + Utility.getInstanceName(propURI));
 				totalVarList.add(propName);
 				//store node prop info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
