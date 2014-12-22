@@ -593,6 +593,12 @@ public class Utility {
 
 		return retString;
 	}
+	
+	public static String cleanVariableString(String original){
+		String cleaned = cleanString (original, true);
+		cleaned = cleaned.replaceAll(",", "");
+		return cleaned;
+	}
 
 	/**
 	 * Creates an excel workbook
