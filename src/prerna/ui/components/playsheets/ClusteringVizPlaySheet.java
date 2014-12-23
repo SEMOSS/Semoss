@@ -42,10 +42,10 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusterRemoveDuplicates;
-import prerna.algorithm.cluster.ClusteringAlgorithm;
 import prerna.algorithm.cluster.ClusteringOptimization;
 import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
+import prerna.algorithm.cluster.PartitionedClusteringAlgorithm;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -559,23 +559,34 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 //			writer.println(i + "\t\t\t" + instanceToClusterSim + "\t\t\t" + clusterToClusterSim + "\t\t\t" + items + "\t\t\t" + average);
 //		}
 //		writer.close();
-		
+		long startTime = System.currentTimeMillis();
+
 		AbstractClusteringAlgorithm clusterAlg;
 //		if(type.equalsIgnoreCase("agglomerative")){
 //			clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
 //			clusterAlg.setNumClusters(numClusters);
 //			((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-		if(numClusters >= 2){
-			clusterAlg = new ClusteringAlgorithm(list, names);
+		if(numClusters >= 2) {
+			clusterAlg = new PartitionedClusteringAlgorithm(list, names);
 			clusterAlg.setNumClusters(numClusters);
 			clusterAlg.setDataVariables();
+			((PartitionedClusteringAlgorithm) clusterAlg).generateBaseClusterInformation(numClusters);
 		} else {
 			clusterAlg = new ClusteringOptimization(list, names);
 			clusterAlg.setDataVariables();
-			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
+			int minClusters = 2;
+			int maxClusters = 50;
+			((PartitionedClusteringAlgorithm) clusterAlg).generateBaseClusterInformation(maxClusters);
+			((ClusteringOptimization) clusterAlg).runGoldenSelectionForNumberOfClusters(minClusters, maxClusters);
+//			((ClusteringOptimization) clusterAlg).determineOptimalCluster();
 			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
 		}
+		((PartitionedClusteringAlgorithm) clusterAlg).generateInitialClusters();
 		clusterAlg.execute();
+		
+		long endTime = System.currentTimeMillis();
+		System.out.println("Total Time = " + (endTime-startTime)/1000 );
+
 		//store cluster final state information
 		clusterInfo = new ArrayList<Object[]>(numClusters);
 		clusterInfo = clusterAlg.getSummaryClusterRows();
