@@ -465,14 +465,14 @@ public final class ArrayUtilityMethods {
 
 	/**
 	 * Returns a specific range of rows from the original list passed in
-	 * @param list			The main list you plan on taking a section from
-	 * @param startRow		The first row you want returned from the list, inclusive
-	 * @param endRow		The last row you want returned from the list, exclusive
-	 * @return				The portioned list from row startNum to row endNum 
+	 * @param dataMatrix	The main list you plan on taking a section from
+	 * @param startRow		The first row you want returned from the dataMatrix, inclusive
+	 * @param endRow		The last row you want returned from the dataMatrix, exclusive
+	 * @return				The portioned dataMatrix from row startNum to row endNum 
 	 */
 	public static String[][] getRowRangeFromMatrix(String[][] dataMatrix, int startRow, int endRow) {
 		if(dataMatrix == null) {
-			throw new NullPointerException("list is null");
+			throw new NullPointerException("dataMatrix is null");
 		}
 		int size = dataMatrix.length;
 		if(startRow < 0) {
@@ -500,5 +500,53 @@ public final class ArrayUtilityMethods {
 		}
 		
 		return retDataMatrix;
+	}
+	
+	/**
+	 * Returns a specific range of rows from the original list passed in
+	 * @param dataMatrix			The main dataMatrix you plan on taking a section from
+	 * @param positionsToRemove		The array of indices to remove from the dataMatrix
+	 * @return						The portioned dataMatrix not including the positions removed 
+	 */
+	public static String[][] removeRowRangeFromMatrix(String[][] dataMatrix, int[] positionsToRemove) {
+		if(dataMatrix == null) {
+			throw new NullPointerException("dataMatrix is null");
+		}
+		int size = dataMatrix.length;
+		int removeSize = positionsToRemove.length;
+		
+		// sort array of values to remove for efficient logic
+		Arrays.sort(positionsToRemove);
+		
+		String[][] retDataMatrix = new String[size-removeSize][];
+		int i = 0;
+		int counter = 0;
+		for(; i < size; i++) {
+			if(positionsToRemove.length > 0 && i == positionsToRemove[0]) {
+				// always remove the first index since it is ordered
+				positionsToRemove = removeIndexOfArray(positionsToRemove, 0);
+			} else {
+				retDataMatrix[counter] = dataMatrix[i];
+				counter++;
+			}
+		}
+		
+		return retDataMatrix;
+	}
+	
+	public static int[] removeIndexOfArray(int[] arr, int indexToRemove) {
+		int size = arr.length;
+		int[] retArr = new int[size-1];
+
+		int i = 0;
+		int counter = 0;
+		for(; i < size; i++) {
+			if(i != indexToRemove) {
+				retArr[counter] = arr[i];
+				counter++;
+			}
+		}
+		
+		return retArr;
 	}
 }

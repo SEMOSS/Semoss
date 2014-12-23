@@ -28,11 +28,20 @@ import prerna.util.ArrayUtilityMethods;
 public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithm.class.getName());
-
+	private boolean removeEmptyClusters = true; 
+	
+	public ClusteringAlgorithm() {
+		
+	}
+	
 	public ClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		super(masterTable, varNames);
 	}
-
+	
+	public void setRemoveEmptyClusters(boolean removeEmptyClusters) {
+		this.removeEmptyClusters = removeEmptyClusters;
+	}
+	
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
 	 * These properties are pulled from the instanceCategoryMatrix and instanceNumberMatrix, that are filled prior to start.
 	 * The final cluster each instance is assigned to is stored in clustersAssigned.
@@ -41,8 +50,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	 */
 	@Override
 	public boolean execute() throws IllegalArgumentException {
-		
-		long startTime = System.currentTimeMillis();
 		
 		if(numClusters > numInstances) {
 			return success = false;
@@ -83,40 +90,33 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		else {
 			success = true;
 			//loop through and remove any empty clusters
-			int i;
-			int nonEmptyClusterCount = numInstancesInCluster.length;
-			int counter = 0;
-			for(i = 0; i < nonEmptyClusterCount; i++) {
-				if(numInstancesInCluster[i] == 0) {
-					if(clusterNumberBinMatrix != null) {
-						clusterNumberBinMatrix.remove(i - counter);
-					}
-					if(clusterCategoryMatrix != null) {
-						clusterCategoryMatrix.remove(i - counter);
-					}
-					int j;
-					int size = clusterAssignment.length;
-					for(j = 0; j < size; j++) {
-						if(clusterAssignment[j] > i - counter) {
-							clusterAssignment[j]--;
+			if(removeEmptyClusters) {
+				int i;
+				int nonEmptyClusterCount = numInstancesInCluster.length;
+				int counter = 0;
+				for(i = 0; i < nonEmptyClusterCount; i++) {
+					if(numInstancesInCluster[i] == 0) {
+						if(clusterNumberBinMatrix != null) {
+							clusterNumberBinMatrix.remove(i - counter);
 						}
+						if(clusterCategoryMatrix != null) {
+							clusterCategoryMatrix.remove(i - counter);
+						}
+						int j;
+						int size = clusterAssignment.length;
+						for(j = 0; j < size; j++) {
+							if(clusterAssignment[j] > i - counter) {
+								clusterAssignment[j]--;
+							}
+						}
+						counter++;
 					}
-					counter++;
 				}
+				numInstancesInCluster = ArrayUtilityMethods.removeAllZeroValues(numInstancesInCluster);
+				numClusters = numInstancesInCluster.length;
 			}
-			numInstancesInCluster = ArrayUtilityMethods.removeAllZeroValues(numInstancesInCluster);
-			numClusters = numInstancesInCluster.length;
 		}
-		
 		createClusterSummaryRowsForGrid();
-		
-		//need indices for visualization
-		categoryPropIndices = cdp.getCategoryPropIndices();
-		numericalPropIndices = cdp.getTotalNumericalPropIndices();
-		
-		long endTime = System.currentTimeMillis();
-		
-		System.out.println("Time in seconds for execute = " + (endTime-startTime)/1000 );
 		
 		return success;
 	}
