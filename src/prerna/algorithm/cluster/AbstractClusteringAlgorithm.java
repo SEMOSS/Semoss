@@ -32,6 +32,13 @@ public abstract class AbstractClusteringAlgorithm {
 	protected ArrayList<Object[]> masterTable;
 	protected String[] varNames;
 
+	public void setMasterTable(ArrayList<Object[]> masterTable) {
+		this.masterTable = masterTable;
+	}
+	public void setVarNames(String[] varNames) {
+		this.varNames = varNames;
+	}
+	
 	protected ClusteringDataProcessor cdp;
 	protected ClusteringNumericalMethods cnm;
 	
@@ -40,9 +47,13 @@ public abstract class AbstractClusteringAlgorithm {
 	protected int numClusters;
 	protected int[] numInstancesInCluster;
 	protected int[] clusterAssignment;
+	protected int[] orderedOriginalClusterAssignment;
 	
 	public int[] getClusterAssignment() {
 		return clusterAssignment;
+	}
+	public void setClusterAssignment(int[] clusterAssignment) {
+		this.clusterAssignment = clusterAssignment;
 	}
 	
 	//the category and number values for each instance
@@ -50,29 +61,84 @@ public abstract class AbstractClusteringAlgorithm {
 	protected String[][] instanceNumberBinMatrix;
 	protected String[][] instanceNumberBinOrderingMatrix;
 //	protected Double[][] instanceNumberMatrix;
-
+	public void setInstanceCategoricalMatrix(String[][] instanceCategoricalMatrix) {
+		this.instanceCategoryMatrix = instanceCategoricalMatrix;
+	}
+	public void setInstanceNumberBinMatrix(String[][] instanceNumberBinMatrix) {
+		this.instanceNumberBinMatrix = instanceNumberBinMatrix;
+	}
+	public void setInstanceNumberBinOrderingMatrix(String[][] instanceNumberBinOrderingMatrix) {
+		this.instanceNumberBinOrderingMatrix = instanceNumberBinOrderingMatrix;
+	}
+	public void setNumInstances(int numInstances) {
+		this.numInstances = numInstances;
+	}
 	//the category and number values for each cluster
 	protected ArrayList<ArrayList<Hashtable<String, Integer>>> clusterCategoryMatrix;
 	protected ArrayList<ArrayList<Hashtable<String, Integer>>> clusterNumberBinMatrix;
 //	protected Double[][] clusterNumberMatrix;
-		
+	
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> getClusterCategoricalMatrix() {
+		return clusterCategoryMatrix;
+	}
+	public void setClusterCategoricalMatrix(ArrayList<ArrayList<Hashtable<String, Integer>>> clusterCategoryMatrix) {
+		this.clusterCategoryMatrix = clusterCategoryMatrix;
+	}
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> getClusterNumberBinMatrix() {
+		return clusterNumberBinMatrix;
+	}
+	public void setClusterNumberBinMatrix(ArrayList<ArrayList<Hashtable<String, Integer>>> clusterNumberBinMatrix) {
+		this.clusterNumberBinMatrix = clusterNumberBinMatrix;
+	}
+	
+	// to store previous cluster information
+	private boolean recreateStartingClusterValues = true;
+	public void setRecreateStartingClusterValues(boolean recreateStartingClusterValues) {
+		this.recreateStartingClusterValues = recreateStartingClusterValues;
+	}
+	
+	double[] categoricalWeights;
+	double[] numericalWeights;
+	
+	public void setCategoricalWeights(double[] categoricalWeights) {
+		this.categoricalWeights = categoricalWeights;
+	}
+	public void setNumericalWeights(double[] numericalWeights) {
+		this.numericalWeights = numericalWeights;
+	}
+	
 	//rows for the summarizing cluster
 	protected ArrayList<Object[]> clusterSummaryRows;
 
 	//indexing used for visualization
 	protected int[] numericalPropIndices;
 	protected Integer[] categoryPropIndices; 
-
-	//success of algorithm
-	protected boolean success;
+	protected String[] numericalPropNames;
+	protected String[] categoryPropNames;
+	
+	public void setNumericalPropIndices(int[] numericalPropIndices) {
+		this.numericalPropIndices = numericalPropIndices;
+	}
+	public void setCategoricalPropIndices(Integer[] categoryPropIndices) {
+		this.categoryPropIndices = categoryPropIndices;
+	}
 	
 	public int[] getNumericalPropIndices() {
 		return numericalPropIndices;
 	}
-
 	public Integer[] getCategoryPropIndices() {
 		return categoryPropIndices;
 	}
+	public void setNumericalPropNames(String[] numericalPropNames) {
+		this.numericalPropNames = numericalPropNames;
+	}
+	public void setCategoryPropNames(String[] categoryPropNames) {
+		this.categoryPropNames = categoryPropNames;
+	}
+	
+	//success of algorithm 
+	protected boolean success;
+	
 
 	public void setNumClusters(int numClusters) {
 		this.numClusters = numClusters;
@@ -81,11 +147,18 @@ public abstract class AbstractClusteringAlgorithm {
 	public int[] getNumInstancesInCluster() {
 		return numInstancesInCluster;
 	}
+	public void setNumInstancesInCluster(int[] numInstancesInCluster) {
+		this.numInstancesInCluster = numInstancesInCluster;
+	}
 
 	public ArrayList<Object[]> getSummaryClusterRows() {
 		return clusterSummaryRows;
 	}
 
+	public AbstractClusteringAlgorithm() {
+		
+	}
+	
 	public AbstractClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		this.masterTable = masterTable;
 		this.varNames = varNames;
@@ -105,37 +178,39 @@ public abstract class AbstractClusteringAlgorithm {
 		instanceNumberBinOrderingMatrix = cdp.getNumericalBinOrderingMatrix();
 //		instanceIndexHash = cdp.getInstanceHash();
 		numInstances = masterTable.size();
+		numericalPropNames = cdp.getNumericalPropNames();
+		categoryPropNames = cdp.getCategoryPropNames();
+		//need indices for visualization
+		categoryPropIndices = cdp.getCategoryPropIndices();
+		numericalPropIndices = cdp.getTotalNumericalPropIndices();
+		
+		categoricalWeights = cdp.getCategoricalWeights();
+		numericalWeights = cdp.getNumericalWeights();
 		
 		long endTime = System.currentTimeMillis();
-		
 		System.out.println("Time in seconds for set variables = " + (endTime-startTime)/1000 );
 	}
 	
 	protected void setAlgorithmVariables(){
 		
-		long startTime = System.currentTimeMillis();
-
 		cnm = new ClusteringNumericalMethods(instanceNumberBinMatrix, instanceCategoryMatrix, instanceNumberBinOrderingMatrix);
-		cnm.setCategoricalWeights(cdp.getCategoricalWeights());
-		cnm.setNumericalWeights(cdp.getNumericalWeights());
+		cnm.setCategoricalWeights(categoricalWeights);
+		cnm.setNumericalWeights(numericalWeights);
 		
 		//create cluster assignment matrix for each instance
 		numInstancesInCluster = initalizeClusterMatrix(numClusters);
-		//randomly assign one instance to each cluster
-		clusterAssignment = randomlyAssignClusters(numInstances, numClusters);
-		//make the custer number matrix from initial assignments
-//		clusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, numClusters);
-		clusterNumberBinMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceNumberBinMatrix, clusterAssignment, numClusters);
-		//make the cluster category matrix from initial assignments
-		clusterCategoryMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceCategoryMatrix, clusterAssignment, numClusters);
 		
-		long endTime = System.currentTimeMillis();
-
-		System.out.println("Time in seconds for algorithm variables = " + (endTime-startTime)/1000 );
-
+		if(recreateStartingClusterValues) {
+			randomlyAssignClusters(numInstances, numClusters); //randomly assign one instance to each cluster, creatig clusterAssignment and orderedOriginalClusterAssignment
+			//make the custer number matrix from initial assignments
+	//		clusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, numClusters);
+			clusterNumberBinMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceNumberBinMatrix, clusterAssignment, numClusters);
+			//make the cluster category matrix from initial assignments
+			clusterCategoryMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceCategoryMatrix, clusterAssignment, numClusters);
+		}
 	}
 
-	private final int[] initalizeClusterMatrix(int numClusters) {
+	protected final int[] initalizeClusterMatrix(int numClusters) {
 		//initializes the cluster assignment matrix for each instance
 		int[] clustersNumInstances = new int[numClusters];
 		int i;
@@ -145,16 +220,17 @@ public abstract class AbstractClusteringAlgorithm {
 		return clustersNumInstances;
 	}
 
-	private final int[] randomlyAssignClusters(int numInstances, int numClusters) {
-		int[] clustersAssigned = new int[numInstances];
+	protected final void randomlyAssignClusters(int numInstances, int numClusters) {
+		clusterAssignment = new int[numInstances];
+		orderedOriginalClusterAssignment = new int[numClusters];
 		int i;
 		for(i = 0; i < numInstances; i++) {
-			clustersAssigned[i] = -1;
+			clusterAssignment[i] = -1;
 		}
-		clustersAssigned[0] = 0;
+		clusterAssignment[0] = 0;
 //		Double[][] initialClusterNumberMatrix = createClustersNumberProperties(instanceNumberMatrix, clustersAssigned, 1);
-		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterNumberMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceNumberBinMatrix, clustersAssigned, 1);
-		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceCategoryMatrix, clustersAssigned, 1);
+		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterNumberMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceNumberBinMatrix, clusterAssignment, 1);
+		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceCategoryMatrix, clusterAssignment, 1);
 	
 		for(i = 1; i < numClusters; i++) {
 			int j;
@@ -171,19 +247,22 @@ public abstract class AbstractClusteringAlgorithm {
 				} else {
 					similarityClusterVal = cnm.getSimilarityScore(j, initialClusterNumberMatrix.get(0), null);
 				}
-				if(similarityClusterVal < minSimilarity && (clustersAssigned[j] == -1) ) {
+				if(similarityClusterVal < minSimilarity && (clusterAssignment[j] == -1) ) {
 					minIndex = j;
 					minSimilarity =  similarityClusterVal;
+					// if similarity is 0, then can exit the loop
+					if(minSimilarity == 0) {
+						break;
+					}
 				}
 			}
 //			initialClusterNumberMatrix = updateClustersNumberProperties(minIndex, -1, 0, initialClusterNumberMatrix, new int[]{i});
 			initialClusterNumberMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(minIndex, -1, 0, instanceNumberBinMatrix, initialClusterNumberMatrix);
 			initialClusterCategoryMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(minIndex, -1, 0, instanceCategoryMatrix, initialClusterCategoryMatrix);
 			
-			clustersAssigned[minIndex] = i;
+			clusterAssignment[minIndex] = i;
+			orderedOriginalClusterAssignment[i] = minIndex;
 		}
-		
-		return clustersAssigned;
 	}
 
 //	/** Creates the initial cluster number property matrix.
@@ -218,8 +297,8 @@ public abstract class AbstractClusteringAlgorithm {
 			int dataIdx;
 			for(dataIdx = 0; dataIdx < numInstances; dataIdx++) {				
 				int clusterIdx = clusterAssignment[dataIdx];
-				if(clusterCategoryMatrix != null) {
-					if(clusterNumberBinMatrix != null) {
+				if(clusterCategoryMatrix != null && !clusterCategoryMatrix.isEmpty()) {
+					if(clusterNumberBinMatrix != null && !clusterNumberBinMatrix.isEmpty()) {
 						sumSimiliarities += cnm.getSimilarityScore(dataIdx, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
 					} else {
 						sumSimiliarities += cnm.getSimilarityScore(dataIdx, null, clusterCategoryMatrix.get(clusterIdx));
@@ -241,8 +320,8 @@ public abstract class AbstractClusteringAlgorithm {
 			for(i = 0; i < numClusters - 1; i++) {
 				int j;
 				for(j = i+1; j < numClusters; j++) {
-					if(clusterCategoryMatrix != null) {
-						if(clusterNumberBinMatrix != null) {
+					if(clusterCategoryMatrix != null && !clusterCategoryMatrix.isEmpty()) {
+						if(clusterNumberBinMatrix != null && !clusterNumberBinMatrix.isEmpty()) {
 							sumSimiliarities += cnm.calculateClusterToClusterSimilarity(i, j, clusterNumberBinMatrix, clusterCategoryMatrix);
 						} else {
 							sumSimiliarities += cnm.calculateClusterToClusterSimilarity(i, j, null, clusterCategoryMatrix);
@@ -263,9 +342,6 @@ public abstract class AbstractClusteringAlgorithm {
 	 */
 	protected void createClusterSummaryRowsForGrid() {
 		clusterSummaryRows = new ArrayList<Object[]>();
-
-		String[] numericalPropNames = cdp.getNumericalPropNames();
-		String[] categoryPropNames = cdp.getCategoryPropNames();
 
 		for(int clusterInd = 0;clusterInd<numInstancesInCluster.length;clusterInd++) {
 			Object[] clusterRow = new Object[varNames.length+1];

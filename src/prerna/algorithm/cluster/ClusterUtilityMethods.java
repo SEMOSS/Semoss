@@ -122,7 +122,7 @@ public final class ClusterUtilityMethods {
 			ArrayList<ArrayList<Hashtable<String,Integer>>> clusterCategoryMatrix) 
 	{
 		//iterate through every category property of instance and remove it from the old cluster and put it in the new cluster
-		if(clusterCategoryMatrix != null)
+		if(clusterCategoryMatrix != null && !clusterCategoryMatrix.isEmpty())
 		{
 			for(int categoryInd=0;categoryInd<instanceData[instanceInd].length;categoryInd++) {
 				String categoryValForInstance = instanceData[instanceInd][categoryInd];
@@ -182,8 +182,8 @@ public final class ClusterUtilityMethods {
 		
 		int clusterIndWithMaxSimilarity = 0;
 		double maxSimilarity;
-		if(clusterCategoryMatrix != null) {
-			if(clusterNumberBinMatrix != null) {
+		if(clusterCategoryMatrix != null && !clusterCategoryMatrix.isEmpty()) {
+			if(clusterNumberBinMatrix != null && !clusterNumberBinMatrix.isEmpty()) {
 				maxSimilarity = cnm.getSimilarityScore(instanceInd, clusterNumberBinMatrix.get(0), clusterCategoryMatrix.get(0));
 			} else {
 				maxSimilarity = cnm.getSimilarityScore(instanceInd, null, clusterCategoryMatrix.get(0));
@@ -195,10 +195,13 @@ public final class ClusterUtilityMethods {
 		int clusterIdx;
 		for(clusterIdx = 1; clusterIdx < numClusters; clusterIdx++) {
 			double similarityForCluster;
-			if(clusterCategoryMatrix != null) {
-				if(clusterNumberBinMatrix != null) {
-				similarityForCluster = cnm.getSimilarityScore(instanceInd, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
+			if(clusterCategoryMatrix != null && !clusterCategoryMatrix.isEmpty()) {
+				if(clusterNumberBinMatrix != null && !clusterNumberBinMatrix.isEmpty()) {
+					similarityForCluster = cnm.getSimilarityScore(instanceInd, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
 				} else {
+					if(clusterCategoryMatrix.size() <= clusterIdx) {
+						System.out.println("error");
+					}
 					similarityForCluster = cnm.getSimilarityScore(instanceInd, null, clusterCategoryMatrix.get(clusterIdx));
 				}
 			} else {
