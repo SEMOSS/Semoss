@@ -73,6 +73,8 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 		}
 		perspectiveField.setText(perspective);
 		
+		StringNumericComparator comparator = new StringNumericComparator();
+		
 		if(!perspective.isEmpty() && !perspective.equals("*NEW Perspective")) {
 			JComboBox qp = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
 
@@ -89,11 +91,13 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 				questionsV = engine.getInsights(perspective);
 				
 				if(questionsV != null){
-					String newQuestionOrder = "";
-					//recreate qyestionsV with appended order number
+					int newQuestionOrder = 0;
+					//recreate questionsV with appended order number
 					Vector<String> questionsVCopy = new Vector<String>(questionsV);
 					
 					questionsV.clear();
+					Vector<String> orderList = new Vector<String>();
+					
 					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
 						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
@@ -115,8 +119,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 						
 						if(order!=null) {
 							questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
-							newQuestionOrder = (Integer.parseInt(order)+1) + "";
-							questionOrderComboBox.addItem(order);
+							orderList.add(order);
 							warning.setVisible(false);
 							questionModButton.setEnabled(true);
 						}
@@ -129,18 +132,22 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 							questionsV.add(question);
 							
 							String[] questionsArray = question.split("\\. ", 2);
-							newQuestionOrder = (Integer.parseInt(questionsArray[0]) + 1) + "";
-							questionOrderComboBox.addItem(questionsArray[0]);
+							orderList.add(questionsArray[0]);
 						}
 					}
-					questionOrderComboBox.addItem(newQuestionOrder);
+					newQuestionOrder = orderList.size() + 1;
+					orderList.add(newQuestionOrder+"");
+					Collections.sort(orderList, comparator);
+					
+					DefaultComboBoxModel<String> model = new DefaultComboBoxModel<String>(orderList);
+					questionOrderComboBox.setModel(model);
 					if(addQuestionButton.isSelected()){
 						questionOrderComboBox.setSelectedItem(newQuestionOrder);
 					}
 					else{
 						//removes the extra number (new question indicator) in the combobox used in the Add functionality; users don't need this number when editing questions
-						if(questionOrderComboBox.getItemCount()-(Integer.parseInt(newQuestionOrder)-1) == 1){
-							questionOrderComboBox.removeItemAt(questionOrderComboBox.getItemCount()-1);
+						if(questionOrderComboBox.getItemCount()-(newQuestionOrder-1) == 1){
+							model.removeElement(questionOrderComboBox.getItemCount()-1);
 						}
 					}
 				}
@@ -148,7 +155,7 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 				ex.printStackTrace();
 			}
 			
-			StringNumericComparator comparator = new StringNumericComparator();
+			
 			if(questionsV != null)
 			{
 				Collections.sort(questionsV, comparator);
