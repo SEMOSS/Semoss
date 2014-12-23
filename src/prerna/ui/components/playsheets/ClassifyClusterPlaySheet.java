@@ -46,7 +46,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
-import prerna.algorithm.weka.impl.WekaClassification;
 import prerna.math.BarChart;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;
@@ -78,8 +77,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 
 	//independent variable panel
 	private double[] entropyArr;
-	private double[] accuracyArr;
-	private double[] precisionArr;
 	private ArrayList<JCheckBox> ivCheckboxes;
 	private ArrayList<JLabel> entropyLabels;
 	private ArrayList<JLabel> accuracyLabels;
