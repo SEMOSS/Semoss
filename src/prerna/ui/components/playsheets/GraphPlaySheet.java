@@ -1272,6 +1272,12 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 
 		logger.info("Creating the base Graph");
 		gdm.fillStoresFromModel();
+		
+		if(gdm.getIncrementalVertStore() != null && gdm.getIncrementalEdgeStore() != null && gdm.getIncrementalVertStore().isEmpty() && gdm.getIncrementalEdgeStore().isEmpty()) {
+			gdm.setUndo(true);
+			gdm.undoData();
+			gdm.fillStoresFromModel();
+		}
 	}
 	
 	public void clearStores(){
