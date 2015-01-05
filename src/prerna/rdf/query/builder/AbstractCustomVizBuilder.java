@@ -19,7 +19,7 @@ import java.util.Hashtable;
 
 import prerna.rdf.query.util.SEMOSSQuery;
 
-public class AbstractCustomVizBuilder implements ICustomVizBuilder{
+public abstract class AbstractCustomVizBuilder implements ICustomVizBuilder{
 	public final static String vizTypeKey = "visualizationType";
 	SEMOSSQuery semossQuery = new SEMOSSQuery();
 
