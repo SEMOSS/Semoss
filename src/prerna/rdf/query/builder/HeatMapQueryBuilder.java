@@ -39,8 +39,6 @@ public class HeatMapQueryBuilder extends AbstractQueryBuilder {
 		this.yAxisColName = yAxisColName;
 		this.heatName = heatName;
 		this.heatMathFunc = heatMathFunc;
-		this.parameters = parameters;
-		this.baseQuery = baseQuery;
 	}
 	
 	@Override
