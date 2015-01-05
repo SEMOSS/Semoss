@@ -19,10 +19,13 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import prerna.util.Utility;
+
 public class SEMOSSQuery {
 	private static final String main = "Main";
 	private ArrayList<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
 	private ArrayList<TriplePart> retVars = new ArrayList<TriplePart>();
+	private ArrayList<ArrayList<String>> returnTripleArray = new ArrayList<ArrayList<String>>();
 	private Hashtable<TriplePart, ISPARQLReturnModifier> retModifyPhrase = new Hashtable<TriplePart,ISPARQLReturnModifier>();
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
@@ -60,7 +63,13 @@ public class SEMOSSQuery {
 		query = queryType + " ";
 		if(distinct)
 			query= query+ "DISTINCT ";
-		String retVarString = createReturnVariableString();
+		
+		String retVarString = "";
+		if(queryType.equals(SPARQLConstants.SELECT))
+			retVarString = createReturnVariableString();
+		else if(queryType.equals(SPARQLConstants.CONSTRUCT))
+			retVarString = createConstructReturnTriples();
+		
 		String wherePatternString = createPatternClauses();
 		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
@@ -154,6 +163,32 @@ public class SEMOSSQuery {
 			}
 		}
 		return retVarString;
+	}
+	
+	public String createConstructReturnTriples() {
+		String constructTriples = "{";
+		
+		final int subjId = 0;
+		final int predId = 1;
+		final int objId = 2;
+		
+		for(int i = 0; i < returnTripleArray.size(); i++){
+			ArrayList<String> thisTripleArray = returnTripleArray.get(i);
+			String subjectURI = thisTripleArray.get(subjId);
+			String subjectName = Utility.getInstanceName(subjectURI);
+			
+			String objectURI = thisTripleArray.get(objId);
+			String objectName = Utility.getInstanceName(objectURI);
+			
+			String predURI = thisTripleArray.get(predId);
+			String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
+			
+			constructTriples = constructTriples + "?" + subjectName + " ?" + predName + " ?" + objectName + ". ";
+		}
+		
+		constructTriples = constructTriples + "} ";
+		
+		return constructTriples;
 	}
 	
 	public void removeReturnVariables(){
@@ -409,6 +444,14 @@ public class SEMOSSQuery {
 	public ArrayList<TriplePart> getRetVars()
 	{
 		return retVars;
+	}
+	
+	public void setReturnTripleArray(ArrayList<ArrayList<String>> tripleArray) {
+		this.returnTripleArray = tripleArray;
+	}
+	
+	public ArrayList<ArrayList<String>> getTripleArray() {
+		return returnTripleArray;
 	}
 	
 	public void setCustomQueryStructure(String structure)
