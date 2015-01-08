@@ -42,14 +42,6 @@ public class ClusteringDataProcessor {
 	
 	// matrix to hold the instance numerical property values
 	private Double[][] numericalMatrix;
-//	public Double[][] getNumericalMatrix() {
-	//	if(numericalMatrix != null) {
-	//		return numericalMatrix.clone();
-	//	} else {
-	//		return null;
-	//	}
-	//}
-	
 	// matrix to hold the numerical bin property values
 	private String[][] numericalBinMatrix;
 	// matrix to hold the numerical bin ordering
@@ -521,59 +513,4 @@ public class ClusteringDataProcessor {
 
 		return entropyArr;
 	}
-	
-//	private void generateNumericalBinMatrix(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
-//		if(numericalPropNames != null) {
-//			int numRows = masterTable.size();
-//			int numCols = numericalPropNames.length;
-//			
-//			numericalBinMatrix = new String[numRows][numCols];
-//			int i;
-//			int j;
-//			double minBinVal = Double.MAX_VALUE;
-//			double maxBinVal = Double.MIN_VALUE;
-//			for(i = 0; i < numRows; i++) {
-//				COL_LOOP: for(j = 0; j < numCols; j++) {
-//					double val = numericalMatrix[i][j];
-//					Hashtable<String, Integer> colInstances = trackPropOccurance.get(j);
-//					// due to loss of significant digits, the val can be larger than the max
-//					String minBin = "";
-//					String maxBin = "";
-//					for(String binRange : colInstances.keySet()) {
-//						String[] split = binRange.split(" - ");
-//						if(split.length == 2) {
-//							double min = Double.parseDouble(split[0].trim());
-//							double max = Double.parseDouble(split[1].trim());
-//							if(maxBinVal < max) {
-//								maxBinVal = max;
-//								maxBin = binRange;
-//							}
-//							if(minBinVal > min) {
-//								minBinVal = min;
-//								minBin = binRange;
-//							}
-//							if(val > min && val <= max) {
-//								numericalBinMatrix[i][j] = binRange;
-//								continue COL_LOOP;
-//							}
-//						} else {
-//							// not enough unique values to create bins - columns become unique values
-//							if(val == Double.parseDouble(binRange)) {
-//								numericalBinMatrix[i][j] = binRange;
-//								continue COL_LOOP;
-//							}
-//						}
-//					}
-//					// this check is technically unnecessary since we only get here when it is null -> otherwise it goes to the continue
-//					if(numericalBinMatrix[i][j] == null) {
-//						if(Math.abs(minBinVal - val) > Math.abs(maxBinVal - val)) {
-//							numericalBinMatrix[i][j] = maxBin;
-//						} else {
-//							numericalBinMatrix[i][j] = minBin;
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
 }
