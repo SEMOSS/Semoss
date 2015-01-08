@@ -16,6 +16,8 @@
 package prerna.algorithm.cluster;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Queue;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,10 +27,26 @@ import prerna.util.ArrayUtilityMethods;
 /** Generic clustering algorithm to cluster instances based on their categorical and numerical properties.
  * 
  */
-public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
+public class ClusteringAlgorithm extends AbstractClusteringAlgorithm implements Runnable{
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithm.class.getName());
 	private boolean removeEmptyClusters = true; 
+	
+	private Queue<Integer> processingQueue;
+	private int[] totalNumInstancesInCluster;
+	private int[] totalClusterAssignment;
+	private ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterCategoricalMatrix;
+	private ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterNumberBinMatrix;
+	private int straglers;
+	
+	
+	protected int partitionIndex;
+	public void setParitionIndex(int partitionIndex) {
+		this.partitionIndex = partitionIndex;
+	}
+	public int getPartitionIndex() {
+		return partitionIndex;
+	}
 	
 	public ClusteringAlgorithm() {
 		
@@ -38,8 +56,24 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 		super(masterTable, varNames);
 	}
 	
-	public void setRemoveEmptyClusters(boolean removeEmptyClusters) {
-		this.removeEmptyClusters = removeEmptyClusters;
+	@Override
+	public void run() {
+		execute();
+		synchronized(processingQueue) {
+			//update clustering results
+			combineResults();
+			
+			numInstancesInCluster = updateArray(numInstancesInCluster, totalNumInstancesInCluster);
+			if(partitionIndex == 0) {
+				System.arraycopy(clusterAssignment, 0, totalClusterAssignment, partitionIndex, numInstances + straglers);
+			} else {
+				System.arraycopy(clusterAssignment, 0, totalClusterAssignment, partitionIndex, numInstances);
+			}
+			
+			LOGGER.info("Notifying...");
+			processingQueue.remove(partitionIndex);
+			processingQueue.notify();
+		}
 	}
 	
 	/** Performs the clustering based off of the instance's categorical and numerical properties.
@@ -50,7 +84,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 	 */
 	@Override
 	public boolean execute() throws IllegalArgumentException {
-		
 		if(numClusters > numInstances) {
 			return success = false;
 		}
@@ -70,7 +103,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 				int oldClusterForInstance = clusterAssignment[instanceInd];
 				if(newClusterForInstance != oldClusterForInstance) {
 					noChange = false;
-//					clusterNumberMatrix = updateClustersNumberProperties(instanceInd, oldClusterForInstance, newClusterForInstance, clusterNumberMatrix, clustersNumInstances);
 					clusterNumberBinMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceNumberBinMatrix, clusterNumberBinMatrix);
 					clusterCategoryMatrix = ClusterUtilityMethods.updateClustersCategoryProperties(instanceInd, oldClusterForInstance, newClusterForInstance, instanceCategoryMatrix, clusterCategoryMatrix);
 					if(oldClusterForInstance > -1) {
@@ -117,7 +149,131 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm {
 			}
 		}
 		createClusterSummaryRowsForGrid();
-		
 		return success;
+	}
+	
+	private synchronized int[] updateArray(int[] original, int[] copyToArr) {
+		int i = 0;
+		int size = original.length;
+		for(; i < size; i++) {
+			copyToArr[i] += original[i];
+		}
+
+		return copyToArr;
+	}
+
+	private synchronized void combineResults() {
+		// update categorical centers
+		int i = 0;
+		if(clusterCategoryMatrix != null) {
+			int size = clusterCategoryMatrix.size();
+			for(; i < size; i++) {
+				ArrayList<Hashtable<String, Integer>> newClusterInfo = clusterCategoryMatrix.get(i);
+				ArrayList<Hashtable<String, Integer>> currClusterInfo = totalClusterCategoricalMatrix.get(i);
+
+				int j = 0;
+				int numProps = newClusterInfo.size();
+				for(; j < numProps; j++) {
+					Hashtable<String, Integer> newPropInfo = newClusterInfo.get(j);
+					Hashtable<String, Integer> currPropInfo = currClusterInfo.get(j);
+
+					for(String prop : newPropInfo.keySet()) {
+						int count = newPropInfo.get(prop);
+						if(currPropInfo.containsKey(prop)) {
+							count += currPropInfo.get(prop);
+							currPropInfo.put(prop, count);
+						} else {
+							currPropInfo.put(prop, count);
+						}
+					}
+				}
+			}
+		}
+		
+		// update numerical bin centers
+		i = 0;
+		if(clusterNumberBinMatrix != null) {
+			int size = clusterNumberBinMatrix.size();
+			for(; i < size; i++) {
+				ArrayList<Hashtable<String, Integer>> newClusterInfo = clusterNumberBinMatrix.get(i);
+				ArrayList<Hashtable<String, Integer>> currClusterInfo = totalClusterNumberBinMatrix.get(i);
+
+				int j = 0;
+				int numProps = newClusterInfo.size();
+				for(; j < numProps; j++) {
+					Hashtable<String, Integer> newPropInfo = newClusterInfo.get(j);
+					Hashtable<String, Integer> currPropInfo = currClusterInfo.get(j);
+
+					for(String prop : newPropInfo.keySet()) {
+						int count = 1;
+						if(currPropInfo.containsKey(prop)) {
+							count = currPropInfo.get(prop);
+							count += newPropInfo.get(prop);
+							currPropInfo.put(prop, count);
+						} else {
+							currPropInfo.put(prop, count);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public int[] getTotalNumInstancesInCluster() {
+		return totalNumInstancesInCluster;
+	}
+
+	public void setTotalNumInstancesInCluster(int[] totalNumInstancesInCluster) {
+		this.totalNumInstancesInCluster = totalNumInstancesInCluster;
+	}
+
+	public int[] getTotalClusterAssignment() {
+		return totalClusterAssignment;
+	}
+
+	public void setTotalClusterAssignment(int[] totalClusterAssignment) {
+		this.totalClusterAssignment = totalClusterAssignment;
+	}
+
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> getTotalClusterCategoricalMatrix() {
+		return totalClusterCategoricalMatrix;
+	}
+
+	public void setTotalClusterCategoricalMatrix(
+			ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterCategoricalMatrix) {
+		this.totalClusterCategoricalMatrix = totalClusterCategoricalMatrix;
+	}
+
+	public ArrayList<ArrayList<Hashtable<String, Integer>>> getTotalClusterNumberBinMatrix() {
+		return totalClusterNumberBinMatrix;
+	}
+
+	public void setTotalClusterNumberBinMatrix(
+			ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterNumberBinMatrix) {
+		this.totalClusterNumberBinMatrix = totalClusterNumberBinMatrix;
+	}
+	
+	public void setProcessingQueue(Queue<Integer> processingQueue) {
+		this.processingQueue = processingQueue;
+	}
+	
+	public Queue<Integer> getProcessingQueue() {
+		return processingQueue;
+	}
+	
+	public void setRemoveEmptyClusters(boolean removeEmptyClusters) {
+		this.removeEmptyClusters = removeEmptyClusters;
+	}
+	
+	public boolean getRemoveEmptyClusters() {
+		return removeEmptyClusters;
+	}
+	
+	public void setStraglers(int straglers) {
+		this.straglers = straglers;
+	}
+	
+	public int getStraglers() {
+		return straglers;
 	}
 }
