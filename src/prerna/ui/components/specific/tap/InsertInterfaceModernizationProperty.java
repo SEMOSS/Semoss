@@ -63,7 +63,8 @@ public class InsertInterfaceModernizationProperty {
 		processor.getCostInfo(TAP_Cost_Data);
 		for(String sysName : reportTypeHash.keySet()){
 			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-			processor.setQuery(DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", sysName));
+			processor.setDownstreamQuery(DHMSMTransitionUtility.lpSystemDownstreamInterfaceQuery.replace("@SYSTEMNAME@", sysName));
+			processor.setUpstreamQuery(DHMSMTransitionUtility.lpSystemUpstreamInterfaceQuery.replace("@SYSTEMNAME@", sysName));
 			processor.isGenerateCost(true);
 			processor.generateReport();
 			
