@@ -539,26 +539,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			masterList =  new ArrayList<Object[]>(list);
 			masterNames = names.clone();//TODO make sure this writes properly
 		}
-		//For testing purposes
-//		PrintWriter writer = null;
-//		try {
-//			writer = new PrintWriter("Clustering_Algorithm_Optimization.txt");
-//			writer.println("Clusters\t\t\tInstanceToCluster\t\t\tClusterToCluster\t\t\tItems\t\t\tAverage");
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
-//		for(int i = 2; i < 40; i++) {
-//			AbstractClusteringAlgorithm clusterAlg = new ClusteringAlgorithm(list, names);
-//			clusterAlg.setNumClusters(i);
-//			clusterAlg.execute();
-//			double instanceToClusterSim = clusterAlg.calculateFinalInstancesToClusterSimilarity();
-//			double clusterToClusterSim = clusterAlg.calculateFinalTotalClusterToClusterSimilarity();
-//			double sum = instanceToClusterSim + clusterToClusterSim;
-//			double items = list.size() + (double) (i * (i-1) /2);
-//			double average = sum/items;
-//			writer.println(i + "\t\t\t" + instanceToClusterSim + "\t\t\t" + clusterToClusterSim + "\t\t\t" + items + "\t\t\t" + average);
-//		}
-//		writer.close();
 		long startTime = System.currentTimeMillis();
 
 		AbstractClusteringAlgorithm clusterAlg;

@@ -80,36 +80,6 @@ public final class ClusterUtilityMethods {
 		return null;
 	}
 	
-//	/** Updates the cluster number properties matrix for the instance that is switching clusters
-//	 * This removes the instance's properties from the old clusters properties.
-//	 * This add the instance's properties to the new cluster's properties.
-//	 **/
-//	protected Double[][] updateClustersNumberProperties(int instanceInd,int oldClusterForInstance,int newClusterForInstance, Double[][] clusterNumberMatrix, int[] clustersNumInstances ) {
-//		//iterate through every numerical property of instance
-//		//remove from the old cluster index using old val (avg) * oldNum in cluster
-//		if(instanceNumberMatrix != null)
-//		{
-//			int numNumericalProps = instanceNumberMatrix[0].length;
-//			int numberIdx;
-//			for(numberIdx = 0; numberIdx < numNumericalProps; numberIdx++) {
-//				double numberValForInstance = instanceNumberMatrix[instanceInd][numberIdx];
-//				// satisfies condition if the instance is already in a cluster
-//				if(oldClusterForInstance > -1) {
-//					// update the old cluster
-//					double oldNumberValForInstance = clusterNumberMatrix[oldClusterForInstance][numberIdx];
-//					double valToPut = (oldNumberValForInstance * clustersNumInstances[oldClusterForInstance] - numberValForInstance) /  (clustersNumInstances[oldClusterForInstance] - 1);
-//					clusterNumberMatrix[oldClusterForInstance][numberIdx] = valToPut;
-//				}
-//				// update the new cluster
-//				double newClusterValForInstance = clusterNumberMatrix[newClusterForInstance][numberIdx];
-//				double valToPut = (newClusterValForInstance * clustersNumInstances[newClusterForInstance] + numberValForInstance) /  (clustersNumInstances[newClusterForInstance] + 1);
-//				clusterNumberMatrix[newClusterForInstance][numberIdx] = valToPut;
-//			}
-//			return clusterNumberMatrix;
-//		}
-//		return null;
-//	}
-
 	/** Updates the cluster category property matrix for the instance that is switching clusters
 	 * This removes the instance's properties from the old clusters properties.
 	 * This add the instance's properties to the new cluster's properties.
@@ -200,7 +170,7 @@ public final class ClusterUtilityMethods {
 					similarityForCluster = cnm.getSimilarityScore(instanceInd, clusterNumberBinMatrix.get(clusterIdx), clusterCategoryMatrix.get(clusterIdx));
 				} else {
 					if(clusterCategoryMatrix.size() <= clusterIdx) {
-						System.out.println("error");
+						LOGGER.info("error");
 					}
 					similarityForCluster = cnm.getSimilarityScore(instanceInd, null, clusterCategoryMatrix.get(clusterIdx));
 				}
