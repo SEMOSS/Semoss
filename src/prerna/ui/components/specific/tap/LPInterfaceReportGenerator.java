@@ -54,7 +54,6 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		if(processor == null) {
 			processor = new LPInterfaceProcessor();
 		}
-		processor.setQuery(query);
 		processor.setEngine(engine);
 		
 		list = processor.generateReport();
@@ -75,8 +74,8 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 		}
 		
 		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		String lpSystemInterfacesQuery = DHMSMTransitionUtility.lpSystemInterfacesQuery.replace("@SYSTEMNAME@", systemName);
-		processor.setQuery(lpSystemInterfacesQuery);
+		processor.setDownstreamQuery(DHMSMTransitionUtility.lpSystemDownstreamInterfaceQuery.replace("@SYSTEMNAME@", systemName));
+		processor.setUpstreamQuery(DHMSMTransitionUtility.lpSystemUpstreamInterfaceQuery.replace("@SYSTEMNAME@", systemName));
 		
 		processor.isGenerateCost(true);
 		processor.setEngine(hrCore);
