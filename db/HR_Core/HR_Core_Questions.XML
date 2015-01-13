@@ -3281,6 +3281,43 @@
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:LPI-System-Perspective:LPI7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:LPI-System-Perspective:LPI7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:LPI-System-Perspective:LPI7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<LPI7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:LPI-System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:LPI7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:LPI7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:LPI-System-Perspective">
+	<LPI7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Identify the current LPI systems interfaces and their future interfaces with DHMSM.</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:LPI-System-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType)  (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem) (COALESCE(IF(BOUND(?y),IF((?UpstreamSysProb1 != 'High' &amp;&amp; ?UpstreamSysProb1 != 'Question'),'Low','High'),IF(BOUND(?x),IF((?DownstreamSysProb1!='High' &amp;&amp; ?DownstreamSysProb1!='Question'),'Low','High'),'')), '') AS ?Probability) ?Interface ?Data ?Format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)&lt;1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) ?Recommendation WHERE { {?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?InterfaceDHMSM) BIND('Y' AS ?ReceivedInformation) LET(?d := 'd') OPTIONAL{ { {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;}  {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; ?InterfaceYN;} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM&gt; ?InterfaceDHMSM;}{?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?UpstreamSysProb;}OPTIONAL{{?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/HIE&gt; ?HIEsys;}{?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?DownstreamSysProb1;}} OPTIONAL{{?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; ?InterfaceYN;}} {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Received_Information&gt; ?ReceivedInformation;} FILTER(?Prob in ('Low','Medium','Medium-High')) {?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?Prob;}{?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;}  {?Interface ?carries ?Data;} {?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?Upstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?Downstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;}{?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Freq ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION {{?DownstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;} {?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; ?InterfaceYN;} {?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM&gt; ?InterfaceDHMSM;}{?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/HIE&gt; ?HIEsys;}{?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN&gt; ?InterfaceYN;}} {?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Received_Information&gt; ?ReceivedInformation;}FILTER(?Prob in ('Low','Medium','Medium-High')) {?DownstreamSys &lt;http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS&gt; ?Prob;} {?Interface &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt; ;} {?carries &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Payload&gt;;}  {?Interface ?carries ?Data;} {?UpstreamSys &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/ActiveSystem&gt;;} {?Upstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;;}{?Downstream &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consume&gt;;} {?UpstreamSys ?Upstream ?Interface ;}{?Interface ?Downstream ?DownstreamSys ;} { {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Format&gt; ?Format ;} {?carries &lt;http://semoss.org/ontologies/Relation/Contains/Frequency&gt; ?Freq ;}{?carries &lt;http://semoss.org/ontologies/Relation/Contains/Protocol&gt; ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} OPTIONAL{BIND(&lt;http://health.mil/ontologies/Concept/DHMSM/DHMSM&gt; AS ?DHMSM ){?TaggedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;;}{?Capability &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Capability&gt;;}{?DHMSM ?TaggedBy ?Capability.}{?Consists &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consists&gt;;}{?Task &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Task&gt;;}{?Capability ?Consists ?Task.}{?Needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;;}{?Needs &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} } ORDER BY ?System ?InterfacingSystem</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.LPInterfaceReportGenerator</Layout>
+</rdf:Description>
+
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI8">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
 	<label>HR_Core:LPI-System-Perspective:LPI8</label>
@@ -5827,41 +5864,944 @@
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>HR_Core:LPI-System-Perspective:LPI7</label>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_2</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:LPI-System-Perspective:LPI7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?data WHERE {{{?system &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?provide &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'}{?system ?provide ?data}} UNION {{{?system &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?provide &lt;http://semoss.org/ontologies/Relation/Contains/SOR&gt; 'Yes'}{?system ?provide ?data}}}} BINDINGS ?system {(&lt;http://health.mil/ontologies/Concept/System/AHLTA&gt;)(&lt;http://health.mil/ontologies/Concept/System/CHCS&gt;)(&lt;http://health.mil/ontologies/Concept/System/CIS-Essentris&gt;)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">EHR Core systems provide what data objects?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>HR_Core:HR_Core:LPI-System-Perspective:LPI7</label>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
-	<LPI7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:LPI-System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7"/>
+	<EA-Efficiency-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:LPI7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1:FError">
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>HR_Core:EA-Efficiency-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/HR_Core:HR_Core:EA-Efficiency-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/HR_Core:HR_Core:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?blu WHERE {{?system &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt;}{?provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?system ?provide ?blu}} BINDINGS ?system {(&lt;http://health.mil/ontologies/Concept/System/AHLTA&gt;)(&lt;http://health.mil/ontologies/Concept/System/CHCS&gt;)(&lt;http://health.mil/ontologies/Concept/System/CIS-Essentris&gt;)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">EHR Core systems provide which business logic units?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:LPI7</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:LPI-System-Perspective">
-	<LPI7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:LPI-System-Perspective:HR_Core:LPI-System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Identify the current LPI systems interfaces and their future interfaces with DHMSM.</Label>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_3</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?data WHERE {{?dhmsm &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DHMSM&gt;}{?taggedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;}{?capability &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Capability&gt;}{?consists &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consists&gt;}{?task &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Task&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?needs &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?dhmsm ?taggedBy ?capability}{?capability ?consists ?task}{?task ?needs ?data}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM provides what data objects?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?blu WHERE {{?dhmsm &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DHMSM&gt;}{?taggedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/TaggedBy&gt;}{?capability &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Capability&gt;}{?consists &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Consists&gt;}{?task &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Task&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt;}{?dhmsm ?taggedBy ?capability}{?capability ?consists ?task}{?task ?needs ?blu}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">DHMSM provides what business logic units?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_5</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?data WHERE {{?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?fError ?needs ?data}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Functional gaps need what data objects?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_6</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?blu WHERE {{?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt;}{?fError ?needs ?blu}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Functional gaps need what business logic units?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_7</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Choose a functional gap: what data objects are needed by this functional gap?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?data WHERE { BIND(&lt;@FError-http://semoss.org/ontologies/Concept/FError@&gt; AS ?fError) {?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?fError ?needs ?data}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1:FError"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_1:FError">
+	<LABEL xmlns="PARAM:">FError</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/FError"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Choose a functional gap: what business logic units are needed by this functional gap?</Label>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:LPI-System-Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI7</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_8</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:LPI-System-Perspective:LPI7">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">None</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.LPInterfaceReportGenerator</Layout>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?blu WHERE { BIND(&lt;@FError-http://semoss.org/ontologies/Concept/FError@&gt; AS ?fError) {?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt;}{?fError ?needs ?blu}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8:FError"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_8:FError">
+	<LABEL xmlns="PARAM:">FError</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/FError"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_9 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_9 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Choose an activity: what functional gaps and respective data objects are assigned to this activity?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">9</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_9</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?fError ?data WHERE {BIND(&lt;@Activity-http://semoss.org/ontologies/Concept/Activity@&gt; AS ?activity){?activity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Activity&gt;}{?assigned &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Assigned&gt;}{?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?data &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?activity ?assigned ?fError}{?fError ?needs ?data}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9:Activity"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_9:Activity">
+	<LABEL xmlns="PARAM:">Activity</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_10 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_10 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Choose an activity: what functional gaps and respective business logic units are assigned to this activity?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">10</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_10</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?fError ?blu WHERE {BIND(&lt;@Activity-http://semoss.org/ontologies/Concept/Activity@&gt; AS ?activity){?activity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Activity&gt;}{?assigned &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Assigned&gt;}{?fError &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/FError&gt;}{?needs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Needs&gt;}{?blu &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/BusinessLogicUnit&gt;}{?activity ?assigned ?fError}{?fError ?needs ?blu}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10:Activity"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_10:Activity">
+	<LABEL xmlns="PARAM:">Activity</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Activity"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_11 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_11 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the efficiency gained for each activity from DHMSM implementation?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">11</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_11</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_11">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Activity</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAFunctionalGapPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_12 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_12 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the expected efficiency related savings for each Business Process as a result of DHMSM?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">12</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_12</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_12">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Business Process</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAFunctionalGapPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_13 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_13 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the Effectiveness gained by each activity due to each functional gap?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">13</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_13</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_13">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Functional Gap+++Effectiveness</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAEffectivenessPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_14 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_14 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are Effectiveness gains per activity?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">14</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_14</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_14">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Activity+++Effectiveness</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAEffectivenessPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_15 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_15 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the Effectiveness gains and cost savings per business process?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">15</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_15</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_15">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Business Process+++Effectiveness</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAEffectivenessPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_16 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_16 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are savings in Effectiveness, Efficiency, and Productivity across each year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">16</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_16</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_16">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">1</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EABenefitsSchedulePlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_17 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_17 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are Costs and Savings for each Business Process each year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">17</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_17</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_17">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">3</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EABenefitsSchedulePlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_19</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">2</SPARQL>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_19 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_19 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20:BusinessProcess">
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/BusinessProcess"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the savings for each MTF each year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">18</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_19">
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EABenefitsSchedulePlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_20 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_20 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Choose a Business Process: what are the costs and savings for this Business Process each year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">19</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_20</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">&lt;@BusinessProcess-http://semoss.org/ontologies/BusinessProcess@&gt;+++3bpParameter</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EABenefitsSchedulePlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20:BusinessProcess"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_20:BusinessProcess">
+	<LABEL xmlns="PARAM:">BusinessProcess</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Efficiency-Perspective_21 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<EA-Efficiency-Perspective_21 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Efficiency-Perspective:HR_Core:EA-Efficiency-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the dollars lost to each functional gap each year?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">20</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Efficiency-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Efficiency-Perspective_21</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Efficiency-Perspective:EA-Efficiency-Perspective_21">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">Per Year</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAEffectivenessPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>HR_Core:EA-Misc-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Misc-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/HR_Core:HR_Core:EA-Misc-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>HR_Core:HR_Core:EA-Misc-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Misc-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/HR_Core:HR_Core:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Misc-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Misc-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective">
+	<EA-Misc-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the adjusted data weights?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Misc-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SamData</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAFunctionalGapPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>HR_Core:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/HR_Core">
+	<EA-Misc-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/HR_Core:HR_Core:EA-Misc-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective">
+	<EA-Misc-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/HR_Core:EA-Misc-Perspective:HR_Core:EA-Misc-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the adjusted blu weights</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/HR_Core:EA-Misc-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">EA-Misc-Perspective_2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/HR_Core:EA-Misc-Perspective:EA-Misc-Perspective_2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SamBLU</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.EAFunctionalGapPlaySheet</Layout>
 </rdf:Description>
 
 </rdf:RDF>
