@@ -655,6 +655,7 @@ public final class StatisticsUtilityMethods {
 		return zScoreValsAsString;
 	}
 	
+	//Calculates entropy from an array of counts
 	public static double calculateEntropy(final int[] values) {
 		if( values == null || values.length == 0) {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
