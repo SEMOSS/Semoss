@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.AlgorithmDataFormatting;
 import prerna.math.BarChart;
+import prerna.math.CalculateEntropy;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -39,100 +40,30 @@ public class ClusteringDataProcessor {
 	private ArrayList<Object[]> masterTable;
 	// array list containing the variable names for the entire query 
 	private String[] varNames;
-	
+
 	// matrix to hold the instance numerical property values
 	private Double[][] numericalMatrix;
 	// matrix to hold the numerical bin property values
 	private String[][] numericalBinMatrix;
 	// matrix to hold the numerical bin ordering
 	private String[][] numericalBinOrderingMatrix;
-	
+
 	// matrix to hold the instance categorical property values
 	private String[][] categoricalMatrix;
-	
-	
-	public String[][] getNumericalBinMatrix() {
-		if(numericalBinMatrix != null) {
-			return numericalBinMatrix.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[][] getNumericalBinOrderingMatrix(){
-		if(numericalBinOrderingMatrix != null) {
-			return numericalBinOrderingMatrix.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[][] getCategoricalMatrix() {
-		if(categoricalMatrix != null) {
-			return categoricalMatrix.clone();
-		} else {
-			return null;
-		}
-	}
 
 	// list of all the categorical property names 
 	private String[] categoryPropNames;
 	// list of all the numerical property names
 	private String[] numericalPropNames;
-	
-	public String[] getCategoryPropNames() {
-		if(categoryPropNames != null) {
-			return categoryPropNames.clone();
-		} else {
-			return null;
-		}
-	}
-	public String[] getNumericalPropNames() {
-		if(numericalPropNames != null) {
-			return numericalPropNames.clone();
-		} else {
-			return null;
-		}
-	}
-	
+
 	// list the weights associated with each categorical property used to calculate the categorical similarity score
 	private double[] categoricalWeights; // has length the same as category prop names
 	// list the weights associated with each numerical property used to calculate the numerical similarity score
 	private double[] numericalWeights; // has length the same as numerical prop names
-	
-	public double[] getCategoricalWeights() {
-		if(categoricalWeights != null) {
-			return categoricalWeights.clone();
-		} else {
-			return null;
-		}
-	}
-	public double[] getNumericalWeights() {
-		if(numericalWeights != null) {
-			return numericalWeights.clone();
-		} else {
-			return null;
-		}
-	}
 
 	//indexing used for visualization
 	private int[] totalNumericalPropIndices;
 	private Integer[] categoryPropIndices; 
-
-	public int[] getTotalNumericalPropIndices() {
-		if(totalNumericalPropIndices != null) {
-			return totalNumericalPropIndices;
-		} else {
-			return null;
-		}
-		
-	}
-
-	public Integer[] getCategoryPropIndices() {
-		if(categoryPropIndices != null) {
-			return categoryPropIndices.clone();
-		} else {
-			return null;
-		}
-	}
 
 	int totalProps;
 	int numericProps;
@@ -148,7 +79,7 @@ public class ClusteringDataProcessor {
 		calculateCategoricalWeights();
 		calculateNumericalWeights();
 	}
-	
+
 	/**
 	 * Processes through the masterTable and determines which columns are numerical and which are categorical
 	 */
@@ -190,12 +121,12 @@ public class ClusteringDataProcessor {
 					categoryPropNames[categoryPropNamesCounter] = varNames[j];
 					categoryPropIndices[categoryPropNamesCounter] = j;
 					categoryPropNamesCounter++;
-//					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
+					//					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
 				} else {
 					numericalPropNames[numericalPropNamesCounter] = varNames[j];
 					numericalPropIndices[numericalPropNamesCounter] = j;
 					numericalPropNamesCounter++;
-//					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
+					//					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
 					if(type.equals("DATE")){
 						dateTypeIndices[dateTypeIndicesCounter] = j;
 						dateTypeIndicesCounter++;
@@ -206,7 +137,7 @@ public class ClusteringDataProcessor {
 				}
 			} 
 		}
-		
+
 		categoryPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(categoryPropNames);
 		categoryPropIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(categoryPropIndices);
 		numericalPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(numericalPropNames);
@@ -241,7 +172,7 @@ public class ClusteringDataProcessor {
 		}
 
 		if(totalNumericalPropIndices != null) {
-		numericProps = totalNumericalPropIndices.length;
+			numericProps = totalNumericalPropIndices.length;
 		}
 		if(categoryPropIndices != null) {
 			categoricalProps = categoryPropIndices.length;
@@ -290,12 +221,18 @@ public class ClusteringDataProcessor {
 									numericalMatrix[row][counter] = dateAsLong.doubleValue();
 								}
 							} else {
-								numericalMatrix[row][counter] = (Double) dataRow[idx];
+								try {
+									numericalMatrix[row][counter] = (Double) dataRow[idx];
+								} catch(ClassCastException e) {
+									try {
+										numericalMatrix[row][counter] = Double.parseDouble(dataRow[idx].toString());
+									} catch (NumberFormatException ex) {
+										LOGGER.error("Column Variable " + numericalPropNames[counter] + " was found to be a numerical property but had a value of " + dataRow[idx]);
+									}
+								}
 							}
 						} catch (ParseException e) {
 							LOGGER.error("Column Variable " + numericalPropNames[counter] + " was found to be a numerical (date) property but had a value of " + dataRow[idx]);
-						} catch (ClassCastException e) {
-							LOGGER.error("Column Variable " + numericalPropNames[counter] + " was found to be a numerical property but had a value of " + dataRow[idx]);
 						}
 					}
 					// default values are null in new Double[][]
@@ -315,76 +252,47 @@ public class ClusteringDataProcessor {
 	}
 
 	/**
-	 * Generate occurrence of instance categorical properties to calculate entropy
-	 * @return	A list containing a hashtable that stores all the different instances of a given property
-	 */
-	private ArrayList<Hashtable<String, Integer>> getCategoricalPropOccurance() {
-		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
-
-		if(categoricalMatrix != null)
-		{
-			for(int i = 0; i < categoricalMatrix[0].length; i++) {
-				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
-			}
-
-			for(String[] results : categoricalMatrix) {
-				for(int i = 0; i < results.length; i++) {		
-					Hashtable<String, Integer> columnInformationHash = trackPropOccuranceArr.get(i);
-					if(columnInformationHash.isEmpty()) {
-						columnInformationHash.put(results[i], 1);
-						//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
-					} else {
-						if(columnInformationHash.get(results[i]) == null) {
-							columnInformationHash.put(results[i], 1);
-							//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " occurred 1 time.");
-						} else {
-							int currCount = columnInformationHash.get(results[i]);
-							columnInformationHash.put(results[i], ++currCount);
-							//logger.info("Category " + categoryPropNames.get(i) + "with instance " + results[i] + " has occured " + currCount + " times.");
-						}
-					}
-				}
-			}
-		}
-
-		return trackPropOccuranceArr;
-	}
-	
-	/**
 	 * Generate weights for categorical similarity matrix
 	 */
 	private void calculateCategoricalWeights() {
-		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getCategoricalPropOccurance();
-		double[] entropyArr = calculateEntropy(trackPropOccurance);
-		int numWeights = entropyArr.length;
-		categoricalWeights = new double[numWeights];
+		if(categoricalMatrix != null)
+		{
+			int i = 0;
+			int size = categoricalMatrix[0].length;
 
-		if(numWeights == 1) {
-			categoricalWeights[0] = 1;
-			return;
-		}
-		double totalEntropy = 0;
-		for(int i = 0; i < numWeights; i++) {
-			totalEntropy += entropyArr[i];
-		}
-
-		int counter = 0;
-		for(int i = 0; i < numWeights; i++) {
-			if(totalEntropy == 0) {
-				categoricalWeights[counter] = 0.0;
-			} else {
-				categoricalWeights[counter] = (entropyArr[i] / totalEntropy);
+			if(size == 1) {
+				categoricalWeights = new double[]{1};
+				return;
 			}
-			counter++;
-		}
 
-		// output category and weight to console
-//		for(int i = 0; i < categoricalWeights.length; i++) {
-//			LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
-//		}
+			double[] entropyArr = new double[size];
+
+			for(; i < size; i++) {
+				CalculateEntropy getEntropy = new CalculateEntropy();
+				getEntropy.setDataArr(ArrayUtilityMethods.getColumnFromList(categoricalMatrix, i));
+				getEntropy.addDataToCountHash();
+				entropyArr[i] = getEntropy.calculateEntropyDensity();
+			}
+
+			categoricalWeights = new double[size];
+			double totalEntropy = StatisticsUtilityMethods.getSum(entropyArr);
+			i = 0;
+			for(; i < size; i++) {
+				if(totalEntropy == 0) {
+					categoricalWeights[i] = 0;
+				} else {
+					categoricalWeights[i] = entropyArr[i] / totalEntropy;
+				}
+			}
+
+			// output category and weight to console
+//			i = 0;
+//			for(; i < categoricalWeights.length; i++) {
+//				LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
+//			}
+		}
 	}
 
-	
 	/**
 	 * Generate weights for categorical similarity matrix
 	 */
@@ -410,24 +318,24 @@ public class ClusteringDataProcessor {
 		}
 
 		// output category and weight to console
-//		for(int i = 0; i < numericalWeights.length; i++) {
-//			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
-//		}
+		//		for(int i = 0; i < numericalWeights.length; i++) {
+		//			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
+		//		}
 	}
-	
+
 	/**
 	 * Generate occurrence of instance numerical properties to calculate entropy
 	 * @return	A list containing a hashtable that stores all the different instances of a given property
 	 */
 	private ArrayList<Hashtable<String, Integer>> getNumericalPropOccurance() {
 		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
-		
+
 		if(numericalMatrix != null)
 		{
 			int numRows = masterTable.size();
 			int numCols = numericalPropNames.length;
 			numericalBinMatrix = new String[numRows][numCols];
-			
+
 			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
 			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
 			int size = data.length;
@@ -457,7 +365,7 @@ public class ClusteringDataProcessor {
 
 		return trackPropOccuranceArr;
 	}
-	
+
 	private void generateNumericalBinMatrix(int col, String[] values) {
 		int i;
 		int size = values.length;
@@ -470,7 +378,7 @@ public class ClusteringDataProcessor {
 			}
 		}
 	}
-	
+
 	/**
 	 * Generate entropy array for each category to create weights
 	 * @param trackPropOccurance	A list containing a hashtable that stores all the different instances of a given property
@@ -493,12 +401,12 @@ public class ClusteringDataProcessor {
 					unqiueCountOfPropInstances++;
 				}
 			}
-			
+
 			//if all values missing for property, entropy is 0
 			if(columnPropInstanceCountArr.size() <= 1) {
 				continue;
 			}
-			
+
 			double sumProb = 0;
 			int columnPropInstanceSize = columnPropInstanceCountArr.size();
 			for(int j = 0; j < columnPropInstanceSize; j++) {
@@ -512,5 +420,38 @@ public class ClusteringDataProcessor {
 		}
 
 		return entropyArr;
+	}
+
+	public int[] getTotalNumericalPropIndices() {
+		return totalNumericalPropIndices;
+	}
+
+	public Integer[] getCategoryPropIndices() {
+		return categoryPropIndices;
+	}
+
+	public String[][] getNumericalBinMatrix() {
+		return numericalBinMatrix;
+	}
+	public String[][] getNumericalBinOrderingMatrix(){
+		return numericalBinOrderingMatrix;
+	}
+	public String[][] getCategoricalMatrix() {
+		return categoricalMatrix;
+	}
+
+	public String[] getCategoryPropNames() {
+		return categoryPropNames;
+	}
+	public String[] getNumericalPropNames() {
+		return numericalPropNames;
+	}
+
+	public double[] getCategoricalWeights() {
+		return categoricalWeights;
+	}
+
+	public double[] getNumericalWeights() {
+		return numericalWeights;
 	}
 }
