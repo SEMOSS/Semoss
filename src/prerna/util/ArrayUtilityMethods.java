@@ -286,6 +286,23 @@ public final class ArrayUtilityMethods {
 		return retArr; 
 	}
 	
+	public static int[] convertObjArrToIntArr(final Object[] arr) {
+		int size = arr.length;
+		int[] retArr = new int[size];
+		int index;
+		for(index = 0; index < size; index++) {
+			Object obj = arr[index];
+			int val = 0;
+			try {
+				val = Integer.valueOf(obj.toString());
+			} catch(NumberFormatException ex) {
+				throw new NumberFormatException("Value in Object array cannot be converted to double");
+			}
+			retArr[index] = val;
+		}
+		return retArr;
+	}
+	
 	public static double[] convertObjArrToDoubleArr(final Object[] arr) {
 		int size = arr.length;
 		double[] retArr = new double[size];
@@ -476,19 +493,19 @@ public final class ArrayUtilityMethods {
 		}
 		int size = dataMatrix.length;
 		if(startRow < 0) {
-			throw new IllegalArgumentException("startRow must be larger than 0");
+			throw new IllegalArgumentException("startRow, " + startRow + ", must be larger than 0");
 		} 
 		if(startRow > size) {
-			throw new IllegalArgumentException("startRow is larger than the size of the list");
+			throw new IllegalArgumentException("startRow, " + startRow + " is larger than the size of the list, " + size);
 		}
 		if(endRow < 0) {
-			throw new IllegalArgumentException("endRow must be larger than 0");
+			throw new IllegalArgumentException("endRow, " + endRow +", must be larger than 0");
 		}
 		if(endRow > size) {
-			throw new IllegalArgumentException("endRow is larger than the size of the list");
+			throw new IllegalArgumentException("endRow, " + endRow + ", is larger than the size of the list, " + size);
 		}
 		if(endRow <= startRow) {	
-			throw new IllegalArgumentException("startRow is larger than or equal to endRow");
+			throw new IllegalArgumentException("startRow, " + startRow +", is larger than or equal to endRow, " + endRow);
 		}
 		
 		String[][] retDataMatrix = new String[endRow-startRow][];
@@ -548,5 +565,22 @@ public final class ArrayUtilityMethods {
 		}
 		
 		return retArr;
+	}
+	
+	public static Object[] getColumnFromList(Object[][] list, int colToGet) {
+		if(list == null || list.length == 0) {
+			return null;
+		}
+		
+		int numRows = list.length;
+		Object[] retList = new Object[numRows];
+		
+		int i;
+		for(i = 0; i < numRows; i++) {
+			Object[] oldRow = list[i];
+			retList[i] = oldRow[colToGet];
+		}
+		
+		return retList;
 	}
 }
